@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import {
   LayoutDashboard, Lightbulb, DoorOpen, Sparkles, Workflow,
-  Zap, Bell, Clock, Settings, HeadsetIcon,
+  Zap, Bell, Clock, Settings, Shield, Package,
 } from "lucide-react";
 
 const mainNavItems = [
@@ -47,20 +47,16 @@ export function MobileNav() {
 
 const allNavItems = [
   ...mainNavItems,
+  { path: "/alarm", label: "Alarm", icon: Shield },
+  { path: "/services", label: "Services", icon: Package },
   { path: "/energy", label: "Energy", icon: Zap },
   { path: "/notifications", label: "Notifications", icon: Bell },
   { path: "/history", label: "History", icon: Clock },
-  { path: "/settings", label: "Settings", icon: Settings },
-];
-
-const supportNavItems = [
-  { path: "/support", label: "Support", icon: HeadsetIcon },
+  { path: "/settings", label: "Home Settings", icon: Settings },
 ];
 
 export function DesktopSidebarNav() {
   const location = useLocation();
-  const { currentUser } = useApp();
-  const showSupport = currentUser.role === "support" || currentUser.role === "admin";
 
   const renderItem = (item: typeof allNavItems[0]) => {
     const active = item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path);
@@ -85,13 +81,6 @@ export function DesktopSidebarNav() {
   return (
     <nav className="flex flex-col gap-1 px-2" aria-label="Main navigation">
       {allNavItems.map(renderItem)}
-      {showSupport && (
-        <>
-          <div className="my-2 border-t" />
-          <span className="px-3 text-2xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">Support</span>
-          {supportNavItems.map(renderItem)}
-        </>
-      )}
     </nav>
   );
 }

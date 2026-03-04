@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import { MobileNav, DesktopSidebarNav } from "./Navigation";
 import { HomeSwitcher } from "./HomeSwitcher";
 import { ConnectionBanner, SyncIndicator } from "@/components/common/ConnectionBanner";
@@ -9,6 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Settings, User } from "lucide-react";
 import type { UserRole } from "@/mock/data";
 
 const roleLabels: Record<UserRole, string> = {
@@ -62,6 +63,12 @@ export function AppLayout() {
                     <span className="text-xs text-muted-foreground font-normal">{currentUser.email}</span>
                   </div>
                 </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <Link to="/user-settings">
+                  <DropdownMenuItem className="gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" /> Settings
+                  </DropdownMenuItem>
+                </Link>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Switch role (demo)</DropdownMenuLabel>
                 {(["user", "master", "support", "admin"] as UserRole[]).map(role => (

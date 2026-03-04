@@ -100,6 +100,15 @@ export const mockDevices: Device[] = [
       attr("sessionEnergy", 0, "kWh"),
     ],
   },
+  {
+    id: "dev-9", name: "Kitchen Smart Plug", type: "socketSingle", displayType: "Smart Plug",
+    online: true, icon: "socketSingle", iconOptions: ["socketSingle"], troubleshooting: null,
+    lastActivityAt: ago(10), vendor: "IKEA", model: "TRETAKT", softwareVersion: "1.0.2",
+    softwareUpdate: null, hardwareVersion: "1.0", ignoreInMoods: false,
+    supportsGroups: true, supportsIdentify: true, energySaverEnabled: false,
+    alarmDevice: false, profiles: null, location: "room-4",
+    attributes: [attr("isOn", true)],
+  },
 ];
 
 // ---- Rooms --------------------------------------------------
