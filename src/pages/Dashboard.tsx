@@ -1,16 +1,18 @@
+import { useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Shield, ShieldCheck, ShieldAlert, Sun, Moon, Sunrise,
+  Shield, ShieldCheck, ShieldAlert, Sun, Moon,
   AlertTriangle, Lightbulb, Thermometer, Lock, Activity,
-  ChevronRight, Zap,
+  ChevronRight, Zap, Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import type { AlarmMode } from "@/types/api";
+import type { AlarmMode, Device } from "@/types/api";
 import { formatDistanceToNow } from "date-fns";
+import { DeviceControl } from "@/components/devices/DeviceControl";
 
 const alarmConfig: Record<AlarmMode, { label: string; icon: React.ElementType; variant: "online" | "warning" | "safety" | "info" }> = {
   disarmed: { label: "Disarmed", icon: Shield, variant: "online" },
@@ -27,13 +29,29 @@ const fadeUp = {
 
 export default function DashboardPage() {
   const { currentHome } = useApp();
+  const [deviceOverrides, setDeviceOverrides] = useState<Record<string, Record<string, unknown>>>({});
+
   if (!currentHome) return null;
 
   const profile = currentHome.activeProfile;
   const alarm = profile ? alarmConfig[profile.mode] : null;
-  const onlineDevices = currentHome.rooms.flatMap(r => r.devices).filter(d => d.online).length;
-  const totalDevices = currentHome.rooms.flatMap(r => r.devices).length;
+  const allDevices = currentHome.rooms.flatMap(r => r.devices);
+  const onlineDevices = allDevices.filter(d => d.online).length;
+  const totalDevices = allDevices.length;
   const warnings = currentHome.warnings;
+
+  // Controllable devices for quick access
+  const controllableDevices = allDevices.filter(d => d.online).slice(0, 6);
+
+  const getDevice = (device: Device): Device => {
+    const overrides = deviceOverrides[device.id];
+    if (!overrides) return device;
+    return { ...device, attributes: device.attributes.map(a => overrides[a.name] !== undefined ? { ...a, value: overrides[a.name] } : a) };
+  };
+
+  const handleAttrChange = (deviceId: string, attrName: string, value: unknown) => {
+    setDeviceOverrides(prev => ({ ...prev, [deviceId]: { ...(prev[deviceId] ?? {}), [attrName]: value } }));
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
@@ -44,18 +62,21 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">{currentHome.address?.city ?? "Home"}</p>
         </div>
         {alarm && (
-          <div className={`flex items-center gap-3 rounded-lg px-4 py-3 ${
-            profile!.mode === "armed" ? "bg-safety/10 safety-glow" :
-            profile!.mode === "disarmed" ? "bg-success/10" : "bg-warning/10 warning-glow"
-          }`}>
-            <alarm.icon className="h-5 w-5" />
-            <div>
-              <p className="text-sm font-semibold">{alarm.label}</p>
-              <p className="text-2xs text-muted-foreground">
-                {formatDistanceToNow(new Date(profile!.modeChangedAt), { addSuffix: true })}
-              </p>
+          <Link to="/alarm">
+            <div className={`flex items-center gap-3 rounded-lg px-4 py-3 cursor-pointer hover:opacity-80 transition-opacity ${
+              profile!.mode === "armed" ? "bg-safety/10 safety-glow" :
+              profile!.mode === "disarmed" ? "bg-success/10" : "bg-warning/10 warning-glow"
+            }`}>
+              <alarm.icon className="h-5 w-5" />
+              <div>
+                <p className="text-sm font-semibold">{alarm.label}</p>
+                <p className="text-2xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(profile!.modeChangedAt), { addSuffix: true })}
+                </p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
-          </div>
+          </Link>
         )}
       </motion.div>
 
@@ -90,8 +111,72 @@ export default function DashboardPage() {
         <QuickStat icon={Zap} label="Energy" value="2.1 kW" sub="current draw" />
       </motion.div>
 
-      {/* Rooms overview */}
+      {/* Services */}
+      <motion.div {...fadeUp} transition={{ delay: 0.12, duration: 0.25 }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground">Services</h2>
+          <Link to="/services" className="text-xs text-primary font-medium hover:underline">View all</Link>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+          <Link to="/alarm">
+            <Card className="hover:shadow-card-hover transition-shadow cursor-pointer">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-safety/10 text-safety flex items-center justify-center">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Alarm</p>
+                  <p className="text-2xs text-muted-foreground">Viking Guard</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/energy">
+            <Card className="hover:shadow-card-hover transition-shadow cursor-pointer">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <Zap className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Energy</p>
+                  <p className="text-2xs text-muted-foreground">Smart control</p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </motion.div>
+
+      {/* Quick device controls */}
       <motion.div {...fadeUp} transition={{ delay: 0.15, duration: 0.25 }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-foreground">Quick Controls</h2>
+          <Link to="/devices" className="text-xs text-primary font-medium hover:underline">All devices</Link>
+        </div>
+        <div className="space-y-2">
+          {controllableDevices.map((rawDevice, i) => {
+            const device = getDevice(rawDevice);
+            return (
+              <motion.div key={device.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.03, duration: 0.2 }}>
+                <Card>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <Link to={`/devices/${device.id}`} className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="text-sm font-medium truncate">{device.name}</span>
+                    </Link>
+                    <div className="shrink-0 ml-2">
+                      <DeviceControl device={device} compact onAttributeChange={handleAttrChange} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* Rooms overview */}
+      <motion.div {...fadeUp} transition={{ delay: 0.2, duration: 0.25 }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-foreground">Rooms</h2>
           <Link to="/rooms" className="text-xs text-primary font-medium hover:underline">View all</Link>
@@ -117,7 +202,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Recent events */}
-      <motion.div {...fadeUp} transition={{ delay: 0.2, duration: 0.25 }}>
+      <motion.div {...fadeUp} transition={{ delay: 0.25, duration: 0.25 }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-foreground">Recent Activity</h2>
           <Link to="/history" className="text-xs text-primary font-medium hover:underline">View all</Link>
