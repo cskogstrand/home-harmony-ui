@@ -27,10 +27,15 @@ const itemSchema = z.object({
   kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema,
   done: z.boolean(), completedOn: z.string().optional(),
 });
+const calendarSettingsSchema = z.object({
+  view: z.enum(["people", "week"]), startDay: z.enum(["today", "monday"]),
+});
 const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
   timetables: z.object({ emma: z.string(), leo: z.string() }),
+  calendar: calendarSettingsSchema.catch({ view: "people", startDay: "today" }),
 });
+export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
 export type FamilyEvent = z.infer<typeof eventSchema>;
 export type ListItem = z.infer<typeof itemSchema>;
 type Planner = z.infer<typeof plannerSchema>;
@@ -72,6 +77,7 @@ function samplePlanner(today: string): Planner {
   ];
   return {
     events: sortEvents(events),
+    calendar: { view: "people", startDay: "today" },
     items: [
       { id: "d1", text: "Pack tomorrow’s school bags", kind: "daily", member: "emma", done: false },
       { id: "d2", text: "Set the table", kind: "daily", member: "leo", done: false },
@@ -88,6 +94,8 @@ function samplePlanner(today: string): Planner {
 
 interface FamilyContextValue extends Planner {
   now: Date; today: string; time: string; saved: boolean;
+  calendarStart: string;
+  setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   saveEvent: (event: FamilyEvent) => void;
   deleteEvent: (id: string) => void;
   addItem: (text: string, kind: ListKind, member: MemberId) => void;
@@ -134,6 +142,8 @@ function FamilyStore({ children, homeId, timeZone }: { children: ReactNode; home
     catch { setSaved(false); toast.error("This browser cannot save changes. Keep this tab open to retain your planner."); }
   }, [key, planner]);
   return <FamilyContext.Provider value={{ ...planner, now, today, time, saved,
+    calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
+    setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
     saveEvent: event => {
       const valid = eventSchema.safeParse(event);
       if (!valid.success) { toast.error("Check the event details before saving."); return; }

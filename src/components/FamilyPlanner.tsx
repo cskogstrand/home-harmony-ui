@@ -24,15 +24,15 @@ export function EventButton({ event, onClick, showDate = false }: { event: Famil
     <div><strong>{event.title}</strong><small>{event.location || memberName(event.member)}</small></div><ArrowUpRight size={15} />
   </button>;
 }
-export function EventEditor({ open, onOpenChange, event, date }: { open: boolean; onOpenChange: (open: boolean) => void; event?: FamilyEvent; date?: string }) {
+export function EventEditor({ open, onOpenChange, event, date, member = "everyone" }: { open: boolean; onOpenChange: (open: boolean) => void; event?: FamilyEvent; date?: string; member?: MemberId }) {
   const { today, saveEvent, deleteEvent } = useFamily();
   const [draft, setDraft] = useState<FamilyEvent | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const wasOpen = useRef(false);
   useEffect(() => {
-    if (open && !wasOpen.current) { setDraft(event ?? { id: newPlannerId(), title: "", date: date ?? today, time: "16:00", member: "everyone", location: "", note: "" }); setConfirmDelete(false); }
+    if (open && !wasOpen.current) { setDraft(event ?? { id: newPlannerId(), title: "", date: date ?? today, time: "16:00", member, location: "", note: "" }); setConfirmDelete(false); }
     wasOpen.current = open;
-  }, [open, event, date, today]);
+  }, [open, event, date, today, member]);
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="planner-dialog">
     <DialogHeader><DialogTitle>{event ? "A moment in your week" : "Make a little plan"}</DialogTitle><DialogDescription>Saved to the family calendar on this screen.</DialogDescription></DialogHeader>
     {draft && <form className="planner-form" onSubmit={e => { e.preventDefault(); if (!draft.title.trim()) return; saveEvent(draft); onOpenChange(false); }}>

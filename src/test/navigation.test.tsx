@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import App from "@/App";
 import { addDays, homeDate, weekStart, isPlannerDate, itemIsDone } from "@/contexts/FamilyContext";
 
@@ -10,7 +10,7 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 
 it("keeps a device change consistent from Today through detail, devices and rooms", async () => {
@@ -91,4 +91,83 @@ it("uses the home timezone and calendar dates across a month boundary", () => {
   expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
   expect(isPlannerDate("2026-02-30")).toBe(false);
   expect(itemIsDone({ id: "daily", text: "Table", kind: "daily", member: "leo", done: true, completedOn: "2026-10-05" }, "2026-10-06")).toBe(false);
+});
+
+const gridDates = () => Array.from(screen.getByRole("table").querySelectorAll("thead time"), time => time.getAttribute("datetime"));
+
+it("shares and remembers calendar layouts and today/Monday ranges without discarding existing plans", () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  const view = render(<App />);
+  // Simulate planner data saved before calendar preferences existed.
+  const key = "afterglow-planner-v1:home-1";
+  const oldPlanner = JSON.parse(localStorage.getItem(key)!);
+  delete oldPlanner.calendar;
+  view.unmount();
+  localStorage.setItem(key, JSON.stringify(oldPlanner));
+  const restored = render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
+  expect(gridDates()).toEqual(Array.from({ length: 7 }, (_, i) => addDays("2026-10-07", i)));
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AAnna", "ErErik", "EmEmma", "LLeo"]);
+  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
+  expect(gridDates()).toEqual(Array.from({ length: 7 }, (_, i) => addDays("2026-10-05", i)));
+  navigate("Our week");
+  expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: /Parents’ meeting/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Today" }));
+  fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+  expect(gridDates()[0]).toBe("2026-10-14");
+  fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+  expect(gridDates()[0]).toBe("2026-10-07");
+  fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
+  expect(gridDates()[0]).toBe("2026-10-05");
+  restored.unmount();
+  render(<App />);
+  expect(screen.getByRole("button", { name: "Monday" })).toHaveAttribute("aria-pressed", "true");
+  expect(gridDates()[0]).toBe("2026-10-05");
+  fireEvent.click(screen.getByRole("button", { name: "By person" }));
+  expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  navigate("Today");
+  expect(screen.getByRole("button", { name: "By person" })).toHaveAttribute("aria-pressed", "true");
+  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual(oldPlanner.events);
+});
+
+it("opens every plan in a dashboard cell and prefills the person and date when adding", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  render(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
+  fireEvent.click(screen.getByRole("button", { name: "View Emma on Wed 7 Oct: 2 plans" }));
+  const day = within(await screen.findByRole("dialog"));
+  expect(day.getByRole("button", { name: /Dinner together/ })).toBeInTheDocument();
+  fireEvent.click(day.getByRole("button", { name: /Piano lesson/ }));
+  expect(await screen.findByLabelText("What’s happening?")).toHaveValue("Piano lesson");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add a plan for Emma on Tue 13 Oct" }));
+  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-13");
+  expect(screen.getByLabelText("Who’s going?")).toHaveValue("emma");
+  fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Library visit" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(await screen.findByRole("button", { name: "View Emma on Tue 13 Oct: 1 plan" })).toHaveTextContent("Library visit");
+  navigate("Our week");
+  fireEvent.click(screen.getByRole("button", { name: /Library visit/ }));
+  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-13");
+});
+
+it("advances an unbrowsed rolling week at midnight in the home timezone across New Year", () => {
+  vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+  vi.setSystemTime(new Date("2026-12-31T22:59:55Z"));
+  render(<App />);
+  navigate("Our week");
+  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
+  expect(gridDates()[0]).toBe("2026-12-31");
+  expect(gridDates()[6]).toBe("2027-01-06");
+  act(() => vi.advanceTimersByTime(15000));
+  expect(gridDates()[0]).toBe("2027-01-01");
+  expect(gridDates()[6]).toBe("2027-01-07");
+  navigate("Today");
+  expect(gridDates()[0]).toBe("2027-01-01");
+  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
+  expect(gridDates()[0]).toBe("2026-12-28");
 });

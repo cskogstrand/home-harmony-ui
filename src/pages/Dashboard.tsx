@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
-import { useFamily, familyMembers, memberName, weekStart, addDays, dateLabel, sortEvents, type FamilyEvent } from "@/contexts/FamilyContext";
-import { EventEditor, EventButton, ListPanel, MemberAvatar, PanelHeading, SchoolPreview } from "@/components/FamilyPlanner";
+import { useFamily, familyMembers, memberName, addDays, dateLabel, sortEvents, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { EventEditor, EventButton, ListPanel, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
+import { CalendarViewControls, FamilyWeekGrid } from "@/components/FamilyCalendar";
 import { HomeFavorites, VehicleCard } from "@/components/HomePanels";
 
 export default function Dashboard() {
-  const { today, time, events } = useFamily();
+  const { today, time, events, calendar, calendarStart: start } = useFamily();
   const [editing, setEditing] = useState<FamilyEvent>();
   const [editorOpen, setEditorOpen] = useState(false);
-  const openEvent = (event?: FamilyEvent) => { setEditing(event); setEditorOpen(true); };
+  const [newPlan, setNewPlan] = useState<{ date: string; member: MemberId }>();
+  const openEvent = (event?: FamilyEvent) => { setEditing(event); setNewPlan(undefined); setEditorOpen(true); };
+  const addPlan = (date: string, member: MemberId) => { setEditing(undefined); setNewPlan({ date, member }); setEditorOpen(true); };
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}`);
   const next = upcoming[0];
-  const start = weekStart(today);
   const weekEvents = events.filter(e => e.date >= start && e.date < addDays(start, 7));
   return <div className="portrait-board">
     <header className="ambient-heading"><div className="clock-block"><time className="ambient-clock">{time}</time><span>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</span></div>
@@ -24,8 +26,9 @@ export default function Dashboard() {
       <button className="add-plan" onClick={() => openEvent()} aria-label="Add a family plan"><Plus size={20} /></button>
     </section>
     <section className="glow-panel family-week">
-      <PanelHeading title="Everyone’s week" to="/calendar" label="Open calendar" />
-      <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}`} className={day === today ? "is-today" : ""} aria-label={`View ${dateLabel(day)}`} aria-current={day === today ? "date" : undefined}><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>
+      <div className="panel-heading calendar-panel-heading"><h2>Everyone’s week</h2><CalendarViewControls /><Link to="/calendar" className="text-link">Open calendar<ArrowUpRight size={17} /></Link></div>
+      {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} compact onEdit={openEvent} onAdd={addPlan} /> : <>
+      <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={`View ${dateLabel(day)}`} aria-current={day === today ? "date" : undefined}><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>
       <div className="family-lanes">{familyMembers.map(member => {
         const personal = weekEvents.filter(e => e.member === member.id || e.member === "everyone");
         const future = personal.filter(e => `${e.date}${e.time}` >= `${today}${time}`);
@@ -35,13 +38,13 @@ export default function Dashboard() {
           {shown.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
           {shown.length === 0 && <p className="empty-note">A lovely open week.</p>}
         </div>;
-      })}</div>
+      })}</div></>}
     </section>
     <ListPanel kind="daily" limit={3} />
     <ListPanel kind="shopping" limit={3} />
     <section className="glow-panel school-strip"><div><span className="eyebrow">READY FOR TOMORROW</span><h2>School, sorted.</h2><p>Timetables at a glance.<br />Tap to take a closer look.</p><Link to="/school" className="text-link">School board<ArrowUpRight size={17} /></Link></div><SchoolPreview child="emma" /><SchoolPreview child="leo" /></section>
     <HomeFavorites />
     <VehicleCard />
-    <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} />
+    <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;
 }
