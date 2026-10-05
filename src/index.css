@@ -1,8 +1,207 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')
+layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 640px) {
+    max-width: 640px;
+  }
+  @media (width >= 768px) {
+    max-width: 768px;
+  }
+  @media (width >= 1024px) {
+    max-width: 1024px;
+  }
+  @media (width >= 1280px) {
+    max-width: 1280px;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme inline {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-safety: hsl(var(--safety));
+  --color-safety-foreground: hsl(var(--safety-foreground));
+
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  --color-online: hsl(var(--online));
+  --color-offline: hsl(var(--offline));
+  --color-pending: hsl(var(--pending));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-fade-in: fade-in 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      transform: translateY(8px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* Preserve Tailwind 3's default border color for pseudo-elements. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility shadow-card {
+  box-shadow: var(--home-shadow-sm);
+}
+
+@utility shadow-card-hover {
+  box-shadow: var(--home-shadow-md);
+}
+
+@utility shadow-elevated {
+  box-shadow: var(--home-shadow-lg);
+}
+
+@utility safety-glow {
+  /* Safety/security visual language */
+  box-shadow:
+    0 0 0 2px hsl(var(--safety) / 0.2),
+    0 0 12px hsl(var(--safety) / 0.15);
+}
+
+@utility warning-glow {
+  box-shadow:
+    0 0 0 2px hsl(var(--warning) / 0.2),
+    0 0 12px hsl(var(--warning) / 0.15);
+}
+
+@utility touch-target {
+  /* Touch targets - min 44px for WCAG */
+  @apply min-h-[44px] min-w-[44px];
+}
+
+@utility status-dot {
+  /* Status dot */
+  @apply h-2 w-2 rounded-full;
+}
+
+@utility status-dot-online {
+  @apply status-dot bg-success;
+}
+
+@utility status-dot-offline {
+  @apply status-dot bg-muted-foreground/40;
+}
+
+@utility status-dot-warning {
+  @apply status-dot bg-warning;
+}
+
+@utility status-dot-error {
+  @apply status-dot bg-destructive;
+}
 
 @layer base {
   :root {
@@ -63,9 +262,9 @@
     --sidebar-ring: 173 58% 39%;
 
     /* Elevation shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(220 25% 10% / 0.04);
-    --shadow-md: 0 2px 8px -2px hsl(220 25% 10% / 0.08);
-    --shadow-lg: 0 8px 24px -8px hsl(220 25% 10% / 0.1);
+    --home-shadow-sm: 0 1px 2px 0 hsl(220 25% 10% / 0.04);
+    --home-shadow-md: 0 2px 8px -2px hsl(220 25% 10% / 0.08);
+    --home-shadow-lg: 0 8px 24px -8px hsl(220 25% 10% / 0.1);
   }
 
   .dark {
@@ -127,47 +326,5 @@
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
-  }
-}
-
-@layer utilities {
-  .shadow-card {
-    box-shadow: var(--shadow-sm);
-  }
-  .shadow-card-hover {
-    box-shadow: var(--shadow-md);
-  }
-  .shadow-elevated {
-    box-shadow: var(--shadow-lg);
-  }
-
-  /* Safety/security visual language */
-  .safety-glow {
-    box-shadow: 0 0 0 2px hsl(var(--safety) / 0.2), 0 0 12px hsl(var(--safety) / 0.15);
-  }
-  .warning-glow {
-    box-shadow: 0 0 0 2px hsl(var(--warning) / 0.2), 0 0 12px hsl(var(--warning) / 0.15);
-  }
-
-  /* Touch targets - min 44px for WCAG */
-  .touch-target {
-    @apply min-h-[44px] min-w-[44px];
-  }
-
-  /* Status dot */
-  .status-dot {
-    @apply h-2 w-2 rounded-full;
-  }
-  .status-dot-online {
-    @apply status-dot bg-success;
-  }
-  .status-dot-offline {
-    @apply status-dot bg-muted-foreground/40;
-  }
-  .status-dot-warning {
-    @apply status-dot bg-warning;
-  }
-  .status-dot-error {
-    @apply status-dot bg-destructive;
   }
 }

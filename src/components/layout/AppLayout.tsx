@@ -51,7 +51,7 @@ export function AppLayout() {
           <div className="flex items-center gap-3">
             <SyncIndicator />
             <DropdownMenu>
-              <DropdownMenuTrigger className="touch-target rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <DropdownMenuTrigger className="touch-target rounded-full focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
                 </Avatar>

@@ -7,7 +7,7 @@ Frontend application for the Home Harmony project.
 - React 18
 - TypeScript
 - Vite
-- Tailwind CSS
+- Tailwind CSS 4
 - shadcn/ui
 - Vitest + Testing Library
 
@@ -15,6 +15,7 @@ Frontend application for the Home Harmony project.
 
 - Node.js 20, 22, or 24+ (required by the test tooling and router)
 - npm (or Bun)
+- Safari 16.4+, Chrome 111+, or Firefox 128+ (Tailwind CSS 4)
 
 ## Run locally
 
@@ -44,7 +45,7 @@ npm run test:watch  # Run tests in watch mode
 
 ## Bun (optional)
 
-This repo also includes a Bun lockfile. If you prefer Bun:
+The npm lockfile is authoritative. If you prefer Bun, generate a fresh Bun lockfile from the current dependencies:
 
 ```bash
 bun install
