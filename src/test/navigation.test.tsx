@@ -133,15 +133,18 @@ it("shares and remembers calendar layouts and today/Monday ranges without discar
   expect(JSON.parse(localStorage.getItem(key)!).events).toEqual(oldPlanner.events);
 });
 
-it("opens every plan in a dashboard cell and prefills the person and date when adding", async () => {
+it("shows every dashboard plan inline and prefills the person and date when adding", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
   render(<App />);
   fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
-  fireEvent.click(screen.getByRole("button", { name: "View Emma on Wed 7 Oct: 2 plans" }));
-  const day = within(await screen.findByRole("dialog"));
-  expect(day.getByRole("button", { name: /Dinner together/ })).toBeInTheDocument();
-  fireEvent.click(day.getByRole("button", { name: /Piano lesson/ }));
+  const emma = within(screen.getByRole("rowheader", { name: "Emma" }).closest("tr")!);
+  expect(emma.getByRole("button", { name: /Piano lesson/ })).toBeVisible();
+  expect(emma.getByRole("button", { name: /Dinner together/ })).toBeVisible();
+  const leo = within(screen.getByRole("rowheader", { name: "Leo" }).closest("tr")!);
+  expect(leo.getAllByRole("button", { name: /Swimming|Football practice|Dinner together/ })).toHaveLength(3);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(emma.getByRole("button", { name: /Piano lesson/ }));
   expect(await screen.findByLabelText("What’s happening?")).toHaveValue("Piano lesson");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(screen.getByRole("button", { name: "Add a plan for Emma on Tue 13 Oct" }));
@@ -149,7 +152,7 @@ it("opens every plan in a dashboard cell and prefills the person and date when a
   expect(screen.getByLabelText("Who’s going?")).toHaveValue("emma");
   fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Library visit" } });
   fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  expect(await screen.findByRole("button", { name: "View Emma on Tue 13 Oct: 1 plan" })).toHaveTextContent("Library visit");
+  expect(await screen.findByRole("button", { name: /Library visit/ })).toBeVisible();
   navigate("Our week");
   fireEvent.click(screen.getByRole("button", { name: /Library visit/ }));
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-13");

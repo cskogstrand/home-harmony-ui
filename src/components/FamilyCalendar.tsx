@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { Columns3, Table2, Plus } from "lucide-react";
-import { useFamily, familyMembers, addDays, dateLabel, memberName, sortEvents, type CalendarSettings, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, familyMembers, addDays, dateLabel, sortEvents, type CalendarSettings, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
-import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
   const { calendar, setCalendarSettings } = useFamily();
@@ -31,11 +28,9 @@ interface FamilyWeekGridProps {
 
 export function FamilyWeekGrid({ start, events, members = familyMembers, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
   const { today } = useFamily();
-  const [selectedDay, setSelectedDay] = useState<{ date: string; member: MemberId } | null>(null);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const plansFor = (date: string, member: MemberId) => sortEvents(events.filter(e => e.date === date && (e.member === member || e.member === "everyone")));
-  return <>
-    <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label="Family weekly calendar" tabIndex={0}>
+  return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label="Family weekly calendar" tabIndex={0}>
       <table className="family-week-table">
         <caption className="sr-only">Family plans from {dateLabel(start)} to {dateLabel(addDays(start, 6))}</caption>
         <colgroup><col className="week-member-column" />{days.map(day => <col key={day} />)}</colgroup>
@@ -47,23 +42,13 @@ export function FamilyWeekGrid({ start, events, members = familyMembers, compact
           {days.map(day => {
             const plans = plansFor(day, person.id);
             return <td key={day} className={day === today ? "week-today" : ""}>
-              {compact ? <button className={`week-cell-preview ${plans.length ? "has-plans" : ""}`}
-                aria-label={plans.length ? `View ${person.name} on ${dateLabel(day)}: ${plans.length} ${plans.length === 1 ? "plan" : "plans"}` : `Add a plan for ${person.name} on ${dateLabel(day)}`}
-                aria-haspopup="dialog" onClick={() => plans.length ? setSelectedDay({ date: day, member: person.id }) : onAdd(day, person.id)}>
-                {plans.length ? <><span><time>{plans[0].time}</time>{plans.length > 1 && <small>+{plans.length - 1}</small>}</span><strong>{plans[0].title}</strong></> : <Plus size={14} aria-hidden="true" />}
-              </button> : <div className="week-cell-plans">
+              <div className="week-cell-plans">
                 {plans.map(event => <EventButton key={event.id} event={event} onClick={() => onEdit(event)} />)}
                 <button className="week-add-plan" aria-label={`Add a plan for ${person.name} on ${dateLabel(day)}`} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span>{plans.length ? "Add" : "Add plan"}</span></button>
-              </div>}
+              </div>
             </td>;
           })}
         </tr>)}</tbody>
       </table>
-    </div>
-    <Dialog open={!!selectedDay} onOpenChange={open => { if (!open) setSelectedDay(null); }}><DialogContent>
-      <DialogHeader><DialogTitle>{selectedDay ? `${memberName(selectedDay.member)}’s plans` : "Day’s plans"}</DialogTitle><DialogDescription>{selectedDay && dateLabel(selectedDay.date, { weekday: "long", day: "numeric", month: "long" })}</DialogDescription></DialogHeader>
-      {selectedDay && <><div>{plansFor(selectedDay.date, selectedDay.member).map(event => <EventButton key={event.id} event={event} onClick={() => { setSelectedDay(null); onEdit(event); }} />)}</div>
-        <Button onClick={() => { onAdd(selectedDay.date, selectedDay.member); setSelectedDay(null); }}><Plus size={17} />Add a plan for {memberName(selectedDay.member)}</Button></>}
-    </DialogContent></Dialog>
-  </>;
+    </div>;
 }
