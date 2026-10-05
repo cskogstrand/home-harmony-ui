@@ -84,7 +84,7 @@ export const mockDevices: Device[] = [
     lastActivityAt: ago(8), vendor: "Onics", model: "WV-1", softwareVersion: "2.0.1",
     softwareUpdate: null, hardwareVersion: "1.0", ignoreInMoods: false,
     supportsGroups: false, supportsIdentify: false, energySaverEnabled: false,
-    alarmDevice: false, profiles: null, location: null,
+    alarmDevice: false, profiles: null, location: "room-4",
     attributes: [attr("isOpen", true)],
   },
   {
@@ -94,10 +94,11 @@ export const mockDevices: Device[] = [
     softwareUpdate: null, hardwareVersion: "3.0", ignoreInMoods: true,
     supportsGroups: false, supportsIdentify: false, energySaverEnabled: true,
     eligibleForEnergySaver: true, external: true, externalDeviceId: "ext-ev-1",
-    alarmDevice: false, profiles: null, location: null,
+    alarmDevice: false, profiles: null, location: "room-5",
     attributes: [
-      attr("chargingState", "idle"), attr("currentPower", 0, "kW"),
-      attr("sessionEnergy", 0, "kWh"),
+      attr("charging", true), attr("currentPower", 7.4, "kW"),
+      attr("sessionEnergy", 12.8, "kWh"), attr("batteryLevel", 72, "%"), attr("range", 284, "km"),
+      attr("chargeLimit", 80, "%", { minValue: 50, maxValue: 100, step: 1 }),
     ],
   },
   {
@@ -112,11 +113,17 @@ export const mockDevices: Device[] = [
 ];
 
 // ---- Rooms --------------------------------------------------
+mockDevices.push({
+  ...mockDevices[0], id: "dev-10", name: "Living Room Blinds", type: "coverWindow", displayType: "Blinds", icon: "coverWindow",
+  attributes: [attr("position", 60, "%", { minValue: 0, maxValue: 100, step: 1 })],
+});
+
 export const mockRooms: Room[] = [
   { id: "room-1", name: "Living Room", icon: "sofa", devices: mockDevices.filter(d => d.location === "room-1") },
   { id: "room-2", name: "Bedroom", icon: "bed", devices: mockDevices.filter(d => d.location === "room-2") },
   { id: "room-3", name: "Hallway", icon: "door", devices: mockDevices.filter(d => d.location === "room-3") },
   { id: "room-4", name: "Kitchen", icon: "utensils", devices: mockDevices.filter(d => d.location === "room-4") },
+  { id: "room-5", name: "Garage", icon: "car", devices: mockDevices.filter(d => d.location === "room-5") },
 ];
 
 // ---- Gateway ------------------------------------------------
@@ -140,8 +147,8 @@ export const mockMoods: Mood[] = [
     devices: [{ deviceId: "dev-1", attributes: [attr("isOn", true), attr("brightness", 60, "%")] }] },
   { id: "mood-2", name: "Movie Night", icon: "film", active: false, roomId: "room-1",
     devices: [{ deviceId: "dev-1", attributes: [attr("isOn", true), attr("brightness", 20, "%")] }] },
-  { id: "mood-3", name: "Away", icon: "plane", active: false, roomId: undefined, devices: [] },
-  { id: "mood-4", name: "Good Night", icon: "moon", active: true, roomId: undefined, devices: [] },
+  { id: "mood-3", name: "Away", icon: "plane", active: false, roomId: undefined, devices: [{ deviceId: "dev-1", attributes: [attr("isOn", false)] }] },
+  { id: "mood-4", name: "Good Night", icon: "moon", active: false, roomId: undefined, devices: [{ deviceId: "dev-1", attributes: [attr("isOn", false)] }] },
 ];
 
 // ---- Rules --------------------------------------------------

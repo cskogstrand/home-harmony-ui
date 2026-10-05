@@ -7,36 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import {
-  Lightbulb, Thermometer, Lock, Eye, Flame, Droplets, Plug, Radio,
-  ChevronRight, Search, Zap, Plus,
+  ChevronRight, Search, Plus,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import type { Device, DeviceType } from "@/types/api";
-import { DeviceControl, isSensorDevice } from "@/components/devices/DeviceControl";
+import type { Device } from "@/types/api";
+import { DeviceControl, DeviceIcon } from "@/components/devices/DeviceControl";
 import { AddDeviceModal } from "@/components/devices/AddDeviceModal";
-import { toast } from "sonner";
-
-const deviceIcons: Partial<Record<DeviceType, React.ElementType>> = {
-  light: Lightbulb, lightBulb: Lightbulb, dimmableLight: Lightbulb, colorLight: Lightbulb,
-  thermostat: Thermometer, doorLock: Lock,
-  sensorMotion: Eye, motionDetector: Eye, sensorPresence: Eye,
-  smokeDetector: Flame, sensorFire: Flame, fireDetector: Flame,
-  waterValve: Droplets, sensorWater: Droplets, waterDetector: Droplets,
-  socketSingle: Plug, socketDouble: Plug,
-  evCharger: Zap, evChargingStation: Zap,
-  sensorContactDoor: Radio, sensorContactWindow: Radio, magnetContact: Radio,
-};
-
-function getDeviceIcon(type: DeviceType): React.ElementType {
-  return deviceIcons[type] ?? Radio;
-}
 
 export default function DevicesPage() {
   const { currentHome, currentUser } = useApp();
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  // Local device state for interactive controls
-  const [deviceOverrides, setDeviceOverrides] = useState<Record<string, Record<string, unknown>>>({});
 
   const isMaster = currentUser.role === "master" || currentUser.role === "admin";
 
@@ -46,22 +27,6 @@ export default function DevicesPage() {
   const filtered = search
     ? allDevices.filter(d => d.name.toLowerCase().includes(search.toLowerCase()) || d.displayType.toLowerCase().includes(search.toLowerCase()))
     : allDevices;
-
-  const getDevice = (device: Device): Device => {
-    const overrides = deviceOverrides[device.id];
-    if (!overrides) return device;
-    return {
-      ...device,
-      attributes: device.attributes.map(a => overrides[a.name] !== undefined ? { ...a, value: overrides[a.name] } : a),
-    };
-  };
-
-  const handleAttrChange = (deviceId: string, attrName: string, value: unknown) => {
-    setDeviceOverrides(prev => ({
-      ...prev,
-      [deviceId]: { ...(prev[deviceId] ?? {}), [attrName]: value },
-    }));
-  };
 
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
@@ -87,13 +52,12 @@ export default function DevicesPage() {
       <StateWrapper state={filtered.length === 0 ? "empty" : "success"}
         emptyTitle="No devices found" emptyDescription={search ? "Try a different search term." : "Add devices through your gateway."}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filtered.map((rawDevice, i) => {
-            const device = getDevice(rawDevice);
+          {filtered.map((device, i) => {
             return (
               <motion.div key={device.id}
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03, duration: 0.2 }}>
-                <DeviceCard device={device} onAttributeChange={handleAttrChange} />
+                <DeviceCard device={device} />
               </motion.div>
             );
           })}
@@ -105,11 +69,9 @@ export default function DevicesPage() {
   );
 }
 
-function DeviceCard({ device, onAttributeChange }: { device: Device; onAttributeChange: (id: string, attr: string, val: unknown) => void }) {
-  const Icon = getDeviceIcon(device.type);
+function DeviceCard({ device }: { device: Device }) {
   const hasWarning = !!device.troubleshooting || !device.online;
   const hasUpdate = !!device.softwareUpdate;
-  const isSensor = isSensorDevice(device.type);
 
   return (
     <Card className={`transition-all ${hasWarning ? "border-warning/40" : ""}`}>
@@ -120,7 +82,7 @@ function DeviceCard({ device, onAttributeChange }: { device: Device; onAttribute
               <div className={`flex items-center justify-center h-9 w-9 rounded-lg ${
                 device.online ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               }`}>
-                <Icon className="h-4 w-4" />
+                <DeviceIcon type={device.type} className="h-4 w-4" />
               </div>
               <div>
                 <p className="text-sm font-medium truncate max-w-[140px]">{device.name}</p>
@@ -142,7 +104,7 @@ function DeviceCard({ device, onAttributeChange }: { device: Device; onAttribute
         {/* Inline device control */}
         {device.online && (
           <div className="pt-3 border-t">
-            <DeviceControl device={device} onAttributeChange={onAttributeChange} />
+            <DeviceControl device={device} />
           </div>
         )}
       </CardContent>

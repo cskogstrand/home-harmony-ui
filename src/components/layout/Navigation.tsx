@@ -1,86 +1,28 @@
-import { useLocation, Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { useApp } from "@/contexts/AppContext";
-import {
-  LayoutDashboard, Lightbulb, DoorOpen, Sparkles, Workflow,
-  Zap, Bell, Clock, Settings, Shield, Package,
-} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package } from "lucide-react";
 
-const mainNavItems = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/devices", label: "Devices", icon: Lightbulb },
-  { path: "/rooms", label: "Rooms", icon: DoorOpen },
-  { path: "/moods", label: "Moods", icon: Sparkles },
-  { path: "/automation", label: "Automation", icon: Workflow },
+const familyPaths = ["/", "/calendar", "/lists", "/school"];
+export const isHomeSection = (path: string) => !familyPaths.includes(path) && path !== "/user-settings";
+const mainItems = [
+  { path: "/", label: "Today", icon: House },
+  { path: "/calendar", label: "Our week", icon: CalendarDays },
+  { path: "/lists", label: "Lists", icon: ListChecks },
+  { path: "/school", label: "School", icon: BookOpen },
+  { path: "/home", label: "Smart home", icon: SlidersHorizontal },
 ];
-
-const mobileNavItems = mainNavItems.slice(0, 5);
-
-export function MobileNav() {
-  const location = useLocation();
-
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-md safe-area-bottom md:hidden"
-         role="navigation" aria-label="Main navigation">
-      <div className="flex items-stretch">
-        {mobileNavItems.map(item => {
-          const active = item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path);
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex flex-1 flex-col items-center gap-0.5 py-2 text-2xs font-medium transition-colors touch-target",
-                active ? "text-primary" : "text-muted-foreground"
-              )}
-              aria-current={active ? "page" : undefined}
-            >
-              <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
+export function MainNav() {
+  const { pathname } = useLocation();
+  return <nav className="family-dock" aria-label="Main navigation">{mainItems.map(item => <Link to={item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : pathname === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.6} /><span>{item.label}</span></Link>)}</nav>;
 }
-
-const allNavItems = [
-  ...mainNavItems,
-  { path: "/alarm", label: "Alarm", icon: Shield },
-  { path: "/services", label: "Services", icon: Package },
-  { path: "/energy", label: "Energy", icon: Zap },
-  { path: "/notifications", label: "Notifications", icon: Bell },
-  { path: "/history", label: "History", icon: Clock },
-  { path: "/settings", label: "Home Settings", icon: Settings },
+const smartItems = [
+  { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/rooms", label: "Rooms", icon: DoorOpen },
+  { path: "/devices", label: "Devices", icon: Lightbulb }, { path: "/moods", label: "Scenes", icon: Sparkles },
+  { path: "/alarm", label: "Security", icon: Shield }, { path: "/energy", label: "Car & energy", icon: Zap },
+  { path: "/automation", label: "Routines", icon: Workflow }, { path: "/notifications", label: "Alerts", icon: Bell },
+  { path: "/history", label: "Activity", icon: Clock }, { path: "/services", label: "Services", icon: Package },
+  { path: "/settings", label: "Home settings", icon: Settings },
 ];
-
-export function DesktopSidebarNav() {
-  const location = useLocation();
-
-  const renderItem = (item: typeof allNavItems[0]) => {
-    const active = item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path);
-    return (
-      <Link
-        key={item.path}
-        to={item.path}
-        className={cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors touch-target",
-          active
-            ? "bg-accent text-accent-foreground"
-            : "text-sidebar-foreground hover:bg-accent/50"
-        )}
-        aria-current={active ? "page" : undefined}
-      >
-        <item.icon className="h-4 w-4 shrink-0" />
-        {item.label}
-      </Link>
-    );
-  };
-
-  return (
-    <nav className="flex flex-col gap-1 px-2" aria-label="Main navigation">
-      {allNavItems.map(renderItem)}
-    </nav>
-  );
+export function SmartHomeNav() {
+  const { pathname } = useLocation();
+  return <nav className="smart-nav" aria-label="Smart home navigation">{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) ? "page" : undefined}><item.icon size={16} />{item.label}</Link>)}</nav>;
 }

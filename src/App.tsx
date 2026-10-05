@@ -6,6 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { FamilyProvider } from "@/contexts/FamilyContext";
+import Calendar from "./pages/Calendar";
+import Lists from "./pages/Lists";
+import School from "./pages/School";
+import SmartHome from "./pages/SmartHome";
 import Dashboard from "./pages/Dashboard";
 import Devices from "./pages/Devices";
 import DeviceDetail from "./pages/DeviceDetail";
@@ -31,10 +36,14 @@ const App = () => (
         <Toaster />
         <Sonner />
         <AppProvider>
-          <BrowserRouter>
+          <FamilyProvider><BrowserRouter>
             <Routes>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/calendar" element={<Calendar />} />
+                <Route path="/lists" element={<Lists />} />
+                <Route path="/school" element={<School />} />
+                <Route path="/home" element={<SmartHome />} />
                 <Route path="/devices" element={<Devices />} />
                 <Route path="/devices/:deviceId" element={<DeviceDetail />} />
                 <Route path="/rooms" element={<Rooms />} />
@@ -52,7 +61,7 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+          </BrowserRouter></FamilyProvider>
         </AppProvider>
       </TooltipProvider>
     </ThemeProvider>

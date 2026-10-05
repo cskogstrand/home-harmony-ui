@@ -9,7 +9,7 @@ export function HomeSwitcher() {
 
   return (
     <Select value={currentHome.id} onValueChange={selectHome}>
-      <SelectTrigger className="w-full border-0 bg-transparent px-2 h-10 gap-2 font-semibold text-sm focus:ring-0 focus:ring-offset-0">
+      <SelectTrigger aria-label="Select home" className="w-full border-0 bg-transparent px-2 h-10 gap-2 font-semibold text-sm focus:ring-0 focus:ring-offset-0">
         <Home className="h-4 w-4 text-primary shrink-0" />
         <SelectValue />
       </SelectTrigger>

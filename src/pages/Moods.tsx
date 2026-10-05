@@ -22,7 +22,7 @@ export default function MoodsPage() {
   return (
     <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Moods</h1>
+        <h1 className="text-xl font-bold">Scenes</h1>
         {isMaster && (
           <Button size="sm" variant="outline" className="gap-1.5" onClick={() => toast.info("TODO: Create mood flow")}>
             <Plus className="h-4 w-4" /> Create Mood
@@ -47,6 +47,7 @@ export default function MoodsPage() {
 }
 
 function MoodCard({ mood }: { mood: Mood }) {
+  const { activateMood, homeOnline } = useApp();
   const IconComponent = (mood.icon ? moodIcons[mood.icon] : undefined) ?? Sparkles;
   return (
     <Card className={`transition-shadow ${mood.active ? "border-primary/40 shadow-card-hover" : ""}`}>
@@ -69,9 +70,9 @@ function MoodCard({ mood }: { mood: Mood }) {
           <div className="flex items-center gap-2">
             {mood.active && <StatusBadge variant="online" dot={false}>Active</StatusBadge>}
             <Button size="sm" variant={mood.active ? "secondary" : "default"} className="gap-1.5 touch-target"
-              onClick={() => toast.success(mood.active ? `${mood.name} deactivated` : `${mood.name} activated`)}>
+              disabled={!homeOnline} onClick={() => activateMood(mood.id)}>
               <Play className="h-3.5 w-3.5" />
-              {mood.active ? "Stop" : "Activate"}
+              {mood.active ? "Apply again" : "Activate"}
             </Button>
           </div>
         </div>

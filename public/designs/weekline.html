@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="theme-color" content="#1e211f"><title>Weekline — Home Harmony concept 02</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%232e4537'/%3E%3Cpath d='M7 15 16 7l9 8v11H7Z' fill='none' stroke='%23c4d5a3' stroke-width='2'/%3E%3C/svg%3E"><link rel="stylesheet" href="./prototype.css"><script src="./prototype.js" defer></script></head>
+<body class="weekline" data-start="today">
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="proto-bar"><a href="./index.html">← All four concepts</a><span>02 / Weekline · The whole week, together</span><span>Interactive demo · Sample data</span></div>
+<div class="shell">
+<header class="topbar"><div class="brand"><span class="brand-mark"><i data-icon="calendar"></i></span><div>weekline<small>THE LINDQVIST HOME</small></div></div><nav class="main-nav" aria-label="Main navigation"><button data-go="today" ><i data-icon="home"></i>Overview</button><button data-go="week" ><i data-icon="calendar"></i>Calendar</button><button data-go="lists" ><i data-icon="list"></i>Lists</button><button data-go="school" ><i data-icon="school"></i>School</button><button data-go="smart" ><i data-icon="controls"></i>Smart home</button></nav><div class="top-status"><span class="dot"></span><span data-hub-state>Hub connected</span></div></header>
+<main id="main"><div id="offline-banner" class="status-banner" role="status" hidden>Home hub offline. Home readings are last known; controls are paused. Your family planner is still available.</div>
+<section data-view="today" aria-label="Family overview"><div class="page-heading"><div><div class="eyebrow">LINDQVIST FAMILY / MONDAY 5 OCTOBER</div><h1>Less juggling. More together.</h1></div><div class="heading-actions"><div class="week-subline"><i data-icon="sun"></i>12° in Oslo</div><button class="primary" data-add-event><i data-icon="plus"></i>Add event</button></div></div>
+<div class="note" style="margin:0 0 18px"><i data-icon="clock"></i><span><strong>Next up, 16:30</strong> · Leo’s football practice · Erik drives</span><button data-go="school" class="ghost">Today’s school</button></div>
+<div data-calendar-home></div>
+<div class="weekline-bottom">
+<article class="panel"><div class="panel-heading"><h2>Daily rhythm</h2><button data-go="lists" class="text-button" >Tasks <i data-icon="arrow"></i></button></div><div data-list="daily" data-limit="2" data-compact></div><div class="list-count" data-count="daily"></div></article>
+<article class="panel"><div class="panel-heading"><h2>The shopping run</h2><button data-go="lists" class="text-button" >All items <i data-icon="arrow"></i></button></div><div data-list="shopping" data-limit="2" data-compact></div><div class="list-count" data-count="shopping"></div></article>
+<article class="panel"><div class="panel-heading"><h2>At home</h2><button data-go="smart" class="text-button" >Smart home <i data-icon="arrow"></i></button></div><div class="car-top"><i data-icon="car"></i><div><h3>Family car</h3><small class="muted">284 km range</small></div><span class="badge">72%</span></div><div class="battery"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="small muted"><span data-value="charging">Charging · 7.4 kW</span> · Target 80%</div><div style="display:flex;gap:14px;justify-content:space-between;margin-top:13px;font-size:12px"><span><i data-icon="lock"></i> <span data-value="locked">Locked</span></span><span><i data-icon="temp"></i> <span data-value="temperature">21°</span></span><span><i data-icon="light"></i> <span data-value="light">On · 65%</span></span></div></article>
+</div></section>
+<div id="shared-views"></div>
+<footer class="footer-line"><span>Demo · Mon 5 Oct 2026, 15:42 · Changes reset on reload</span><button data-offline-button>Try hub offline</button></footer>
+</main></div>
+</body></html>

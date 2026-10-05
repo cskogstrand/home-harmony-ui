@@ -3,36 +3,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StateWrapper } from "@/components/common/StateWrapper";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Link, useParams } from "react-router-dom";
-import { ChevronRight, DoorOpen, Sofa, BedDouble, CookingPot, Plus, ArrowLeft } from "lucide-react";
+import { ChevronRight, DoorOpen, Sofa, BedDouble, CookingPot, Plus, ArrowLeft, Thermometer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { useState } from "react";
 import type { Device } from "@/types/api";
-import { DeviceControl, isSensorDevice } from "@/components/devices/DeviceControl";
-import {
-  Lightbulb, Thermometer, Lock, Eye, Flame, Droplets, Plug, Radio, Zap,
-} from "lucide-react";
-import type { DeviceType } from "@/types/api";
+import { DeviceControl, DeviceIcon } from "@/components/devices/DeviceControl";
 
 const roomIcons: Record<string, React.ElementType> = {
   sofa: Sofa, bed: BedDouble, door: DoorOpen, utensils: CookingPot,
 };
-
-const deviceIcons: Partial<Record<DeviceType, React.ElementType>> = {
-  light: Lightbulb, lightBulb: Lightbulb, dimmableLight: Lightbulb, colorLight: Lightbulb,
-  thermostat: Thermometer, doorLock: Lock,
-  sensorMotion: Eye, motionDetector: Eye, sensorPresence: Eye,
-  smokeDetector: Flame, sensorFire: Flame, fireDetector: Flame,
-  waterValve: Droplets, sensorWater: Droplets, waterDetector: Droplets,
-  socketSingle: Plug, socketDouble: Plug,
-  evCharger: Zap, evChargingStation: Zap,
-  sensorContactDoor: Radio, sensorContactWindow: Radio, magnetContact: Radio,
-};
-
-function getDeviceIcon(type: DeviceType): React.ElementType {
-  return deviceIcons[type] ?? Radio;
-}
 
 export default function RoomsPage() {
   const { currentHome, currentUser } = useApp();
@@ -100,24 +80,7 @@ export default function RoomsPage() {
 
 function RoomDetail({ room }: { room: { id: string; name: string; icon: string; devices: Device[] } }) {
   const RoomIcon = roomIcons[room.icon] ?? DoorOpen;
-  const [deviceOverrides, setDeviceOverrides] = useState<Record<string, Record<string, unknown>>>({});
   const onlineCount = room.devices.filter(d => d.online).length;
-
-  const getDevice = (device: Device): Device => {
-    const overrides = deviceOverrides[device.id];
-    if (!overrides) return device;
-    return {
-      ...device,
-      attributes: device.attributes.map(a => overrides[a.name] !== undefined ? { ...a, value: overrides[a.name] } : a),
-    };
-  };
-
-  const handleAttrChange = (deviceId: string, attrName: string, value: unknown) => {
-    setDeviceOverrides(prev => ({
-      ...prev,
-      [deviceId]: { ...(prev[deviceId] ?? {}), [attrName]: value },
-    }));
-  };
 
   // Aggregate sensor data
   const tempDevices = room.devices.filter(d => d.attributes.some(a => a.name === "currentTemperature"));
@@ -129,7 +92,7 @@ function RoomDetail({ room }: { room: { id: string; name: string; icon: string; 
     <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
         <Link to="/rooms">
-          <Button size="icon" variant="ghost"><ArrowLeft className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" aria-label="Back to rooms"><ArrowLeft className="h-4 w-4" /></Button>
         </Link>
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
@@ -171,9 +134,7 @@ function RoomDetail({ room }: { room: { id: string; name: string; icon: string; 
       <StateWrapper state={room.devices.length === 0 ? "empty" : "success"}
         emptyTitle="No devices" emptyDescription="Add devices to this room.">
         <div className="space-y-2">
-          {room.devices.map((rawDevice, i) => {
-            const device = getDevice(rawDevice);
-            const Icon = getDeviceIcon(device.type);
+          {room.devices.map((device, i) => {
             return (
               <motion.div key={device.id}
                 initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
@@ -185,7 +146,7 @@ function RoomDetail({ room }: { room: { id: string; name: string; icon: string; 
                         <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
                           device.online ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                         }`}>
-                          <Icon className="h-4 w-4" />
+                          <DeviceIcon type={device.type} className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{device.name}</p>
@@ -194,7 +155,7 @@ function RoomDetail({ room }: { room: { id: string; name: string; icon: string; 
                       </Link>
                       <div className="shrink-0 ml-3">
                         {device.online ? (
-                          <DeviceControl device={device} compact onAttributeChange={handleAttrChange} />
+                          <DeviceControl device={device} compact />
                         ) : (
                           <StatusBadge variant="offline">Offline</StatusBadge>
                         )}

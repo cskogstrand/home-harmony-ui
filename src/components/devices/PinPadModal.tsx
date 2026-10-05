@@ -18,7 +18,6 @@ interface PinPadModalProps {
 export function PinPadModal({ open, onOpenChange, title, description, onSubmit, variant = "lock" }: PinPadModalProps) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   const handleDigit = useCallback((digit: string) => {
     setError(false);
@@ -32,20 +31,14 @@ export function PinPadModal({ open, onOpenChange, title, description, onSubmit, 
 
   const handleSubmit = useCallback(() => {
     if (pin.length < 4) return;
-    setLoading(true);
-    // Simulate verification — accept "1234" as valid PIN
-    setTimeout(() => {
-      if (pin === "1234") {
-        onSubmit(pin);
-        setPin("");
-        setLoading(false);
-        onOpenChange(false);
-      } else {
-        setError(true);
-        setPin("");
-        setLoading(false);
-      }
-    }, 800);
+    if (pin === "1234") {
+      onSubmit(pin);
+      setPin("");
+      onOpenChange(false);
+    } else {
+      setError(true);
+      setPin("");
+    }
   }, [pin, onSubmit, onOpenChange]);
 
   const iconColor = variant === "unlock" ? "text-success" : variant === "lock" ? "text-primary" : "text-safety";
@@ -74,25 +67,25 @@ export function PinPadModal({ open, onOpenChange, title, description, onSubmit, 
         </div>
 
         {error && (
-          <p className="text-center text-sm text-destructive font-medium">Incorrect PIN. Try again.</p>
+          <p className="text-center text-sm text-destructive font-medium" role="alert">Incorrect PIN. Try again.</p>
         )}
 
         {/* Keypad */}
         <div className="grid grid-cols-3 gap-2 max-w-[240px] mx-auto">
           {["1","2","3","4","5","6","7","8","9"].map(d => (
             <Button key={d} variant="outline" size="lg" className="text-lg font-semibold h-14 touch-target"
-              onClick={() => handleDigit(d)} disabled={loading}>
+              onClick={() => handleDigit(d)}>
               {d}
             </Button>
           ))}
-          <Button variant="ghost" size="lg" className="h-14 touch-target" onClick={handleDelete} disabled={loading}>
+          <Button variant="ghost" size="lg" className="h-14 touch-target" onClick={handleDelete} aria-label="Delete PIN digit">
             <Delete className="h-5 w-5" />
           </Button>
           <Button variant="outline" size="lg" className="text-lg font-semibold h-14 touch-target"
-            onClick={() => handleDigit("0")} disabled={loading}>0</Button>
+            onClick={() => handleDigit("0")}>0</Button>
           <Button size="lg" className="h-14 touch-target" onClick={handleSubmit}
-            disabled={pin.length < 4 || loading}>
-            {loading ? "…" : "OK"}
+            disabled={pin.length < 4}>
+            OK
           </Button>
         </div>
         <p className="text-center text-2xs text-muted-foreground mt-2">Demo PIN: 1234</p>

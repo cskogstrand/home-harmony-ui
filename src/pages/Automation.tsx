@@ -60,6 +60,7 @@ export default function AutomationPage() {
 }
 
 function RuleCard({ rule }: { rule: Rule }) {
+  const { setRuleEnabled, homeOnline } = useApp();
   return (
     <Card>
       <CardContent className="p-4 flex items-center justify-between gap-4">
@@ -80,7 +81,8 @@ function RuleCard({ rule }: { rule: Rule }) {
           </StatusBadge>
           <Switch
             checked={rule.enabled}
-            onCheckedChange={(v) => toast.success(`Rule ${v ? "enabled" : "disabled"}`)}
+            disabled={!homeOnline}
+            onCheckedChange={(v) => setRuleEnabled(rule.id, v)}
             aria-label={`Toggle ${rule.name}`}
           />
         </div>

@@ -1,95 +1,31 @@
-import { Outlet, Link } from "react-router-dom";
-import { MobileNav, DesktopSidebarNav } from "./Navigation";
+import { useEffect } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { MainNav, SmartHomeNav, isHomeSection } from "./Navigation";
 import { HomeSwitcher } from "./HomeSwitcher";
-import { ConnectionBanner, SyncIndicator } from "@/components/common/ConnectionBanner";
+import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { useApp } from "@/contexts/AppContext";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Settings, User } from "lucide-react";
+import { useFamily } from "@/contexts/FamilyContext";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Moon, Settings, Wifi, WifiOff, Check } from "lucide-react";
 import type { UserRole } from "@/mock/data";
 
-const roleLabels: Record<UserRole, string> = {
-  user: "Home User",
-  master: "Master",
-  support: "Support",
-  admin: "Admin",
-};
-
 export function AppLayout() {
-  const { currentUser, setUserRole } = useApp();
-  const initials = currentUser.name.split(" ").map(n => n[0]).join("").slice(0, 2);
-
-  return (
-    <div className="flex min-h-screen w-full bg-background">
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-60 lg:w-64 flex-col border-r bg-sidebar shrink-0">
-        <div className="p-3 border-b">
-          <HomeSwitcher />
-        </div>
-        <div className="flex-1 overflow-y-auto py-3">
-          <DesktopSidebarNav />
-        </div>
-        <div className="border-t p-3">
-          <SyncIndicator />
-        </div>
-      </aside>
-
-      {/* Main content area */}
-      <div className="flex flex-1 flex-col min-w-0">
-        <ConnectionBanner />
-
-        {/* Top header */}
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-card/95 backdrop-blur-md px-4 h-14">
-          <div className="md:hidden">
-            <HomeSwitcher />
-          </div>
-          <div className="hidden md:block" />
-          <div className="flex items-center gap-3">
-            <SyncIndicator />
-            <DropdownMenu>
-              <DropdownMenuTrigger className="touch-target rounded-full focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col">
-                    <span>{currentUser.name}</span>
-                    <span className="text-xs text-muted-foreground font-normal">{currentUser.email}</span>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <Link to="/user-settings">
-                  <DropdownMenuItem className="gap-2 cursor-pointer">
-                    <Settings className="h-4 w-4" /> Settings
-                  </DropdownMenuItem>
-                </Link>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Switch role (demo)</DropdownMenuLabel>
-                {(["user", "master", "support", "admin"] as UserRole[]).map(role => (
-                  <DropdownMenuItem key={role} onClick={() => setUserRole(role)} className="gap-2">
-                    {roleLabels[role]}
-                    {currentUser.role === role && <Badge variant="secondary" className="ml-auto text-2xs">Active</Badge>}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-6">
-          <Outlet />
-        </main>
-
-        {/* Mobile bottom nav */}
-        <MobileNav />
+  const { currentUser, setUserRole, homeOnline } = useApp();
+  const { saved } = useFamily();
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo?.(0, 0); }, [pathname]);
+  return <div className="afterglow-app"><a className="skip-link" href="#main-content">Skip to content</a>
+    <header className="app-header"><Link to="/" className="brand" aria-label="Afterglow home"><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow<small>FAMILY, AT THE CENTRE</small></span></Link>
+      <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Demo home" : "Hub offline"}</span></span>
+        <DropdownMenu><DropdownMenuTrigger className="icon-button" aria-label="Open app settings"><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/user-settings">App preferences</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings">Home settings</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuLabel className="text-muted-foreground text-xs">Preview as a different role</DropdownMenuLabel>{(["user", "master", "support", "admin"] as UserRole[]).map(role => <DropdownMenuItem key={role} onClick={() => setUserRole(role)} className="capitalize">{role}{currentUser.role === role && <Check size={14} className="ml-auto" />}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu>
       </div>
-    </div>
-  );
+    </header>
+    <ConnectionBanner />
+    <main id="main-content" className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
+      {isHomeSection(pathname) && <SmartHomeNav />}
+      <Outlet />
+    </main>
+    <footer className="app-footer"><span>Sample household · {saved ? "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
+    <MainNav />
+  </div>;
 }

@@ -23,7 +23,7 @@ const profileConfig: Record<string, { label: string; icon: React.ElementType; de
 };
 
 export default function AlarmPage() {
-  const { currentHome, currentUser } = useApp();
+  const { currentHome, currentUser, homeOnline, setAlarmMode } = useApp();
   const [pinOpen, setPinOpen] = useState(false);
   const [targetMode, setTargetMode] = useState<AlarmMode>("disarmed");
 
@@ -64,13 +64,13 @@ export default function AlarmPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
             {profile?.mode !== "disarmed" && (
-              <Button variant="outline" className="gap-2" onClick={() => handleArm("disarmed")}>
+              <Button variant="outline" className="gap-2" disabled={!homeOnline} onClick={() => handleArm("disarmed")}>
                 <ShieldCheck className="h-4 w-4" /> Disarm
               </Button>
             )}
             {Object.entries(profileConfig).map(([mode, cfg]) => (
               <Button key={mode} variant={profile?.mode === mode ? "default" : "outline"} className="gap-2"
-                onClick={() => handleArm(mode as AlarmMode)} disabled={profile?.mode === mode}>
+                onClick={() => handleArm(mode as AlarmMode)} disabled={!homeOnline || profile?.mode === mode}>
                 <cfg.icon className="h-4 w-4" /> {cfg.label}
               </Button>
             ))}
@@ -231,7 +231,7 @@ export default function AlarmPage() {
         title={targetMode === "disarmed" ? "Disarm Alarm" : `Arm: ${profileConfig[targetMode]?.label ?? targetMode}`}
         description="Enter your alarm PIN to confirm."
         variant="alarm"
-        onSubmit={() => toast.success(`Alarm ${targetMode === "disarmed" ? "disarmed" : "armed"} (mock)`)}
+        onSubmit={() => setAlarmMode(targetMode)}
       />
     </div>
   );
