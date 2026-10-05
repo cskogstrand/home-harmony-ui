@@ -13,7 +13,7 @@ Frontend application for the Home Harmony project.
 
 ## Requirements
 
-- Node.js 18+ (recommended: Node.js 20)
+- Node.js 20, 22, or 24+ (required by the test tooling and router)
 - npm (or Bun)
 
 ## Run locally
