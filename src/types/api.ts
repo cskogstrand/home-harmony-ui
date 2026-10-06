@@ -38,13 +38,13 @@ export interface Entity {
   lastChanged?: string;
   lastUpdated?: string;
 }
-export interface Room { id: string; name: string; entities: Entity[] }
+export interface Area { id: string; name: string; entities: Entity[] }
 export interface Home {
   name: string;
   timeZone: string;
   temperatureUnit?: string;
   entities: Entity[];
-  rooms: Room[];
+  areas: Area[];
   devices: PhysicalDevice[];
 }
 export type EntityStates = HassEntities;

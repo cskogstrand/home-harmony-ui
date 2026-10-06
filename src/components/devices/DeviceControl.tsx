@@ -7,10 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { PinPadModal } from "./PinPadModal";
-import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles } from "lucide-react";
+import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles, MapPin } from "lucide-react";
 
 export function DeviceIcon({ type, className }: { type: string; className?: string }) {
-  const Icon = ({ light: Lightbulb, climate: Thermometer, lock: Lock, switch: Plug, cover: Blinds, alarm_control_panel: Shield, scene: Sparkles })[type] ?? Radio;
+  const Icon = ({ light: Lightbulb, climate: Thermometer, lock: Lock, switch: Plug, cover: Blinds, alarm_control_panel: Shield, scene: Sparkles, zone: MapPin })[type] ?? Radio;
   return <Icon className={className} />;
 }
 export function CommandFeedback({ entityId }: { entityId: string }) {

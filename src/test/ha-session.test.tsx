@@ -504,3 +504,39 @@ it("does not erase a newer browser login when an old tab reports revoked auth be
   expect(localStorage.getItem(TOKEN_KEY)).toBe(saved);
   expect(localStorage.getItem("home-harmony:ha-auth-revision")).toBe("new-login");
 });
+
+it("shows HA zones with live presence, passive metadata and honest missing or stale readings", async () => {
+  const zoneStates = {
+    ...states,
+    "zone.home": state("zone.home", "2", { friendly_name: "Our home", radius: 100, latitude: 0, longitude: 0, passive: false }),
+    "zone.school": state("zone.school", "0", { friendly_name: "School zone", radius: 250, passive: true }),
+    "zone.work": state("zone.work", "unknown", { friendly_name: "Work zone", latitude: 999, radius: -1 }),
+    "zone.other": state("zone.other", "unavailable", { friendly_name: "Other zone" }),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    const fake = connection as unknown as FakeConnection;
+    fake.entityCallback = callback;
+    queueMicrotask(() => callback(zoneStates));
+    return fake.unsubscribeEntities;
+  });
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/zones?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const home = within(await screen.findByRole("article", { name: "Our home" }));
+  expect(home.getByText("2 people")).toBeInTheDocument();
+  expect(home.getByText("100 m")).toBeInTheDocument();
+  expect(home.getAllByText("0")).toHaveLength(2);
+  expect(home.getByText("Active")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Manage zones in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/zone");
+  expect(within(screen.getByRole("article", { name: "School zone" })).getByText("Passive · automations only")).toBeInTheDocument();
+  const work = within(screen.getByRole("article", { name: "Work zone" }));
+  expect(work.getByText("unknown")).toBeInTheDocument();
+  expect(work.getAllByText("Not reported")).toHaveLength(4);
+  expect(screen.getByText("unavailable")).toBeInTheDocument();
+  act(() => conn.entityCallback?.({ ...zoneStates, "zone.home": state("zone.home", "1", zoneStates["zone.home"].attributes) }));
+  expect(home.getByText("1 person")).toBeInTheDocument();
+  act(() => conn.emit("disconnected"));
+  expect(home.getByText("Stale · 1 person")).toBeInTheDocument();
+  expect(screen.getByText("Cached zone readings are stale while Home Assistant is offline.")).toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+});

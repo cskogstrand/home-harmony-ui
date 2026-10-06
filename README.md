@@ -50,6 +50,8 @@ Existing `afterglow-planner-v1:*` datasets keep their original keys and contents
 
 ## Controls and limits
 
+- Smart-home navigation uses **Areas**, **Zones**, **Automations** and **Integrations**. Earlier `/rooms`, `/automation` and `/services` links redirect to the renamed pages.
+- **Zones** reads `zone.*` entities from the existing live HA state subscription, including presence counts, radius, coordinates and passive-zone metadata. Missing/unavailable values and stale readings remain explicit. Zone editing opens Home Assistant; there are no third-party map requests or location writes. See [Home Assistant zones](https://www.home-assistant.io/integrations/zone/).
 - Lights: power and brightness when advertised. Switches: power. Climate: advertised HVAC modes and a single temperature target when its limits/current target are reported. Covers: advertised open/close/stop/position actions. Locks: explicit confirmation, with a transient code when HA requires one.
 - Sensors and binary sensors display reported states and units, including unknown, unavailable and missing. Other HA domains remain readable; advanced controls are available in HA.
 - Scenes are activation actions, never persistently active moods. Automations use HA enable/disable services; edit their definitions in HA.

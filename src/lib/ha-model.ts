@@ -20,7 +20,7 @@ export const needsCode = (entity: Entity, action: EntityAction) => !!entity.attr
 export function mapHome(states: EntityStates, registries: Registries, instance: string, config?: HassConfig): Home {
   const registered = new Map(registries.entities.map(e => [e.entity_id, e]));
   const devices = new Map(registries.devices.map(d => [d.id, d]));
-  const rooms = new Map(registries.areas.map(a => [a.area_id, { id: a.area_id, name: a.name, entities: [] as Entity[] }]));
+  const areas = new Map(registries.areas.map(a => [a.area_id, { id: a.area_id, name: a.name, entities: [] as Entity[] }]));
   const ids = new Set([...Object.keys(states), ...registries.entities.filter(e => !e.disabled_by && !e.hidden_by).map(e => e.entity_id)]);
   const entities: Entity[] = [];
   for (const id of ids) {
@@ -29,8 +29,8 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     const state = states[id];
     const device = devices.get(entry?.device_id);
     const area = entry?.area_id ?? device?.area_id;
-    const areaId = rooms.has(area) ? area : "unassigned";
-    if (!rooms.has(areaId)) rooms.set(areaId, { id: areaId, name: "Unassigned", entities: [] });
+    const areaId = areas.has(area) ? area : "unassigned";
+    if (!areas.has(areaId)) areas.set(areaId, { id: areaId, name: "Unassigned", entities: [] });
     const entity: Entity = {
       entityId: id, preferenceId: `${instance}|${entry?.id ?? id}`, domain: id.split(".")[0],
       name: entry?.name || state?.attributes.friendly_name || entry?.original_name || id,
@@ -38,10 +38,10 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
       lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
     };
     entities.push(entity);
-    rooms.get(areaId).entities.push(entity);
+    areas.get(areaId).entities.push(entity);
   }
   return { name: config?.location_name || "Home Assistant", timeZone: config?.time_zone || "Europe/Oslo",
-    temperatureUnit: config?.unit_system.temperature, entities, rooms: [...rooms.values()], devices: registries.devices };
+    temperatureUnit: config?.unit_system.temperature, entities, areas: [...areas.values()], devices: registries.devices };
 }
 
 export function supportsAction(entity: Entity, action: EntityAction, services: HassServices) {

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -14,16 +14,17 @@ import SmartHome from "./pages/SmartHome";
 import Dashboard from "./pages/Dashboard";
 import Devices from "./pages/Devices";
 import DeviceDetail from "./pages/DeviceDetail";
-import Rooms from "./pages/Rooms";
+import Areas from "./pages/Areas";
+import Zones from "./pages/Zones";
 import Moods from "./pages/Moods";
-import Automation from "./pages/Automation";
+import Automations from "./pages/Automations";
 import EnergySaver from "./pages/EnergySaver";
 import History from "./pages/History";
 import Notifications from "./pages/Notifications";
 import HomeSettings from "./pages/HomeSettings";
 import Support from "./pages/Support";
 import Alarm from "./pages/Alarm";
-import Services from "./pages/Services";
+import Integrations from "./pages/Integrations";
 import UserSettings from "./pages/UserSettings";
 import NotFound from "./pages/NotFound";
 
@@ -46,13 +47,18 @@ const App = () => (
                 <Route path="/home" element={<SmartHome />} />
                 <Route path="/devices" element={<Devices />} />
                 <Route path="/devices/:deviceId" element={<DeviceDetail />} />
-                <Route path="/rooms" element={<Rooms />} />
-                <Route path="/rooms/:roomId" element={<Rooms />} />
+                <Route path="/areas" element={<Areas />} />
+                <Route path="/areas/:areaId" element={<Areas />} />
+                <Route path="/rooms" element={<Navigate to="/areas" replace />} />
+                <Route path="/rooms/:areaId" element={<Areas />} />
+                <Route path="/zones" element={<Zones />} />
                 <Route path="/moods" element={<Moods />} />
-                <Route path="/automation" element={<Automation />} />
+                <Route path="/automations" element={<Automations />} />
+                <Route path="/automation" element={<Navigate to="/automations" replace />} />
                 <Route path="/energy" element={<EnergySaver />} />
                 <Route path="/alarm" element={<Alarm />} />
-                <Route path="/services" element={<Services />} />
+                <Route path="/integrations" element={<Integrations />} />
+                <Route path="/services" element={<Navigate to="/integrations" replace />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/settings" element={<HomeSettings />} />

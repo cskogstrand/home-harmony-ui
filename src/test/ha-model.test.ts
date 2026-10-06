@@ -7,6 +7,7 @@ describe("HA mapping", () => {
   it("separates physical devices from entities and resolves entity, device, then Unassigned areas", () => {
     const home = mapHome(states, registries, "http://ha.local:8123", config);
     expect(home.devices).toHaveLength(1);
+    expect(home.areas.find(area => area.id === "living").entities.map(entity => entity.entityId)).toEqual(["light.living"]);
     expect(entity("light.living").areaId).toBe("living");
     expect(entity("sensor.power").areaId).toBe("hall");
     expect(entity("switch.charger").areaId).toBe("unassigned");

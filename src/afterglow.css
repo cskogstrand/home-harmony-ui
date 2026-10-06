@@ -183,7 +183,8 @@
 .form-row > label { min-width: 0; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 .delete-confirm { display: flex; flex-direction: column; gap: 10px; font-size: 13px; padding: 16px; border: 1px solid hsl(var(--destructive)); border-radius: 12px; }
-.empty-note { padding: 20px 0; color: hsl(var(--muted-foreground)); font-size: 13px; line-height: 1.7; }
+.empty-note { color: hsl(var(--muted-foreground)); font-size: 13px; line-height: 1.7; }
+.empty-note:not(.glow-panel) { padding: 20px 0; }
 .calendar-pagination { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 .calendar-pagination h2 { font-size: 21px; font-weight: 400; margin-right: auto; }
 .calendar-toolbar .week-ribbon { margin-bottom: 20px; }

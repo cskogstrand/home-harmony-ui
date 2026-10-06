@@ -21,7 +21,7 @@ it("starts with configuration and honest empty states while preserving navigatio
   fireEvent.click(screen.getByRole("link", { name: /Configure Home Assistant/ }));
   expect(await screen.findByLabelText("Home Assistant URL")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Connect" })).toBeInTheDocument();
-  for (const [link, heading] of [["Devices", "Devices"], ["Rooms", "Rooms"], ["Security", "Alarm"], ["Routines", "Automation"], ["Scenes", "Scenes"], ["Activity", "History"], ["Services", "Services"]]) {
+  for (const [link, heading] of [["Devices", "Devices"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
     fireEvent.click(within(screen.getByRole("navigation", { name: "Smart home navigation" })).getByRole("link", { name: link }));
     expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   }
