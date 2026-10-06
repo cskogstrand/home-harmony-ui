@@ -1,78 +1,57 @@
-import { useState } from "react";
-import type { Device } from "@/types/api";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import type { Entity, EntityAction } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
+import { available, needsCode, numberValue, stringValues, supportsAction } from "@/lib/ha-model";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { PinPadModal } from "./PinPadModal";
-import { Lock, Unlock, Minus, Plus, PlugZap, Lightbulb, Thermometer, Eye, Flame, Droplets, Plug, Radio, Blinds } from "lucide-react";
-
-const sensorTypes = new Set([
-  "sensorMotion", "motionDetector", "sensorPresence", "sensorContact", "sensorContactDoor",
-  "sensorContactWindow", "magnetContact", "smokeDetector", "sensorFire", "fireDetector",
-  "sensorWater", "waterDetector", "sensorCarbonMonoxide", "sensorVibration",
-  "vibrationMovementSensor", "sensorGlassBreakage", "temperatureSensor", "airQualitySensor",
-]);
-export const isSensorDevice = (type: string) => sensorTypes.has(type);
-export const deviceValue = (device: Device, name: string) => device.attributes.find(a => a.name === name)?.value;
+import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles } from "lucide-react";
 
 export function DeviceIcon({ type, className }: { type: string; className?: string }) {
-  const Icon = type.toLowerCase().includes("light") ? Lightbulb : ({ thermostat: Thermometer, doorLock: Lock, sensorMotion: Eye, motionDetector: Eye, smokeDetector: Flame, waterValve: Droplets, socketSingle: Plug, evCharger: PlugZap, coverWindow: Blinds })[type] ?? Radio;
+  const Icon = ({ light: Lightbulb, climate: Thermometer, lock: Lock, switch: Plug, cover: Blinds, alarm_control_panel: Shield, scene: Sparkles })[type] ?? Radio;
   return <Icon className={className} />;
 }
-
-export function DeviceControl({ device, compact = false }: { device: Device; compact?: boolean }) {
-  const { homeOnline, updateDeviceAttribute } = useApp();
-  const [pinOpen, setPinOpen] = useState(false);
-  const [lockAction, setLockAction] = useState("locked");
-  const disabled = !homeOnline || !device.online;
-  const get = (name: string) => deviceValue(device, name);
-  const update = (name: string, value: unknown) => updateDeviceAttribute(device.id, name, value);
-  const range = (name: string, label: string, min: number, max: number, unit: string) => (
-    <label className="device-range"><span>{label}<strong>{String(get(name))}{unit}</strong></span>
-      <input type="range" aria-label={`${device.name} ${label.toLowerCase()}`} min={min} max={max} value={Number(get(name))}
-        disabled={disabled} onChange={e => update(name, Number(e.target.value))} />
-    </label>
-  );
-  if (isSensorDevice(device.type)) {
-    const reading = device.attributes.find(a => ["motion", "contact", "smoke", "water"].includes(a.name));
-    const alert = reading && (reading.name === "contact" ? !reading.value : !!reading.value);
-    return <span className={`sensor-state ${alert ? "attention" : ""}`}>{disabled ? "Offline · reading unavailable" : reading ?
-      ({ motion: alert ? "Motion detected" : "No motion", contact: alert ? "Open" : "Closed", smoke: alert ? "Smoke detected" : "Clear", water: alert ? "Water detected" : "Dry" })[reading.name] : "Online"}</span>;
-  }
-  if (device.type === "doorLock") return <>
-    <Button variant={get("lockState") === "locked" ? "secondary" : "outline"} disabled={disabled}
-      aria-label={`${get("lockState") === "locked" ? "Unlock" : "Lock"} ${device.name}`}
-      onClick={() => { setLockAction(get("lockState") === "locked" ? "unlocked" : "locked"); setPinOpen(true); }}>
-      {get("lockState") === "locked" ? <Lock size={16} /> : <Unlock size={16} />}
-      {!compact && (disabled ? "Unavailable" : String(get("lockState")))}
-    </Button>
-    <PinPadModal open={pinOpen} onOpenChange={setPinOpen} title={lockAction === "unlocked" ? "Unlock door" : "Lock door"}
-      description={`Enter the demo PIN for ${device.name}.`} variant={lockAction === "unlocked" ? "unlock" : "lock"}
-      onSubmit={() => update("lockState", lockAction)} />
-  </>;
-  if (device.type === "thermostat") {
-    const target = device.attributes.find(a => a.name === "targetTemperature");
-    if (!target) return <span className="muted">No temperature control available</span>;
-    const min = Number(target.minValue ?? 5), max = Number(target.maxValue ?? 30), step = target.step ?? 0.5;
-    return <div className="temperature-control">
-    <Button size="icon" variant="outline" disabled={disabled || Number(target.value) <= min} aria-label={`Lower ${device.name}`}
-      onClick={() => update("targetTemperature", Math.max(min, Number(target.value) - step))}><Minus size={16} /></Button>
-    <span><strong>{String(get("targetTemperature"))}°</strong>{!compact && <small>Target · {String(get("currentTemperature"))}° now</small>}</span>
-    <Button size="icon" variant="outline" disabled={disabled || Number(target.value) >= max} aria-label={`Raise ${device.name}`}
-      onClick={() => update("targetTemperature", Math.min(max, Number(target.value) + step))}><Plus size={16} /></Button>
+export function CommandFeedback({ entityId }: { entityId: string }) {
+  const { commands } = useApp();
+  const command = commands[entityId];
+  return command?.error ? <p role="alert" className="text-sm text-destructive">{command.error}</p> : command ? <p role="status" className="text-xs text-muted-foreground">{command.pending ? "Sending…" : command.message}</p> : null;
+}
+function RangeControl({ label, value, min, max, step = 1, disabled, commit }: { label: string; value: number; min: number; max: number; step?: number; disabled: boolean; commit: (value: number) => void }) {
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value, disabled]);
+  return <label className="device-range"><span>{label}<strong>{draft}</strong></span><Slider aria-label={label} min={min} max={max} step={step} value={[draft]} disabled={disabled} onValueChange={([v]) => setDraft(v)} onValueCommit={([v]) => commit(v)} /></label>;
+}
+export function DeviceControl({ entity, compact = false }: { entity: Entity; compact?: boolean }) {
+  const { homeOnline, command, commands, services, currentHome } = useApp();
+  const [lockAction, setLockAction] = useState<"lock" | "unlock">();
+  const disabled = !homeOnline || !available(entity) || !!commands[entity.entityId]?.pending;
+  const supports = (action: EntityAction) => supportsAction(entity, action, services);
+  const send = (action: EntityAction, value?: unknown) => { void command(entity.entityId, action, value).catch(() => {}); };
+  const unit = typeof entity.attributes.unit_of_measurement === "string" ? entity.attributes.unit_of_measurement : "";
+  const brightness = numberValue(entity.attributes.brightness);
+  const temperature = numberValue(entity.attributes.temperature);
+  const position = numberValue(entity.attributes.current_position);
+  return <div className="control-stack">
+    <span className="sensor-state">{!homeOnline && "Stale · "}{entity.state.replace(/_/g, " ")}{unit && ` ${unit}`}</span>
+    {["on", "off"].includes(entity.state) && ["light", "switch", "automation"].includes(entity.domain) && supports(entity.state === "on" ? "turn_off" : "turn_on") && <div className="toggle-line"><span>{entity.domain === "automation" ? "Enabled" : "Power"}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={`Toggle ${entity.name}`} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>}
+    {supports("brightness") && !compact && brightness !== undefined && <RangeControl label={`${entity.name} brightness (%)`} value={Math.round(brightness * 100 / 255)} min={0} max={100} disabled={disabled} commit={v => send("brightness", v)} />}
+    {entity.domain === "climate" && <>
+      <small>Current: {numberValue(entity.attributes.current_temperature) ?? "Not reported"} {currentHome.temperatureUnit} · Target: {temperature ?? "Not reported"} {currentHome.temperatureUnit}</small>
+      {supports("temperature") && temperature !== undefined && <RangeControl label={`${entity.name} target temperature (${currentHome.temperatureUnit ?? "HA units"})`} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} disabled={disabled} commit={v => send("temperature", v)} />}
+      {supports("hvac_mode") && <label>Mode <select aria-label={`${entity.name} mode`} className="rounded border bg-background p-2" value={entity.state} disabled={disabled} onChange={e => send("hvac_mode", e.target.value)}>{!stringValues(entity.attributes.hvac_modes).includes(entity.state) && <option value={entity.state}>{entity.state}</option>}{stringValues(entity.attributes.hvac_modes).map(mode => <option key={mode}>{mode}</option>)}</select></label>}
+    </>}
+    {entity.domain === "cover" && <>
+      <div className="flex gap-2">{(["open_cover", "close_cover", "stop_cover"] as const).filter(supports).map(action => <Button key={action} disabled={disabled} variant="outline" onClick={() => send(action)}>{action.split("_")[0]}</Button>)}</div>
+      {!compact && supports("position") && position !== undefined && <RangeControl label={`${entity.name} position (%)`} value={position} min={0} max={100} disabled={disabled} commit={v => send("position", v)} />}
+    </>}
+    {entity.domain === "lock" && <>
+      <div className="flex gap-2">{(["lock", "unlock"] as const).filter(supports).map(action => <Button key={action} variant="outline" disabled={disabled || ["locking", "unlocking", "opening"].includes(entity.state)} aria-label={`${action === "lock" ? "Lock" : "Unlock"} ${entity.name}`} onClick={() => setLockAction(action)}>{action === "lock" ? "Lock" : "Unlock"}</Button>)}</div>
+      {lockAction && <PinPadModal open disabled={disabled} onOpenChange={open => { if (!open) setLockAction(undefined); }} title={`${lockAction === "lock" ? "Lock" : "Unlock"} ${entity.name}`} description="Send this action to Home Assistant. Check the reported state after sending." codeRequired={needsCode(entity, lockAction)} numeric={entity.attributes.code_format === "number"} onSubmit={code => command(entity.entityId, lockAction, undefined, code)} />}
+    </>}
+    {entity.domain === "scene" && supports("turn_on") && <Button disabled={disabled} onClick={() => send("turn_on")}>Activate {entity.name}</Button>}
+    {entity.domain === "alarm_control_panel" && <Link className="text-link" to="/alarm">Open alarm controls</Link>}
+    <CommandFeedback entityId={entity.entityId} />
   </div>;
-  }
-  if (device.type === "evCharger" || device.type === "evChargingStation") return <div className="control-stack">
-    <Button variant="secondary" disabled={disabled} onClick={() => update("charging", !get("charging"))}><PlugZap size={17} />{get("charging") ? "Pause charging" : "Start charging"}</Button>
-    {!compact && range("chargeLimit", "Charge limit", 50, 100, "%")}
-  </div>;
-  if (device.type === "coverWindow") return range("position", "Open", 0, 100, "%");
-  const attribute = device.attributes.find(a => a.name === "isOn" || a.name === "isOpen");
-  if (attribute) return <div className="control-stack">
-    <div className="toggle-line"><span>{attribute.name === "isOpen" ? (attribute.value ? "Water on" : "Water off") : (attribute.value ? "On" : "Off")}</span>
-      <Switch checked={!!attribute.value} disabled={disabled} aria-label={`Toggle ${device.name}`} onCheckedChange={value => update(attribute.name, value)} />
-    </div>
-    {!compact && get("brightness") !== undefined && !!attribute.value && range("brightness", "Brightness", 0, 100, "%")}
-  </div>;
-  return <span className="muted">{disabled ? "Offline" : "No adjustable settings"}</span>;
 }

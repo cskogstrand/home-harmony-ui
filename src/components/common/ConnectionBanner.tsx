@@ -1,11 +1,12 @@
-import { WifiOff, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { WifiOff, CheckCircle2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 export function ConnectionBanner() {
-  const { homeOnline, connectionStatus } = useApp();
-  if (homeOnline) return null;
-  return <div className="connection-banner" role="status"><WifiOff size={19} /><span><strong>{connectionStatus === "reconnecting" ? "Reconnecting to your home…" : "The home hub is offline."}</strong> Home readings are last known and controls are paused. Your family planner is still available.</span></div>;
+  const { homeOnline, haUrl, connectionStatus, connectionError, metadataWarnings } = useApp();
+  if (homeOnline && !metadataWarnings.length) return null;
+  return <div className="connection-banner" role="status"><WifiOff size={19} /><span><strong>{!haUrl ? "Connect your Home Assistant." : homeOnline ? "Some HA metadata is unavailable." : `Home Assistant: ${connectionStatus}.`}</strong> {!homeOnline && "Cached readings are stale and controls are paused. Your local family planner is still available."} {connectionError} <Link to="/settings">Connection settings</Link></span></div>;
 }
 export function SyncIndicator() {
-  const { homeOnline, connectionStatus } = useApp();
-  return <span className="hub-state">{homeOnline ? <CheckCircle2 size={15} /> : connectionStatus === "reconnecting" ? <RefreshCw size={15} /> : <WifiOff size={15} />}{homeOnline ? "Demo hub connected" : "Hub offline"}</span>;
+  const { homeOnline } = useApp();
+  return <span className="hub-state">{homeOnline ? <CheckCircle2 size={15} /> : <WifiOff size={15} />}{homeOnline ? "Home Assistant connected" : "Home Assistant offline"}</span>;
 }

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
 import { useFamily, familyMembers, memberName, addDays, dateLabel, sortEvents, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, ListPanel, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
-import { CalendarViewControls, FamilyWeekGrid } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { HomeFavorites, VehicleCard } from "@/components/HomePanels";
 
 export default function Dashboard() {
@@ -40,6 +40,7 @@ export default function Dashboard() {
         </div>;
       })}</div></>}
     </section>
+    <HomeAssistantCalendar start={start} end={addDays(start, 7)} />
     <ListPanel kind="daily" limit={3} />
     <ListPanel kind="shopping" limit={3} />
     <section className="glow-panel school-strip"><div><span className="eyebrow">READY FOR TOMORROW</span><h2>School, sorted.</h2><p>Timetables at a glance.<br />Tap to take a closer look.</p><Link to="/school" className="text-link">School board<ArrowUpRight size={17} /></Link></div><SchoolPreview child="emma" /><SchoolPreview child="leo" /></section>

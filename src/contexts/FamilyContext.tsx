@@ -94,6 +94,7 @@ function samplePlanner(today: string): Planner {
 
 interface FamilyContextValue extends Planner {
   now: Date; today: string; time: string; saved: boolean;
+  plannerId: string; plannerIds: string[]; selectPlanner: (id: string) => void;
   calendarStart: string;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   saveEvent: (event: FamilyEvent) => void;
@@ -111,9 +112,29 @@ export function useFamily() {
 }
 export function FamilyProvider({ children }: { children: ReactNode }) {
   const { currentHome } = useApp();
-  return <FamilyStore key={currentHome?.id} homeId={currentHome?.id ?? "home"} timeZone={currentHome?.timeZone ?? "Europe/Oslo"}>{children}</FamilyStore>;
+  // Keep the original household keys; HA connection changes never migrate local data.
+  const [plannerIds] = useState(() => {
+    const ids = new Set(["home-1"]);
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith("afterglow-planner-v1:") && !key.endsWith(":unreadable-backup")) ids.add(key.slice("afterglow-planner-v1:".length));
+      }
+    } catch { /* Local storage may be unavailable. */ }
+    return [...ids];
+  });
+  const [plannerId, setPlannerId] = useState(() => {
+    try { const id = localStorage.getItem("afterglow-selected-planner"); if (plannerIds.includes(id)) return id; } catch { /* Use the existing default. */ }
+    return "home-1";
+  });
+  const selectPlanner = (id: string) => {
+    if (!plannerIds.includes(id)) return;
+    setPlannerId(id);
+    try { localStorage.setItem("afterglow-selected-planner", id); } catch { /* Selection remains in memory. */ }
+  };
+  return <FamilyStore key={plannerId} homeId={plannerId} plannerIds={plannerIds} selectPlanner={selectPlanner} timeZone={currentHome.timeZone}>{children}</FamilyStore>;
 }
-function FamilyStore({ children, homeId, timeZone }: { children: ReactNode; homeId: string; timeZone: string }) {
+function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: { children: ReactNode; homeId: string; timeZone: string; plannerIds: string[]; selectPlanner: (id: string) => void }) {
   const [now, setNow] = useState(() => new Date());
   const today = homeDate(now, timeZone);
   const time = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
@@ -141,7 +162,7 @@ function FamilyStore({ children, homeId, timeZone }: { children: ReactNode; home
     try { localStorage.setItem(key, JSON.stringify(planner)); setSaved(true); }
     catch { setSaved(false); toast.error("This browser cannot save changes. Keep this tab open to retain your planner."); }
   }, [key, planner]);
-  return <FamilyContext.Provider value={{ ...planner, now, today, time, saved,
+  return <FamilyContext.Provider value={{ ...planner, now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner,
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
     saveEvent: event => {

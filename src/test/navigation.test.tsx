@@ -13,21 +13,19 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 
-it("keeps a device change consistent from Today through detail, devices and rooms", async () => {
+it("starts with configuration and honest empty states while preserving navigation", async () => {
   render(<App />);
   expect(screen.getByRole("heading", { level: 1, name: "Good to be home." })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("switch", { name: "Toggle Living Room Light" }));
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
-  fireEvent.click(screen.getByRole("link", { name: "Living Room Light" }));
-  expect(await screen.findByRole("heading", { level: 1, name: "Living Room Light" })).toBeInTheDocument();
-  expect(window.location.pathname).toBe("/devices/dev-1");
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
-  fireEvent.click(screen.getByRole("link", { name: "Back to devices" }));
-  expect(await screen.findByRole("heading", { level: 1, name: "Devices" })).toBeInTheDocument();
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
-  fireEvent.click(within(screen.getByRole("navigation", { name: "Smart home navigation" })).getByRole("link", { name: "Rooms" }));
-  fireEvent.click(screen.getByRole("link", { name: /Living Room/ }));
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
+  expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
+  navigate("Smart home");
+  fireEvent.click(screen.getByRole("link", { name: /Configure Home Assistant/ }));
+  expect(await screen.findByLabelText("Home Assistant URL")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Connect" })).toBeInTheDocument();
+  for (const [link, heading] of [["Devices", "Devices"], ["Rooms", "Rooms"], ["Security", "Alarm"], ["Routines", "Automation"], ["Scenes", "Scenes"], ["Activity", "History"], ["Services", "Services"]]) {
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Smart home navigation" })).getByRole("link", { name: link }));
+    expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
+  }
+  expect(screen.queryByText(/Demo|Viking Guard|1234/)).not.toBeInTheDocument();
 });
 
 it("saves shopping items and daily completion across navigation and a reload", () => {
@@ -62,26 +60,14 @@ it("adds, edits and removes an event from the per-person week", async () => {
   expect(screen.queryByRole("button", { name: /Library morning/ })).not.toBeInTheDocument();
 });
 
-it("applies scenes, protects the door with a PIN and pauses controls when the hub is offline", async () => {
+it("keeps the family planner usable with no HA connection", () => {
   render(<App />);
-  fireEvent.click(screen.getByRole("button", { name: "Movie Night" }));
-  navigate("Smart home");
-  expect(screen.getByRole("slider", { name: "Living Room Light brightness" })).toHaveValue("20");
-  expect(screen.getByText("Offline · reading unavailable")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Unlock Front Door Lock" }));
-  const dialog = within(await screen.findByRole("dialog"));
-  for (const digit of ["1", "1", "1", "1"]) fireEvent.click(dialog.getByRole("button", { name: digit }));
-  fireEvent.click(dialog.getByRole("button", { name: "OK" }));
-  expect(dialog.getByRole("alert")).toHaveTextContent("Incorrect PIN");
-  for (const digit of ["1", "2", "3", "4"]) fireEvent.click(dialog.getByRole("button", { name: digit }));
-  fireEvent.click(dialog.getByRole("button", { name: "OK" }));
-  expect(screen.getByRole("button", { name: "Lock Front Door Lock" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Preview hub offline" }));
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Pause charging" })).toBeDisabled();
-  navigate("Today");
-  expect(screen.getByRole("button", { name: "Lock Front Door Lock" })).toBeDisabled();
+  expect(screen.getByText(/Cached readings are stale/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("checkbox", { name: "Set the table" }));
+  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
+  navigate("School");
+  expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+  navigate("Today");
   expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
 });
 

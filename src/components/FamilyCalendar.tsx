@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import { useApp } from "@/contexts/AppContext";
+import { calendarBoundary } from "@/lib/ha-model";
+import type { CalendarEvent } from "@/types/api";
 import { Columns3, Table2, Plus } from "lucide-react";
 import { useFamily, familyMembers, addDays, dateLabel, sortEvents, type CalendarSettings, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
@@ -51,4 +55,46 @@ export function FamilyWeekGrid({ start, events, members = familyMembers, compact
         </tr>)}</tbody>
       </table>
     </div>;
+}
+
+// Remote events stay read-only and never enter FamilyContext/localStorage.
+export function HomeAssistantCalendar({ start, end }: { start: string; end: string }) {
+  const { currentHome, homeOnline, haUrl, calendarEvents } = useApp();
+  const [refresh, setRefresh] = useState(0);
+  const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
+  const calendars = currentHome.entities.filter(e => e.domain === "calendar");
+  const calendarIds = calendars.map(e => e.entityId).sort().join(",");
+  const requestKey = `${haUrl}|${calendarIds}|${start}|${end}|${currentHome.timeZone}`;
+  useEffect(() => {
+    if (!homeOnline || !calendarIds) return;
+    const controller = new AbortController();
+    setResult(previous => ({ key: requestKey, events: previous.key === requestKey ? previous.events : [], errors: [], loading: true }));
+    const from = calendarBoundary(start, currentHome.timeZone);
+    const to = calendarBoundary(end, currentHome.timeZone);
+    void Promise.allSettled(calendarIds.split(",").map(async id => ({ id, events: await calendarEvents(id, from, to, controller.signal) }))).then(results => {
+      if (controller.signal.aborted) return;
+      setResult({ key: requestKey, loading: false,
+        events: results.flatMap(r => r.status === "fulfilled" ? r.value.events.map(event => ({ event, calendar: r.value.id })) : []),
+        errors: results.flatMap((r, i) => r.status === "rejected" ? [`Could not read ${calendarIds.split(",")[i]}. Check the calendar integration, permissions, connection and HA CORS configuration.`] : []),
+      });
+    });
+    return () => controller.abort();
+  }, [homeOnline, calendarIds, requestKey, start, end, currentHome.timeZone, calendarEvents, refresh]);
+  const events = result.key === requestKey ? result.events : [];
+  const dateValue = (value: CalendarEvent["start"]) => typeof value === "string" ? value : "dateTime" in value ? value.dateTime : value.date;
+  const eventDate = (value: CalendarEvent["start"]) => {
+    const date = dateValue(value);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return `${dateLabel(date)} (all day)`;
+    const parsed = new Date(date);
+    return Number.isFinite(parsed.getTime()) ? parsed.toLocaleString("en-GB", { timeZone: currentHome.timeZone, dateStyle: "medium", timeStyle: "short" }) : "Date not reported";
+  };
+  return <section className="glow-panel col-span-full"><div className="panel-heading"><h2>Home Assistant calendars</h2><button className="text-link" disabled={!homeOnline} onClick={() => setRefresh(n => n + 1)}>Refresh calendars</button></div>
+    <p className="page-note">Read-only · {dateLabel(start)} to {dateLabel(addDays(end, -1))} · {currentHome.timeZone}. Local family plans are shown separately above.</p>
+    {!homeOnline && <p role="status">Home Assistant calendars are offline. Any cached events below are stale; local plans remain available.</p>}
+    {!calendars.length && <p className="empty-note">No HA calendar entities loaded. Manage calendar integrations in Home Assistant.</p>}
+    {homeOnline && result.loading && <p role="status">Loading calendar events…</p>}
+    {homeOnline && result.key === requestKey && result.errors.map(error => <p role="alert" key={error}>{error}</p>)}
+    {homeOnline && calendars.length > 0 && !result.loading && result.key === requestKey && !events.length && !result.errors.length && <p>No HA events in this date range.</p>}
+    <div className="space-y-3">{[...events].sort((a, b) => dateValue(a.event.start).localeCompare(dateValue(b.event.start))).map(({ event, calendar }, i) => <article key={`${calendar}:${event.uid ?? i}:${dateValue(event.start)}`} className="rounded-lg border p-3"><small>Home Assistant · {calendars.find(c => c.entityId === calendar)?.name ?? calendar}</small><h3>{event.summary}</h3><p>{eventDate(event.start)} — {eventDate(event.end)} <small>(end exclusive)</small></p>{event.location && <p>{event.location}</p>}{event.description && <p className="whitespace-pre-wrap">{event.description}</p>}</article>)}</div>
+  </section>;
 }

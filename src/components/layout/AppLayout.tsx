@@ -5,19 +5,18 @@ import { HomeSwitcher } from "./HomeSwitcher";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Moon, Settings, Wifi, WifiOff, Check } from "lucide-react";
-import type { UserRole } from "@/mock/data";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Moon, Settings, Wifi, WifiOff } from "lucide-react";
 
 export function AppLayout() {
-  const { currentUser, setUserRole, homeOnline } = useApp();
+  const { currentUser, homeOnline } = useApp();
   const { saved } = useFamily();
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo?.(0, 0); }, [pathname]);
   return <div className="afterglow-app"><a className="skip-link" href="#main-content">Skip to content</a>
     <header className="app-header"><Link to="/" className="brand" aria-label="Afterglow home"><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow<small>FAMILY, AT THE CENTRE</small></span></Link>
-      <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Demo home" : "Hub offline"}</span></span>
-        <DropdownMenu><DropdownMenuTrigger className="icon-button" aria-label="Open app settings"><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/user-settings">App preferences</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings">Home settings</Link></DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuLabel className="text-muted-foreground text-xs">Preview as a different role</DropdownMenuLabel>{(["user", "master", "support", "admin"] as UserRole[]).map(role => <DropdownMenuItem key={role} onClick={() => setUserRole(role)} className="capitalize">{role}{currentUser.role === role && <Check size={14} className="ml-auto" />}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu>
+      <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : "HA offline"}</span></span>
+        <DropdownMenu><DropdownMenuTrigger className="icon-button" aria-label="Open app settings"><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? "Local planner"}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/user-settings">App preferences</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings">Home settings</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
       </div>
     </header>
     <ConnectionBanner />
@@ -25,7 +24,7 @@ export function AppLayout() {
       {isHomeSection(pathname) && <SmartHomeNav />}
       <Outlet />
     </main>
-    <footer className="app-footer"><span>Sample household · {saved ? "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
+    <footer className="app-footer"><span>Local family planner · {saved ? "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
     <MainNav />
   </div>;
 }

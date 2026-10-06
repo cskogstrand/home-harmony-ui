@@ -4,7 +4,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFamily, familyMembers, isPlannerDate, weekStart, addDays, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
-import { CalendarViewControls, FamilyWeekGrid } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 
 export default function Calendar() {
   const { today, events, calendar, calendarStart } = useFamily();
@@ -27,7 +27,7 @@ export default function Calendar() {
   const people = familyMembers.filter(m => member === "all" || member === m.id);
 
   return <div className="planner-page calendar-page">
-    <PageHeading eyebrow="MAKE ROOM FOR WHAT MATTERS" title="Our week." description="Different plans. One family calendar."><Button onClick={() => openEvent()}><Plus size={18} />Add a plan</Button></PageHeading>
+    <PageHeading eyebrow="MAKE ROOM FOR WHAT MATTERS" title="Our week." description="Your local family plans, with read-only Home Assistant calendars below."><Button onClick={() => openEvent()}><Plus size={18} />Add a plan</Button></PageHeading>
     <section className="glow-panel calendar-toolbar">
       <div className="calendar-pagination">
         <Button variant="outline" size="icon" aria-label="Previous week" onClick={() => navigateWeek(-7)}><ChevronLeft /></Button>
@@ -51,6 +51,7 @@ export default function Calendar() {
         </section>;
       })}</div>}
     <p className="page-note">Tap a plan to edit it. Plans for everyone appear in each person’s week.</p>
+    <HomeAssistantCalendar start={calendar.view === "people" && validDate ? validDate : start} end={addDays(calendar.view === "people" && validDate ? validDate : start, calendar.view === "people" && validDate ? 1 : 7)} />
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} date={newPlan?.date ?? validDate ?? today} member={newPlan?.member} />
   </div>;
 }
