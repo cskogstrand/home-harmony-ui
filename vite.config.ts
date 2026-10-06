@@ -11,7 +11,15 @@ export default defineConfig({
       overlay: false,
     },
   },
-  plugins: [react()],
+  plugins: [react(), {
+    name: "production-script-policy",
+    apply: "build",
+    // Vite's development preamble uses inline scripts; production uses self-hosted modules.
+    transformIndexHtml: () => [{ tag: "meta", attrs: {
+      "http-equiv": "Content-Security-Policy",
+      content: "script-src 'self'; object-src 'none'; base-uri 'self'",
+    }, injectTo: "head-prepend" }],
+  }],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

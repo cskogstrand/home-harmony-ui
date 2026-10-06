@@ -9,7 +9,7 @@ function useHomeAssistant() {
   useEffect(() => { client.start(); return client.dispose; }, [client]);
   const currentHome = useMemo(() => mapHome(state.states, state.registries, state.url, state.config), [state.states, state.registries, state.url, state.config]);
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
-    connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
+    connectionError: state.error, metadataWarnings: state.warnings, sessionWarning: state.sessionWarning, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
     logout: client.logout, command: client.command, calendarEvents: client.calendarEvents,
     compactMode, toggleCompactMode: () => setCompactMode(value => !value) };

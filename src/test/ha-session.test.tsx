@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import * as ha from "home-assistant-js-websocket";
-import type { Auth, Connection, HassEntities } from "home-assistant-js-websocket";
+import type { Auth, AuthData, Connection, HassEntities } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import App from "@/App";
 import { PinPadModal } from "@/components/devices/PinPadModal";
@@ -30,6 +30,12 @@ class FakeConnection {
 let conn: FakeConnection;
 let auth: Auth;
 let clients: HomeAssistantClient[];
+const TOKEN_KEY = "home-harmony:ha-session";
+const tokenData = (): AuthData => ({
+  hassUrl: "http://ha.local:8123", clientId: `${window.location.origin}/`,
+  access_token: "fixture-access-secret", refresh_token: "fixture-refresh-secret",
+  expires: Date.now() + 1800000, expires_in: 1800,
+});
 const newClient = () => { const client = new HomeAssistantClient(); clients.push(client); return client; };
 const connectedClient = async () => {
   const client = newClient();
@@ -43,12 +49,17 @@ beforeEach(() => {
   clients = [];
   const storage = new Map<string, string>();
   vi.stubGlobal("localStorage", { get length() { return storage.size; }, key: (i: number) => [...storage.keys()][i], getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
+  sessionStorage.clear();
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   window.history.replaceState(null, "", "/");
   conn = new FakeConnection();
-  auth = { accessToken: "fixture-access-secret", expired: false, refreshAccessToken: vi.fn(async () => {}), revoke: vi.fn(async () => {}) } as unknown as Auth;
-  vi.mocked(ha.getAuth).mockResolvedValue(auth);
+  auth = { data: tokenData(), accessToken: "fixture-access-secret", expired: false, refreshAccessToken: vi.fn(async () => {}), revoke: vi.fn(async () => {}) } as unknown as Auth;
+  vi.mocked(ha.getAuth).mockImplementation(async options => {
+    const saved = await options.loadTokens?.();
+    options.saveTokens?.(saved ?? { ...tokenData(), hassUrl: options.hassUrl });
+    return auth;
+  });
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   vi.mocked(ha.getConfig).mockResolvedValue(config);
   vi.mocked(ha.getUser).mockResolvedValue(user);
@@ -63,17 +74,19 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-it("uses browser auth, limits callback to the selected instance and keeps credentials out of storage", async () => {
+it("uses browser auth, limits callbacks to the selected instance and saves credentials for this browser profile", async () => {
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=one-time-code&state=callback-state");
   const client = await connectedClient();
-  expect(ha.getAuth).toHaveBeenCalledWith({ hassUrl: "http://ha.local:8123", clientId: `${window.location.origin}/`, redirectUrl: `${window.location.origin}/settings`, limitHassInstance: true });
+  expect(ha.getAuth).toHaveBeenCalledWith({ hassUrl: "http://ha.local:8123", clientId: `${window.location.origin}/`, redirectUrl: `${window.location.origin}/settings`, limitHassInstance: true, saveTokens: expect.any(Function), loadTokens: expect.any(Function) });
   expect(window.location.search).toBe("");
-  expect(localStorage.length).toBe(1);
+  expect(localStorage.length).toBe(3);
   expect(localStorage.getItem("home-harmony:ha-url")).toBe("http://ha.local:8123");
+  expect(JSON.parse(localStorage.getItem(TOKEN_KEY)).refresh_token).toBe("fixture-refresh-secret");
   expect(client.getSnapshot().user).toEqual(user);
   expect(JSON.stringify(client.getSnapshot())).not.toContain("fixture-access-secret");
   await client.logout();
   expect(auth.revoke).toHaveBeenCalledOnce();
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   expect(client.getSnapshot().states).toEqual({});
 });
 it("cleans subscriptions/listeners and closes obsolete connections", async () => {
@@ -142,6 +155,7 @@ it("does not report success for an in-flight command across a disconnect", async
 it("handles revoked credentials and failed initial connections without a mock fallback", async () => {
   const client = await connectedClient();
   conn.emit("reconnect-error");
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   expect(client.getSnapshot().status).toBe("auth-error");
   expect(client.getSnapshot().error).toContain("revoked");
   await expect(client.command("light.living", "turn_on")).rejects.toThrow("fresh");
@@ -177,6 +191,7 @@ it("reads calendar ranges with a bearer header, refreshes expired auth and repor
   fetchMock.mockResolvedValueOnce({ ok: false, status: 401 });
   await expect(client.calendarEvents("calendar.house", "start", "end", signal)).rejects.toThrow();
   expect(client.getSnapshot().status).toBe("auth-error");
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
 });
 it("keeps non-demo alarm codes transient and shows actual command rejection", async () => {
   const submit = vi.fn().mockRejectedValueOnce(new Error("HA rejection")).mockResolvedValueOnce(undefined);
@@ -282,4 +297,210 @@ it("disables an already-open physical confirmation when its connection becomes s
   expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
   fireEvent.submit(screen.getByRole("button", { name: "Confirm" }).closest("form"));
   expect(submit).not.toHaveBeenCalled();
+});
+
+it("restores the dashboard in a new tab without replaying commands or changing planner storage", async () => {
+  const client = await connectedClient();
+  await client.command("light.living", "turn_off");
+  localStorage.setItem("afterglow-planner-v1:home-1", "existing planner");
+  const saved = localStorage.getItem(TOKEN_KEY);
+  client.dispose(); // Closing the tab destroys its client and sessionStorage.
+  sessionStorage.clear();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  const restored = newClient();
+  restored.start();
+  await waitFor(() => expect(restored.getSnapshot().status).toBe("connected"));
+  expect(localStorage.getItem(TOKEN_KEY)).toBe(saved);
+  expect(restored.getSnapshot().states).toEqual(states);
+  expect(restored.getSnapshot().commands).toEqual({});
+  expect(ha.callService).toHaveBeenCalledOnce();
+  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe("existing planner");
+});
+
+it("restores expired tokens through the real HA auth library and saves refreshed credentials in StrictMode", async () => {
+  const { getAuth } = await vi.importActual<typeof ha>("home-assistant-js-websocket");
+  vi.mocked(ha.getAuth).mockImplementation(getAuth);
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), expires: 0, storageRevision: null }));
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ access_token: "fixture-refreshed-secret", expires_in: 1800 }) });
+  vi.stubGlobal("fetch", fetchMock);
+  vi.mocked(ha.createConnection).mockImplementation(async options => {
+    if (options.auth.expired) await options.auth.refreshAccessToken();
+    return conn as unknown as Connection;
+  });
+  window.history.replaceState(null, "", "/settings");
+  render(<StrictMode><App /></StrictMode>);
+  await screen.findByText("HA user");
+  expect(ha.getAuth).toHaveBeenCalledOnce();
+  expect(ha.createConnection).toHaveBeenCalledOnce();
+  expect(fetchMock).toHaveBeenCalledOnce();
+  expect(fetchMock.mock.calls[0][0]).toBe("http://ha.local:8123/auth/token");
+  expect(fetchMock.mock.calls[0][1].body.get("grant_type")).toBe("refresh_token");
+  const saved = JSON.parse(localStorage.getItem(TOKEN_KEY));
+  expect(saved.access_token).toBe("fixture-refreshed-secret");
+  expect(saved.refresh_token).toBe("fixture-refresh-secret");
+  expect(saved.expires).toBeGreaterThan(Date.now());
+  expect(document.body).not.toHaveTextContent("fixture-refreshed-secret");
+  expect(localStorage.length).toBe(3); // URL, browser login and existing local planner.
+});
+
+it("keeps Disconnect paused across refresh and revokes a saved session on logout even while disconnected", async () => {
+  const client = await connectedClient();
+  client.disconnect();
+  client.dispose();
+  const restored = newClient();
+  restored.start();
+  expect(restored.getSnapshot().status).toBe("disconnected");
+  expect(ha.getAuth).toHaveBeenCalledOnce();
+  expect(localStorage.getItem(TOKEN_KEY)).not.toBeNull();
+  const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
+  vi.stubGlobal("fetch", fetchMock);
+  await restored.logout();
+  expect(fetchMock.mock.calls[0][0]).toBe("http://ha.local:8123/auth/revoke");
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(restored.getSnapshot().error).toContain("revocation could not be confirmed");
+  newClient().start();
+  expect(ha.getAuth).toHaveBeenCalledOnce();
+});
+
+it.each([
+  "not json",
+  JSON.stringify({ ...tokenData(), refresh_token: "" }),
+  JSON.stringify({ ...tokenData(), expires: "tomorrow" }),
+  JSON.stringify({ ...tokenData(), hassUrl: "http://other.local:8123" }),
+  JSON.stringify({ ...tokenData(), clientId: "http://other-dashboard.local/" }),
+])("discards invalid or mismatched stored auth without redirecting on refresh (%#)", async saved => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem(TOKEN_KEY, saved === "not json" ? saved : JSON.stringify({ ...JSON.parse(saved), storageRevision: null }));
+  const client = newClient();
+  client.start();
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(ha.getAuth).not.toHaveBeenCalled();
+  expect(ha.createConnection).not.toHaveBeenCalled();
+  expect(client.getSnapshot().sessionWarning).toContain("could not be read");
+});
+
+it("clears rejected saved credentials and requires an explicit Connect after authentication failure", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
+  vi.mocked(ha.createConnection).mockRejectedValueOnce(ha.ERR_INVALID_AUTH);
+  const client = newClient();
+  client.start();
+  await waitFor(() => expect(client.getSnapshot().status).toBe("auth-error"));
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  client.dispose();
+  newClient().start();
+  expect(ha.getAuth).toHaveBeenCalledOnce();
+});
+
+it("prevents late login/refresh/revoke callbacks from restoring or erasing a newer session", async () => {
+  const client = await connectedClient();
+  const oldSave = vi.mocked(ha.getAuth).mock.calls[0][0].saveTokens;
+  await client.logout();
+  oldSave(tokenData());
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  await client.connect("http://other.local:8123");
+  const current = localStorage.getItem(TOKEN_KEY);
+  expect(JSON.parse(current).hassUrl).toBe("http://other.local:8123");
+  oldSave(null);
+  oldSave(tokenData());
+  expect(localStorage.getItem(TOKEN_KEY)).toBe(current);
+
+  const login = deferred<Auth>();
+  vi.mocked(ha.getAuth).mockReturnValueOnce(login.promise);
+  const pending = client.connect("http://pending.local:8123");
+  const calls = vi.mocked(ha.getAuth).mock.calls;
+  const lateSave = calls[calls.length - 1][0].saveTokens;
+  client.disconnect();
+  lateSave({ ...tokenData(), hassUrl: "http://pending.local:8123" });
+  login.resolve(auth);
+  await pending;
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(client.getSnapshot().status).toBe("disconnected");
+});
+
+it("reports denied persistent token storage without falling back to sessionStorage or leaking tokens", async () => {
+  const setItem = localStorage.setItem;
+  vi.spyOn(localStorage, "setItem").mockImplementation((key, value) => {
+    if (key === TOKEN_KEY) throw new Error("blocked");
+    setItem(key, value);
+  });
+  const client = await connectedClient();
+  expect(client.getSnapshot().sessionWarning).toContain("Reopening or refreshing may require signing in again");
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(JSON.stringify(client.getSnapshot())).not.toContain("fixture-access-secret");
+  expect(JSON.stringify(client.getSnapshot())).not.toContain("fixture-refresh-secret");
+});
+
+const storageEvent = (key: string | null) => {
+  const event = new StorageEvent("storage", { key });
+  Object.defineProperty(event, "storageArea", { value: localStorage });
+  window.dispatchEvent(event);
+};
+
+it("closes other tabs on logout and blocks stale token saves even before the storage event arrives", async () => {
+  const client = await connectedClient();
+  const oldSave = vi.mocked(ha.getAuth).mock.calls[0][0].saveTokens;
+  localStorage.setItem("afterglow-planner-v1:home-1", "keep planner");
+  // Another tab signs out. Native storage events are delivered asynchronously.
+  localStorage.setItem("home-harmony:ha-auth-revision", "other-tab-logout");
+  localStorage.removeItem(TOKEN_KEY);
+  oldSave(tokenData());
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  storageEvent("home-harmony:ha-auth-revision");
+  expect(client.getSnapshot().status).toBe("disconnected");
+  expect(client.getSnapshot().user).toBeUndefined();
+  expect(client.getSnapshot().states).toEqual({});
+  expect(conn.close).toHaveBeenCalledOnce();
+  await expect(client.command("light.living", "turn_off")).rejects.toThrow("fresh");
+  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe("keep planner");
+
+  const otherLogin = JSON.stringify({ ...tokenData(), refresh_token: "other-fixture-refresh", storageRevision: "other-tab-logout" });
+  localStorage.setItem(TOKEN_KEY, otherLogin);
+  oldSave(null);
+  oldSave(tokenData());
+  expect(localStorage.getItem(TOKEN_KEY)).toBe(otherLogin);
+});
+
+it("ignores another tab's token renewal and stops when browser site data is cleared", async () => {
+  const client = await connectedClient();
+  const saved = JSON.parse(localStorage.getItem(TOKEN_KEY));
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...saved, access_token: "another-tab-renewal" }));
+  storageEvent(TOKEN_KEY);
+  expect(client.getSnapshot().status).toBe("connected");
+  expect(conn.close).not.toHaveBeenCalled();
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem("home-harmony:ha-auth-revision");
+  storageEvent(null);
+  expect(client.getSnapshot().status).toBe("disconnected");
+  expect(conn.close).toHaveBeenCalledOnce();
+  client.dispose();
+  const snapshot = client.getSnapshot();
+  storageEvent(TOKEN_KEY);
+  expect(client.getSnapshot()).toBe(snapshot);
+});
+
+it("rejects a write racing with logout instead of restoring a retired browser login", () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem("home-harmony:ha-auth-revision", "logged-out-revision");
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: "old-revision" }));
+  const client = newClient();
+  client.start();
+  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(ha.getAuth).not.toHaveBeenCalled();
+});
+
+it("does not erase a newer browser login when an old tab reports revoked auth before its storage event", async () => {
+  const client = await connectedClient();
+  localStorage.setItem("home-harmony:ha-auth-revision", "new-login");
+  const saved = JSON.stringify({ ...tokenData(), refresh_token: "new-login-secret", storageRevision: "new-login" });
+  localStorage.setItem(TOKEN_KEY, saved);
+  conn.emit("reconnect-error");
+  expect(client.getSnapshot().status).toBe("auth-error");
+  expect(localStorage.getItem(TOKEN_KEY)).toBe(saved);
+  expect(localStorage.getItem("home-harmony:ha-auth-revision")).toBe("new-login");
 });
