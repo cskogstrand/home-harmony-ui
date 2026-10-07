@@ -29,7 +29,9 @@ For another screen on your LAN, bind Vite to your LAN interface with `npm run de
 
 ### Calendar access
 
-Calendar integrations remain in Home Assistant. This app reads `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header. It requests the displayed day/week using HA’s timezone (including DST), handles all-day exclusive end dates, and shows entries in a separate **read-only** HA section. Change the range or use **Refresh calendars** to fetch again. There are no calendar writes or invitations.
+Set up [people in Home Assistant](https://www.home-assistant.io/integrations/person/) and add calendar integrations there. In this app, open **Home settings → People and calendars** and assign each calendar you want to display to a person or **Everyone**. Unassigned calendars stay hidden. Assignments use instance-scoped registry IDs where available and survive entity renames.
+
+Calendar integrations remain in Home Assistant. This app reads `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header. It requests the displayed day/week using HA’s timezone (including DST), handles all-day exclusive end dates, and shows **read-only** HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again. There are no calendar writes or invitations.
 
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:
 
@@ -46,7 +48,11 @@ REST was chosen because it is supported across the declared HA range and still u
 
 ## Local family data
 
-Existing `afterglow-planner-v1:*` datasets keep their original keys and contents. The default remains `home-1`. **App preferences → Local family planner** can select other existing datasets. Changing HA instances, connecting, disconnecting or logging out does not migrate, upload or delete plans, lists, school timetables or calendar preferences. HA entries never enter the local planner store. Keep the same dashboard origin/browser to access existing data; the app does not copy storage across origins. New local planners retain the existing starter household content, which is editable locally.
+Before an HA instance is configured, the local planner includes the starter household. Once an instance URL is configured, all starter people, events, lists and school images are replaced with real HA people and setup messages. Disconnecting, reconnecting, logging out or reloading never brings demo content back.
+
+Connected households use separate `afterglow-connected-planner-v1:<instance>:<planner>` datasets, initially empty. Existing `afterglow-planner-v1:*` data is preserved without copying its sample or edited entries into the connected household; only calendar display preferences and home favorites carry over. **App preferences → Local family planner** selects the planner for the current instance. Add local plans and list items in this app, and timetable image URLs on the School board. These entries and calendar assignments remain local to this browser; HA events are never written into localStorage. Keep the same dashboard origin/browser to retain this data.
+
+Missing people and calendar integrations link to setup in HA; missing calendar assignments, lists and timetable images explain their setup in this app. Calendar loading, partial read failures and offline states remain explicit. Remote events are hidden while offline; local plans remain accessible, including when their person is unavailable.
 
 ## Controls and limits
 

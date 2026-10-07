@@ -243,14 +243,14 @@ it("keeps saved planner datasets and calendar preferences independent of HA auth
   render(<App />);
   await screen.findByText("HA user");
   fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual({ ...planner, homeEntities: {} });
+  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
   expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-2")).events).toEqual([]);
   fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
   fireEvent.click(await screen.findByRole("menuitem", { name: "App preferences" }));
   expect(screen.getByLabelText("Saved local planner")).toHaveValue("home-1");
   fireEvent.change(screen.getByLabelText("Saved local planner"), { target: { value: "home-2" } });
   expect(screen.getByLabelText("Saved local planner")).toHaveValue("home-2");
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual({ ...planner, homeEntities: {} });
+  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
 });
 it("does not clear the pending guard when a duplicate action is rejected", async () => {
   const client = await connectedClient();
@@ -275,14 +275,18 @@ it("loads only the displayed HA calendar range and never saves its events in the
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event] });
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.house": "everyone" } }));
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
-  expect(await screen.findByRole("heading", { name: event.summary })).toBeInTheDocument();
+  expect(await screen.findAllByRole("button", { name: /Imported read-only event/ })).toHaveLength(2);
   const firstUrl = new URL(fetchMock.mock.calls[0][0]);
   expect(firstUrl.searchParams.get("start")).toBe("2026-10-05T22:00:00.000Z");
   expect(firstUrl.searchParams.get("end")).toBe("2026-10-12T22:00:00.000Z");
-  expect(screen.queryByRole("button", { name: /Imported read-only event/ })).not.toBeInTheDocument();
-  expect(localStorage.getItem("afterglow-planner-v1:home-1")).not.toContain(event.summary);
+  fireEvent.click(screen.getAllByRole("button", { name: /Imported read-only event/ })[0]);
+  expect(screen.getByText(/Read-only Home Assistant event/)).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(localStorage.getItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1")).not.toContain(event.summary);
   const nextResponse = deferred<unknown>();
   fetchMock.mockReturnValueOnce(nextResponse.promise);
   fireEvent.click(screen.getByRole("button", { name: "Next week" }));
@@ -583,7 +587,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   const favorites = () => within(screen.getByRole("region", { name: "Home favorites" }));
   expect(favorites().getAllByRole("article")).toHaveLength(2);
   expect(favorites().getByRole("button", { name: "Activate Evening" })).toBeInTheDocument();
-  const key = "afterglow-planner-v1:home-1";
+  const key = "afterglow-connected-planner-v1:http://ha.local:8123:home-1";
   const saved = JSON.parse(localStorage.getItem(key)!);
   expect(saved.homeEntities["http://ha.local:8123"]).toEqual(["http://ha.local:8123|stable-light", "http://ha.local:8123|stable-sensor", "http://ha.local:8123|scene.evening"]);
   fireEvent.click(screen.getByRole("button", { name: "Customize" }));
@@ -664,4 +668,122 @@ it("shows spinners on busy device and scene controls, clears them on completion,
   expect(within(sceneController as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
   expect(sceneController).toHaveAttribute("aria-busy", "false");
   expect(scene).toBeEnabled();
+});
+
+it("replaces the existing demo household with setup states and never restores it on disconnect, logout or reload", async () => {
+  const demo = render(<App />);
+  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeInTheDocument();
+  demo.unmount();
+  const original = localStorage.getItem("afterglow-planner-v1:home-1");
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  await screen.findByText(/Set up people in Home Assistant → Settings → People/);
+  const noDemo = () => {
+    expect(screen.queryByText(/Anna|Erik|Emma|Leo|Football practice|Piano lesson|Oat milk|Set the table|Year 5|Class 2A/)).not.toBeInTheDocument();
+    expect(document.querySelector('img[src^="/timetables/"]')).toBeNull();
+  };
+  noDemo();
+  expect(screen.getByText(/Set up this list in this app.*first task/)).toBeInTheDocument();
+  expect(screen.getByText(/Set up school timetables in this app/)).toBeInTheDocument();
+  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  nav("School");
+  noDemo();
+  nav("Lists");
+  noDemo();
+  nav("Our week");
+  noDemo();
+  fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
+  fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+  nav("Today");
+  noDemo();
+  expect(screen.getByText(/Connect to Home Assistant to load people and calendars/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  nav("Today");
+  noDemo();
+  view.unmount();
+  render(<App />);
+  noDemo();
+  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe(original);
+});
+
+it("assigns HA calendars to real people in both views, persists setup, and isolates a different instance", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  const household = { ...states,
+    "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    "person.riley": state("person.riley", "not_home", { friendly_name: "Riley" }),
+    "calendar.morgan": state("calendar.morgan", "off", { friendly_name: "Morgan calendar" }),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  const event = { summary: "Dentist appointment", start: { dateTime: "2026-10-07T13:00:00Z" }, end: { dateTime: "2026-10-07T14:00:00Z" } };
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event] });
+  vi.stubGlobal("fetch", fetchMock);
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  const assignment = await screen.findByLabelText("Show Morgan calendar for");
+  await waitFor(() => expect(assignment).not.toBeDisabled());
+  expect(assignment).toHaveValue("");
+  expect(fetchMock).not.toHaveBeenCalled();
+  fireEvent.change(assignment, { target: { value: "http://ha.local:8123|person.morgan" } });
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
+  expect(await screen.findByRole("button", { name: /15:00 Dentist appointment/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
+  const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
+  expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
+  expect(row("Riley").queryByRole("button", { name: /Dentist appointment/ })).not.toBeInTheDocument();
+  fireEvent.click(row("Riley").getByRole("button", { name: "Add a plan for Riley on Thu 8 Oct" }));
+  fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Local library visit" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));
+  expect(await within(screen.getByRole("table")).findByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
+  expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
+  const key = "afterglow-connected-planner-v1:http://ha.local:8123:home-1";
+  expect(localStorage.getItem(key)).toContain("Local library visit");
+  expect(localStorage.getItem(key)).not.toContain("Dentist appointment");
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  const restored = render(<App />);
+  expect(await within(await screen.findByRole("table")).findByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
+  expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
+  act(() => conn.entityCallback?.(states));
+  expect(row("Person unavailable").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
+  fireEvent.click(row("Person unavailable").getByRole("button", { name: /Local library visit/ }));
+  expect(await screen.findByLabelText("Who’s going?")).toHaveValue("http://ha.local:8123|person.riley");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  restored.unmount();
+  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
+  render(<App />);
+  expect(screen.queryByText("Local library visit")).not.toBeInTheDocument();
+  expect(screen.queryByText("Dentist appointment")).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem(key)).calendarMembers).toEqual({ "http://ha.local:8123|calendar.morgan": "http://ha.local:8123|person.morgan" });
+});
+
+it("keeps successful calendar reads visible alongside errors and removes remote events while offline", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback({ ...states, "calendar.good": state("calendar.good", "off"), "calendar.denied": state("calendar.denied", "off") }));
+    return conn.unsubscribeEntities;
+  });
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("calendar.denied") ? { ok: false, status: 403 } : { ok: true, json: async () => [{ summary: "Shared day", start: "2026-10-07", end: "2026-10-08" }] }));
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.good": "everyone", "http://ha.local:8123|calendar.denied": "everyone" } }));
+  window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  expect(await screen.findByRole("button", { name: /Shared day/ })).toBeInTheDocument();
+  expect(screen.getByRole("alert")).toHaveTextContent("Could not read calendar.denied");
+  act(() => conn.emit("disconnected"));
+  expect(screen.queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();
+  expect(screen.getByText(/calendar events are unavailable while offline/)).toBeInTheDocument();
+  expect(screen.queryByText(/Anna|Erik|Emma|Leo/)).not.toBeInTheDocument();
 });

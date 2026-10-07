@@ -3,13 +3,14 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useApp } from "./AppContext";
 
-export const familyMembers = [
+const demoMembers = [
   { id: "anna", name: "Anna", initials: "A", color: "#d2bd9e" },
   { id: "erik", name: "Erik", initials: "Er", color: "#aacbd0" },
   { id: "emma", name: "Emma", initials: "Em", color: "#cabbce" },
   { id: "leo", name: "Leo", initials: "L", color: "#c7d29c" },
 ] as const;
-const memberSchema = z.enum(["anna", "erik", "emma", "leo", "everyone"]);
+const memberSchema = z.string().min(1);
+export interface FamilyMember { id: string; name: string; initials: string; color: string }
 export function isPlannerDate(value: string | null): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T12:00:00Z`);
@@ -32,12 +33,13 @@ const calendarSettingsSchema = z.object({
 });
 const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
-  timetables: z.object({ emma: z.string(), leo: z.string() }),
+  timetables: z.record(z.string()),
   calendar: calendarSettingsSchema.catch({ view: "people", startDay: "today" }),
   homeEntities: z.record(z.array(z.string())).catch({}),
+  calendarMembers: z.record(memberSchema).default({}),
 });
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
-export type FamilyEvent = z.infer<typeof eventSchema>;
+export type FamilyEvent = z.infer<typeof eventSchema> & { calendarId?: string; allDay?: boolean; continues?: boolean };
 export type ListItem = z.infer<typeof itemSchema>;
 type Planner = z.infer<typeof plannerSchema>;
 export type MemberId = z.infer<typeof memberSchema>;
@@ -58,7 +60,6 @@ export function weekStart(date: string) {
 export function dateLabel(date: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) {
   return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
 }
-export const memberName = (id: MemberId) => familyMembers.find(m => m.id === id)?.name ?? "Everyone";
 export const itemIsDone = (item: ListItem, today: string) => item.kind === "daily" ? item.completedOn === today : item.done;
 export const sortEvents = (events: FamilyEvent[]) => [...events].sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
 
@@ -80,6 +81,7 @@ function samplePlanner(today: string): Planner {
     events: sortEvents(events),
     calendar: { view: "people", startDay: "today" },
     homeEntities: {},
+    calendarMembers: {},
     items: [
       { id: "d1", text: "Pack tomorrow’s school bags", kind: "daily", member: "emma", done: false },
       { id: "d2", text: "Set the table", kind: "daily", member: "leo", done: false },
@@ -95,17 +97,19 @@ function samplePlanner(today: string): Planner {
 }
 
 interface FamilyContextValue extends Planner {
+  members: FamilyMember[]; memberName: (id: MemberId) => string; connectedPlanner: boolean;
   now: Date; today: string; time: string; saved: boolean;
   plannerId: string; plannerIds: string[]; selectPlanner: (id: string) => void;
   calendarStart: string;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   setHomeEntities: (instance: string, ids: string[]) => void;
+  setCalendarMember: (calendar: string, member: string) => void;
   saveEvent: (event: FamilyEvent) => void;
   deleteEvent: (id: string) => void;
   addItem: (text: string, kind: ListKind, member: MemberId) => void;
   toggleItem: (id: string) => void;
   deleteItem: (id: string) => void;
-  setTimetable: (child: "emma" | "leo", url: string) => void;
+  setTimetable: (child: MemberId, url: string) => void;
 }
 const FamilyContext = createContext<FamilyContextValue | null>(null);
 export function useFamily() {
@@ -114,7 +118,7 @@ export function useFamily() {
   return value;
 }
 export function FamilyProvider({ children }: { children: ReactNode }) {
-  const { currentHome } = useApp();
+  const { currentHome, haUrl } = useApp();
   // Keep the original household keys; HA connection changes never migrate local data.
   const [plannerIds] = useState(() => {
     const ids = new Set(["home-1"]);
@@ -135,14 +139,22 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     setPlannerId(id);
     try { localStorage.setItem("afterglow-selected-planner", id); } catch { /* Selection remains in memory. */ }
   };
-  return <FamilyStore key={plannerId} homeId={plannerId} plannerIds={plannerIds} selectPlanner={selectPlanner} timeZone={currentHome.timeZone}>{children}</FamilyStore>;
+  // Once an instance is configured, reconnects/logout must never restore demo content.
+  return <FamilyStore key={`${haUrl}|${plannerId}`} homeId={plannerId} plannerIds={plannerIds} selectPlanner={selectPlanner} timeZone={currentHome.timeZone}>{children}</FamilyStore>;
 }
 function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: { children: ReactNode; homeId: string; timeZone: string; plannerIds: string[]; selectPlanner: (id: string) => void }) {
+  const { currentHome, haUrl } = useApp();
+  const connectedPlanner = !!haUrl;
+  const members: FamilyMember[] = connectedPlanner ? currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
+    id: person.preferenceId, name: person.name,
+    initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
+    color: demoMembers[index % demoMembers.length].color,
+  })) : [...demoMembers];
   const [now, setNow] = useState(() => new Date());
   const today = homeDate(now, timeZone);
   const time = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
   // ponytail: this planner is local to one browser; replace the store when family accounts/sync are connected.
-  const key = `afterglow-planner-v1:${homeId}`;
+  const key = connectedPlanner ? `afterglow-connected-planner-v1:${haUrl}:${homeId}` : `afterglow-planner-v1:${homeId}`;
   const [planner, setPlanner] = useState<Planner>(() => {
     try {
       const raw = localStorage.getItem(key);
@@ -154,7 +166,11 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
         localStorage.setItem(`${key}:unreadable-backup`, raw);
       }
     } catch { /* Storage may be unavailable; the save effect reports that state. */ }
-    return samplePlanner(today);
+    if (!connectedPlanner) return samplePlanner(today);
+    // Old starter data stays intact; only display preferences carry into the real household.
+    let preferences: Partial<Planner> = {};
+    try { preferences = plannerSchema.partial().parse(JSON.parse(localStorage.getItem(`afterglow-planner-v1:${homeId}`) ?? "{}")); } catch { /* Start with empty preferences. */ }
+    return { events: [], items: [], timetables: {}, calendarMembers: {}, calendar: preferences.calendar ?? { view: "people", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
   });
   const [saved, setSaved] = useState(true);
   useEffect(() => {
@@ -165,11 +181,19 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     try { localStorage.setItem(key, JSON.stringify(planner)); setSaved(true); }
     catch { setSaved(false); toast.error("This browser cannot save changes. Keep this tab open to retain your planner."); }
   }, [key, planner]);
-  return <FamilyContext.Provider value={{ ...planner, now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner,
+  return <FamilyContext.Provider value={{ ...planner, members, connectedPlanner,
+    memberName: id => id === "everyone" ? "Everyone" : members.find(m => m.id === id)?.name ?? "Person unavailable",
+    now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner,
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
     setHomeEntities: (instance, ids) => setPlanner(p => ({ ...p, homeEntities: { ...p.homeEntities, [instance]: [...new Set(ids)] } })),
+    setCalendarMember: (calendar, member) => setPlanner(p => {
+      const calendarMembers = { ...p.calendarMembers };
+      if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];
+      return { ...p, calendarMembers };
+    }),
     saveEvent: event => {
+      if (event.calendarId) return;
       const valid = eventSchema.safeParse(event);
       if (!valid.success) { toast.error("Check the event details before saving."); return; }
       setPlanner(p => ({ ...p, events: sortEvents([...p.events.filter(e => e.id !== event.id), valid.data]) }));

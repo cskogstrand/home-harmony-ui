@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { calendarBoundary } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
 import { Columns3, Table2, Plus } from "lucide-react";
-import { useFamily, familyMembers, addDays, dateLabel, sortEvents, type CalendarSettings, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, addDays, dateLabel, homeDate, isPlannerDate, sortEvents, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
@@ -24,14 +25,14 @@ export function CalendarViewControls({ onChange }: { onChange?: (settings: Parti
 interface FamilyWeekGridProps {
   start: string;
   events: FamilyEvent[];
-  members?: ReadonlyArray<(typeof familyMembers)[number]>;
+  members?: ReadonlyArray<FamilyMember>;
   compact?: boolean;
   onEdit: (event: FamilyEvent) => void;
   onAdd: (date: string, member: MemberId) => void;
 }
 
-export function FamilyWeekGrid({ start, events, members = familyMembers, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
-  const { today } = useFamily();
+export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
+  const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   const plansFor = (date: string, member: MemberId) => sortEvents(events.filter(e => e.date === date && (e.member === member || e.member === "everyone")));
   return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label="Family weekly calendar" tabIndex={0}>
@@ -41,7 +42,7 @@ export function FamilyWeekGrid({ start, events, members = familyMembers, compact
         <thead><tr><th scope="col">Family</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
           <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? "Today" : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>
         </th>)}</tr></thead>
-        <tbody>{members.map(person => <tr key={person.id} className={`member-${person.id}`}>
+        <tbody>{(members ?? familyMembers).map(person => <tr key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
           <th scope="row"><div className="week-person"><span aria-hidden="true"><MemberAvatar member={person.id} small /></span><span>{person.name}</span></div></th>
           {days.map(day => {
             const plans = plansFor(day, person.id);
@@ -57,18 +58,42 @@ export function FamilyWeekGrid({ start, events, members = familyMembers, compact
     </div>;
 }
 
+const dateValue = (value: CalendarEvent["start"]) => typeof value === "string" ? value : "dateTime" in value ? value.dateTime : value.date;
+
+// Expand only the visible range; HA end dates/times are exclusive, including midnight.
+export function calendarPlans(event: CalendarEvent, calendarId: string, member: string, start: string, end: string, timeZone: string, index: number): FamilyEvent[] {
+  const from = dateValue(event.start), to = dateValue(event.end);
+  const allDay = isPlannerDate(from);
+  const startTime = Date.parse(allDay ? calendarBoundary(from, timeZone) : from);
+  const endTime = Date.parse(isPlannerDate(to) ? calendarBoundary(to, timeZone) : to);
+  const firstDay = allDay ? from : homeDate(new Date(startTime), timeZone);
+  const plans: FamilyEvent[] = [];
+  for (let day = start; day < end; day = addDays(day, 1)) {
+    if (startTime >= Date.parse(calendarBoundary(addDays(day, 1), timeZone)) || endTime <= Date.parse(calendarBoundary(day, timeZone))) continue;
+    plans.push({ id: `${calendarId}:${event.uid ?? index}:${from}:${day}`, calendarId, member, date: day, allDay, continues: day > firstDay,
+      time: allDay || day > firstDay ? "00:00" : new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(startTime)),
+      title: event.summary, location: event.location ?? "", note: event.description ?? "" });
+  }
+  return plans;
+}
+
 // Remote events stay read-only and never enter FamilyContext/localStorage.
-export function HomeAssistantCalendar({ start, end }: { start: string; end: string }) {
+export function useCalendarPlans(start: string, end: string) {
   const { currentHome, homeOnline, haUrl, calendarEvents } = useApp();
+  const { events: localEvents, calendarMembers, members } = useFamily();
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
-  const calendarIds = calendars.map(e => e.entityId).sort().join(",");
+  const selected = calendars.filter(e => calendarMembers[e.preferenceId] === "everyone" || members.some(m => m.id === calendarMembers[e.preferenceId]));
+  const calendarIds = selected.map(e => e.entityId).sort().join(",");
   const requestKey = `${haUrl}|${calendarIds}|${start}|${end}|${currentHome.timeZone}`;
   useEffect(() => {
-    if (!homeOnline || !calendarIds) return;
+    if (!homeOnline || !calendarIds) {
+      setResult(previous => previous.key ? { key: "", events: [], errors: [], loading: false } : previous);
+      return;
+    }
     const controller = new AbortController();
-    setResult(previous => ({ key: requestKey, events: previous.key === requestKey ? previous.events : [], errors: [], loading: true }));
+    setResult({ key: requestKey, events: [], errors: [], loading: true });
     const from = calendarBoundary(start, currentHome.timeZone);
     const to = calendarBoundary(end, currentHome.timeZone);
     void Promise.allSettled(calendarIds.split(",").map(async id => ({ id, events: await calendarEvents(id, from, to, controller.signal) }))).then(results => {
@@ -80,21 +105,47 @@ export function HomeAssistantCalendar({ start, end }: { start: string; end: stri
     });
     return () => controller.abort();
   }, [homeOnline, calendarIds, requestKey, start, end, currentHome.timeZone, calendarEvents, refresh]);
-  const events = result.key === requestKey ? result.events : [];
-  const dateValue = (value: CalendarEvent["start"]) => typeof value === "string" ? value : "dateTime" in value ? value.dateTime : value.date;
-  const eventDate = (value: CalendarEvent["start"]) => {
-    const date = dateValue(value);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return `${dateLabel(date)} (all day)`;
-    const parsed = new Date(date);
-    return Number.isFinite(parsed.getTime()) ? parsed.toLocaleString("en-GB", { timeZone: currentHome.timeZone, dateStyle: "medium", timeStyle: "short" }) : "Date not reported";
+  const remote = homeOnline && result.key === requestKey ? result.events.flatMap(({ event, calendar }, index) => {
+    const entity = selected.find(e => e.entityId === calendar);
+    return entity ? calendarPlans(event, calendar, calendarMembers[entity.preferenceId], start, end, currentHome.timeZone, index) : [];
+  }) : [];
+  // Local plans remain reachable when their HA person is removed or has not loaded yet.
+  const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
+    .filter(id => id !== "everyone" && !members.some(m => m.id === id))
+    .map(id => ({ id, name: "Person unavailable", initials: "?", color: "#c4d5a3" }))];
+  if (!people.length) people.push({ id: "everyone", name: "Everyone", initials: "All", color: "#c4d5a3" });
+  return { events: sortEvents([...localEvents, ...remote]), people,
+    loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
+    errors: homeOnline && result.key === requestKey ? result.errors : [],
+    refresh: () => setRefresh(n => n + 1), selectedCount: selected.length,
   };
-  return <section className="glow-panel col-span-full"><div className="panel-heading"><h2>Home Assistant calendars</h2><button className="text-link" disabled={!homeOnline} onClick={() => setRefresh(n => n + 1)}>Refresh calendars</button></div>
-    <p className="page-note">Read-only · {dateLabel(start)} to {dateLabel(addDays(end, -1))} · {currentHome.timeZone}. Local family plans are shown separately above.</p>
-    {!homeOnline && <p role="status">Home Assistant calendars are offline. Any cached events below are stale; local plans remain available.</p>}
-    {!calendars.length && <p className="empty-note">No HA calendar entities loaded. Manage calendar integrations in Home Assistant.</p>}
-    {homeOnline && result.loading && <p role="status">Loading calendar events…</p>}
-    {homeOnline && result.key === requestKey && result.errors.map(error => <p role="alert" key={error}>{error}</p>)}
-    {homeOnline && calendars.length > 0 && !result.loading && result.key === requestKey && !events.length && !result.errors.length && <p>No HA events in this date range.</p>}
-    <div className="space-y-3">{[...events].sort((a, b) => dateValue(a.event.start).localeCompare(dateValue(b.event.start))).map(({ event, calendar }, i) => <article key={`${calendar}:${event.uid ?? i}:${dateValue(event.start)}`} className="rounded-lg border p-3"><small>Home Assistant · {calendars.find(c => c.entityId === calendar)?.name ?? calendar}</small><h3>{event.summary}</h3><p>{eventDate(event.start)} — {eventDate(event.end)} <small>(end exclusive)</small></p>{event.location && <p>{event.location}</p>}{event.description && <p className="whitespace-pre-wrap">{event.description}</p>}</article>)}</div>
-  </section>;
+}
+
+export function CalendarSetupNotice() {
+  const { currentHome, homeOnline } = useApp();
+  const { connectedPlanner, members, calendarMembers } = useFamily();
+  if (!connectedPlanner) return null;
+  const calendars = currentHome.entities.filter(e => e.domain === "calendar");
+  const unassigned = calendars.some(e => calendarMembers[e.preferenceId] !== "everyone" && !members.some(m => m.id === calendarMembers[e.preferenceId]));
+  return <div className="page-note space-y-2">
+    {!homeOnline ? <p role="status">Connect to Home Assistant to load people and calendars. <Link className="text-link" to="/settings">Connection settings</Link></p> : <>
+      {!members.length && <p>Set up people in Home Assistant → Settings → People to see each person’s week.</p>}
+      {!calendars.length && <p>Set up a calendar integration in Home Assistant, then assign its calendar in this app.</p>}
+      {unassigned && <p>Set up calendars in this app: choose a person or Everyone for each calendar you want to show.</p>}
+    </>}
+    <Link className="text-link" to="/settings#family-calendar">Set up people and calendars</Link>
+  </div>;
+}
+
+export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
+  const { homeOnline } = useApp();
+  const { connectedPlanner } = useFamily();
+  if (!connectedPlanner) return null;
+  return <div className="page-note space-y-2">
+    <CalendarSetupNotice />
+    {data.selectedCount > 0 && <p>Home Assistant events are read-only. Local plans are saved on this screen. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
+    {data.loading && <p role="status">Loading calendar events…</p>}
+    {data.errors.map(error => <p role="alert" key={error}>{error}</p>)}
+    {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline. Local plans remain available.</p>}
+  </div>;
 }
