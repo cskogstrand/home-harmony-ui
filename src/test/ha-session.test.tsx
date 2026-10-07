@@ -194,12 +194,20 @@ it("reads calendar ranges with a bearer header, refreshes expired auth and repor
   expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
 });
 it("keeps non-demo alarm codes transient and shows actual command rejection", async () => {
-  const submit = vi.fn().mockRejectedValueOnce(new Error("HA rejection")).mockResolvedValueOnce(undefined);
+  const request = deferred<void>();
+  const submit = vi.fn().mockReturnValueOnce(request.promise).mockResolvedValueOnce(undefined);
   const close = vi.fn();
   render(<PinPadModal open onOpenChange={close} title="Disarm" description="Code sent to HA" codeRequired onSubmit={submit} />);
   fireEvent.change(screen.getByLabelText("Code"), { target: { value: "a long non-demo code" } });
   fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+  const confirm = screen.getByRole("button", { name: "Confirm" });
+  expect(confirm).toHaveAttribute("aria-busy", "true");
+  expect(confirm.querySelector(".animate-spin")).toBeInTheDocument();
+  expect(screen.queryByText("Sending…")).not.toBeInTheDocument();
+  await act(async () => request.reject(new Error("HA rejection")));
   expect(await screen.findByRole("alert")).toHaveTextContent("did not confirm");
+  expect(confirm).toHaveAttribute("aria-busy", "false");
+  expect(confirm.querySelector(".animate-spin")).not.toBeInTheDocument();
   expect(screen.getByLabelText("Code")).toHaveValue("");
   expect(close).not.toHaveBeenCalled();
   fireEvent.change(screen.getByLabelText("Code"), { target: { value: "7" } });
@@ -621,4 +629,39 @@ it("offers temperature, mode and blind controls without duplicating raw state la
   fireEvent.click(lock.getByRole("button", { name: "Unlock Front" }));
   expect(await screen.findByLabelText("Code")).toBeInTheDocument();
   expect(ha.callService).toHaveBeenCalledTimes(3);
+});
+
+it("shows spinners on busy device and scene controls, clears them on completion, and keeps errors", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const toggle = await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  await waitFor(() => expect(toggle).toBeEnabled());
+  const request = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  fireEvent.click(toggle);
+  const controller = toggle.closest(".command-controller")!;
+  expect(controller).toHaveAttribute("aria-busy", "true");
+  expect(within(controller as HTMLElement).getByRole("status").querySelector(".animate-spin")).toBeInTheDocument();
+  expect(toggle).toBeDisabled();
+  expect(screen.queryByText(/Sending…|Request sent/)).not.toBeInTheDocument();
+  await act(async () => request.resolve({}));
+  expect(controller).toHaveAttribute("aria-busy", "false");
+  expect(within(controller as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
+  expect(toggle).toBeEnabled();
+  expect(toggle).toBeChecked(); // Service acceptance still does not invent a physical state change.
+  expect(screen.queryByText(/Sending…|Request sent/)).not.toBeInTheDocument();
+  const rejected = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(rejected.promise);
+  const scene = screen.getByRole("button", { name: "Activate Evening" });
+  fireEvent.click(scene);
+  const sceneController = scene.closest(".command-controller")!;
+  expect(sceneController).toHaveAttribute("aria-busy", "true");
+  expect(within(sceneController as HTMLElement).getByRole("status").querySelector(".animate-spin")).toBeInTheDocument();
+  expect(scene).toBeDisabled();
+  await act(async () => rejected.reject(new Error("HA rejection")));
+  expect(within(sceneController as HTMLElement).getByRole("alert")).toHaveTextContent("Home Assistant rejected");
+  expect(within(sceneController as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
+  expect(sceneController).toHaveAttribute("aria-busy", "false");
+  expect(scene).toBeEnabled();
 });

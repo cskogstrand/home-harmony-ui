@@ -549,7 +549,8 @@
 .device-mode select { min-width: 0; max-width: 75%; min-height: 44px; padding: 6px 10px; border-radius: 10px; background: hsl(var(--secondary)); font-size: 13px; }
 .device-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .device-actions button { flex: 1; gap: 6px; padding-inline: 10px; font-size: 12px; }
-.command-feedback { font-size: 12px; color: hsl(var(--muted-foreground)); }
+.command-controller { position: relative; }
+.command-spinner { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 12px; background: hsl(var(--card) / .6); color: hsl(var(--primary)); pointer-events: none; }
 .portrait-board > .home-favorites { grid-column: 1 / -1; }
 .favorite-heading-actions { display: flex; align-items: center; gap: 20px; }
 .favorite-heading-actions .text-link { min-height: 44px; font-size: 12px; }

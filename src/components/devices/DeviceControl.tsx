@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { PinPadModal } from "./PinPadModal";
-import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles, MapPin, ArrowUp, ArrowDown, Square, Unlock, Droplets, Battery, Zap, DoorOpen, Activity, Play, Fan } from "lucide-react";
+import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles, MapPin, ArrowUp, ArrowDown, Square, Unlock, Droplets, Battery, Zap, DoorOpen, Activity, Play, Fan, Loader2 } from "lucide-react";
 
 export function DeviceIcon({ type, deviceClass, className }: { type: string; deviceClass?: unknown; className?: string }) {
   const Icon = ({ temperature: Thermometer, humidity: Droplets, moisture: Droplets, battery: Battery, power: Zap, energy: Zap, door: DoorOpen, motion: Activity, smoke: Shield })[String(deviceClass)]
@@ -17,13 +17,7 @@ export function DeviceIcon({ type, deviceClass, className }: { type: string; dev
 export function CommandFeedback({ entityId }: { entityId: string }) {
   const { commands } = useApp();
   const command = commands[entityId];
-  const [dismissed, setDismissed] = useState<typeof command>();
-  useEffect(() => {
-    if (!command?.message) return;
-    const timer = window.setTimeout(() => setDismissed(command), 2500);
-    return () => window.clearTimeout(timer);
-  }, [command]);
-  return command?.error ? <p role="alert" className="text-sm text-destructive">{command.error}</p> : command && command !== dismissed ? <p role="status" className="command-feedback">{command.pending ? "Sending…" : "Request sent"}</p> : null;
+  return command?.error ? <p role="alert" className="text-sm text-destructive">{command.error}</p> : command?.pending ? <span role="status" className="command-spinner"><Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /><span className="sr-only">Command in progress</span></span> : null;
 }
 function RangeControl({ label, name, value, min, max, step = 1, unit = "", disabled, commit }: { label: string; name: string; value?: number; min: number; max: number; step?: number; unit?: string; disabled: boolean; commit: (value: number) => void }) {
   const [draft, setDraft] = useState(value);
@@ -45,7 +39,7 @@ export function DeviceControl({ entity }: { entity: Entity }) {
   const toggle = ["light", "switch", "automation"].includes(entity.domain) && supports(entity.state === "on" ? "turn_off" : "turn_on");
   const status = !homeOnline ? "Offline" : entityStateLabel(entity);
   const showState = !homeOnline || !available(entity) || (entity.domain !== "scene" && !(entity.domain === "cover" && supports("position") && position !== undefined && ["open", "closed"].includes(entity.state)));
-  return <div className="control-stack">
+  return <div className="control-stack command-controller" aria-busy={!!commands[entity.entityId]?.pending}>
     {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={`Toggle ${entity.name}`} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
       : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature ?? "—"}<small>{currentHome.temperatureUnit}</small></strong><span>Inside</span></div>
       : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}

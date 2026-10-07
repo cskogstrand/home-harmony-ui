@@ -14,7 +14,7 @@ import { PanelHeading } from "./FamilyPlanner";
 export function SceneButtons({ entities }: { entities?: Entity[] }) {
   const { currentHome, command, commands, homeOnline, services } = useApp();
   const scenes = entities ?? currentHome.entities.filter(e => e.domain === "scene");
-  return <><div className="scene-buttons">{scenes.map(scene => <div key={scene.entityId}><button className="w-full" aria-label={`Activate ${scene.name}`} disabled={!homeOnline || !available(scene) || !supportsAction(scene, "turn_on", services) || commands[scene.entityId]?.pending} onClick={() => { void command(scene.entityId, "turn_on").catch(() => {}); }}><Sparkles size={20} aria-hidden="true" /><span>{scene.name}</span></button><CommandFeedback entityId={scene.entityId} /></div>)}</div>{!scenes.length && <p className="empty-note">No scenes yet.</p>}</>;
+  return <><div className="scene-buttons">{scenes.map(scene => <div key={scene.entityId} className="command-controller" aria-busy={!!commands[scene.entityId]?.pending}><button className="w-full" aria-label={`Activate ${scene.name}`} disabled={!homeOnline || !available(scene) || !supportsAction(scene, "turn_on", services) || commands[scene.entityId]?.pending} onClick={() => { void command(scene.entityId, "turn_on").catch(() => {}); }}><Sparkles size={20} aria-hidden="true" /><span>{scene.name}</span></button><CommandFeedback entityId={scene.entityId} /></div>)}</div>{!scenes.length && <p className="empty-note">No scenes yet.</p>}</>;
 }
 export function HomeFavorites() {
   const { currentHome, haUrl } = useApp();

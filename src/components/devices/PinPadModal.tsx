@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 interface PinPadModalProps {
   open: boolean;
@@ -31,7 +32,7 @@ export function PinPadModal({ open, onOpenChange, title, description, onSubmit, 
     }}>
       {codeRequired && <label className="block space-y-2"><span>Code</span><Input aria-label="Code" type="password" autoComplete="off" inputMode={numeric ? "numeric" : "text"} required disabled={pending || disabled} value={code} onChange={event => setCode(event.target.value)} /></label>}
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" disabled={disabled || pending || (codeRequired && !code)}>{pending ? "Sending…" : "Confirm"}</Button>
+      <Button type="submit" className="relative" aria-label="Confirm" aria-busy={pending} disabled={disabled || pending || (codeRequired && !code)}><span className={pending ? "invisible" : undefined}>Confirm</span>{pending && <Loader2 className="absolute h-4 w-4 animate-spin" aria-hidden="true" />}</Button>
       <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
     </form>
   </DialogContent></Dialog>;
