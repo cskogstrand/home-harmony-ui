@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
-import { useFamily, addDays, dateLabel, sortEvents, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, addDays, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, ListPanel, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, useCalendarPlans } from "@/components/FamilyCalendar";
 import { HomeFavorites } from "@/components/HomePanels";
@@ -34,10 +34,10 @@ export default function Dashboard() {
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
       <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={`View ${dateLabel(day)}`} aria-current={day === today ? "date" : undefined}><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>
       <div className="family-lanes">{familyMembers.map(member => {
-        const personal = weekEvents.filter(e => e.member === member.id || e.member === "everyone");
+        const personal = weekEvents.filter(e => e.member === member.id);
         const future = personal.filter(e => `${e.date}${e.time}` >= `${today}${time}`);
         const remaining = future.length ? future : personal;
-        const shown = sortEvents([...remaining.filter(e => e.member !== "everyone"), ...remaining.filter(e => e.member === "everyone")].slice(0, 2));
+        const shown = remaining.slice(0, 2);
         return <div className="family-lane" style={{ "--member": member.color } as React.CSSProperties} key={member.id}><div className="lane-heading"><MemberAvatar member={member.id} small /><strong>{member.name}</strong><span>{personal.length} plans</span></div>
           {shown.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
           {shown.length === 0 && <p className="empty-note">{connectedPlanner ? "No plans to display. Check calendar setup above or add a plan." : "A lovely open week."}</p>}

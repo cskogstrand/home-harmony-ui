@@ -30,7 +30,7 @@ export default function HomeSettings() {
       {!homeOnline && <p role="status">Connect to Home Assistant to set up people and calendars.</p>}
       {homeOnline && !members.length && <p className="empty-note">Set up people in Home Assistant → Settings → People.</p>}
       {homeOnline && !calendars.length && <p className="empty-note">Set up a calendar integration in Home Assistant, then return here to assign it.</p>}
-      {!!calendars.length && <div className="mt-3">{[...members, { id: "everyone", name: "Everyone" }].map(person => {
+      {!!calendars.length && <div className="mt-3">{[{ id: "everyone", name: "Everyone" }, ...members].map(person => {
         const selected = calendars.filter(calendar => calendarMembers[calendar.preferenceId] === person.id);
         const available = calendars.filter(calendar => calendarMembers[calendar.preferenceId] !== person.id);
         return <div key={person.id} role="group" aria-label={person.name} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">

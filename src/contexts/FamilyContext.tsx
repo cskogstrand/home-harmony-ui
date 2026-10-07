@@ -34,7 +34,7 @@ const calendarSettingsSchema = z.object({
 const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
   timetables: z.record(z.string()),
-  calendar: calendarSettingsSchema.catch({ view: "people", startDay: "today" }),
+  calendar: calendarSettingsSchema.catch({ view: "week", startDay: "today" }),
   homeEntities: z.record(z.array(z.string())).catch({}),
   calendarMembers: z.record(memberSchema).default({}),
 });
@@ -79,7 +79,7 @@ function samplePlanner(today: string): Planner {
   ];
   return {
     events: sortEvents(events),
-    calendar: { view: "people", startDay: "today" },
+    calendar: { view: "week", startDay: "today" },
     homeEntities: {},
     calendarMembers: {},
     items: [
@@ -170,7 +170,7 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     // Old starter data stays intact; only display preferences carry into the real household.
     let preferences: Partial<Planner> = {};
     try { preferences = plannerSchema.partial().parse(JSON.parse(localStorage.getItem(`afterglow-planner-v1:${homeId}`) ?? "{}")); } catch { /* Start with empty preferences. */ }
-    return { events: [], items: [], timetables: {}, calendarMembers: {}, calendar: preferences.calendar ?? { view: "people", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
+    return { events: [], items: [], timetables: {}, calendarMembers: {}, calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
   });
   const [saved, setSaved] = useState(true);
   useEffect(() => {

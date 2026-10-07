@@ -31,6 +31,8 @@ For another screen on your LAN, bind Vite to your LAN interface with `npm run de
 
 Set up [people in Home Assistant](https://www.home-assistant.io/integrations/person/) and add calendar integrations there. In this app, open **Home settings → People and calendars**. Each person’s row shows their selected calendars; use **Add calendar** to add one or the **×** button to remove one. Use **Everyone** for shared calendars. A calendar belongs to one person or Everyone; dropdown options indicate when selecting one moves its assignment. Unselected calendars stay hidden. Assignments use instance-scoped registry IDs where available and survive entity renames.
 
+**Everyone** has its own row in the dashboard and calendar, with shared plans shown only there. No separate HA person is needed for the family. **Weekly grid** is the default layout; existing saved layout choices are preserved.
+
 Calendar integrations remain in Home Assistant. This app reads `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header. It requests the displayed day/week using HA’s timezone (including DST), handles all-day exclusive end dates, and shows **read-only** HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again. There are no calendar writes or invitations.
 
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:

@@ -734,7 +734,7 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   fireEvent.change(assignment, { target: { value: "http://ha.local:8123|calendar.morgan" } });
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
   expect(await screen.findByRole("button", { name: /15:00 Dentist appointment/ })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
+  expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
   const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
   expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
   expect(row("Riley").queryByRole("button", { name: /Dentist appointment/ })).not.toBeInTheDocument();
@@ -832,7 +832,7 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
   vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
     (connection as unknown as FakeConnection).entityCallback = callback;
-    queueMicrotask(() => callback({ ...states, "calendar.good": state("calendar.good", "off"), "calendar.denied": state("calendar.denied", "off") }));
+    queueMicrotask(() => callback({ ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }), "calendar.good": state("calendar.good", "off"), "calendar.denied": state("calendar.denied", "off") }));
     return conn.unsubscribeEntities;
   });
   vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("calendar.denied") ? { ok: false, status: 403 } : { ok: true, json: async () => [{ summary: "Shared day", start: "2026-10-07", end: "2026-10-08" }] }));
@@ -841,6 +841,8 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   expect(await screen.findByRole("button", { name: /Shared day/ })).toBeInTheDocument();
+  expect(within(screen.getByRole("rowheader", { name: "Everyone" }).closest("tr")!).getByRole("button", { name: /Shared day/ })).toBeVisible();
+  expect(within(screen.getByRole("rowheader", { name: "Morgan" }).closest("tr")!).queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent("Could not read calendar.denied");
   act(() => conn.emit("disconnected"));
   expect(screen.queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();

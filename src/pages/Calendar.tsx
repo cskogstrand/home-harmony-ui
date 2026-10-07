@@ -7,7 +7,7 @@ import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/component
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, useCalendarPlans } from "@/components/FamilyCalendar";
 
 export default function Calendar() {
-  const { today, members, connectedPlanner, calendar, calendarStart } = useFamily();
+  const { today, connectedPlanner, calendar, calendarStart } = useFamily();
   const [params, setParams] = useSearchParams();
   const selected = params.get("date");
   const validDate = isPlannerDate(selected) ? selected : null;
@@ -27,7 +27,7 @@ export default function Calendar() {
   const openEvent = (event?: FamilyEvent) => { setEditing(event); setNewPlan(undefined); setEditorOpen(true); };
   const addPlan = (date: string, person: MemberId) => { setEditing(undefined); setNewPlan({ date, member: person }); setEditorOpen(true); };
   const navigateWeek = (days: number) => setParams({ week: addDays(start, days) });
-  const visible = events.filter(e => e.date >= start && e.date < addDays(start, 7) && (calendar.view === "week" || !validDate || e.date === validDate) && (member === "all" || e.member === member || e.member === "everyone"));
+  const visible = events.filter(e => e.date >= start && e.date < addDays(start, 7) && (calendar.view === "week" || !validDate || e.date === validDate) && (member === "all" || e.member === member));
   const people = familyMembers.filter(m => member === "all" || member === m.id);
 
   return <div className="planner-page calendar-page">
@@ -44,18 +44,18 @@ export default function Calendar() {
         else if (change.view === "week" && validDate) setParams(start === calendarStart ? {} : { week: start });
       }} />
       {calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === validDate ? "is-today" : day === today ? "today-outline" : ""} onClick={() => setParams(day === validDate ? { week: start } : { week: start, date: day })} aria-pressed={day === validDate}><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={events.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
-      <div className="filter-row"><button aria-pressed={member === "all"} onClick={() => setMember("all")}>Everyone</button>{members.map(m => <button key={m.id} aria-pressed={member === m.id} onClick={() => setMember(m.id)}><MemberAvatar member={m.id} small />{m.name}</button>)}{calendar.view === "people" && validDate && <button onClick={() => setParams({ week: start })}>Show whole week</button>}</div>
+      <div className="filter-row"><button aria-pressed={member === "all"} onClick={() => setMember("all")}>All people</button>{familyMembers.map(m => <button key={m.id} aria-label={m.name} aria-pressed={member === m.id} onClick={() => setMember(m.id)}><MemberAvatar member={m.id} small />{m.name}</button>)}{calendar.view === "people" && validDate && <button onClick={() => setParams({ week: start })}>Show whole week</button>}</div>
       <HomeAssistantCalendar data={data} />
     </section>
     {calendar.view === "week" ? <section className="glow-panel weekly-panel"><FamilyWeekGrid start={start} events={visible} members={people} onEdit={openEvent} onAdd={addPlan} /></section> :
       <div className="calendar-lanes">{people.map(person => {
-        const personal = visible.filter(e => e.member === person.id || e.member === "everyone");
+        const personal = visible.filter(e => e.member === person.id);
         return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2><p>{personal.length} plans {validDate ? `on ${dateLabel(validDate, { weekday: "long" })}` : "in these 7 days"}</p></div></header>
           {personal.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
           {!personal.length && <div className="empty-note"><CalendarDays size={25} /><p>{connectedPlanner ? data.loading ? "Loading plans…" : data.errors.length ? "Some calendars could not be loaded." : "No plans to display. Add a local plan or check calendar setup above." : "Some room to breathe."}</p></div>}
         </section>;
       })}</div>}
-    <p className="page-note">Tap a plan for details. Local plans can be edited here. Plans for everyone appear in each person’s week.</p>
+    <p className="page-note">Tap a plan for details. Local plans can be edited here. Shared plans appear in Everyone’s row.</p>
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} date={newPlan?.date ?? validDate ?? today} member={newPlan?.member} />
   </div>;
 }

@@ -12,8 +12,8 @@ export function CalendarViewControls({ onChange }: { onChange?: (settings: Parti
   const change = (settings: Partial<CalendarSettings>) => { setCalendarSettings(settings); onChange?.(settings); };
   return <div className="calendar-view-controls">
     <div className="calendar-segment" role="group" aria-label="Calendar layout">
-      <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />By person</button>
       <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />Weekly grid</button>
+      <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />By person</button>
     </div>
     <div className="calendar-start-control"><span>Start</span><div className="calendar-segment" role="group" aria-label="Seven-day preview starts">
       <button aria-pressed={calendar.startDay === "today"} onClick={() => change({ startDay: "today" })}>Today</button>
@@ -34,7 +34,7 @@ interface FamilyWeekGridProps {
 export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const plansFor = (date: string, member: MemberId) => sortEvents(events.filter(e => e.date === date && (e.member === member || e.member === "everyone")));
+  const plansFor = (date: string, member: MemberId) => sortEvents(events.filter(e => e.date === date && e.member === member));
   return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label="Family weekly calendar" tabIndex={0}>
       <table className="family-week-table">
         <caption className="sr-only">Family plans from {dateLabel(start)} to {dateLabel(addDays(start, 6))}</caption>
@@ -113,7 +113,7 @@ export function useCalendarPlans(start: string, end: string) {
   const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
     .filter(id => id !== "everyone" && !members.some(m => m.id === id))
     .map(id => ({ id, name: "Person unavailable", initials: "?", color: "#c4d5a3" }))];
-  if (!people.length) people.push({ id: "everyone", name: "Everyone", initials: "All", color: "#c4d5a3" });
+  people.unshift({ id: "everyone", name: "Everyone", initials: "All", color: "#c4d5a3" });
   return { events: sortEvents([...localEvents, ...remote]), people,
     loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
     errors: homeOnline && result.key === requestKey ? result.errors : [],
