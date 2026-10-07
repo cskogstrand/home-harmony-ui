@@ -1,6 +1,6 @@
 # Home Harmony UI
 
-A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant is the sole smart-home backend; the family planner remains local to this browser.
+A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists; local plans and dashboard assignments stay in this browser.
 
 ## Run and connect locally
 
@@ -48,13 +48,21 @@ Use the actual origin from the dashboard address bar, including `127.0.0.1` vers
 
 REST was chosen because it is supported across the declared HA range and still used by the official frontend. Newer HA versions also expose calendar subscriptions; this app does not depend on that newer API. See the [REST API](https://developers.home-assistant.io/docs/api/rest/) and [official frontend calendar API usage](https://github.com/home-assistant/frontend/blob/dev/src/data/calendar.ts).
 
+### Tasks, daily tasks and shopping
+
+Create lists in Home Assistant with [Local to-do](https://www.home-assistant.io/integrations/local_todo/), Shopping list, or another to-do integration (HA 2023.11+). Open **Home settings → People and to-do lists**. Everyone appears first, followed by your HA people. Choose one **Tasks** list and one **Daily tasks** list per person, plus one **Shared shopping list**. Each list has one assignment; choosing a list already assigned elsewhere moves it. Choose **No list selected** to remove an assignment. Selections are scoped to the HA instance and local planner and use registry IDs where available.
+
+Connected dashboard and Lists views use the selected HA lists. Add, complete, reopen and remove items directly in those lists, subject to their supported features and HA permissions. Reads use HA’s `todo/item/list` WebSocket request; writes use `todo.add_item`, `todo.update_item` and `todo.remove_item` with item UIDs. Items are fetched when the view opens, after edits and when the list’s reported state changes; **Refresh list** reloads other external changes. Remote item contents are never saved in browser storage. Failed, missing and offline lists show explicit messages, and writes are disabled offline without queuing or retries.
+
+**Daily resets belong in Home Assistant.** Assigning a daily list does not reset or recreate its items. Configure an HA automation to retrieve completed items with `todo.get_items` and set each item’s status back to `needs_action` using `todo.update_item` at your preferred time. It can run while the dashboard is closed. See [HA to-do actions](https://www.home-assistant.io/integrations/todo/).
+
 ## Local family data
 
 Before an HA instance is configured, the local planner includes the starter household. Once an instance URL is configured, all starter people, events, lists and school images are replaced with real HA people and setup messages. Disconnecting, reconnecting, logging out or reloading never brings demo content back.
 
-Connected households use separate `afterglow-connected-planner-v1:<instance>:<planner>` datasets, initially empty. Existing `afterglow-planner-v1:*` data is preserved without copying its sample or edited entries into the connected household; only calendar display preferences and home favorites carry over. **App preferences → Local family planner** selects the planner for the current instance. Add local plans and list items in this app, and timetable image URLs on the School board. These entries and calendar assignments remain local to this browser; HA events are never written into localStorage. Keep the same dashboard origin/browser to retain this data.
+Connected households use separate `afterglow-connected-planner-v1:<instance>:<planner>` datasets, initially empty. Existing `afterglow-planner-v1:*` data is preserved without copying its sample or edited entries into the connected household; only calendar display preferences and home favorites carry over. **App preferences → Local family planner** selects the planner for the current instance. Add local plans in this app and timetable image URLs on the School board. These entries and calendar/to-do assignments remain local to this browser; HA events and to-do items are never written into localStorage. Existing local list entries are preserved in storage, but connected views show only selected HA lists. Keep the same dashboard origin/browser to retain this data.
 
-Missing people and calendar integrations link to setup in HA; missing calendar assignments, lists and timetable images explain their setup in this app. Calendar loading, partial read failures and offline states remain explicit. Remote events are hidden while offline; local plans remain accessible, including when their person is unavailable.
+Missing people, calendar and to-do integrations link to setup in HA; missing assignments and timetable images explain their setup in this app. Loading, partial read failures and offline states remain explicit. Remote events and to-do items are hidden while offline; local plans remain accessible, including when their person is unavailable.
 
 ## Controls and limits
 

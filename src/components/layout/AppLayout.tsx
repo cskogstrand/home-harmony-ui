@@ -11,8 +11,11 @@ import { Moon, Settings, Wifi, WifiOff } from "lucide-react";
 export function AppLayout() {
   const { currentUser, homeOnline } = useApp();
   const { saved } = useFamily();
-  const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo?.(0, 0); }, [pathname]);
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    const section = hash && document.getElementById(hash.slice(1));
+    if (section) section.scrollIntoView?.(); else window.scrollTo?.(0, 0);
+  }, [pathname, hash]);
   return <div className="afterglow-app"><a className="skip-link" href="#main-content">Skip to content</a>
     <header className="app-header"><Link to="/" className="brand" aria-label="Afterglow home"><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow<small>FAMILY, AT THE CENTRE</small></span></Link>
       <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : "HA offline"}</span></span>

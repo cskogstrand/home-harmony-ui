@@ -5,8 +5,8 @@ import {
   ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK, ERR_INVALID_HTTPS_TO_HTTP, ERR_CONNECTION_LOST,
   Auth, type AuthData, type Connection, type HassConfig, type HassServices, type HassUser,
 } from "home-assistant-js-websocket";
-import type { CalendarEvent, EntityAction, EntityStates, Registries } from "@/types/api";
-import { emptyRegistries, entityCommand, mapHome, normalizeHaUrl } from "./ha-model";
+import type { CalendarEvent, EntityAction, EntityStates, Registries, TodoItem } from "@/types/api";
+import { available, emptyRegistries, entityCommand, mapHome, normalizeHaUrl } from "./ha-model";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 interface Snapshot {
@@ -28,6 +28,9 @@ const calendarEventsSchema = z.array(z.object({
   summary: z.string(), start: calendarDateValue, end: calendarDateValue,
   location: z.string().nullish(), description: z.string().nullish(), uid: z.string().nullish(),
 }));
+const todoItemsSchema = z.object({ items: z.array(z.object({
+  uid: z.string().min(1), summary: z.string(), status: z.enum(["needs_action", "completed"]).nullable().default(null),
+})) });
 const URL_KEY = "home-harmony:ha-url";
 const TOKEN_KEY = "home-harmony:ha-session";
 const AUTH_REVISION_KEY = "home-harmony:ha-auth-revision";
@@ -350,6 +353,18 @@ export class HomeAssistantClient {
     } catch (error) {
       setCommand({ pending: false, error: (error as Error).message });
       throw error;
+    }
+  };
+  todoItems = async (entityId: string): Promise<TodoItem[]> => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    try {
+      const entity = mapHome(this.snapshot.states, this.snapshot.registries, this.snapshot.url).entities.find(e => e.entityId === entityId);
+      if (!conn?.connected || !this.fresh || this.snapshot.status !== "connected" || entity?.domain !== "todo" || !available(entity)) throw new Error("To-do list unavailable.");
+      const response = await bounded(conn.sendMessagePromise({ type: "todo/item/list", entity_id: entityId }));
+      if (generation !== this.generation || epoch !== this.epoch || !conn.connected) throw new Error("Connection changed.");
+      return todoItemsSchema.parse(response).items as TodoItem[];
+    } catch {
+      throw new Error("To-do items could not be read. Check the connection, list integration and Home Assistant permissions.");
     }
   };
   calendarEvents = async (entityId: string, start: string, end: string, signal: AbortSignal): Promise<CalendarEvent[]> => {

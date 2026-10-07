@@ -30,6 +30,19 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("uses to-do item IDs and gates edits by supported features and valid input", () => {
+    const todo = mapHome({ "todo.family": state("todo.family", "2", { supported_features: 7 }) }, registries, "test").entities.find(e => e.entityId === "todo.family")!;
+    const todoServices = { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } };
+    expect(entityCommand(todo, "add_item", todoServices, { item: " Milk " })).toEqual({ domain: "todo", service: "add_item", data: { item: "Milk" }, target: { entity_id: "todo.family" } });
+    expect(entityCommand(todo, "update_item", todoServices, { item: "unique-id", status: "completed" }).data).toEqual({ item: "unique-id", status: "completed" });
+    expect(entityCommand(todo, "remove_item", todoServices, { item: "unique-id" }).data).toEqual({ item: "unique-id" });
+    expect(() => entityCommand(todo, "add_item", todoServices, { item: " " })).toThrow("Enter");
+    expect(() => entityCommand(todo, "update_item", todoServices, { item: "unique-id", status: "other" })).toThrow("status");
+    expect(() => entityCommand(todo, "add_item", todoServices, { item: "a".repeat(121) })).toThrow("120");
+    expect(supportsAction({ ...todo, attributes: { supported_features: 1 } }, "update_item", todoServices)).toBe(false);
+    expect(supportsAction(todo, "add_item", {})).toBe(false);
+    expect(() => entityCommand({ ...todo, state: "unavailable" }, "update_item", todoServices, { item: "unique-id", status: "completed" })).toThrow("available");
+  });
   it("targets entity IDs and converts only supported control values", () => {
     expect(entityCommand(entity("light.living"), "brightness", services, 50)).toEqual({ domain: "light", service: "turn_on", data: { brightness: 128 }, target: { entity_id: "light.living" } });
     expect(entityCommand(entity("climate.living"), "temperature", services, 22.5).data).toEqual({ temperature: 22.5 });

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Plus, Trash2, ImageOff, Maximize2, Check, X } from "lucide-react";
+import { ArrowUpRight, Trash2, ImageOff, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useFamily, newPlannerId, dateLabel, itemIsDone, type FamilyEvent, type MemberId, type ListKind } from "@/contexts/FamilyContext";
+import { useFamily, newPlannerId, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 
 export function PageHeading({ eyebrow, title, description, children }: { eyebrow: string; title: string; description?: string; children?: ReactNode }) {
@@ -52,33 +52,6 @@ export function EventEditor({ open, onOpenChange, event, date, member = "everyon
       {confirmDelete && <div className="delete-confirm" role="alert"><p>Remove this event from the family calendar?</p><Button type="button" variant="destructive" onClick={() => { deleteEvent(draft.id); onOpenChange(false); }}>Remove event</Button></div>}
     </form>}
   </DialogContent></Dialog>;
-}
-const listTitles = { daily: "Before we settle in", shopping: "Pick up on the way", tasks: "The bigger things" };
-const listDescriptions = { daily: "A little help from everyone", shopping: "One list for the whole family", tasks: "Things to remember, without the rush" };
-export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
-  const { items, today, toggleItem, addItem, deleteItem, connectedPlanner } = useFamily();
-  const [adding, setAdding] = useState(false);
-  const [text, setText] = useState("");
-  const [member, setMember] = useState<MemberId>("everyone");
-  const list = items.filter(i => i.kind === kind);
-  const done = list.filter(i => itemIsDone(i, today)).length;
-  const shown = limit ? [...list].sort((a, b) => Number(itemIsDone(a, today)) - Number(itemIsDone(b, today))).slice(0, limit) : list;
-  return <article className={`glow-panel list-panel list-${kind}`}>
-    <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
-    {!limit && <p className="muted">{listDescriptions[kind]}{kind === "daily" ? " · Resets each day" : ""}</p>}
-    <div className="checklist">{shown.map(item => <div key={item.id} className={`check-row ${itemIsDone(item, today) ? "complete" : ""}`}>
-      <label><input type="checkbox" checked={itemIsDone(item, today)} onChange={() => toggleItem(item.id)} /><span className="check-mark"><Check size={16} /></span><span className="check-text">{item.text}</span></label>
-      {kind !== "shopping" && <MemberAvatar member={item.member} small />}
-      {!limit && <button className="icon-button delete-item" aria-label={`Remove ${item.text}`} onClick={() => deleteItem(item.id)}><X size={16} /></button>}
-    </div>)}</div>
-    {list.length === 0 && <p className="empty-note">{connectedPlanner ? `Set up this list in this app. Add ${kind === "shopping" ? "your first shopping item" : "your first task"} below; lists are saved on this screen.` : kind === "shopping" ? "All stocked up. Add something when you need it." : "Nothing on the list. Enjoy the breathing room."}</p>}
-    <div className="list-footer"><span>{done} of {list.length} {kind === "shopping" ? "picked up" : "done"}</span><button className="text-link" aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={17} />Add {kind === "shopping" ? "item" : "task"}</button></div>
-    {adding && <form className="quick-add" onSubmit={e => { e.preventDefault(); if (!text.trim()) return; addItem(text, kind, member); setText(""); setAdding(false); }}>
-      <input aria-label={kind === "shopping" ? "New shopping item" : `New ${kind} task`} autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? "What do we need?" : "What needs doing?"} />
-      {kind !== "shopping" && <select aria-label="Assign task" value={member} onChange={e => setMember(e.target.value as MemberId)}><MemberOptions /></select>}
-      <Button type="submit" aria-label={`Save ${kind} item`}><Plus size={19} /></Button>
-    </form>}
-  </article>;
 }
 export function TimetableImage({ child }: { child: MemberId }) {
   const { timetables, memberName } = useFamily();

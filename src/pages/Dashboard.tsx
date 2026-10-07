@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
 import { useFamily, addDays, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
-import { EventEditor, EventButton, ListPanel, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
+import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
+import { ListPanel } from "@/components/FamilyLists";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, useCalendarPlans } from "@/components/FamilyCalendar";
 import { HomeFavorites } from "@/components/HomePanels";
 

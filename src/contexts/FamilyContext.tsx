@@ -37,6 +37,7 @@ const plannerSchema = z.object({
   calendar: calendarSettingsSchema.catch({ view: "week", startDay: "today" }),
   homeEntities: z.record(z.array(z.string())).catch({}),
   calendarMembers: z.record(memberSchema).default({}),
+  todoLists: z.record(z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema })).default({}),
 });
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
 export type FamilyEvent = z.infer<typeof eventSchema> & { calendarId?: string; allDay?: boolean; continues?: boolean };
@@ -82,6 +83,7 @@ function samplePlanner(today: string): Planner {
     calendar: { view: "week", startDay: "today" },
     homeEntities: {},
     calendarMembers: {},
+    todoLists: {},
     items: [
       { id: "d1", text: "Pack tomorrow’s school bags", kind: "daily", member: "emma", done: false },
       { id: "d2", text: "Set the table", kind: "daily", member: "leo", done: false },
@@ -104,6 +106,7 @@ interface FamilyContextValue extends Planner {
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   setHomeEntities: (instance: string, ids: string[]) => void;
   setCalendarMember: (calendar: string, member: string) => void;
+  setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
   saveEvent: (event: FamilyEvent) => void;
   deleteEvent: (id: string) => void;
   addItem: (text: string, kind: ListKind, member: MemberId) => void;
@@ -170,7 +173,7 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     // Old starter data stays intact; only display preferences carry into the real household.
     let preferences: Partial<Planner> = {};
     try { preferences = plannerSchema.partial().parse(JSON.parse(localStorage.getItem(`afterglow-planner-v1:${homeId}`) ?? "{}")); } catch { /* Start with empty preferences. */ }
-    return { events: [], items: [], timetables: {}, calendarMembers: {}, calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
+    return { events: [], items: [], timetables: {}, calendarMembers: {}, todoLists: {}, calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
   });
   const [saved, setSaved] = useState(true);
   useEffect(() => {
@@ -191,6 +194,12 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
       const calendarMembers = { ...p.calendarMembers };
       if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];
       return { ...p, calendarMembers };
+    }),
+    setTodoList: (kind, member, list) => setPlanner(p => {
+      const owner = kind === "shopping" ? "everyone" : member;
+      const todoLists = Object.fromEntries(Object.entries(p.todoLists).filter(([id, assigned]) => id !== list && !(assigned.kind === kind && assigned.member === owner)));
+      if (list) todoLists[list] = { kind, member: owner };
+      return { ...p, todoLists };
     }),
     saveEvent: event => {
       if (event.calendarId) return;

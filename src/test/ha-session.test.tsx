@@ -24,7 +24,7 @@ class FakeConnection {
   addEventListener = (name: string, listener: () => void) => { if (!this.listeners.has(name)) this.listeners.set(name, new Set()); this.listeners.get(name).add(listener); };
   removeEventListener = (name: string, listener: () => void) => { this.listeners.get(name)?.delete(listener); };
   subscribeEvents = vi.fn(async (callback: () => void, event: string) => { this.subscriptions.set(event, callback); return this.unsubscribeEvent; });
-  sendMessagePromise = vi.fn(async ({ type }: { type: string }) => ({ "config/area_registry/list": registries.areas, "config/device_registry/list": registries.devices, "config/entity_registry/list": registries.entities })[type]);
+  sendMessagePromise = vi.fn(async ({ type }: { type: string; entity_id?: string }): Promise<unknown> => ({ "config/area_registry/list": registries.areas, "config/device_registry/list": registries.devices, "config/entity_registry/list": registries.entities })[type]);
   emit(name: string) { this.connected = name === "ready"; this.listeners.get(name)?.forEach(listener => listener()); }
 }
 let conn: FakeConnection;
@@ -684,7 +684,7 @@ it("replaces the existing demo household with setup states and never restores it
     expect(document.querySelector('img[src^="/timetables/"]')).toBeNull();
   };
   noDemo();
-  expect(screen.getByText(/Set up this list in this app.*first task/)).toBeInTheDocument();
+  expect(screen.getAllByText(/Set up to-do lists in Home Assistant/)).toHaveLength(2);
   expect(screen.getByText(/Set up school timetables in this app/)).toBeInTheDocument();
   const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   nav("School");
@@ -848,4 +848,177 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
   expect(screen.queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();
   expect(screen.getByText(/calendar events are unavailable while offline/)).toBeInTheDocument();
   expect(screen.queryByText(/Anna|Erik|Emma|Leo/)).not.toBeInTheDocument();
+});
+
+it("assigns one task and daily list per person plus shared shopping, moves selections and restores them", async () => {
+  const instance = "http://ha.local:8123";
+  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
+  const household = { ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    ...Object.fromEntries(["family", "personal", "daily", "routine", "shopping"].map(id => [`todo.${id}`, state(`todo.${id}`, "0", { friendly_name: id })])),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  localStorage.setItem("home-harmony:ha-url", instance);
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  const select = (name: string) => screen.getByRole("combobox", { name });
+  await waitFor(() => expect(select("Tasks for Morgan")).toBeEnabled());
+  const choose = (name: string, list: string) => fireEvent.change(select(name), { target: { value: list ? `${instance}|todo.${list}` : "" } });
+  choose("Tasks for Everyone", "family");
+  choose("Tasks for Morgan", "personal");
+  choose("Daily tasks for Everyone", "daily");
+  choose("Daily tasks for Morgan", "routine");
+  choose("Shared shopping list for Everyone", "shopping");
+  expect(JSON.parse(localStorage.getItem(key)).todoLists).toEqual({
+    [`${instance}|todo.family`]: { kind: "tasks", member: "everyone" },
+    [`${instance}|todo.personal`]: { kind: "tasks", member: `${instance}|person.morgan` },
+    [`${instance}|todo.daily`]: { kind: "daily", member: "everyone" },
+    [`${instance}|todo.routine`]: { kind: "daily", member: `${instance}|person.morgan` },
+    [`${instance}|todo.shopping`]: { kind: "shopping", member: "everyone" },
+  });
+  choose("Tasks for Morgan", "family");
+  expect(select("Tasks for Everyone")).toHaveValue("");
+  expect(JSON.parse(localStorage.getItem(key)).todoLists[`${instance}|todo.personal`]).toBeUndefined();
+  choose("Tasks for Morgan", "");
+  expect(JSON.parse(localStorage.getItem(key)).todoLists[`${instance}|todo.family`]).toBeUndefined();
+  choose("Tasks for Everyone", "family");
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  const restored = render(<App />);
+  await waitFor(() => expect(select("Tasks for Everyone")).toBeEnabled());
+  expect(select("Daily tasks for Morgan")).toHaveValue(`${instance}|todo.routine`);
+  expect(select("Shared shopping list for Everyone")).toHaveValue(`${instance}|todo.shopping`);
+  act(() => conn.emit("disconnected"));
+  expect(select("Tasks for Everyone")).toBeDisabled();
+  restored.unmount();
+  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
+  render(<App />);
+  expect(select("Tasks for Everyone")).toHaveValue("");
+  expect(select("Shared shopping list for Everyone")).toHaveValue("");
+});
+
+it("reads and edits assigned HA lists in the dashboard and Lists without storing remote items", async () => {
+  const instance = "http://ha.local:8123";
+  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
+  const household = { ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    ...Object.fromEntries(["family", "personal", "daily", "shopping"].map(id => [`todo.${id}`, state(`todo.${id}`, "1", { friendly_name: id, supported_features: 7 })])),
+  };
+  const lists = {
+    "todo.family": [{ uid: "shared", summary: "Book holiday", status: "needs_action" }],
+    "todo.personal": [{ uid: "personal", summary: "Book dentist", status: "needs_action" }],
+    "todo.daily": [{ uid: "daily", summary: "Pack bag", status: "completed" }],
+    "todo.shopping": [{ uid: "milk", summary: "Milk", status: "needs_action" }],
+  };
+  const originalRead = conn.sendMessagePromise.getMockImplementation()!;
+  conn.sendMessagePromise.mockImplementation(async message => message.type === "todo/item/list" ? { items: lists[message.entity_id].map(item => ({ ...item })) } : originalRead(message));
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } });
+  vi.mocked(ha.callService).mockImplementation(async (_connection, domain, service, data, target) => {
+    expect(domain).toBe("todo");
+    const id = target.entity_id as string;
+    const value = data as { item: string; status?: string };
+    if (service === "add_item") lists[id].push({ uid: "new-item", summary: value.item, status: "needs_action" });
+    if (service === "update_item") lists[id] = lists[id].map(item => item.uid === value.item ? { ...item, status: value.status } : item);
+    if (service === "remove_item") lists[id] = lists[id].filter(item => item.uid !== value.item);
+    return {};
+  });
+  localStorage.setItem("home-harmony:ha-url", instance);
+  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, todoLists: {
+    [`${instance}|todo.family`]: { kind: "tasks", member: "everyone" },
+    [`${instance}|todo.personal`]: { kind: "tasks", member: `${instance}|person.morgan` },
+    [`${instance}|todo.daily`]: { kind: "daily", member: `${instance}|person.morgan` },
+    [`${instance}|todo.shopping`]: { kind: "shopping", member: "everyone" },
+  } }));
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  expect(await screen.findByRole("checkbox", { name: "Pack bag" })).toBeChecked();
+  expect(await screen.findByRole("checkbox", { name: "Milk" })).not.toBeChecked();
+  expect(ha.callService).not.toHaveBeenCalled(); // Viewing a daily list never resets HA completion.
+  fireEvent.click(screen.getByRole("checkbox", { name: "Milk" }));
+  await waitFor(() => expect(screen.getByRole("checkbox", { name: "Milk" })).toBeChecked());
+  expect(ha.callService).toHaveBeenCalledWith(conn, "todo", "update_item", { item: "milk", status: "completed" }, { entity_id: "todo.shopping" });
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Lists" }));
+  fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
+  expect(await screen.findByRole("checkbox", { name: "Book holiday" })).toBeInTheDocument();
+  expect(await screen.findByRole("checkbox", { name: "Book dentist" })).toBeInTheDocument();
+  expect(screen.getAllByRole("group").filter(group => /^(Everyone|Morgan) tasks$/.test(group.getAttribute("aria-label") ?? "")).map(group => group.getAttribute("aria-label"))).toEqual(["Everyone tasks", "Morgan tasks"]);
+  const shared = within(screen.getByRole("group", { name: "Everyone tasks" }));
+  fireEvent.click(shared.getByRole("button", { name: "Add task" }));
+  fireEvent.change(shared.getByRole("textbox", { name: "New item in family" }), { target: { value: "Fix bike" } });
+  fireEvent.click(shared.getByRole("button", { name: "Save item to family" }));
+  expect(await shared.findByRole("checkbox", { name: "Fix bike" })).toBeInTheDocument();
+  expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "add_item", { item: "Fix bike" }, { entity_id: "todo.family" });
+  fireEvent.click(shared.getByRole("button", { name: "Remove Fix bike" }));
+  await waitFor(() => expect(shared.queryByRole("checkbox", { name: "Fix bike" })).not.toBeInTheDocument());
+  expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "remove_item", { item: "new-item" }, { entity_id: "todo.family" });
+  vi.mocked(ha.callService).mockRejectedValueOnce(new Error("Permission denied"));
+  fireEvent.click(shared.getByRole("checkbox", { name: "Book holiday" }));
+  expect(await shared.findByRole("alert")).toHaveTextContent("Home Assistant rejected");
+  expect(shared.getByRole("checkbox", { name: "Book holiday" })).not.toBeChecked();
+  expect(localStorage.getItem(key)).not.toMatch(/Book holiday|Book dentist|Pack bag|Milk|Fix bike/);
+  act(() => conn.emit("disconnected"));
+  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  expect(screen.getAllByText(/To-do lists are unavailable while offline/)).toHaveLength(2);
+  expect(screen.queryByText(/Set the table|Oat milk/)).not.toBeInTheDocument();
+});
+
+it("rejects malformed or stale to-do reads and blocks unsupported and offline writes", async () => {
+  const client = await connectedClient();
+  const household = { ...states, "todo.list": state("todo.list", "1", { supported_features: 4 }) };
+  act(() => conn.entityCallback?.(household));
+  conn.sendMessagePromise.mockResolvedValueOnce({ items: [{ uid: "one", summary: "Test", status: "invalid-private-response" }] });
+  await expect(client.todoItems("todo.list")).rejects.toThrow("could not be read");
+  await expect(client.todoItems("light.living")).rejects.toThrow("could not be read");
+  await expect(client.command("todo.list", "add_item", { item: "No support" })).rejects.toThrow("not supported");
+  expect(ha.callService).not.toHaveBeenCalled();
+  const pending = deferred<unknown>();
+  conn.sendMessagePromise.mockReturnValueOnce(pending.promise);
+  const read = client.todoItems("todo.list");
+  conn.emit("disconnected");
+  pending.resolve({ items: [{ uid: "one", summary: "Old session", status: "needs_action" }] });
+  await expect(read).rejects.toThrow("could not be read");
+  await expect(client.command("todo.list", "update_item", { item: "one", status: "completed" })).rejects.toThrow("fresh");
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("shows unavailable and failed lists separately while keeping readable lists usable", async () => {
+  const instance = "http://ha.local:8123";
+  const household = { ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }), "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
+    "todo.readonly": state("todo.readonly", "1", { supported_features: 0 }),
+    "todo.denied": state("todo.denied", "2", { supported_features: 7 }),
+  };
+  const originalRead = conn.sendMessagePromise.getMockImplementation()!;
+  conn.sendMessagePromise.mockImplementation(async message => {
+    if (message.type !== "todo/item/list") return originalRead(message);
+    if (message.entity_id === "todo.denied") throw new Error("private server details");
+    return { items: [{ uid: "one", summary: "Read only item", status: "needs_action" }] };
+  });
+  vi.mocked(ha.subscribeEntities).mockImplementation((_connection, callback) => {
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  localStorage.setItem("home-harmony:ha-url", instance);
+  localStorage.setItem(`afterglow-connected-planner-v1:${instance}:home-1`, JSON.stringify({ events: [], items: [], timetables: {}, todoLists: {
+    [`${instance}|todo.readonly`]: { kind: "tasks", member: "everyone" },
+    [`${instance}|todo.denied`]: { kind: "tasks", member: `${instance}|person.morgan` },
+    [`${instance}|todo.missing`]: { kind: "tasks", member: `${instance}|person.riley` },
+  } }));
+  window.history.replaceState(null, "", "/lists?tab=tasks&auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  expect(await screen.findByRole("checkbox", { name: "Read only item" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Remove Read only item" })).toBeDisabled();
+  expect(screen.getByText("This list is read-only.")).toBeInTheDocument();
+  expect(await screen.findByRole("alert")).toHaveTextContent("To-do items could not be read");
+  expect(screen.queryByText(/private server details/)).not.toBeInTheDocument();
+  expect(screen.getByText(/This to-do list is unavailable/)).toBeInTheDocument();
+  expect(conn.sendMessagePromise).not.toHaveBeenCalledWith({ type: "todo/item/list", entity_id: "todo.missing" });
+  expect(ha.callService).not.toHaveBeenCalled();
 });

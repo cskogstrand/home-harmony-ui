@@ -71,6 +71,7 @@ export function supportsAction(entity: Entity, action: EntityAction, services: H
   if (domain === "climate") return action === "temperature" ? feature(entity, 1) && numberValue(a.min_temp) !== undefined && numberValue(a.max_temp) !== undefined : action === "hvac_mode" && stringValues(a.hvac_modes).length > 0;
   if (domain === "cover") return feature(entity, ({ open_cover: 1, close_cover: 2, position: 4, stop_cover: 8 } as Record<string, number>)[action] ?? 0);
   if (domain === "lock") return action === "lock" || action === "unlock";
+  if (domain === "todo") return feature(entity, ({ add_item: 1, remove_item: 2, update_item: 4 } as Record<string, number>)[action] ?? 0);
   if (domain === "alarm_control_panel") return action === "alarm_disarm" || feature(entity, alarmModes.find(m => m.action === action)?.flag ?? 0);
   return false;
 }
@@ -80,6 +81,15 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   if (!supportsAction(entity, action, services)) throw new Error("This action is not supported by this entity.");
   let service: string = action;
   const data: Record<string, unknown> = {};
+  if (entity.domain === "todo") {
+    if (!value || typeof value !== "object" || !("item" in value) || typeof value.item !== "string" || !value.item.trim()) throw new Error("Enter a to-do item or item ID.");
+    data.item = action === "add_item" ? value.item.trim() : value.item;
+    if (action === "add_item" && value.item.trim().length > 120) throw new Error("Keep to-do items within 120 characters.");
+    if (action === "update_item") {
+      if (!("status" in value) || (value.status !== "needs_action" && value.status !== "completed")) throw new Error("Unsupported to-do status.");
+      data.status = value.status;
+    }
+  }
   if (["brightness", "position", "temperature"].includes(action)) {
     const min = action === "temperature" ? numberValue(entity.attributes.min_temp) : 0;
     const max = action === "temperature" ? numberValue(entity.attributes.max_temp) : 100;

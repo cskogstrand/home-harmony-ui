@@ -1,16 +1,33 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily } from "@/contexts/FamilyContext";
+import { useFamily, type ListKind } from "@/contexts/FamilyContext";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 export default function HomeSettings() {
   const { haUrl, connect, disconnect, logout, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, sessionWarning, homeOnline } = useApp();
-  const { members, memberName, calendarMembers, setCalendarMember } = useFamily();
+  const { members, memberName, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
+  const lists = currentHome.entities.filter(e => e.domain === "todo");
+  const listPeople = [{ id: "everyone", name: "Everyone" }, ...members, ...[...new Set(Object.values(todoLists).map(assigned => assigned.member))]
+    .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: "Person unavailable" }))];
   const [url, setUrl] = useState(haUrl);
   const busy = ["connecting", "syncing"].includes(connectionStatus);
+  const listLabels = { tasks: "Tasks", daily: "Daily tasks", shopping: "Shared shopping list" };
+  const listSelector = (kind: ListKind, person: { id: string; name: string }) => {
+    const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
+    return <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm"><span>{listLabels[kind]}</span>
+      <select aria-label={`${listLabels[kind]} for ${person.name}`} className="h-10 w-full min-w-0 rounded-lg border bg-background px-3 text-sm disabled:opacity-60" value={selected} disabled={!homeOnline} onChange={event => setTodoList(kind, person.id, event.target.value)}>
+        <option value="">No list selected</option>
+        {selected && !lists.some(list => list.preferenceId === selected) && <option value={selected}>List unavailable</option>}
+        {lists.map(list => {
+          const assigned = todoLists[list.preferenceId];
+          return <option key={list.preferenceId} value={list.preferenceId}>{list.name}{assigned && list.preferenceId !== selected ? ` — move from ${memberName(assigned.member)} (${listLabels[assigned.kind]})` : ""}</option>;
+        })}
+      </select>
+    </label>;
+  };
   return <div className="planner-page"><PageHeading eyebrow="CONNECTED AT HOME" title="Home settings" description="Connect this screen directly to your local Home Assistant." />
     <section className="glow-panel"><PanelHeading title="Home Assistant connection" />
       <form className="space-y-4" onSubmit={event => { event.preventDefault(); void connect(url); }}>
@@ -49,7 +66,19 @@ export default function HomeSettings() {
         </div>;
       })}</div>}
       {haUrl && <div className="flex flex-wrap gap-4 mt-4"><a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">Manage people in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up calendar integrations</a><a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open Home Assistant calendar</a></div>}
-      <p className="page-note">Calendar selections are saved for this instance and planner on this browser. Home Assistant events are read-only here. Add local plans, lists and school timetable images in this app.</p>
+      <p className="page-note">Calendar selections are saved for this instance and planner on this browser. Home Assistant events are read-only here. Add local plans and school timetable images in this app.</p>
+    </section>
+    <section className="glow-panel" id="family-lists"><PanelHeading title="People and to-do lists" />
+      <p className="page-note">Choose a task list and a daily task list for each person. Everyone’s lists are shared. Choosing an assigned list moves it here.</p>
+      {!homeOnline && <p role="status">Connect to Home Assistant to set up to-do lists.</p>}
+      {homeOnline && !lists.length && <p className="empty-note">Set up a Local to-do or Shopping list integration in Home Assistant, then select its lists here. To-do lists require Home Assistant 2023.11 or newer.</p>}
+      {listPeople.map(person => <div key={person.id} role="group" aria-label={`To-do lists for ${person.name}`} className="flex flex-wrap items-center gap-3 border-b py-3">
+        <span className="w-28 shrink-0 break-words font-medium">{person.name}</span>
+        <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}</div>
+      </div>)}
+      <div className="mt-3 max-w-md">{listSelector("shopping", { id: "everyone", name: "Everyone" })}</div>
+      <p className="page-note">Adding, completing and removing items updates Home Assistant. Daily task lists need a Home Assistant automation to reset them each morning. Selections are saved for this instance and planner on this browser.</p>
+      {haUrl && <div className="mt-3 flex flex-wrap gap-4"><a className="text-link" href={`${haUrl}/todo`} target="_blank" rel="noreferrer">Open to-do lists in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up to-do integrations</a></div>}
     </section>
     <section className="glow-panel"><PanelHeading title="Your instance" /><dl className="device-readings"><div><dt>Name</dt><dd>{currentHome.name}</dd></div><div><dt>Signed in as</dt><dd>{currentUser?.name ?? "Not signed in"}</dd></div><div><dt>HA access</dt><dd>{currentUser ? currentUser.is_owner ? "Owner" : currentUser.is_admin ? "Administrator" : "User" : "—"}</dd></div><div><dt>Physical devices</dt><dd>{currentHome.devices.length}</dd></div><div><dt>Entities</dt><dd>{currentHome.entities.length}</dd></div></dl><p className="page-note">Home Assistant enforces permissions. Manage integrations, devices, areas, alarm settings and users there.</p>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">Open Home Assistant settings</a>}</section>
   </div>;
