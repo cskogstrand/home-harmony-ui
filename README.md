@@ -56,6 +56,8 @@ Connected dashboard and Lists views use the selected HA lists. Add, complete, re
 
 **Daily resets belong in Home Assistant.** Assigning a daily list does not reset or recreate its items. Configure an HA automation to retrieve completed items with `todo.get_items` and set each item’s status back to `needs_action` using `todo.update_item` at your preferred time. It can run while the dashboard is closed. See [HA to-do actions](https://www.home-assistant.io/integrations/todo/).
 
+Add controls appear above each list. As you type, matching existing entries appear below the input, including completed items. Adding a matching completed item reopens it; matching an active item keeps the existing entry. Matching ignores case and surrounding spaces and stays within the selected list/person. Checked-off entries are grouped under **Completed**, collapsed by default; expand it to reopen or remove them.
+
 ## Local family data
 
 Before an HA instance is configured, the local planner includes the starter household. Once an instance URL is configured, all starter people, events, lists and school images are replaced with real HA people and setup messages. Disconnecting, reconnecting, logging out or reloading never brings demo content back.

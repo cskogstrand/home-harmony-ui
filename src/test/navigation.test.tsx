@@ -41,6 +41,7 @@ it("saves shopping items and daily completion across navigation and a reload", (
   render(<App />);
   expect(screen.getByRole("checkbox", { name: "Bread <wholegrain>" })).toBeInTheDocument();
   navigate("Today");
+  fireEvent.click(screen.getByText("Completed (1)"));
   expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
 });
 
@@ -61,14 +62,43 @@ it("adds, edits and removes an event from the per-person week", async () => {
   expect(screen.queryByRole("button", { name: /Library morning/ })).not.toBeInTheDocument();
 });
 
+it("suggests list entries and reopens completed items without creating duplicates", () => {
+  render(<App />);
+  navigate("Lists");
+  fireEvent.click(screen.getByRole("button", { name: /Shopping/ }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Oat milk" }));
+  expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeVisible();
+  fireEvent.click(screen.getByText("Completed (1)"));
+  expect(screen.getByRole("checkbox", { name: "Oat milk" })).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+  const input = screen.getByRole("textbox", { name: "New shopping item" });
+  fireEvent.change(input, { target: { value: "oa" } });
+  const suggestions = within(screen.getByRole("group", { name: "Existing items" }));
+  expect(suggestions.queryByRole("button", { name: "Bananas" })).not.toBeInTheDocument();
+  fireEvent.click(suggestions.getByRole("button", { name: "Oat milk" }));
+  expect(input).toHaveValue("Oat milk");
+  fireEvent.change(input, { target: { value: " OAT MILK " } });
+  fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));
+  expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeChecked();
+  expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "New shopping item" }), { target: { value: "Oat milk" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));
+  expect(screen.getAllByRole("checkbox", { name: "Oat milk" })).toHaveLength(1);
+  const stored = JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1")!);
+  expect(stored.items.filter(item => item.kind === "shopping")).toHaveLength(3);
+});
+
 it("keeps the family planner usable with no HA connection", () => {
   render(<App />);
   expect(screen.getByText(/Cached readings are stale/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("checkbox", { name: "Set the table" }));
+  fireEvent.click(screen.getByText("Completed (1)"));
   expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
   navigate("School");
   expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
   navigate("Today");
+  fireEvent.click(screen.getByText("Completed (1)"));
   expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
 });
 
