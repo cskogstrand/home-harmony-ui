@@ -131,7 +131,7 @@ export function CalendarSetupNotice() {
     {!homeOnline ? <p role="status">Connect to Home Assistant to load people and calendars. <Link className="text-link" to="/settings">Connection settings</Link></p> : <>
       {!members.length && <p>Set up people in Home Assistant → Settings → People to see each person’s week.</p>}
       {!calendars.length && <p>Set up a calendar integration in Home Assistant, then assign its calendar in this app.</p>}
-      {unassigned && <p>Set up calendars in this app: choose a person or Everyone for each calendar you want to show.</p>}
+      {unassigned && <p>Set up calendars in this app: select calendars under each person, or under Everyone for shared plans.</p>}
     </>}
     <Link className="text-link" to="/settings#family-calendar">Set up people and calendars</Link>
   </div>;

@@ -727,11 +727,11 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
-  const assignment = await screen.findByLabelText("Show Morgan calendar for");
+  const assignment = within(await screen.findByRole("group", { name: "Morgan" })).getByRole("checkbox", { name: "Morgan calendar" });
   await waitFor(() => expect(assignment).not.toBeDisabled());
-  expect(assignment).toHaveValue("");
+  expect(assignment).not.toBeChecked();
   expect(fetchMock).not.toHaveBeenCalled();
-  fireEvent.change(assignment, { target: { value: "http://ha.local:8123|person.morgan" } });
+  fireEvent.click(assignment);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
   expect(await screen.findByRole("button", { name: /15:00 Dentist appointment/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
@@ -765,6 +765,55 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   expect(screen.queryByText("Local library visit")).not.toBeInTheDocument();
   expect(screen.queryByText("Dentist appointment")).not.toBeInTheDocument();
   expect(JSON.parse(localStorage.getItem(key)).calendarMembers).toEqual({ "http://ha.local:8123|calendar.morgan": "http://ha.local:8123|person.morgan" });
+});
+
+it("selects multiple calendars per person, moves and clears assignments, and restores the saved selections", async () => {
+  const instance = "http://ha.local:8123";
+  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
+  const household = { ...states,
+    "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
+    "calendar.personal": state("calendar.personal", "off", { friendly_name: "Personal" }),
+    "calendar.work": state("calendar.work", "off", { friendly_name: "Work" }),
+    "calendar.shared": state("calendar.shared", "off", { friendly_name: "Shared" }),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  localStorage.setItem("home-harmony:ha-url", instance);
+  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: {
+    [`${instance}|calendar.personal`]: `${instance}|person.morgan`, [`${instance}|calendar.shared`]: "everyone",
+  } }));
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  await screen.findByRole("group", { name: "Morgan" });
+  const choice = (person: string, calendar: string) => within(screen.getByRole("group", { name: person })).getByRole("checkbox", { name: calendar });
+  await waitFor(() => expect(choice("Morgan", "Personal")).not.toBeDisabled());
+  expect(choice("Morgan", "Personal")).toBeChecked();
+  expect(choice("Everyone", "Shared")).toBeChecked();
+  fireEvent.click(choice("Morgan", "Work"));
+  expect(choice("Morgan", "Work")).toBeChecked();
+  expect(choice("Morgan", "Personal")).toBeChecked();
+  fireEvent.click(choice("Riley", "Personal"));
+  expect(choice("Riley", "Personal")).toBeChecked();
+  expect(choice("Morgan", "Personal")).not.toBeChecked();
+  fireEvent.click(choice("Riley", "Personal"));
+  expect(JSON.parse(localStorage.getItem(key)).calendarMembers[`${instance}|calendar.personal`]).toBeUndefined();
+  fireEvent.click(choice("Everyone", "Personal"));
+  act(() => conn.emit("disconnected"));
+  expect(choice("Morgan", "Work")).toBeDisabled();
+  expect(choice("Everyone", "Personal")).toBeDisabled();
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  render(<App />);
+  await screen.findByRole("group", { name: "Morgan" });
+  await waitFor(() => expect(choice("Morgan", "Work")).not.toBeDisabled());
+  expect(choice("Morgan", "Work")).toBeChecked();
+  expect(choice("Everyone", "Personal")).toBeChecked();
+  expect(choice("Everyone", "Shared")).toBeChecked();
 });
 
 it("keeps successful calendar reads visible alongside errors and removes remote events while offline", async () => {
