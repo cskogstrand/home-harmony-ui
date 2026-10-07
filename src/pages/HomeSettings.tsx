@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
@@ -25,22 +26,28 @@ export default function HomeSettings() {
       <p className="page-note">Use HTTP with WS on your local network, or HTTPS with WSS and a certificate trusted by this browser. An HTTPS dashboard cannot connect to HTTP Home Assistant. Calendar reads also require this dashboard’s exact origin in HA’s CORS configuration.</p>
     </section>
     <section className="glow-panel" id="family-calendar"><PanelHeading title="People and calendars" />
-      <p className="page-note">Choose one or more calendars for each person. Calendars selected under Everyone appear for the whole family. Selecting a calendar for someone else moves its assignment.</p>
+      <p className="page-note">Add calendars to each person, or Everyone for shared plans. Choosing an assigned calendar moves it here.</p>
       {!homeOnline && <p role="status">Connect to Home Assistant to set up people and calendars.</p>}
       {homeOnline && !members.length && <p className="empty-note">Set up people in Home Assistant → Settings → People.</p>}
       {homeOnline && !calendars.length && <p className="empty-note">Set up a calendar integration in Home Assistant, then return here to assign it.</p>}
-      {!!calendars.length && <div className="space-y-4 mt-4">{[...members, { id: "everyone", name: "Everyone" }].map(person =>
-        <fieldset key={person.id} disabled={!homeOnline} className="rounded-xl border p-3 disabled:opacity-60">
-          <legend className="px-2 font-medium">{person.name}</legend>
-          {calendars.map(calendar => {
-            const assigned = calendarMembers[calendar.preferenceId];
-            return <label className="favorite-option" key={calendar.preferenceId}>
-              <span><strong>{calendar.name}</strong>{assigned && assigned !== person.id && <small>Assigned to {memberName(assigned)} · Select to move here</small>}</span>
-              <input type="checkbox" aria-label={calendar.name} checked={assigned === person.id} onChange={e => setCalendarMember(calendar.preferenceId, e.target.checked ? person.id : "")} />
-            </label>;
-          })}
-        </fieldset>
-      )}</div>}
+      {!!calendars.length && <div className="mt-3">{[...members, { id: "everyone", name: "Everyone" }].map(person => {
+        const selected = calendars.filter(calendar => calendarMembers[calendar.preferenceId] === person.id);
+        const available = calendars.filter(calendar => calendarMembers[calendar.preferenceId] !== person.id);
+        return <div key={person.id} role="group" aria-label={person.name} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
+          <span className="w-28 shrink-0 break-words font-medium">{person.name}</span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            {selected.map(calendar => <span key={calendar.preferenceId} className="inline-flex max-w-full items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1 text-sm">
+              <span className="min-w-0 break-words">{calendar.name}</span>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" disabled={!homeOnline} aria-label={`Remove ${calendar.name} from ${person.name}`} onClick={() => setCalendarMember(calendar.preferenceId, "")}><X size={14} aria-hidden="true" /></Button>
+            </span>)}
+            {!selected.length && <span className="text-sm text-muted-foreground">No calendars selected</span>}
+          </div>
+          <select aria-label={`Add calendar for ${person.name}`} className="h-10 w-full rounded-lg border bg-background px-3 text-sm disabled:opacity-60 sm:w-56" value="" disabled={!homeOnline || !available.length} onChange={e => { if (e.target.value) setCalendarMember(e.target.value, person.id); }}>
+            <option value="" disabled>{available.length ? "Add calendar…" : "All calendars selected"}</option>
+            {available.map(calendar => <option key={calendar.preferenceId} value={calendar.preferenceId}>{calendar.name}{calendarMembers[calendar.preferenceId] ? ` — move from ${memberName(calendarMembers[calendar.preferenceId])}` : ""}</option>)}
+          </select>
+        </div>;
+      })}</div>}
       {haUrl && <div className="flex flex-wrap gap-4 mt-4"><a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">Manage people in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up calendar integrations</a><a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open Home Assistant calendar</a></div>}
       <p className="page-note">Calendar selections are saved for this instance and planner on this browser. Home Assistant events are read-only here. Add local plans, lists and school timetable images in this app.</p>
     </section>

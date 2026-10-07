@@ -29,7 +29,7 @@ For another screen on your LAN, bind Vite to your LAN interface with `npm run de
 
 ### Calendar access
 
-Set up [people in Home Assistant](https://www.home-assistant.io/integrations/person/) and add calendar integrations there. In this app, open **Home settings → People and calendars** and select one or more calendars under each person. Select shared calendars under **Everyone**. A calendar belongs to one person or Everyone; selecting it elsewhere moves its assignment. Unselected calendars stay hidden. Assignments use instance-scoped registry IDs where available and survive entity renames.
+Set up [people in Home Assistant](https://www.home-assistant.io/integrations/person/) and add calendar integrations there. In this app, open **Home settings → People and calendars**. Each person’s row shows their selected calendars; use **Add calendar** to add one or the **×** button to remove one. Use **Everyone** for shared calendars. A calendar belongs to one person or Everyone; dropdown options indicate when selecting one moves its assignment. Unselected calendars stay hidden. Assignments use instance-scoped registry IDs where available and survive entity renames.
 
 Calendar integrations remain in Home Assistant. This app reads `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header. It requests the displayed day/week using HA’s timezone (including DST), handles all-day exclusive end dates, and shows **read-only** HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again. There are no calendar writes or invitations.
 
