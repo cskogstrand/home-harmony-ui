@@ -34,6 +34,7 @@ const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
   timetables: z.object({ emma: z.string(), leo: z.string() }),
   calendar: calendarSettingsSchema.catch({ view: "people", startDay: "today" }),
+  homeEntities: z.record(z.array(z.string())).catch({}),
 });
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
 export type FamilyEvent = z.infer<typeof eventSchema>;
@@ -78,6 +79,7 @@ function samplePlanner(today: string): Planner {
   return {
     events: sortEvents(events),
     calendar: { view: "people", startDay: "today" },
+    homeEntities: {},
     items: [
       { id: "d1", text: "Pack tomorrow’s school bags", kind: "daily", member: "emma", done: false },
       { id: "d2", text: "Set the table", kind: "daily", member: "leo", done: false },
@@ -97,6 +99,7 @@ interface FamilyContextValue extends Planner {
   plannerId: string; plannerIds: string[]; selectPlanner: (id: string) => void;
   calendarStart: string;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
+  setHomeEntities: (instance: string, ids: string[]) => void;
   saveEvent: (event: FamilyEvent) => void;
   deleteEvent: (id: string) => void;
   addItem: (text: string, kind: ListKind, member: MemberId) => void;
@@ -165,6 +168,7 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
   return <FamilyContext.Provider value={{ ...planner, now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner,
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
+    setHomeEntities: (instance, ids) => setPlanner(p => ({ ...p, homeEntities: { ...p.homeEntities, [instance]: [...new Set(ids)] } })),
     saveEvent: event => {
       const valid = eventSchema.safeParse(event);
       if (!valid.success) { toast.error("Check the event details before saving."); return; }

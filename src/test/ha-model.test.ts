@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { available, calendarBoundary, entityCommand, mapHome, needsCode, normalizeHaUrl, supportsAction } from "@/lib/ha-model";
+import { available, calendarBoundary, entityStateLabel, entityCommand, mapHome, needsCode, normalizeHaUrl, supportsAction } from "@/lib/ha-model";
 import { config, registries, services, states, state } from "./ha-fixtures";
 const entity = (id: string) => mapHome(states, registries, "http://ha.local:8123", config).entities.find(e => e.entityId === id)!;
 
@@ -13,6 +13,7 @@ describe("HA mapping", () => {
     expect(entity("switch.charger").areaId).toBe("unassigned");
     expect(entity("sensor.power").device).toEqual(entity("light.living").device);
     expect(entity("switch.charger").device).toBeUndefined();
+    expect(entity("sensor.power").name).toBe("Power");
     expect(entity("light.living").preferenceId).toBe("http://ha.local:8123|stable-light");
     const renamed = mapHome({ "light.renamed": state("light.renamed", "off") }, { ...registries, entities: [{ ...registries.entities[0], entity_id: "light.renamed" }] }, "http://ha.local:8123");
     expect(renamed.entities[0].preferenceId).toBe(entity("light.living").preferenceId);
@@ -72,4 +73,15 @@ it("validates origins and protocol pairing without accepting tokens in a URL", (
 it("uses HA-local midnight including the Oslo DST transition for calendar requests", () => {
   expect(calendarBoundary("2026-10-25", "Europe/Oslo")).toBe("2026-10-24T22:00:00.000Z");
   expect(calendarBoundary("2026-10-26", "Europe/Oslo")).toBe("2026-10-25T23:00:00.000Z");
+});
+
+
+it("uses useful sensor labels without hiding missing readings or exposing scene timestamps", () => {
+  const smoke = entity("binary_sensor.smoke");
+  expect(entityStateLabel({ ...smoke, state: "on" })).toBe("Smoke detected");
+  expect(entityStateLabel({ ...smoke, state: "off" })).toBe("Clear");
+  expect(entityStateLabel(smoke)).toBe("Unavailable");
+  expect(entityStateLabel({ ...smoke, state: "unknown" })).toBe("No reading");
+  expect(entityStateLabel({ ...smoke, state: "off", attributes: { device_class: "door" } })).toBe("Closed");
+  expect(entityStateLabel({ ...entity("scene.evening"), state: "2026-10-07T10:00:00Z" })).toBe("Scene");
 });

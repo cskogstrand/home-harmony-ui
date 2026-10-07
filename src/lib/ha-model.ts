@@ -6,6 +6,23 @@ export const numberValue = (value: unknown) => typeof value === "number" && Numb
 export const stringValues = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 export const available = (entity: Entity) => !(["unavailable", "missing"].includes(entity.state) || (entity.state === "unknown" && entity.domain !== "scene"));
 export const feature = (entity: Entity, flag: number) => ((numberValue(entity.attributes.supported_features) ?? 0) & flag) !== 0;
+export const humanizeState = (value: string) => value.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
+export function entityStateLabel(entity: Entity) {
+  if (!available(entity)) return entity.state === "unknown" ? "No reading" : "Unavailable";
+  if (entity.domain === "scene") return "Scene";
+  if (entity.domain === "binary_sensor" && ["on", "off"].includes(entity.state)) {
+    const labels: Record<string, [string, string]> = {
+      door: ["Closed", "Open"], window: ["Closed", "Open"], opening: ["Closed", "Open"], garage_door: ["Closed", "Open"],
+      motion: ["Clear", "Motion detected"], occupancy: ["Clear", "Occupied"], presence: ["Away", "Home"],
+      smoke: ["Clear", "Smoke detected"], moisture: ["Dry", "Leak detected"], gas: ["Clear", "Gas detected"],
+      safety: ["Safe", "Unsafe"], problem: ["OK", "Problem"], battery: ["OK", "Low battery"],
+      connectivity: ["Disconnected", "Connected"], plug: ["Unplugged", "Plugged in"], lock: ["Locked", "Unlocked"],
+    };
+    return (labels[String(entity.attributes.device_class)] ?? ["Off", "On"])[entity.state === "on" ? 1 : 0];
+  }
+  if (entity.domain === "automation") return entity.state === "on" ? "Enabled" : "Disabled";
+  return humanizeState(entity.state);
+}
 export const alarmModes: { action: AlarmAction; label: string; flag: number }[] = [
   { action: "alarm_arm_home", label: "Home", flag: 1 },
   { action: "alarm_arm_away", label: "Away", flag: 2 },
@@ -33,7 +50,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     if (!areas.has(areaId)) areas.set(areaId, { id: areaId, name: "Unassigned", entities: [] });
     const entity: Entity = {
       entityId: id, preferenceId: `${instance}|${entry?.id ?? id}`, domain: id.split(".")[0],
-      name: entry?.name || state?.attributes.friendly_name || entry?.original_name || id,
+      name: entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)),
       state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device,
       lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
     };

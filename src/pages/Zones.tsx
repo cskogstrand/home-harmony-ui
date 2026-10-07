@@ -20,12 +20,12 @@ export default function Zones() {
       return <article key={zone.entityId} className="glow-panel space-y-4" aria-label={zone.name}>
         <div className="panel-heading"><h2 className="flex items-center gap-2"><MapPin size={20} />{zone.name}</h2><Link className="text-link" to={`/devices/${zone.entityId}`} aria-label={`View ${zone.name} zone details`}><ArrowUpRight size={18} /></Link></div>
         <p className="sensor-state">{!homeOnline && "Stale · "}{presence}</p>
-        <dl className="device-readings">
+        <details className="device-details"><summary>Location details</summary><dl className="device-readings">
           <div><dt>Radius</dt><dd>{radius !== undefined && radius >= 0 ? `${radius} m` : "Not reported"}</dd></div>
           <div><dt>Latitude</dt><dd>{latitude !== undefined && Math.abs(latitude) <= 90 ? latitude : "Not reported"}</dd></div>
           <div><dt>Longitude</dt><dd>{longitude !== undefined && Math.abs(longitude) <= 180 ? longitude : "Not reported"}</dd></div>
           <div><dt>Presence tracking</dt><dd>{passive ? "Passive · automations only" : zone.attributes.passive === false ? "Active" : "Not reported"}</dd></div>
-        </dl>
+        </dl></details>
         {passive && <p className="muted">Passive zones can be used in automations without changing a tracked person’s location state.</p>}
       </article>;
     })}</div>

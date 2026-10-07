@@ -219,12 +219,12 @@ it("uses reported state throughout navigation and disables stale controls in the
   expect(toggle).toBeChecked(); // No optimistic physical state.
   act(() => conn.entityCallback?.({ ...states, "light.living": state("light.living", "off", states["light.living"].attributes) }));
   expect(toggle).not.toBeChecked();
-  fireEvent.click(screen.getByRole("link", { name: "Living Room Light" }));
+  fireEvent.click(screen.getByRole("link", { name: "Living Room Light details" }));
   expect(await screen.findByRole("heading", { level: 1, name: "Living Room Light" })).toBeInTheDocument();
   expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
   act(() => conn.emit("disconnected"));
   expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
-  expect(screen.getByText("Stale · off")).toBeInTheDocument();
+  expect(screen.getByText("Offline")).toBeInTheDocument();
 });
 it("keeps saved planner datasets and calendar preferences independent of HA authentication", async () => {
   const planner = { events: [{ id: "personal", title: "My existing plan", date: "2026-10-06", time: "12:00", member: "anna", location: "Home", note: "Keep me" }], items: [{ id: "task", text: "Keep this task", kind: "tasks", member: "anna", done: false }], timetables: { emma: "/custom.svg", leo: "/leo.svg" }, calendar: { view: "week", startDay: "monday" } };
@@ -235,14 +235,14 @@ it("keeps saved planner datasets and calendar preferences independent of HA auth
   render(<App />);
   await screen.findByText("HA user");
   fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
+  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual({ ...planner, homeEntities: {} });
   expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-2")).events).toEqual([]);
   fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
   fireEvent.click(await screen.findByRole("menuitem", { name: "App preferences" }));
   expect(screen.getByLabelText("Saved local planner")).toHaveValue("home-1");
   fireEvent.change(screen.getByLabelText("Saved local planner"), { target: { value: "home-2" } });
   expect(screen.getByLabelText("Saved local planner")).toHaveValue("home-2");
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
+  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual({ ...planner, homeEntities: {} });
 });
 it("does not clear the pending guard when a duplicate action is rejected", async () => {
   const client = await connectedClient();
@@ -539,4 +539,86 @@ it("shows HA zones with live presence, passive metadata and honest missing or st
   expect(home.getByText("Stale · 1 person")).toBeInTheDocument();
   expect(screen.getByText("Cached zone readings are stale while Home Assistant is offline.")).toBeInTheDocument();
   expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("keeps dimmers on the family dashboard, including off lights without a brightness reading", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const slider = await screen.findByRole("slider", { name: "Living Room Light brightness" });
+  await waitFor(() => expect(slider).not.toHaveAttribute("data-disabled"));
+  const off = state("light.living", "off", { friendly_name: "Living Room Light", supported_color_modes: ["brightness"] });
+  act(() => conn.entityCallback?.({ ...states, "light.living": off }));
+  expect(slider).toHaveAttribute("aria-valuenow", "0");
+  fireEvent.keyDown(slider, { key: "ArrowRight" });
+  await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "light", "turn_on", { brightness: 3 }, { entity_id: "light.living" }));
+  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
+  act(() => conn.entityCallback?.({ ...states, "light.living": { ...off, attributes: { ...off.attributes, supported_color_modes: ["onoff"] } } }));
+  expect(screen.queryByRole("slider", { name: "Living Room Light brightness" })).not.toBeInTheDocument();
+  act(() => conn.entityCallback?.({ ...states, "light.living": { ...off, state: "unavailable" } }));
+  expect(screen.getByRole("slider", { name: "Living Room Light brightness" })).toHaveAttribute("data-disabled");
+});
+
+it("saves selected devices, sensors and scenes, survives renames and respects an empty selection", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Search favorites" }), { target: { value: "Living Room" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Living Room Light" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Search favorites" }), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Power" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Evening" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
+  const favorites = () => within(screen.getByRole("region", { name: "Home favorites" }));
+  expect(favorites().getAllByRole("article")).toHaveLength(2);
+  expect(favorites().getByRole("button", { name: "Activate Evening" })).toBeInTheDocument();
+  const key = "afterglow-planner-v1:home-1";
+  const saved = JSON.parse(localStorage.getItem(key)!);
+  expect(saved.homeEntities["http://ha.local:8123"]).toEqual(["http://ha.local:8123|stable-light", "http://ha.local:8123|stable-sensor", "http://ha.local:8123|scene.evening"]);
+  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(favorites().getAllByRole("article")).toHaveLength(2);
+  view.unmount();
+  conn = new FakeConnection();
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({ "config/area_registry/list": registries.areas, "config/device_registry/list": registries.devices, "config/entity_registry/list": registries.entities.map(e => e.id === "stable-light" ? { ...e, name: "Sofa light" } : e) })[type]);
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  render(<App />);
+  await screen.findByRole("switch", { name: "Toggle Sofa light" });
+  expect(favorites().getAllByRole("article")).toHaveLength(2);
+  expect(favorites().queryByRole("switch", { name: "Toggle Charger power" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
+  expect(favorites().queryByRole("article")).not.toBeInTheDocument();
+  expect(favorites().queryByRole("button", { name: "Activate Evening" })).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem(key)!).homeEntities["http://ha.local:8123"]).toEqual([]);
+  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual(saved.events);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Smart home" }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));
+  expect(favorites().queryByRole("article")).not.toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("offers temperature, mode and blind controls without duplicating raw state labels", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const target = await screen.findByRole("slider", { name: "Living target" });
+  await waitFor(() => expect(target).not.toHaveAttribute("data-disabled"));
+  fireEvent.keyDown(target, { key: "ArrowRight" });
+  await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "climate", "set_temperature", { temperature: 21.5 }, { entity_id: "climate.living" }));
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Living mode" })).toBeEnabled());
+  fireEvent.change(screen.getByRole("combobox", { name: "Living mode" }), { target: { value: "off" } });
+  await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "climate", "set_hvac_mode", { hvac_mode: "off" }, { entity_id: "climate.living" }));
+  fireEvent.keyDown(screen.getByRole("slider", { name: "Blind open" }), { key: "ArrowLeft" });
+  await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "cover", "set_cover_position", { position: 49 }, { entity_id: "cover.blind" }));
+  const lock = within(screen.getByRole("article", { name: "Front" }));
+  expect(lock.queryByRole("button", { name: "Lock Front" })).not.toBeInTheDocument();
+  fireEvent.click(lock.getByRole("button", { name: "Unlock Front" }));
+  expect(await screen.findByLabelText("Code")).toBeInTheDocument();
+  expect(ha.callService).toHaveBeenCalledTimes(3);
 });

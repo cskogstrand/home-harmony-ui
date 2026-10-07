@@ -4,7 +4,7 @@ import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
 import { useFamily, familyMembers, memberName, addDays, dateLabel, sortEvents, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, ListPanel, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
-import { HomeFavorites, VehicleCard } from "@/components/HomePanels";
+import { HomeFavorites } from "@/components/HomePanels";
 
 export default function Dashboard() {
   const { today, time, events, calendar, calendarStart: start } = useFamily();
@@ -45,7 +45,6 @@ export default function Dashboard() {
     <ListPanel kind="shopping" limit={3} />
     <section className="glow-panel school-strip"><div><span className="eyebrow">READY FOR TOMORROW</span><h2>School, sorted.</h2><p>Timetables at a glance.<br />Tap to take a closer look.</p><Link to="/school" className="text-link">School board<ArrowUpRight size={17} /></Link></div><SchoolPreview child="emma" /><SchoolPreview child="leo" /></section>
     <HomeFavorites />
-    <VehicleCard />
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;
 }
