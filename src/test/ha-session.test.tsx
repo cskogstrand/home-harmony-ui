@@ -296,6 +296,32 @@ it("loads only the displayed HA calendar range and never saves its events in the
   expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(true);
   await act(async () => nextResponse.resolve({ ok: true, json: async () => [event] }));
 });
+it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up next card with the next timed plan on %s", async date => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    queueMicrotask(() => callback({ ...states, "calendar.house": state("calendar.house", "off") }));
+    return conn.unsubscribeEntities;
+  });
+  const events = [
+    { summary: "All-day trip", start: "2026-10-07", end: "2026-10-09" },
+    { summary: "Past appointment", start: "2026-10-07T08:00:00Z", end: "2026-10-07T09:00:00Z" },
+    ...(date ? [
+      { summary: "Later appointment", start: `${date}T15:00:00Z`, end: `${date}T16:00:00Z` },
+      { summary: "Next appointment", start: `${date}T13:00:00Z`, end: `${date}T14:00:00Z` },
+    ] : []),
+  ];
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => events }));
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.house": "everyone" } }));
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const calendar = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(2);
+  const next = within(screen.getByRole("region", { name: "Next family plan" }));
+  expect(next.getByRole("heading", { name: date ? "Next appointment" : "No upcoming plans to display." })).toBeInTheDocument();
+  if (date) expect(next.getByText("15:00")).toBeInTheDocument();
+});
 it("rejects malformed calendar dates instead of crashing the planner", async () => {
   const client = await connectedClient();
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ summary: "Broken", start: 123, end: "no date" }] }));

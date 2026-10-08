@@ -18,7 +18,7 @@ export default function Dashboard() {
   const openEvent = (event?: FamilyEvent) => { setEditing(event); setNewPlan(undefined); setEditorOpen(true); };
   const addPlan = (date: string, member: MemberId) => { setEditing(undefined); setNewPlan({ date, member }); setEditorOpen(true); };
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
-  const next = upcoming[0];
+  const next = upcoming.find(e => !e.allDay);
   const weekEvents = events.filter(e => e.date >= start && e.date < addDays(start, 7));
   return <div className="portrait-board">
     <header className="ambient-heading"><div className="clock-block"><time className="ambient-clock">{time}</time><span>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</span></div>
