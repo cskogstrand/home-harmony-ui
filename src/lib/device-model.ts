@@ -17,6 +17,38 @@ export function deviceGroups(home: Home) {
     .sort((a, b) => deviceName(a.device).localeCompare(deviceName(b.device)));
 }
 
+const deviceTypes = new Map([
+  ["light", "Lights"], ["climate", "Climate"], ["water_heater", "Climate"], ["humidifier", "Climate"],
+  ["cover", "Blinds & doors"], ["lock", "Locks"], ["alarm_control_panel", "Alarms"],
+  ["media_player", "Media players"], ["camera", "Cameras"], ["fan", "Fans"], ["vacuum", "Vacuums"],
+  ["switch", "Switches"], ["valve", "Valves"],
+]);
+
+export function deviceType(entities: Entity[]) {
+  const primary = entities.filter(entity => !entity.category);
+  const types = new Set(primary.map(entity => deviceTypes.get(entity.domain)).filter(Boolean));
+  if (types.size > 1) return "Multi-function";
+  if (types.size === 1) return [...types][0];
+  return primary.some(entity => ["sensor", "binary_sensor"].includes(entity.domain)) ? "Sensors" : "Other";
+}
+
+export type DeviceGrouping = "room" | "type" | "none";
+
+export function deviceSections(devices: ReturnType<typeof deviceGroups>, areas: Home["areas"], grouping: DeviceGrouping) {
+  if (!devices.length) return [];
+  if (grouping === "none") return [{ id: "all", name: "All devices", devices }];
+  const sections = new Map<string, { id: string; name: string; devices: typeof devices }>();
+  for (const item of devices) {
+    const area = areas.find(area => area.id === item.device.area_id);
+    const name = grouping === "room" ? area?.name ?? "Unassigned" : deviceType(item.entities);
+    const id = grouping === "room" ? area?.id ?? "unassigned" : name;
+    if (!sections.has(id)) sections.set(id, { id, name, devices: [] });
+    sections.get(id)!.devices.push(item);
+  }
+  const last = grouping === "room" ? "unassigned" : "Other";
+  return [...sections.values()].sort((a, b) => Number(a.id === last) - Number(b.id === last) || a.name.localeCompare(b.name));
+}
+
 export function deviceReadingsLabel(entities: Entity[], homeOnline: boolean) {
   if (!homeOnline) return "Home Assistant offline";
   if (!entities.length) return "No controls or readings";

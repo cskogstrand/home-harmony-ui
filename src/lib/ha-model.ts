@@ -69,7 +69,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     const entity: Entity = {
       entityId: id, preferenceId: `${instance}|${entry?.id ?? id}`, domain: id.split(".")[0],
       name: entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)),
-      state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device,
+      state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category,
       lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
     };
     entities.push(entity);

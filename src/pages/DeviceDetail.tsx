@@ -9,7 +9,8 @@ import { deviceName, deviceReadingsLabel, entityDetailPath } from "@/lib/device-
 
 export default function DeviceDetail() {
   const { deviceId } = useParams();
-  const { hash } = useLocation();
+  const { hash, state } = useLocation();
+  const backTo = { pathname: "/devices", search: typeof state?.deviceList === "string" ? state.deviceList : "" };
   const { currentHome, homeOnline, haUrl, connectionStatus, metadataWarnings } = useApp();
   const device = currentHome.devices.find(device => device.id === deviceId);
   const entities = currentHome.entities.filter(entity => entity.device?.id === deviceId);
@@ -23,12 +24,12 @@ export default function DeviceDetail() {
   const loading = ["connecting", "syncing", "reconnecting"].includes(connectionStatus);
   if (!device) {
     const legacyEntity = currentHome.entities.find(entity => entity.entityId === deviceId);
-    if (legacyEntity) return <Navigate to={entityDetailPath(legacyEntity)} replace />;
-    return <div className="planner-page"><h1>{loading ? "Loading device…" : metadataWarnings.length ? "Device information unavailable" : "Device not found"}</h1><Link to="/devices" className="text-link">Back to devices</Link></div>;
+    if (legacyEntity) return <Navigate to={entityDetailPath(legacyEntity)} state={state} replace />;
+    return <div className="planner-page"><h1>{loading ? "Loading device…" : metadataWarnings.length ? "Device information unavailable" : "Device not found"}</h1><Link to={backTo} className="text-link">Back to devices</Link></div>;
   }
   const area = currentHome.areas.find(area => area.id === device.area_id);
   return <div className="planner-page device-page">
-    <Link to="/devices" className="text-link">Back to devices</Link>
+    <Link to={backTo} className="text-link">Back to devices</Link>
     <PageHeading eyebrow={area?.name.toUpperCase() ?? "UNASSIGNED"} title={deviceName(device)} description={[device.manufacturer, device.model].filter(Boolean).join(" · ")}><span className="device-symbol"><Cpu className="h-6 w-6" aria-hidden="true" /></span></PageHeading>
     <section className="glow-panel device-overview"><PanelHeading title="About this device" />
       <p className="page-note">{deviceReadingsLabel(entities, homeOnline)}</p>

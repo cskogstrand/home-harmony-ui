@@ -19,6 +19,7 @@ export interface EntityRegistryEntry {
   original_name?: string | null;
   disabled_by?: string | null;
   hidden_by?: string | null;
+  entity_category?: string | null;
 }
 export interface Registries {
   areas: AreaRegistryEntry[];
@@ -31,6 +32,7 @@ export interface Entity {
   preferenceId: string;
   name: string;
   domain: string;
+  category?: string | null;
   state: string;
   attributes: Record<string, unknown>;
   areaId: string;

@@ -1845,6 +1845,8 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   expect(screen.getByRole("link", { name: "Devices" })).toHaveAttribute("aria-current", "page");
   expect(screen.getByRole("switch", { name: "Toggle Charger power" })).toBeEnabled();
   fireEvent.click(screen.getByRole("link", { name: "Back to devices" }));
+  expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("charger");
+  fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "" } });
   fireEvent.click(screen.getByRole("link", { name: "Multi sensor details" }));
   expect(window.location.pathname).toBe("/devices/physical-1");
   expect(screen.getByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
@@ -1926,4 +1928,55 @@ it("opens legacy links with readable states when services cannot load", async ()
   expect(window.location.pathname).toBe("/devices/physical-1");
   expect(screen.getByRole("article", { name: "Living Room Light" })).toHaveTextContent("Offline");
   expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("switches room and type grouping while retaining search through detail navigation and reloads", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
+    "config/area_registry/list": registries.areas,
+    "config/device_registry/list": [...registries.devices, { id: "other-device", name: "Bedroom sensor" }],
+    "config/entity_registry/list": registries.entities,
+  })[type]);
+  const view = render(<App />);
+  const hall = await screen.findByRole("region", { name: "Hall" });
+  expect(within(hall).getByText("1 device")).toBeInTheDocument();
+  expect(within(hall).getByRole("link", { name: "Multi sensor details" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Room" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("region", { name: "Unassigned" })).toHaveTextContent("Bedroom sensor");
+  fireEvent.click(screen.getByRole("button", { name: "Device type" }));
+  expect(screen.getByRole("region", { name: "Lights" })).toHaveTextContent("Multi sensor");
+  expect(screen.getByRole("region", { name: "Other" })).toHaveTextContent("Bedroom sensor");
+  fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "lights" } });
+  expect(screen.queryByRole("region", { name: "Other" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Multi sensor details" }));
+  expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Back to devices" })).toHaveAttribute("href", "/devices?group=type&q=lights");
+  fireEvent.click(screen.getByRole("link", { name: "Back to devices" }));
+  expect(screen.getByRole("button", { name: "Device type" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("lights");
+  view.unmount();
+  conn.connected = true;
+  render(<App />);
+  expect(await screen.findByRole("link", { name: "Multi sensor details" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Device type" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("lights");
+  fireEvent.click(screen.getByRole("button", { name: "None" }));
+  expect(screen.getByRole("region", { name: "All devices" })).toHaveTextContent("Multi sensor");
+  fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "" } });
+  expect(within(screen.getByRole("region", { name: "All devices" })).getByText("2 devices")).toBeInTheDocument();
+  fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "does not exist" } });
+  expect(screen.getByText("No devices match your search.")).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "All devices" })).not.toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("falls back to room grouping for an invalid bookmarked view", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
+  window.history.replaceState(null, "", "/devices?group=invalid&q=multi");
+  render(<App />);
+  expect(await screen.findByRole("region", { name: "Hall" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Room" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("multi");
 });
