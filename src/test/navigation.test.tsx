@@ -96,6 +96,12 @@ it.each([
   expect(storedItem()).toEqual({ ...original, text: "Updated task" });
   fireEvent.click(screen.getByRole("checkbox", { name: "Updated task" }));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(storedItem().done).toBe(true);
+  expect(checkbox).toBeChecked();
+  expect(checkbox).toBeDisabled();
+  expect(checkbox.closest(".check-row")).toHaveClass("completing");
+  expect(checkbox.closest(".check-row-shell")).toHaveAttribute("aria-hidden", "true");
+  await waitFor(() => expect(checkbox).not.toBeInTheDocument());
   fireEvent.click(screen.getByText("Completed (1)"));
   expect(screen.getByRole("checkbox", { name: "Updated task" })).toBeChecked();
   const completed = storedItem();
@@ -106,11 +112,44 @@ it.each([
   expect(storedItem()).toEqual({ ...completed, text: "Finished task" });
   view.unmount();
   render(<App />);
+  expect(document.querySelector(".completing")).toBeNull();
   fireEvent.click(screen.getByText("Completed (1)"));
   expect(screen.getByRole("checkbox", { name: "Finished task" })).toBeChecked();
 });
 
-it("suggests list entries and reopens completed items without creating duplicates", () => {
+it("handles quick consecutive completions and reopening during an exit", async () => {
+  render(<App />);
+  const table = screen.getByRole("checkbox", { name: "Set the table" });
+  const dishwasher = screen.getByRole("checkbox", { name: "Empty the dishwasher" });
+  fireEvent.click(table);
+  fireEvent.click(dishwasher);
+  expect(table).toBeChecked();
+  expect(dishwasher).toBeChecked();
+  fireEvent.click(screen.getByText("Completed (2)"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Set the table" }));
+  await waitFor(() => expect(dishwasher).not.toBeInTheDocument());
+  expect(screen.getAllByRole("checkbox", { name: "Set the table" })).toHaveLength(1);
+  expect(screen.getByRole("checkbox", { name: "Set the table" })).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeEnabled();
+  expect(document.querySelector(".completing")).toBeNull();
+});
+
+it("transitions the empty state when the last task is completed and reopened", async () => {
+  window.history.replaceState(null, "", "/lists?tab=shopping");
+  render(<App />);
+  const checkboxes = screen.getAllByRole("checkbox");
+  checkboxes.forEach(checkbox => fireEvent.click(checkbox));
+  const emptyNote = screen.getByText("All done.").parentElement;
+  expect(emptyNote).toHaveStyle({ height: "0px", opacity: "0" });
+  await waitFor(() => checkboxes.forEach(checkbox => expect(checkbox).not.toBeInTheDocument()));
+  expect(emptyNote).toHaveStyle({ height: "auto", opacity: "1" });
+  fireEvent.click(screen.getByText("Completed (3)"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Oat milk" }));
+  expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeChecked();
+  await waitFor(() => expect(emptyNote).not.toBeInTheDocument());
+});
+
+it("suggests list entries and reopens completed items without creating duplicates", async () => {
   render(<App />);
   navigate("Lists");
   fireEvent.click(screen.getByRole("button", { name: /Shopping/ }));
@@ -128,7 +167,7 @@ it("suggests list entries and reopens completed items without creating duplicate
   fireEvent.change(input, { target: { value: " OAT MILK " } });
   fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));
   expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeChecked();
-  expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Add item" }));
   fireEvent.change(screen.getByRole("textbox", { name: "New shopping item" }), { target: { value: "Oat milk" } });
   fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));

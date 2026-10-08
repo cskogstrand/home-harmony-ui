@@ -99,11 +99,15 @@
 .family-lane .event-button small { font-size: 10px; }
 .list-panel { display: flex; flex-direction: column; }
 .checklist { margin-top: 2px; flex: 1; }
+.check-row-shell, .list-empty-note, .completed-items { overflow: clip; }
+.check-row-shell:focus-within, .completed-items:focus-within { overflow: visible; }
+.check-row-shell[aria-hidden="true"] { pointer-events: none; }
 .check-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 53px; }
-.check-row:last-child { border-bottom: 0; }
+.check-row-shell:last-child .check-row { border-bottom: 0; }
 .check-row :is(label, .edit-item) { display: flex; align-items: center; gap: 12px; cursor: pointer; min-height: 50px; font-size: 13px; position: relative; }
 .check-row label { flex-shrink: 0; }
 .check-row .edit-item { flex: 1; min-width: 0; align-self: stretch; text-align: left; }
+.check-row .edit-item:disabled, .completing button:disabled { opacity: 1; }
 .check-row input { position: absolute; opacity: 0; width: 25px; height: 25px; }
 .check-mark { flex-shrink: 0; width: 22px; height: 22px; border: 1px solid hsl(var(--muted-foreground) / .5); border-radius: 7px; display: grid; place-items: center; }
 .check-mark svg { opacity: 0; }
@@ -112,7 +116,13 @@
 .check-row input:checked + .check-mark svg { opacity: 1; }
 .complete .check-text { text-decoration: line-through; color: hsl(var(--muted-foreground)); }
 .check-text { flex: 1; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: no-preference) {
+  .check-text { transition: color 200ms ease-out; }
+  .completing .check-mark path { stroke-dasharray: 24; animation: task-check-draw 200ms ease-out; }
+}
+@keyframes task-check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 .list-toolbar { margin-block: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.list-refresh { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .completed-items { margin-top: 12px; }
 .completed-items summary { cursor: pointer; color: hsl(var(--muted-foreground)); font-size: 12px; }
 .quick-add { display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid hsl(var(--border)); padding-top: 12px; }
@@ -477,7 +487,7 @@
   .next-event h2 { font-size: 25px; }
   .next-chapter { padding-block: 15px; }
   .family-lane .event-button:not(:first-of-type) { display: none; }
-  .portrait-board .check-row:nth-child(n+3) { display: none; }
+  .portrait-board .check-row-shell:nth-child(n+3) { display: none; }
   .portrait-board .check-row :is(label, .edit-item), .portrait-board .check-row { min-height: 44px; }
   .portrait-board .list-toolbar { margin-block: 4px; }
   .school-strip h2 { font-size: 21px; margin: 4px 0; }

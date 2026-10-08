@@ -1,4 +1,5 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Check, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +15,42 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const listTitles = { daily: "Before we settle in", shopping: "Pick up on the way", tasks: "The bigger things" };
 const listDescriptions = { daily: "A little help from everyone", shopping: "One list for the whole family", tasks: "Things to remember, without the rush" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
+function CheckRow({ id, text, complete, member, disabled, removeDisabled, onToggle, onEdit, onRemove }: {
+  id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
+  onToggle: () => void; onEdit: () => void; onRemove?: () => void;
+}) {
+  const present = useIsPresent();
+  const completedIds: string[] = usePresenceData() ?? [];
+  const reduceMotion = useReducedMotion();
+  const completing = !present && completedIds.includes(id);
+  const animateCompletion = completing && !reduceMotion;
+  return <motion.div className="check-row-shell" aria-hidden={!present || undefined} initial={complete ? { height: 0, opacity: 0 } : false}
+    animate={{ height: "auto", opacity: 1 }}
+    transition={{ duration: reduceMotion ? 0 : .48, ease: [.4, 0, .2, 1] }}
+    exit={{ height: 0, opacity: 0, transition: {
+      height: { delay: animateCompletion ? .08 : 0, duration: animateCompletion ? .4 : 0, ease: [.4, 0, .2, 1] },
+      opacity: { delay: animateCompletion ? .16 : 0, duration: animateCompletion ? .24 : 0, ease: "easeOut" },
+    } }}>
+    <div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`}>
+      <label><input type="checkbox" aria-label={text} checked={complete || completing} disabled={disabled || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} /></span></label>
+      <button className="edit-item" aria-label={`Edit ${text}`} disabled={disabled || !present} onClick={onEdit}><span className="check-text">{text}</span>{member && <MemberAvatar member={member} small />}</button>
+      {onRemove && <button className="icon-button delete-item" disabled={removeDisabled || !present} aria-label={`Remove ${text}`} onClick={onRemove}><X size={16} /></button>}
+    </div>
+  </motion.div>;
+}
+function ListEmptyNote({ text }: { text: string }) {
+  const reduceMotion = useReducedMotion();
+  return <motion.div className="list-empty-note" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .48, ease: [.4, 0, .2, 1] }}>
+    <p className="empty-note">{text}</p>
+  </motion.div>;
+}
+function CompletedItems({ count, children }: { count: number; children: ReactNode }) {
+  const reduceMotion = useReducedMotion();
+  const present = useIsPresent();
+  return <motion.details className="completed-items" aria-hidden={!present || undefined} initial={{ height: 0, opacity: 0, marginTop: 0 }} animate={{ height: "auto", opacity: 1, marginTop: 12 }} exit={{ height: 0, opacity: 0, marginTop: 0 }} transition={{ duration: reduceMotion ? 0 : .48, ease: [.4, 0, .2, 1] }}>
+    <summary tabIndex={present ? undefined : -1}>Completed ({count})</summary><div className="checklist"><AnimatePresence initial={false} propagate>{children}</AnimatePresence></div>
+  </motion.details>;
+}
 function ItemEditor({ text, kind, description, disabled, error, onSave, onClose }: {
   text: string; kind: ListKind; description: string; disabled?: boolean; error?: string;
   onSave: (text: string) => boolean | Promise<boolean>; onClose: () => void;
@@ -63,7 +100,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const entityId = entity?.entityId;
   const online = homeOnline && !!entity && available(entity);
   const [refresh, setRefresh] = useState(0);
-  const [result, setResult] = useState<{ key: string; items: TodoItem[]; error?: string }>({ key: "", items: [] });
+  const [result, setResult] = useState<{ key: string; entityId?: string; items: TodoItem[]; error?: string }>({ key: "", items: [] });
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<TodoItem>();
   const [removing, setRemoving] = useState<TodoItem>();
@@ -74,14 +111,16 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     if (!online) { setResult({ key: "", items: [] }); return; }
     let active = true;
     void todoItems(entityId).then(items => {
-      if (active) setResult({ key: requestKey, items });
+      if (active) setResult({ key: requestKey, entityId, items });
     }).catch((error: Error) => {
-      if (active) setResult({ key: requestKey, items: [], error: error.message });
+      if (active) setResult({ key: requestKey, entityId, items: [], error: error.message });
     });
     return () => { active = false; };
   }, [online, entityId, requestKey, todoItems]);
   const loading = online && result.key !== requestKey;
-  const items = online && !loading ? result.items : [];
+  // Keep the last rows mounted during refresh so confirmed completions can animate out.
+  const hasResult = result.entityId === entityId && !!result.key;
+  const items = online && hasResult ? result.items : [];
   const status = commands[entityId];
   const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && supportsAction(entity, action, services);
   const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string }) => {
@@ -103,29 +142,28 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const completed = items.filter(item => item.status === "completed");
   const pending = items.filter(item => item.status !== "completed");
   const shown = limit ? pending.slice(0, limit) : pending;
-  const row = (item: TodoItem) => <div key={item.uid} className={`check-row ${item.status === "completed" ? "complete" : ""}`}>
-    <label><input type="checkbox" aria-label={item.summary} checked={item.status === "completed"} disabled={!can("update_item")} onChange={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })} /><span className="check-mark"><Check size={16} /></span></label>
-    <button className="edit-item" aria-label={`Edit ${item.summary}`} disabled={!can("update_item")} onClick={() => setEditing(item)}><span className="check-text">{item.summary}</span></button>
-    {!limit && <button className="icon-button delete-item" disabled={!can("remove_item")} aria-label={`Remove ${item.summary}`} onClick={() => setRemoving(item)}><X size={16} /></button>}
-  </div>;
+  const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} complete={item.status === "completed"}
+    disabled={!can("update_item")} removeDisabled={!can("remove_item")}
+    onToggle={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })}
+    onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <section role="group" aria-label={`${memberName(member)} ${kind === "daily" ? "daily tasks" : kind === "shopping" ? "shopping" : "tasks"}`} className="border-t pt-3 mt-3" aria-busy={loading || !!status?.pending}>
     <div className="flex items-center gap-2"><MemberAvatar member={member} small /><h3 className="font-semibold">{kind === "shopping" ? "Shared shopping list" : memberName(member)}</h3><span className="text-xs text-muted-foreground">{entity?.name ?? "List unavailable"}</span></div>
     {!online ? <p className="empty-note">{homeOnline ? "This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings." : "To-do lists are unavailable while offline. Connect to Home Assistant to view and update them."}</p> : <>
-      {loading ? <p role="status" className="page-note">Loading to-do items…</p> : result.error ? <p role="alert">{result.error}</p> : <>
+      {loading && !hasResult && <p role="status" className="page-note">Loading to-do items…</p>}
+      {hasResult && (result.error ? <p role="alert">{result.error}</p> : <>
         <div className="list-toolbar"><button className="text-link" disabled={!can("add_item")} aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={17} />Add {kind === "shopping" ? "item" : "task"}</button><span>{completed.length} of {items.length} {kind === "shopping" ? "picked up" : "done"}</span></div>
         {adding && <form className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
           <input aria-label={`New item in ${entity.name}`} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? "What do we need?" : "What needs doing?"} />
           <Button type="submit" disabled={!can("add_item")} aria-label={`Save item to ${entity.name}`}><Plus size={19} /></Button>
           <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={setText} />
         </form>}
-        <div className="checklist">{shown.map(row)}</div>
-        {!pending.length && <p className="empty-note">{items.length ? "All done." : "This list is empty."}</p>}
-        {!!completed.length && <details className="completed-items"><summary>Completed ({completed.length})</summary><div className="checklist">{completed.map(row)}</div></details>}
+        <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.uid)}>{shown.map(row)}</AnimatePresence></div>
+        <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={items.length ? "All done." : "This list is empty."} />}</AnimatePresence>
+        <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">This list is read-only.</p>}
-      </>}
+      </>)}
       {status?.error && <p role="alert" className="page-note">{status.error}</p>}
-      {status?.pending && <p role="status" className="page-note">Updating list…</p>}
-      <button className="text-link mt-2" disabled={loading || status?.pending} onClick={() => setRefresh(n => n + 1)}>Refresh list</button>
+      <div className="list-refresh"><button className="text-link" disabled={loading || status?.pending} onClick={() => setRefresh(n => n + 1)}>Refresh list</button><span role="status" className="page-note">{status?.pending ? "Updating list…" : loading && hasResult ? "Refreshing list…" : ""}</span></div>
     </>}
     {editing && <ItemEditor text={editing.summary} kind={kind} description={`Saved to ${entity?.name ?? "your list"} in Home Assistant.`} disabled={!can("update_item")} error={status?.error} onSave={text => can("update_item") ? change("update_item", { item: editing.uid, rename: text }) : false} onClose={() => setEditing(undefined)} />}
     {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title="Remove item?" description={`Remove “${removing.summary}” from ${entity?.name ?? "this list"} in Home Assistant? This cannot be undone.`} confirmLabel="Remove item" pendingLabel="Removing…" destructive disabled={!can("remove_item") || !items.some(item => item.uid === removing.uid)} onConfirm={async () => {
@@ -157,11 +195,8 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     else toast.info("This item is already on the list.");
     setText(""); setAdding(false);
   };
-  const row = (item: (typeof list)[number]) => <div key={item.id} className={`check-row ${itemIsDone(item, today) ? "complete" : ""}`}>
-    <label><input type="checkbox" aria-label={item.text} checked={itemIsDone(item, today)} onChange={() => toggleItem(item.id)} /><span className="check-mark"><Check size={16} /></span></label>
-    <button className="edit-item" aria-label={`Edit ${item.text}`} onClick={() => setEditing(item)}><span className="check-text">{item.text}</span>{kind !== "shopping" && <MemberAvatar member={item.member} small />}</button>
-    {!limit && <button className="icon-button delete-item" aria-label={`Remove ${item.text}`} onClick={() => setRemoving(item)}><X size={16} /></button>}
-  </div>;
+  const row = (item: ListItem) => <CheckRow key={item.id} id={item.id} text={item.text} complete={itemIsDone(item, today)} member={kind !== "shopping" ? item.member : undefined}
+    onToggle={() => toggleItem(item.id)} onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <article className={`glow-panel list-panel list-${kind}`}>
     <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
     {!limit && <p className="muted">{listDescriptions[kind]}{kind === "daily" ? " · Resets each day" : ""}</p>}
@@ -172,9 +207,9 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
       <Button type="submit" aria-label={`Save ${kind} item`}><Plus size={19} /></Button>
       <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={setText} />
     </form>}
-    <div className="checklist">{shown.map(row)}</div>
-    {!pending.length && <p className="empty-note">{list.length ? "All done." : kind === "shopping" ? "All stocked up. Add something when you need it." : "Nothing on the list. Enjoy the breathing room."}</p>}
-    {!!completed.length && <details className="completed-items"><summary>Completed ({completed.length})</summary><div className="checklist">{completed.map(row)}</div></details>}
+    <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
+    <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={list.length ? "All done." : kind === "shopping" ? "All stocked up. Add something when you need it." : "Nothing on the list. Enjoy the breathing room."} />}</AnimatePresence>
+    <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
     {editing && <ItemEditor text={editing.text} kind={kind} description="Saved to the family list on this screen." onSave={text => renameItem(editing.id, text)} onClose={() => setEditing(undefined)} />}
     {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title="Remove item?" description={`Remove “${removing.text}” from the family list on this screen? This cannot be undone.`} confirmLabel="Remove item" destructive onConfirm={() => deleteItem(removing.id)} />}
   </article>;
