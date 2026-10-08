@@ -33,7 +33,7 @@ const calendarSettingsSchema = z.object({
 });
 const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
-  timetables: z.record(z.string()),
+  timetables: z.record(z.union([z.string().transform(url => url ? [url] : []), z.array(z.string())])),
   timetableEnabled: z.record(z.boolean()).catch({}),
   calendar: calendarSettingsSchema.catch({ view: "week", startDay: "today" }),
   homeEntities: z.record(z.array(z.string())).catch({}),
@@ -97,7 +97,7 @@ function samplePlanner(today: string): Planner {
       { id: "t1", text: "Book winter tyre change", kind: "tasks", member: "erik", done: false },
       { id: "t2", text: "Return library books", kind: "tasks", member: "anna", done: false },
     ],
-    timetables: { emma: "/timetables/emma.svg", leo: "/timetables/leo.svg" },
+    timetables: { emma: ["/timetables/emma.svg"], leo: ["/timetables/leo.svg"] },
     timetableEnabled: {},
   };
 }
@@ -118,7 +118,7 @@ interface FamilyContextValue extends Planner {
   addItem: (text: string, kind: ListKind, member: MemberId) => void;
   toggleItem: (id: string) => void;
   deleteItem: (id: string) => void;
-  setTimetable: (child: MemberId, url: string) => void;
+  setTimetable: (child: MemberId, urls: string[]) => void;
   hasTimetable: (member: MemberId) => boolean;
   setTimetableEnabled: (member: MemberId, enabled: boolean) => void;
 }
@@ -235,12 +235,14 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     },
     toggleItem: id => setPlanner(p => ({ ...p, items: p.items.map(i => i.id === id ? { ...i, done: !itemIsDone(i, today), completedOn: itemIsDone(i, today) ? "" : today } : i) })),
     deleteItem: id => setPlanner(p => ({ ...p, items: p.items.filter(i => i.id !== id) })),
-    hasTimetable: member => planner.timetableEnabled[member] ?? !!planner.timetables[member],
+    hasTimetable: member => planner.timetableEnabled[member] ?? !!planner.timetables[member]?.length,
     setTimetableEnabled: (member, enabled) => setPlanner(p => ({ ...p, timetableEnabled: { ...p.timetableEnabled, [member]: enabled } })),
-    setTimetable: (child, url) => {
-      try { if (!/^https?:$/.test(new URL(url, window.location.origin).protocol)) throw new Error(); }
-      catch { toast.error("Use an HTTP or HTTPS image URL."); return; }
-      setPlanner(p => ({ ...p, timetables: { ...p.timetables, [child]: url } }));
+    setTimetable: (child, urls) => {
+      const pages = urls.map(url => url.trim()).filter(Boolean);
+      if (!pages.length) { toast.error("Add at least one timetable image URL."); return; }
+      try { if (pages.some(url => !/^https?:$/.test(new URL(url, window.location.origin).protocol))) throw new Error(); }
+      catch { toast.error("Use an HTTP or HTTPS image URL for every page."); return; }
+      setPlanner(p => ({ ...p, timetables: { ...p.timetables, [child]: pages } }));
       toast.success("Timetable updated on this screen");
     },
   }}>{children}</FamilyContext.Provider>;

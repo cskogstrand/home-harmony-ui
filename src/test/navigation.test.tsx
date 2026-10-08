@@ -8,6 +8,7 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   window.history.replaceState(null, "", "/");
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  vi.stubGlobal("IntersectionObserver", class { observe() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
@@ -163,10 +164,94 @@ it("lets any local person have a timetable without giving them demo school detai
   navigate("School");
   expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Anna’s school week"]);
   expect(screen.queryByText(/Year 2|Year 5|IN THE SCHOOL BAG/)).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Set up timetable image" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Set up timetable images" })).toBeInTheDocument();
   navigate("Today");
   expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ })).toHaveLength(1);
   expect(screen.getByRole("button", { name: "Enlarge Anna’s timetable" })).toBeInTheDocument();
+});
+
+it("migrates legacy timetable URLs without losing planner entries or enabling empty timetables", () => {
+  window.history.replaceState(null, "", "/settings");
+  const key = "afterglow-planner-v1:home-1";
+  const items = [{ id: "keep", text: "Keep this task", kind: "tasks", member: "emma", done: false }];
+  localStorage.setItem(key, JSON.stringify({ events: [], items, timetables: { emma: "/existing.svg", leo: "", anna: [] }, timetableEnabled: { emma: false } }));
+  render(<App />);
+  for (const name of ["Emma", "Leo", "Anna"]) expect(screen.getByRole("switch", { name: `Timetable for ${name}` })).not.toBeChecked();
+  expect(JSON.parse(localStorage.getItem(key)!)).toMatchObject({ items, timetables: { emma: ["/existing.svg"], leo: [], anna: [] } });
+  expect(localStorage.getItem(`${key}:unreadable-backup`)).toBeNull();
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
+  navigate("School");
+  expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "/existing.svg");
+});
+
+it("saves ordered timetable pages across school, dashboard and reload, rejecting invalid updates", () => {
+  window.history.replaceState(null, "", "/school");
+  const view = render(<App />);
+  const card = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
+  fireEvent.click(card.getByRole("button", { name: "Change timetable images" }));
+  const input = card.getByRole("textbox", { name: "Emma timetable image URLs" });
+  const save = () => fireEvent.click(card.getByRole("button", { name: "Save image URLs" }));
+  const pages = ["https://school.example/page-1.png", "/timetables/page-2.svg"];
+  fireEvent.change(input, { target: { value: `  ${pages[0]} \r\n\n${pages[1]}  ` } });
+  save();
+  const key = "afterglow-planner-v1:home-1";
+  const storedPages = () => JSON.parse(localStorage.getItem(key)!).timetables.emma;
+  expect(storedPages()).toEqual(pages);
+  expect(card.getByRole("region", { name: "Emma’s timetable pages" })).toBeInTheDocument();
+  expect(card.getAllByRole("img", { hidden: true }).map(image => image.getAttribute("src"))).toEqual(pages);
+  expect(card.getByText("Page 1 of 2")).toBeInTheDocument();
+  for (const value of [`${pages[0]}\njavascript:alert(1)`, `${pages[0]}\nftp://school.example/page.png`, "   \n  "]) {
+    fireEvent.change(input, { target: { value } });
+    save();
+    expect(storedPages()).toEqual(pages);
+  }
+  const reversed = [...pages].reverse();
+  fireEvent.change(input, { target: { value: reversed.join("\n") } });
+  save();
+  expect(storedPages()).toEqual(reversed);
+  view.unmount();
+  render(<App />);
+  navigate("Today");
+  const preview = within(screen.getByRole("region", { name: "Emma’s timetable pages" }));
+  expect(preview.getAllByRole("img", { hidden: true }).map(image => image.getAttribute("src"))).toEqual(reversed);
+  fireEvent.error(preview.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" }));
+  expect(preview.getByText("The timetable image couldn’t load.")).toBeInTheDocument();
+  expect(preview.getAllByRole("img", { hidden: true })).toHaveLength(1);
+  navigate("School");
+  const restoredCard = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
+  fireEvent.click(restoredCard.getByRole("button", { name: "Change timetable images" }));
+  const restoredInput = restoredCard.getByRole("textbox", { name: "Emma timetable image URLs" });
+  expect(restoredInput).toHaveValue(reversed.join("\n"));
+  fireEvent.change(restoredInput, { target: { value: pages[0] } });
+  fireEvent.click(restoredCard.getByRole("button", { name: "Save image URLs" }));
+  expect(storedPages()).toEqual([pages[0]]);
+  expect(restoredCard.queryByRole("region")).not.toBeInTheDocument();
+  expect(restoredCard.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", pages[0]);
+});
+
+it("navigates timetable pages with arrows and keyboard and enlarges the selected page", () => {
+  vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(400);
+  vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
+    return this.getAttribute("aria-roledescription") === "slide" ? [...this.parentElement!.children].indexOf(this) * 400 : 0;
+  });
+  localStorage.setItem("afterglow-planner-v1:home-1", JSON.stringify({ events: [], items: [], timetables: { emma: ["/first.svg", "/second.svg"] } }));
+  window.history.replaceState(null, "", "/school");
+  render(<><style>{'[aria-roledescription="slide"] { margin-right: 0px; }'}</style><App /></>);
+  const carousel = screen.getByRole("region", { name: "Emma’s timetable pages" });
+  const next = within(carousel).getByRole("button", { name: "Next timetable page" });
+  act(() => next.focus());
+  fireEvent.click(next);
+  expect(carousel).toHaveFocus();
+  expect(within(carousel).getByText("Page 2 of 2")).toBeInTheDocument();
+  expect(next).toBeDisabled();
+  fireEvent.keyDown(carousel, { key: "ArrowLeft" });
+  expect(within(carousel).getByText("Page 1 of 2")).toBeInTheDocument();
+  fireEvent.keyDown(carousel, { key: "ArrowRight" });
+  fireEvent.click(within(carousel).getByRole("button", { name: "Enlarge Emma’s timetable, page 2 of 2" }));
+  const dialog = within(screen.getByRole("dialog", { name: "Emma’s school week" }));
+  expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 2 of 2" })).toHaveAttribute("src", "/second.svg");
+  fireEvent.click(dialog.getByRole("button", { name: "Previous timetable page" }));
+  expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" })).toHaveAttribute("src", "/first.svg");
 });
 
 it("shares and remembers calendar layouts and today/Monday ranges without discarding existing plans", () => {

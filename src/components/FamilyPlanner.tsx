@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Trash2, ImageOff, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { useFamily, newPlannerId, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 
@@ -53,19 +54,44 @@ export function EventEditor({ open, onOpenChange, event, date, member = "everyon
     </form>}
   </DialogContent></Dialog>;
 }
-export function TimetableImage({ child }: { child: MemberId }) {
-  const { timetables, memberName } = useFamily();
+function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   const [failed, setFailed] = useState(false);
-  const imageUrl = timetables[child];
   useEffect(() => setFailed(false), [imageUrl]);
   return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "Set up a school timetable in this app."}</p><small>{imageUrl ? "Check its URL in School." : "Add an image URL in School."}</small></div> :
-    <img className="timetable-image" src={timetables[child]} alt={`${memberName(child)}’s school timetable`} onError={() => setFailed(true)} />;
+    <img className="timetable-image" src={imageUrl} alt={alt} draggable={false} onError={() => setFailed(true)} />;
+}
+function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {
+  const { timetables, memberName } = useFamily();
+  const pages = timetables[child] ?? [];
+  const carousel = useRef<HTMLDivElement>(null);
+  const [api, setApi] = useState<CarouselApi>();
+  const [page, setPage] = useState(startIndex);
+  useEffect(() => {
+    if (!api) return;
+    const updatePage = () => {
+      if (carousel.current?.contains(document.activeElement)) carousel.current.focus({ preventScroll: true });
+      setPage(api.selectedScrollSnap());
+    };
+    updatePage();
+    api.on("select", updatePage).on("reInit", updatePage);
+    return () => { api.off("select", updatePage).off("reInit", updatePage); };
+  }, [api]);
+  const renderPage = (url: string | undefined, index: number) => {
+    const pageLabel = pages.length > 1 ? `, page ${index + 1} of ${pages.length}` : "";
+    const image = <TimetableImage imageUrl={url} alt={`${memberName(child)}’s school timetable${pageLabel}`} />;
+    return onEnlarge ? <button className="timetable-page" onClick={() => onEnlarge(index)} tabIndex={pages.length <= 1 || page === index ? 0 : -1} aria-label={`Enlarge ${memberName(child)}’s timetable${pageLabel}`}>{image}</button> : image;
+  };
+  if (pages.length <= 1) return renderPage(pages[0], 0);
+  return <Carousel ref={carousel} tabIndex={0} className="timetable-carousel" aria-label={`${memberName(child)}’s timetable pages`} opts={{ startIndex }} setApi={setApi}>
+    <CarouselContent className="timetable-pages">{pages.map((url, index) => <CarouselItem key={index} aria-label={`Page ${index + 1} of ${pages.length}`} aria-hidden={page !== index}>{renderPage(url, index)}</CarouselItem>)}</CarouselContent>
+    <div className="timetable-controls"><CarouselPrevious className="static translate-y-0" aria-label="Previous timetable page" /><span aria-live="polite" aria-atomic="true">Page {page + 1} of {pages.length}</span><CarouselNext className="static translate-y-0" aria-label="Next timetable page" /></div>
+  </Carousel>;
 }
 export function SchoolPreview({ child }: { child: MemberId }) {
   const { memberName, connectedPlanner } = useFamily();
-  const [open, setOpen] = useState(false);
-  return <><button className="school-preview" onClick={() => setOpen(true)} aria-label={`Enlarge ${memberName(child)}’s timetable`}>
+  const [openPage, setOpenPage] = useState<number | null>(null);
+  return <><div className="school-preview">
     <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? "Year 5" : "Year 2"}</span>}<Maximize2 size={16} /></div>
-    <TimetableImage child={child} />
-  </button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Timetable image saved on this screen. Change its URL in School.</DialogDescription></DialogHeader><TimetableImage child={child} /></DialogContent></Dialog></>;
+    <TimetablePages child={child} onEnlarge={setOpenPage} />
+  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Timetable pages saved on this screen. Change their URLs in School.</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
 }

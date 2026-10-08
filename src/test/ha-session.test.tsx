@@ -970,6 +970,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
     return conn.unsubscribeEntities;
   });
   const timetables = { [riley]: "https://school.example/riley.png" };
+  const migratedTimetables = { [riley]: [timetables[riley]] };
   localStorage.setItem("home-harmony:ha-url", instance);
   localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables }));
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
@@ -990,21 +991,21 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   window.history.replaceState(null, "", "/settings");
   const restored = render(<App />);
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).not.toBeChecked();
-  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(timetables);
+  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(migratedTimetables);
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Morgan" }));
   fireEvent.click(screen.getByRole("button", { name: "Move Riley up" }));
   nav("School");
   expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Riley’s school week", "Morgan’s school week"]);
   expect(screen.getByRole("img", { name: "Riley’s school timetable" })).toHaveAttribute("src", timetables[riley]);
-  expect(screen.getByRole("button", { name: "Set up timetable image" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Set up timetable images" })).toBeInTheDocument();
   nav("Today");
   expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable", "Enlarge Morgan’s timetable"]);
   restored.unmount();
   localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
   render(<App />);
   expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).timetableEnabled).toEqual({});
-  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(timetables);
+  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(migratedTimetables);
   expect(ha.callService).not.toHaveBeenCalled();
 });
 

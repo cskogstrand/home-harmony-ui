@@ -127,8 +127,13 @@
 .school-preview > div:first-child > svg { margin-left: auto; color: hsl(var(--muted-foreground)); }
 .school-preview:hover { border-color: hsl(var(--primary) / .6); }
 .timetable-image { width: 100%; display: block; height: auto; border-radius: 7px; }
+.timetable-page { display: block; width: 100%; border-radius: 7px; }
+.timetable-carousel { min-width: 0; }
+.timetable-pages { touch-action: pan-y pinch-zoom; }
+.timetable-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-size: 12px; color: hsl(var(--muted-foreground)); }
 .image-unavailable { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 12px; color: hsl(var(--muted-foreground)); }
-.timetable-dialog { width: min(1100px, calc(100vw - 36px)); max-width: 1100px; }
+.timetable-dialog { width: min(1100px, calc(100vw - 36px)); max-width: 1100px; max-height: 90dvh; overflow-y: auto; }
+.timetable-dialog .timetable-image { max-height: 65dvh; object-fit: contain; }
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
 .control-stack { display: flex; flex-direction: column; gap: 11px; width: 100%; }
@@ -169,7 +174,7 @@
 .page-heading > button { flex-shrink: 0; }
 .planner-form { display: flex; flex-direction: column; gap: 18px; }
 .planner-form label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
-.planner-form input, .planner-form select, .quick-add input, .quick-add select { min-height: 48px; border: 1px solid hsl(var(--input)); background: hsl(var(--background)); border-radius: 10px; padding: 9px 12px; width: 100%; }
+.planner-form input, .planner-form select, .planner-form textarea, .quick-add input, .quick-add select { min-height: 48px; border: 1px solid hsl(var(--input)); background: hsl(var(--background)); border-radius: 10px; padding: 9px 12px; width: 100%; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .form-row > label { min-width: 0; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 6px; }

@@ -45,7 +45,7 @@ export default function HomeSettings() {
     </section>
     <section className="glow-panel" id="people-order"><PanelHeading title="People order and timetables" />
       <p className="page-note">Set the order used throughout the app: calendars, tasks, daily tasks, school timetables and person selectors. Everyone stays first; new people appear at the end.</p>
-      <p className="page-note">Turn on Timetable for people who need a school card and dashboard preview. Turning it off keeps their saved image URL.</p>
+      <p className="page-note">Turn on Timetable for people who need a school card and dashboard preview. Turning it off keeps their saved image URLs.</p>
       {!members.length && <p className="empty-note">Connect to Home Assistant and set up people there to arrange them here.</p>}
       <ol aria-label="People order">{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
