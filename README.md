@@ -43,6 +43,8 @@ Calendar integrations remain in Home Assistant. The app subscribes to events for
 
 New plans save through `calendar.create_event` when the selected calendar supports creation. Open an existing event to edit its title, dates/times, location and reminder through `calendar/event/update` when its calendar supports updates and supplies an event UID. All-day end dates in the editor include the last day; the app converts them to HA’s exclusive end. Recurring edits change only the selected occurrence; recurring events without an occurrence ID remain read-only. Calendar/person assignments and recurrence rules cannot be changed in this editor. Failed saves retain the draft; writes are never automatically retried or saved as local duplicates.
 
+The built-in [Google Calendar integration](https://github.com/home-assistant/core/blob/dev/homeassistant/components/google/calendar.py) currently supports creating and deleting events, but does not implement updates. A calendar being writable in Google does not mean HA exposes editing for it. The app follows HA’s reported capabilities and explains whether editing is blocked by the integration, a missing event ID, or a missing recurring occurrence ID.
+
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:
 
 ```yaml

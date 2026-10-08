@@ -57,7 +57,13 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
   const calendar = editingRemote ? currentHome.entities.find(e => e.entityId === event.calendarId) : calendars.find(e => e.preferenceId === calendarId) ?? (!calendarId && writable.length === 1 ? writable[0] : undefined);
   // ponytail: edit individual occurrences; series editing needs an explicit scope selector.
-  const readOnly = editingRemote && (!calendar || !supportsAction(calendar, "update_event", services) || !source?.uid || !!source.rrule && !source.recurrence_id);
+  const readOnlyReason = !editingRemote ? ""
+    : !calendar ? "This calendar is no longer available in Home Assistant."
+    : !supportsAction(calendar, "update_event", services) ? "Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar."
+    : !source?.uid ? "Home Assistant did not provide the event ID needed to save changes. Edit this event in the source calendar."
+    : source.rrule && !source.recurrence_id ? "Home Assistant did not identify this occurrence of the recurring event. Edit it in the source calendar."
+    : "";
+  const readOnly = !!readOnlyReason;
   const canSave = !saving && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
   const save = async () => {
     if (!draft?.title.trim() || !canSave) return;
@@ -83,7 +89,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     finally { setSaving(false); }
   };
   return <Dialog open={open} onOpenChange={value => { if (!saving) onOpenChange(value); }}><DialogContent className="planner-dialog max-h-[90dvh] overflow-y-auto">
-    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? "A moment in your week" : "Make a little plan"}</DialogTitle><DialogDescription>{readOnly ? "Read-only Home Assistant event. Edit it in Home Assistant or the source calendar." : remote ? "Save to Home Assistant and its connected calendar. Times use " + currentHome.timeZone + "." : "Saved to the family calendar on this screen."}</DialogDescription></DialogHeader>
+    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? "A moment in your week" : "Make a little plan"}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? "Save to Home Assistant and its connected calendar. Times use " + currentHome.timeZone + "." : "Saved to the family calendar on this screen.")}</DialogDescription></DialogHeader>
     {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {event.allDay ? "All day" : event.continues ? "Continues" : event.time} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open calendar in Home Assistant</a></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={saving} aria-busy={saving}>
       {source?.recurrence_id && <p>Only this occurrence will be changed.</p>}
       {draft.allDay && <p>All-day event. End date is the last day included.</p>}

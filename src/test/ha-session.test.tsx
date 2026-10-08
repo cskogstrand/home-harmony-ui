@@ -284,7 +284,7 @@ it("loads only the displayed HA calendar range and never saves its events in the
   expect(firstUrl.searchParams.get("start")).toBe("2026-10-05T22:00:00.000Z");
   expect(firstUrl.searchParams.get("end")).toBe("2026-10-12T22:00:00.000Z");
   fireEvent.click(screen.getAllByRole("button", { name: /Imported read-only event/ })[0]);
-  expect(screen.getByText(/Read-only Home Assistant event/)).toBeInTheDocument();
+  expect(screen.getByText(/does not support editing existing events/)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(localStorage.getItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1")).not.toContain(event.summary);
@@ -411,18 +411,20 @@ it("edits an all-day continuation using the original start and an exclusive HA e
 });
 
 it.each([
-  { features: 1, uid: "event", recurrence_id: null, rrule: null },
-  { features: 4, uid: null, recurrence_id: null, rrule: null },
-  { features: 4, uid: "series", recurrence_id: null, rrule: "FREQ=WEEKLY" },
-])("keeps events read-only without update support or safe identity: %j", async ({ features, ...identity }) => {
+  { features: 1, uid: "event", recurrence_id: null, rrule: null, reason: /does not support editing existing events/ },
+  { features: 3, uid: "google-event", recurrence_id: null, rrule: null, reason: /does not support editing existing events/ },
+  { features: 4, uid: null, recurrence_id: null, rrule: null, reason: /did not provide the event ID/ },
+  { features: 4, uid: "series", recurrence_id: null, rrule: "FREQ=WEEKLY", reason: /did not identify this occurrence/ },
+])("explains why an event cannot be edited: %j", async ({ features, reason, ...identity }) => {
   setupWritableCalendars(features);
   const event = { ...identity, summary: "Read-only plan", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z" };
   vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Read-only plan/ }));
-  expect(screen.getByText(/Read-only Home Assistant event/)).toBeInTheDocument();
+  expect(screen.getByText(reason)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
+  expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/update")).toHaveLength(0);
 });
 
 it("retains failed update drafts and prevents writes offline or to unavailable calendars", async () => {

@@ -44,6 +44,10 @@ describe("HA commands", () => {
       expect(() => entityCommand(calendar, "update_event", {}, invalid)).toThrow("valid dates and times");
     }
     expect(supportsAction({ ...calendar, attributes: { supported_features: 1 } }, "update_event", services)).toBe(false);
+    // Google's HA integration supports creation and deletion (1 | 2), not updates (4).
+    const google = { ...calendar, attributes: { supported_features: 3 } };
+    expect(supportsAction(google, "create_event", services)).toBe(true);
+    expect(() => entityCommand(google, "update_event", services, value)).toThrow("not supported");
     expect(() => entityCommand({ ...calendar, state: "unavailable" }, "update_event", {}, value)).toThrow("available");
   });
   it("validates calendar writes and requires calendar create support", () => {
