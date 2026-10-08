@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Trash2, ImageOff, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { useFamily, newPlannerId, dateLabel, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
@@ -96,7 +97,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     finally { setSaving(false); }
   };
   const remove = async () => {
-    if (!confirmDelete || !canDelete) return;
+    if (!confirmDelete || !canDelete) return false;
     setError("");
     if (!editingRemote) { deleteEvent(event.id); onOpenChange(false); return; }
     setDeleting(true);
@@ -104,7 +105,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
       await command(calendar.entityId, "delete_event", { uid: source.uid, ...(source.recurrence_id && { recurrence_id: source.recurrence_id }) });
       onSaved();
       onOpenChange(false);
-    } catch (error) { setError((error as Error).message); }
+    }
     finally { setDeleting(false); }
   };
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />Delete</Button>;
@@ -126,10 +127,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
       <div className="form-actions">{deleteButton}
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit" disabled={!canSave}>{saving ? "Saving…" : "Save plan"}</Button></div>
     </fieldset></form>}
-    {confirmDelete && <div className="delete-confirm" role="group" aria-label="Confirm event deletion" aria-live="polite" aria-busy={deleting}>
-      <p>{editingRemote ? source.recurrence_id ? `Remove only this occurrence of “${event.title}” from ${calendar?.name} and its source calendar? Other occurrences will stay.` : `Remove “${event.title}” from ${calendar?.name} and its source calendar?` : "Remove this event from the family calendar?"}</p>
-      <div className="form-actions"><Button autoFocus type="button" variant="outline" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep event</Button><Button type="button" variant="destructive" disabled={!canDelete} onClick={() => void remove()}>{deleting ? "Deleting…" : "Remove event"}</Button></div>
-    </div>}
+    {confirmDelete && <ConfirmDialog open onOpenChange={setConfirmDelete} title="Confirm event deletion" description={editingRemote ? source.recurrence_id ? `Remove only this occurrence of “${event.title}” from ${calendar?.name} and its source calendar? Other occurrences will stay.` : `Remove “${event.title}” from ${calendar?.name} and its source calendar? This cannot be undone.` : `Remove “${event.title}” from the family calendar? This cannot be undone.`} cancelLabel="Keep event" confirmLabel="Remove event" pendingLabel="Deleting…" destructive disabled={!canDelete} onConfirm={remove} />}
     {error && <p role="alert">{error}</p>}
   </DialogContent></Dialog>;
 }

@@ -120,6 +120,7 @@ interface FamilyContextValue extends Planner {
   saveEvent: (event: FamilyEvent) => void;
   deleteEvent: (id: string) => void;
   addItem: (text: string, kind: ListKind, member: MemberId) => void;
+  renameItem: (id: string, text: string) => boolean;
   toggleItem: (id: string) => void;
   deleteItem: (id: string) => void;
   setTimetable: (child: MemberId, urls: string[]) => void;
@@ -238,6 +239,12 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
       if (valid.success) setPlanner(p => ({ ...p, items: [...p.items, valid.data] }));
     },
     toggleItem: id => setPlanner(p => ({ ...p, items: p.items.map(i => i.id === id ? { ...i, done: !itemIsDone(i, today), completedOn: itemIsDone(i, today) ? "" : today } : i) })),
+    renameItem: (id, text) => {
+      const valid = itemSchema.shape.text.safeParse(text);
+      if (!valid.success) { toast.error("Enter an item within 120 characters."); return false; }
+      setPlanner(p => ({ ...p, items: p.items.map(item => item.id === id ? { ...item, text: valid.data } : item) }));
+      return true;
+    },
     deleteItem: id => setPlanner(p => ({ ...p, items: p.items.filter(i => i.id !== id) })),
     hasTimetable: member => planner.timetableEnabled[member] ?? !!planner.timetables[member]?.length,
     setTimetableEnabled: (member, enabled) => setPlanner(p => ({ ...p, timetableEnabled: { ...p.timetableEnabled, [member]: enabled } })),

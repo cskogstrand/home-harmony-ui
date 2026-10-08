@@ -6,6 +6,8 @@ import { MemberAvatar, PageHeading, PanelHeading } from "@/components/FamilyPlan
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { normalizeHaUrl } from "@/lib/ha-model";
 export default function HomeSettings() {
   const { haUrl, connect, disconnect, logout, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, sessionWarning, homeOnline } = useApp();
   const { members, memberName, moveMember, compareMembers, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
@@ -14,12 +16,36 @@ export default function HomeSettings() {
   const listPeople = [{ id: "everyone", name: "Everyone" }, ...members, ...[...new Set(Object.values(todoLists).map(assigned => assigned.member))]
     .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: "Person unavailable" }))].sort((a, b) => compareMembers(a.id, b.id));
   const [url, setUrl] = useState(haUrl);
+  const [confirmation, setConfirmation] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void | Promise<void>; requiresConnection?: boolean }>();
   const busy = ["connecting", "syncing"].includes(connectionStatus);
   const listLabels = { tasks: "Tasks", daily: "Daily tasks", shopping: "Shared shopping list" };
+  const changeList = (kind: ListKind, person: { id: string; name: string }, list: string, selected: string) => {
+    if (list === selected) return;
+    const assigned = todoLists[list];
+    const onConfirm = () => setTodoList(kind, person.id, list);
+    if (!selected && !assigned) { onConfirm(); return; }
+    const listName = (id: string) => lists.find(item => item.preferenceId === id)?.name ?? "Unavailable list";
+    setConfirmation({ title: list ? "Change to-do list?" : "Unlink to-do list?", confirmLabel: list ? "Change list" : "Unlink list", requiresConnection: true, onConfirm,
+      description: `${selected ? `Unlink “${listName(selected)}” from ${person.name} (${listLabels[kind]}). ` : ""}${assigned ? `Move “${listName(list)}” from ${memberName(assigned.member)} (${listLabels[assigned.kind]}) to ${person.name} (${listLabels[kind]}). ` : list ? `Use “${listName(list)}” for ${person.name} (${listLabels[kind]}). ` : ""}Items stay in Home Assistant.` });
+  };
+  const changeCalendar = (id: string, member: string) => {
+    const previous = calendarMembers[id];
+    if (!previous) { setCalendarMember(id, member); return; }
+    const name = calendars.find(calendar => calendar.preferenceId === id)?.name ?? "Calendar";
+    setConfirmation({ title: member ? "Move calendar?" : "Unlink calendar?", confirmLabel: member ? "Move calendar" : "Unlink calendar", requiresConnection: true,
+      description: `${member ? "Move" : "Unlink"} “${name}” from ${memberName(previous)}${member ? ` to ${memberName(member)}` : ""}? Events stay in the source calendar.`, onConfirm: () => setCalendarMember(id, member) });
+  };
+  const connectHome = () => {
+    let nextUrl: string;
+    try { nextUrl = normalizeHaUrl(url); }
+    catch { void connect(url); return; }
+    if (!haUrl || nextUrl === haUrl) { void connect(nextUrl); return; }
+    setConfirmation({ title: "Change Home Assistant instance?", description: `Disconnect from ${haUrl} and connect to ${nextUrl}? This replaces the saved login in this browser. Your current household’s local planner stays saved separately.`, confirmLabel: "Change instance", onConfirm: () => connect(nextUrl) });
+  };
   const listSelector = (kind: ListKind, person: { id: string; name: string }) => {
     const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
     return <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm"><span>{listLabels[kind]}</span>
-      <select aria-label={`${listLabels[kind]} for ${person.name}`} className="h-10 w-full min-w-0 rounded-lg border bg-background px-3 text-sm disabled:opacity-60" value={selected} disabled={!homeOnline} onChange={event => setTodoList(kind, person.id, event.target.value)}>
+      <select aria-label={`${listLabels[kind]} for ${person.name}`} className="h-10 w-full min-w-0 rounded-lg border bg-background px-3 text-sm disabled:opacity-60" value={selected} disabled={!homeOnline} onChange={event => changeList(kind, person, event.target.value, selected)}>
         <option value="">No list selected</option>
         {selected && !lists.some(list => list.preferenceId === selected) && <option value={selected}>List unavailable</option>}
         {lists.map(list => {
@@ -31,9 +57,9 @@ export default function HomeSettings() {
   };
   return <div className="planner-page"><PageHeading eyebrow="CONNECTED AT HOME" title="Home settings" description="Connect this screen directly to your local Home Assistant." />
     <section className="glow-panel"><PanelHeading title="Home Assistant connection" />
-      <form className="space-y-4" onSubmit={event => { event.preventDefault(); void connect(url); }}>
+      <form className="space-y-4" onSubmit={event => { event.preventDefault(); connectHome(); }}>
         <label className="block space-y-2"><span>Home Assistant URL</span><Input type="url" required placeholder="http://homeassistant.local:8123" value={url} onChange={event => setUrl(event.target.value)} /></label>
-        <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy}>{busy ? "Connecting…" : "Connect"}</Button><Button type="button" variant="outline" onClick={disconnect}>Disconnect</Button><Button type="button" variant="outline" onClick={() => void logout()}>Log out</Button></div>
+        <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy}>{busy ? "Connecting…" : "Connect"}</Button><Button type="button" variant="outline" onClick={() => setConfirmation({ title: "Disconnect Home Assistant?", description: "Pause the connection in this tab? Live updates and device controls will stop until you reconnect.", confirmLabel: "Disconnect", onConfirm: disconnect })}>Disconnect</Button><Button type="button" variant="outline" onClick={() => setConfirmation({ title: "Log out of Home Assistant?", description: "Clear this browser’s saved login, disconnect its open tabs and revoke this Home Assistant session? You will need to sign in again.", confirmLabel: "Log out", onConfirm: logout })}>Log out</Button></div>
       </form>
       <p role="status" className="page-note">Connection: {connectionStatus}</p>
       {connectionError && <p role="alert" className="text-destructive">{connectionError}</p>}
@@ -50,7 +76,7 @@ export default function HomeSettings() {
       <ol aria-label="People order">{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
         <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
-          <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">Timetable<Switch aria-label={`Timetable for ${person.name}`} checked={hasTimetable(person.id)} onCheckedChange={enabled => setTimetableEnabled(person.id, enabled)} /></label>
+          <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">Timetable<Switch aria-label={`Timetable for ${person.name}`} checked={hasTimetable(person.id)} onCheckedChange={enabled => enabled ? setTimetableEnabled(person.id, true) : setConfirmation({ title: "Hide timetable?", description: `Hide ${person.name}’s timetable from School and the dashboard? Saved image URLs will be kept.`, confirmLabel: "Hide timetable", onConfirm: () => setTimetableEnabled(person.id, false) })} /></label>
           <Button type="button" variant="outline" size="icon" disabled={index === 0} aria-label={`Move ${person.name} up`} onClick={() => moveMember(person.id, -1)}><ArrowUp size={18} aria-hidden="true" /></Button>
           <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={`Move ${person.name} down`} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>
         </div>
@@ -70,11 +96,11 @@ export default function HomeSettings() {
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             {selected.map(calendar => <span key={calendar.preferenceId} className="inline-flex max-w-full items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1 text-sm">
               <span className="min-w-0 break-words">{calendar.name}</span>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" disabled={!homeOnline} aria-label={`Remove ${calendar.name} from ${person.name}`} onClick={() => setCalendarMember(calendar.preferenceId, "")}><X size={14} aria-hidden="true" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" disabled={!homeOnline} aria-label={`Remove ${calendar.name} from ${person.name}`} onClick={() => changeCalendar(calendar.preferenceId, "")}><X size={14} aria-hidden="true" /></Button>
             </span>)}
             {!selected.length && <span className="text-sm text-muted-foreground">No calendars selected</span>}
           </div>
-          <select aria-label={`Add calendar for ${person.name}`} className="h-10 w-full rounded-lg border bg-background px-3 text-sm disabled:opacity-60 sm:w-56" value="" disabled={!homeOnline || !available.length} onChange={e => { if (e.target.value) setCalendarMember(e.target.value, person.id); }}>
+          <select aria-label={`Add calendar for ${person.name}`} className="h-10 w-full rounded-lg border bg-background px-3 text-sm disabled:opacity-60 sm:w-56" value="" disabled={!homeOnline || !available.length} onChange={e => { if (e.target.value) changeCalendar(e.target.value, person.id); }}>
             <option value="" disabled>{available.length ? "Add calendar…" : "All calendars selected"}</option>
             {available.map(calendar => <option key={calendar.preferenceId} value={calendar.preferenceId}>{calendar.name}{calendarMembers[calendar.preferenceId] ? ` — move from ${memberName(calendarMembers[calendar.preferenceId])}` : ""}</option>)}
           </select>
@@ -96,5 +122,6 @@ export default function HomeSettings() {
       {haUrl && <div className="mt-3 flex flex-wrap gap-4"><a className="text-link" href={`${haUrl}/todo`} target="_blank" rel="noreferrer">Open to-do lists in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up to-do integrations</a></div>}
     </section>
     <section className="glow-panel"><PanelHeading title="Your instance" /><dl className="device-readings"><div><dt>Name</dt><dd>{currentHome.name}</dd></div><div><dt>Signed in as</dt><dd>{currentUser?.name ?? "Not signed in"}</dd></div><div><dt>HA access</dt><dd>{currentUser ? currentUser.is_owner ? "Owner" : currentUser.is_admin ? "Administrator" : "User" : "—"}</dd></div><div><dt>Physical devices</dt><dd>{currentHome.devices.length}</dd></div><div><dt>Entities</dt><dd>{currentHome.entities.length}</dd></div></dl><p className="page-note">Home Assistant enforces permissions. Manage integrations, devices, areas, alarm settings and users there.</p>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">Open Home Assistant settings</a>}</section>
+    {confirmation && <ConfirmDialog open onOpenChange={open => { if (!open) setConfirmation(undefined); }} {...confirmation} destructive disabled={confirmation.requiresConnection && !homeOnline} />}
   </div>;
 }

@@ -78,6 +78,10 @@ describe("HA commands", () => {
     const todoServices = { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } };
     expect(entityCommand(todo, "add_item", todoServices, { item: " Milk " })).toEqual({ domain: "todo", service: "add_item", data: { item: "Milk" }, target: { entity_id: "todo.family" } });
     expect(entityCommand(todo, "update_item", todoServices, { item: "unique-id", status: "completed" }).data).toEqual({ item: "unique-id", status: "completed" });
+    expect(entityCommand(todo, "update_item", todoServices, { item: "unique-id", rename: " Oat milk " }).data).toEqual({ item: "unique-id", rename: "Oat milk" });
+    expect(entityCommand(todo, "update_item", todoServices, { item: "unique-id", rename: "Oat milk", status: "completed" }).data).toEqual({ item: "unique-id", rename: "Oat milk", status: "completed" });
+    for (const rename of [" ", "a".repeat(121), null, 42]) expect(() => entityCommand(todo, "update_item", todoServices, { item: "unique-id", rename })).toThrow("120");
+    expect(() => entityCommand(todo, "update_item", todoServices, { item: "unique-id" })).toThrow("name or status");
     expect(entityCommand(todo, "remove_item", todoServices, { item: "unique-id" }).data).toEqual({ item: "unique-id" });
     expect(() => entityCommand(todo, "add_item", todoServices, { item: " " })).toThrow("Enter");
     expect(() => entityCommand(todo, "update_item", todoServices, { item: "unique-id", status: "other" })).toThrow("status");

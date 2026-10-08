@@ -3,15 +3,38 @@ import { Link } from "react-router-dom";
 import { Check, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, itemIsDone, type MemberId, type ListKind } from "@/contexts/FamilyContext";
+import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
 import type { TodoAction, TodoItem } from "@/types/api";
 import { MemberAvatar, MemberOptions, PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
+import { ConfirmDialog } from "./common/ConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
 const listTitles = { daily: "Before we settle in", shopping: "Pick up on the way", tasks: "The bigger things" };
 const listDescriptions = { daily: "A little help from everyone", shopping: "One list for the whole family", tasks: "Things to remember, without the rush" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
+function ItemEditor({ text, kind, description, disabled, error, onSave, onClose }: {
+  text: string; kind: ListKind; description: string; disabled?: boolean; error?: string;
+  onSave: (text: string) => boolean | Promise<boolean>; onClose: () => void;
+}) {
+  const [draft, setDraft] = useState(text);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (disabled || saving || !draft.trim()) return;
+    setSaving(true);
+    try { if (await onSave(draft.trim())) onClose(); }
+    finally { setSaving(false); }
+  };
+  return <Dialog open onOpenChange={open => { if (!open && !saving) onClose(); }}><DialogContent className="planner-dialog">
+    <DialogHeader><DialogTitle>{kind === "shopping" ? "Edit item" : "Edit task"}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
+    <form onSubmit={event => { event.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={saving} aria-busy={saving}>
+      <label>{kind === "shopping" ? "Item" : "Task"}<input autoFocus required maxLength={120} value={draft} onChange={event => setDraft(event.target.value)} /></label>
+      {error && <p role="alert">{error}</p>}
+      <div className="form-actions"><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button type="submit" disabled={disabled || !draft.trim()}>{saving ? "Saving…" : "Save changes"}</Button></div>
+    </fieldset></form>
+  </DialogContent></Dialog>;
+}
 function ItemSuggestions({ id, names, text, select }: { id: string; names: string[]; text: string; select: (name: string) => void }) {
   const matches = text.trim() ? [...new Set(names)].filter(name => itemName(name).includes(itemName(text))).slice(0, 6) : [];
   return !!matches.length && <div id={id} className="flex basis-full flex-wrap items-center gap-2 pb-2" role="group" aria-label="Existing items">
@@ -42,6 +65,8 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; items: TodoItem[]; error?: string }>({ key: "", items: [] });
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<TodoItem>();
+  const [removing, setRemoving] = useState<TodoItem>();
   const [text, setText] = useState("");
   const suggestionsId = useId();
   const requestKey = `${haUrl}|${entityId}|${entity?.lastUpdated}|${entity?.state}|${refresh}`;
@@ -59,7 +84,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const items = online && !loading ? result.items : [];
   const status = commands[entityId];
   const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && supportsAction(entity, action, services);
-  const change = async (action: TodoAction, value: { item: string; status?: string }) => {
+  const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string }) => {
     try {
       await command(entityId, action, value);
       setRefresh(n => n + 1);
@@ -79,8 +104,9 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const pending = items.filter(item => item.status !== "completed");
   const shown = limit ? pending.slice(0, limit) : pending;
   const row = (item: TodoItem) => <div key={item.uid} className={`check-row ${item.status === "completed" ? "complete" : ""}`}>
-    <label><input type="checkbox" checked={item.status === "completed"} disabled={!can("update_item")} onChange={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })} /><span className="check-mark"><Check size={16} /></span><span className="check-text">{item.summary}</span></label>
-    {!limit && <button className="icon-button delete-item" disabled={!can("remove_item")} aria-label={`Remove ${item.summary}`} onClick={() => void change("remove_item", { item: item.uid })}><X size={16} /></button>}
+    <label><input type="checkbox" aria-label={item.summary} checked={item.status === "completed"} disabled={!can("update_item")} onChange={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })} /><span className="check-mark"><Check size={16} /></span></label>
+    <button className="edit-item" aria-label={`Edit ${item.summary}`} disabled={!can("update_item")} onClick={() => setEditing(item)}><span className="check-text">{item.summary}</span></button>
+    {!limit && <button className="icon-button delete-item" disabled={!can("remove_item")} aria-label={`Remove ${item.summary}`} onClick={() => setRemoving(item)}><X size={16} /></button>}
   </div>;
   return <section role="group" aria-label={`${memberName(member)} ${kind === "daily" ? "daily tasks" : kind === "shopping" ? "shopping" : "tasks"}`} className="border-t pt-3 mt-3" aria-busy={loading || !!status?.pending}>
     <div className="flex items-center gap-2"><MemberAvatar member={member} small /><h3 className="font-semibold">{kind === "shopping" ? "Shared shopping list" : memberName(member)}</h3><span className="text-xs text-muted-foreground">{entity?.name ?? "List unavailable"}</span></div>
@@ -101,12 +127,19 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
       {status?.pending && <p role="status" className="page-note">Updating list…</p>}
       <button className="text-link mt-2" disabled={loading || status?.pending} onClick={() => setRefresh(n => n + 1)}>Refresh list</button>
     </>}
+    {editing && <ItemEditor text={editing.summary} kind={kind} description={`Saved to ${entity?.name ?? "your list"} in Home Assistant.`} disabled={!can("update_item")} error={status?.error} onSave={text => can("update_item") ? change("update_item", { item: editing.uid, rename: text }) : false} onClose={() => setEditing(undefined)} />}
+    {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title="Remove item?" description={`Remove “${removing.summary}” from ${entity?.name ?? "this list"} in Home Assistant? This cannot be undone.`} confirmLabel="Remove item" pendingLabel="Removing…" destructive disabled={!can("remove_item") || !items.some(item => item.uid === removing.uid)} onConfirm={async () => {
+      await command(entityId, "remove_item", { item: removing.uid });
+      setRefresh(n => n + 1);
+    }} />}
   </section>;
 }
 
 function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
-  const { items, today, toggleItem, addItem, deleteItem, compareMembers } = useFamily();
+  const { items, today, toggleItem, addItem, renameItem, deleteItem, compareMembers } = useFamily();
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<ListItem>();
+  const [removing, setRemoving] = useState<ListItem>();
   const [text, setText] = useState("");
   const [member, setMember] = useState<MemberId>("everyone");
   const suggestionsId = useId();
@@ -125,9 +158,9 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     setText(""); setAdding(false);
   };
   const row = (item: (typeof list)[number]) => <div key={item.id} className={`check-row ${itemIsDone(item, today) ? "complete" : ""}`}>
-    <label><input type="checkbox" checked={itemIsDone(item, today)} onChange={() => toggleItem(item.id)} /><span className="check-mark"><Check size={16} /></span><span className="check-text">{item.text}</span></label>
-    {kind !== "shopping" && <MemberAvatar member={item.member} small />}
-    {!limit && <button className="icon-button delete-item" aria-label={`Remove ${item.text}`} onClick={() => deleteItem(item.id)}><X size={16} /></button>}
+    <label><input type="checkbox" aria-label={item.text} checked={itemIsDone(item, today)} onChange={() => toggleItem(item.id)} /><span className="check-mark"><Check size={16} /></span></label>
+    <button className="edit-item" aria-label={`Edit ${item.text}`} onClick={() => setEditing(item)}><span className="check-text">{item.text}</span>{kind !== "shopping" && <MemberAvatar member={item.member} small />}</button>
+    {!limit && <button className="icon-button delete-item" aria-label={`Remove ${item.text}`} onClick={() => setRemoving(item)}><X size={16} /></button>}
   </div>;
   return <article className={`glow-panel list-panel list-${kind}`}>
     <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
@@ -142,5 +175,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     <div className="checklist">{shown.map(row)}</div>
     {!pending.length && <p className="empty-note">{list.length ? "All done." : kind === "shopping" ? "All stocked up. Add something when you need it." : "Nothing on the list. Enjoy the breathing room."}</p>}
     {!!completed.length && <details className="completed-items"><summary>Completed ({completed.length})</summary><div className="checklist">{completed.map(row)}</div></details>}
+    {editing && <ItemEditor text={editing.text} kind={kind} description="Saved to the family list on this screen." onSave={text => renameItem(editing.id, text)} onClose={() => setEditing(undefined)} />}
+    {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title="Remove item?" description={`Remove “${removing.text}” from the family list on this screen? This cannot be undone.`} confirmLabel="Remove item" destructive onConfirm={() => deleteItem(removing.id)} />}
   </article>;
 }

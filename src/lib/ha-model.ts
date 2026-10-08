@@ -112,8 +112,15 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
     data.item = action === "add_item" ? value.item.trim() : value.item;
     if (action === "add_item" && value.item.trim().length > 120) throw new Error("Keep to-do items within 120 characters.");
     if (action === "update_item") {
-      if (!("status" in value) || (value.status !== "needs_action" && value.status !== "completed")) throw new Error("Unsupported to-do status.");
-      data.status = value.status;
+      if (!("status" in value) && !("rename" in value)) throw new Error("Enter a to-do name or status to update.");
+      if ("status" in value) {
+        if (value.status !== "needs_action" && value.status !== "completed") throw new Error("Unsupported to-do status.");
+        data.status = value.status;
+      }
+      if ("rename" in value) {
+        if (typeof value.rename !== "string" || !value.rename.trim() || value.rename.trim().length > 120) throw new Error("Enter a to-do name within 120 characters.");
+        data.rename = value.rename.trim();
+      }
     }
   }
   if (["brightness", "position", "temperature"].includes(action)) {

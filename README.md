@@ -47,6 +47,8 @@ The built-in [Google Calendar integration](https://github.com/home-assistant/cor
 
 Events can be deleted from the dashboard or calendar when HA reports deletion support, including Google calendars that cannot be edited. **Delete → Remove event** confirms removal from HA and its source calendar through `calendar/event/delete`. Recurring deletions target only the selected occurrence; a recurring event without an occurrence ID cannot be deleted here. Deletion is disabled while offline, unavailable or pending. The view refreshes after HA confirms deletion; failed requests keep the event visible and are never automatically retried.
 
+Destructive actions require confirmation modals throughout the app: deleting local or HA events and list items (including completed items), removing or clearing favorites, unlinking or moving calendar/list assignments, replacing timetable images, hiding timetables, disconnecting, logging out and changing HA instances. High-impact controls also confirm before disabling automations, turning climate control off, activating scenes or moving doors/gates; lock and alarm actions keep their confirmation/code dialogs. Stop remains immediate. Cancel leaves the action unapplied; pending requests block repeat submissions, and failed requests remain visible in the modal.
+
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:
 
 ```yaml

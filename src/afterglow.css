@@ -101,7 +101,9 @@
 .checklist { margin-top: 2px; flex: 1; }
 .check-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 53px; }
 .check-row:last-child { border-bottom: 0; }
-.check-row label { display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; min-height: 50px; font-size: 13px; position: relative; }
+.check-row :is(label, .edit-item) { display: flex; align-items: center; gap: 12px; cursor: pointer; min-height: 50px; font-size: 13px; position: relative; }
+.check-row label { flex-shrink: 0; }
+.check-row .edit-item { flex: 1; min-width: 0; align-self: stretch; text-align: left; }
 .check-row input { position: absolute; opacity: 0; width: 25px; height: 25px; }
 .check-mark { flex-shrink: 0; width: 22px; height: 22px; border: 1px solid hsl(var(--muted-foreground) / .5); border-radius: 7px; display: grid; place-items: center; }
 .check-mark svg { opacity: 0; }
@@ -109,7 +111,7 @@
 .check-row input:checked + .check-mark { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .check-row input:checked + .check-mark svg { opacity: 1; }
 .complete .check-text { text-decoration: line-through; color: hsl(var(--muted-foreground)); }
-.check-text { overflow-wrap: anywhere; }
+.check-text { flex: 1; overflow-wrap: anywhere; }
 .list-toolbar { margin-block: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; color: hsl(var(--muted-foreground)); }
 .completed-items { margin-top: 12px; }
 .completed-items summary { cursor: pointer; color: hsl(var(--muted-foreground)); font-size: 12px; }
@@ -203,7 +205,7 @@
 .list-tabs button[aria-pressed="true"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .list-tabs button > span { background: hsl(var(--background) / .15); padding: 2px 7px; font-size: 11px; border-radius: 20px; }
 .lists-page .check-row { min-height: 75px; }
-.lists-page .check-row label { min-height: 75px; font-size: 17px; }
+.lists-page .check-row :is(label, .edit-item) { min-height: 75px; font-size: 17px; }
 .lists-page .list-panel { padding: 30px; }
 .quiet-note { padding: 35px 5px; max-width: 540px; }
 .quiet-note p { color: hsl(var(--muted-foreground)); font-size: 16px; line-height: 1.8; margin-top: 12px; }
@@ -306,7 +308,7 @@
   .panel-heading .text-link { font-size: 10px; gap: 3px; }
   .panel-heading { gap: 8px; margin-bottom: 8px; }
   .check-row { min-height: 48px; gap: 7px; }
-  .check-row label { font-size: 12px; gap: 8px; min-height: 48px; }
+  .check-row :is(label, .edit-item) { font-size: 12px; gap: 8px; min-height: 48px; }
   .check-row .member-avatar.small { width: 25px; height: 25px; font-size: 9px; }
   .school-strip { gap: 15px; }
   .school-strip h2 { font-size: 23px; }
@@ -399,7 +401,7 @@
   .filter-row .member-avatar { display: none; }
   .list-tabs button { font-size: 11px; gap: 6px; }
   .lists-page .list-panel { padding: 20px; }
-  .lists-page .check-row label { font-size: 14px; }
+  .lists-page .check-row :is(label, .edit-item) { font-size: 14px; }
   .school-cards, .smart-bottom, .energy-layout, .energy-devices { grid-template-columns: 1fr; }
   .school-child h2 { font-size: 16px; }
   .school-card > .panel-heading > svg { display: none; }
@@ -446,7 +448,7 @@
   .family-lane .event-button small { font-size: 11px; }
   .lane-heading { font-size: 15px; }
   .check-row { min-height: 60px; }
-  .check-row label { font-size: 15px; min-height: 60px; }
+  .check-row :is(label, .edit-item) { font-size: 15px; min-height: 60px; }
   .school-strip p { font-size: 14px; }
   .school-strip h2 { font-size: 30px; }
   .attention-link { font-size: 12px; }
@@ -464,7 +466,7 @@
   .family-week .week-ribbon { margin-bottom: 16px; }
   .family-lane .event-button { flex: none; padding-block: 7px; margin-bottom: 7px; }
   .lane-heading { margin-bottom: 10px; }
-  .check-row, .check-row label { min-height: 54px; }
+  .check-row, .check-row :is(label, .edit-item) { min-height: 54px; }
   .school-preview .timetable-image { max-height: 108px; }
 }
 @media (min-width: 700px) and (max-width: 850px) and (orientation: portrait) {
@@ -476,7 +478,7 @@
   .next-chapter { padding-block: 15px; }
   .family-lane .event-button:not(:first-of-type) { display: none; }
   .portrait-board .check-row:nth-child(n+3) { display: none; }
-  .portrait-board .check-row label, .portrait-board .check-row { min-height: 44px; }
+  .portrait-board .check-row :is(label, .edit-item), .portrait-board .check-row { min-height: 44px; }
   .portrait-board .list-toolbar { margin-block: 4px; }
   .school-strip h2 { font-size: 21px; margin: 4px 0; }
   .school-preview .timetable-image { max-height: 74px; }

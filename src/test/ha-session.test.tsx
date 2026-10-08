@@ -44,6 +44,7 @@ const connectedClient = async () => {
   await waitFor(() => expect(client.getSnapshot().status).toBe("connected"));
   return client;
 };
+const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -244,6 +245,7 @@ it("keeps saved planner datasets and calendar preferences independent of HA auth
   render(<App />);
   await screen.findByText("HA user");
   fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+  await confirmAction("Disconnect");
   expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
   expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-2")).events).toEqual([]);
   fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
@@ -371,12 +373,12 @@ it.each([
   expect(screen.queryByRole("button", { name: "Remove event" })).not.toBeInTheDocument();
   if (features === 3) expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-  const confirmation = screen.getByRole("group", { name: "Confirm event deletion" });
+  const confirmation = screen.getByRole("alertdialog", { name: "Confirm event deletion" });
   expect(confirmation).toHaveTextContent("Delete this plan");
   expect(confirmation).toHaveTextContent("Family calendar and its source calendar");
   if (recurring) expect(confirmation).toHaveTextContent("only this occurrence");
   fireEvent.click(screen.getByRole("button", { name: "Keep event" }));
-  expect(screen.queryByRole("group", { name: "Confirm event deletion" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("alertdialog", { name: "Confirm event deletion" })).not.toBeInTheDocument();
   expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/delete")).toHaveLength(0);
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
   const request = deferred<unknown>();
@@ -385,8 +387,8 @@ it.each([
   expect(screen.getByRole("button", { name: "Deleting…" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Keep event" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Deleting…" }));
-  fireEvent.click(screen.getByRole("button", { name: "Close" }));
-  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
+  expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "calendar/event/delete", entity_id: "calendar.house", uid: "event-uid", ...(recurring && { recurrence_id: "google-instance-1" }) });
   expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/delete")).toHaveLength(1);
   events = [remaining];
@@ -425,7 +427,7 @@ it("keeps failed deletions visible and blocks confirmation after disconnect or c
   fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("could not confirm the deletion");
   expect(screen.queryByText(/private details/)).not.toBeInTheDocument();
-  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   act(() => conn.emit("disconnected"));
   expect(screen.getByRole("button", { name: "Remove event" })).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
@@ -1011,6 +1013,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   await screen.findByRole("switch", { name: "Toggle Living Room Light" });
   fireEvent.click(screen.getByRole("button", { name: "Customize" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  await confirmAction("Remove favorites");
   fireEvent.change(screen.getByRole("textbox", { name: "Search favorites" }), { target: { value: "Living Room" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "Living Room Light" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Search favorites" }), { target: { value: "" } });
@@ -1025,6 +1028,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   expect(saved.homeEntities["http://ha.local:8123"]).toEqual(["http://ha.local:8123|stable-light", "http://ha.local:8123|stable-sensor", "http://ha.local:8123|scene.evening"]);
   fireEvent.click(screen.getByRole("button", { name: "Customize" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  await confirmAction("Remove favorites");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(favorites().getAllByRole("article")).toHaveLength(2);
   view.unmount();
@@ -1037,6 +1041,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   expect(favorites().queryByRole("switch", { name: "Toggle Charger power" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Customize" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  await confirmAction("Remove favorites");
   fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
   expect(favorites().queryByRole("article")).not.toBeInTheDocument();
   expect(favorites().queryByRole("button", { name: "Activate Evening" })).not.toBeInTheDocument();
@@ -1058,6 +1063,7 @@ it("offers temperature, mode and blind controls without duplicating raw state la
   await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "climate", "set_temperature", { temperature: 21.5 }, { entity_id: "climate.living" }));
   await waitFor(() => expect(screen.getByRole("combobox", { name: "Living mode" })).toBeEnabled());
   fireEvent.change(screen.getByRole("combobox", { name: "Living mode" }), { target: { value: "off" } });
+  await confirmAction("Confirm");
   await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "climate", "set_hvac_mode", { hvac_mode: "off" }, { entity_id: "climate.living" }));
   fireEvent.keyDown(screen.getByRole("slider", { name: "Blind open" }), { key: "ArrowLeft" });
   await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "cover", "set_cover_position", { position: 49 }, { entity_id: "cover.blind" }));
@@ -1092,11 +1098,13 @@ it("shows spinners on busy device and scene controls, clears them on completion,
   vi.mocked(ha.callService).mockReturnValueOnce(rejected.promise);
   const scene = screen.getByRole("button", { name: "Activate Evening" });
   fireEvent.click(scene);
+  fireEvent.click(screen.getByRole("button", { name: "Activate scene" }));
   const sceneController = scene.closest(".command-controller")!;
   expect(sceneController).toHaveAttribute("aria-busy", "true");
-  expect(within(sceneController as HTMLElement).getByRole("status").querySelector(".animate-spin")).toBeInTheDocument();
+  expect(within(sceneController as HTMLElement).getByRole("status", { hidden: true }).querySelector(".animate-spin")).toBeInTheDocument();
   expect(scene).toBeDisabled();
   await act(async () => rejected.reject(new Error("HA rejection")));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(within(sceneController as HTMLElement).getByRole("alert")).toHaveTextContent("Home Assistant rejected");
   expect(within(sceneController as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
   expect(sceneController).toHaveAttribute("aria-busy", "false");
@@ -1128,11 +1136,13 @@ it("replaces the existing demo household with setup states and never restores it
   noDemo();
   fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
   fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+  await confirmAction("Disconnect");
   nav("Today");
   noDemo();
   expect(screen.getByText(/Connect to Home Assistant to load people and calendars/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
   fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  await confirmAction("Log out");
   nav("Today");
   noDemo();
   view.unmount();
@@ -1236,16 +1246,27 @@ it("selects multiple calendars per person, moves and clears assignments, and res
   expect(selected("Morgan", "Work")).toBeInTheDocument();
   expect(selected("Morgan", "Personal")).toBeInTheDocument();
   add("Riley", "personal");
+  expect(JSON.parse(localStorage.getItem(key)!).calendarMembers[`${instance}|calendar.personal`]).toBe(`${instance}|person.morgan`);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(selected("Morgan", "Personal")).toBeInTheDocument();
+  add("Riley", "personal");
+  await confirmAction("Move calendar");
   expect(selected("Riley", "Personal")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Remove Personal from Morgan" })).not.toBeInTheDocument();
   fireEvent.click(selected("Riley", "Personal"));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(selected("Riley", "Personal")).toBeInTheDocument();
+  fireEvent.click(selected("Riley", "Personal"));
+  await confirmAction("Unlink calendar");
   expect(JSON.parse(localStorage.getItem(key)).calendarMembers[`${instance}|calendar.personal`]).toBeUndefined();
   expect(within(dropdown("Riley")).getByRole("option", { name: "Personal" })).toBeInTheDocument();
   add("Everyone", "personal");
   add("Everyone", "work");
+  await confirmAction("Move calendar");
   expect(dropdown("Everyone")).toBeDisabled();
   expect(within(dropdown("Everyone")).getByRole("option", { name: "All calendars selected" })).toBeInTheDocument();
   add("Morgan", "work");
+  await confirmAction("Move calendar");
   act(() => conn.emit("disconnected"));
   expect(dropdown("Morgan")).toBeDisabled();
   expect(selected("Morgan", "Work")).toBeDisabled();
@@ -1314,9 +1335,23 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
     [`${instance}|todo.shopping`]: { kind: "shopping", member: "everyone" },
   });
   choose("Tasks for Morgan", "family");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(select("Tasks for Everyone")).toHaveValue(`${instance}|todo.family`);
+  expect(select("Tasks for Morgan")).toHaveValue(`${instance}|todo.personal`);
+  choose("Tasks for Morgan", "family");
+  await confirmAction("Change list");
   expect(select("Tasks for Everyone")).toHaveValue("");
   expect(JSON.parse(localStorage.getItem(key)).todoLists[`${instance}|todo.personal`]).toBeUndefined();
   choose("Tasks for Morgan", "");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(select("Tasks for Morgan")).toHaveValue(`${instance}|todo.family`);
+  choose("Tasks for Morgan", "");
+  act(() => conn.emit("disconnected"));
+  expect(screen.getByRole("button", { name: "Unlink list" })).toBeDisabled();
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...household }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Unlink list" })).toBeEnabled());
+  await confirmAction("Unlink list");
   expect(JSON.parse(localStorage.getItem(key)).todoLists[`${instance}|todo.family`]).toBeUndefined();
   choose("Tasks for Everyone", "family");
   view.unmount();
@@ -1412,6 +1447,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).toBeChecked();
   expect(screen.getByRole("switch", { name: "Timetable for Morgan" })).not.toBeChecked();
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
+  if (screen.queryByRole("alertdialog")) await confirmAction("Hide timetable");
   const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   nav("School");
   expect(screen.getByText(/No timetables enabled/)).toBeInTheDocument();
@@ -1427,6 +1463,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).not.toBeChecked();
   expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(migratedTimetables);
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
+  if (screen.queryByRole("alertdialog")) await confirmAction("Hide timetable");
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Morgan" }));
   fireEvent.click(screen.getByRole("button", { name: "Move Riley up" }));
   nav("School");
@@ -1466,9 +1503,9 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   vi.mocked(ha.callService).mockImplementation(async (_connection, domain, service, data, target) => {
     expect(domain).toBe("todo");
     const id = target.entity_id as string;
-    const value = data as { item: string; status?: string };
+    const value = data as { item: string; status?: string; rename?: string };
     if (service === "add_item") lists[id].push({ uid: "new-item", summary: value.item, status: "needs_action" });
-    if (service === "update_item") lists[id] = lists[id].map(item => item.uid === value.item ? { ...item, status: value.status } : item);
+    if (service === "update_item") lists[id] = lists[id].map(item => item.uid === value.item ? { ...item, status: value.status ?? item.status, summary: value.rename ?? item.summary } : item);
     if (service === "remove_item") lists[id] = lists[id].filter(item => item.uid !== value.item);
     return {};
   });
@@ -1486,7 +1523,20 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(daily.getByRole("checkbox", { name: "Pack bag" })).toBeChecked();
   expect(await screen.findByRole("checkbox", { name: "Milk" })).not.toBeChecked();
   expect(ha.callService).not.toHaveBeenCalled(); // Viewing a daily list never resets HA completion.
+  fireEvent.click(daily.getByRole("button", { name: "Edit Pack bag" }));
+  expect(within(screen.getByRole("dialog")).getByRole("textbox")).toHaveValue("Pack bag");
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.click(daily.getByRole("button", { name: "Edit Pack bag" }));
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: "Pack lunch" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  fireEvent.click(await daily.findByText("Completed (1)"));
+  expect(daily.getByRole("checkbox", { name: "Pack lunch" })).toBeChecked();
+  expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "update_item", { item: "daily", rename: "Pack lunch" }, { entity_id: "todo.daily" });
   fireEvent.click(screen.getByRole("checkbox", { name: "Milk" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   const shopping = within(screen.getByRole("group", { name: "Everyone shopping" }));
   await shopping.findByText("Completed (1)");
   expect(shopping.getByRole("checkbox", { name: "Milk" })).not.toBeVisible();
@@ -1514,19 +1564,51 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(await screen.findByRole("checkbox", { name: "Book dentist" })).toBeInTheDocument();
   expect(screen.getAllByRole("group").filter(group => /^(Everyone|Morgan) tasks$/.test(group.getAttribute("aria-label") ?? "")).map(group => group.getAttribute("aria-label"))).toEqual(["Everyone tasks", "Morgan tasks"]);
   const shared = within(screen.getByRole("group", { name: "Everyone tasks" }));
+  fireEvent.click(shared.getByRole("button", { name: "Edit Book holiday" }));
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: "Plan holiday" } });
+  const saving = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(saving.promise);
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  await act(async () => saving.reject(new Error("Permission denied")));
+  expect(within(screen.getByRole("dialog")).getByRole("alert")).toHaveTextContent("Home Assistant rejected");
+  expect(within(screen.getByRole("dialog")).getByRole("textbox")).toHaveValue("Plan holiday");
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(await shared.findByRole("checkbox", { name: "Plan holiday" })).not.toBeChecked();
+  expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "update_item", { item: "shared", rename: "Plan holiday" }, { entity_id: "todo.family" });
   fireEvent.click(shared.getByRole("button", { name: "Add task" }));
   fireEvent.change(shared.getByRole("textbox", { name: "New item in family" }), { target: { value: "Fix bike" } });
   fireEvent.click(shared.getByRole("button", { name: "Save item to family" }));
   expect(await shared.findByRole("checkbox", { name: "Fix bike" })).toBeInTheDocument();
   expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "add_item", { item: "Fix bike" }, { entity_id: "todo.family" });
   fireEvent.click(shared.getByRole("button", { name: "Remove Fix bike" }));
+  expect(lists["todo.family"].some(item => item.summary === "Fix bike")).toBe(true);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(lists["todo.family"].some(item => item.summary === "Fix bike")).toBe(true);
+  fireEvent.click(shared.getByRole("button", { name: "Remove Fix bike" }));
+  const deletion = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(deletion.promise);
+  fireEvent.click(screen.getByRole("button", { name: "Remove item" }));
+  expect(screen.getByRole("button", { name: "Removing…" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+  await act(async () => deletion.reject(new Error("Permission denied")));
+  expect(within(screen.getByRole("alertdialog")).getByRole("alert")).toHaveTextContent("Home Assistant rejected");
+  expect(lists["todo.family"].some(item => item.summary === "Fix bike")).toBe(true);
+  act(() => conn.emit("disconnected"));
+  expect(screen.getByRole("button", { name: "Remove item" })).toBeDisabled();
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...household }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Remove item" })).toBeEnabled());
+  await confirmAction("Remove item");
   await waitFor(() => expect(shared.queryByRole("checkbox", { name: "Fix bike" })).not.toBeInTheDocument());
   expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "remove_item", { item: "new-item" }, { entity_id: "todo.family" });
   vi.mocked(ha.callService).mockRejectedValueOnce(new Error("Permission denied"));
-  fireEvent.click(shared.getByRole("checkbox", { name: "Book holiday" }));
+  fireEvent.click(shared.getByRole("checkbox", { name: "Plan holiday" }));
   expect(await shared.findByRole("alert")).toHaveTextContent("Home Assistant rejected");
-  expect(shared.getByRole("checkbox", { name: "Book holiday" })).not.toBeChecked();
-  expect(localStorage.getItem(key)).not.toMatch(/Book holiday|Book dentist|Pack bag|Milk|Fix bike/);
+  expect(shared.getByRole("checkbox", { name: "Plan holiday" })).not.toBeChecked();
+  expect(localStorage.getItem(key)).not.toMatch(/Book holiday|Plan holiday|Book dentist|Pack bag|Pack lunch|Milk|Fix bike/);
   act(() => conn.emit("disconnected"));
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   expect(screen.getAllByText(/To-do lists are unavailable while offline/)).toHaveLength(2);
@@ -1577,6 +1659,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
   window.history.replaceState(null, "", "/lists?tab=tasks&auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   expect(await screen.findByRole("checkbox", { name: "Read only item" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Edit Read only item" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Remove Read only item" })).toBeDisabled();
   expect(screen.getByText("This list is read-only.")).toBeInTheDocument();
   expect(await screen.findByRole("alert")).toHaveTextContent("To-do items could not be read");
@@ -1584,4 +1667,128 @@ it("shows unavailable and failed lists separately while keeping readable lists u
   expect(screen.getByText(/This to-do list is unavailable/)).toBeInTheDocument();
   expect(conn.sendMessagePromise).not.toHaveBeenCalledWith({ type: "todo/item/list", entity_id: "todo.missing" });
   expect(ha.callService).not.toHaveBeenCalled();
+});
+
+
+it.each(["Disconnect", "Log out"])("requires confirmation before %s changes the session", async label => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  await screen.findByText("HA user");
+  const savedLogin = localStorage.getItem(TOKEN_KEY);
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  expect(conn.close).not.toHaveBeenCalled();
+  expect(auth.revoke).not.toHaveBeenCalled();
+  expect(localStorage.getItem(TOKEN_KEY)).toBe(savedLogin);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(conn.close).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  await confirmAction(label);
+  expect(conn.close).toHaveBeenCalledOnce();
+  if (label === "Log out") {
+    expect(auth.revoke).toHaveBeenCalledOnce();
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  } else {
+    expect(auth.revoke).not.toHaveBeenCalled();
+    expect(localStorage.getItem(TOKEN_KEY)).toBe(savedLogin);
+  }
+});
+
+it("keeps the original instance and saved login until a replacement is confirmed", async () => {
+  const instance = "http://ha.local:8123";
+  localStorage.setItem("home-harmony:ha-url", instance);
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  await screen.findByText("HA user");
+  const savedLogin = localStorage.getItem(TOKEN_KEY);
+  fireEvent.change(screen.getByLabelText("Home Assistant URL"), { target: { value: "http://other.local:8123" } });
+  fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+  expect(screen.getByRole("alertdialog")).toHaveTextContent(instance);
+  expect(conn.close).not.toHaveBeenCalled();
+  expect(localStorage.getItem(TOKEN_KEY)).toBe(savedLogin);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(localStorage.getItem("home-harmony:ha-url")).toBe(instance);
+  fireEvent.click(screen.getByRole("button", { name: "Connect" }));
+  await confirmAction("Change instance");
+  expect(localStorage.getItem("home-harmony:ha-url")).toBe("http://other.local:8123");
+  expect(conn.close).toHaveBeenCalledOnce();
+});
+
+it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
+  render(<App />);
+  const toggle = await screen.findByRole("switch", { name: "Toggle Sunset" });
+  await waitFor(() => expect(toggle).toBeEnabled());
+  fireEvent.click(toggle);
+  expect(screen.getByRole("alertdialog")).toHaveTextContent("Disable Sunset?");
+  expect(ha.callService).not.toHaveBeenCalled();
+  expect(toggle).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(toggle).toBeChecked();
+  fireEvent.click(toggle);
+  act(() => conn.emit("disconnected"));
+  expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...states }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Confirm" })).toBeEnabled());
+  await confirmAction("Confirm");
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "automation", "turn_off", {}, { entity_id: "automation.sunset" });
+});
+
+it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation from %s", async path => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
+  render(<App />);
+  const activate = await screen.findByRole("button", { name: "Activate Evening" });
+  await waitFor(() => expect(activate).toBeEnabled());
+  fireEvent.click(activate);
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.click(activate);
+  await confirmAction(path.includes("/devices") ? "Confirm" : "Activate scene");
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "scene", "turn_on", {}, { entity_id: "scene.evening" });
+});
+
+it("confirms door and gate movement while keeping Stop immediate", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices/cover.blind?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  await screen.findByRole("button", { name: "Close Blind" });
+  act(() => conn.entityCallback?.({ ...states, "cover.blind": state("cover.blind", "open", { supported_features: 15, current_position: 50, device_class: "garage" }) }));
+  fireEvent.click(screen.getByRole("button", { name: "Close Blind" }));
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.keyDown(screen.getByRole("slider", { name: "Blind open" }), { key: "ArrowLeft" });
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getByRole("slider", { name: "Blind open" })).toHaveAttribute("aria-valuenow", "50");
+  fireEvent.keyDown(screen.getByRole("slider", { name: "Blind open" }), { key: "ArrowLeft" });
+  await confirmAction("Confirm");
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "cover", "set_cover_position", { position: 49 }, { entity_id: "cover.blind" });
+  fireEvent.click(screen.getByRole("button", { name: "Stop Blind" }));
+  await waitFor(() => expect(ha.callService).toHaveBeenLastCalledWith(conn, "cover", "stop_cover", {}, { entity_id: "cover.blind" }));
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+});
+
+it("keeps favorites intact when individual or bulk removal is canceled", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  const checkbox = screen.getByRole("checkbox", { name: "Living Room Light" });
+  fireEvent.click(checkbox);
+  expect(checkbox).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(checkbox).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(checkbox).toBeChecked();
+  fireEvent.click(checkbox);
+  await confirmAction("Remove favorites");
+  expect(checkbox).not.toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
+  expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "@/App";
 import { addDays, homeDate, weekStart, isPlannerDate, itemIsDone } from "@/contexts/FamilyContext";
 
@@ -12,6 +12,7 @@ beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 
 it("starts with configuration and honest empty states while preserving navigation", async () => {
@@ -59,8 +60,54 @@ it("adds, edits and removes an event from the per-person week", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
   fireEvent.click(await screen.findByRole("button", { name: /Library morning/ }));
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-  fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
+  const beforeDelete = localStorage.getItem("afterglow-planner-v1:home-1");
+  fireEvent.click(screen.getByRole("button", { name: "Keep event" }));
+  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe(beforeDelete);
+  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+  await confirmAction("Remove event");
   expect(screen.queryByRole("button", { name: /Library morning/ })).not.toBeInTheDocument();
+});
+
+it.each([
+  ["/", "Set the table"],
+  ["/lists?tab=daily", "Set the table"],
+  ["/lists?tab=tasks", "Return library books"],
+  ["/lists?tab=shopping", "Oat milk"],
+])("edits task text in %s and only toggles completion with its checkbox", async (path, name) => {
+  window.history.replaceState(null, "", path);
+  const view = render(<App />);
+  const key = "afterglow-planner-v1:home-1";
+  const original = JSON.parse(localStorage.getItem(key)!).items.find(item => item.text === name);
+  const storedItem = () => JSON.parse(localStorage.getItem(key)!).items.find(item => item.id === original.id);
+  const checkbox = screen.getByRole("checkbox", { name });
+  fireEvent.click(screen.getByRole("button", { name: `Edit ${name}` }));
+  expect(checkbox).not.toBeChecked();
+  const input = within(screen.getByRole("dialog")).getByRole("textbox");
+  expect(input).toHaveValue(name);
+  fireEvent.change(input, { target: { value: "Canceled edit" } });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(storedItem()).toEqual(original);
+  fireEvent.click(screen.getByRole("button", { name: `Edit ${name}` }));
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: " " } });
+  expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: " Updated task " } });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(storedItem()).toEqual({ ...original, text: "Updated task" });
+  fireEvent.click(screen.getByRole("checkbox", { name: "Updated task" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText("Completed (1)"));
+  expect(screen.getByRole("checkbox", { name: "Updated task" })).toBeChecked();
+  const completed = storedItem();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Updated task" }));
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: "Finished task" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(storedItem()).toEqual({ ...completed, text: "Finished task" });
+  view.unmount();
+  render(<App />);
+  fireEvent.click(screen.getByText("Completed (1)"));
+  expect(screen.getByRole("checkbox", { name: "Finished task" })).toBeChecked();
 });
 
 it("suggests list entries and reopens completed items without creating duplicates", () => {
@@ -126,7 +173,7 @@ it("saves one people order for calendars, local lists, school and person selecto
   expect(screen.getByRole("button", { name: "Move Erik down" })).toBeDisabled();
   expect(JSON.parse(localStorage.getItem(key)!).memberOrder).toEqual(["leo", "anna", "emma", "erik"]);
   const dailyOrder = ["Set the table", "Pack tomorrow’s school bags", "Empty the dishwasher"];
-  const checkboxNames = () => screen.getAllByRole("checkbox").map(input => input.closest("label")!.textContent);
+  const checkboxNames = () => screen.getAllByRole("checkbox").map(input => input.getAttribute("aria-label"));
   navigate("Today");
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "LLeo", "AAnna", "EmEmma", "ErErik"]);
   expect(checkboxNames().slice(0, 3)).toEqual(dailyOrder);
@@ -152,7 +199,7 @@ it("saves one people order for calendars, local lists, school and person selecto
   expect(saved.timetables).toEqual(original.timetables);
 });
 
-it("lets any local person have a timetable without giving them demo school details", () => {
+it("lets any local person have a timetable without giving them demo school details", async () => {
   window.history.replaceState(null, "", "/settings");
   render(<App />);
   expect(screen.getByRole("switch", { name: "Timetable for Emma" })).toBeChecked();
@@ -160,7 +207,9 @@ it("lets any local person have a timetable without giving them demo school detai
   expect(screen.getByRole("switch", { name: "Timetable for Anna" })).not.toBeChecked();
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Anna" }));
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
+  await confirmAction("Hide timetable");
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Leo" }));
+  await confirmAction("Hide timetable");
   navigate("School");
   expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Anna’s school week"]);
   expect(screen.queryByText(/Year 2|Year 5|IN THE SCHOOL BAG/)).not.toBeInTheDocument();
@@ -184,16 +233,19 @@ it("migrates legacy timetable URLs without losing planner entries or enabling em
   expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "/existing.svg");
 });
 
-it("saves ordered timetable pages across school, dashboard and reload, rejecting invalid updates", () => {
+it("saves ordered timetable pages across school, dashboard and reload, rejecting invalid updates", async () => {
   window.history.replaceState(null, "", "/school");
   const view = render(<App />);
   const card = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
   fireEvent.click(card.getByRole("button", { name: "Change timetable images" }));
   const input = card.getByRole("textbox", { name: "Emma timetable image URLs" });
-  const save = () => fireEvent.click(card.getByRole("button", { name: "Save image URLs" }));
+  const save = async () => {
+    fireEvent.click(card.getByRole("button", { name: "Save image URLs" }));
+    if (screen.queryByRole("alertdialog")) await confirmAction("Replace images");
+  };
   const pages = ["https://school.example/page-1.png", "/timetables/page-2.svg"];
   fireEvent.change(input, { target: { value: `  ${pages[0]} \r\n\n${pages[1]}  ` } });
-  save();
+  await save();
   const key = "afterglow-planner-v1:home-1";
   const storedPages = () => JSON.parse(localStorage.getItem(key)!).timetables.emma;
   expect(storedPages()).toEqual(pages);
@@ -202,12 +254,12 @@ it("saves ordered timetable pages across school, dashboard and reload, rejecting
   expect(card.getByText("Page 1 of 2")).toBeInTheDocument();
   for (const value of [`${pages[0]}\njavascript:alert(1)`, `${pages[0]}\nftp://school.example/page.png`, "   \n  "]) {
     fireEvent.change(input, { target: { value } });
-    save();
+    await save();
     expect(storedPages()).toEqual(pages);
   }
   const reversed = [...pages].reverse();
   fireEvent.change(input, { target: { value: reversed.join("\n") } });
-  save();
+  await save();
   expect(storedPages()).toEqual(reversed);
   view.unmount();
   render(<App />);
@@ -224,6 +276,7 @@ it("saves ordered timetable pages across school, dashboard and reload, rejecting
   expect(restoredInput).toHaveValue(reversed.join("\n"));
   fireEvent.change(restoredInput, { target: { value: pages[0] } });
   fireEvent.click(restoredCard.getByRole("button", { name: "Save image URLs" }));
+  await confirmAction("Replace images");
   expect(storedPages()).toEqual([pages[0]]);
   expect(restoredCard.queryByRole("region")).not.toBeInTheDocument();
   expect(restoredCard.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", pages[0]);
@@ -365,4 +418,46 @@ it("advances an unbrowsed rolling week at midnight in the home timezone across N
   expect(gridDates()[0]).toBe("2027-01-01");
   fireEvent.click(screen.getByRole("button", { name: "Monday" }));
   expect(gridDates()[0]).toBe("2026-12-28");
+});
+
+
+it.each(["daily", "tasks", "shopping"].flatMap(kind => [false, true].map(done => ({ kind, done }))))("confirms removal of $kind items, including completed=$done", async ({ kind, done }) => {
+  window.history.replaceState(null, "", `/lists?tab=${kind}`);
+  render(<App />);
+  const key = "afterglow-planner-v1:home-1";
+  const item = JSON.parse(localStorage.getItem(key)!).items.find(item => item.kind === kind);
+  if (done) {
+    fireEvent.click(screen.getByRole("checkbox", { name: item.text }));
+    fireEvent.click(screen.getByText("Completed (1)"));
+  }
+  const original = localStorage.getItem(key);
+  fireEvent.click(screen.getByRole("button", { name: `Remove ${item.text}` }));
+  expect(screen.getByRole("alertdialog")).toHaveTextContent(item.text);
+  expect(localStorage.getItem(key)).toBe(original);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(localStorage.getItem(key)).toBe(original);
+  expect(screen.getByRole("checkbox", { name: item.text })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: `Remove ${item.text}` }));
+  await confirmAction("Remove item");
+  expect(JSON.parse(localStorage.getItem(key)!).items).toEqual(JSON.parse(original!).items.filter(entry => entry.id !== item.id));
+});
+
+it("keeps saved timetable images when replacement or hiding is canceled", () => {
+  window.history.replaceState(null, "", "/school");
+  render(<App />);
+  const key = "afterglow-planner-v1:home-1";
+  const original = localStorage.getItem(key);
+  const card = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
+  fireEvent.click(card.getByRole("button", { name: "Change timetable images" }));
+  fireEvent.change(card.getByRole("textbox"), { target: { value: "https://school.example/replacement.png" } });
+  fireEvent.click(card.getByRole("button", { name: "Save image URLs" }));
+  expect(localStorage.getItem(key)).toBe(original);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(localStorage.getItem(key)).toBe(original);
+  fireEvent.click(screen.getByRole("link", { name: "Choose people with timetables" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
+  expect(localStorage.getItem(key)).toBe(original);
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(screen.getByRole("switch", { name: "Timetable for Emma" })).toBeChecked();
+  expect(localStorage.getItem(key)).toBe(original);
 });

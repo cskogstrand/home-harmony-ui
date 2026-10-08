@@ -4,15 +4,23 @@ import { BookOpen, Link as LinkIcon, Save } from "lucide-react";
 import { useFamily, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, SchoolPreview, MemberAvatar } from "@/components/FamilyPlanner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 function SchoolCard({ child }: { child: MemberId }) {
   const { timetables, setTimetable, memberName, connectedPlanner } = useFamily();
   const [urls, setUrls] = useState((timetables[child] ?? []).join("\n"));
   const [edit, setEdit] = useState(false);
+  const [replacement, setReplacement] = useState<string[]>();
   const sampleChild = !connectedPlanner && ["emma", "leo"].includes(child);
   return <article className="glow-panel school-card"><div className="panel-heading"><div className="school-child"><MemberAvatar member={child} /><div><h2>{memberName(child)}’s school week</h2>{sampleChild && <p>{child === "emma" ? "Year 5 · Class 5B" : "Year 2 · Class 2A"}</p>}</div></div><BookOpen size={24} /></div>
     <SchoolPreview child={child} />{sampleChild && <div className="school-reminder"><span className="eyebrow">IN THE SCHOOL BAG</span><p>{child === "emma" ? "Water bottle · Music book · Warm layers for forest day" : "Water bottle · Reading folder · PE kit"}</p></div>}
     <button className="text-link" aria-expanded={edit} onClick={() => setEdit(!edit)}><LinkIcon size={16} />{timetables[child]?.length ? "Change timetable images" : "Set up timetable images"}</button>
-    {edit && <form className="planner-form" onSubmit={e => { e.preventDefault(); setTimetable(child, urls.split(/\r?\n/)); }}><label>Timetable image URLs<textarea aria-label={`${memberName(child)} timetable image URLs`} required rows={4} value={urls} onChange={e => setUrls(e.target.value)} placeholder={"https://school.example/timetable-1.png\nhttps://school.example/timetable-2.png"} /></label><Button type="submit"><Save size={17} />Save image URLs</Button><p className="muted">Add one direct image link per line, in page order. PNG, JPG and SVG work. Remove or reorder lines to change the pages.</p></form>}
+    {edit && <form className="planner-form" onSubmit={e => {
+      e.preventDefault();
+      const pages = urls.split(/\r?\n/).map(url => url.trim()).filter(Boolean);
+      if ((timetables[child] ?? []).some(url => !pages.includes(url))) setReplacement(pages);
+      else setTimetable(child, pages);
+    }}><label>Timetable image URLs<textarea aria-label={`${memberName(child)} timetable image URLs`} required rows={4} value={urls} onChange={e => setUrls(e.target.value)} placeholder={"https://school.example/timetable-1.png\nhttps://school.example/timetable-2.png"} /></label><Button type="submit"><Save size={17} />Save image URLs</Button><p className="muted">Add one direct image link per line, in page order. PNG, JPG and SVG work. Remove or reorder lines to change the pages.</p></form>}
+    {replacement && <ConfirmDialog open onOpenChange={open => { if (!open) setReplacement(undefined); }} title="Replace timetable images?" description={`Save these image URLs for ${memberName(child)}? Removed pages will no longer appear, and their saved links will be lost.`} confirmLabel="Replace images" destructive onConfirm={() => setTimetable(child, replacement)} />}
   </article>;
 }
 export default function School() {
