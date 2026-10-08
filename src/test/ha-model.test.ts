@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { available, calendarBoundary, entityStateLabel, entityCommand, mapHome, needsCode, normalizeHaUrl, supportsAction } from "@/lib/ha-model";
+import { available, calendarBoundary, calendarTimeInput, calendarTimeValue, entityStateLabel, entityCommand, mapHome, needsCode, normalizeHaUrl, supportsAction } from "@/lib/ha-model";
 import { config, registries, services, states, state } from "./ha-fixtures";
 const entity = (id: string) => mapHome(states, registries, "http://ha.local:8123", config).entities.find(e => e.entityId === id)!;
 
@@ -30,6 +30,22 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("validates calendar updates without requiring a nonexistent update service", () => {
+    const calendar = mapHome({ "calendar.family": state("calendar.family", "off", { supported_features: 4 }) }, registries, "test").entities.find(e => e.entityId === "calendar.family")!;
+    const event = { summary: " Dinner ", dtstart: "2026-10-25T00:30:00Z", dtend: "2026-10-25T01:30:00Z", location: "Home", description: "Line one\nLine two" };
+    const value = { uid: "series-1", recurrence_id: "20261025T023000", event };
+    expect(supportsAction(calendar, "update_event", {})).toBe(true);
+    expect(entityCommand(calendar, "update_event", {}, value).data).toEqual({ ...value, event: { ...event, summary: "Dinner" } });
+    expect(entityCommand(calendar, "update_event", {}, { ...value, event: { ...event, dtstart: "2026-10-25", dtend: "2026-10-26" } }).data).toMatchObject({ event: { dtstart: "2026-10-25", dtend: "2026-10-26" } });
+    for (const invalid of [null, { ...value, uid: "" }, { ...value, recurrence_id: "" }, ...[
+      { summary: " " }, { dtstart: "2026-02-30" }, { dtend: event.dtstart }, { dtend: "2026-10-25T00:00:00Z" },
+      { dtstart: "2026-10-25" }, { dtstart: "2026-10-25T02:30:00" },
+    ].map(change => ({ ...value, event: { ...event, ...change } }))]) {
+      expect(() => entityCommand(calendar, "update_event", {}, invalid)).toThrow("valid dates and times");
+    }
+    expect(supportsAction({ ...calendar, attributes: { supported_features: 1 } }, "update_event", services)).toBe(false);
+    expect(() => entityCommand({ ...calendar, state: "unavailable" }, "update_event", {}, value)).toThrow("available");
+  });
   it("validates calendar writes and requires calendar create support", () => {
     const calendar = mapHome({ "calendar.family": state("calendar.family", "off", { supported_features: 1 }) }, registries, "test").entities.find(e => e.entityId === "calendar.family")!;
     const value = { summary: " Dinner ", start_date_time: "2026-10-25T23:30:00", end_date_time: "2026-10-26T00:30:00", location: "Home", description: "Bring bread" };
@@ -97,6 +113,18 @@ it("validates origins and protocol pairing without accepting tokens in a URL", (
 it("uses HA-local midnight including the Oslo DST transition for calendar requests", () => {
   expect(calendarBoundary("2026-10-25", "Europe/Oslo")).toBe("2026-10-24T22:00:00.000Z");
   expect(calendarBoundary("2026-10-26", "Europe/Oslo")).toBe("2026-10-25T23:00:00.000Z");
+});
+
+it("edits times in HA's timezone, preserving repeated DST instants and rejecting skipped times", () => {
+  const zone = "Europe/Oslo";
+  expect(calendarTimeInput({ date: "2026-10-25" }, zone)).toBe("2026-10-25");
+  expect(calendarTimeInput({ dateTime: "2026-10-24T22:30:15Z" }, zone)).toBe("2026-10-25T00:30:15");
+  for (const original of ["2026-10-25T02:30:00+02:00", "2026-10-25T02:30:00+01:00"]) {
+    expect(calendarTimeValue(original, "2026-10-25T02:30", zone)).toBe(new Date(original).toISOString());
+  }
+  expect(calendarTimeValue("2026-10-24T22:30:15Z", "2026-10-26T00:30:15", zone)).toBe("2026-10-25T23:30:15.000Z");
+  expect(calendarTimeValue("2026-10-25", "2026-10-26", zone)).toBe("2026-10-26");
+  expect(() => calendarTimeValue("2026-03-28T10:00:00Z", "2026-03-29T02:30", zone)).toThrow("does not exist");
 });
 
 

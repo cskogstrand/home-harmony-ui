@@ -55,7 +55,7 @@ export default function Calendar() {
           {!personal.length && <div className="empty-note"><CalendarDays size={25} /><p>{connectedPlanner ? data.loading ? "Loading plans…" : data.errors.length ? "Some calendars could not be loaded." : "No plans to display. Add a plan or check calendar setup above." : "Some room to breathe."}</p></div>}
         </section>;
       })}</div>}
-    <p className="page-note">Tap a plan for details. Local plans can be edited here. Shared plans appear in Everyone’s row.</p>
+    <p className="page-note">Tap a plan to view or edit it. Shared plans appear in Everyone’s row.</p>
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date ?? validDate ?? today} member={newPlan?.member} />
   </div>;
 }

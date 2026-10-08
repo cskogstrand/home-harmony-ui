@@ -50,7 +50,7 @@ export interface Home {
 export type EntityStates = HassEntities;
 export type AlarmAction = "alarm_disarm" | "alarm_arm_home" | "alarm_arm_away" | "alarm_arm_night" | "alarm_arm_vacation" | "alarm_arm_custom_bypass" | "alarm_trigger";
 export type TodoAction = "add_item" | "update_item" | "remove_item";
-export type EntityAction = "turn_on" | "turn_off" | "brightness" | "temperature" | "hvac_mode" | "open_cover" | "close_cover" | "stop_cover" | "position" | "lock" | "unlock" | "create_event" | AlarmAction | TodoAction;
+export type EntityAction = "turn_on" | "turn_off" | "brightness" | "temperature" | "hvac_mode" | "open_cover" | "close_cover" | "stop_cover" | "position" | "lock" | "unlock" | "create_event" | "update_event" | AlarmAction | TodoAction;
 export interface TodoItem { uid: string; summary: string; status: "needs_action" | "completed" | null }
 export interface CalendarEvent {
   summary: string;
@@ -59,4 +59,6 @@ export interface CalendarEvent {
   location?: string | null;
   description?: string | null;
   uid?: string | null;
+  recurrence_id?: string | null;
+  rrule?: string | null;
 }

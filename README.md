@@ -39,7 +39,9 @@ Use each person’s **Timetable** toggle in the same settings section to include
 
 For multi-page PDFs, the existing Nextcloud → image conversion workflow still works: generate a stable image URL for each page and paste those URLs into the School board. Updating the images at those URLs avoids editing the app’s settings each week when the page count stays the same; browser/server caching controls when replacements become visible.
 
-Calendar integrations remain in Home Assistant. This app reads `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header. It requests the displayed day/week using HA’s timezone (including DST), handles all-day exclusive end dates, and shows **read-only** HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again. There are no calendar writes or invitations.
+Calendar integrations remain in Home Assistant. The app subscribes to events for the displayed day/week and falls back to `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header on older HA versions. It uses HA’s timezone (including DST) and shows HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again.
+
+New plans save through `calendar.create_event` when the selected calendar supports creation. Open an existing event to edit its title, dates/times, location and reminder through `calendar/event/update` when its calendar supports updates and supplies an event UID. All-day end dates in the editor include the last day; the app converts them to HA’s exclusive end. Recurring edits change only the selected occurrence; recurring events without an occurrence ID remain read-only. Calendar/person assignments and recurrence rules cannot be changed in this editor. Failed saves retain the draft; writes are never automatically retried or saved as local duplicates.
 
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:
 
@@ -52,7 +54,7 @@ http:
 
 Use the actual origin from the dashboard address bar, including `127.0.0.1` versus `localhost`. Do not use a wildcard. HA’s current HTTP settings UI may restart HA and require confirmation after saving; follow its prompts. See the [official HTTP settings documentation](https://www.home-assistant.io/integrations/http/).
 
-REST was chosen because it is supported across the declared HA range and still used by the official frontend. Newer HA versions also expose calendar subscriptions; this app does not depend on that newer API. See the [REST API](https://developers.home-assistant.io/docs/api/rest/) and [official frontend calendar API usage](https://github.com/home-assistant/frontend/blob/dev/src/data/calendar.ts).
+REST fallback keeps calendar reads available across the declared HA range. See the [REST API](https://developers.home-assistant.io/docs/api/rest/) and [official frontend calendar API usage](https://github.com/home-assistant/frontend/blob/dev/src/data/calendar.ts).
 
 ### Tasks, daily tasks and shopping
 

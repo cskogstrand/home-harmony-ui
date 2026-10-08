@@ -1,6 +1,6 @@
 import type { HassConfig, HassServices } from "home-assistant-js-websocket";
 import { z } from "zod";
-import type { AlarmAction, Entity, EntityAction, EntityStates, Home, Registries } from "@/types/api";
+import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityStates, Home, Registries } from "@/types/api";
 
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -15,6 +15,14 @@ const newCalendarEvent = z.object({
   start_date_time: calendarTime, end_date_time: calendarTime,
   location: z.string().max(150), description: z.string().max(200),
 }).refine(event => event.end_date_time > event.start_date_time);
+const eventTime = z.union([z.string().date(), z.string().datetime({ offset: true })]);
+const updatedCalendarEvent = z.object({
+  uid: z.string().min(1), recurrence_id: z.string().min(1).optional(),
+  event: z.object({
+    summary: z.string().trim().min(1), dtstart: eventTime, dtend: eventTime,
+    location: z.string(), description: z.string(),
+  }).refine(event => event.dtstart.includes("T") === event.dtend.includes("T") && Date.parse(event.dtend) > Date.parse(event.dtstart)),
+});
 export function entityStateLabel(entity: Entity) {
   if (!available(entity)) return entity.state === "unknown" ? "No reading" : "Unavailable";
   if (entity.domain === "scene") return "Scene";
@@ -71,6 +79,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
 
 export function supportsAction(entity: Entity, action: EntityAction, services: HassServices) {
   const { domain, attributes: a } = entity;
+  if (domain === "calendar" && action === "update_event") return feature(entity, 4);
   const service = ({ brightness: "turn_on", temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position" } as Record<string, string>)[action] ?? action;
   if (!services[domain]?.[service]) return false;
   if (["light", "switch", "automation"].includes(domain) && ["turn_on", "turn_off"].includes(action)) return true;
@@ -91,7 +100,7 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   let service: string = action;
   const data: Record<string, unknown> = {};
   if (entity.domain === "calendar") {
-    const parsed = newCalendarEvent.safeParse(value);
+    const parsed = (action === "update_event" ? updatedCalendarEvent : newCalendarEvent).safeParse(value);
     if (!parsed.success) throw new Error("Enter a title and valid dates and times, with the end after the start.");
     Object.assign(data, parsed.data);
   }
@@ -130,9 +139,9 @@ export function normalizeHaUrl(input: string, pageProtocol = window.location.pro
   return url.origin;
 }
 
-// Convert a planner date to midnight in HA's timezone, including DST boundaries.
-export function calendarBoundary(date: string, timeZone: string) {
-  const target = Date.parse(`${date}T00:00:00Z`);
+// Convert a planner date/time in HA's timezone, including DST boundaries.
+export function calendarBoundary(date: string, timeZone: string, time = "00:00:00") {
+  const target = Date.parse(`${date}T${time}Z`);
   let timestamp = target;
   const formatter = new Intl.DateTimeFormat("en-GB", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
   for (let i = 0; i < 3; i++) {
@@ -141,4 +150,23 @@ export function calendarBoundary(date: string, timeZone: string) {
     timestamp += target - shown;
   }
   return new Date(timestamp).toISOString();
+}
+
+export const calendarDateValue = (value: CalendarEvent["start"]) => typeof value === "string" ? value : "dateTime" in value ? value.dateTime : value.date;
+
+export function calendarTimeInput(value: CalendarEvent["start"], timeZone: string) {
+  const date = calendarDateValue(value);
+  if (!date.includes("T")) return date;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date(date)).map(p => [p.type, p.value]));
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+}
+
+export function calendarTimeValue(original: CalendarEvent["start"], input: string, timeZone: string) {
+  if (!input.includes("T")) return input;
+  const local = input.length === 16 ? `${input}:00` : input;
+  // Preserve the original instant when clocks repeat an hour at the end of DST.
+  if (local === calendarTimeInput(original, timeZone)) return new Date(calendarDateValue(original)).toISOString();
+  const value = calendarBoundary(local.slice(0, 10), timeZone, local.slice(11));
+  if (calendarTimeInput(value, timeZone) !== local) throw new Error(`This time does not exist in ${timeZone}. Choose another time.`);
+  return value;
 }

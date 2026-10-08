@@ -27,6 +27,7 @@ const calendarDateValue = z.union([calendarDate, z.object({ date: calendarDate }
 const calendarEventsSchema = z.array(z.object({
   summary: z.string(), start: calendarDateValue, end: calendarDateValue,
   location: z.string().nullish(), description: z.string().nullish(), uid: z.string().nullish(),
+  recurrence_id: z.string().nullish(), rrule: z.string().nullish(),
 }));
 const todoItemsSchema = z.object({ items: z.array(z.object({
   uid: z.string().min(1), summary: z.string(), status: z.enum(["needs_action", "completed"]).nullable().default(null),
@@ -342,9 +343,12 @@ export class HomeAssistantClient {
       setCommand({ pending: true });
       try {
         // Never suspend/queue/retry physical commands. The library rejects in-flight calls on loss.
-        await bounded(callService(conn, command.domain, command.service, command.data, command.target));
+        await bounded(action === "update_event"
+          ? conn.sendMessagePromise({ type: "calendar/event/update", entity_id: entityId, ...command.data })
+          : callService(conn, command.domain, command.service, command.data, command.target));
       } catch (error) {
         if (action === "create_event") throw new Error("Home Assistant could not confirm the save. Check the calendar before trying again to avoid duplicates.");
+        if (action === "update_event") throw new Error("Home Assistant could not confirm the update. Check the calendar and your permissions before trying again.");
         throw new Error(error === ERR_CONNECTION_LOST || !conn.connected
           ? "Connection lost. The command outcome is unknown; it will not be replayed. Check reported state before trying again."
           : "Home Assistant rejected or did not acknowledge the command. Check permissions, the required code and reported state before trying again.");

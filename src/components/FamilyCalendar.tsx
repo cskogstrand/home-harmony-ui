@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
-import { calendarBoundary } from "@/lib/ha-model";
+import { calendarBoundary, calendarDateValue } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
 import { Columns3, Table2, Plus } from "lucide-react";
 import { useFamily, addDays, dateLabel, homeDate, isPlannerDate, sortEvents, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
@@ -58,11 +58,9 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
     </div>;
 }
 
-const dateValue = (value: CalendarEvent["start"]) => typeof value === "string" ? value : "dateTime" in value ? value.dateTime : value.date;
-
 // Expand only the visible range; HA end dates/times are exclusive, including midnight.
 export function calendarPlans(event: CalendarEvent, calendarId: string, member: string, start: string, end: string, timeZone: string, index: number): FamilyEvent[] {
-  const from = dateValue(event.start), to = dateValue(event.end);
+  const from = calendarDateValue(event.start), to = calendarDateValue(event.end);
   const allDay = isPlannerDate(from);
   const startTime = Date.parse(allDay ? calendarBoundary(from, timeZone) : from);
   const endTime = Date.parse(isPlannerDate(to) ? calendarBoundary(to, timeZone) : to);
@@ -70,14 +68,14 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
   const plans: FamilyEvent[] = [];
   for (let day = start; day < end; day = addDays(day, 1)) {
     if (startTime >= Date.parse(calendarBoundary(addDays(day, 1), timeZone)) || endTime <= Date.parse(calendarBoundary(day, timeZone))) continue;
-    plans.push({ id: `${calendarId}:${event.uid ?? index}:${from}:${day}`, calendarId, member, date: day, allDay, continues: day > firstDay,
+    plans.push({ id: `${calendarId}:${event.uid ?? index}:${from}:${day}`, calendarId, calendarEvent: event, member, date: day, allDay, continues: day > firstDay,
       time: allDay || day > firstDay ? "00:00" : new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(startTime)),
       title: event.summary, location: event.location ?? "", note: event.description ?? "" });
   }
   return plans;
 }
 
-// Remote events stay read-only and never enter FamilyContext/localStorage.
+// Remote events never enter FamilyContext/localStorage.
 export function useCalendarPlans(start: string, end: string) {
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
   const { events: localEvents, calendarMembers, members, compareMembers } = useFamily();
@@ -146,7 +144,7 @@ export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCal
   if (!connectedPlanner) return null;
   return <div className="page-note space-y-2">
     <CalendarSetupNotice />
-    {data.selectedCount > 0 && <p>New plans save to writable Home Assistant calendars. Edit existing calendar events in Home Assistant or the source calendar. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
+    {data.selectedCount > 0 && <p>Plans save to Home Assistant calendars. Open an event to edit it when its calendar supports updates. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
     {data.loading && <p role="status">Loading calendar events…</p>}
     {data.errors.map(error => <p role="alert" key={error}>{error}</p>)}
     {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline. Local plans remain available.</p>}

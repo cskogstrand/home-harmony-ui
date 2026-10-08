@@ -9,3 +9,10 @@ it("places HA events on home-timezone days with exclusive ends and clips multi-d
   expect(plans({ dateTime: "2026-10-25T23:30:00Z" }, { dateTime: "2026-10-26T01:00:00Z" }).map(e => [e.date, e.time])).toEqual([["2026-10-26", "00:30"]]);
   expect(plans("2026-10-23", "2026-10-24")).toEqual([]);
 });
+
+it("retains original dates and recurrence identity on every displayed day", () => {
+  const event = { uid: "trip", recurrence_id: "20261023", rrule: "FREQ=WEEKLY", summary: "Trip", start: { date: "2026-10-23" }, end: { date: "2026-10-27" } };
+  const plans = calendarPlans(event, "calendar.family", "everyone", "2026-10-24", "2026-10-26", "Europe/Oslo", 0);
+  expect(plans).toHaveLength(2);
+  for (const plan of plans) expect(plan.calendarEvent).toBe(event);
+});
