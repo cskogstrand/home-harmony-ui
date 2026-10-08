@@ -16,8 +16,10 @@ const newCalendarEvent = z.object({
   location: z.string().max(150), description: z.string().max(200),
 }).refine(event => event.end_date_time > event.start_date_time);
 const eventTime = z.union([z.string().date(), z.string().datetime({ offset: true })]);
-const updatedCalendarEvent = z.object({
+const calendarEventIdentity = z.object({
   uid: z.string().min(1), recurrence_id: z.string().min(1).optional(),
+}).strict();
+const updatedCalendarEvent = calendarEventIdentity.extend({
   event: z.object({
     summary: z.string().trim().min(1), dtstart: eventTime, dtend: eventTime,
     location: z.string(), description: z.string(),
@@ -80,6 +82,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
 export function supportsAction(entity: Entity, action: EntityAction, services: HassServices) {
   const { domain, attributes: a } = entity;
   if (domain === "calendar" && action === "update_event") return feature(entity, 4);
+  if (domain === "calendar" && action === "delete_event") return feature(entity, 2);
   const service = ({ brightness: "turn_on", temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position" } as Record<string, string>)[action] ?? action;
   if (!services[domain]?.[service]) return false;
   if (["light", "switch", "automation"].includes(domain) && ["turn_on", "turn_off"].includes(action)) return true;
@@ -100,8 +103,8 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   let service: string = action;
   const data: Record<string, unknown> = {};
   if (entity.domain === "calendar") {
-    const parsed = (action === "update_event" ? updatedCalendarEvent : newCalendarEvent).safeParse(value);
-    if (!parsed.success) throw new Error("Enter a title and valid dates and times, with the end after the start.");
+    const parsed = (action === "delete_event" ? calendarEventIdentity : action === "update_event" ? updatedCalendarEvent : newCalendarEvent).safeParse(value);
+    if (!parsed.success) throw new Error(action === "delete_event" ? "A valid event ID and, for recurring events, occurrence ID are required." : "Enter a title and valid dates and times, with the end after the start.");
     Object.assign(data, parsed.data);
   }
   if (entity.domain === "todo") {

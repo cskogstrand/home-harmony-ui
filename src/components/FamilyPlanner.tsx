@@ -42,6 +42,8 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("17:00");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const busy = saving || deleting;
   const [error, setError] = useState("");
   const wasOpen = useRef(false);
   const source = event?.calendarEvent;
@@ -59,7 +61,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const calendars = currentHome.entities.filter(e => e.domain === "calendar" && calendarMembers[e.preferenceId] === draft?.member);
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
   const calendar = editingRemote ? currentHome.entities.find(e => e.entityId === event.calendarId) : calendars.find(e => e.preferenceId === calendarId) ?? (!calendarId && writable.length === 1 ? writable[0] : undefined);
-  // ponytail: edit individual occurrences; series editing needs an explicit scope selector.
+  // ponytail: change individual occurrences; series edits/deletions need an explicit scope selector.
   const readOnlyReason = !editingRemote ? ""
     : !calendar ? "This calendar is no longer available in Home Assistant."
     : !supportsAction(calendar, "update_event", services) ? "Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar."
@@ -67,7 +69,9 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     : source.rrule && !source.recurrence_id ? "Home Assistant did not identify this occurrence of the recurring event. Edit it in the source calendar."
     : "";
   const readOnly = !!readOnlyReason;
-  const canSave = !saving && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
+  const deletable = !!event && (!editingRemote || !!calendar && supportsAction(calendar, "delete_event", services) && !!source?.uid && (!source.rrule || !!source.recurrence_id));
+  const canDelete = deletable && !busy && (!editingRemote || homeOnline && available(calendar) && !commands[calendar.entityId]?.pending);
+  const canSave = !busy && !confirmDelete && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
   const save = async () => {
     if (!draft?.title.trim() || !canSave) return;
     setError("");
@@ -91,9 +95,22 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     } catch (error) { setError((error as Error).message); }
     finally { setSaving(false); }
   };
-  return <Dialog open={open} onOpenChange={value => { if (!saving) onOpenChange(value); }}><DialogContent className="planner-dialog max-h-[90dvh] overflow-y-auto">
+  const remove = async () => {
+    if (!confirmDelete || !canDelete) return;
+    setError("");
+    if (!editingRemote) { deleteEvent(event.id); onOpenChange(false); return; }
+    setDeleting(true);
+    try {
+      await command(calendar.entityId, "delete_event", { uid: source.uid, ...(source.recurrence_id && { recurrence_id: source.recurrence_id }) });
+      onSaved();
+      onOpenChange(false);
+    } catch (error) { setError((error as Error).message); }
+    finally { setDeleting(false); }
+  };
+  const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />Delete</Button>;
+  return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent className="planner-dialog max-h-[90dvh] overflow-y-auto">
     <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? "A moment in your week" : "Make a little plan"}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? "Save to Home Assistant and its connected calendar. Times use " + currentHome.timeZone + "." : "Saved to the family calendar on this screen.")}</DialogDescription></DialogHeader>
-    {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {event.allDay ? "All day" : event.continues ? "Continues" : event.time} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open calendar in Home Assistant</a></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={saving} aria-busy={saving}>
+    {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {event.allDay ? "All day" : event.continues ? "Continues" : event.time} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open calendar in Home Assistant</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
       {source?.recurrence_id && <p>Only this occurrence will be changed.</p>}
       {draft.allDay && <p>All-day event. End date is the last day included.</p>}
       <label>What’s happening?<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder="Dinner with grandparents" onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
@@ -106,11 +123,14 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
         {!homeOnline ? <p role="status">Connect to Home Assistant to save this plan.</p> : !writable.length && <p role="status">No writable calendar is available for {memberName(draft.member)}. Assign a calendar that supports creating events in <Link className="text-link" to="/settings#family-calendar">Home settings</Link>.</p>}</>}
       <label>Where?<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder="Add a place" onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
       <label>A little reminder<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder="Who’s driving? What should we bring?" onChange={e => setDraft({ ...draft, note: e.target.value })} /></label>
-      {error && <p role="alert">{error}</p>}
-      <div className="form-actions">{event && !editingRemote && <Button type="button" variant="ghost" onClick={() => setConfirmDelete(true)}><Trash2 size={16} />Delete</Button>}
+      <div className="form-actions">{deleteButton}
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit" disabled={!canSave}>{saving ? "Saving…" : "Save plan"}</Button></div>
-      {confirmDelete && <div className="delete-confirm" role="alert"><p>Remove this event from the family calendar?</p><Button type="button" variant="destructive" onClick={() => { deleteEvent(draft.id); onOpenChange(false); }}>Remove event</Button></div>}
     </fieldset></form>}
+    {confirmDelete && <div className="delete-confirm" role="group" aria-label="Confirm event deletion" aria-live="polite" aria-busy={deleting}>
+      <p>{editingRemote ? source.recurrence_id ? `Remove only this occurrence of “${event.title}” from ${calendar?.name} and its source calendar? Other occurrences will stay.` : `Remove “${event.title}” from ${calendar?.name} and its source calendar?` : "Remove this event from the family calendar?"}</p>
+      <div className="form-actions"><Button autoFocus type="button" variant="outline" disabled={busy} onClick={() => setConfirmDelete(false)}>Keep event</Button><Button type="button" variant="destructive" disabled={!canDelete} onClick={() => void remove()}>{deleting ? "Deleting…" : "Remove event"}</Button></div>
+    </div>}
+    {error && <p role="alert">{error}</p>}
   </DialogContent></Dialog>;
 }
 function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {

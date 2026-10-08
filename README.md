@@ -45,6 +45,8 @@ New plans save through `calendar.create_event` when the selected calendar suppor
 
 The built-in [Google Calendar integration](https://github.com/home-assistant/core/blob/dev/homeassistant/components/google/calendar.py) currently supports creating and deleting events, but does not implement updates. A calendar being writable in Google does not mean HA exposes editing for it. The app follows HA’s reported capabilities and explains whether editing is blocked by the integration, a missing event ID, or a missing recurring occurrence ID.
 
+Events can be deleted from the dashboard or calendar when HA reports deletion support, including Google calendars that cannot be edited. **Delete → Remove event** confirms removal from HA and its source calendar through `calendar/event/delete`. Recurring deletions target only the selected occurrence; a recurring event without an occurrence ID cannot be deleted here. Deletion is disabled while offline, unavailable or pending. The view refreshes after HA confirms deletion; failed requests keep the event visible and are never automatically retried.
+
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:
 
 ```yaml

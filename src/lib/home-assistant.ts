@@ -343,12 +343,13 @@ export class HomeAssistantClient {
       setCommand({ pending: true });
       try {
         // Never suspend/queue/retry physical commands. The library rejects in-flight calls on loss.
-        await bounded(action === "update_event"
-          ? conn.sendMessagePromise({ type: "calendar/event/update", entity_id: entityId, ...command.data })
+        await bounded(action === "update_event" || action === "delete_event"
+          ? conn.sendMessagePromise({ type: action === "delete_event" ? "calendar/event/delete" : "calendar/event/update", entity_id: entityId, ...command.data })
           : callService(conn, command.domain, command.service, command.data, command.target));
       } catch (error) {
         if (action === "create_event") throw new Error("Home Assistant could not confirm the save. Check the calendar before trying again to avoid duplicates.");
         if (action === "update_event") throw new Error("Home Assistant could not confirm the update. Check the calendar and your permissions before trying again.");
+        if (action === "delete_event") throw new Error("Home Assistant could not confirm the deletion. Check the calendar and your permissions before trying again.");
         throw new Error(error === ERR_CONNECTION_LOST || !conn.connected
           ? "Connection lost. The command outcome is unknown; it will not be replayed. Check reported state before trying again."
           : "Home Assistant rejected or did not acknowledge the command. Check permissions, the required code and reported state before trying again.");

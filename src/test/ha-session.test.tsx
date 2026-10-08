@@ -349,6 +349,101 @@ const setupWritableCalendars = (features = 1) => {
   return { household, key };
 };
 
+it.each([
+  { path: "/", features: 3, recurring: false },
+  { path: "/calendar", features: 3, recurring: true },
+  { path: "/calendar", features: 7, recurring: false },
+])("confirms HA event deletion and refreshes only after success: %j", async ({ path, features, recurring }) => {
+  const { key } = setupWritableCalendars(features);
+  const target = { uid: "event-uid", summary: "Delete this plan", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z",
+    ...(recurring && { recurrence_id: "google-instance-1", rrule: "FREQ=DAILY" }),
+  };
+  const remaining = { ...target, uid: recurring ? target.uid : "other-uid", summary: "Keep this plan", start: "2026-10-08T14:00:00Z", end: "2026-10-08T15:00:00Z",
+    ...(recurring && { recurrence_id: "google-instance-2" }),
+  };
+  let events = [target, remaining];
+  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
+  window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
+  render(<App />);
+  const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  fireEvent.click(await grid.findByRole("button", { name: /Delete this plan/ }));
+  expect(await screen.findByRole("button", { name: "Delete" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Remove event" })).not.toBeInTheDocument();
+  if (features === 3) expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+  const confirmation = screen.getByRole("group", { name: "Confirm event deletion" });
+  expect(confirmation).toHaveTextContent("Delete this plan");
+  expect(confirmation).toHaveTextContent("Family calendar and its source calendar");
+  if (recurring) expect(confirmation).toHaveTextContent("only this occurrence");
+  fireEvent.click(screen.getByRole("button", { name: "Keep event" }));
+  expect(screen.queryByRole("group", { name: "Confirm event deletion" })).not.toBeInTheDocument();
+  expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/delete")).toHaveLength(0);
+  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+  const request = deferred<unknown>();
+  conn.sendMessagePromise.mockReturnValueOnce(request.promise);
+  fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
+  expect(screen.getByRole("button", { name: "Deleting…" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Keep event" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Deleting…" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "calendar/event/delete", entity_id: "calendar.house", uid: "event-uid", ...(recurring && { recurrence_id: "google-instance-1" }) });
+  expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/delete")).toHaveLength(1);
+  events = [remaining];
+  await act(async () => request.resolve({}));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(await grid.findByRole("button", { name: /Keep this plan/ })).toBeInTheDocument();
+  expect(grid.queryByRole("button", { name: /Delete this plan/ })).not.toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+});
+
+it.each([
+  { features: 4, uid: "event", recurrence_id: null, rrule: null },
+  { features: 3, uid: null, recurrence_id: null, rrule: null },
+  { features: 3, uid: "series", recurrence_id: null, rrule: "FREQ=WEEKLY" },
+])("hides deletion without capability or safe occurrence identity: %j", async ({ features, ...identity }) => {
+  setupWritableCalendars(features);
+  const event = { ...identity, summary: "Keep this event", start: "2026-10-07", end: "2026-10-08" };
+  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Keep this event/ }));
+  expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Remove event" })).not.toBeInTheDocument();
+});
+
+it("keeps failed deletions visible and blocks confirmation after disconnect or capability loss", async () => {
+  const { household, key } = setupWritableCalendars(3);
+  const event = { uid: "event", summary: "Still here", start: "2026-10-07", end: "2026-10-08" };
+  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Still here/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+  conn.sendMessagePromise.mockRejectedValueOnce(new Error("Permission denied with private details"));
+  fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("could not confirm the deletion");
+  expect(screen.queryByText(/private details/)).not.toBeInTheDocument();
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  act(() => conn.emit("disconnected"));
+  expect(screen.getByRole("button", { name: "Remove event" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...household }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Remove event" })).toBeEnabled());
+  act(() => conn.entityCallback?.({ ...household, "calendar.house": state("calendar.house", "unavailable", { supported_features: 3 }) }));
+  expect(screen.getByRole("button", { name: "Remove event" })).toBeDisabled();
+  act(() => conn.entityCallback?.({ ...household, "calendar.house": state("calendar.house", "off", { supported_features: 1 }) }));
+  expect(screen.getByRole("button", { name: "Remove event" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Remove event" }));
+  fireEvent.click(screen.getByRole("button", { name: "Keep event" }));
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(await screen.findByRole("button", { name: /Still here/ })).toBeInTheDocument();
+  expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/delete")).toHaveLength(1);
+  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+});
+
 it.each(["/", "/calendar"])("shows continuous spans and unique person cards from %s", async path => {
   setupWritableCalendars(4);
   const events = [

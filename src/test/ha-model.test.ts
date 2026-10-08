@@ -30,6 +30,18 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("deletes calendars by event identity using deletion support independently of editing", () => {
+    const calendar = mapHome({ "calendar.family": state("calendar.family", "off", { supported_features: 3 }) }, registries, "test").entities.find(e => e.entityId === "calendar.family")!;
+    const value = { uid: "google-series", recurrence_id: "google-occurrence" };
+    expect(entityCommand(calendar, "delete_event", {}, value)).toEqual({ domain: "calendar", service: "delete_event", target: { entity_id: "calendar.family" }, data: value });
+    expect(entityCommand(calendar, "delete_event", {}, { uid: "single-event" }).data).toEqual({ uid: "single-event" });
+    for (const features of [0, 1, 4]) expect(supportsAction({ ...calendar, attributes: { supported_features: features } }, "delete_event", services)).toBe(false);
+    for (const features of [2, 3, 7]) expect(supportsAction({ ...calendar, attributes: { supported_features: features } }, "delete_event", {})).toBe(true);
+    for (const invalid of [null, {}, { uid: "" }, { uid: 3 }, { ...value, recurrence_id: "" }, { ...value, recurrence_id: null }, { ...value, recurrence_range: "THISANDFUTURE" }]) {
+      expect(() => entityCommand(calendar, "delete_event", {}, invalid)).toThrow("valid event ID");
+    }
+    expect(() => entityCommand({ ...calendar, state: "unavailable" }, "delete_event", {}, value)).toThrow("available");
+  });
   it("validates calendar updates without requiring a nonexistent update service", () => {
     const calendar = mapHome({ "calendar.family": state("calendar.family", "off", { supported_features: 4 }) }, registries, "test").entities.find(e => e.entityId === "calendar.family")!;
     const event = { summary: " Dinner ", dtstart: "2026-10-25T00:30:00Z", dtend: "2026-10-25T01:30:00Z", location: "Home", description: "Line one\nLine two" };
