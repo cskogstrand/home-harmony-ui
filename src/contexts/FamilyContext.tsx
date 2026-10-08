@@ -34,8 +34,10 @@ const calendarSettingsSchema = z.object({
 const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
   timetables: z.record(z.string()),
+  timetableEnabled: z.record(z.boolean()).catch({}),
   calendar: calendarSettingsSchema.catch({ view: "week", startDay: "today" }),
   homeEntities: z.record(z.array(z.string())).catch({}),
+  memberOrder: z.array(memberSchema).catch([]),
   calendarMembers: z.record(memberSchema).default({}),
   todoLists: z.record(z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema })).default({}),
 });
@@ -82,6 +84,7 @@ function samplePlanner(today: string): Planner {
     events: sortEvents(events),
     calendar: { view: "week", startDay: "today" },
     homeEntities: {},
+    memberOrder: [],
     calendarMembers: {},
     todoLists: {},
     items: [
@@ -95,6 +98,7 @@ function samplePlanner(today: string): Planner {
       { id: "t2", text: "Return library books", kind: "tasks", member: "anna", done: false },
     ],
     timetables: { emma: "/timetables/emma.svg", leo: "/timetables/leo.svg" },
+    timetableEnabled: {},
   };
 }
 
@@ -104,6 +108,8 @@ interface FamilyContextValue extends Planner {
   plannerId: string; plannerIds: string[]; selectPlanner: (id: string) => void;
   calendarStart: string;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
+  compareMembers: (a: MemberId, b: MemberId) => number;
+  moveMember: (id: MemberId, direction: -1 | 1) => void;
   setHomeEntities: (instance: string, ids: string[]) => void;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
@@ -113,6 +119,8 @@ interface FamilyContextValue extends Planner {
   toggleItem: (id: string) => void;
   deleteItem: (id: string) => void;
   setTimetable: (child: MemberId, url: string) => void;
+  hasTimetable: (member: MemberId) => boolean;
+  setTimetableEnabled: (member: MemberId, enabled: boolean) => void;
 }
 const FamilyContext = createContext<FamilyContextValue | null>(null);
 export function useFamily() {
@@ -148,7 +156,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: { children: ReactNode; homeId: string; timeZone: string; plannerIds: string[]; selectPlanner: (id: string) => void }) {
   const { currentHome, haUrl } = useApp();
   const connectedPlanner = !!haUrl;
-  const members: FamilyMember[] = connectedPlanner ? currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
+  const availableMembers: FamilyMember[] = connectedPlanner ? currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
     id: person.preferenceId, name: person.name,
     initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
     color: demoMembers[index % demoMembers.length].color,
@@ -173,8 +181,12 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     // Old starter data stays intact; only display preferences carry into the real household.
     let preferences: Partial<Planner> = {};
     try { preferences = plannerSchema.partial().parse(JSON.parse(localStorage.getItem(`afterglow-planner-v1:${homeId}`) ?? "{}")); } catch { /* Start with empty preferences. */ }
-    return { events: [], items: [], timetables: {}, calendarMembers: {}, todoLists: {}, calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
+    return { events: [], items: [], timetables: {}, timetableEnabled: {}, calendarMembers: {}, todoLists: {}, memberOrder: [], calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
   });
+  const memberIds = [...new Set([...planner.memberOrder, ...availableMembers.map(member => member.id)])].filter(id => id !== "everyone");
+  const memberRanks = new Map(["everyone", ...memberIds].map((id, index) => [id, index]));
+  const compareMembers = (a: MemberId, b: MemberId) => (memberRanks.get(a) ?? memberRanks.size) - (memberRanks.get(b) ?? memberRanks.size);
+  const members = availableMembers.sort((a, b) => compareMembers(a.id, b.id));
   const [saved, setSaved] = useState(true);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000 * 15);
@@ -184,11 +196,20 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     try { localStorage.setItem(key, JSON.stringify(planner)); setSaved(true); }
     catch { setSaved(false); toast.error("This browser cannot save changes. Keep this tab open to retain your planner."); }
   }, [key, planner]);
-  return <FamilyContext.Provider value={{ ...planner, members, connectedPlanner,
+  return <FamilyContext.Provider value={{ ...planner, members, connectedPlanner, compareMembers,
     memberName: id => id === "everyone" ? "Everyone" : members.find(m => m.id === id)?.name ?? "Person unavailable",
     now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner,
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
+    moveMember: (id, direction) => {
+      const index = members.findIndex(member => member.id === id);
+      const neighbor = members[index + direction];
+      if (index < 0 || !neighbor) return;
+      const order = [...memberIds];
+      const from = order.indexOf(id), to = order.indexOf(neighbor.id);
+      [order[from], order[to]] = [order[to], order[from]];
+      setPlanner(p => ({ ...p, memberOrder: order }));
+    },
     setHomeEntities: (instance, ids) => setPlanner(p => ({ ...p, homeEntities: { ...p.homeEntities, [instance]: [...new Set(ids)] } })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };
@@ -214,6 +235,8 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     },
     toggleItem: id => setPlanner(p => ({ ...p, items: p.items.map(i => i.id === id ? { ...i, done: !itemIsDone(i, today), completedOn: itemIsDone(i, today) ? "" : today } : i) })),
     deleteItem: id => setPlanner(p => ({ ...p, items: p.items.filter(i => i.id !== id) })),
+    hasTimetable: member => planner.timetableEnabled[member] ?? !!planner.timetables[member],
+    setTimetableEnabled: (member, enabled) => setPlanner(p => ({ ...p, timetableEnabled: { ...p.timetableEnabled, [member]: enabled } })),
     setTimetable: (child, url) => {
       try { if (!/^https?:$/.test(new URL(url, window.location.origin).protocol)) throw new Error(); }
       catch { toast.error("Use an HTTP or HTTPS image URL."); return; }

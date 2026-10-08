@@ -901,6 +901,113 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
   expect(select("Shared shopping list for Everyone")).toHaveValue("");
 });
 
+it("uses saved people order for connected lists and retains missing people and instance isolation", async () => {
+  const instance = "http://ha.local:8123";
+  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
+  const personId = (name: string) => `${instance}|person.${name}`;
+  const household = { ...states,
+    "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  const todoLists = Object.fromEntries(["daily", "tasks"].flatMap(kind => ["morgan", "everyone", "riley"].map(name => [
+    `${instance}|todo.${name}_${kind}`, { kind, member: name === "everyone" ? name : personId(name) },
+  ])));
+  localStorage.setItem("home-harmony:ha-url", instance);
+  // Existing saved planners have no order preference yet.
+  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, todoLists }));
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "Move Riley up" }));
+  const order = () => JSON.parse(localStorage.getItem(key)!).memberOrder;
+  expect(order()).toEqual([personId("riley"), personId("morgan")]);
+  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  const listOrder = (kind: string) => screen.getAllByRole("group", { name: new RegExp(` ${kind}$`) }).map(group => group.getAttribute("aria-label"));
+  nav("Today");
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "RRiley", "MMorgan"]);
+  expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
+  nav("Lists");
+  expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
+  fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
+  expect(listOrder("tasks")).toEqual(["Everyone tasks", "Riley tasks", "Morgan tasks"]);
+  act(() => conn.entityCallback?.({ ...states, "person.morgan": household["person.morgan"] }));
+  expect(listOrder("tasks")).toEqual(["Everyone tasks", "Person unavailable tasks", "Morgan tasks"]);
+  const newPerson = { "person.alex": state("person.alex", "home", { friendly_name: "Alex" }) };
+  act(() => conn.entityCallback?.({ ...newPerson, ...household }));
+  nav("Our week");
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "RRiley", "MMorgan", "AAlex"]);
+  expect(order()).toEqual([personId("riley"), personId("morgan")]);
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  const restored = render(<App />);
+  await screen.findByRole("rowheader", { name: "Riley" });
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "RRiley", "MMorgan"]);
+  restored.unmount();
+  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
+  render(<App />);
+  expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).memberOrder).toEqual([]);
+  expect(order()).toEqual([personId("riley"), personId("morgan")]);
+  expect(JSON.parse(localStorage.getItem(key)!).todoLists).toEqual(todoLists);
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("remembers timetable toggles across school, dashboard and reload without losing saved images", async () => {
+  const instance = "http://ha.local:8123";
+  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
+  const riley = `${instance}|person.riley`;
+  const household = { ...states,
+    "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  const timetables = { [riley]: "https://school.example/riley.png" };
+  localStorage.setItem("home-harmony:ha-url", instance);
+  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables }));
+  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Timetable for Morgan" })).not.toBeChecked();
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
+  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  nav("School");
+  expect(screen.getByText(/No timetables enabled/)).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: /’s school week/ })).not.toBeInTheDocument();
+  nav("Today");
+  expect(screen.queryByRole("button", { name: /Enlarge .* timetable/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("rowheader", { name: "Riley" })).toBeInTheDocument();
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  window.history.replaceState(null, "", "/settings");
+  const restored = render(<App />);
+  expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).not.toBeChecked();
+  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(timetables);
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Morgan" }));
+  fireEvent.click(screen.getByRole("button", { name: "Move Riley up" }));
+  nav("School");
+  expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Riley’s school week", "Morgan’s school week"]);
+  expect(screen.getByRole("img", { name: "Riley’s school timetable" })).toHaveAttribute("src", timetables[riley]);
+  expect(screen.getByRole("button", { name: "Set up timetable image" })).toBeInTheDocument();
+  nav("Today");
+  expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable", "Enlarge Morgan’s timetable"]);
+  restored.unmount();
+  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
+  render(<App />);
+  expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).timetableEnabled).toEqual({});
+  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(timetables);
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
 it("reads and edits assigned HA lists in the dashboard and Lists without storing remote items", async () => {
   const instance = "http://ha.local:8123";
   const key = `afterglow-connected-planner-v1:${instance}:home-1`;

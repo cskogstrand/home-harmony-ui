@@ -33,6 +33,10 @@ Set up [people in Home Assistant](https://www.home-assistant.io/integrations/per
 
 **Everyone** has its own row in the dashboard and calendar, with shared plans shown only there. No separate HA person is needed for the family. **Weekly grid** is the default layout; existing saved layout choices are preserved.
 
+Set **Home settings → People order and timetables** with the up/down buttons. The saved order applies to the dashboard, both calendar layouts, tasks, daily tasks, school timetables and person selectors. Everyone stays first, and new people follow the saved people. Order is stored per HA instance and local planner in this browser and survives refreshes and temporarily missing people.
+
+Use each person’s **Timetable** toggle in the same settings section to include them on the School board and dashboard. Existing saved timetable images start enabled; people without an image start disabled. Enable a person before adding their image URL on the School board. Disabling their timetable hides it without deleting the saved URL, so it returns when enabled again. These choices use the same browser, instance and planner scope as people order.
+
 Calendar integrations remain in Home Assistant. This app reads `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header. It requests the displayed day/week using HA’s timezone (including DST), handles all-day exclusive end dates, and shows **read-only** HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again. There are no calendar writes or invitations.
 
 Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:

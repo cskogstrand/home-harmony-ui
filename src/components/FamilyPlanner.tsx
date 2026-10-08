@@ -65,7 +65,7 @@ export function SchoolPreview({ child }: { child: MemberId }) {
   const { memberName, connectedPlanner } = useFamily();
   const [open, setOpen] = useState(false);
   return <><button className="school-preview" onClick={() => setOpen(true)} aria-label={`Enlarge ${memberName(child)}’s timetable`}>
-    <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && <span>{child === "emma" ? "Year 5" : "Year 2"}</span>}<Maximize2 size={16} /></div>
+    <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? "Year 5" : "Year 2"}</span>}<Maximize2 size={16} /></div>
     <TimetableImage child={child} />
-  </button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>{connectedPlanner ? "Timetable image saved on this screen." : "Sample timetable · Replace the image URL in School."}</DialogDescription></DialogHeader><TimetableImage child={child} /></DialogContent></Dialog></>;
+  </button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Timetable image saved on this screen. Change its URL in School.</DialogDescription></DialogHeader><TimetableImage child={child} /></DialogContent></Dialog></>;
 }

@@ -112,6 +112,63 @@ it("uses the home timezone and calendar dates across a month boundary", () => {
 
 const gridDates = () => Array.from(screen.getByRole("table").querySelectorAll("thead time"), time => time.getAttribute("datetime"));
 
+it("saves one people order for calendars, local lists, school and person selectors", () => {
+  window.history.replaceState(null, "", "/settings");
+  const view = render(<App />);
+  const key = "afterglow-planner-v1:home-1";
+  const original = JSON.parse(localStorage.getItem(key)!);
+  expect(screen.getByRole("button", { name: "Move Anna up" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Move Leo down" })).toBeDisabled();
+  for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Move Leo up" }));
+  fireEvent.click(screen.getByRole("button", { name: "Move Erik down" }));
+  expect(screen.getByRole("button", { name: "Move Leo up" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Move Erik down" })).toBeDisabled();
+  expect(JSON.parse(localStorage.getItem(key)!).memberOrder).toEqual(["leo", "anna", "emma", "erik"]);
+  const dailyOrder = ["Set the table", "Pack tomorrow’s school bags", "Empty the dishwasher"];
+  const checkboxNames = () => screen.getAllByRole("checkbox").map(input => input.closest("label")!.textContent);
+  navigate("Today");
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "LLeo", "AAnna", "EmEmma", "ErErik"]);
+  expect(checkboxNames().slice(0, 3)).toEqual(dailyOrder);
+  navigate("Our week");
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "LLeo", "AAnna", "EmEmma", "ErErik"]);
+  fireEvent.click(screen.getByRole("button", { name: "By person" }));
+  expect(screen.getAllByRole("heading", { level: 2, name: /^(Everyone|Leo|Anna|Emma|Erik)$/ }).map(heading => heading.textContent)).toEqual(["Everyone", "Leo", "Anna", "Emma", "Erik"]);
+  navigate("Lists");
+  expect(checkboxNames()).toEqual(dailyOrder);
+  fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
+  expect(checkboxNames()).toEqual(["Return library books", "Book winter tyre change"]);
+  fireEvent.click(screen.getByRole("button", { name: "Add task" }));
+  expect(within(screen.getByRole("combobox", { name: "Assign task" })).getAllByRole("option").map(option => option.textContent)).toEqual(["Everyone", "Leo", "Anna", "Emma", "Erik"]);
+  navigate("School");
+  expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Leo’s school week", "Emma’s school week"]);
+  view.unmount();
+  window.history.replaceState(null, "", "/settings");
+  render(<App />);
+  expect(within(screen.getByRole("list", { name: "People order" })).getAllByRole("button", { name: / up$/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Move Leo up", "Move Anna up", "Move Emma up", "Move Erik up"]);
+  const saved = JSON.parse(localStorage.getItem(key)!);
+  expect(saved.events).toEqual(original.events);
+  expect(saved.items).toEqual(original.items);
+  expect(saved.timetables).toEqual(original.timetables);
+});
+
+it("lets any local person have a timetable without giving them demo school details", () => {
+  window.history.replaceState(null, "", "/settings");
+  render(<App />);
+  expect(screen.getByRole("switch", { name: "Timetable for Emma" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Timetable for Leo" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Timetable for Anna" })).not.toBeChecked();
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Anna" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Leo" }));
+  navigate("School");
+  expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Anna’s school week"]);
+  expect(screen.queryByText(/Year 2|Year 5|IN THE SCHOOL BAG/)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Set up timetable image" })).toBeInTheDocument();
+  navigate("Today");
+  expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ })).toHaveLength(1);
+  expect(screen.getByRole("button", { name: "Enlarge Anna’s timetable" })).toBeInTheDocument();
+});
+
 it("shares and remembers calendar layouts and today/Monday ranges without discarding existing plans", () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));

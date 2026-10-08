@@ -80,7 +80,7 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
 // Remote events stay read-only and never enter FamilyContext/localStorage.
 export function useCalendarPlans(start: string, end: string) {
   const { currentHome, homeOnline, haUrl, calendarEvents } = useApp();
-  const { events: localEvents, calendarMembers, members } = useFamily();
+  const { events: localEvents, calendarMembers, members, compareMembers } = useFamily();
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
@@ -112,7 +112,7 @@ export function useCalendarPlans(start: string, end: string) {
   // Local plans remain reachable when their HA person is removed or has not loaded yet.
   const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
     .filter(id => id !== "everyone" && !members.some(m => m.id === id))
-    .map(id => ({ id, name: "Person unavailable", initials: "?", color: "#c4d5a3" }))];
+    .map(id => ({ id, name: "Person unavailable", initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id));
   people.unshift({ id: "everyone", name: "Everyone", initials: "All", color: "#c4d5a3" });
   return { events: sortEvents([...localEvents, ...remote]), people,
     loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),

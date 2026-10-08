@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, type ListKind } from "@/contexts/FamilyContext";
-import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
+import { MemberAvatar, PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 export default function HomeSettings() {
   const { haUrl, connect, disconnect, logout, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, sessionWarning, homeOnline } = useApp();
-  const { members, memberName, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
+  const { members, memberName, moveMember, compareMembers, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [{ id: "everyone", name: "Everyone" }, ...members, ...[...new Set(Object.values(todoLists).map(assigned => assigned.member))]
-    .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: "Person unavailable" }))];
+    .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: "Person unavailable" }))].sort((a, b) => compareMembers(a.id, b.id));
   const [url, setUrl] = useState(haUrl);
   const busy = ["connecting", "syncing"].includes(connectionStatus);
   const listLabels = { tasks: "Tasks", daily: "Daily tasks", shopping: "Shared shopping list" };
@@ -41,6 +42,20 @@ export default function HomeSettings() {
       <p className="page-note">Sign in on Home Assistant’s own page. This browser remembers your login across refreshes, closed tabs and browser restarts. Disconnect pauses this tab; Connect resumes it. Log out clears the browser login, disconnects other open tabs and revokes this HA session.</p>
       <p className="page-note">Login is saved in this browser profile for this dashboard address, accessible to scripts from this app. Use a trusted device and Log out when finished. Private browsing, clearing site data or revoked credentials require signing in again.</p>
       <p className="page-note">Use HTTP with WS on your local network, or HTTPS with WSS and a certificate trusted by this browser. An HTTPS dashboard cannot connect to HTTP Home Assistant. Calendar reads also require this dashboard’s exact origin in HA’s CORS configuration.</p>
+    </section>
+    <section className="glow-panel" id="people-order"><PanelHeading title="People order and timetables" />
+      <p className="page-note">Set the order used throughout the app: calendars, tasks, daily tasks, school timetables and person selectors. Everyone stays first; new people appear at the end.</p>
+      <p className="page-note">Turn on Timetable for people who need a school card and dashboard preview. Turning it off keeps their saved image URL.</p>
+      {!members.length && <p className="empty-note">Connect to Home Assistant and set up people there to arrange them here.</p>}
+      <ol aria-label="People order">{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
+        <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
+        <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
+          <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">Timetable<Switch aria-label={`Timetable for ${person.name}`} checked={hasTimetable(person.id)} onCheckedChange={enabled => setTimetableEnabled(person.id, enabled)} /></label>
+          <Button type="button" variant="outline" size="icon" disabled={index === 0} aria-label={`Move ${person.name} up`} onClick={() => moveMember(person.id, -1)}><ArrowUp size={18} aria-hidden="true" /></Button>
+          <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={`Move ${person.name} down`} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>
+        </div>
+      </li>)}</ol>
+      <p className="page-note">These settings are saved automatically for this household and planner in this browser.</p>
     </section>
     <section className="glow-panel" id="family-calendar"><PanelHeading title="People and calendars" />
       <p className="page-note">Add calendars to each person, or Everyone for shared plans. Choosing an assigned calendar moves it here.</p>

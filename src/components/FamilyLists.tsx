@@ -20,11 +20,11 @@ function ItemSuggestions({ id, names, text, select }: { id: string; names: strin
   </div>;
 }
 export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
-  const { connectedPlanner, todoLists, memberName } = useFamily();
+  const { connectedPlanner, todoLists, compareMembers } = useFamily();
   const { haUrl, homeOnline, currentHome } = useApp();
   if (!connectedPlanner) return <LocalListPanel kind={kind} limit={limit} />;
   const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind)
-    .sort(([, a], [, b]) => Number(b.member === "everyone") - Number(a.member === "everyone") || memberName(a.member).localeCompare(memberName(b.member)));
+    .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   return <article className={`glow-panel list-panel list-${kind}`}>
     <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
     {!lists.length && <p className="empty-note">{!homeOnline ? "Connect to Home Assistant to load your to-do lists." : currentHome.entities.some(e => e.domain === "todo") ? `Select ${kind === "shopping" ? "a shared shopping list" : kind === "daily" ? "daily task lists for your family" : "task lists for your family"} in Home settings.` : "Set up to-do lists in Home Assistant, then select them in Home settings."}</p>}
@@ -105,12 +105,13 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
 }
 
 function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
-  const { items, today, toggleItem, addItem, deleteItem } = useFamily();
+  const { items, today, toggleItem, addItem, deleteItem, compareMembers } = useFamily();
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
   const [member, setMember] = useState<MemberId>("everyone");
   const suggestionsId = useId();
   const list = items.filter(i => i.kind === kind);
+  if (kind !== "shopping") list.sort((a, b) => compareMembers(a.member, b.member));
   const completed = list.filter(i => itemIsDone(i, today));
   const pending = list.filter(i => !itemIsDone(i, today));
   const shown = limit ? pending.slice(0, limit) : pending;
