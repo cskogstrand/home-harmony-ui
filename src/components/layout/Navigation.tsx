@@ -25,5 +25,5 @@ const smartItems = [
 ];
 export function SmartHomeNav() {
   const { pathname } = useLocation();
-  return <nav className="smart-nav" aria-label="Smart home navigation">{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) ? "page" : undefined}><item.icon size={16} />{item.label}</Link>)}</nav>;
+  return <nav className="smart-nav" aria-label="Smart home navigation">{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) || item.path === "/devices" && pathname.startsWith("/entities/") ? "page" : undefined}><item.icon size={16} />{item.label}</Link>)}</nav>;
 }

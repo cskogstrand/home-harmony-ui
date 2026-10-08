@@ -230,11 +230,13 @@ it("uses reported state throughout navigation and disables stale controls in the
   act(() => conn.entityCallback?.({ ...states, "light.living": state("light.living", "off", states["light.living"].attributes) }));
   expect(toggle).not.toBeChecked();
   fireEvent.click(screen.getByRole("link", { name: "Living Room Light details" }));
-  expect(await screen.findByRole("heading", { level: 1, name: "Living Room Light" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(window.location.hash).toBe("#light.living");
+  expect(screen.getByRole("article", { name: "Living Room Light" })).toHaveFocus();
   expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
   act(() => conn.emit("disconnected"));
   expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
-  expect(screen.getByText("Offline")).toBeInTheDocument();
+  expect(screen.getAllByText("Offline").length).toBeGreaterThan(0);
 });
 it("keeps saved planner datasets and calendar preferences independent of HA authentication", async () => {
   const planner = { events: [{ id: "personal", title: "My existing plan", date: "2026-10-06", time: "12:00", member: "anna", location: "Home", note: "Keep me" }], items: [{ id: "task", text: "Keep this task", kind: "tasks", member: "anna", done: false }], timetables: { emma: "/custom.svg", leo: "/leo.svg" }, calendar: { view: "week", startDay: "monday" } };
@@ -1055,7 +1057,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
 
 it("offers temperature, mode and blind controls without duplicating raw state labels", async () => {
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
+  window.history.replaceState(null, "", "/home?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const target = await screen.findByRole("slider", { name: "Living target" });
   await waitFor(() => expect(target).not.toHaveAttribute("data-disabled"));
@@ -1742,6 +1744,7 @@ it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unass
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
+  if (path === "/devices") fireEvent.click(await screen.findByText(/^Other controls/));
   const toggle = await screen.findByRole("switch", { name: "Toggle Sunset" });
   await waitFor(() => expect(toggle).toBeEnabled());
   fireEvent.click(toggle);
@@ -1815,4 +1818,112 @@ it("keeps favorites intact when individual or bulk removal is canceled", async (
   expect(checkbox).not.toBeChecked();
   fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
   expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
+});
+
+it("lists devices once, searches their metadata and child readings, and keeps standalone controls secondary", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const card = await screen.findByRole("link", { name: "Multi sensor details" });
+  expect(screen.getAllByRole("link", { name: "Multi sensor details" })).toHaveLength(1);
+  expect(card).toHaveTextContent("Hall");
+  expect(card).toHaveTextContent("Some readings unavailable");
+  expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
+  const other = screen.getByText(/^Other controls/).closest("details")!;
+  expect(other).not.toHaveAttribute("open");
+  const search = screen.getByRole("textbox", { name: "Search devices" });
+  for (const query of [" MULTI ", "Hall", "Reported manufacturer", "Living Room Light", "sensor.power", "Living Room"]) {
+    fireEvent.change(search, { target: { value: query } });
+    expect(screen.getByRole("link", { name: "Multi sensor details" })).toBeInTheDocument();
+  }
+  fireEvent.change(search, { target: { value: "charger" } });
+  expect(screen.queryByRole("link", { name: "Multi sensor details" })).not.toBeInTheDocument();
+  expect(screen.getByText(/^Other controls/).closest("details")).toHaveAttribute("open");
+  fireEvent.click(screen.getByRole("link", { name: "Charger power details" }));
+  expect(await screen.findByRole("heading", { level: 1, name: "Charger power" })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/entities/switch.charger");
+  expect(screen.getByRole("link", { name: "Devices" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("switch", { name: "Toggle Charger power" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("link", { name: "Back to devices" }));
+  fireEvent.click(screen.getByRole("link", { name: "Multi sensor details" }));
+  expect(window.location.pathname).toBe("/devices/physical-1");
+  expect(screen.getByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Hall" })).toHaveAttribute("href", "/areas/hall");
+  expect(screen.getAllByRole("article")).toHaveLength(2);
+  const light = screen.getByRole("article", { name: "Living Room Light" });
+  expect(light).toHaveTextContent("Living Room");
+  expect(within(light).getByText("Entity ID")).not.toBeVisible();
+  fireEvent.click(within(light).getByText("Technical details"));
+  expect(within(light).getByText("Entity ID")).toBeVisible();
+  fireEvent.click(screen.getByRole("switch", { name: "Toggle Living Room Light" }));
+  await waitFor(() => expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "light", "turn_off", {}, { entity_id: "light.living" }));
+});
+
+it.each(["/devices/light.living", "/entities/light.living", "/devices/physical-1#light.living"])("opens the parent device and focuses its control from %s after loading", async path => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
+  window.history.replaceState(null, "", path);
+  const metadata = deferred<typeof registries.devices>();
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => type === "config/device_registry/list" ? metadata.promise : ({ "config/area_registry/list": registries.areas, "config/entity_registry/list": registries.entities })[type]);
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  await act(async () => metadata.resolve(registries.devices));
+  expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/devices/physical-1");
+  expect(window.location.hash).toBe("#light.living");
+  expect(screen.getByRole("article", { name: "Living Room Light" })).toHaveFocus();
+  act(() => conn.emit("disconnected"));
+  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
+  expect(screen.getByText("Home Assistant offline")).toBeInTheDocument();
+});
+
+it("retains empty devices, custom names, models and unassigned rooms", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
+    "config/area_registry/list": registries.areas,
+    "config/device_registry/list": [...registries.devices, { id: "empty", name: "Original", name_by_user: "Bedroom thermostat", model: "T100", sw_version: "1.0" }],
+    "config/entity_registry/list": registries.entities,
+  })[type]);
+  render(<App />);
+  const card = await screen.findByRole("link", { name: "Bedroom thermostat details" });
+  expect(card).toHaveTextContent("Unassigned");
+  expect(card).toHaveTextContent("No controls or readings");
+  fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "T100" } });
+  expect(screen.queryByRole("link", { name: "Multi sensor details" })).not.toBeInTheDocument();
+  fireEvent.click(card);
+  expect(screen.getByRole("heading", { level: 1, name: "Bedroom thermostat" })).toBeInTheDocument();
+  expect(screen.getByText(/This device has no visible controls/)).toBeInTheDocument();
+  expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  expect(screen.getByText("1.0")).not.toBeVisible();
+  fireEvent.click(screen.getByText("Device technical details"));
+  expect(screen.getByText("1.0")).toBeVisible();
+});
+
+it.each(["config/device_registry/list", "config/entity_registry/list"])("keeps controls accessible when %s cannot be loaded", async failed => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => {
+    if (type === failed) throw new Error("Unavailable");
+    return ({ "config/area_registry/list": registries.areas, "config/device_registry/list": registries.devices, "config/entity_registry/list": registries.entities })[type];
+  });
+  render(<App />);
+  expect(await screen.findByText(/Device information may be incomplete/)).toBeInTheDocument();
+  fireEvent.click(screen.getByText(/^Other controls/));
+  const control = screen.getByRole("switch", { name: "Toggle Living Room Light" });
+  expect(control).toBeEnabled();
+  fireEvent.click(screen.getByRole("link", { name: "Living Room Light details" }));
+  expect(window.location.pathname).toBe("/entities/light.living");
+  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeEnabled();
+});
+
+it("opens legacy links with readable states when services cannot load", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/devices/light.living?auth_callback=1&code=fixture&state=fixture");
+  vi.mocked(ha.getServices).mockRejectedValueOnce(new Error("Unavailable"));
+  render(<App />);
+  expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/devices/physical-1");
+  expect(screen.getByRole("article", { name: "Living Room Light" })).toHaveTextContent("Offline");
+  expect(ha.callService).not.toHaveBeenCalled();
 });

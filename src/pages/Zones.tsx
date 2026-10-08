@@ -1,3 +1,4 @@
+import { entityDetailPath } from "@/lib/device-model";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
@@ -18,7 +19,7 @@ export default function Zones() {
       const passive = zone.attributes.passive === true;
       const presence = /^\d+$/.test(zone.state) ? `${zone.state} ${Number(zone.state) === 1 ? "person" : "people"}` : zone.state;
       return <article key={zone.entityId} className="glow-panel space-y-4" aria-label={zone.name}>
-        <div className="panel-heading"><h2 className="flex items-center gap-2"><MapPin size={20} />{zone.name}</h2><Link className="text-link" to={`/devices/${zone.entityId}`} aria-label={`View ${zone.name} zone details`}><ArrowUpRight size={18} /></Link></div>
+        <div className="panel-heading"><h2 className="flex items-center gap-2"><MapPin size={20} />{zone.name}</h2><Link className="text-link" to={entityDetailPath(zone)} aria-label={`View ${zone.name} zone details`}><ArrowUpRight size={18} /></Link></div>
         <p className="sensor-state">{!homeOnline && "Stale · "}{presence}</p>
         <details className="device-details"><summary>Location details</summary><dl className="device-readings">
           <div><dt>Radius</dt><dd>{radius !== undefined && radius >= 0 ? `${radius} m` : "Not reported"}</dd></div>

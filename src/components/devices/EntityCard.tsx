@@ -1,3 +1,4 @@
+import { entityDetailPath } from "@/lib/device-model";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { Entity } from "@/types/api";
@@ -7,5 +8,5 @@ export function EntityCard({ entity }: { entity: Entity }) {
   const { currentHome, homeOnline } = useApp();
   const active = homeOnline && ["on", "heat", "cool", "heating", "cooling"].includes(entity.state);
   const area = currentHome.areas.find(r => r.id === entity.areaId);
-  return <article aria-label={entity.name} className={`glow-panel home-device${active ? " is-active" : ""}`}><Link to={`/devices/${entity.entityId}`} className="home-device-title" aria-label={`${entity.name} details`}><span className="device-symbol"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-5 w-5" /></span><span className="device-name"><h3>{entity.name}</h3>{area && area.id !== "unassigned" && <small>{area.name}</small>}</span><ChevronRight size={16} /></Link><DeviceControl entity={entity} /></article>;
+  return <article aria-label={entity.name} className={`glow-panel home-device${active ? " is-active" : ""}`}><Link to={entityDetailPath(entity)} className="home-device-title" aria-label={`${entity.name} details`}><span className="device-symbol"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-5 w-5" /></span><span className="device-name"><h3>{entity.name}</h3>{area && area.id !== "unassigned" && <small>{area.name}</small>}</span><ChevronRight size={16} /></Link><DeviceControl entity={entity} /></article>;
 }

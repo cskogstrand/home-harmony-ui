@@ -14,6 +14,7 @@ import SmartHome from "./pages/SmartHome";
 import Dashboard from "./pages/Dashboard";
 import Devices from "./pages/Devices";
 import DeviceDetail from "./pages/DeviceDetail";
+import EntityDetail from "./pages/EntityDetail";
 import Areas from "./pages/Areas";
 import Zones from "./pages/Zones";
 import Moods from "./pages/Moods";
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/home" element={<SmartHome />} />
                 <Route path="/devices" element={<Devices />} />
                 <Route path="/devices/:deviceId" element={<DeviceDetail />} />
+                <Route path="/entities/:entityId" element={<EntityDetail />} />
                 <Route path="/areas" element={<Areas />} />
                 <Route path="/areas/:areaId" element={<Areas />} />
                 <Route path="/rooms" element={<Navigate to="/areas" replace />} />
