@@ -52,10 +52,10 @@ export default function Calendar() {
         const personal = visible.filter(e => e.member === person.id);
         return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2><p>{personal.length} plans {validDate ? `on ${dateLabel(validDate, { weekday: "long" })}` : "in these 7 days"}</p></div></header>
           {personal.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
-          {!personal.length && <div className="empty-note"><CalendarDays size={25} /><p>{connectedPlanner ? data.loading ? "Loading plans…" : data.errors.length ? "Some calendars could not be loaded." : "No plans to display. Add a local plan or check calendar setup above." : "Some room to breathe."}</p></div>}
+          {!personal.length && <div className="empty-note"><CalendarDays size={25} /><p>{connectedPlanner ? data.loading ? "Loading plans…" : data.errors.length ? "Some calendars could not be loaded." : "No plans to display. Add a plan or check calendar setup above." : "Some room to breathe."}</p></div>}
         </section>;
       })}</div>}
     <p className="page-note">Tap a plan for details. Local plans can be edited here. Shared plans appear in Everyone’s row.</p>
-    <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} date={newPlan?.date ?? validDate ?? today} member={newPlan?.member} />
+    <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date ?? validDate ?? today} member={newPlan?.member} />
   </div>;
 }

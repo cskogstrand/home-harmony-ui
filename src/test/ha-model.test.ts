@@ -30,6 +30,17 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("validates calendar writes and requires calendar create support", () => {
+    const calendar = mapHome({ "calendar.family": state("calendar.family", "off", { supported_features: 1 }) }, registries, "test").entities.find(e => e.entityId === "calendar.family")!;
+    const value = { summary: " Dinner ", start_date_time: "2026-10-25T23:30:00", end_date_time: "2026-10-26T00:30:00", location: "Home", description: "Bring bread" };
+    expect(entityCommand(calendar, "create_event", services, value)).toEqual({ domain: "calendar", service: "create_event", target: { entity_id: "calendar.family" }, data: { ...value, summary: "Dinner" } });
+    for (const invalid of [null, { ...value, summary: " " }, { ...value, start_date_time: "2026-02-30T12:00:00" }, { ...value, end_date_time: value.start_date_time }, { ...value, end_date_time: "2026-10-25T22:00:00" }, { ...value, start_date_time: "2026-10-25T23:30:00Z" }]) {
+      expect(() => entityCommand(calendar, "create_event", services, invalid)).toThrow("valid dates and times");
+    }
+    expect(supportsAction({ ...calendar, attributes: { supported_features: 2 } }, "create_event", services)).toBe(false);
+    expect(supportsAction(calendar, "create_event", {})).toBe(false);
+    expect(() => entityCommand({ ...calendar, state: "unavailable" }, "create_event", services, value)).toThrow("available");
+  });
   it("uses to-do item IDs and gates edits by supported features and valid input", () => {
     const todo = mapHome({ "todo.family": state("todo.family", "2", { supported_features: 7 }) }, registries, "test").entities.find(e => e.entityId === "todo.family")!;
     const todoServices = { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } };

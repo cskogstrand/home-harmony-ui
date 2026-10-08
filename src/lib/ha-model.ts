@@ -1,4 +1,5 @@
 import type { HassConfig, HassServices } from "home-assistant-js-websocket";
+import { z } from "zod";
 import type { AlarmAction, Entity, EntityAction, EntityStates, Home, Registries } from "@/types/api";
 
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
@@ -7,6 +8,13 @@ export const stringValues = (value: unknown): string[] => Array.isArray(value) ?
 export const available = (entity: Entity) => !(["unavailable", "missing"].includes(entity.state) || (entity.state === "unknown" && entity.domain !== "scene"));
 export const feature = (entity: Entity, flag: number) => ((numberValue(entity.attributes.supported_features) ?? 0) & flag) !== 0;
 export const humanizeState = (value: string) => value.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
+// HA interprets these wall-clock times in its configured timezone, not the browser's.
+const calendarTime = z.string().datetime({ local: true, precision: 0 }).regex(/T\d{2}:\d{2}:\d{2}$/);
+const newCalendarEvent = z.object({
+  summary: z.string().trim().min(1).max(100),
+  start_date_time: calendarTime, end_date_time: calendarTime,
+  location: z.string().max(150), description: z.string().max(200),
+}).refine(event => event.end_date_time > event.start_date_time);
 export function entityStateLabel(entity: Entity) {
   if (!available(entity)) return entity.state === "unknown" ? "No reading" : "Unavailable";
   if (entity.domain === "scene") return "Scene";
@@ -72,6 +80,7 @@ export function supportsAction(entity: Entity, action: EntityAction, services: H
   if (domain === "cover") return feature(entity, ({ open_cover: 1, close_cover: 2, position: 4, stop_cover: 8 } as Record<string, number>)[action] ?? 0);
   if (domain === "lock") return action === "lock" || action === "unlock";
   if (domain === "todo") return feature(entity, ({ add_item: 1, remove_item: 2, update_item: 4 } as Record<string, number>)[action] ?? 0);
+  if (domain === "calendar") return action === "create_event" && feature(entity, 1);
   if (domain === "alarm_control_panel") return action === "alarm_disarm" || feature(entity, alarmModes.find(m => m.action === action)?.flag ?? 0);
   return false;
 }
@@ -81,6 +90,11 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   if (!supportsAction(entity, action, services)) throw new Error("This action is not supported by this entity.");
   let service: string = action;
   const data: Record<string, unknown> = {};
+  if (entity.domain === "calendar") {
+    const parsed = newCalendarEvent.safeParse(value);
+    if (!parsed.success) throw new Error("Enter a title and valid dates and times, with the end after the start.");
+    Object.assign(data, parsed.data);
+  }
   if (entity.domain === "todo") {
     if (!value || typeof value !== "object" || !("item" in value) || typeof value.item !== "string" || !value.item.trim()) throw new Error("Enter a to-do item or item ID.");
     data.item = action === "add_item" ? value.item.trim() : value.item;

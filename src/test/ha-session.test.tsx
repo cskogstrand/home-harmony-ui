@@ -24,6 +24,7 @@ class FakeConnection {
   addEventListener = (name: string, listener: () => void) => { if (!this.listeners.has(name)) this.listeners.set(name, new Set()); this.listeners.get(name).add(listener); };
   removeEventListener = (name: string, listener: () => void) => { this.listeners.get(name)?.delete(listener); };
   subscribeEvents = vi.fn(async (callback: () => void, event: string) => { this.subscriptions.set(event, callback); return this.unsubscribeEvent; });
+  subscribeMessage = vi.fn(async (_callback: (message: { events: unknown }) => void, _message: { type: string; entity_id: string; start: string; end: string }, _options: { resubscribe: boolean }): Promise<() => Promise<void>> => { throw { code: "unknown_command" }; });
   sendMessagePromise = vi.fn(async ({ type }: { type: string; entity_id?: string }): Promise<unknown> => ({ "config/area_registry/list": registries.areas, "config/device_registry/list": registries.devices, "config/entity_registry/list": registries.entities })[type]);
   emit(name: string) { this.connected = name === "ready"; this.listeners.get(name)?.forEach(listener => listener()); }
 }
@@ -322,6 +323,165 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   expect(next.getByRole("heading", { name: date ? "Next appointment" : "No upcoming plans to display." })).toBeInTheDocument();
   if (date) expect(next.getByText("15:00")).toBeInTheDocument();
 });
+const setupWritableCalendars = () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  const household = { ...states,
+    "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
+    "calendar.house": state("calendar.house", "off", { friendly_name: "Family calendar", supported_features: 1 }),
+    "calendar.work": state("calendar.work", "off", { friendly_name: "Work calendar", supported_features: 1 }),
+    "calendar.morgan": state("calendar.morgan", "off", { friendly_name: "Morgan calendar", supported_features: 1 }),
+    "calendar.holidays": state("calendar.holidays", "off", { friendly_name: "Holidays", supported_features: 0 }),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  const key = "afterglow-connected-planner-v1:http://ha.local:8123:home-1";
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: {
+    "http://ha.local:8123|calendar.house": "everyone", "http://ha.local:8123|calendar.work": "everyone",
+    "http://ha.local:8123|calendar.holidays": "everyone", "http://ha.local:8123|calendar.morgan": "http://ha.local:8123|person.morgan",
+  } }));
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
+  return { household, key };
+};
+
+it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar without a local duplicate", async path => {
+  const { key } = setupWritableCalendars();
+  window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Refresh calendars" })).not.toBeDisabled());
+  fireEvent.click(screen.getByRole("button", { name: path === "/" ? "Add a family plan" : "Add a plan" }));
+  fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Evening walk" } });
+  const select = screen.getByRole("combobox", { name: "Calendar" });
+  expect(select).toHaveValue("");
+  expect(screen.getByRole("button", { name: "Save plan" })).toBeDisabled();
+  expect(within(select).getByRole("option", { name: /Holidays/ })).toBeDisabled();
+  fireEvent.change(select, { target: { value: "http://ha.local:8123|calendar.work" } });
+  fireEvent.change(screen.getByLabelText("Where?"), { target: { value: "Park" } });
+  fireEvent.change(screen.getByLabelText("A little reminder"), { target: { value: "Bring cocoa" } });
+  fireEvent.change(screen.getByLabelText("End time"), { target: { value: "15:00" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("end after the start");
+  expect(ha.callService).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText("End time"), { target: { value: "17:00" } });
+  const request = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+  fireEvent.submit(screen.getByLabelText("What’s happening?").closest("form")!);
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "calendar", "create_event", {
+    summary: "Evening walk", start_date_time: "2026-10-07T16:00:00", end_date_time: "2026-10-07T17:00:00", location: "Park", description: "Bring cocoa",
+  }, { entity_id: "calendar.work" });
+  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.work") ? [{ summary: "Evening walk", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z", location: "Park", description: "Bring cocoa" }] : [] }) as Response);
+  await act(async () => request.resolve({}));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  expect(await grid.findAllByRole("button", { name: /Evening walk/ })).toHaveLength(1);
+  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+});
+
+it("preserves a failed calendar draft and blocks writes offline or without a writable calendar", async () => {
+  const { household, key } = setupWritableCalendars();
+  window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Refresh calendars" })).not.toBeDisabled());
+  fireEvent.click(screen.getByRole("button", { name: "Add a plan for Morgan on Thu 8 Oct" }));
+  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-08");
+  expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");
+  expect(screen.getByRole("combobox", { name: "Calendar" })).toHaveValue("http://ha.local:8123|calendar.morgan");
+  fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Keep this draft" } });
+  vi.mocked(ha.callService).mockRejectedValueOnce(new Error("Permission denied with private details"));
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Check the calendar before trying again");
+  expect(screen.getByLabelText("What’s happening?")).toHaveValue("Keep this draft");
+  expect(screen.queryByText(/private details/)).not.toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  act(() => conn.emit("disconnected"));
+  expect(screen.getByRole("button", { name: "Save plan" })).toBeDisabled();
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...household, "calendar.morgan": state("calendar.morgan", "off", { supported_features: 0 }) }));
+  expect(await screen.findByText(/No writable calendar is available for Morgan/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Save plan" })).toBeDisabled();
+  fireEvent.submit(screen.getByLabelText("What’s happening?").closest("form")!);
+  expect(ha.callService).toHaveBeenCalledOnce();
+});
+
+it("updates calendar plans from the WebSocket stream and replaces subscriptions across navigation and reconnect", async () => {
+  setupWritableCalendars();
+  const subscriptions: { id: string; receive: (message: { events: unknown }) => void; unsubscribe: ReturnType<typeof vi.fn> }[] = [];
+  conn.subscribeMessage.mockImplementation(async (receive, message) => {
+    const unsubscribe = vi.fn(async () => {});
+    subscriptions.push({ id: message.entity_id, receive, unsubscribe });
+    queueMicrotask(() => receive({ events: [] }));
+    return unsubscribe;
+  });
+  window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  await waitFor(() => expect(subscriptions).toHaveLength(4));
+  expect(conn.subscribeMessage).toHaveBeenCalledWith(expect.any(Function), { type: "calendar/event/subscribe", entity_id: "calendar.house", start: "2026-10-06T22:00:00.000Z", end: "2026-10-13T22:00:00.000Z" }, { resubscribe: false });
+  const house = subscriptions.find(s => s.id === "calendar.house")!;
+  const event = { summary: "Created in Home Assistant", start: "2026-10-07T14:00:00+02:00", end: "2026-10-07T15:00:00+02:00" };
+  act(() => house.receive({ events: [event] }));
+  expect(screen.getByRole("button", { name: /Created in Home Assistant/ })).toBeInTheDocument();
+  act(() => house.receive({ events: [{ ...event, summary: "Updated in Google" }] }));
+  expect(screen.queryByRole("button", { name: /Created in Home Assistant/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Updated in Google/ })).toBeInTheDocument();
+  act(() => house.receive({ events: [] }));
+  expect(screen.queryByRole("button", { name: /Updated in Google/ })).not.toBeInTheDocument();
+  act(() => house.receive({ events: [{ summary: "Invalid event", start: 123 }] }));
+  expect(screen.getByRole("alert")).toHaveTextContent("Could not read calendar.house");
+  act(() => house.receive({ events: [event] }));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+  expect(house.unsubscribe).toHaveBeenCalledOnce();
+  act(() => house.receive({ events: [event] }));
+  expect(screen.queryByRole("button", { name: /Created in Home Assistant/ })).not.toBeInTheDocument();
+  await waitFor(() => expect(subscriptions).toHaveLength(8));
+  act(() => conn.emit("disconnected"));
+  expect(subscriptions.slice(4).every(s => s.unsubscribe.mock.calls.length === 1)).toBe(true);
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...states, "calendar.house": state("calendar.house", "off") }));
+  await waitFor(() => expect(subscriptions).toHaveLength(9));
+  expect(fetch).not.toHaveBeenCalled();
+  view.unmount();
+  expect(subscriptions[8].unsubscribe).toHaveBeenCalledOnce();
+});
+
+it("cleans up a calendar subscription acknowledged after its range was closed", async () => {
+  const client = await connectedClient();
+  const pending = deferred<() => Promise<void>>();
+  conn.subscribeMessage.mockReturnValueOnce(pending.promise);
+  const controller = new AbortController(), receive = vi.fn(), unsubscribe = vi.fn(async () => {});
+  client.watchCalendarEvents("calendar.house", "2026-10-07T00:00:00Z", "2026-10-08T00:00:00Z", controller.signal, receive);
+  controller.abort();
+  await act(async () => pending.resolve(unsubscribe));
+  conn.subscribeMessage.mock.calls[0][0]({ events: [] });
+  expect(unsubscribe).toHaveBeenCalledOnce();
+  expect(receive).not.toHaveBeenCalled();
+});
+
+it("refreshes older HA calendars after state changes and polls changes that leave entity state unchanged", async () => {
+  const client = await connectedClient();
+  vi.useFakeTimers();
+  const event = { summary: "Google event", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z" };
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [event] }));
+  const controller = new AbortController(), receive = vi.fn();
+  client.watchCalendarEvents("calendar.house", "2026-10-07T00:00:00Z", "2026-10-08T00:00:00Z", controller.signal, receive);
+  await act(async () => {});
+  expect(receive).toHaveBeenLastCalledWith([event]);
+  act(() => conn.entityCallback?.({ ...states, "calendar.house": state("calendar.house", "off") }));
+  await act(async () => {});
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await act(async () => vi.advanceTimersByTimeAsync(60000));
+  expect(fetch).toHaveBeenCalledTimes(3);
+  controller.abort();
+  await act(async () => vi.advanceTimersByTimeAsync(60000));
+  expect(fetch).toHaveBeenCalledTimes(3);
+});
+
 it("rejects malformed calendar dates instead of crashing the planner", async () => {
   const client = await connectedClient();
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ summary: "Broken", start: 123, end: "no date" }] }));
@@ -751,6 +911,7 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event] });
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [{ id: "legacy", title: "Local library visit", date: "2026-10-08", time: "16:00", member: "http://ha.local:8123|person.riley", location: "", note: "" }], items: [], timetables: {} }));
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   const assignment = within(await screen.findByRole("group", { name: "Morgan" })).getByRole("combobox", { name: "Add calendar for Morgan" });
@@ -764,8 +925,8 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
   expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
   expect(row("Riley").queryByRole("button", { name: /Dentist appointment/ })).not.toBeInTheDocument();
-  fireEvent.click(row("Riley").getByRole("button", { name: "Add a plan for Riley on Thu 8 Oct" }));
-  fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Local library visit" } });
+  fireEvent.click(row("Riley").getByRole("button", { name: /Local library visit/ }));
+  expect(await screen.findByLabelText("What’s happening?")).toHaveValue("Local library visit");
   fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
   expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));

@@ -344,6 +344,7 @@ export class HomeAssistantClient {
         // Never suspend/queue/retry physical commands. The library rejects in-flight calls on loss.
         await bounded(callService(conn, command.domain, command.service, command.data, command.target));
       } catch (error) {
+        if (action === "create_event") throw new Error("Home Assistant could not confirm the save. Check the calendar before trying again to avoid duplicates.");
         throw new Error(error === ERR_CONNECTION_LOST || !conn.connected
           ? "Connection lost. The command outcome is unknown; it will not be replayed. Check reported state before trying again."
           : "Home Assistant rejected or did not acknowledge the command. Check permissions, the required code and reported state before trying again.");
@@ -366,6 +367,50 @@ export class HomeAssistantClient {
     } catch {
       throw new Error("To-do items could not be read. Check the connection, list integration and Home Assistant permissions.");
     }
+  };
+  watchCalendarEvents = (entityId: string, start: string, end: string, signal: AbortSignal, receive: (events: CalendarEvent[] | null) => void) => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
+    if (!current()) { if (!signal.aborted) receive(null); return; }
+    let unsubscribe: (() => Promise<void>) | undefined;
+    let stopStates: (() => void) | undefined;
+    let poll: ReturnType<typeof setInterval> | undefined;
+    const stop = () => {
+      clearInterval(poll);
+      stopStates?.();
+      void unsubscribe?.().catch(() => {});
+      signal.removeEventListener("abort", stop);
+      this.cleanup = this.cleanup.filter(cleanup => cleanup !== stop);
+    };
+    this.cleanup.push(stop);
+    signal.addEventListener("abort", stop, { once: true });
+    void conn.subscribeMessage<{ events: unknown }>(message => {
+      if (!current()) return;
+      const parsed = calendarEventsSchema.safeParse(message?.events);
+      receive(parsed.success ? parsed.data as CalendarEvent[] : null);
+    }, { type: "calendar/event/subscribe", entity_id: entityId, start, end }, { resubscribe: false }).then(unsub => {
+      if (current()) unsubscribe = unsub;
+      else void unsub().catch(() => {});
+    }).catch(error => {
+      if (!current()) return;
+      if (error?.code !== "unknown_command") { receive(null); return; }
+      // ponytail: older HA versions lack calendar subscriptions; poll until they are upgraded.
+      let loading = false;
+      const load = async () => {
+        if (!current() || loading) return;
+        loading = true;
+        try { const events = await this.calendarEvents(entityId, start, end, signal); if (current()) receive(events); }
+        catch { if (current()) receive(null); }
+        finally { loading = false; }
+      };
+      let previous = this.snapshot.states[entityId];
+      stopStates = this.subscribe(() => {
+        const state = this.snapshot.states[entityId];
+        if (state !== previous) { previous = state; void load(); }
+      });
+      poll = setInterval(() => { void load(); }, 60000);
+      void load();
+    });
   };
   calendarEvents = async (entityId: string, start: string, end: string, signal: AbortSignal): Promise<CalendarEvent[]> => {
     const auth = this.auth;

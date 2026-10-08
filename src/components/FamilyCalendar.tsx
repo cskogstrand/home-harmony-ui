@@ -79,7 +79,7 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
 
 // Remote events stay read-only and never enter FamilyContext/localStorage.
 export function useCalendarPlans(start: string, end: string) {
-  const { currentHome, homeOnline, haUrl, calendarEvents } = useApp();
+  const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
   const { events: localEvents, calendarMembers, members, compareMembers } = useFamily();
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
@@ -96,15 +96,18 @@ export function useCalendarPlans(start: string, end: string) {
     setResult({ key: requestKey, events: [], errors: [], loading: true });
     const from = calendarBoundary(start, currentHome.timeZone);
     const to = calendarBoundary(end, currentHome.timeZone);
-    void Promise.allSettled(calendarIds.split(",").map(async id => ({ id, events: await calendarEvents(id, from, to, controller.signal) }))).then(results => {
+    const results = new Map<string, CalendarEvent[] | null>();
+    const ids = calendarIds.split(",");
+    for (const id of ids) watchCalendarEvents(id, from, to, controller.signal, events => {
       if (controller.signal.aborted) return;
-      setResult({ key: requestKey, loading: false,
-        events: results.flatMap(r => r.status === "fulfilled" ? r.value.events.map(event => ({ event, calendar: r.value.id })) : []),
-        errors: results.flatMap((r, i) => r.status === "rejected" ? [`Could not read ${calendarIds.split(",")[i]}. Check the calendar integration, permissions, connection and HA CORS configuration.`] : []),
+      results.set(id, events);
+      setResult({ key: requestKey, loading: results.size < ids.length,
+        events: [...results].flatMap(([calendar, plans]) => (plans ?? []).map(event => ({ event, calendar }))),
+        errors: [...results].flatMap(([calendar, plans]) => plans === null ? [`Could not read ${calendar}. Check the calendar integration, permissions, connection and HA CORS configuration.`] : []),
       });
     });
     return () => controller.abort();
-  }, [homeOnline, calendarIds, requestKey, start, end, currentHome.timeZone, calendarEvents, refresh]);
+  }, [homeOnline, calendarIds, requestKey, start, end, currentHome.timeZone, watchCalendarEvents, refresh]);
   const remote = homeOnline && result.key === requestKey ? result.events.flatMap(({ event, calendar }, index) => {
     const entity = selected.find(e => e.entityId === calendar);
     return entity ? calendarPlans(event, calendar, calendarMembers[entity.preferenceId], start, end, currentHome.timeZone, index) : [];
@@ -143,7 +146,7 @@ export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCal
   if (!connectedPlanner) return null;
   return <div className="page-note space-y-2">
     <CalendarSetupNotice />
-    {data.selectedCount > 0 && <p>Home Assistant events are read-only. Local plans are saved on this screen. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
+    {data.selectedCount > 0 && <p>New plans save to writable Home Assistant calendars. Edit existing calendar events in Home Assistant or the source calendar. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
     {data.loading && <p role="status">Loading calendar events…</p>}
     {data.errors.map(error => <p role="alert" key={error}>{error}</p>)}
     {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline. Local plans remain available.</p>}

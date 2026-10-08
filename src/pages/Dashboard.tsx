@@ -49,6 +49,6 @@ export default function Dashboard() {
     <ListPanel kind="shopping" limit={3} />
     <section className="glow-panel school-strip"><div><span className="eyebrow">READY FOR TOMORROW</span><h2>School, sorted.</h2><p>{schoolMembers.length ? "Timetables at a glance. Tap to take a closer look." : "Set up school timetables in this app. Choose people with timetables in Home settings, then add their images on the School board."}</p><Link to="/school" className="text-link">School board<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>
     <HomeFavorites />
-    <EventEditor open={editorOpen} onOpenChange={setEditorOpen} event={editing} date={newPlan?.date} member={newPlan?.member} />
+    <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;
 }

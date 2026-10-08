@@ -27,6 +27,7 @@ export const services: HassServices = {
   light: { turn_on: service, turn_off: service }, switch: { turn_on: service, turn_off: service },
   climate: { set_temperature: service, set_hvac_mode: service },
   cover: { open_cover: service, close_cover: service, stop_cover: service, set_cover_position: service },
+  calendar: { create_event: service },
   lock: { lock: service, unlock: service }, scene: { turn_on: service }, automation: { turn_on: service, turn_off: service },
   alarm_control_panel: Object.fromEntries(["alarm_disarm", "alarm_arm_home", "alarm_arm_away", "alarm_arm_night", "alarm_arm_vacation", "alarm_arm_custom_bypass", "alarm_trigger"].map(s => [s, service])),
 };
