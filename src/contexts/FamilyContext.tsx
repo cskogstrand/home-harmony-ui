@@ -43,7 +43,10 @@ const plannerSchema = z.object({
   todoLists: z.record(z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema })).default({}),
 });
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
-export type FamilyEvent = z.infer<typeof eventSchema> & { calendarId?: string; calendarEvent?: CalendarEvent; allDay?: boolean; continues?: boolean };
+export type FamilyEvent = z.infer<typeof eventSchema> & {
+  calendarId?: string; calendarEvent?: CalendarEvent; allDay?: boolean; continues?: boolean;
+  calendarSpan?: { id: string; firstDay: string; lastDay: string };
+};
 export type ListItem = z.infer<typeof itemSchema>;
 type Planner = z.infer<typeof plannerSchema>;
 export type MemberId = z.infer<typeof memberSchema>;

@@ -300,12 +300,12 @@ it("shows every dashboard plan inline and prefills the person and date when addi
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
   render(<App />);
   expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
-  const emma = within(screen.getByRole("rowheader", { name: "Emma" }).closest("tr")!);
+  const emma = within(screen.getByRole("rowheader", { name: "Emma" }).closest("tbody")!);
   expect(emma.getByRole("button", { name: /Piano lesson/ })).toBeVisible();
   expect(emma.queryByRole("button", { name: /Dinner together/ })).not.toBeInTheDocument();
-  const leo = within(screen.getByRole("rowheader", { name: "Leo" }).closest("tr")!);
+  const leo = within(screen.getByRole("rowheader", { name: "Leo" }).closest("tbody")!);
   expect(leo.getAllByRole("button", { name: /Swimming|Football practice|Dinner together/ })).toHaveLength(2);
-  const everyone = within(screen.getByRole("rowheader", { name: "Everyone" }).closest("tr")!);
+  const everyone = within(screen.getByRole("rowheader", { name: "Everyone" }).closest("tbody")!);
   expect(everyone.getByRole("button", { name: /Dinner together/ })).toBeVisible();
   expect(within(screen.getByRole("table")).getAllByRole("button", { name: /Dinner together/ })).toHaveLength(1);
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

@@ -279,7 +279,8 @@ it("loads only the displayed HA calendar range and never saves its events in the
   localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.house": "everyone" } }));
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
-  expect(await screen.findAllByRole("button", { name: /Imported read-only event/ })).toHaveLength(2);
+  expect(await screen.findAllByRole("button", { name: /Imported read-only event/ })).toHaveLength(1);
+  expect(screen.getByRole("button", { name: /Imported read-only event/ }).closest("td")).toHaveAttribute("colspan", "2");
   const firstUrl = new URL(fetchMock.mock.calls[0][0]);
   expect(firstUrl.searchParams.get("start")).toBe("2026-10-05T22:00:00.000Z");
   expect(firstUrl.searchParams.get("end")).toBe("2026-10-12T22:00:00.000Z");
@@ -318,7 +319,7 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const calendar = within(screen.getByRole("region", { name: "Family weekly calendar" }));
-  expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(2);
+  expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(1);
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
   expect(next.getByRole("heading", { name: date ? "Next appointment" : "No upcoming plans to display." })).toBeInTheDocument();
   if (date) expect(next.getByText("15:00")).toBeInTheDocument();
@@ -347,6 +348,53 @@ const setupWritableCalendars = (features = 1) => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
   return { household, key };
 };
+
+it.each(["/", "/calendar"])("shows continuous spans and unique person cards from %s", async path => {
+  setupWritableCalendars(4);
+  const events = [
+    { uid: "trip", summary: "Family trip", start: "2026-10-06", end: "2026-10-16" },
+    { uid: "train", summary: "Night train", start: "2026-10-07T20:00:00Z", end: "2026-10-08T06:00:00Z" },
+    { uid: "midnight", summary: "Midnight finish", start: "2026-10-08T20:00:00Z", end: "2026-10-08T22:00:00Z" },
+  ];
+  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
+  window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
+  render(<App />);
+  const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  const trip = await grid.findByRole("button", { name: /Family trip/ });
+  const train = grid.getByRole("button", { name: /Night train/ });
+  expect(trip.closest("td")).toHaveAttribute("colspan", "7");
+  expect(trip).toHaveAccessibleName(/Tue 6 Oct – Thu 15 Oct/);
+  expect(trip).toHaveClass("event-continues-before", "event-continues-after");
+  expect(train.closest("td")).toHaveAttribute("colspan", "2");
+  expect(train.closest("tr")).not.toBe(trip.closest("tr"));
+  expect(grid.getByRole("button", { name: /Midnight finish/ }).closest("td")).toHaveAttribute("colspan", "1");
+  expect(grid.getAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(7);
+  fireEvent.click(train);
+  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-07");
+  expect(screen.getByLabelText("Time")).toHaveValue("22:00:00");
+  expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");
+  expect(screen.getByLabelText("End time")).toHaveValue("08:00:00");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  if (path === "/calendar") {
+    fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+    const continuation = await grid.findByRole("button", { name: /Family trip/ });
+    expect(continuation.closest("td")).toHaveAttribute("colspan", "2");
+    expect(continuation).toHaveClass("event-continues-before");
+    expect(continuation).not.toHaveClass("event-continues-after");
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    await grid.findByRole("button", { name: /Night train/ });
+  }
+  fireEvent.click(screen.getByRole("button", { name: "By person" }));
+  expect(screen.getAllByRole("button", { name: /Family trip/ })).toHaveLength(1);
+  expect(screen.getByText("Tue 6 Oct – Thu 15 Oct")).toBeVisible();
+  expect(screen.getByText(/^3 plans/)).toBeInTheDocument();
+  if (path === "/calendar") {
+    fireEvent.click(screen.getByRole("button", { name: "Fri 09" }));
+    expect(await screen.findByRole("button", { name: /Family trip/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Night train/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Midnight finish/ })).not.toBeInTheDocument();
+  }
+});
 
 it.each(["/", "/calendar"])("edits a recurring HA event from %s and refreshes without a local duplicate", async path => {
   const { key } = setupWritableCalendars(4);
@@ -398,7 +446,7 @@ it("edits an all-day continuation using the original start and an exclusive HA e
   vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  fireEvent.click((await screen.findAllByRole("button", { name: /Family trip/ }))[1]);
+  fireEvent.click(await screen.findByRole("button", { name: /Family trip/ }));
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-06");
   expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");
   expect(screen.queryByLabelText("Time")).not.toBeInTheDocument();

@@ -23,11 +23,14 @@ export function MemberOptions() {
 export function PanelHeading({ title, to, label = "View all" }: { title: string; to?: string; label?: string }) {
   return <div className="panel-heading"><h2>{title}</h2>{to && <Link to={to} className="text-link">{label}<ArrowUpRight size={17} /></Link>}</div>;
 }
-export function EventButton({ event, onClick, showDate = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean }) {
+export function EventButton({ event, onClick, showDate = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
   const { memberName } = useFamily();
-  return <button className={`event-button member-${event.member}`} onClick={onClick}>
-    <div className="event-time">{showDate && <span>{dateLabel(event.date, { weekday: "short", day: "numeric" })}</span>}<time>{event.allDay ? "All day" : event.continues ? "Continues" : event.time}</time></div>
-    <div><strong>{event.title}</strong><small>{event.location || memberName(event.member)}{event.calendarId && " · Home Assistant"}</small></div><ArrowUpRight size={15} />
+  const span = event.calendarSpan;
+  const dates = span && span.firstDay !== span.lastDay ? `${dateLabel(span.firstDay)} – ${dateLabel(span.lastDay)}` : dateLabel(event.date, { weekday: "short", day: "numeric" });
+  return <button className={`event-button member-${event.member}${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} onClick={onClick}>
+    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{event.allDay ? "All day" : event.continues ? "Continues" : event.time}</time></div>
+    <div><strong>{continuesBefore && <span aria-hidden="true">← </span>}{event.title}{continuesAfter && <span aria-hidden="true"> →</span>}</strong><small>{event.location || memberName(event.member)}{event.calendarId && " · Home Assistant"}</small></div>
+    {continuesBefore && <span className="sr-only">Starts before this week.</span>}{continuesAfter && <span className="sr-only">Ends after this week.</span>}<ArrowUpRight size={15} />
   </button>;
 }
 export function EventEditor({ open, onOpenChange, onSaved, event, date, member = "everyone" }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void; event?: FamilyEvent; date?: string; member?: MemberId }) {

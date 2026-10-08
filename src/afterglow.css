@@ -503,30 +503,31 @@
 .week-member-column { width: 108px; }
 .family-week-table th, .family-week-table td { padding: 10px 8px; border-bottom: 1px solid hsl(var(--border) / .6); border-right: 1px solid hsl(var(--border) / .45); }
 .family-week-table tr > :last-child { border-right: 0; }
-.family-week-table tbody tr:last-child > * { border-bottom: 0; }
+.family-week-table .week-event-row td { border-bottom: 0; padding-bottom: 0; }
+.family-week-table tbody:last-child th, .family-week-table tbody:last-child .week-add-row td { border-bottom: 0; }
 .family-week-table thead th { text-align: center; color: hsl(var(--muted-foreground)); font-weight: 400; padding-block: 14px; }
 .family-week-table thead time { display: flex; flex-direction: column; gap: 4px; }
 .family-week-table thead time > span { font-size: 11px; }
 .family-week-table thead time > strong { color: hsl(var(--foreground)); font-size: 14px; font-weight: 500; }
 .family-week-table thead .week-today time > span { color: hsl(var(--primary)); }
-.family-week-table .week-today { background: hsl(var(--primary) / .065); }
-.family-week-table tr > :first-child { position: sticky; left: 0; z-index: 1; background: hsl(var(--card)); }
+.family-week-table col.week-today { background: hsl(var(--primary) / .065); }
+.family-week-table thead th:first-child, .family-week-table tbody th { position: sticky; left: 0; z-index: 1; background: hsl(var(--card)); }
 .family-week-table tbody th { vertical-align: middle; font-weight: 500; text-align: left; }
 .family-week-table td { vertical-align: top; }
 .week-person { display: flex; align-items: center; gap: 9px; }
-.week-cell-plans { display: flex; flex-direction: column; gap: 8px; min-height: clamp(110px, 10vh, 180px); }
 .family-week-table .event-button { display: block; background: color-mix(in srgb, var(--member) 11%, transparent); border: 0; border-left: 2px solid var(--member); padding: 10px 8px; border-radius: 0 8px 8px 0; }
+.family-week-table .event-continues-before { border-left-style: dashed; }
+.family-week-table .event-continues-after { border-right: 2px dashed var(--member); border-radius: 0; }
 .family-week-table .event-button strong { font-size: 12px; line-height: 1.45; }
 .family-week-table .event-button small, .family-week-table .event-button > svg { display: none; }
 .family-week-table .event-time { font-size: 11px; margin-bottom: 5px; }
-.week-add-plan { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; color: hsl(var(--muted-foreground)); font-size: 10px; border-radius: 8px; margin-top: auto; }
+.week-add-plan { display: flex; width: 100%; align-items: center; justify-content: center; gap: 5px; min-height: 44px; color: hsl(var(--muted-foreground)); font-size: 10px; border-radius: 8px; }
 .week-add-plan:hover { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
 .weekly-compact .family-week-table { min-width: 620px; }
 .weekly-compact .week-member-column { width: 91px; }
 .weekly-compact .family-week-table th, .weekly-compact .family-week-table td { padding: 5px; }
 .weekly-compact .family-week-table thead th { padding-block: 8px; }
 .weekly-compact .week-person { gap: 6px; font-size: 11px; }
-.weekly-compact .week-cell-plans { min-height: 44px; gap: 5px; }
 .weekly-compact .event-button { padding: 6px 7px; }
 .weekly-compact .event-button strong { font-size: 11px; line-height: 1.4; }
 .weekly-compact .event-time { font-size: 10px; margin-bottom: 2px; }

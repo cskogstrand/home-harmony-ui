@@ -31,29 +31,62 @@ interface FamilyWeekGridProps {
   onAdd: (date: string, member: MemberId) => void;
 }
 
+export function uniqueCalendarPlans(events: FamilyEvent[]) {
+  const seen = new Set<string>();
+  return events.filter(event => {
+    const id = event.calendarSpan?.id ?? event.id;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+export function weekEventRows(events: FamilyEvent[], start: string) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  const spans = uniqueCalendarPlans(sortEvents(events.filter(event => event.date >= start && event.date <= days[6])))
+    .map(event => {
+      const lastDay = event.calendarSpan?.lastDay ?? event.date;
+      return { event, start: days.indexOf(event.date), end: lastDay > days[6] ? 7 : days.indexOf(lastDay) + 1 };
+    })
+    .sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+  const rows: typeof spans[] = [[]];
+  for (const span of spans) {
+    const row = rows.find(row => !row.length || row[row.length - 1].end <= span.start);
+    if (row) row.push(span);
+    else rows.push([span]);
+  }
+  return rows;
+}
+
 export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  const plansFor = (date: string, member: MemberId) => sortEvents(events.filter(e => e.date === date && e.member === member));
   return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label="Family weekly calendar" tabIndex={0}>
       <table className="family-week-table">
         <caption className="sr-only">Family plans from {dateLabel(start)} to {dateLabel(addDays(start, 6))}</caption>
-        <colgroup><col className="week-member-column" />{days.map(day => <col key={day} />)}</colgroup>
+        <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
         <thead><tr><th scope="col">Family</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
           <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? "Today" : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>
         </th>)}</tr></thead>
-        <tbody>{(members ?? familyMembers).map(person => <tr key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
-          <th scope="row"><div className="week-person"><span aria-hidden="true"><MemberAvatar member={person.id} small /></span><span>{person.name}</span></div></th>
-          {days.map(day => {
-            const plans = plansFor(day, person.id);
-            return <td key={day} className={day === today ? "week-today" : ""}>
-              <div className="week-cell-plans">
-                {plans.map(event => <EventButton key={event.id} event={event} onClick={() => onEdit(event)} />)}
-                <button className="week-add-plan" aria-label={`Add a plan for ${person.name} on ${dateLabel(day)}`} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span>{plans.length ? "Add" : "Add plan"}</span></button>
-              </div>
-            </td>;
-          })}
-        </tr>)}</tbody>
+        {(members ?? familyMembers).map(person => {
+          const personal = events.filter(event => event.member === person.id);
+          const rows = weekEventRows(personal, start);
+          return <tbody key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
+            {rows.map((row, index) => <tr key={index} className="week-event-row">
+              {index === 0 && <th scope="rowgroup" rowSpan={rows.length + 1}><div className="week-person"><span aria-hidden="true"><MemberAvatar member={person.id} small /></span><span>{person.name}</span></div></th>}
+              {days.map((day, column) => {
+                if (row.some(span => span.start < column && span.end > column)) return null;
+                const span = row.find(span => span.start === column);
+                return <td key={day} colSpan={span ? span.end - span.start : 1}>
+                  {span && <EventButton event={span.event} continuesBefore={span.event.calendarSpan?.firstDay < start} continuesAfter={span.event.calendarSpan?.lastDay > days[6]} onClick={() => onEdit(span.event)} />}
+                </td>;
+              })}
+            </tr>)}
+            <tr className="week-add-row">{days.map(day => <td key={day}>
+              <button className="week-add-plan" aria-label={`Add a plan for ${person.name} on ${dateLabel(day)}`} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span>{personal.some(event => event.date === day) ? "Add" : "Add plan"}</span></button>
+            </td>)}</tr>
+          </tbody>;
+        })}
       </table>
     </div>;
 }
@@ -65,10 +98,12 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
   const startTime = Date.parse(allDay ? calendarBoundary(from, timeZone) : from);
   const endTime = Date.parse(isPlannerDate(to) ? calendarBoundary(to, timeZone) : to);
   const firstDay = allDay ? from : homeDate(new Date(startTime), timeZone);
+  const lastDay = isPlannerDate(to) ? addDays(to, -1) : homeDate(new Date(endTime - 1), timeZone);
+  const calendarSpan = { id: JSON.stringify([calendarId, event.uid ?? index, event.recurrence_id ?? "", from]), firstDay, lastDay };
   const plans: FamilyEvent[] = [];
   for (let day = start; day < end; day = addDays(day, 1)) {
     if (startTime >= Date.parse(calendarBoundary(addDays(day, 1), timeZone)) || endTime <= Date.parse(calendarBoundary(day, timeZone))) continue;
-    plans.push({ id: `${calendarId}:${event.uid ?? index}:${from}:${day}`, calendarId, calendarEvent: event, member, date: day, allDay, continues: day > firstDay,
+    plans.push({ id: `${calendarSpan.id}:${day}`, calendarId, calendarEvent: event, calendarSpan, member, date: day, allDay, continues: day > firstDay,
       time: allDay || day > firstDay ? "00:00" : new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(startTime)),
       title: event.summary, location: event.location ?? "", note: event.description ?? "" });
   }
