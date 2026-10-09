@@ -32,7 +32,7 @@ export default function Devices() {
     {!!metadataWarnings.length && <p className="page-note" role="status">Device information may be incomplete. {metadataWarnings.join(" ")}</p>}
     {sections.map(section => <section key={section.id} className="device-group" aria-label={section.name}>
       <div className="panel-heading"><h2>{section.name}</h2><span>{section.devices.length} {section.devices.length === 1 ? "device" : "devices"}</span></div>
-      <div className="home-device-grid">{section.devices.map(({ device, entities }) => <DeviceCard key={device.id} device={device} entities={entities} listSearch={listSearch} />)}</div>
+      <div className="device-list">{section.devices.map(({ device, entities }) => <DeviceCard key={device.id} device={device} entities={entities} listSearch={listSearch} />)}</div>
     </section>)}
     {!devices.length && <p className="glow-panel empty-note">{loading ? "Loading devices…" : query ? "No devices match your search." : metadataWarnings.length ? "Device information is unavailable. Check your Home Assistant connection and permissions." : haUrl ? "No registered devices found in this home." : "Connect your home in Settings to see your devices."}</p>}
     {!!other.length && <details key={query ? "search" : "browse"} open={query ? true : undefined} className="glow-panel device-details other-controls"><summary>Other controls ({other.length})</summary>
