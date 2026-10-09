@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
-import { calendarBoundary, calendarDateValue } from "@/lib/ha-model";
+import { calendarBoundary, calendarDateValue, calendarTimeInput } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
 import { Columns3, Table2, Plus } from "lucide-react";
 import { useFamily, addDays, dateLabel, homeDate, isPlannerDate, sortEvents, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
@@ -100,11 +100,13 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
   const firstDay = allDay ? from : homeDate(new Date(startTime), timeZone);
   const lastDay = isPlannerDate(to) ? addDays(to, -1) : homeDate(new Date(endTime - 1), timeZone);
   const calendarSpan = { id: JSON.stringify([calendarId, event.uid ?? index, event.recurrence_id ?? "", from]), firstDay, lastDay };
+  const endInput = allDay ? "" : calendarTimeInput(event.end, timeZone);
   const plans: FamilyEvent[] = [];
   for (let day = start; day < end; day = addDays(day, 1)) {
     if (startTime >= Date.parse(calendarBoundary(addDays(day, 1), timeZone)) || endTime <= Date.parse(calendarBoundary(day, timeZone))) continue;
     plans.push({ id: `${calendarSpan.id}:${day}`, calendarId, calendarEvent: event, calendarSpan, member, date: day, allDay, continues: day > firstDay,
       time: allDay || day > firstDay ? "00:00" : new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(startTime)),
+      endTime: allDay ? undefined : endInput.slice(11, 16), endDate: allDay ? undefined : endInput.slice(0, 10),
       title: event.summary, location: event.location ?? "", note: event.description ?? "" });
   }
   return plans;

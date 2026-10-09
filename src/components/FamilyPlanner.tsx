@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
-import { useFamily, newPlannerId, dateLabel, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, newPlannerId, dateLabel, eventTimeLabel, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { available, calendarTimeInput, calendarTimeValue, supportsAction } from "@/lib/ha-model";
 
@@ -29,7 +29,7 @@ export function EventButton({ event, onClick, showDate = false, continuesBefore 
   const span = event.calendarSpan;
   const dates = span && span.firstDay !== span.lastDay ? `${dateLabel(span.firstDay)} – ${dateLabel(span.lastDay)}` : dateLabel(event.date, { weekday: "short", day: "numeric" });
   return <button className={`event-button member-${event.member}${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} onClick={onClick}>
-    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{event.allDay ? "All day" : event.continues ? "Continues" : event.time}</time></div>
+    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
     <div><strong>{continuesBefore && <span aria-hidden="true">← </span>}{event.title}{continuesAfter && <span aria-hidden="true"> →</span>}</strong><small>{event.location || memberName(event.member)}{event.calendarId && " · Home Assistant"}</small></div>
     {continuesBefore && <span className="sr-only">Starts before this week.</span>}{continuesAfter && <span className="sr-only">Ends after this week.</span>}<ArrowUpRight size={15} />
   </button>;
@@ -54,10 +54,10 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
       const start = source && calendarTimeInput(source.start, currentHome.timeZone);
       const end = source && calendarTimeInput(source.end, currentHome.timeZone);
       setDraft(event ? { ...event, ...(start && { date: start.slice(0, 10), time: start.slice(11) || "00:00" }) } : { id: newPlannerId(), title: "", date: date ?? today, time: "16:00", member, location: "", note: "" });
-      setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : date ?? today); setEndTime(end?.slice(11) || "17:00"); setError("");
+      setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : date ?? today); setEndTime(end?.slice(11) || event?.endTime || (!event && haUrl ? "17:00" : "")); setError("");
     }
     wasOpen.current = open;
-  }, [open, event, source, date, today, member, currentHome.timeZone]);
+  }, [open, event, source, date, today, member, currentHome.timeZone, haUrl]);
   const remote = editingRemote || !!haUrl && !event;
   const calendars = currentHome.entities.filter(e => e.domain === "calendar" && calendarMembers[e.preferenceId] === draft?.member);
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
@@ -76,7 +76,10 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const save = async () => {
     if (!draft?.title.trim() || !canSave) return;
     setError("");
-    if (!remote) { saveEvent(draft); onOpenChange(false); return; }
+    if (!remote) {
+      if (endTime && endTime <= draft.time) { setError("End time must be after the start time."); return; }
+      saveEvent({ ...draft, endTime: endTime || undefined }); onOpenChange(false); return;
+    }
     setSaving(true);
     try {
       if (editingRemote) await command(calendar.entityId, "update_event", {
@@ -111,13 +114,13 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />Delete</Button>;
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent className="planner-dialog max-h-[90dvh] overflow-y-auto">
     <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? "A moment in your week" : "Make a little plan"}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? "Save to Home Assistant and its connected calendar. Times use " + currentHome.timeZone + "." : "Saved to the family calendar on this screen.")}</DialogDescription></DialogHeader>
-    {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {event.allDay ? "All day" : event.continues ? "Continues" : event.time} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open calendar in Home Assistant</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
+    {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open calendar in Home Assistant</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
       {source?.recurrence_id && <p>Only this occurrence will be changed.</p>}
       {draft.allDay && <p>All-day event. End date is the last day included.</p>}
       <label>What’s happening?<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder="Dinner with grandparents" onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
       <div className="form-row"><label>Date<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => { if (endDate === draft.date) setEndDate(e.target.value); setDraft({ ...draft, date: e.target.value }); }} /></label>
         {!draft.allDay && <label>Time<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
-      {remote && <div className="form-row"><label>End date<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>{!draft.allDay && <label>End time<input type="time" required step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>}
+      <div className="form-row">{remote && <label>End date<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>End time{!remote && " (optional)"}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
       <label>Who’s going?<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>Person unavailable</option>}</select></label>
       {editingRemote && <><p>Calendar: {calendar?.name}</p>{!homeOnline && <p role="status">Connect to Home Assistant to save this plan.</p>}</>}
       {remote && !editingRemote && <><label>Calendar<select required value={calendar?.preferenceId ?? ""} onChange={e => { setCalendarId(e.target.value); setError(""); }}><option value="">Choose a calendar</option>{calendars.map(e => <option key={e.preferenceId} value={e.preferenceId} disabled={!writable.includes(e)}>{e.name}{!writable.includes(e) && " · Read-only or unavailable"}</option>)}</select></label>

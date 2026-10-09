@@ -19,11 +19,12 @@ export function isPlannerDate(value: string | null): value is string {
 }
 export const newPlannerId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const dateSchema = z.string().refine(isPlannerDate);
+const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 const eventSchema = z.object({
   id: z.string(), title: z.string().trim().min(1).max(100), date: dateSchema,
-  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), member: memberSchema,
+  time: timeSchema, endTime: timeSchema.optional(), member: memberSchema,
   location: z.string().max(150), note: z.string().max(200),
-});
+}).refine(event => !event.endTime || event.endTime > event.time);
 const itemSchema = z.object({
   id: z.string(), text: z.string().trim().min(1).max(120),
   kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema,
@@ -44,7 +45,7 @@ const plannerSchema = z.object({
 });
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
 export type FamilyEvent = z.infer<typeof eventSchema> & {
-  calendarId?: string; calendarEvent?: CalendarEvent; allDay?: boolean; continues?: boolean;
+  calendarId?: string; calendarEvent?: CalendarEvent; allDay?: boolean; continues?: boolean; endDate?: string;
   calendarSpan?: { id: string; firstDay: string; lastDay: string };
 };
 export type ListItem = z.infer<typeof itemSchema>;
@@ -66,6 +67,13 @@ export function weekStart(date: string) {
 }
 export function dateLabel(date: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) {
   return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+}
+export function eventTimeLabel(event: FamilyEvent) {
+  if (event.allDay) return "All day";
+  const start = event.continues ? "Continues" : event.time;
+  if (!event.endTime) return start;
+  const endDate = event.endDate && event.endDate !== event.date ? `${dateLabel(event.endDate)}, ` : "";
+  return `${start} – ${endDate}${event.endTime}`;
 }
 export const itemIsDone = (item: ListItem, today: string) => item.kind === "daily" ? item.completedOn === today : item.done;
 export const sortEvents = (events: FamilyEvent[]) => [...events].sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));

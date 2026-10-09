@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
-import { useFamily, addDays, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, addDays, dateLabel, eventTimeLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, uniqueCalendarPlans, useCalendarPlans } from "@/components/FamilyCalendar";
@@ -25,7 +25,7 @@ export default function Dashboard() {
       <div className="greeting"><span className="eyebrow">YOUR FAMILY, A LITTLE MORE IN SYNC</span><h1>Good to be home.</h1><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div><span>A place for everyone.</span></div></div>
     </header>
     <section className="next-chapter" aria-label="Next family plan">
-      {next ? <><button className="next-event" onClick={() => openEvent(next)}><span className="eyebrow"><span className="live-dot" />UP NEXT · {memberName(next.member)}{next.date !== today ? ` · ${dateLabel(next.date, { weekday: "short" })}` : ""}</span><h2>{next.title}</h2><p>{next.location}{next.note && ` · ${next.note}`}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time>{next.allDay ? "All day" : next.continues ? "Continues" : next.time}</time><span>{next.date === today ? "Today" : dateLabel(next.date)}</span></div></> :
+      {next ? <><button className="next-event" onClick={() => openEvent(next)}><span className="eyebrow"><span className="live-dot" />UP NEXT · {memberName(next.member)}{next.date !== today ? ` · ${dateLabel(next.date, { weekday: "short" })}` : ""}</span><h2>{next.title}</h2><p>{next.location}{next.note && ` · ${next.note}`}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? "Today" : dateLabel(next.date)}</span></div></> :
         <div className="next-event"><span className="eyebrow"><Sparkles size={15} />YOUR FAMILY CALENDAR</span><h2>{data.loading ? "Loading your calendar…" : "No upcoming plans to display."}</h2><p>{connectedPlanner ? "Add a plan in this app or set up your Home Assistant calendars below." : "Enjoy the quiet, or make time for something good."}</p></div>}
       <button className="add-plan" onClick={() => openEvent()} aria-label="Add a family plan"><Plus size={20} /></button>
     </section>

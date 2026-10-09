@@ -61,6 +61,7 @@
 .next-arrow { position: absolute; right: 0; top: 0; color: hsl(var(--primary)); }
 .next-event-time { min-width: 135px; text-align: center; border-left: 1px solid hsl(var(--primary) / .25); padding: 10px 0 10px 24px; }
 .next-event-time time { display: block; font-weight: 300; font-size: 44px; letter-spacing: -2px; line-height: 1.2; }
+.next-event-time .event-time-range { max-width: 180px; font-size: 20px; letter-spacing: -.5px; }
 .next-event-time span { color: hsl(var(--muted-foreground)); font-size: 12px; }
 .add-plan { align-self: flex-end; width: 44px; height: 44px; border: 1px solid hsl(var(--primary) / .4); border-radius: 50%; display: grid; place-items: center; color: hsl(var(--primary)); }
 .add-plan:hover { background: hsl(var(--primary) / .2); }

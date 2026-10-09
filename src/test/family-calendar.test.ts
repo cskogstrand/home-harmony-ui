@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { calendarPlans, uniqueCalendarPlans, weekEventRows } from "@/components/FamilyCalendar";
-import { addDays } from "@/contexts/FamilyContext";
+import { addDays, eventTimeLabel } from "@/contexts/FamilyContext";
 import type { CalendarEvent } from "@/types/api";
 
 it("places HA events on home-timezone days with exclusive ends and clips multi-day events to the visible range", () => {
@@ -16,6 +16,17 @@ it("retains original dates and recurrence identity on every displayed day", () =
   const plans = calendarPlans(event, "calendar.family", "everyone", "2026-10-24", "2026-10-26", "Europe/Oslo", 0);
   expect(plans).toHaveLength(2);
   for (const plan of plans) expect(plan.calendarEvent).toBe(event);
+});
+
+it.each([
+  ["2026-10-24T13:00:00Z", "2026-10-24T14:30:00Z", "2026-10-24", "15:00 – 16:30"],
+  ["2026-10-24T21:30:00Z", "2026-10-25T02:00:00Z", "2026-10-24", "23:30 – Sun 25 Oct, 03:00"],
+  ["2026-10-24T21:30:00Z", "2026-10-25T02:00:00Z", "2026-10-25", "Continues – 03:00"],
+  ["2026-10-24T21:30:00Z", "2026-10-24T22:00:00Z", "2026-10-24", "23:30 – Sun 25 Oct, 00:00"],
+  ["2026-10-24", "2026-10-26", "2026-10-24", "All day"],
+])("shows HA end times in the home timezone: %s to %s, viewed on %s", (start, end, day, expected) => {
+  const [plan] = calendarPlans({ summary: "Trip", start, end }, "calendar.family", "everyone", day, addDays(day, 1), "Europe/Oslo", 0);
+  expect(eventTimeLabel(plan)).toBe(expected);
 });
 
 it("packs overlapping spans into separate rows and clips both ends of the week", () => {

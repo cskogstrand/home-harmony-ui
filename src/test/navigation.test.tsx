@@ -54,11 +54,19 @@ it("adds, edits and removes an event from the per-person week", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Add a plan" }));
   fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Library afternoon" } });
   fireEvent.change(screen.getByLabelText("Who’s going?"), { target: { value: "emma" } });
+  fireEvent.change(screen.getByLabelText("End time (optional)"), { target: { value: "17:30" } });
   fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  fireEvent.click(await screen.findByRole("button", { name: /Library afternoon/ }));
+  const plan = await screen.findByRole("button", { name: /Library afternoon/ });
+  expect(plan).toHaveTextContent("16:00 – 17:30");
+  fireEvent.click(plan);
+  expect(screen.getByLabelText("End time (optional)")).toHaveValue("17:30");
   fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Library morning" } });
+  fireEvent.change(screen.getByLabelText("Time"), { target: { value: "09:00" } });
+  fireEvent.change(screen.getByLabelText("End time (optional)"), { target: { value: "10:00" } });
   fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  fireEvent.click(await screen.findByRole("button", { name: /Library morning/ }));
+  const edited = await screen.findByRole("button", { name: /Library morning/ });
+  expect(edited).toHaveTextContent("09:00 – 10:00");
+  fireEvent.click(edited);
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
   const beforeDelete = localStorage.getItem("afterglow-planner-v1:home-1");
   fireEvent.click(screen.getByRole("button", { name: "Keep event" }));
@@ -66,6 +74,41 @@ it("adds, edits and removes an event from the per-person week", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Delete" }));
   await confirmAction("Remove event");
   expect(screen.queryByRole("button", { name: /Library morning/ })).not.toBeInTheDocument();
+});
+
+it("preserves legacy plans and restores, validates and clears local end times", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  const key = "afterglow-planner-v1:home-1";
+  const legacy = { id: "legacy", title: "Library", date: "2026-10-07", time: "16:00", member: "everyone", location: "", note: "" };
+  localStorage.setItem(key, JSON.stringify({ events: [legacy], items: [], timetables: {} }));
+  const view = render(<App />);
+  const grid = () => within(screen.getByRole("table"));
+  const saved = () => JSON.parse(localStorage.getItem(key)!).events;
+  expect(saved()).toEqual([legacy]);
+  fireEvent.click(grid().getByRole("button", { name: /Library/ }));
+  const end = await screen.findByLabelText("End time (optional)");
+  expect(end).toHaveValue("");
+  for (const invalid of ["15:00", "16:00"]) {
+    fireEvent.change(end, { target: { value: invalid } });
+    fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("End time must be after the start time.");
+    expect(saved()).toEqual([legacy]);
+  }
+  fireEvent.change(end, { target: { value: "17:30" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(grid().getByRole("button", { name: /Library/ })).toHaveTextContent("16:00 – 17:30");
+  expect(within(screen.getByRole("region", { name: "Next family plan" })).getByText("16:00 – 17:30")).toBeInTheDocument();
+  expect(saved()).toEqual([{ ...legacy, endTime: "17:30" }]);
+  view.unmount();
+  render(<App />);
+  expect(grid().getByRole("button", { name: /Library/ })).toHaveTextContent("16:00 – 17:30");
+  fireEvent.click(grid().getByRole("button", { name: /Library/ }));
+  expect(await screen.findByLabelText("End time (optional)")).toHaveValue("17:30");
+  fireEvent.change(screen.getByLabelText("End time (optional)"), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(saved()).toEqual([legacy]);
+  expect(grid().getByRole("button", { name: /Library/ })).not.toHaveTextContent("17:30");
 });
 
 it.each([

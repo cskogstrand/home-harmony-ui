@@ -277,7 +277,8 @@ it("loads only the displayed HA calendar range and never saves its events in the
     return conn.unsubscribeEntities;
   });
   const event = { summary: "Imported read-only event", start: { date: "2026-10-06" }, end: { date: "2026-10-08" }, location: null };
-  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event] });
+  const timedEvent = { summary: "Read-only appointment", start: "2026-10-06T15:00:00Z", end: "2026-10-06T16:00:00Z" };
+  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event, timedEvent] });
   vi.stubGlobal("fetch", fetchMock);
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.house": "everyone" } }));
@@ -291,6 +292,9 @@ it("loads only the displayed HA calendar range and never saves its events in the
   fireEvent.click(screen.getAllByRole("button", { name: /Imported read-only event/ })[0]);
   expect(screen.getByText(/does not support editing existing events/)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  fireEvent.click(screen.getByRole("button", { name: /17:00 – 18:00 Read-only appointment/ }));
+  expect(within(screen.getByRole("dialog")).getByText(/17:00 – 18:00/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(localStorage.getItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1")).not.toContain(event.summary);
   const nextResponse = deferred<unknown>();
@@ -326,7 +330,7 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(1);
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
   expect(next.getByRole("heading", { name: date ? "Next appointment" : "No upcoming plans to display." })).toBeInTheDocument();
-  if (date) expect(next.getByText("15:00")).toBeInTheDocument();
+  if (date) expect(next.getByText("15:00 – 16:00")).toBeInTheDocument();
 });
 const setupWritableCalendars = (features = 1) => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -465,6 +469,7 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
   expect(trip).toHaveAccessibleName(/Tue 6 Oct – Thu 15 Oct/);
   expect(trip).toHaveClass("event-continues-before", "event-continues-after");
   expect(train.closest("td")).toHaveAttribute("colspan", "2");
+  expect(train).toHaveTextContent("22:00 – Thu 8 Oct, 08:00");
   expect(train.closest("tr")).not.toBe(trip.closest("tr"));
   expect(grid.getByRole("button", { name: /Midnight finish/ }).closest("td")).toHaveAttribute("colspan", "1");
   expect(grid.getAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(7);
@@ -1179,7 +1184,7 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   expect(fetchMock).not.toHaveBeenCalled();
   fireEvent.change(assignment, { target: { value: "http://ha.local:8123|calendar.morgan" } });
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
-  expect(await screen.findByRole("button", { name: /15:00 Dentist appointment/ })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /15:00 – 16:00 Dentist appointment/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
   const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
   expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
