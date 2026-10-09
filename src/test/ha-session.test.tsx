@@ -1828,6 +1828,7 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   expect(screen.getAllByRole("link", { name: "Multi sensor details" })).toHaveLength(1);
   expect(card).toHaveTextContent("Hall");
   expect(card).toHaveTextContent("Some readings unavailable");
+  expect(card.querySelector(".device-symbol svg")).toHaveClass("lucide-lightbulb");
   expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
   const other = screen.getByText(/^Other controls/).closest("details")!;
   expect(other).not.toHaveAttribute("open");
@@ -1850,6 +1851,7 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   fireEvent.click(screen.getByRole("link", { name: "Multi sensor details" }));
   expect(window.location.pathname).toBe("/devices/physical-1");
   expect(screen.getByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(document.querySelector(".device-page .device-symbol svg")).toHaveClass("lucide-lightbulb");
   expect(screen.getByRole("link", { name: "Hall" })).toHaveAttribute("href", "/areas/hall");
   expect(screen.getAllByRole("article")).toHaveLength(2);
   const light = screen.getByRole("article", { name: "Living Room Light" });
@@ -1891,6 +1893,7 @@ it("retains empty devices, custom names, models and unassigned rooms", async () 
   const card = await screen.findByRole("link", { name: "Bedroom thermostat details" });
   expect(card).toHaveTextContent("Unassigned");
   expect(card).toHaveTextContent("No controls or readings");
+  expect(card.querySelector(".device-symbol svg")).toHaveClass("lucide-cpu");
   fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "T100" } });
   expect(screen.queryByRole("link", { name: "Multi sensor details" })).not.toBeInTheDocument();
   fireEvent.click(card);

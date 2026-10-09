@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useParams, Link, Navigate, useLocation } from "react-router-dom";
-import { Cpu } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
+import { PhysicalDeviceIcon } from "@/components/devices/DeviceCard";
 import { DeviceControl, DeviceIcon } from "@/components/devices/DeviceControl";
 import { EntityDetails } from "@/components/devices/EntityDetails";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
@@ -30,7 +30,7 @@ export default function DeviceDetail() {
   const area = currentHome.areas.find(area => area.id === device.area_id);
   return <div className="planner-page device-page">
     <Link to={backTo} className="text-link">Back to devices</Link>
-    <PageHeading eyebrow={area?.name.toUpperCase() ?? "UNASSIGNED"} title={deviceName(device)} description={[device.manufacturer, device.model].filter(Boolean).join(" · ")}><span className="device-symbol"><Cpu className="h-6 w-6" aria-hidden="true" /></span></PageHeading>
+    <PageHeading eyebrow={area?.name.toUpperCase() ?? "UNASSIGNED"} title={deviceName(device)} description={[device.manufacturer, device.model].filter(Boolean).join(" · ")}><span className="device-symbol"><PhysicalDeviceIcon entities={entities} className="h-6 w-6" /></span></PageHeading>
     <section className="device-overview" aria-label="About this device">
       <div className="device-summary"><span className="muted">Room: {area ? <Link className="text-link" to={`/areas/${encodeURIComponent(area.id)}`}>{area.name}</Link> : "Unassigned"}</span>
         <span className="muted">{deviceReadingsLabel(entities, homeOnline)}</span>
