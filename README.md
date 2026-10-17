@@ -36,6 +36,8 @@ The server reads `settings.yaml` at startup. Stop it before editing the file man
 
 HAOS supplies these options through `/data/options.json`; explicit environment variables take precedence. The Supervisor manages `/data` as persistent app data and includes it in app backups. The app uses its own web port, not HA ingress. The port can be changed under the app's Network settings.
 
+If startup reports a token configuration error, paste only the complete token created under **Profile → Security → Long-lived access tokens**, without surrounding quotes or a `Bearer ` prefix, then save and restart the app. Surrounding whitespace is trimmed; whitespace inside the token and other invalid characters are rejected. A startup format error happens before contacting Home Assistant and does not mean HA rejected the token. For manual deployments, check for an environment variable overriding the saved option.
+
 ## Manual Docker deployment
 
 Copy `.env.example` to `.env` and replace the URL, token and dashboard password:

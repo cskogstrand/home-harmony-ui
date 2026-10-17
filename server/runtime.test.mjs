@@ -14,17 +14,38 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
     keys.forEach(key => delete process.env[key]);
     await assert.rejects(runtimeOptions(), /HOME_ASSISTANT_URL/);
     await mkdir("data");
-    await writeFile("data/options.json", JSON.stringify({ home_assistant_url: "http://ha.local:8123", home_assistant_token: "haos-token", dashboard_password: "haos-password-123" }));
+    const haosOptions = { home_assistant_url: "http://ha.local:8123", home_assistant_token: "haos-token", dashboard_password: "haos-password-123" };
+    await writeFile("data/options.json", JSON.stringify(haosOptions));
     let options = await runtimeOptions();
     assert.equal(options.homeAssistantToken, "haos-token");
     assert.equal(options.dashboardPassword, "haos-password-123");
+    for (const token of [" \thaos-token\r\n", "\u00a0haos-token\u00a0"]) {
+      await writeFile("data/options.json", JSON.stringify({ ...haosOptions, home_assistant_token: token }));
+      assert.equal((await runtimeOptions()).homeAssistantToken, "haos-token");
+    }
+    for (const token of [undefined, null, 123, "", " \t\r\n"]) {
+      await writeFile("data/options.json", JSON.stringify({ ...haosOptions, home_assistant_token: token }));
+      await assert.rejects(runtimeOptions(), /Set HOME_ASSISTANT_TOKEN/);
+    }
+    for (const token of ['"haos-token"', "Bearer haos-token", "haos token", "haos-\r\ntoken", "haos\u200b-token", "a".repeat(4097)]) {
+      await writeFile("data/options.json", JSON.stringify({ ...haosOptions, home_assistant_token: token }));
+      await assert.rejects(runtimeOptions(), error => {
+        assert.match(error.message, /HOME_ASSISTANT_TOKEN.*invalid characters or exceeds 4096 characters/);
+        assert.ok(!error.message.includes(token), "Token must not appear in validation errors");
+        return true;
+      });
+    }
+    await writeFile("data/options.json", JSON.stringify(haosOptions));
     await writeFile(".env", 'HOME_ASSISTANT_URL=http://env.local:8123\nHOME_ASSISTANT_TOKEN=env-token\nDASHBOARD_PASSWORD="env-password-123"\nPORT=9000\n');
-    process.env.HOME_ASSISTANT_TOKEN = "explicit-token";
+    process.env.HOME_ASSISTANT_TOKEN = " \texplicit-token\r\n";
     options = await runtimeOptions();
     assert.equal(options.homeAssistantToken, "explicit-token");
     assert.equal(options.homeAssistantUrl, "http://env.local:8123");
     assert.equal(options.dashboardPassword, "env-password-123");
     assert.equal(options.port, 9000);
+    process.env.HOME_ASSISTANT_TOKEN = " ";
+    await assert.rejects(runtimeOptions(), /Set HOME_ASSISTANT_TOKEN/);
+    process.env.HOME_ASSISTANT_TOKEN = "explicit-token";
     process.env.DASHBOARD_PASSWORD = "short";
     await assert.rejects(runtimeOptions(), /at least 12/);
     process.env.DASHBOARD_PASSWORD = "valid-password-123";

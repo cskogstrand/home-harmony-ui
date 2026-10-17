@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Ignore surrounding whitespace when loading the Home Assistant token from app options or the environment.
+- Distinguish missing tokens from malformed tokens in startup errors without exposing credentials.
+
 ## 0.7.0
 
 - Download a signed iOS shortcut from the School board to upload PDFs directly from the Share Sheet.
