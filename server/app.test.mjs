@@ -97,12 +97,29 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   }
   assert.notDeepEqual(images[0], images[1]);
   const directory = join(app.dataDir, "timetables", ...pages[0].split("/").slice(3, 5));
-  assert.deepEqual((await readdir(directory)).sort(), ["1.png", "2.png", "source.pdf"]);
+  assert.deepEqual((await readdir(directory)).sort(), ["1-dark.svg", "1.png", "2-dark.svg", "2.png", "source.pdf"]);
+  for (const [index, path] of pages.entries()) {
+    const darkPath = path.replace(/\.png$/, "-dark.svg");
+    assert.equal((await app.api(darkPath, {}, "")).status, 401);
+    const dark = await app.api(darkPath);
+    assert.equal(dark.headers.get("content-type"), "image/svg+xml");
+    assert.equal(dark.headers.get("cache-control"), "no-store");
+    const svg = await dark.text();
+    assert.match(svg, /filter="url\(#dark\)"/);
+    assert.ok(svg.includes(`width="${images[index].readUInt32BE(16)}" height="${images[index].readUInt32BE(20)}"`));
+    assert.deepEqual(Buffer.from(svg.match(/base64,([^\"]+)/)[1], "base64"), images[index], "Dark image embeds the matching original page");
+    await rm(join(directory, `${index + 1}-dark.svg`));
+    assert.equal(await (await app.api(darkPath)).text(), svg, "Older uploads get the same dark image on demand");
+  }
   assert.equal((await app.api(pages[0].replace("1.png", "99.png"))).status, 404);
+  for (const name of ["99-dark.svg", "1.svg", "1-dark.png", "source.pdf"]) {
+    assert.equal((await app.api(pages[0].replace("1.png", name))).status, 404);
+  }
   assert.equal((await app.upload(timetablePdf(1))).status, 200);
   const replaced = await (await app.request()).json();
   assert.equal(replaced.config.settings.timetables["home|person.one"].length, 1);
   assert.equal((await app.api(pages[0])).status, 200, "Old pages remain available for settings-backup restores");
+  assert.equal((await app.api(pages[0].replace(/\.png$/, "-dark.svg"))).status, 200);
 });
 
 test("rejects invalid, oversized and excessive-page PDFs without replacing existing timetables or leaving files", async t => {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- Create normal and dark images for every uploaded PDF timetable page.
+- Add a shared Dark timetables preference for the dashboard, School board and enlarged views.
+- Support dark images for existing PDF uploads without uploading them again.
+
 ## 0.4.0
 
 - Upload PDF timetables from the School board or an authenticated API.

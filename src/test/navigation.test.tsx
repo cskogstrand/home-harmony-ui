@@ -6,7 +6,7 @@ import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app, AppProvider: ({ children }) => children }));
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
 let settings = emptyConfiguration();
@@ -79,6 +79,46 @@ it("navigates timetable pages with arrows and keyboard and enlarges the selected
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 2 of 2" })).toHaveAttribute("src", "/second.svg");
   fireEvent.click(dialog.getByRole("button", { name: "Previous timetable page" }));
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" })).toHaveAttribute("src", "/first.svg");
+});
+
+it("shares the dark timetable preference across previews and enlarged views independently of the app theme", async () => {
+  const imagePath = "/api/timetables/emma/00000000-0000-4000-8000-000000000000/1.png";
+  const darkPath = imagePath.replace(/\.png$/, "-dark.svg");
+  settings.settings.appearance.theme = "light";
+  settings.settings.timetables = { "home|person.emma": [imagePath], "home|person.leo": ["/linked.svg"] };
+  settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
+  app.storageRequest.mockReset().mockImplementation(async path => new Response("image", { headers: { "Content-Type": path.endsWith(".svg") ? "image/svg+xml" : "image/png" } }));
+  vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL: vi.fn((blob: Blob) => `blob:${blob.type}`), revokeObjectURL: vi.fn() }));
+  window.history.replaceState(null, "", "/user-settings");
+  const preferences = render(<App />); await saved();
+  const toggle = screen.getByRole("switch", { name: "Toggle dark timetables" });
+  expect(toggle).not.toBeChecked();
+  fireEvent.click(toggle); await saved();
+  expect(settings.settings.appearance).toMatchObject({ theme: "light", darkTimetables: true });
+  preferences.unmount();
+
+  for (const path of ["/", "/school"]) {
+    window.history.replaceState(null, "", path);
+    const view = render(<App />); await saved();
+    await waitFor(() => expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/svg+xml"));
+    expect(app.storageRequest).toHaveBeenLastCalledWith(darkPath);
+    expect(screen.getByRole("img", { name: "Leo’s school timetable" })).toHaveAttribute("src", "/linked.svg");
+    fireEvent.click(screen.getByRole("button", { name: "Enlarge Emma’s timetable" }));
+    const dialog = within(screen.getByRole("dialog", { name: "Emma’s school week" }));
+    await waitFor(() => expect(dialog.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/svg+xml"));
+    view.unmount();
+  }
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:image/svg+xml");
+
+  window.history.replaceState(null, "", "/user-settings");
+  const nextPreferences = render(<App />); await saved();
+  expect(screen.getByRole("switch", { name: "Toggle dark timetables" })).toBeChecked();
+  fireEvent.click(screen.getByRole("switch", { name: "Toggle dark timetables" })); await saved();
+  nextPreferences.unmount();
+  window.history.replaceState(null, "", "/school");
+  render(<App />); await saved();
+  await waitFor(() => expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/png"));
+  expect(app.storageRequest).toHaveBeenLastCalledWith(imagePath);
 });
 
 it("keeps timetable pages when replacing or hiding them is cancelled", async () => {

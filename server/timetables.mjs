@@ -8,6 +8,20 @@ import { MAX_TIMETABLE_BYTES, MAX_TIMETABLE_PAGES } from "../shared/timetables.t
 const exec = promisify(execFile);
 const failure = (status, message) => Object.assign(new Error(message), { status });
 
+export function darkTimetableImage(png) {
+  if (png.length < 24 || !png.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error("Missing rendered page");
+  const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+  if (!width || !height || width > 2000 || height > 2000) throw new Error("Invalid rendered page dimensions");
+  // Embed the original pixels so private images need no nested authenticated request.
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+<filter id="dark" color-interpolation-filters="sRGB">
+  <feComponentTransfer><feFuncR type="linear" slope="-0.85" intercept="0.95"/><feFuncG type="linear" slope="-0.85" intercept="0.95"/><feFuncB type="linear" slope="-0.85" intercept="0.95"/></feComponentTransfer>
+  <feColorMatrix type="hueRotate" values="180"/>
+</filter>
+<image width="${width}" height="${height}" href="data:image/png;base64,${png.toString("base64")}" filter="url(#dark)"/>
+</svg>`);
+}
+
 export async function convertTimetable(request, dataDir, person) {
   if (request.headers["content-type"]?.split(";")[0].trim().toLowerCase() !== "application/pdf") throw failure(415, "Send the PDF as the request body with Content-Type: application/pdf.");
   const chunks = [];
@@ -34,10 +48,12 @@ export async function convertTimetable(request, dataDir, person) {
     for (let page = 1; page <= pages; page++) {
       const input = join(directory, `page-${String(page).padStart(String(pages).length, "0")}.png`);
       const contents = await readFile(input);
-      if (!contents.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error("Missing rendered page");
+      await writeFile(join(directory, `${page}-dark.svg`), darkTimetableImage(contents), { mode: 0o600 });
       await rename(input, join(directory, `${page}.png`));
-      const handle = await open(join(directory, `${page}.png`), "r");
-      try { await handle.sync(); } finally { await handle.close(); }
+      for (const filename of [`${page}.png`, `${page}-dark.svg`]) {
+        const handle = await open(join(directory, filename), "r");
+        try { await handle.sync(); } finally { await handle.close(); }
+      }
       urls.push(`/api/timetables/${person}/${id}/${page}.png`);
     }
     const sourceHandle = await open(source, "r");

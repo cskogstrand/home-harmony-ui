@@ -101,6 +101,8 @@ Calendar integrations and to-do lists stay in HA. The app uses reported capabili
 
 Enable a person's timetable in **Home settings**, then use **School → Upload PDF timetable**. PDFs may be up to **10 MB / 20 pages**, without password protection. Confirming an upload replaces that person's visible pages on every screen. Invalid uploads keep the previous timetable.
 
+Each page gets its original PNG and a self-contained dark SVG with a dark background and light text. Turn on **App preferences → Appearance → Dark timetables** to use the dark images throughout the dashboard, School board and enlarged views, independently of the app theme. This shared preference defaults to off. Older PDF uploads get dark images on request without needing another upload; external image URLs keep their original colors.
+
 For `person.emma`, an upload is stored as:
 
 ```text
@@ -111,7 +113,9 @@ data/
       <upload_id>/
         source.pdf
         1.png
+        1-dark.svg
         2.png
+        2-dark.svg
 ```
 
 The folder name is the person's HA entity-name slug, not their display name; duplicate display names therefore cannot collide. Upload IDs allow atomic replacement and keep earlier files available for settings-backup restores. Old uploads are retained; disk usage grows until unused upload folders are removed manually. Stop the server and verify references/backups before removing files.
@@ -127,7 +131,7 @@ Create a Shortcuts share-sheet action accepting PDFs. Add **Show Alert** to conf
 
 Add **Show Result** afterward. Keep the shortcut private: it contains dashboard access. The phone must reach the dashboard through home Wi-Fi, VPN or your HTTPS proxy. After a timeout, check the dashboard before retrying; the upload may have completed.
 
-`POST /api/timetables?member=home%7Cperson.emma` accepts raw PDF bytes. Success returns `{ "message": "Timetable uploaded. The dashboard will refresh shortly.", "pages": 2 }`. Invalid/oversized PDFs, disabled people, concurrent uploads and settings conflicts return errors without discarding the previous timetable. Images are served through password-protected `/api/timetables/<person>/<upload_id>/<page>.png` routes with `Cache-Control: no-store`.
+`POST /api/timetables?member=home%7Cperson.emma` accepts raw PDF bytes. Success returns `{ "message": "Timetable uploaded. The dashboard will refresh shortly.", "pages": 2 }`. Invalid/oversized PDFs, disabled people, concurrent uploads and settings conflicts return errors without discarding the previous timetable. Images are served through password-protected `/api/timetables/<person>/<upload_id>/<page>.png` and `<page>-dark.svg` routes with `Cache-Control: no-store`.
 
 ## Verification
 

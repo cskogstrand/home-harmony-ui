@@ -3,10 +3,10 @@ import { dashboardAccess, attachHomeAssistantSocket } from "./home-assistant.mjs
 import { createServer } from "node:http";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
-import { extname, resolve, sep } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
 import { emptyConfiguration, instanceUrlSchema, MAX_CONFIG_BYTES, parseConfiguration } from "../shared/configuration.ts";
 import { timetableImagePath } from "../shared/timetables.ts";
-import { convertTimetable } from "./timetables.mjs";
+import { convertTimetable, darkTimetableImage } from "./timetables.mjs";
 
 const revisionOf = config => createHash("sha256").update(JSON.stringify(config)).digest("hex");
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
@@ -115,9 +115,18 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         if (pathname === "/api/timetables") { json(200, await upload(request, url)); return; }
         if (image) {
           let contents;
-          try { contents = await readFile(resolve(dataDir, "timetables", image[1], image[2], `${image[3]}.png`)); }
+          const directory = resolve(dataDir, "timetables", image[1], image[2]);
+          const dark = image[4] === "-dark.svg";
+          try {
+            try { contents = await readFile(join(directory, `${image[3]}${image[4]}`)); }
+            catch (error) {
+              if (!dark || error.code !== "ENOENT") throw error;
+              // Older uploads have only PNGs; derive their dark variant without changing saved references.
+              contents = darkTimetableImage(await readFile(join(directory, `${image[3]}.png`)));
+            }
+          }
           catch (error) { if (error.code === "ENOENT") throw failure(404, "Timetable page not found."); throw error; }
-          response.writeHead(200, { "Content-Type": "image/png", "Content-Length": contents.length, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+          response.writeHead(200, { "Content-Type": dark ? "image/svg+xml" : "image/png", "Content-Length": contents.length, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
           response.end(contents);
           return;
         }

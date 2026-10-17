@@ -12,6 +12,16 @@ function Probe() {
   return <><output aria-label="People order">{memberOrder.join(",")}</output><output aria-label="Hidden people">{hiddenMembers.join(",")}</output><output aria-label="App preferences">{JSON.stringify({ appearance, selectedAlarm })}</output><button onClick={() => setCalendarSettings({ view: "people" })}>Change view</button><button onClick={() => setAppearance({ theme: "light", compactMode: true })}>Change appearance</button><button onClick={() => setSelectedAlarm(`${app.haUrl}|alarm.one`)}>Select alarm</button><button onClick={() => addItem("Must stay in HA", "tasks", "everyone")}>Add local content</button></>;
 }
 const mount = () => render(<FamilyProvider><ConfigurationBackup /><Probe /></FamilyProvider>);
+it("defaults old appearance settings to normal timetables and validates the new preference", () => {
+  const old = { ...emptyConfiguration(), settings: { ...emptyPlanner(), appearance: { theme: "dark", compactMode: false } } };
+  expect(parseConfiguration(JSON.stringify(old)).settings.appearance.darkTimetables).toBe(false);
+  for (const darkTimetables of [true, false]) {
+    const updated = { ...old, settings: { ...old.settings, appearance: { ...old.settings.appearance, darkTimetables } } };
+    expect(parseConfiguration(JSON.stringify(updated)).settings.appearance.darkTimetables).toBe(darkTimetables);
+  }
+  expect(() => parseConfiguration(JSON.stringify({ ...old, settings: { ...old.settings, appearance: { ...old.settings.appearance, darkTimetables: "true" } } }))).toThrow();
+});
+
 const upload = async (contents: string) => {
   const file = Object.assign(new File([contents], "backup.json", { type: "application/json" }), { text: async () => contents });
   await act(async () => fireEvent.change(screen.getByLabelText("Configuration backup file"), { target: { files: [file] } }));

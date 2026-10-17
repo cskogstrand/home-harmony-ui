@@ -137,7 +137,9 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
 }
 function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   const { storageRequest } = useApp();
+  const { appearance } = useFamily();
   const privateImage = !!imageUrl && timetableImagePath.test(imageUrl);
+  const selectedUrl = privateImage ? imageUrl.replace(/(\.png|-dark\.svg)$/, appearance.darkTimetables ? "-dark.svg" : ".png") : imageUrl;
   const [loaded, setLoaded] = useState<{ url: string; src: string }>();
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -146,14 +148,14 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
     if (!privateImage) return;
     let cancelled = false;
     let objectUrl: string;
-    void storageRequest(imageUrl).then(async response => {
+    void storageRequest(selectedUrl).then(async response => {
       if (!response.ok) throw new Error();
       const blob = await response.blob();
-      if (!cancelled) { objectUrl = URL.createObjectURL(blob); setLoaded({ url: imageUrl, src: objectUrl }); }
+      if (!cancelled) { objectUrl = URL.createObjectURL(blob); setLoaded({ url: selectedUrl, src: objectUrl }); }
     }).catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [imageUrl, privateImage, storageRequest]);
-  const src = privateImage ? loaded?.url === imageUrl ? loaded.src : undefined : imageUrl;
+  }, [selectedUrl, privateImage, storageRequest]);
+  const src = privateImage ? loaded?.url === selectedUrl ? loaded.src : undefined : selectedUrl;
   if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>Loading timetable…</p></div>;
   return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "Set up a school timetable in this app."}</p><small>{privateImage ? "Reconnect or reload to try again." : imageUrl ? "Check its URL in School." : "Upload a PDF or add an image URL in School."}</small></div> :
     <img className="timetable-image" src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;

@@ -33,7 +33,7 @@ function SchoolCard({ child }: { child: MemberId }) {
         if (!file.size || file.size > MAX_TIMETABLE_BYTES) { setUploadStatus("Choose a PDF between 1 byte and 10 MB."); return; }
         setPdf(file);
       }} /></label>
-      <p className="muted">Up to 10 MB and 20 pages. All pages replace this person’s current timetable on every screen.</p>
+      <p className="muted">Up to 10 MB and 20 pages. All pages replace this person’s current timetable on every screen. Normal and dark images are created automatically; choose which to use in <Link className="text-link" to="/user-settings">App preferences</Link>.</p>
       {!uploadReady && <p role="status">Wait for shared settings to finish saving before uploading.</p>}
       {uploadStatus && <p role="status">{uploadStatus}</p>}
       {shared?.state.loaded && <details><summary className="text-link">Share from iPhone</summary>

@@ -34,7 +34,7 @@ export const plannerSchema = z.object({
   homeEntities: z.array(memberSchema).optional(),
   memberOrder: z.array(memberSchema).default([]),
   hiddenMembers: z.array(memberSchema).default([]),
-  appearance: z.object({ theme: z.enum(["light", "dark"]), compactMode: z.boolean() }).strict().default({ theme: "dark", compactMode: false }),
+  appearance: z.object({ theme: z.enum(["light", "dark"]), compactMode: z.boolean(), darkTimetables: z.boolean().default(false) }).strict().default({ theme: "dark", compactMode: false, darkTimetables: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),
   calendarMembers: z.record(keySchema, memberSchema).default({}),
   todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema }).strict()).default({}),
