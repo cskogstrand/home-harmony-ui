@@ -63,6 +63,7 @@ it("authenticates shared storage with a refreshed bearer token and rejects late 
   await expect(client.configurationRequest("GET")).rejects.toThrow(/Connect to Home Assistant/);
 });
 beforeEach(() => {
+  vi.stubEnv("MODE", "browser");
   vi.clearAllMocks();
   clients = [];
   const storage = new Map<string, string>();
@@ -90,7 +91,7 @@ beforeEach(() => {
   });
   vi.mocked(ha.callService).mockResolvedValue({});
 });
-afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 it("uses browser auth, limits callbacks to the selected instance and saves credentials for this browser profile", async () => {
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=one-time-code&state=callback-state");
@@ -234,6 +235,22 @@ it("keeps non-demo alarm codes transient and shows actual command rejection", as
   expect(submit.mock.calls).toEqual([["a long non-demo code"], ["7"]]);
   expect(localStorage.length).toBe(0);
 });
+it("closes an alarm confirmation if the selected alarm changes", async () => {
+  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
+  window.history.replaceState(null, "", "/alarm?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  const disarm = await screen.findByRole("button", { name: "Disarm" });
+  await waitFor(() => expect(disarm).toBeEnabled());
+  fireEvent.click(disarm);
+  expect(screen.getByRole("dialog")).toBeInTheDocument();
+  act(() => conn.entityCallback?.({
+    ...Object.fromEntries(Object.entries(states).filter(([id]) => id !== "alarm_control_panel.house")),
+    "alarm_control_panel.garage": state("alarm_control_panel.garage", "disarmed", { ...states["alarm_control_panel.house"].attributes, friendly_name: "Garage alarm" }),
+  }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
 it("uses reported state throughout navigation and disables stale controls in the UI", async () => {
   localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
@@ -812,7 +829,8 @@ it("restores expired tokens through the real HA auth library and saves refreshed
   expect(saved.refresh_token).toBe("fixture-refresh-secret");
   expect(saved.expires).toBeGreaterThan(Date.now());
   expect(document.body).not.toHaveTextContent("fixture-refreshed-secret");
-  expect(localStorage.length).toBe(3); // URL, browser login and existing local planner.
+  expect(localStorage.getItem("afterglow-theme")).toBe("dark");
+  expect(localStorage.length).toBe(4); // URL, browser login, planner settings and theme.
 });
 
 it("keeps Disconnect paused across refresh and revokes a saved session on logout even while disconnected", async () => {

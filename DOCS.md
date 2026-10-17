@@ -53,19 +53,22 @@ also requires an HTTPS HA URL.
 
 ## Persistent storage and backups
 
-The app stores all planners, local plans/list entries, calendar/to-do assignments,
-people order, favorites and timetable settings in `/data/configuration.json`.
+The app stores only app configuration in `/data/configuration.json`: HA connection
+URLs, calendar/to-do assignments, people visibility/order, favorites, timetable
+settings, appearance and selected alarm panel. Calendar events, list contents,
+people records and smart-home state stay in Home Assistant.
+Shared persistent storage is the default; no storage mode needs enabling.
 HAOS keeps this folder across container updates and restarts and includes it in
 app backups. The app uses atomic writes and rejects stale writes from another
 screen. Signed-in screens refresh shared settings within five seconds.
 
 Open **App preferences → Storage and backups**:
 
-- **Export configuration** downloads a versioned JSON backup of all planners.
+- **Export configuration** downloads a versioned JSON backup of all settings profiles.
 - **Import configuration** validates a file, then asks before replacing the
   entire shared configuration for every screen. Export your current config first
   if you want to keep it. Invalid files do not replace saved data.
-- **Use settings from this browser** migrates existing browser planners only
+- **Use settings from this browser** copies app settings from browser-only mode only
   after confirmation. Old browser data is kept. If it belongs to another dashboard
   address, export from that old address and import the file here.
 - **Retry storage** retries a failed save. On a conflict, export unsaved changes
@@ -74,12 +77,16 @@ Open **App preferences → Storage and backups**:
   exported; unsaved drafts are not automatically replayed after reconnecting.
 
 Backups contain household information, so keep them private. They do not contain
-HA login credentials, alarm codes, per-screen preferences (appearance and selected
-alarm panel), HA entities, HA events
-or remote to-do contents. Timetable images remain external; only their URLs are
+HA login credentials, alarm codes, people records, HA entities, calendar events
+or list contents. Only configuration format 2 is accepted; older formats are not
+supported. Timetable images remain external; only their URLs are
 saved. Each new screen must sign into HA. Moving the same HA instance to a new URL
 remaps reference prefixes; changing entity/registry IDs in a different HA
 installation requires selecting those people, calendars, lists and favorites again.
+
+Version 0.3.0 requires a fresh settings file or a format 2 backup. If an older
+`configuration.json` exists, remove or replace it before starting the app; there
+is no automatic migration or reset.
 
 A corrupted storage file stops the server from starting, rather than overwriting
 it. Restore the app's HA backup or replace `/data/configuration.json` with a valid

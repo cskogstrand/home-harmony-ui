@@ -30,7 +30,7 @@ export function AppLayout() {
       {isHomeSection(pathname) && <SmartHomeNav />}
       <Outlet />
     </main>
-    <footer className="app-footer"><span>{shared?.enabled ? "Shared family planner" : "Local family planner"} · {saved ? shared?.enabled ? "Planner saved on the server" : "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
+    <footer className="app-footer"><span>{shared?.enabled ? "Shared app settings" : "Local family planner"} · {saved ? shared?.enabled ? "Settings saved on the server" : "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
     <MainNav />
   </div>;
 }

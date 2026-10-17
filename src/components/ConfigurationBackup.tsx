@@ -30,8 +30,8 @@ export function ConfigurationBackup() {
   };
   return <section className="glow-panel space-y-4">
     <PanelHeading title="Storage and backups" />
-    <p>{shared?.enabled ? "Household settings and plans are shared across signed-in devices and saved on the server. Other screens refresh within five seconds." : "This build saves the planner in this browser. Export it here to move it to the shared app."}</p>
-    <p className="page-note">Backups include local plans and lists, calendar/list assignments, people order, favorites and timetable image URLs. Home Assistant credentials, alarm codes, appearance preferences and HA’s own events/devices are not included. Keep downloaded backups private.</p>
+    <p>{shared?.enabled ? "App settings are shared across signed-in devices and saved on the server. Other screens refresh within five seconds." : "This build saves settings in this browser. Export them here to move to the shared app."}</p>
+    <p className="page-note">Backups contain HA connection URLs, visibility toggles, calendar/list assignments, people order, favorites, appearance, alarm selection and timetable image URLs. Calendar events, list contents, people and device state stay in Home Assistant. Login credentials and alarm codes are never included.</p>
     {shared?.enabled && <>
       <p role="status">{!shared.online ? "Connect to Home Assistant to use shared storage." : shared.state.saving ? "Saving shared configuration…" : shared.state.dirty ? "Unsaved changes on this screen." : shared.state.loaded ? "Shared configuration saved." : "Loading shared configuration…"}</p>
       {shared.state.error && <p role="alert" className="text-destructive">{shared.state.error}</p>}
@@ -64,7 +64,7 @@ export function ConfigurationBackup() {
     </div>
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {pending && <ConfirmDialog open onOpenChange={open => { if (!open) setPending(undefined); }} title="Restore configuration?" confirmLabel="Restore configuration" destructive disabled={blocked}
-      description={`This backup contains ${Object.keys(pending.planners).length} planner(s). ${shared?.enabled ? "It replaces the entire shared configuration for every screen." : "It replaces the current browser planner."} Export the current configuration first if you need to keep it. Home Assistant data and logins stay unchanged.`}
+      description={`This backup contains ${Object.keys(pending.planners).length} settings profile(s). ${shared?.enabled ? "It replaces the entire shared configuration for every screen." : "It replaces the current browser settings."} Export the current configuration first if you need to keep it. Home Assistant data and logins stay unchanged.`}
       onConfirm={async () => { await importConfiguration(pending); toast.success("Configuration restored"); }} />}
     {reload && <ConfirmDialog open onOpenChange={setReload} title="Load shared configuration?" confirmLabel="Load shared version" destructive
       description="Discard unsaved changes on this screen and load the last saved shared configuration? Export unsaved changes first if you need to keep them."

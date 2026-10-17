@@ -125,10 +125,10 @@ describe("shared configuration", () => {
   });
 });
 
-it("moves instance references across HA addresses without rewriting free text or image URLs", () => {
+it("moves instance references across HA addresses without rewriting image URLs", () => {
   const old = "http://old.local:8123", next = "https://new.local";
   const planner = { ...emptyPlanner(),
-    events: [{ id: "event", title: old, date: "2026-10-17", time: "12:00", member: `${old}|person`, location: old, note: old }],
+    selectedAlarm: `${old}|alarm`,
     memberOrder: [`${old}|person`], hiddenMembers: [`${old}|person`], timetables: { [`${old}|person`]: [`${old}/local/timetable.jpg`] },
     timetableEnabled: { [`${old}|person`]: true }, calendarMembers: { [`${old}|calendar`]: `${old}|person` },
     todoLists: { [`${old}|list`]: { kind: "daily" as const, member: `${old}|person` } }, homeEntities: { [old]: [`${old}|light`] },
@@ -140,14 +140,24 @@ it("moves instance references across HA addresses without rewriting free text or
   expect(moved.todoLists[`${next}|list`].member).toBe(`${next}|person`);
   expect(moved.homeEntities[next]).toEqual([`${next}|light`]);
   expect(moved.timetables[`${next}|person`]).toEqual([`${old}/local/timetable.jpg`]);
-  expect(moved.events[0]).toMatchObject({ title: old, location: old, note: old, member: `${next}|person` });
+  expect(moved.selectedAlarm).toBe(`${next}|alarm`);
 });
 
 it("rejects invalid or unsupported backup files instead of silently dropping their fields", () => {
   const config: Configuration = { ...emptyConfiguration(), planners: { main: { instanceUrl: url, planner: emptyPlanner() } } };
   expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
-  expect(() => parseConfiguration(JSON.stringify({ ...config, version: 2 }))).toThrow();
+  expect(() => parseConfiguration(JSON.stringify({ ...config, version: 3 }))).toThrow();
   expect(() => parseConfiguration(JSON.stringify({ ...config, refresh_token: "fixture" }))).toThrow();
   config.planners.main.planner.calendar = { view: "invalid", startDay: "today" } as never;
   expect(() => parseConfiguration(JSON.stringify(config))).toThrow();
+});
+
+it("rejects old formats and HA data in settings backups", () => {
+  const config = { ...emptyConfiguration(), planners: { main: { instanceUrl: url, planner: emptyPlanner() } } };
+  expect(() => parseConfiguration(JSON.stringify({ ...config, version: 1 }))).toThrow();
+  for (const field of ["events", "items", "people", "states"]) {
+    const input = structuredClone(config);
+    Object.assign(input.planners.main.planner, { [field]: [] });
+    expect(() => parseConfiguration(JSON.stringify(input))).toThrow();
+  }
 });

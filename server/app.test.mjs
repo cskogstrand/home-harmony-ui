@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createAppServer } from "./app.mjs";
+import { createServer as createViteServer, preview } from "vite";
 import { emptyConfiguration, emptyPlanner, MAX_CONFIG_BYTES } from "../shared/configuration.ts";
 
 const listen = server => new Promise((resolve, reject) => {
@@ -81,9 +82,13 @@ test("invalid, credential-bearing, oversized and future-version imports leave ex
   const app = await fixture(t);
   const initial = await (await app.request()).json();
   const saved = await (await app.request("PUT", configuration(), initial.revision)).json();
-  const invalid = ["not json", { ...configuration(), version: 2 }, { ...configuration(), access_token: "fixture-secret" }];
+  const invalid = ["not json", { ...configuration(), version: 3 }, { ...configuration(), access_token: "fixture-secret" }];
   const unsafe = configuration(); unsafe.planners["home-1"].planner.timetables = { child: ["javascript:alert(1)"] }; invalid.push(unsafe);
-  const missing = configuration(); delete missing.planners["home-1"].planner.events; invalid.push(missing);
+  const missing = configuration(); delete missing.planners["home-1"].planner.timetables; invalid.push(missing);
+  for (const field of ["events", "items", "people", "states"]) {
+    const data = configuration(); data.planners["home-1"].planner[field] = [];
+    invalid.push(data);
+  }
   invalid.push('{"format":"home-harmony-config","version":1,"planners":{"__proto__":{}}}');
   for (const input of invalid) assert.equal((await app.request("PUT", input, saved.revision)).status, 400);
   assert.equal((await app.request("PUT", " ".repeat(MAX_CONFIG_BYTES + 1), saved.revision)).status, 413);
@@ -113,4 +118,42 @@ test("refuses to overwrite a corrupt on-disk configuration", async t => {
   await writeFile(join(app.dataDir, "configuration.json"), "corrupted-original");
   await assert.rejects(createAppServer({ dataDir: app.dataDir, distDir: app.distDir, homeAssistantUrl: app.homeAssistantUrl }), /existing file has been kept/);
   assert.equal(await readFile(join(app.dataDir, "configuration.json"), "utf8"), "corrupted-original");
+});
+
+test("default development and preview serve the storage API and preserve settings across restarts", async t => {
+  const app = await fixture(t);
+  const originalData = process.env.DATA_DIR, originalHa = process.env.HOME_ASSISTANT_URL;
+  process.env.DATA_DIR = join(app.dir, "vite-data");
+  process.env.HOME_ASSISTANT_URL = app.homeAssistantUrl;
+  let saved;
+  try {
+    for (const mode of ["development", "production"]) {
+      const options = { mode, logLevel: "silent", build: { outDir: app.distDir },
+        server: { host: "127.0.0.1", port: 0, fs: { allow: [process.cwd(), app.dir] } }, preview: { host: "127.0.0.1", port: 0 } };
+      const vite = mode === "development" ? await createViteServer(options) : await preview(options);
+      try {
+        if (mode === "development") await vite.listen();
+        const url = `http://127.0.0.1:${vite.httpServer.address().port}/api/config`;
+        assert.equal((await fetch(url)).status, 401);
+        const headers = { Authorization: "Bearer fixture-valid-token" };
+        const loaded = await (await fetch(url, { headers })).json();
+        if (saved) assert.deepEqual(loaded, saved);
+        else {
+          const response = await fetch(url, { method: "PUT", headers: { ...headers, "Content-Type": "application/json", "If-Match": `"${loaded.revision}"` }, body: JSON.stringify(configuration()) });
+          assert.equal(response.status, 200);
+          saved = await response.json();
+        }
+        if (mode === "development") {
+          for (const query of ["", "?raw", "?import"]) {
+            const direct = await fetch(new URL(`/@fs${process.env.DATA_DIR}/configuration.json${query}`, url));
+            assert.equal(direct.status, 403);
+            assert.doesNotMatch(await direct.text(), /memberOrder/);
+          }
+        }
+      } finally { await vite.close(); }
+    }
+  } finally {
+    if (originalData === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = originalData;
+    if (originalHa === undefined) delete process.env.HOME_ASSISTANT_URL; else process.env.HOME_ASSISTANT_URL = originalHa;
+  }
 });

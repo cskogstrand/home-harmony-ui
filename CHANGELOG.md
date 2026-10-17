@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Store and export app settings only; calendar events, lists, people and device state stay in Home Assistant.
+- Include appearance and selected alarm panel in saved settings.
+- Require settings backup format 2; previous formats are not supported.
+- Use shared persistent storage by default in development and production builds.
+- Run the storage API with Vite development and preview; browser-only storage requires explicit browser mode.
+
 ## 0.2.0
 
 - Persist shared household configuration in the HAOS app data folder.

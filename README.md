@@ -1,6 +1,6 @@
 # Home Harmony UI
 
-A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists; the HAOS app saves planner data and assignments on its persistent server storage and shares them across devices. Standalone static builds retain browser-only storage.
+A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists. App preferences and assignments use shared persistent server storage by default, including local development. Browser-only storage is an explicit opt-in for static hosting.
 
 ## Install on Home Assistant OS
 
@@ -14,7 +14,7 @@ See [installation, networking and updates](DOCS.md). These files must be pushed 
 
 ## Run and connect locally
 
-Requires Node.js 20, 22, or 24+, npm, and Home Assistant **2023.9 or newer**. Browser baseline: Safari 16.4+, Chrome 111+, Firefox 128+.
+Requires Node.js **24+**, npm, and Home Assistant **2023.9 or newer**. Browser baseline: Safari 16.4+, Chrome 111+, Firefox 128+.
 
 ```sh
 npm install
@@ -23,18 +23,20 @@ npm run dev
 
 Open the URL printed by Vite (configured port: `8080`). In **Smart home → Home settings**, enter your HA origin, for example `http://homeassistant.local:8123`, and choose **Connect**. Use your instance’s actual port. Sign in on Home Assistant’s page; its callback returns to `/settings`.
 
-For another screen on your LAN, bind Vite to your LAN interface with `npm run dev -- --host 0.0.0.0` and open the computer’s LAN address. No public hosting, router port forwarding, cloud relay, webhook, or application backend is required. Keep the dashboard at the same origin to retain its browser-local planner storage. Production output is `dist/`; a local static server must provide SPA fallback to `index.html`, including `/settings`.
+`npm run dev` runs the storage API alongside Vite and saves configuration in `.data/configuration.json`. Its trusted HA origin defaults to `http://homeassistant.local:8123`; set `HOME_ASSISTANT_URL` before starting if your instance uses another address. This server-side setting must point to the same HA instance you sign into in the browser. For another screen on your LAN, bind Vite with `npm run dev -- --host 0.0.0.0` and open the computer’s LAN address.
 
 ### Shared storage outside HAOS
 
-Use Node.js **24+** to run the same storage server locally:
+Build and run the app with persistent storage:
 
 ```sh
-npm run build:server
-DATA_DIR=.data HOME_ASSISTANT_URL=http://homeassistant.local:8123 npm start
+npm run build
+npm start
 ```
 
-Open port `8099`. `HOME_ASSISTANT_URL` must be the origin of the one trusted HA instance this server authenticates against; it is never chosen from a browser request. Keep `DATA_DIR` on persistent storage. For frontend development, leave this server running and use `npm run dev -- --mode server`; Vite proxies `/api/config` to port 8099. Plain `npm run dev` and `npm run build` continue to use browser-only planners.
+Open port `8099`. Development, preview and production use `.data/` by default; HAOS uses `/data/`. Set `DATA_DIR` to choose another persistent directory. Run only one server against a data directory at a time. `HOME_ASSISTANT_URL` must be the origin of the one trusted HA instance this server authenticates against; it is never chosen from a browser request. `npm run preview` also runs the storage API for the default build. A missing storage server shows an error rather than silently saving in the browser.
+
+For static hosting without a storage server, explicitly use `npm run build:browser` (or `npm run dev -- --mode browser`). Serve `dist/` with SPA fallback to `index.html`, including `/settings`; when previewing this build use `npm run preview -- --mode browser`. This mode keeps planners on each browser separately. Existing browser data can be migrated through **App preferences → Storage and backups**.
 
 ### Authentication and connection
 
@@ -62,7 +64,7 @@ Use each person’s **Timetable** toggle in the same settings section to include
 
 For multi-page PDFs, the existing Nextcloud → image conversion workflow still works: generate a stable image URL for each page and paste those URLs into the School board. Updating the images at those URLs avoids editing the app’s settings each week when the page count stays the same; browser/server caching controls when replacements become visible.
 
-Calendar integrations remain in Home Assistant. The app subscribes to events for the displayed day/week and falls back to `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header on older HA versions. It uses HA’s timezone (including DST) and shows HA events alongside local plans in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again.
+Calendar integrations remain in Home Assistant. The app subscribes to events for the displayed day/week and falls back to `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header on older HA versions. It uses HA’s timezone (including DST) and shows HA events in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again.
 
 New plans save through `calendar.create_event` when the selected calendar supports creation. Open an existing event to edit its title, dates/times, location and reminder through `calendar/event/update` when its calendar supports updates and supplies an event UID. All-day end dates in the editor include the last day; the app converts them to HA’s exclusive end. Recurring edits change only the selected occurrence; recurring events without an occurrence ID remain read-only. Calendar/person assignments and recurrence rules cannot be changed in this editor. Failed saves retain the draft; writes are never automatically retried or saved as local duplicates.
 
@@ -97,11 +99,11 @@ Add controls appear above each list. As you type, matching existing entries appe
 
 ## Shared storage and backups
 
-The HAOS app stores one household configuration in `/data/configuration.json`: all planners, local plans/list entries, timetable image URLs and toggles, people order, favorites, and calendar/to-do assignments. It writes files atomically and includes them in HA app backups. All users with a valid login to the configured HA instance can read and edit this shared household configuration. HA’s own events, to-do items, device state and device permissions remain in HA.
+The HAOS app stores one household configuration in `/data/configuration.json`: HA connection URLs, timetable image URLs and toggles, people visibility/order, favorites, calendar/to-do assignments, appearance and selected alarm panel. It writes files atomically and includes them in HA app backups. All users with a valid login to the configured HA instance can read and edit this shared household configuration. HA’s own events, to-do items, device state and device permissions remain in HA.
 
-**App preferences → Storage and backups** exports a versioned JSON file and imports it after validation and a replacement confirmation. A shared import replaces all shared planners. Browser-only mode exports/restores the current planner. Backups exclude login tokens, alarm codes and per-screen preferences. Image files themselves are not embedded; their URLs must still work on the destination. Treat exports as private household data.
+**App preferences → Storage and backups** exports a versioned JSON file and imports it after validation and a replacement confirmation. A shared import replaces all shared settings profiles. Browser-only mode exports/restores the current profile’s settings. Backups exclude calendar events, list contents, people records, device state, login tokens and alarm codes. Configuration format 2 is required; old formats are not supported. Image files themselves are not embedded; their URLs must still work on the destination. Treat exports as private household data.
 
-To upgrade from 0.1.0, sign in on the browser with your existing settings and choose **Use settings from this browser**. If the old dashboard used another origin, export from that address and import on the new one. Migration is explicit and leaves the browser copy intact. Existing shared data is replaced only after confirmation. When moving the same HA instance to another address, reference prefixes are remapped to the address each screen uses; registry/entity IDs must still exist in the destination. Moving to a different HA installation may require reassigning people, calendars, lists and favorites.
+To move settings from browser-only mode, sign in and choose **Use settings from this browser**. Only app settings are copied; local event/list contents are excluded. If the old dashboard used another origin, export from that address and import on the new one. Migration is explicit and leaves the browser copy intact. Existing shared data is replaced only after confirmation. When moving the same HA instance to another address, reference prefixes are remapped to the address each screen uses; registry/entity IDs must still exist in the destination. Moving to a different HA installation may require reassigning people, calendars, lists and favorites.
 
 Other screens refresh within five seconds. Revision checks reject simultaneous stale writes instead of silently replacing another screen’s changes. On an error or conflict, keep the tab open and export the unsaved configuration. **Retry storage** retries a failed save; **Load shared version** confirms discarding the local draft. No edits are automatically replayed after reconnecting. HA must be reachable to authenticate storage requests.
 

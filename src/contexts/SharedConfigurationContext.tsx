@@ -5,7 +5,7 @@ import { SharedConfiguration } from "@/lib/shared-configuration";
 const Context = createContext<ReturnType<typeof useSharedStore> | null>(null);
 function useSharedStore() {
   const { configurationRequest, homeOnline } = useApp();
-  const enabled = import.meta.env.MODE === "server";
+  const enabled = import.meta.env.MODE !== "browser";
   const [store] = useState(() => new SharedConfiguration(configurationRequest));
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
   useEffect(() => {

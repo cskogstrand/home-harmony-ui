@@ -109,7 +109,7 @@ export default function HomeSettings() {
         </div>;
       })}</div>}
       {haUrl && <div className="flex flex-wrap gap-4 mt-4"><a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">Manage people in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up calendar integrations</a><a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open Home Assistant calendar</a></div>}
-      <p className="page-note">Calendar selections are saved with this planner. Home Assistant events are read-only here. Add local plans and school timetable images in this app.</p>
+      <p className="page-note">Calendar selections are saved with this planner. Events are managed by Home Assistant. Set school timetable image URLs in this app.</p>
     </section>
     <section className="glow-panel" id="family-lists"><PanelHeading title="People and to-do lists" />
       <p className="page-note">Choose a task list and a daily task list for each person. Everyone’s lists are shared. Choosing an assigned list moves it here.</p>

@@ -185,6 +185,6 @@ export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCal
     {data.selectedCount > 0 && <p>Plans save to Home Assistant calendars. Open an event to edit it when its calendar supports updates. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
     {data.loading && <p role="status">Loading calendar events…</p>}
     {data.errors.map(error => <p role="alert" key={error}>{error}</p>)}
-    {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline. Local plans remain available.</p>}
+    {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline.</p>}
   </div>;
 }

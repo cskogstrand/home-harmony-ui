@@ -35,7 +35,7 @@ export function EventButton({ event, onClick, showDate = false, continuesBefore 
   </button>;
 }
 export function EventEditor({ open, onOpenChange, onSaved, event, date, member = "everyone" }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void; event?: FamilyEvent; date?: string; member?: MemberId }) {
-  const { today, saveEvent, deleteEvent, memberName, members, calendarMembers } = useFamily();
+  const { today, saveEvent, deleteEvent, memberName, members, calendarMembers, connectedPlanner } = useFamily();
   const { haUrl, currentHome, homeOnline, services, command, commands } = useApp();
   const [draft, setDraft] = useState<FamilyEvent | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -58,7 +58,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     }
     wasOpen.current = open;
   }, [open, event, source, date, today, member, currentHome.timeZone, haUrl]);
-  const remote = editingRemote || !!haUrl && !event;
+  const remote = editingRemote || connectedPlanner && !event;
   const calendars = currentHome.entities.filter(e => e.domain === "calendar" && calendarMembers[e.preferenceId] === draft?.member);
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
   const calendar = editingRemote ? currentHome.entities.find(e => e.entityId === event.calendarId) : calendars.find(e => e.preferenceId === calendarId) ?? (!calendarId && writable.length === 1 ? writable[0] : undefined);

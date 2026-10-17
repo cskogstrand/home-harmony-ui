@@ -8,7 +8,7 @@ const revisionOf = config => createHash("sha256").update(JSON.stringify(config))
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
 const failure = (status, message) => Object.assign(new Error(message), { status });
 
-export async function createAppServer({ dataDir, distDir, homeAssistantUrl }) {
+export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
   const file = resolve(dataDir, "configuration.json");
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
@@ -67,7 +67,7 @@ export async function createAppServer({ dataDir, distDir, homeAssistantUrl }) {
     return write;
   }
 
-  return createServer({ requestTimeout: 15000, headersTimeout: 10000 }, async (request, response) => {
+  return async (request, response) => {
     const json = (status, body) => { response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }); response.end(JSON.stringify(body)); };
     try {
       const pathname = new URL(request.url, "http://localhost").pathname;
@@ -93,5 +93,9 @@ export async function createAppServer({ dataDir, distDir, homeAssistantUrl }) {
         "Cache-Control": pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache", "X-Content-Type-Options": "nosniff" });
       response.end(request.method === "HEAD" ? undefined : contents);
     } catch (error) { json(error.status ?? 500, { error: error.status ? error.message : "Configuration storage is unavailable. Reload to check the last saved version before retrying." }); }
-  });
+  };
+}
+
+export async function createAppServer(options) {
+  return createServer({ requestTimeout: 15000, headersTimeout: 10000 }, await createAppHandler(options));
 }

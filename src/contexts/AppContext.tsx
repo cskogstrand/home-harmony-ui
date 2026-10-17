@@ -5,14 +5,12 @@ import { mapHome } from "@/lib/ha-model";
 function useHomeAssistant() {
   const [client] = useState(() => new HomeAssistantClient());
   const state = useSyncExternalStore(client.subscribe, client.getSnapshot);
-  const [compactMode, setCompactMode] = useState(false);
   useEffect(() => { client.start(); return client.dispose; }, [client]);
   const currentHome = useMemo(() => mapHome(state.states, state.registries, state.url, state.config), [state.states, state.registries, state.url, state.config]);
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
     connectionError: state.error, metadataWarnings: state.warnings, sessionWarning: state.sessionWarning, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
-    logout: client.logout, command: client.command, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest,
-    compactMode, toggleCompactMode: () => setCompactMode(value => !value) };
+    logout: client.logout, command: client.command, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest };
 }
 const AppContext = createContext<ReturnType<typeof useHomeAssistant> | null>(null);
 export function useApp() {
