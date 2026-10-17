@@ -33,7 +33,7 @@ const todoItemsSchema = z.object({ items: z.array(z.object({
 })) });
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
-  : "Cannot connect to Home Assistant through the dashboard server. Check its configured URL, token and network connection.";
+  : "Cannot connect to Home Assistant through the dashboard server. Check the dashboard server logs and its configured Home Assistant URL, port and network connection.";
 
 async function bounded<T>(promise: Promise<T>, milliseconds = 15000): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;

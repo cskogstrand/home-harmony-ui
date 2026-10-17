@@ -53,7 +53,7 @@ export default function HomeSettings() {
       <p role="status" className="page-note">Connection: {connectionStatus}</p>
       {connectionError && <p role="alert" className="text-destructive">{connectionError}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{warning}</p>)}
-      <p className="page-note">Every screen uses the configured HA account’s permissions. Dashboard access is protected with the shared username “dashboard” and password.</p>
+      <p className="page-note">Every screen uses the configured HA account’s permissions. Unless login is disabled in the server configuration, sign in with username “dashboard” and the shared password.</p>
     </section>
     <section className="glow-panel" id="people-order"><PanelHeading title="People order and timetables" />
       <p className="page-note">Set the order used throughout the app: calendars, tasks, daily tasks, school timetables and person selectors. Everyone stays first; new people appear at the end.</p>

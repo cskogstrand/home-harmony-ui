@@ -279,19 +279,22 @@ test("default development and preview serve the storage API and preserve setting
   const originalData = process.env.DATA_DIR, originalHa = process.env.HOME_ASSISTANT_URL;
   process.env.DATA_DIR = join(app.dir, "vite-data");
   process.env.HOME_ASSISTANT_URL = app.homeAssistantUrl;
-  const oldToken = process.env.HOME_ASSISTANT_TOKEN, oldPassword = process.env.DASHBOARD_PASSWORD;
+  const oldToken = process.env.HOME_ASSISTANT_TOKEN, oldPassword = process.env.DASHBOARD_PASSWORD, oldAuthDisabled = process.env.DASHBOARD_AUTH_DISABLED;
   process.env.HOME_ASSISTANT_TOKEN = "fixture-ha-token";
   process.env.DASHBOARD_PASSWORD = "fixture-valid-token";
   let saved;
   try {
-    for (const mode of ["development", "production"]) {
+    for (const authDisabled of ["false", "true"]) for (const mode of ["development", "production"]) {
+      process.env.DASHBOARD_AUTH_DISABLED = authDisabled;
+      process.env.DASHBOARD_PASSWORD = authDisabled === "true" ? "" : "fixture-valid-token";
       const options = { mode, logLevel: "silent", build: { outDir: app.distDir },
         server: { host: "127.0.0.1", port: 0, fs: { allow: [process.cwd(), app.dir] } }, preview: { host: "127.0.0.1", port: 0 } };
       const vite = mode === "development" ? await createViteServer(options) : await preview(options);
       try {
         if (mode === "development") await vite.listen();
         const url = `http://127.0.0.1:${vite.httpServer.address().port}/api/config`;
-        assert.equal((await fetch(url)).status, 401);
+        assert.equal((await fetch(url)).status, authDisabled === "true" ? 200 : 401);
+        assert.equal((await fetch(new URL("/", url))).status, authDisabled === "true" ? 200 : 401);
         const headers = { Authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}` };
         const loaded = await (await fetch(url, { headers })).json();
         if (saved) assert.deepEqual(loaded, saved);
@@ -312,6 +315,7 @@ test("default development and preview serve the storage API and preserve setting
   } finally {
     if (oldToken === undefined) delete process.env.HOME_ASSISTANT_TOKEN; else process.env.HOME_ASSISTANT_TOKEN = oldToken;
     if (oldPassword === undefined) delete process.env.DASHBOARD_PASSWORD; else process.env.DASHBOARD_PASSWORD = oldPassword;
+    if (oldAuthDisabled === undefined) delete process.env.DASHBOARD_AUTH_DISABLED; else process.env.DASHBOARD_AUTH_DISABLED = oldAuthDisabled;
     if (originalData === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = originalData;
     if (originalHa === undefined) delete process.env.HOME_ASSISTANT_URL; else process.env.HOME_ASSISTANT_URL = originalHa;
   }

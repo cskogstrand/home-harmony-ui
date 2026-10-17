@@ -8,7 +8,7 @@ import { runtimeOptions } from "./runtime.mjs";
 test("loads .env and HAOS options, gives environment values precedence, and rejects incomplete configuration", async () => {
   const directory = await mkdtemp(join(tmpdir(), "home-harmony-env-"));
   const cwd = process.cwd(), saved = { ...process.env };
-  const keys = ["DATA_DIR", "HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN", "DASHBOARD_PASSWORD", "PORT"];
+  const keys = ["DATA_DIR", "HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN", "DASHBOARD_PASSWORD", "DASHBOARD_AUTH_DISABLED", "PORT"];
   try {
     process.chdir(directory);
     keys.forEach(key => delete process.env[key]);
@@ -19,6 +19,7 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
     let options = await runtimeOptions();
     assert.equal(options.homeAssistantToken, "haos-token");
     assert.equal(options.dashboardPassword, "haos-password-123");
+    assert.equal(options.dashboardAuthDisabled, false);
     for (const token of [" \thaos-token\r\n", "\u00a0haos-token\u00a0"]) {
       await writeFile("data/options.json", JSON.stringify({ ...haosOptions, home_assistant_token: token }));
       assert.equal((await runtimeOptions()).homeAssistantToken, "haos-token");
@@ -35,6 +36,15 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
         return true;
       });
     }
+    await writeFile("data/options.json", JSON.stringify({ ...haosOptions, dashboard_password: undefined, dashboard_auth_disabled: true }));
+    assert.equal((await runtimeOptions()).dashboardAuthDisabled, true);
+    process.env.DASHBOARD_AUTH_DISABLED = "false";
+    await assert.rejects(runtimeOptions(), /DASHBOARD_PASSWORD/);
+    for (const value of ["yes", "1", "", "FALSE"]) {
+      process.env.DASHBOARD_AUTH_DISABLED = value;
+      await assert.rejects(runtimeOptions(), /DASHBOARD_AUTH_DISABLED/);
+    }
+    delete process.env.DASHBOARD_AUTH_DISABLED;
     await writeFile("data/options.json", JSON.stringify(haosOptions));
     await writeFile(".env", 'HOME_ASSISTANT_URL=http://env.local:8123\nHOME_ASSISTANT_TOKEN=env-token\nDASHBOARD_PASSWORD="env-password-123"\nPORT=9000\n');
     process.env.HOME_ASSISTANT_TOKEN = " \texplicit-token\r\n";
@@ -48,6 +58,12 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
     process.env.HOME_ASSISTANT_TOKEN = "explicit-token";
     process.env.DASHBOARD_PASSWORD = "short";
     await assert.rejects(runtimeOptions(), /at least 12/);
+    process.env.DASHBOARD_AUTH_DISABLED = "true";
+    assert.equal((await runtimeOptions()).dashboardAuthDisabled, true);
+    process.env.HOME_ASSISTANT_TOKEN = "";
+    await assert.rejects(runtimeOptions(), /Set HOME_ASSISTANT_TOKEN/);
+    process.env.HOME_ASSISTANT_TOKEN = "explicit-token";
+    process.env.DASHBOARD_AUTH_DISABLED = "false";
     process.env.DASHBOARD_PASSWORD = "valid-password-123";
     process.env.HOME_ASSISTANT_URL = "http://user:password@ha.local";
     await assert.rejects(runtimeOptions(), /HTTP\(S\) origin/);

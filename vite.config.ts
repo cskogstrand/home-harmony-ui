@@ -8,7 +8,7 @@ import { createAppHandler } from "./server/app.mjs";
 async function configurationMiddleware(server: import("vite").ViteDevServer | import("vite").PreviewServer) {
   const options = await runtimeOptions();
   const handler = await createAppHandler({ ...options, distDir: path.resolve("public") });
-  const authorize = dashboardAccess(options.dashboardPassword);
+  const authorize = dashboardAccess(options.dashboardPassword, options.dashboardAuthDisabled);
   if ("fs" in server.config.server) server.config.server.fs.deny.push(`${normalizePath(options.dataDir)}/**`);
   const closeSockets = attachHomeAssistantSocket(server.httpServer, options);
   server.httpServer.once("close", closeSockets);

@@ -4,19 +4,19 @@ import WebSocket, { WebSocketServer } from "ws";
 const failure = (status, message) => Object.assign(new Error(message), { status });
 const digest = value => createHash("sha256").update(value).digest();
 
-export function dashboardAccess(password) {
-  if (typeof password !== "string" || password.length < 12) throw new Error("Configure a dashboard password of at least 12 characters.");
-  const expected = digest(`Basic ${Buffer.from(`dashboard:${password}`).toString("base64")}`);
+export function dashboardAccess(password, authDisabled = false) {
+  if (!authDisabled && (typeof password !== "string" || password.length < 12)) throw new Error("Configure a dashboard password of at least 12 characters.");
+  const expected = authDisabled ? undefined : digest(`Basic ${Buffer.from(`dashboard:${password}`).toString("base64")}`);
   return request => {
-    if (!timingSafeEqual(digest(request.headers.authorization ?? ""), expected)) throw failure(401, "Enter the dashboard username and password.");
+    if (expected && !timingSafeEqual(digest(request.headers.authorization ?? ""), expected)) throw failure(401, "Enter the dashboard username and password.");
     const origin = request.headers.origin;
     if (origin && new URL(origin).host !== request.headers.host) throw failure(403, "Cross-origin dashboard requests are not allowed.");
     if (request.headers["sec-fetch-site"] === "cross-site") throw failure(403, "Cross-site dashboard requests are not allowed.");
   };
 }
 
-export function attachHomeAssistantSocket(server, { homeAssistantUrl, homeAssistantToken, dashboardPassword }) {
-  const authorize = dashboardAccess(dashboardPassword);
+export function attachHomeAssistantSocket(server, { homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled }) {
+  const authorize = dashboardAccess(dashboardPassword, dashboardAuthDisabled);
   const sockets = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 * 1024 });
   const upgrade = (request, socket, head) => {
     if (request.url !== "/api/websocket") return;
@@ -26,8 +26,15 @@ export function attachHomeAssistantSocket(server, { homeAssistantUrl, homeAssist
       const upstream = new WebSocket(`${homeAssistantUrl.replace(/^http/, "ws")}/api/websocket`, { handshakeTimeout: 10000, maxPayload: 16 * 1024 * 1024 });
       let authenticated = false;
       let browserAuth = false;
-      const timeout = setTimeout(() => { browser.terminate(); upstream.terminate(); }, 15000);
-      upstream.on("error", () => browser.close(1011, "Home Assistant is unavailable"));
+      const timeout = setTimeout(() => {
+        console.warn(`Home Assistant WebSocket authentication timed out at ${homeAssistantUrl}. Check the configured URL and port.`);
+        browser.terminate(); upstream.terminate();
+      }, 15000);
+      upstream.on("error", error => {
+        const reason = error.code ?? error.message.match(/^Unexpected server response: \d{3}$/)?.[0] ?? "connection failed";
+        console.warn(`Home Assistant WebSocket failed at ${homeAssistantUrl}: ${reason}. Check the URL, port and network access from the dashboard server.`);
+        browser.close(1011, "Home Assistant is unavailable");
+      });
       browser.on("error", () => upstream.terminate());
       upstream.on("close", () => { clearTimeout(timeout); browser.close(); });
       browser.on("close", () => { clearTimeout(timeout); upstream.close(); });
@@ -41,6 +48,7 @@ export function attachHomeAssistantSocket(server, { homeAssistantUrl, homeAssist
           return;
         }
         if (message.type === "auth_ok") { authenticated = true; clearTimeout(timeout); }
+        if (message.type === "auth_invalid") console.warn("Home Assistant rejected the configured server token. Update home_assistant_token / HOME_ASSISTANT_TOKEN and restart the dashboard.");
         browser.send(data.toString());
       });
       browser.on("message", (data, binary) => {

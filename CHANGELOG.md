@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2
+
+- Add an opt-in dashboard login bypass for trusted local networks in HAOS, Docker, Node and Vite.
+- Keep cross-origin checks and the server-side Home Assistant token when login is disabled.
+- Log Home Assistant WebSocket connection failures separately from rejected tokens, without logging credentials.
+
 ## 0.7.1
 
 - Ignore surrounding whitespace when loading the Home Assistant token from app options or the environment.

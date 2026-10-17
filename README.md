@@ -26,15 +26,18 @@ The server reads `settings.yaml` at startup. Stop it before editing the file man
 3. In the app's **Configuration** tab, set:
 
    ```yaml
-   home_assistant_url: http://homeassistant:8123
+   home_assistant_url: http://homeassistant
    home_assistant_token: YOUR_LONG_LIVED_ACCESS_TOKEN
    dashboard_password: YOUR_UNIQUE_PASSWORD_AT_LEAST_12_CHARACTERS
+   dashboard_auth_disabled: false
    ```
 
-4. Start/restart the app and open its web interface on port **8099**. Enter username **dashboard** and the configured dashboard password in the browser's authentication prompt.
+4. Start/restart the app and open its web interface on port **8099**. Enter username **dashboard** and the configured dashboard password in the browser's authentication prompt. To skip login on a trusted local network, set `dashboard_auth_disabled: true`; the dashboard password can then be empty.
 5. Open **Home settings** to choose visible people, calendars, lists and timetables. Use the same dashboard address on your other screens.
 
 HAOS supplies these options through `/data/options.json`; explicit environment variables take precedence. The Supervisor manages `/data` as persistent app data and includes it in app backups. The app uses its own web port, not HA ingress. The port can be changed under the app's Network settings.
+
+Use the HA Core address and port reachable **from the app container**. If `homeassistant.local` fails, try the internal hostname `homeassistant` or the device's LAN IP. HAOS 2026.8+ defaults to port 80; installations using port 8123 need `http://homeassistant:8123`. Check the actual port under **Settings → System → Network → HTTP server** ([HA HTTP settings](https://www.home-assistant.io/integrations/http/)).
 
 If startup reports a token configuration error, paste only the complete token created under **Profile → Security → Long-lived access tokens**, without surrounding quotes or a `Bearer ` prefix, then save and restart the app. Surrounding whitespace is trimmed; whitespace inside the token and other invalid characters are rejected. A startup format error happens before contacting Home Assistant and does not mean HA rejected the token. For manual deployments, check for an environment variable overriding the saved option.
 
@@ -79,15 +82,17 @@ npm run build
 npm start
 ```
 
-Node and Vite read `.env` automatically; already-set environment variables win. Required values are `HOME_ASSISTANT_URL`, `HOME_ASSISTANT_TOKEN` and `DASHBOARD_PASSWORD` (at least 12 characters). `HOME_ASSISTANT_URL` is an HTTP(S) origin without credentials, path, or trailing slash. `PORT` defaults to 8099 for the Node server; Vite uses its own `--port` option. `DATA_DIR` selects the persistent directory.
+Node and Vite read `.env` automatically; already-set environment variables win. Required values are `HOME_ASSISTANT_URL`, `HOME_ASSISTANT_TOKEN` and `DASHBOARD_PASSWORD` (at least 12 characters). For a trusted local network, set `DASHBOARD_AUTH_DISABLED=true` to skip login and make `DASHBOARD_PASSWORD` optional; it defaults to `false` and accepts only `true` or `false`. This also works in Docker Compose. `HOME_ASSISTANT_URL` is an HTTP(S) origin without credentials, path, or trailing slash. `PORT` defaults to 8099 for the Node server; Vite uses its own `--port` option. `DATA_DIR` selects the persistent directory.
 
 PDF conversion requires Poppler (`pdfinfo` and `pdftoppm`): `brew install poppler` on macOS or `apt install poppler-utils` on Debian/Ubuntu. The Docker image includes Poppler and fonts.
 
 ## Access and the Home Assistant connection
 
-The dashboard password protects HTML, assets, settings, timetable images and the WebSocket proxy. All screens act as the configured HA account. The token is sent to HA only by the server; it is absent from browser storage, public runtime configuration, settings backups and image URLs. The browser receives the configured URL for links to HA.
+By default, the dashboard password protects HTML, assets, settings, timetable images and the WebSocket proxy. Disabling login opens all of these to anyone who can reach the dashboard, including the configured HA account's home controls. Use the bypass only on a trusted local network. Cross-origin checks remain enabled, and a Home Assistant token is still required. The token is sent to HA only by the server; it is absent from browser storage, public runtime configuration, settings backups and image URLs. The browser receives the configured URL for links to HA.
 
 The server forwards the [HA WebSocket protocol](https://developers.home-assistant.io/docs/api/websocket/) and calendar REST reads to the configured HA origin. Browsers connect only to the dashboard; HA CORS changes are unnecessary. Cross-origin browser requests are rejected. A reverse proxy must preserve the browser's Host header and support WebSocket upgrades.
+
+**Connection failures:** “Cannot connect” does not establish that the token is invalid. Reconnect and check the dashboard app's **Log** tab: `ENOTFOUND` / `EAI_AGAIN` indicates hostname resolution, `ECONNREFUSED` indicates the address/port refused the connection, `EHOSTUNREACH` / `ENETUNREACH` indicates network reachability, and an unexpected HTTP status indicates a failed WebSocket upgrade (for example, a redirect or reverse proxy response). A rejected HA token is logged separately and shown as “Home Assistant rejected the server token”. Logs never include the token. Save configuration changes and restart the app before reconnecting.
 
 Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP Basic authentication does not encrypt the password over plain HTTP. Anyone with the dashboard password has the configured account's HA capabilities, including home controls. Changing the password and restarting invalidates future requests; browsers may remember Basic credentials until their authentication cache is cleared. **Disconnect** pauses live controls in that tab until reconnect/reload; it is not a logout or token revocation. Rotate/revoke the HA token in HA and update the server configuration when needed.
 

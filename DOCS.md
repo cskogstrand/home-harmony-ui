@@ -12,11 +12,16 @@ running 64-bit HAOS) and x86-64 (`amd64`).
 3. Select **Home Harmony UI**, then **Install**. The device builds the app from
    this repository; the first install needs internet access to download the
    Node image and npm packages and can take several minutes.
-4. Start the app and select **Open Web UI**, or open
+4. In the app's **Configuration** tab, set `home_assistant_url` to the HA Core
+   address reachable from the container, and `home_assistant_token` to a
+   long-lived access token from your HA profile. Set `dashboard_password` to
+   at least 12 characters, or set `dashboard_auth_disabled: true` to skip login
+   on a trusted local network.
+5. Start the app and select **Open Web UI**, or open
    `http://homeassistant.local:8099` using your HA device's actual LAN hostname/IP.
-5. In the dashboard, open **Smart home → Home settings**, enter the Home Assistant
-   URL your browser can reach (usually `http://homeassistant.local:8123`), and
-   select **Connect** to sign in with your own Home Assistant account.
+   Unless login is disabled, enter username **dashboard** and the dashboard password.
+6. Open **Smart home → Home settings** to check the connection and choose
+   household preferences. Every screen uses the configured HA account.
 
 The repository files must be pushed to GitHub, and the repository must be public
 for Home Assistant to clone the plain URL above without credentials. Adding this
@@ -26,30 +31,30 @@ repository URL with `#branch-name`.
 ## Network and login
 
 This app opens as a separate website on port **8099**; it does not use Home
-Assistant's embedded ingress/sidebar. The existing browser OAuth login and HA
-permissions apply. Each storage request is authenticated against the instance in
-the app's **Configuration → home_assistant_url** option (default:
-`http://homeassistant:8123`). Change it if HA Core uses a different port or HTTPS;
-certificates must be trusted by the container. Never disable certificate checks.
-All users signed into that instance can read and edit shared planner settings.
-The storage server checks each request's HA user token without storing it and
-does not use Supervisor tokens.
+Assistant's embedded ingress/sidebar. By default, the shared dashboard login
+protects pages, settings, timetables and the HA proxy. Setting
+`dashboard_auth_disabled: true` opens these and the configured account's home
+controls to anyone who can reach the dashboard. The HA token is still required
+and stays on the server. Cross-origin checks remain enabled.
 
-For calendar REST access, allow the dashboard's exact origin, such as
-`http://homeassistant.local:8099`, in Home Assistant's **Settings → System →
-Network → HTTP server → CORS allowed origins**. Older versions use
-`http.cors_allowed_origins` in `configuration.yaml`. Use the hostname/IP and port
-shown in the dashboard's address bar. See the [HTTP documentation](https://www.home-assistant.io/integrations/http/).
+If the default `http://homeassistant.local` cannot be reached from the container,
+try the internal `http://homeassistant` hostname or the device's LAN IP. Use
+HA Core's actual port: HAOS 2026.8+ defaults to 80; older or custom installations
+may need `:8123`. See the [HTTP settings](https://www.home-assistant.io/integrations/http/).
+After saving, restart the app. A generic connection error does not mean the
+token was rejected: reconnect and check the app's **Log** tab for DNS, network
+or WebSocket errors. Token rejection is reported separately.
+
+The server proxies HA WebSockets and calendar requests, so HA CORS changes are
+unnecessary. HTTPS certificates must be trusted by the container.
 
 Change the host port in the app's **Configuration → Network** section if 8099 is
-already in use, and update the allowed origin. Open Web UI uses the configured
+already in use. Open Web UI uses the configured
 port. If you access HA through a cloud/remote address, open this dashboard using
 the device's LAN address instead; HA's remote URL does not forward this port.
 
-The web interface is HTTP and serves public static files; access to HA data
-and shared configuration requires your HA login. Use it on a trusted LAN. For HTTPS, put it behind your
-existing trusted reverse proxy with SPA routes preserved. An HTTPS dashboard
-also requires an HTTPS HA URL.
+Use the HTTP web interface on a trusted LAN. For HTTPS, use a trusted reverse
+proxy that preserves the Host header, SPA routes and WebSocket upgrades.
 
 ## Persistent storage and backups
 
@@ -84,8 +89,8 @@ or list contents. Only configuration format 2 is accepted; older formats are not
 supported. JSON exports contain timetable page URLs, not uploaded image files.
 Back up all of `/data/` (or use HA app backups) to preserve uploaded timetables;
 external image URLs still depend on their original host. Old uploads are retained
-for configuration restores, so disk use grows over time. Each new screen must
-sign into HA. Moving the same HA instance to a new URL
+for configuration restores, so disk use grows over time. Each new screen uses
+the shared dashboard login unless it is disabled. Moving the same HA instance to a new URL
 remaps reference prefixes; changing entity/registry IDs in a different HA
 installation requires selecting those people, calendars, lists and favorites again.
 
@@ -102,7 +107,7 @@ export before restarting. The old file is left intact for recovery.
 Enable a person's timetable in Home settings, then open **School board** to
 upload a PDF (up to 10 MB / 20 pages) or view **Share from iPhone** for their
 upload URL. The container includes PDF conversion tools. Uploads and rendered
-pages require a Home Assistant bearer token; pages are never public static files.
+pages use the dashboard login unless it is disabled.
 See the [iOS shortcut and API setup](README.md#share-a-timetable-from-iphone).
 Use your dashboard's reachable HTTPS/LAN/VPN address, not HA's cloud URL.
 

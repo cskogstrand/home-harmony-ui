@@ -1,5 +1,5 @@
 name: Home Harmony UI
-version: "0.7.1"
+version: "0.7.2"
 slug: home_harmony_ui
 description: Afterglow family dashboard, calendars, lists and smart-home controls
 url: https://github.com/cskogstrand/home-harmony-ui
@@ -18,7 +18,9 @@ options:
   home_assistant_url: http://homeassistant.local
   home_assistant_token: ""
   dashboard_password: ""
+  dashboard_auth_disabled: false
 schema:
   home_assistant_url: url
   home_assistant_token: password
-  dashboard_password: password
+  dashboard_password: password?
+  dashboard_auth_disabled: bool

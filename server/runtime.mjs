@@ -13,11 +13,14 @@ export async function runtimeOptions() {
   const configuredToken = process.env.HOME_ASSISTANT_TOKEN ?? options.home_assistant_token;
   const homeAssistantToken = typeof configuredToken === "string" ? configuredToken.trim() : configuredToken;
   const dashboardPassword = process.env.DASHBOARD_PASSWORD ?? options.dashboard_password;
+  const configuredAuthDisabled = process.env.DASHBOARD_AUTH_DISABLED ?? options.dashboard_auth_disabled ?? false;
+  if (![true, false, "true", "false"].includes(configuredAuthDisabled)) throw new Error("Set DASHBOARD_AUTH_DISABLED (dashboard_auth_disabled in HAOS) to true or false.");
+  const dashboardAuthDisabled = configuredAuthDisabled === true || configuredAuthDisabled === "true";
   const port = Number(process.env.PORT ?? 8099);
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Set HOME_ASSISTANT_URL (home_assistant_url in HAOS) to an HTTP(S) origin without a trailing slash.");
   if (typeof homeAssistantToken !== "string" || !homeAssistantToken) throw new Error("Set HOME_ASSISTANT_TOKEN (home_assistant_token in HAOS) to a Home Assistant long-lived access token.");
   if (!/^[A-Za-z0-9._~-]{1,4096}$/.test(homeAssistantToken)) throw new Error("HOME_ASSISTANT_TOKEN (home_assistant_token in HAOS) contains invalid characters or exceeds 4096 characters. Paste only the long-lived access token, without quotes or a Bearer prefix.");
-  if (typeof dashboardPassword !== "string" || dashboardPassword.length < 12 || /[\r\n]/.test(dashboardPassword)) throw new Error("Set DASHBOARD_PASSWORD (dashboard_password in HAOS) to at least 12 characters.");
+  if (!dashboardAuthDisabled && (typeof dashboardPassword !== "string" || dashboardPassword.length < 12 || /[\r\n]/.test(dashboardPassword))) throw new Error("Set DASHBOARD_PASSWORD (dashboard_password in HAOS) to at least 12 characters.");
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535.");
-  return { dataDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, port };
+  return { dataDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, port };
 }

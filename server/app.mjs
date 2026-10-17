@@ -12,7 +12,7 @@ const revisionOf = config => createHash("sha256").update(JSON.stringify(config))
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
 const failure = (status, message) => Object.assign(new Error(message), { status });
 
-export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword }) {
+export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
   const file = resolve(dataDir, "settings.yaml");
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
@@ -27,7 +27,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
   let uploading = false;
   const root = await realpath(distDir);
 
-  const authenticate = dashboardAccess(dashboardPassword);
+  const authenticate = dashboardAccess(dashboardPassword, dashboardAuthDisabled);
 
   function save(change) {
     const write = writes.then(async () => {
