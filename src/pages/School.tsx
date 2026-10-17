@@ -37,10 +37,12 @@ function SchoolCard({ child }: { child: MemberId }) {
       {!uploadReady && <p role="status">Wait for shared settings to finish saving before uploading.</p>}
       {uploadStatus && <p role="status">{uploadStatus}</p>}
       {shared?.state.loaded && <details><summary className="text-link">Share from iPhone</summary>
-        <p>Create a shortcut for {memberName(child)} with Show in Share Sheet enabled and PDFs as input.</p>
+        <p>Install the PDF shortcut for {memberName(child)}. Copy the Upload URL below, then open the download in Shortcuts and tap Set Up Shortcut / Add Shortcut. iOS requires you to confirm the import.</p>
         <label>Upload URL<input aria-label={`${memberName(child)} upload URL`} readOnly value={new URL(uploadPath, window.location.origin).href} onFocus={event => event.target.select()} /></label>
-        <p>Use Get Contents of URL with POST, Request Body: File → Shortcut Input. Add headers Content-Type: application/pdf and Authorization: Basic followed by the Base64 encoding of dashboard:YOUR_DASHBOARD_PASSWORD.</p>
-        <p>Add Show Alert before the upload to confirm replacement, then Show Result after it. Keep the shortcut private: its password grants access to the dashboard and home controls. Use a trusted HTTPS dashboard address, or your home network/VPN.</p>
+        <Button asChild><a href="/shortcuts/Upload%20timetable.shortcut">Download iOS shortcut</a></Button>
+        <p>During setup, paste this Upload URL and enter your dashboard password. Rename the shortcut to “Upload {memberName(child)}’s timetable” so you can tell people apart. If Safari saves a file, tap it in Downloads to open Shortcuts.</p>
+        <p>Open one PDF, tap Share → your shortcut, then confirm the replacement. PDFs and Show in Share Sheet are already enabled. The shortcut shows the server’s response after uploading.</p>
+        <p>Keep your configured shortcut private: its saved password grants access to the dashboard and home controls. Use a trusted HTTPS dashboard address, or your home network/VPN. After a timeout, check the dashboard before retrying.</p>
       </details>}
     </div>
     {pdf && <ConfirmDialog open onOpenChange={open => { if (!open) setPdf(undefined); }} title="Upload timetable?" description={`Upload “${pdf.name}” for ${memberName(child)}? Its pages will replace the current timetable on every screen.`} confirmLabel="Upload PDF" pendingLabel="Uploading…" disabled={!uploadReady} onConfirm={async () => {

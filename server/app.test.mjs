@@ -252,6 +252,21 @@ test("serves SPA routes but never storage, dot files, traversal or symlinks outs
   assert.equal((await app.page("/api/missing")).status, 404);
 });
 
+test("downloads the signed iOS shortcut intact behind dashboard authentication", async t => {
+  const app = await fixture(t);
+  const shortcut = await readFile(new URL("../public/shortcuts/Upload%20timetable.shortcut", import.meta.url));
+  assert.equal(shortcut.subarray(0, 4).toString(), "AEA1", "Ship the signed file, not the unsigned plist");
+  await mkdir(join(app.distDir, "shortcuts"));
+  await writeFile(join(app.distDir, "shortcuts", "Upload timetable.shortcut"), shortcut);
+  const path = "/shortcuts/Upload%20timetable.shortcut";
+  assert.equal((await app.api(path, {}, "")).status, 401);
+  const response = await app.page(path);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "application/octet-stream");
+  assert.equal(response.headers.get("cache-control"), "no-cache");
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), shortcut);
+});
+
 test("refuses to overwrite a corrupt on-disk configuration", async t => {
   const app = await fixture(t);
   await writeFile(join(app.dataDir, "settings.yaml"), "corrupted-original");

@@ -124,12 +124,14 @@ External image URLs remain supported, one per line in page order. Swipe or use a
 
 ### Share a PDF from iPhone
 
-Create a Shortcuts share-sheet action accepting PDFs. Add **Show Alert** to confirm replacement, then **Get Contents of URL** using the person's Upload URL from **School → Share from iPhone**, method **POST**, and Request Body **File → Shortcut Input**. Set these headers:
+1. On your iPhone, open **School → Share from iPhone** for the person receiving the timetable and copy their **Upload URL**.
+2. Tap **Download iOS shortcut**. Open the downloaded file in Shortcuts if Safari saves it to Downloads, then tap **Set Up Shortcut / Add Shortcut**. Apple requires this confirmation; a website cannot silently install a shortcut.
+3. Answer the setup questions with the Upload URL and your **dashboard password**, not the HA token. Rename it to identify the person, for example **Upload Emma’s timetable**. Install another copy with the other person's URL when needed.
+4. Open one PDF in Files or another app, tap **Share → Upload Emma’s timetable**, and confirm replacement. The template already accepts PDFs and has **Show in Share Sheet** enabled. Share the actual PDF file, not a webpage link. The server response appears after uploading; connection failures are shown by Shortcuts.
 
-- `Content-Type: application/pdf`
-- `Authorization: Basic <Base64 encoding of dashboard:YOUR_DASHBOARD_PASSWORD>`
+The downloadable file is a signed, blank template. Your URL and password are entered on your device after signing. Keep the configured shortcut private: its saved password grants access to the dashboard and home controls. The phone must reach the dashboard through home Wi-Fi, VPN or your trusted HTTPS proxy. After a timeout, check the dashboard before retrying; the upload may have completed. If you change the dashboard password or address, update the first two Text actions in your installed shortcut.
 
-Add **Show Result** afterward. Keep the shortcut private: it contains dashboard access. The phone must reach the dashboard through home Wi-Fi, VPN or your HTTPS proxy. After a timeout, check the dashboard before retrying; the upload may have completed.
+To rebuild the distributable after editing `scripts/build-timetable-shortcut.mjs`, run `node scripts/build-timetable-shortcut.mjs` on a Mac with Shortcuts installed and network access. This uses Apple's `shortcuts sign --mode anyone` and sends the blank template to Apple for validation. Commit the generated `public/shortcuts/Upload timetable.shortcut` alongside its source; Linux/Docker builds serve that file without needing a signing service. See Apple's guides to [sharing shortcuts](https://support.apple.com/guide/shortcuts/share-shortcuts-apdf01f8c054/ios) and [signing from the command line](https://support.apple.com/guide/shortcuts-mac/run-shortcuts-from-the-command-line-apd455c82f02/mac).
 
 `POST /api/timetables?member=home%7Cperson.emma` accepts raw PDF bytes. Success returns `{ "message": "Timetable uploaded. The dashboard will refresh shortly.", "pages": 2 }`. Invalid/oversized PDFs, disabled people, concurrent uploads and settings conflicts return errors without discarding the previous timetable. Images are served through password-protected `/api/timetables/<person>/<upload_id>/<page>.png` and `<page>-dark.svg` routes with `Cache-Control: no-store`.
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0
+
+- Download a signed iOS shortcut from the School board to upload PDFs directly from the Share Sheet.
+- Configure the person's upload URL and dashboard password during import, with no credentials embedded in the download.
+- Confirm timetable replacement before uploading and show the server response afterward.
+
 ## 0.6.0
 
 - Create normal and dark images for every uploaded PDF timetable page.

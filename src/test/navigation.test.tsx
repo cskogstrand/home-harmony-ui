@@ -81,6 +81,21 @@ it("navigates timetable pages with arrows and keyboard and enlarges the selected
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" })).toHaveAttribute("src", "/first.svg");
 });
 
+it("offers the signed iOS shortcut with each person's upload destination", async () => {
+  settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
+  window.history.replaceState(null, "", "/school");
+  render(<App />); await saved();
+  for (const name of ["Emma", "Leo"]) {
+    const card = within(screen.getByRole("heading", { name: `${name}’s school week` }).closest("article")!);
+    fireEvent.click(card.getByText("Share from iPhone"));
+    expect(card.getByRole("link", { name: "Download iOS shortcut" })).toHaveAttribute("href", "/shortcuts/Upload%20timetable.shortcut");
+    const destination = new URL((card.getByLabelText(`${name} upload URL`) as HTMLInputElement).value);
+    expect(destination.origin).toBe(window.location.origin);
+    expect(destination.pathname).toBe("/api/timetables");
+    expect(destination.searchParams.get("member")).toBe(`home|person.${name.toLowerCase()}`);
+  }
+});
+
 it("shares the dark timetable preference across previews and enlarged views independently of the app theme", async () => {
   const imagePath = "/api/timetables/emma/00000000-0000-4000-8000-000000000000/1.png";
   const darkPath = imagePath.replace(/\.png$/, "-dark.svg");
