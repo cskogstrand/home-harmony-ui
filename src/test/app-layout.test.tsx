@@ -41,7 +41,6 @@ it("keeps save feedback in the header without inserting a page row during saves"
 it.each([
   [{ loaded: false }, true, "Loading shared settings…"],
   [{ dirty: true }, true, "Shared settings are not saved yet."],
-  [{}, false, "Connect to Home Assistant to load and save shared settings."],
   [{ error: "Another screen changed the configuration." }, true, "Another screen changed the configuration."],
 ])("keeps storage status and recovery accessible: %s", (state, online, message) => {
   Object.assign(shared.state, state);
@@ -52,10 +51,4 @@ it.each([
   expect(settings).toHaveAttribute("title", message);
   fireEvent.keyDown(settings, { key: "Enter" });
   expect(screen.getByRole("menuitem", { name: "Storage and backups" })).toHaveAttribute("href", "/user-settings");
-});
-
-it("omits the shared storage indicator in browser-only mode", () => {
-  shared.enabled = false;
-  render(layout());
-  expect(screen.queryByRole("status", { name: "Settings storage" })).not.toBeInTheDocument();
 });

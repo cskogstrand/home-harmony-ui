@@ -1,3 +1,4 @@
+import { load } from "js-yaml";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
@@ -26,21 +27,21 @@ async function fixture(t) {
     res.end(JSON.stringify({ message: "API running." }));
   });
   const homeAssistantUrl = await listen(ha);
-  let server = await createAppServer({ dataDir, distDir, homeAssistantUrl });
+  let server = await createAppServer({ dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token" });
   let url = await listen(server);
   t.after(async () => { await close(server); await close(ha); await rm(dir, { recursive: true, force: true }); });
   return {
-    dir, dataDir, distDir, homeAssistantUrl,
+    dir, dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token",
     authStatus: status => { authStatus = status; },
     request: (method = "GET", config, revision, token = "fixture-valid-token", headers = {}) => fetch(`${url}/api/config`, { method,
-      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(config !== undefined ? { "Content-Type": "application/json" } : {}), ...(revision ? { "If-Match": `"${revision}"` } : {}), ...headers },
+      headers: { ...(token ? { Authorization: `Basic ${Buffer.from(`dashboard:${token}`).toString("base64")}` } : {}), ...(config !== undefined ? { "Content-Type": "application/json" } : {}), ...(revision ? { "If-Match": `"${revision}"` } : {}), ...headers },
       body: config === undefined ? undefined : typeof config === "string" ? config : JSON.stringify(config) }),
-    page: path => fetch(`${url}${path}`),
-    api: (path, options = {}, token = "fixture-valid-token") => fetch(`${url}${path}`, { ...options, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } }),
-    restart: async () => { await close(server); server = await createAppServer({ dataDir, distDir, homeAssistantUrl }); url = await listen(server); },
+    page: path => fetch(`${url}${path}`, { headers: { Authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}` } }),
+    api: (path, options = {}, token = "fixture-valid-token") => fetch(`${url}${path}`, { ...options, headers: { ...(token ? { Authorization: `Basic ${Buffer.from(`dashboard:${token}`).toString("base64")}` } : {}), ...options.headers } }),
+    restart: async () => { await close(server); server = await createAppServer({ dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token" }); url = await listen(server); },
   };
 }
-const configuration = () => ({ ...emptyConfiguration(), planners: { "home-1": { instanceUrl: "http://ha.local:8123", planner: { ...emptyPlanner(), memberOrder: ["http://ha.local:8123|person.one"] } } } });
+const configuration = () => ({ ...emptyConfiguration(), settings: { ...emptyPlanner(), memberOrder: ["home|person.one"] } });
 
 function timetablePdf(pages = 2) {
   const objects = ["<< /Type /Catalog /Pages 2 0 R >>", `<< /Type /Pages /Count ${pages} /Kids [${Array.from({ length: pages }, (_, i) => `${4 + i * 2} 0 R`).join(" ")}] >>`, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"];
@@ -60,10 +61,10 @@ async function timetableFixture(t) {
   const app = await fixture(t);
   const { revision } = await (await app.request()).json();
   const config = configuration();
-  config.planners["home-1"].planner.timetableEnabled = { "http://ha.local:8123|person.one": true };
-  config.planners["home-1"].planner.timetables = { "http://ha.local:8123|person.one": ["/previous.png"], other: ["/keep.png"] };
+  config.settings.timetableEnabled = { "home|person.one": true };
+  config.settings.timetables = { "home|person.one": ["/previous.png"], other: ["/keep.png"] };
   const saved = await (await app.request("PUT", config, revision)).json();
-  const path = timetableUploadPath("home-1", "http://ha.local:8123|person.one");
+  const path = timetableUploadPath("home|person.one");
   const upload = (body = timetablePdf(), options = {}, token) => app.api(path, { method: "POST", body, headers: { "Content-Type": "application/pdf" }, ...options }, token);
   return { ...app, saved, path, upload };
 }
@@ -76,18 +77,18 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   assert.equal(response.status, 200, await response.clone().text());
   assert.equal((await response.json()).pages, 2);
   const saved = await (await app.request()).json();
-  const pages = saved.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"];
+  const pages = saved.config.settings.timetables["home|person.one"];
   assert.equal(pages.length, 2);
   assert.match(pages[0], /\/1\.png$/);
   assert.match(pages[1], /\/2\.png$/);
-  assert.deepEqual(saved.config.planners["home-1"].planner.timetables.other, ["/keep.png"]);
-  assert.deepEqual(saved.config.planners["home-1"].planner.memberOrder, app.saved.config.planners["home-1"].planner.memberOrder);
+  assert.deepEqual(saved.config.settings.timetables.other, ["/keep.png"]);
+  assert.deepEqual(saved.config.settings.memberOrder, app.saved.config.settings.memberOrder);
   assert.equal((await app.request("PUT", app.saved.config, app.saved.revision)).status, 409);
   await app.restart();
   assert.deepEqual(await (await app.request()).json(), saved);
   const images = [];
   for (const path of pages) {
-    assert.equal((await app.page(path)).status, 401);
+    assert.equal((await app.api(path, {}, "")).status, 401);
     const image = await app.api(path);
     assert.equal(image.headers.get("content-type"), "image/png");
     assert.equal(image.headers.get("cache-control"), "no-store");
@@ -95,12 +96,12 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
     assert.equal(images.at(-1).subarray(1, 4).toString(), "PNG");
   }
   assert.notDeepEqual(images[0], images[1]);
-  const directory = join(app.dataDir, "timetables", pages[0].split("/")[3]);
-  assert.deepEqual((await readdir(directory)).sort(), ["1.png", "2.png"]);
+  const directory = join(app.dataDir, "timetables", ...pages[0].split("/").slice(3, 5));
+  assert.deepEqual((await readdir(directory)).sort(), ["1.png", "2.png", "source.pdf"]);
   assert.equal((await app.api(pages[0].replace("1.png", "99.png"))).status, 404);
   assert.equal((await app.upload(timetablePdf(1))).status, 200);
   const replaced = await (await app.request()).json();
-  assert.equal(replaced.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"].length, 1);
+  assert.equal(replaced.config.settings.timetables["home|person.one"].length, 1);
   assert.equal((await app.api(pages[0])).status, 200, "Old pages remain available for settings-backup restores");
 });
 
@@ -112,12 +113,12 @@ test("rejects invalid, oversized and excessive-page PDFs without replacing exist
   assert.equal((await app.upload(Buffer.alloc(MAX_TIMETABLE_BYTES + 1))).status, 413);
   assert.equal((await app.upload(timetablePdf(21))).status, 400);
   for (const member of ["missing", "__proto__", "constructor"]) {
-    assert.equal((await app.api(timetableUploadPath("home-1", member), { method: "POST", body: timetablePdf(), headers: { "Content-Type": "application/pdf" } })).status, 404);
+    assert.equal((await app.api(timetableUploadPath(member), { method: "POST", body: timetablePdf(), headers: { "Content-Type": "application/pdf" } })).status, 404);
   }
   assert.deepEqual(await (await app.request()).json(), app.saved);
-  assert.deepEqual(await readdir(join(app.dataDir, "timetables")), []);
+  assert.deepEqual(await readdir(join(app.dataDir, "timetables", "one")), []);
   app.authStatus(503);
-  assert.equal((await app.upload()).status, 503);
+  assert.equal((await app.upload()).status, 200);
 });
 
 test("bounds parallel PDF conversion and handles double-digit page numbers", async t => {
@@ -125,7 +126,7 @@ test("bounds parallel PDF conversion and handles double-digit page numbers", asy
   const responses = await Promise.all([app.upload(timetablePdf(10)), app.upload(timetablePdf(10))]);
   assert.deepEqual(responses.map(response => response.status).sort(), [200, 503]);
   const saved = await (await app.request()).json();
-  const pages = saved.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"];
+  const pages = saved.config.settings.timetables["home|person.one"];
   assert.equal(pages.length, 10);
   assert.equal((await app.api(pages[9])).status, 200);
   assert.equal((await readdir(join(app.dataDir, "timetables"))).length, 1);
@@ -135,7 +136,7 @@ test("preserves simultaneous unrelated edits and refuses a timetable changed whi
   const app = await timetableFixture(t);
   const handler = await createAppHandler(app);
   const call = async (method, path, stream = [], headers = {}) => {
-    const request = Object.assign(Readable.from(stream), { method, url: path, headers: { authorization: "Bearer fixture-valid-token", ...headers } });
+    const request = Object.assign(Readable.from(stream), { method, url: path, headers: { authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}`, ...headers } });
     let status, responseHeaders, body;
     await handler(request, { writeHead: (code, values) => { status = code; responseHeaders = values; }, end: value => { body = value; } });
     return new Response(body, { status, headers: responseHeaders });
@@ -146,29 +147,29 @@ test("preserves simultaneous unrelated edits and refuses a timetable changed whi
     const pending = call("POST", app.path, slowPdf(), { "content-type": "application/pdf" });
     await started.promise;
     const { config, revision } = await (await call("GET", "/api/config")).json();
-    const planner = config.planners["home-1"].planner;
-    if (conflict) planner.timetables["http://ha.local:8123|person.one"] = ["/changed-elsewhere.png"];
+    const planner = config.settings;
+    if (conflict) planner.timetables["home|person.one"] = ["/changed-elsewhere.png"];
     else planner.appearance.compactMode = true;
     const edit = await call("PUT", "/api/config", [Buffer.from(JSON.stringify(config))], { "content-type": "application/json", "if-match": `"${revision}"` });
     assert.equal(edit.status, 200);
     resume.resolve();
     assert.equal((await pending).status, conflict ? 409 : 200);
     const result = await (await call("GET", "/api/config")).json();
-    assert.equal(result.config.planners["home-1"].planner.appearance.compactMode, true);
-    if (conflict) assert.deepEqual(result.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"], ["/changed-elsewhere.png"]);
+    assert.equal(result.config.settings.appearance.compactMode, true);
+    if (conflict) assert.deepEqual(result.config.settings.timetables["home|person.one"], ["/changed-elsewhere.png"]);
   }
   assert.equal((await readdir(join(app.dataDir, "timetables"))).length, 1, "Failed replacements leave no converted files behind");
 });
 
-test("requires valid HA authentication for reads and writes and fails closed if HA is unavailable", async t => {
+test("requires the dashboard password and keeps settings available when HA is unavailable", async t => {
   const app = await fixture(t);
   assert.equal((await app.request("GET", undefined, undefined, "")).status, 401);
   assert.equal((await app.request("GET", undefined, undefined, "wrong-token")).status, 401);
   assert.equal((await app.request("PUT", configuration(), "old", "")).status, 401);
   app.authStatus(503);
-  assert.equal((await app.request()).status, 503);
+  assert.equal((await app.request()).status, 200);
   app.authStatus(401);
-  assert.equal((await app.request()).status, 401);
+  assert.equal((await app.request()).status, 200);
 });
 
 test("persists a validated backup across restart and exposes it to a second device", async t => {
@@ -182,8 +183,8 @@ test("persists a validated backup across restart and exposes it to a second devi
   assert.deepEqual(saved.config, input);
   await app.restart();
   assert.deepEqual(await (await app.request()).json(), saved);
-  const disk = await readFile(join(app.dataDir, "configuration.json"), "utf8");
-  assert.deepEqual(JSON.parse(disk), input);
+  const disk = await readFile(join(app.dataDir, "settings.yaml"), "utf8");
+  assert.deepEqual(load(disk), input);
   assert.doesNotMatch(disk, /fixture-valid-token/);
 });
 
@@ -191,7 +192,7 @@ test("serializes simultaneous edits and refuses stale overwrites", async t => {
   const app = await fixture(t);
   const { revision } = await (await app.request()).json();
   const a = configuration(), b = configuration();
-  b.planners["home-1"].planner.memberOrder = ["other-person"];
+  b.settings.memberOrder = ["other-person"];
   const results = await Promise.all([app.request("PUT", a, revision), app.request("PUT", b, revision)]);
   assert.deepEqual(results.map(result => result.status).sort(), [200, 409]);
   const winner = await results.find(result => result.status === 200).json();
@@ -203,11 +204,11 @@ test("invalid, credential-bearing, oversized and future-version imports leave ex
   const app = await fixture(t);
   const initial = await (await app.request()).json();
   const saved = await (await app.request("PUT", configuration(), initial.revision)).json();
-  const invalid = ["not json", { ...configuration(), version: 3 }, { ...configuration(), access_token: "fixture-secret" }];
-  const unsafe = configuration(); unsafe.planners["home-1"].planner.timetables = { child: ["javascript:alert(1)"] }; invalid.push(unsafe);
-  const missing = configuration(); delete missing.planners["home-1"].planner.timetables; invalid.push(missing);
+  const invalid = ["not json", { ...configuration(), version: 4 }, { ...configuration(), access_token: "fixture-secret" }];
+  const unsafe = configuration(); unsafe.settings.timetables = { child: ["javascript:alert(1)"] }; invalid.push(unsafe);
+  const missing = configuration(); delete missing.settings.timetables; invalid.push(missing);
   for (const field of ["events", "items", "people", "states"]) {
-    const data = configuration(); data.planners["home-1"].planner[field] = [];
+    const data = configuration(); data.settings[field] = [];
     invalid.push(data);
   }
   invalid.push('{"format":"home-harmony-config","version":1,"planners":{"__proto__":{}}}');
@@ -223,22 +224,22 @@ test("serves SPA routes but never storage, dot files, traversal or symlinks outs
   const app = await fixture(t);
   const initial = await (await app.request()).json();
   await app.request("PUT", configuration(), initial.revision);
-  await symlink(join(app.dataDir, "configuration.json"), join(app.distDir, "leak.json"));
+  await symlink(join(app.dataDir, "settings.yaml"), join(app.distDir, "leak.json"));
   for (const path of ["/", "/settings?auth_callback=1&code=fixture", "/devices/test"]) {
     const response = await app.page(path);
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "<html>Afterglow</html>");
   }
-  for (const path of ["/leak.json", "/%2e%2e%2fdata/configuration.json", "/.env", "/assets/missing.js"]) assert.equal((await app.page(path)).status, 404, path);
-  assert.doesNotMatch(await (await app.page("/data/configuration.json")).text(), /memberOrder/);
+  for (const path of ["/leak.json", "/%2e%2e%2fdata/settings.yaml", "/.env", "/assets/missing.js"]) assert.equal((await app.page(path)).status, 404, path);
+  assert.doesNotMatch(await (await app.page("/data/settings.yaml")).text(), /memberOrder/);
   assert.equal((await app.page("/api/missing")).status, 404);
 });
 
 test("refuses to overwrite a corrupt on-disk configuration", async t => {
   const app = await fixture(t);
-  await writeFile(join(app.dataDir, "configuration.json"), "corrupted-original");
-  await assert.rejects(createAppServer({ dataDir: app.dataDir, distDir: app.distDir, homeAssistantUrl: app.homeAssistantUrl }), /existing file has been kept/);
-  assert.equal(await readFile(join(app.dataDir, "configuration.json"), "utf8"), "corrupted-original");
+  await writeFile(join(app.dataDir, "settings.yaml"), "corrupted-original");
+  await assert.rejects(createAppServer({ dataDir: app.dataDir, distDir: app.distDir, homeAssistantUrl: app.homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token" }), /existing file has been kept/);
+  assert.equal(await readFile(join(app.dataDir, "settings.yaml"), "utf8"), "corrupted-original");
 });
 
 test("default development and preview serve the storage API and preserve settings across restarts", async t => {
@@ -246,6 +247,9 @@ test("default development and preview serve the storage API and preserve setting
   const originalData = process.env.DATA_DIR, originalHa = process.env.HOME_ASSISTANT_URL;
   process.env.DATA_DIR = join(app.dir, "vite-data");
   process.env.HOME_ASSISTANT_URL = app.homeAssistantUrl;
+  const oldToken = process.env.HOME_ASSISTANT_TOKEN, oldPassword = process.env.DASHBOARD_PASSWORD;
+  process.env.HOME_ASSISTANT_TOKEN = "fixture-ha-token";
+  process.env.DASHBOARD_PASSWORD = "fixture-valid-token";
   let saved;
   try {
     for (const mode of ["development", "production"]) {
@@ -256,7 +260,7 @@ test("default development and preview serve the storage API and preserve setting
         if (mode === "development") await vite.listen();
         const url = `http://127.0.0.1:${vite.httpServer.address().port}/api/config`;
         assert.equal((await fetch(url)).status, 401);
-        const headers = { Authorization: "Bearer fixture-valid-token" };
+        const headers = { Authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}` };
         const loaded = await (await fetch(url, { headers })).json();
         if (saved) assert.deepEqual(loaded, saved);
         else {
@@ -266,7 +270,7 @@ test("default development and preview serve the storage API and preserve setting
         }
         if (mode === "development") {
           for (const query of ["", "?raw", "?import"]) {
-            const direct = await fetch(new URL(`/@fs${process.env.DATA_DIR}/configuration.json${query}`, url));
+            const direct = await fetch(new URL(`/@fs${process.env.DATA_DIR}/settings.yaml${query}`, url), { headers });
             assert.equal(direct.status, 403);
             assert.doesNotMatch(await direct.text(), /memberOrder/);
           }
@@ -274,6 +278,8 @@ test("default development and preview serve the storage API and preserve setting
       } finally { await vite.close(); }
     }
   } finally {
+    if (oldToken === undefined) delete process.env.HOME_ASSISTANT_TOKEN; else process.env.HOME_ASSISTANT_TOKEN = oldToken;
+    if (oldPassword === undefined) delete process.env.DASHBOARD_PASSWORD; else process.env.DASHBOARD_PASSWORD = oldPassword;
     if (originalData === undefined) delete process.env.DATA_DIR; else process.env.DATA_DIR = originalData;
     if (originalHa === undefined) delete process.env.HOME_ASSISTANT_URL; else process.env.HOME_ASSISTANT_URL = originalHa;
   }

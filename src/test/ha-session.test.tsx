@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import * as ha from "home-assistant-js-websocket";
-import type { Auth, AuthData, Connection, HassEntities } from "home-assistant-js-websocket";
+import type { Connection, HassEntities } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import App from "@/App";
 import { PinPadModal } from "@/components/devices/PinPadModal";
@@ -12,7 +12,7 @@ import { timetableUploadPath } from "../../shared/timetables";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
-  getAuth: vi.fn(), createConnection: vi.fn(), subscribeEntities: vi.fn(), getConfig: vi.fn(), getUser: vi.fn(), getServices: vi.fn(), callService: vi.fn(),
+  createConnection: vi.fn(), subscribeEntities: vi.fn(), getConfig: vi.fn(), getUser: vi.fn(), getServices: vi.fn(), callService: vi.fn(),
 }));
 class FakeConnection {
   connected = true;
@@ -31,63 +31,64 @@ class FakeConnection {
   emit(name: string) { this.connected = name === "ready"; this.listeners.get(name)?.forEach(listener => listener()); }
 }
 let conn: FakeConnection;
-let auth: Auth;
+let serverConfig = emptyConfiguration();
+const savedSettings = () => ({ ...serverConfig.settings, events: [], items: [] });
+let haFetch = vi.fn();
+const setHaFetch = (mock: typeof haFetch) => { haFetch = mock; };
+const seedSettings = (value: Record<string, unknown>) => {
+  const { events, items, ...settings } = value;
+  if (settings.homeEntities && !Array.isArray(settings.homeEntities)) settings.homeEntities = Object.values(settings.homeEntities)[0];
+  serverConfig = { ...emptyConfiguration(), settings: { ...emptyPlanner(), ...settings } };
+};
 let clients: HomeAssistantClient[];
-const TOKEN_KEY = "home-harmony:ha-session";
-const tokenData = (): AuthData => ({
-  hassUrl: "http://ha.local:8123", clientId: `${window.location.origin}/`,
-  access_token: "fixture-access-secret", refresh_token: "fixture-refresh-secret",
-  expires: Date.now() + 1800000, expires_in: 1800,
-});
 const newClient = () => { const client = new HomeAssistantClient(); clients.push(client); return client; };
 const connectedClient = async () => {
   const client = newClient();
-  await client.connect("http://ha.local:8123");
+  await client.connect();
   await waitFor(() => expect(client.getSnapshot().status).toBe("connected"));
   return client;
 };
 const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
 
-it("authenticates shared storage with a refreshed bearer token and rejects late responses after logout", async () => {
-  const client = await connectedClient();
-  Object.defineProperty(auth, "expired", { value: true, configurable: true });
-  vi.mocked(auth.refreshAccessToken).mockImplementation(async () => { Object.defineProperty(auth, "accessToken", { value: "fixture-renewed-access", configurable: true }); });
-  const read = deferred<Response>();
-  const fetch = vi.fn().mockReturnValue(read.promise);
-  vi.stubGlobal("fetch", fetch);
-  const request = client.configurationRequest("GET");
-  const rejected = expect(request).rejects.toThrow(/Shared storage/);
-  await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/config", expect.objectContaining({ credentials: "omit", redirect: "error", headers: { Authorization: "Bearer fixture-renewed-access" } })));
-  await client.logout();
-  read.resolve(new Response("{}", { status: 200 }));
-  await rejected;
-  await expect(client.configurationRequest("GET")).rejects.toThrow(/Connect to Home Assistant/);
+it("starts without browser storage and keeps shared settings usable after HA disconnects", async () => {
+  vi.spyOn(localStorage, "getItem").mockImplementation(() => { throw new Error("Browser storage disabled"); });
+  vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("Browser storage disabled"); });
+  const client = newClient();
+  client.start();
+  await waitFor(() => expect(client.getSnapshot().status).toBe("connected"));
+  const options = vi.mocked(ha.createConnection).mock.calls[0][0];
+  expect(options.auth.accessToken).toBe("server-managed");
+  expect(options.auth.data.hassUrl).toBe(window.location.origin);
+  client.disconnect();
+  expect((await client.configurationRequest("GET")).ok).toBe(true);
+  expect(localStorage.getItem).not.toHaveBeenCalled();
+  expect(localStorage.setItem).not.toHaveBeenCalled();
 });
 
 it("uploads raw PDF bytes and loads binary images without leaking the token into URLs", async () => {
   const client = await connectedClient();
   const bytes = new Uint8Array([137, 80, 78, 71, 0, 255]);
   const fetch = vi.fn().mockImplementation(async () => new Response(bytes, { headers: { "Content-Type": "image/png" } }));
-  vi.stubGlobal("fetch", fetch);
-  const image = await client.storageRequest("/api/timetables/00000000-0000-4000-8000-000000000000/1.png");
+  setHaFetch(fetch);
+  const image = await client.storageRequest("/api/timetables/morgan/00000000-0000-4000-8000-000000000000/1.png");
   expect(new Uint8Array(await image.arrayBuffer())).toEqual(bytes);
   const pdf = new File(["%PDF-1.4"], "week.pdf", { type: "application/pdf" });
-  const path = timetableUploadPath("home-1", "http://ha.local:8123|person.morgan");
+  const path = timetableUploadPath("home|person.morgan");
   await client.storageRequest(path, { method: "POST", body: pdf, headers: { "Content-Type": "application/pdf" } });
-  expect(fetch).toHaveBeenLastCalledWith(path, expect.objectContaining({ method: "POST", body: pdf, redirect: "error", credentials: "omit", headers: { "content-type": "application/pdf", Authorization: "Bearer fixture-access-secret" } }));
+  expect(haFetch).toHaveBeenLastCalledWith(path, expect.objectContaining({ method: "POST", body: pdf, redirect: "error", credentials: "same-origin", headers: { "Content-Type": "application/pdf" } }));
   await expect(client.storageRequest("https://other.example/api/timetables")).rejects.toThrow("dashboard API path");
-  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(haFetch).toHaveBeenCalledTimes(2);
 });
 
-it("confirms PDF uploads, preserves failed drafts, refreshes private previews and revokes them on disconnect", async () => {
+it("confirms PDF uploads, preserves failed drafts, refreshes private previews and keeps them available while HA is offline", async () => {
   vi.stubEnv("MODE", "production");
   const instance = "http://ha.local:8123", previousInstance = "http://old-ha.local:8123";
-  const member = `${previousInstance}|person.morgan`;
-  const imagePath = "/api/timetables/00000000-0000-4000-8000-000000000000/1.png";
-  const saved = { ...emptyConfiguration(), planners: { "home-1": { instanceUrl: previousInstance, planner: { ...emptyPlanner(), timetableEnabled: { [member]: true }, timetables: { [member]: ["/previous.png"] } } } } };
+  const member = `home|person.morgan`;
+  const imagePath = "/api/timetables/morgan/00000000-0000-4000-8000-000000000000/1.png";
+  const saved = serverConfig = { ...emptyConfiguration(), settings: { ...emptyPlanner(), timetableEnabled: { [member]: true }, timetables: { [member]: ["/previous.png"] } } };
   const post = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ error: "Invalid PDF; previous timetable kept." }), { status: 400 })).mockImplementationOnce(async () => {
-    saved.planners["home-1"].planner.timetables[member] = [imagePath];
+    saved.settings.timetables[member] = [imagePath];
     return new Response(JSON.stringify({ message: "Timetable uploaded.", pages: 1 }));
   });
   const fetch = vi.fn().mockImplementation(async (path: string, options: RequestInit) => {
@@ -96,10 +97,8 @@ it("confirms PDF uploads, preserves failed drafts, refreshes private previews an
     if (path === imagePath) return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "Content-Type": "image/png" } });
     throw new Error(`Unexpected request ${path}`);
   });
-  vi.stubGlobal("fetch", fetch);
+  setHaFetch(fetch);
   vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL: vi.fn(() => "blob:private-timetable"), revokeObjectURL: vi.fn() }));
-  localStorage.setItem("home-harmony:ha-url", instance);
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
   vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
     conn.entityCallback = callback;
     queueMicrotask(() => callback({ ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }) }));
@@ -109,7 +108,7 @@ it("confirms PDF uploads, preserves failed drafts, refreshes private previews an
   const view = render(<App />);
   const picker = await screen.findByLabelText("Upload Morgan timetable PDF");
   await waitFor(() => expect(picker).toBeEnabled());
-  expect(screen.getByLabelText("Morgan upload URL")).toHaveValue(new URL(timetableUploadPath("home-1", member), window.location.origin).href);
+  expect(screen.getByLabelText("Morgan upload URL")).toHaveValue(new URL(timetableUploadPath(member), window.location.origin).href);
   fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
   fireEvent.change(screen.getByLabelText("Morgan timetable image URLs"), { target: { value: "/unfinished-draft.png" } });
   const pdf = new File(["%PDF-1.4"], "week.pdf", { type: "application/pdf" });
@@ -124,20 +123,20 @@ it("confirms PDF uploads, preserves failed drafts, refreshes private previews an
   expect(screen.getByRole("img", { name: "Morgan’s school timetable", hidden: true })).toHaveAttribute("src", "/previous.png");
   await confirmAction("Upload PDF");
   expect(post).toHaveBeenCalledTimes(2);
-  expect(post).toHaveBeenLastCalledWith(timetableUploadPath("home-1", member), expect.objectContaining({ body: pdf }));
+  expect(post).toHaveBeenLastCalledWith(timetableUploadPath(member), expect.objectContaining({ body: pdf }));
   await waitFor(() => expect(screen.getByRole("img", { name: "Morgan’s school timetable" })).toHaveAttribute("src", "blob:private-timetable"));
   expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   expect(screen.queryByLabelText("Morgan timetable image URLs")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
   expect(screen.getByLabelText("Morgan timetable image URLs")).toHaveValue(imagePath);
   act(() => conn.emit("disconnected"));
-  await screen.findByText("Connect to Home Assistant to view this timetable.");
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:private-timetable");
-  expect(picker).toBeDisabled();
+  expect(screen.getByRole("img", { name: "Morgan’s school timetable" })).toHaveAttribute("src", "blob:private-timetable");
+  expect(picker).toBeEnabled();
   view.unmount();
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:private-timetable");
 });
 beforeEach(() => {
-  vi.stubEnv("MODE", "browser");
+
   vi.clearAllMocks();
   clients = [];
   const storage = new Map<string, string>();
@@ -147,12 +146,16 @@ beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   window.history.replaceState(null, "", "/");
   conn = new FakeConnection();
-  auth = { data: tokenData(), accessToken: "fixture-access-secret", expired: false, refreshAccessToken: vi.fn(async () => {}), revoke: vi.fn(async () => {}) } as unknown as Auth;
-  vi.mocked(ha.getAuth).mockImplementation(async options => {
-    const saved = await options.loadTokens?.();
-    options.saveTokens?.(saved ?? { ...tokenData(), hassUrl: options.hassUrl });
-    return auth;
-  });
+  serverConfig = emptyConfiguration();
+  setHaFetch(vi.fn().mockResolvedValue(new Response("[]")));
+  vi.stubGlobal("fetch", vi.fn(async (path: string, options: RequestInit = {}) => {
+    if (path === "/api/runtime") return new Response(JSON.stringify({ homeAssistantUrl: "http://ha.local:8123" }));
+    if (path === "/api/config") {
+      if (options.method === "PUT") serverConfig = JSON.parse(String(options.body));
+      return new Response(JSON.stringify({ revision: "a".repeat(64), config: serverConfig }));
+    }
+    return haFetch(path, options);
+  }));
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   vi.mocked(ha.getConfig).mockResolvedValue(config);
   vi.mocked(ha.getUser).mockResolvedValue(user);
@@ -166,22 +169,6 @@ beforeEach(() => {
   vi.mocked(ha.callService).mockResolvedValue({});
 });
 afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
-
-it("uses browser auth, limits callbacks to the selected instance and saves credentials for this browser profile", async () => {
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=one-time-code&state=callback-state");
-  const client = await connectedClient();
-  expect(ha.getAuth).toHaveBeenCalledWith({ hassUrl: "http://ha.local:8123", clientId: `${window.location.origin}/`, redirectUrl: `${window.location.origin}/settings`, limitHassInstance: true, saveTokens: expect.any(Function), loadTokens: expect.any(Function) });
-  expect(window.location.search).toBe("");
-  expect(localStorage.length).toBe(3);
-  expect(localStorage.getItem("home-harmony:ha-url")).toBe("http://ha.local:8123");
-  expect(JSON.parse(localStorage.getItem(TOKEN_KEY)).refresh_token).toBe("fixture-refresh-secret");
-  expect(client.getSnapshot().user).toEqual(user);
-  expect(JSON.stringify(client.getSnapshot())).not.toContain("fixture-access-secret");
-  await client.logout();
-  expect(auth.revoke).toHaveBeenCalledOnce();
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(client.getSnapshot().states).toEqual({});
-});
 it("cleans subscriptions/listeners and closes obsolete connections", async () => {
   const client = await connectedClient();
   client.disconnect();
@@ -195,7 +182,7 @@ it("cleans subscriptions/listeners and closes obsolete connections", async () =>
   const late = deferred<Connection>();
   const old = new FakeConnection();
   vi.mocked(ha.createConnection).mockReturnValueOnce(late.promise);
-  const first = client.connect("http://other.local:8123");
+  const first = client.connect();
   await waitFor(() => expect(ha.createConnection).toHaveBeenCalledTimes(2));
   client.disconnect();
   late.resolve(old as unknown as Connection);
@@ -248,15 +235,14 @@ it("does not report success for an in-flight command across a disconnect", async
 it("handles revoked credentials and failed initial connections without a mock fallback", async () => {
   const client = await connectedClient();
   conn.emit("reconnect-error");
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(null).toBeNull();
   expect(client.getSnapshot().status).toBe("auth-error");
-  expect(client.getSnapshot().error).toContain("revoked");
+  expect(client.getSnapshot().error).toContain("server token");
   await expect(client.command("light.living", "turn_on")).rejects.toThrow("fresh");
   vi.mocked(ha.createConnection).mockRejectedValueOnce(ha.ERR_CANNOT_CONNECT);
-  await client.connect("http://new.local:8123");
+  await client.connect();
   expect(client.getSnapshot().status).toBe("disconnected");
-  expect(client.getSnapshot().states).toEqual({});
-  expect(client.getSnapshot().error).toContain("certificate");
+  expect(client.getSnapshot().error).toContain("dashboard server");
 });
 it("loads registry metadata updates and reports unavailable registries honestly", async () => {
   const client = await connectedClient();
@@ -266,25 +252,23 @@ it("loads registry metadata updates and reports unavailable registries honestly"
   expect(client.getSnapshot().registries.areas).toEqual([]);
   expect(client.getSnapshot().status).toBe("connected");
 });
-it("reads calendar ranges with a bearer header, refreshes expired auth and reports API failures", async () => {
+it("reads calendar ranges through the server and reports API failures", async () => {
   const client = await connectedClient();
-  Object.defineProperty(auth, "expired", { value: true });
   const events = [{ summary: "HA event", start: { date: "2026-10-06" }, end: { date: "2026-10-07" } }];
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => events });
-  vi.stubGlobal("fetch", fetchMock);
+  setHaFetch(fetchMock);
   const signal = new AbortController().signal;
   expect(await client.calendarEvents("calendar.house", "2026-10-05T22:00:00Z", "2026-10-12T22:00:00Z", signal)).toEqual(events);
-  expect(auth.refreshAccessToken).toHaveBeenCalledOnce();
   const [url, options] = fetchMock.mock.calls[0];
   expect(url).toContain("/api/calendars/calendar.house?start=");
   expect(url).not.toContain("secret");
-  expect(options.headers).toEqual({ Authorization: "Bearer fixture-access-secret" });
+  expect(options.credentials).toBe("same-origin");
   fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
-  await expect(client.calendarEvents("calendar.house", "start", "end", signal)).rejects.toThrow("CORS");
+  await expect(client.calendarEvents("calendar.house", "start", "end", signal)).rejects.toThrow("server settings");
   fetchMock.mockResolvedValueOnce({ ok: false, status: 401 });
   await expect(client.calendarEvents("calendar.house", "start", "end", signal)).rejects.toThrow();
   expect(client.getSnapshot().status).toBe("auth-error");
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
+  expect(null).toBeNull();
 });
 it("keeps non-demo alarm codes transient and shows actual command rejection", async () => {
   const request = deferred<void>();
@@ -310,7 +294,6 @@ it("keeps non-demo alarm codes transient and shows actual command rejection", as
   expect(localStorage.length).toBe(0);
 });
 it("closes an alarm confirmation if the selected alarm changes", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/alarm?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const disarm = await screen.findByRole("button", { name: "Disarm" });
@@ -326,7 +309,6 @@ it("closes an alarm confirmation if the selected alarm changes", async () => {
 });
 
 it("uses reported state throughout navigation and disables stale controls in the UI", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<StrictMode><App /></StrictMode>);
   const toggle = await screen.findByRole("switch", { name: "Toggle Living Room Light" });
@@ -345,25 +327,6 @@ it("uses reported state throughout navigation and disables stale controls in the
   expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
   expect(screen.getAllByText("Offline").length).toBeGreaterThan(0);
 });
-it("keeps saved planner datasets and calendar preferences independent of HA authentication", async () => {
-  const planner = { events: [{ id: "personal", title: "My existing plan", date: "2026-10-06", time: "12:00", member: "anna", location: "Home", note: "Keep me" }], items: [{ id: "task", text: "Keep this task", kind: "tasks", member: "anna", done: false }], timetables: { emma: "/custom.svg", leo: "/leo.svg" }, calendar: { view: "week", startDay: "monday" } };
-  localStorage.setItem("afterglow-planner-v1:home-1", JSON.stringify(planner));
-  localStorage.setItem("afterglow-planner-v1:home-2", JSON.stringify({ ...planner, events: [] }));
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
-  render(<App />);
-  await screen.findByText("HA user");
-  fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-  await confirmAction("Disconnect");
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-2")).events).toEqual([]);
-  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
-  fireEvent.click(await screen.findByRole("menuitem", { name: "App preferences" }));
-  expect(screen.getByLabelText("Saved local planner")).toHaveValue("home-1");
-  fireEvent.change(screen.getByLabelText("Saved local planner"), { target: { value: "home-2" } });
-  expect(screen.getByLabelText("Saved local planner")).toHaveValue("home-2");
-  expect(JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1"))).toEqual(planner);
-});
 it("does not clear the pending guard when a duplicate action is rejected", async () => {
   const client = await connectedClient();
   const request = deferred<unknown>();
@@ -375,7 +338,7 @@ it("does not clear the pending guard when a duplicate action is rejected", async
   await first;
   expect(ha.callService).toHaveBeenCalledOnce();
 });
-it("loads only the displayed HA calendar range and never saves its events in the local planner", async () => {
+it("loads only the displayed HA calendar range and never saves its events in the shared settings", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-06T12:00:00Z"));
   vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
@@ -386,14 +349,13 @@ it("loads only the displayed HA calendar range and never saves its events in the
   const event = { summary: "Imported read-only event", start: { date: "2026-10-06" }, end: { date: "2026-10-08" }, location: null };
   const timedEvent = { summary: "Read-only appointment", start: "2026-10-06T15:00:00Z", end: "2026-10-06T16:00:00Z" };
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event, timedEvent] });
-  vi.stubGlobal("fetch", fetchMock);
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.house": "everyone" } }));
+  setHaFetch(fetchMock);
+  seedSettings({ events: [], items: [], timetables: {}, calendarMembers: { "home|calendar.house": "everyone" } });
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   expect(await screen.findAllByRole("button", { name: /Imported read-only event/ })).toHaveLength(1);
   expect(screen.getByRole("button", { name: /Imported read-only event/ }).closest("td")).toHaveAttribute("colspan", "2");
-  const firstUrl = new URL(fetchMock.mock.calls[0][0]);
+  const firstUrl = new URL(fetchMock.mock.calls[0][0], window.location.origin);
   expect(firstUrl.searchParams.get("start")).toBe("2026-10-05T22:00:00.000Z");
   expect(firstUrl.searchParams.get("end")).toBe("2026-10-12T22:00:00.000Z");
   fireEvent.click(screen.getAllByRole("button", { name: /Imported read-only event/ })[0]);
@@ -403,12 +365,12 @@ it("loads only the displayed HA calendar range and never saves its events in the
   fireEvent.click(screen.getByRole("button", { name: /17:00 – 18:00 Read-only appointment/ }));
   expect(within(screen.getByRole("dialog")).getByText(/17:00 – 18:00/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
-  expect(localStorage.getItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1")).not.toContain(event.summary);
+  expect(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })).not.toContain(event.summary);
   const nextResponse = deferred<unknown>();
   fetchMock.mockReturnValueOnce(nextResponse.promise);
   fireEvent.click(screen.getByRole("button", { name: "Next week" }));
   await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  expect(new URL(fetchMock.mock.calls[1][0]).searchParams.get("start")).toBe("2026-10-12T22:00:00.000Z");
+  expect(new URL(fetchMock.mock.calls[1][0], window.location.origin).searchParams.get("start")).toBe("2026-10-12T22:00:00.000Z");
   view.unmount();
   expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(true);
   await act(async () => nextResponse.resolve({ ok: true, json: async () => [event] }));
@@ -428,9 +390,8 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
       { summary: "Next appointment", start: `${date}T13:00:00Z`, end: `${date}T14:00:00Z` },
     ] : []),
   ];
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => events }));
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.house": "everyone" } }));
+  setHaFetch(vi.fn().mockResolvedValue({ ok: true, json: async () => events }));
+  seedSettings({ events: [], items: [], timetables: {}, calendarMembers: { "home|calendar.house": "everyone" } });
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const calendar = within(screen.getByRole("region", { name: "Family weekly calendar" }));
@@ -454,14 +415,12 @@ const setupWritableCalendars = (features = 1) => {
     queueMicrotask(() => callback(household));
     return conn.unsubscribeEntities;
   });
-  const key = "afterglow-connected-planner-v1:http://ha.local:8123:home-1";
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: {
-    "http://ha.local:8123|calendar.house": "everyone", "http://ha.local:8123|calendar.work": "everyone",
-    "http://ha.local:8123|calendar.holidays": "everyone", "http://ha.local:8123|calendar.morgan": "http://ha.local:8123|person.morgan",
-  } }));
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
-  return { household, key };
+  seedSettings({ events: [], items: [], timetables: {}, calendarMembers: {
+    "home|calendar.house": "everyone", "home|calendar.work": "everyone",
+    "home|calendar.holidays": "everyone", "home|calendar.morgan": "home|person.morgan",
+  } });
+  setHaFetch(vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
+  return { household };
 };
 
 it.each([
@@ -469,7 +428,7 @@ it.each([
   { path: "/calendar", features: 3, recurring: true },
   { path: "/calendar", features: 7, recurring: false },
 ])("confirms HA event deletion and refreshes only after success: %j", async ({ path, features, recurring }) => {
-  const { key } = setupWritableCalendars(features);
+  setupWritableCalendars(features);
   const target = { uid: "event-uid", summary: "Delete this plan", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z",
     ...(recurring && { recurrence_id: "google-instance-1", rrule: "FREQ=DAILY" }),
   };
@@ -477,7 +436,7 @@ it.each([
     ...(recurring && { recurrence_id: "google-instance-2" }),
   };
   let events = [target, remaining];
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
@@ -510,7 +469,7 @@ it.each([
   expect(await grid.findByRole("button", { name: /Keep this plan/ })).toBeInTheDocument();
   expect(grid.queryByRole("button", { name: /Delete this plan/ })).not.toBeInTheDocument();
   expect(ha.callService).not.toHaveBeenCalled();
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
 
 it.each([
@@ -520,7 +479,7 @@ it.each([
 ])("hides deletion without capability or safe occurrence identity: %j", async ({ features, ...identity }) => {
   setupWritableCalendars(features);
   const event = { ...identity, summary: "Keep this event", start: "2026-10-07", end: "2026-10-08" };
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Keep this event/ }));
@@ -529,9 +488,9 @@ it.each([
 });
 
 it("keeps failed deletions visible and blocks confirmation after disconnect or capability loss", async () => {
-  const { household, key } = setupWritableCalendars(3);
+  const { household } = setupWritableCalendars(3);
   const event = { uid: "event", summary: "Still here", start: "2026-10-07", end: "2026-10-08" };
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Still here/ }));
@@ -556,7 +515,7 @@ it("keeps failed deletions visible and blocks confirmation after disconnect or c
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(await screen.findByRole("button", { name: /Still here/ })).toBeInTheDocument();
   expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/delete")).toHaveLength(1);
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
 
 it.each(["/", "/calendar"])("shows continuous spans and unique person cards from %s", async path => {
@@ -566,7 +525,7 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
     { uid: "train", summary: "Night train", start: "2026-10-07T20:00:00Z", end: "2026-10-08T06:00:00Z" },
     { uid: "midnight", summary: "Midnight finish", start: "2026-10-08T20:00:00Z", end: "2026-10-08T22:00:00Z" },
   ];
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
@@ -608,7 +567,7 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
 });
 
 it.each(["/", "/calendar"])("edits a recurring HA event from %s and refreshes without a local duplicate", async path => {
-  const { key } = setupWritableCalendars(4);
+  setupWritableCalendars(4);
   let event = { uid: "dinner-series", recurrence_id: "20261007T160000", rrule: "FREQ=WEEKLY", summary: "Family dinner", start: { dateTime: "2026-10-07T14:00:15Z" }, end: { dateTime: "2026-10-07T15:00:30Z" }, location: "Home", description: "Bring bread\nAnd cheese" };
   const subscriptions: ((message: { events: unknown }) => void)[] = [];
   conn.subscribeMessage.mockImplementation(async (receive, message) => {
@@ -648,13 +607,13 @@ it.each(["/", "/calendar"])("edits a recurring HA event from %s and refreshes wi
   expect(await grid.findByRole("button", { name: /Dinner outside/ })).toBeInTheDocument();
   expect(subscriptions).toHaveLength(2);
   expect(ha.callService).not.toHaveBeenCalled();
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
 
 it("edits an all-day continuation using the original start and an exclusive HA end date", async () => {
   setupWritableCalendars(4);
   const event = { uid: "trip", summary: "Family trip", start: { date: "2026-10-06" }, end: { date: "2026-10-09" } };
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Family trip/ }));
@@ -677,7 +636,7 @@ it.each([
 ])("explains why an event cannot be edited: %j", async ({ features, reason, ...identity }) => {
   setupWritableCalendars(features);
   const event = { ...identity, summary: "Read-only plan", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z" };
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Read-only plan/ }));
@@ -687,9 +646,9 @@ it.each([
 });
 
 it("retains failed update drafts and prevents writes offline or to unavailable calendars", async () => {
-  const { household, key } = setupWritableCalendars(4);
+  const { household } = setupWritableCalendars(4);
   const event = { uid: "visit", summary: "Family visit", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z" };
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? [event] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Family visit/ }));
@@ -708,11 +667,11 @@ it("retains failed update drafts and prevents writes offline or to unavailable c
   fireEvent.submit(screen.getByLabelText("What’s happening?").closest("form")!);
   expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/update")).toHaveLength(1);
   expect(ha.callService).not.toHaveBeenCalled();
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
 
 it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar without a local duplicate", async path => {
-  const { key } = setupWritableCalendars();
+  setupWritableCalendars();
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Refresh calendars" })).not.toBeDisabled());
@@ -722,7 +681,7 @@ it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar
   expect(select).toHaveValue("");
   expect(screen.getByRole("button", { name: "Save plan" })).toBeDisabled();
   expect(within(select).getByRole("option", { name: /Holidays/ })).toBeDisabled();
-  fireEvent.change(select, { target: { value: "http://ha.local:8123|calendar.work" } });
+  fireEvent.change(select, { target: { value: "home|calendar.work" } });
   fireEvent.change(screen.getByLabelText("Where?"), { target: { value: "Park" } });
   fireEvent.change(screen.getByLabelText("A little reminder"), { target: { value: "Bring cocoa" } });
   fireEvent.change(screen.getByLabelText("End time"), { target: { value: "15:00" } });
@@ -738,30 +697,30 @@ it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar
   expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "calendar", "create_event", {
     summary: "Evening walk", start_date_time: "2026-10-07T16:00:00", end_date_time: "2026-10-07T17:00:00", location: "Park", description: "Bring cocoa",
   }, { entity_id: "calendar.work" });
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.work") ? [{ summary: "Evening walk", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z", location: "Park", description: "Bring cocoa" }] : [] }) as Response);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.work") ? [{ summary: "Evening walk", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z", location: "Park", description: "Bring cocoa" }] : [] }) as Response);
   await act(async () => request.resolve({}));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
   expect(await grid.findAllByRole("button", { name: /Evening walk/ })).toHaveLength(1);
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
 
 it("preserves a failed calendar draft and blocks writes offline or without a writable calendar", async () => {
-  const { household, key } = setupWritableCalendars();
+  const { household } = setupWritableCalendars();
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Refresh calendars" })).not.toBeDisabled());
   fireEvent.click(screen.getByRole("button", { name: "Add a plan for Morgan on Thu 8 Oct" }));
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-08");
   expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");
-  expect(screen.getByRole("combobox", { name: "Calendar" })).toHaveValue("http://ha.local:8123|calendar.morgan");
+  expect(screen.getByRole("combobox", { name: "Calendar" })).toHaveValue("home|calendar.morgan");
   fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Keep this draft" } });
   vi.mocked(ha.callService).mockRejectedValueOnce(new Error("Permission denied with private details"));
   fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Check the calendar before trying again");
   expect(screen.getByLabelText("What’s happening?")).toHaveValue("Keep this draft");
   expect(screen.queryByText(/private details/)).not.toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
   act(() => conn.emit("disconnected"));
   expect(screen.getByRole("button", { name: "Save plan" })).toBeDisabled();
   act(() => conn.emit("ready"));
@@ -774,7 +733,7 @@ it("preserves a failed calendar draft and blocks writes offline or without a wri
 
 it("updates calendar plans from the WebSocket stream and replaces subscriptions across navigation and reconnect", async () => {
   setupWritableCalendars();
-  const subscriptions: { id: string; receive: (message: { events: unknown }) => void; unsubscribe: ReturnType<typeof vi.fn> }[] = [];
+  const subscriptions: { id: string; receive: (message: { events: unknown }) => void; unsubscribe: typeof haFetch }[] = [];
   conn.subscribeMessage.mockImplementation(async (receive, message) => {
     const unsubscribe = vi.fn(async () => {});
     subscriptions.push({ id: message.entity_id, receive, unsubscribe });
@@ -808,7 +767,7 @@ it("updates calendar plans from the WebSocket stream and replaces subscriptions 
   act(() => conn.emit("ready"));
   act(() => conn.entityCallback?.({ ...states, "calendar.house": state("calendar.house", "off") }));
   await waitFor(() => expect(subscriptions).toHaveLength(9));
-  expect(fetch).not.toHaveBeenCalled();
+  expect(haFetch).not.toHaveBeenCalled();
   view.unmount();
   expect(subscriptions[8].unsubscribe).toHaveBeenCalledOnce();
 });
@@ -830,24 +789,24 @@ it("refreshes older HA calendars after state changes and polls changes that leav
   const client = await connectedClient();
   vi.useFakeTimers();
   const event = { summary: "Google event", start: "2026-10-07T14:00:00Z", end: "2026-10-07T15:00:00Z" };
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [event] }));
+  setHaFetch(vi.fn().mockResolvedValue({ ok: true, json: async () => [event] }));
   const controller = new AbortController(), receive = vi.fn();
   client.watchCalendarEvents("calendar.house", "2026-10-07T00:00:00Z", "2026-10-08T00:00:00Z", controller.signal, receive);
   await act(async () => {});
   expect(receive).toHaveBeenLastCalledWith([event]);
   act(() => conn.entityCallback?.({ ...states, "calendar.house": state("calendar.house", "off") }));
   await act(async () => {});
-  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(haFetch).toHaveBeenCalledTimes(2);
   await act(async () => vi.advanceTimersByTimeAsync(60000));
-  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(haFetch).toHaveBeenCalledTimes(3);
   controller.abort();
   await act(async () => vi.advanceTimersByTimeAsync(60000));
-  expect(fetch).toHaveBeenCalledTimes(3);
+  expect(haFetch).toHaveBeenCalledTimes(3);
 });
 
 it("rejects malformed calendar dates instead of crashing the planner", async () => {
   const client = await connectedClient();
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => [{ summary: "Broken", start: 123, end: "no date" }] }));
+  setHaFetch(vi.fn().mockResolvedValue({ ok: true, json: async () => [{ summary: "Broken", start: 123, end: "no date" }] }));
   await expect(client.calendarEvents("calendar.house", "start", "end", new AbortController().signal)).rejects.toThrow("could not be read");
 });
 it("disables an already-open physical confirmation when its connection becomes stale", async () => {
@@ -863,208 +822,18 @@ it("disables an already-open physical confirmation when its connection becomes s
 it("restores the dashboard in a new tab without replaying commands or changing planner storage", async () => {
   const client = await connectedClient();
   await client.command("light.living", "turn_off");
-  localStorage.setItem("afterglow-planner-v1:home-1", "existing planner");
-  const saved = localStorage.getItem(TOKEN_KEY);
-  client.dispose(); // Closing the tab destroys its client and sessionStorage.
+  seedSettings({ memberOrder: ["home|person.morgan"] });
+  client.dispose();
   sessionStorage.clear();
   conn = new FakeConnection();
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   const restored = newClient();
   restored.start();
   await waitFor(() => expect(restored.getSnapshot().status).toBe("connected"));
-  expect(localStorage.getItem(TOKEN_KEY)).toBe(saved);
   expect(restored.getSnapshot().states).toEqual(states);
   expect(restored.getSnapshot().commands).toEqual({});
   expect(ha.callService).toHaveBeenCalledOnce();
-  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe("existing planner");
-});
-
-it("restores expired tokens through the real HA auth library and saves refreshed credentials in StrictMode", async () => {
-  const { getAuth } = await vi.importActual<typeof ha>("home-assistant-js-websocket");
-  vi.mocked(ha.getAuth).mockImplementation(getAuth);
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), expires: 0, storageRevision: null }));
-  const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ access_token: "fixture-refreshed-secret", expires_in: 1800 }) });
-  vi.stubGlobal("fetch", fetchMock);
-  vi.mocked(ha.createConnection).mockImplementation(async options => {
-    if (options.auth.expired) await options.auth.refreshAccessToken();
-    return conn as unknown as Connection;
-  });
-  window.history.replaceState(null, "", "/settings");
-  render(<StrictMode><App /></StrictMode>);
-  await screen.findByText("HA user");
-  expect(ha.getAuth).toHaveBeenCalledOnce();
-  expect(ha.createConnection).toHaveBeenCalledOnce();
-  expect(fetchMock).toHaveBeenCalledOnce();
-  expect(fetchMock.mock.calls[0][0]).toBe("http://ha.local:8123/auth/token");
-  expect(fetchMock.mock.calls[0][1].body.get("grant_type")).toBe("refresh_token");
-  const saved = JSON.parse(localStorage.getItem(TOKEN_KEY));
-  expect(saved.access_token).toBe("fixture-refreshed-secret");
-  expect(saved.refresh_token).toBe("fixture-refresh-secret");
-  expect(saved.expires).toBeGreaterThan(Date.now());
-  expect(document.body).not.toHaveTextContent("fixture-refreshed-secret");
-  expect(localStorage.getItem("afterglow-theme")).toBe("dark");
-  expect(localStorage.length).toBe(4); // URL, browser login, planner settings and theme.
-});
-
-it("keeps Disconnect paused across refresh and revokes a saved session on logout even while disconnected", async () => {
-  const client = await connectedClient();
-  client.disconnect();
-  client.dispose();
-  const restored = newClient();
-  restored.start();
-  expect(restored.getSnapshot().status).toBe("disconnected");
-  expect(ha.getAuth).toHaveBeenCalledOnce();
-  expect(localStorage.getItem(TOKEN_KEY)).not.toBeNull();
-  const fetchMock = vi.fn().mockRejectedValue(new Error("offline"));
-  vi.stubGlobal("fetch", fetchMock);
-  await restored.logout();
-  expect(fetchMock.mock.calls[0][0]).toBe("http://ha.local:8123/auth/revoke");
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(restored.getSnapshot().error).toContain("revocation could not be confirmed");
-  newClient().start();
-  expect(ha.getAuth).toHaveBeenCalledOnce();
-});
-
-it.each([
-  "not json",
-  JSON.stringify({ ...tokenData(), refresh_token: "" }),
-  JSON.stringify({ ...tokenData(), expires: "tomorrow" }),
-  JSON.stringify({ ...tokenData(), hassUrl: "http://other.local:8123" }),
-  JSON.stringify({ ...tokenData(), clientId: "http://other-dashboard.local/" }),
-])("discards invalid or mismatched stored auth without redirecting on refresh (%#)", async saved => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem(TOKEN_KEY, saved === "not json" ? saved : JSON.stringify({ ...JSON.parse(saved), storageRevision: null }));
-  const client = newClient();
-  client.start();
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(ha.getAuth).not.toHaveBeenCalled();
-  expect(ha.createConnection).not.toHaveBeenCalled();
-  expect(client.getSnapshot().sessionWarning).toContain("could not be read");
-});
-
-it("clears rejected saved credentials and requires an explicit Connect after authentication failure", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
-  vi.mocked(ha.createConnection).mockRejectedValueOnce(ha.ERR_INVALID_AUTH);
-  const client = newClient();
-  client.start();
-  await waitFor(() => expect(client.getSnapshot().status).toBe("auth-error"));
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  client.dispose();
-  newClient().start();
-  expect(ha.getAuth).toHaveBeenCalledOnce();
-});
-
-it("prevents late login/refresh/revoke callbacks from restoring or erasing a newer session", async () => {
-  const client = await connectedClient();
-  const oldSave = vi.mocked(ha.getAuth).mock.calls[0][0].saveTokens;
-  await client.logout();
-  oldSave(tokenData());
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  conn = new FakeConnection();
-  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
-  await client.connect("http://other.local:8123");
-  const current = localStorage.getItem(TOKEN_KEY);
-  expect(JSON.parse(current).hassUrl).toBe("http://other.local:8123");
-  oldSave(null);
-  oldSave(tokenData());
-  expect(localStorage.getItem(TOKEN_KEY)).toBe(current);
-
-  const login = deferred<Auth>();
-  vi.mocked(ha.getAuth).mockReturnValueOnce(login.promise);
-  const pending = client.connect("http://pending.local:8123");
-  const calls = vi.mocked(ha.getAuth).mock.calls;
-  const lateSave = calls[calls.length - 1][0].saveTokens;
-  client.disconnect();
-  lateSave({ ...tokenData(), hassUrl: "http://pending.local:8123" });
-  login.resolve(auth);
-  await pending;
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(client.getSnapshot().status).toBe("disconnected");
-});
-
-it("reports denied persistent token storage without falling back to sessionStorage or leaking tokens", async () => {
-  const setItem = localStorage.setItem;
-  vi.spyOn(localStorage, "setItem").mockImplementation((key, value) => {
-    if (key === TOKEN_KEY) throw new Error("blocked");
-    setItem(key, value);
-  });
-  const client = await connectedClient();
-  expect(client.getSnapshot().sessionWarning).toContain("Reopening or refreshing may require signing in again");
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(sessionStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(JSON.stringify(client.getSnapshot())).not.toContain("fixture-access-secret");
-  expect(JSON.stringify(client.getSnapshot())).not.toContain("fixture-refresh-secret");
-});
-
-const storageEvent = (key: string | null) => {
-  const event = new StorageEvent("storage", { key });
-  Object.defineProperty(event, "storageArea", { value: localStorage });
-  window.dispatchEvent(event);
-};
-
-it("closes other tabs on logout and blocks stale token saves even before the storage event arrives", async () => {
-  const client = await connectedClient();
-  const oldSave = vi.mocked(ha.getAuth).mock.calls[0][0].saveTokens;
-  localStorage.setItem("afterglow-planner-v1:home-1", "keep planner");
-  // Another tab signs out. Native storage events are delivered asynchronously.
-  localStorage.setItem("home-harmony:ha-auth-revision", "other-tab-logout");
-  localStorage.removeItem(TOKEN_KEY);
-  oldSave(tokenData());
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  storageEvent("home-harmony:ha-auth-revision");
-  expect(client.getSnapshot().status).toBe("disconnected");
-  expect(client.getSnapshot().user).toBeUndefined();
-  expect(client.getSnapshot().states).toEqual({});
-  expect(conn.close).toHaveBeenCalledOnce();
-  await expect(client.command("light.living", "turn_off")).rejects.toThrow("fresh");
-  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe("keep planner");
-
-  const otherLogin = JSON.stringify({ ...tokenData(), refresh_token: "other-fixture-refresh", storageRevision: "other-tab-logout" });
-  localStorage.setItem(TOKEN_KEY, otherLogin);
-  oldSave(null);
-  oldSave(tokenData());
-  expect(localStorage.getItem(TOKEN_KEY)).toBe(otherLogin);
-});
-
-it("ignores another tab's token renewal and stops when browser site data is cleared", async () => {
-  const client = await connectedClient();
-  const saved = JSON.parse(localStorage.getItem(TOKEN_KEY));
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...saved, access_token: "another-tab-renewal" }));
-  storageEvent(TOKEN_KEY);
-  expect(client.getSnapshot().status).toBe("connected");
-  expect(conn.close).not.toHaveBeenCalled();
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem("home-harmony:ha-auth-revision");
-  storageEvent(null);
-  expect(client.getSnapshot().status).toBe("disconnected");
-  expect(conn.close).toHaveBeenCalledOnce();
-  client.dispose();
-  const snapshot = client.getSnapshot();
-  storageEvent(TOKEN_KEY);
-  expect(client.getSnapshot()).toBe(snapshot);
-});
-
-it("rejects a write racing with logout instead of restoring a retired browser login", () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem("home-harmony:ha-auth-revision", "logged-out-revision");
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: "old-revision" }));
-  const client = newClient();
-  client.start();
-  expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  expect(ha.getAuth).not.toHaveBeenCalled();
-});
-
-it("does not erase a newer browser login when an old tab reports revoked auth before its storage event", async () => {
-  const client = await connectedClient();
-  localStorage.setItem("home-harmony:ha-auth-revision", "new-login");
-  const saved = JSON.stringify({ ...tokenData(), refresh_token: "new-login-secret", storageRevision: "new-login" });
-  localStorage.setItem(TOKEN_KEY, saved);
-  conn.emit("reconnect-error");
-  expect(client.getSnapshot().status).toBe("auth-error");
-  expect(localStorage.getItem(TOKEN_KEY)).toBe(saved);
-  expect(localStorage.getItem("home-harmony:ha-auth-revision")).toBe("new-login");
+  expect(serverConfig.settings.memberOrder).toEqual(["home|person.morgan"]);
 });
 
 it("shows HA zones with live presence, passive metadata and honest missing or stale readings", async () => {
@@ -1081,7 +850,6 @@ it("shows HA zones with live presence, passive metadata and honest missing or st
     queueMicrotask(() => callback(zoneStates));
     return fake.unsubscribeEntities;
   });
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/zones?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const home = within(await screen.findByRole("article", { name: "Our home" }));
@@ -1104,7 +872,6 @@ it("shows HA zones with live presence, passive metadata and honest missing or st
 });
 
 it("keeps dimmers on the family dashboard, including off lights without a brightness reading", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const slider = await screen.findByRole("slider", { name: "Living Room Light brightness" });
@@ -1122,7 +889,6 @@ it("keeps dimmers on the family dashboard, including off lights without a bright
 });
 
 it("saves selected devices, sensors and scenes, survives renames and respects an empty selection", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   await screen.findByRole("switch", { name: "Toggle Living Room Light" });
@@ -1138,9 +904,8 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   const favorites = () => within(screen.getByRole("region", { name: "Home favorites" }));
   expect(favorites().getAllByRole("article")).toHaveLength(2);
   expect(favorites().getByRole("button", { name: "Activate Evening" })).toBeInTheDocument();
-  const key = "afterglow-connected-planner-v1:http://ha.local:8123:home-1";
-  const saved = JSON.parse(localStorage.getItem(key)!);
-  expect(saved.homeEntities["http://ha.local:8123"]).toEqual(["http://ha.local:8123|stable-light", "http://ha.local:8123|stable-sensor", "http://ha.local:8123|scene.evening"]);
+  const saved = JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!);
+  expect(saved.homeEntities).toEqual(["home|stable-light", "home|stable-sensor", "home|scene.evening"]);
   fireEvent.click(screen.getByRole("button", { name: "Customize" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
@@ -1160,8 +925,8 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
   expect(favorites().queryByRole("article")).not.toBeInTheDocument();
   expect(favorites().queryByRole("button", { name: "Activate Evening" })).not.toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem(key)!).homeEntities["http://ha.local:8123"]).toEqual([]);
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual(saved.events);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).homeEntities).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual(saved.events);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Smart home" }));
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));
   expect(favorites().queryByRole("article")).not.toBeInTheDocument();
@@ -1169,7 +934,6 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
 });
 
 it("offers temperature, mode and blind controls without duplicating raw state labels", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/home?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const target = await screen.findByRole("slider", { name: "Living target" });
@@ -1190,7 +954,6 @@ it("offers temperature, mode and blind controls without duplicating raw state la
 });
 
 it("shows spinners on busy device and scene controls, clears them on completion, and keeps errors", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const toggle = await screen.findByRole("switch", { name: "Toggle Living Room Light" });
@@ -1226,47 +989,7 @@ it("shows spinners on busy device and scene controls, clears them on completion,
   expect(scene).toBeEnabled();
 });
 
-it("replaces the existing demo household with setup states and never restores it on disconnect, logout or reload", async () => {
-  const demo = render(<App />);
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeInTheDocument();
-  demo.unmount();
-  const original = localStorage.getItem("afterglow-planner-v1:home-1");
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
-  const view = render(<App />);
-  await screen.findByText(/Set up people in Home Assistant → Settings → People/);
-  const noDemo = () => {
-    expect(screen.queryByText(/Anna|Erik|Emma|Leo|Football practice|Piano lesson|Oat milk|Set the table|Year 5|Class 2A/)).not.toBeInTheDocument();
-    expect(document.querySelector('img[src^="/timetables/"]')).toBeNull();
-  };
-  noDemo();
-  expect(screen.getAllByText(/Set up to-do lists in Home Assistant/)).toHaveLength(2);
-  expect(screen.getByText(/Set up school timetables in this app/)).toBeInTheDocument();
-  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  nav("School");
-  noDemo();
-  nav("Lists");
-  noDemo();
-  nav("Our week");
-  noDemo();
-  fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
-  fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-  await confirmAction("Disconnect");
-  nav("Today");
-  noDemo();
-  expect(screen.getByText(/Connect to Home Assistant to load people and calendars/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
-  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
-  await confirmAction("Log out");
-  nav("Today");
-  noDemo();
-  view.unmount();
-  render(<App />);
-  noDemo();
-  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe(original);
-});
-
-it("assigns HA calendars to real people in both views, persists setup, and isolates a different instance", async () => {
+it("assigns HA calendars to real people in both views, persists setup, without local event storage", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
   const household = { ...states,
@@ -1281,54 +1004,34 @@ it("assigns HA calendars to real people in both views, persists setup, and isola
   });
   const event = { summary: "Dentist appointment", start: { dateTime: "2026-10-07T13:00:00Z" }, end: { dateTime: "2026-10-07T14:00:00Z" } };
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event] });
-  vi.stubGlobal("fetch", fetchMock);
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [{ id: "legacy", title: "Local library visit", date: "2026-10-08", time: "16:00", member: "http://ha.local:8123|person.riley", location: "", note: "" }], items: [], timetables: {} }));
+  setHaFetch(fetchMock);
+  seedSettings({ events: [{ id: "legacy", title: "Local library visit", date: "2026-10-08", time: "16:00", member: "home|person.riley", location: "", note: "" }], items: [], timetables: {} });
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   const assignment = within(await screen.findByRole("group", { name: "Morgan" })).getByRole("combobox", { name: "Add calendar for Morgan" });
   await waitFor(() => expect(assignment).not.toBeDisabled());
   expect(assignment).toHaveValue("");
   expect(fetchMock).not.toHaveBeenCalled();
-  fireEvent.change(assignment, { target: { value: "http://ha.local:8123|calendar.morgan" } });
+  fireEvent.change(assignment, { target: { value: "home|calendar.morgan" } });
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
   expect(await screen.findByRole("button", { name: /15:00 – 16:00 Dentist appointment/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
   const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
   expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
   expect(row("Riley").queryByRole("button", { name: /Dentist appointment/ })).not.toBeInTheDocument();
-  fireEvent.click(row("Riley").getByRole("button", { name: /Local library visit/ }));
-  expect(await screen.findByLabelText("What’s happening?")).toHaveValue("Local library visit");
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
-  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));
-  expect(await within(screen.getByRole("table")).findByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
-  expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
-  const key = "afterglow-connected-planner-v1:http://ha.local:8123:home-1";
-  expect(localStorage.getItem(key)).toContain("Local library visit");
-  expect(localStorage.getItem(key)).not.toContain("Dentist appointment");
+  expect(row("Riley").queryByRole("button", { name: /Local library visit/ })).not.toBeInTheDocument();
+  expect(JSON.stringify(serverConfig)).not.toMatch(/Local library visit|Dentist appointment/);
   view.unmount();
   conn = new FakeConnection();
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   const restored = render(<App />);
   expect(await within(await screen.findByRole("table")).findByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
-  expect(row("Riley").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
-  act(() => conn.entityCallback?.(states));
-  expect(row("Person unavailable").getByRole("button", { name: /Local library visit/ })).toBeInTheDocument();
-  fireEvent.click(row("Person unavailable").getByRole("button", { name: /Local library visit/ }));
-  expect(await screen.findByLabelText("Who’s going?")).toHaveValue("http://ha.local:8123|person.riley");
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  restored.unmount();
-  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
-  render(<App />);
-  expect(screen.queryByText("Local library visit")).not.toBeInTheDocument();
-  expect(screen.queryByText("Dentist appointment")).not.toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem(key)).calendarMembers).toEqual({ "http://ha.local:8123|calendar.morgan": "http://ha.local:8123|person.morgan" });
+  expect(serverConfig.settings.calendarMembers).toEqual({ "home|calendar.morgan": "home|person.morgan" });
+
 });
 
 it("selects multiple calendars per person, moves and clears assignments, and restores the saved selections", async () => {
   const instance = "http://ha.local:8123";
-  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
   const household = { ...states,
     "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
     "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
@@ -1341,16 +1044,15 @@ it("selects multiple calendars per person, moves and clears assignments, and res
     queueMicrotask(() => callback(household));
     return conn.unsubscribeEntities;
   });
-  localStorage.setItem("home-harmony:ha-url", instance);
-  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: {
-    [`${instance}|calendar.personal`]: `${instance}|person.morgan`, [`${instance}|calendar.shared`]: "everyone",
-  } }));
+  seedSettings({ events: [], items: [], timetables: {}, calendarMembers: {
+    [`home|calendar.personal`]: `home|person.morgan`, [`home|calendar.shared`]: "everyone",
+  } });
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   await screen.findByRole("group", { name: "Morgan" });
   const selected = (person: string, calendar: string) => within(screen.getByRole("group", { name: person })).getByRole("button", { name: `Remove ${calendar} from ${person}` });
   const dropdown = (person: string) => screen.getByRole("combobox", { name: `Add calendar for ${person}` });
-  const add = (person: string, calendar: string) => fireEvent.change(dropdown(person), { target: { value: `${instance}|calendar.${calendar}` } });
+  const add = (person: string, calendar: string) => fireEvent.change(dropdown(person), { target: { value: `home|calendar.${calendar}` } });
   await waitFor(() => expect(dropdown("Morgan")).not.toBeDisabled());
   expect(selected("Morgan", "Personal")).toBeInTheDocument();
   expect(selected("Everyone", "Shared")).toBeInTheDocument();
@@ -1361,7 +1063,7 @@ it("selects multiple calendars per person, moves and clears assignments, and res
   expect(selected("Morgan", "Work")).toBeInTheDocument();
   expect(selected("Morgan", "Personal")).toBeInTheDocument();
   add("Riley", "personal");
-  expect(JSON.parse(localStorage.getItem(key)!).calendarMembers[`${instance}|calendar.personal`]).toBe(`${instance}|person.morgan`);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).calendarMembers[`home|calendar.personal`]).toBe(`home|person.morgan`);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(selected("Morgan", "Personal")).toBeInTheDocument();
   add("Riley", "personal");
@@ -1373,7 +1075,7 @@ it("selects multiple calendars per person, moves and clears assignments, and res
   expect(selected("Riley", "Personal")).toBeInTheDocument();
   fireEvent.click(selected("Riley", "Personal"));
   await confirmAction("Unlink calendar");
-  expect(JSON.parse(localStorage.getItem(key)).calendarMembers[`${instance}|calendar.personal`]).toBeUndefined();
+  expect(savedSettings().calendarMembers[`home|calendar.personal`]).toBeUndefined();
   expect(within(dropdown("Riley")).getByRole("option", { name: "Personal" })).toBeInTheDocument();
   add("Everyone", "personal");
   add("Everyone", "work");
@@ -1405,9 +1107,8 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
     queueMicrotask(() => callback({ ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }), "calendar.good": state("calendar.good", "off"), "calendar.denied": state("calendar.denied", "off") }));
     return conn.unsubscribeEntities;
   });
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => url.includes("calendar.denied") ? { ok: false, status: 403 } : { ok: true, json: async () => [{ summary: "Shared day", start: "2026-10-07", end: "2026-10-08" }] }));
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify({ events: [], items: [], timetables: {}, calendarMembers: { "http://ha.local:8123|calendar.good": "everyone", "http://ha.local:8123|calendar.denied": "everyone" } }));
+  setHaFetch(vi.fn(async (url: string) => url.includes("calendar.denied") ? { ok: false, status: 403 } : { ok: true, json: async () => [{ summary: "Shared day", start: "2026-10-07", end: "2026-10-08" }] }));
+  seedSettings({ events: [], items: [], timetables: {}, calendarMembers: { "home|calendar.good": "everyone", "home|calendar.denied": "everyone" } });
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   expect(await screen.findByRole("button", { name: /Shared day/ })).toBeInTheDocument();
@@ -1422,7 +1123,6 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
 
 it("assigns one task and daily list per person plus shared shopping, moves selections and restores them", async () => {
   const instance = "http://ha.local:8123";
-  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
   const household = { ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
     ...Object.fromEntries(["family", "personal", "daily", "routine", "shopping"].map(id => [`todo.${id}`, state(`todo.${id}`, "0", { friendly_name: id })])),
   };
@@ -1431,64 +1131,61 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
     queueMicrotask(() => callback(household));
     return conn.unsubscribeEntities;
   });
-  localStorage.setItem("home-harmony:ha-url", instance);
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   const select = (name: string) => screen.getByRole("combobox", { name });
   await waitFor(() => expect(select("Tasks for Morgan")).toBeEnabled());
-  const choose = (name: string, list: string) => fireEvent.change(select(name), { target: { value: list ? `${instance}|todo.${list}` : "" } });
-  choose("Tasks for Everyone", "family");
-  choose("Tasks for Morgan", "personal");
-  choose("Daily tasks for Everyone", "daily");
-  choose("Daily tasks for Morgan", "routine");
-  choose("Shared shopping list for Everyone", "shopping");
-  expect(JSON.parse(localStorage.getItem(key)).todoLists).toEqual({
-    [`${instance}|todo.family`]: { kind: "tasks", member: "everyone" },
-    [`${instance}|todo.personal`]: { kind: "tasks", member: `${instance}|person.morgan` },
-    [`${instance}|todo.daily`]: { kind: "daily", member: "everyone" },
-    [`${instance}|todo.routine`]: { kind: "daily", member: `${instance}|person.morgan` },
-    [`${instance}|todo.shopping`]: { kind: "shopping", member: "everyone" },
+  const choose = async (name: string, list: string) => { await act(async () => fireEvent.change(select(name), { target: { value: list ? `home|todo.${list}` : "" } })); };
+  await choose("Tasks for Everyone", "family");
+  await choose("Tasks for Morgan", "personal");
+  await choose("Daily tasks for Everyone", "daily");
+  await choose("Daily tasks for Morgan", "routine");
+  await choose("Shared shopping list for Everyone", "shopping");
+  expect(savedSettings().todoLists).toEqual({
+    [`home|todo.family`]: { kind: "tasks", member: "everyone" },
+    [`home|todo.personal`]: { kind: "tasks", member: `home|person.morgan` },
+    [`home|todo.daily`]: { kind: "daily", member: "everyone" },
+    [`home|todo.routine`]: { kind: "daily", member: `home|person.morgan` },
+    [`home|todo.shopping`]: { kind: "shopping", member: "everyone" },
   });
-  choose("Tasks for Morgan", "family");
+  await choose("Tasks for Morgan", "family");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(select("Tasks for Everyone")).toHaveValue(`${instance}|todo.family`);
-  expect(select("Tasks for Morgan")).toHaveValue(`${instance}|todo.personal`);
-  choose("Tasks for Morgan", "family");
+  expect(select("Tasks for Everyone")).toHaveValue(`home|todo.family`);
+  expect(select("Tasks for Morgan")).toHaveValue(`home|todo.personal`);
+  await choose("Tasks for Morgan", "family");
   await confirmAction("Change list");
   expect(select("Tasks for Everyone")).toHaveValue("");
-  expect(JSON.parse(localStorage.getItem(key)).todoLists[`${instance}|todo.personal`]).toBeUndefined();
-  choose("Tasks for Morgan", "");
+  expect(savedSettings().todoLists[`home|todo.personal`]).toBeUndefined();
+  await choose("Tasks for Morgan", "");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(select("Tasks for Morgan")).toHaveValue(`${instance}|todo.family`);
-  choose("Tasks for Morgan", "");
+  expect(select("Tasks for Morgan")).toHaveValue(`home|todo.family`);
+  await choose("Tasks for Morgan", "");
   act(() => conn.emit("disconnected"));
   expect(screen.getByRole("button", { name: "Unlink list" })).toBeDisabled();
   act(() => conn.emit("ready"));
   act(() => conn.entityCallback?.({ ...household }));
   await waitFor(() => expect(screen.getByRole("button", { name: "Unlink list" })).toBeEnabled());
   await confirmAction("Unlink list");
-  expect(JSON.parse(localStorage.getItem(key)).todoLists[`${instance}|todo.family`]).toBeUndefined();
-  choose("Tasks for Everyone", "family");
+  expect(savedSettings().todoLists[`home|todo.family`]).toBeUndefined();
+  await choose("Tasks for Everyone", "family");
   view.unmount();
   conn = new FakeConnection();
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   const restored = render(<App />);
   await waitFor(() => expect(select("Tasks for Everyone")).toBeEnabled());
-  expect(select("Daily tasks for Morgan")).toHaveValue(`${instance}|todo.routine`);
-  expect(select("Shared shopping list for Everyone")).toHaveValue(`${instance}|todo.shopping`);
+  expect(select("Daily tasks for Morgan")).toHaveValue(`home|todo.routine`);
+  expect(select("Shared shopping list for Everyone")).toHaveValue(`home|todo.shopping`);
   act(() => conn.emit("disconnected"));
   expect(select("Tasks for Everyone")).toBeDisabled();
   restored.unmount();
-  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
   render(<App />);
-  expect(select("Tasks for Everyone")).toHaveValue("");
-  expect(select("Shared shopping list for Everyone")).toHaveValue("");
+  await waitFor(() => expect(select("Tasks for Everyone")).toHaveValue("home|todo.family"));
+  expect(select("Shared shopping list for Everyone")).toHaveValue("home|todo.shopping");
 });
 
-it("uses saved people order for connected lists and retains missing people and instance isolation", async () => {
+it("uses saved people order for connected lists and retains missing people across screens", async () => {
   const instance = "http://ha.local:8123";
-  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
-  const personId = (name: string) => `${instance}|person.${name}`;
+  const personId = (name: string) => `home|person.${name}`;
   const household = { ...states,
     "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
     "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
@@ -1499,15 +1196,13 @@ it("uses saved people order for connected lists and retains missing people and i
     return conn.unsubscribeEntities;
   });
   const todoLists = Object.fromEntries(["daily", "tasks"].flatMap(kind => ["morgan", "everyone", "riley"].map(name => [
-    `${instance}|todo.${name}_${kind}`, { kind, member: name === "everyone" ? name : personId(name) },
+    `home|todo.${name}_${kind}`, { kind, member: name === "everyone" ? name : personId(name) },
   ])));
-  localStorage.setItem("home-harmony:ha-url", instance);
-  // Existing saved planners have no order preference yet.
-  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, todoLists }));
+  seedSettings({ events: [], items: [], timetables: {}, todoLists });
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Move Riley up" }));
-  const order = () => JSON.parse(localStorage.getItem(key)!).memberOrder;
+  const order = () => JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).memberOrder;
   expect(order()).toEqual([personId("riley"), personId("morgan")]);
   const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   const listOrder = (kind: string) => screen.getAllByRole("group", { name: new RegExp(` ${kind}$`) }).map(group => group.getAttribute("aria-label"));
@@ -1532,23 +1227,22 @@ it("uses saved people order for connected lists and retains missing people and i
   await screen.findByRole("rowheader", { name: "Riley" });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "RRiley", "MMorgan"]);
   restored.unmount();
-  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
   render(<App />);
-  expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).memberOrder).toEqual([]);
+  expect(serverConfig.settings.memberOrder).toEqual([personId("riley"), personId("morgan")]);
   expect(order()).toEqual([personId("riley"), personId("morgan")]);
-  expect(JSON.parse(localStorage.getItem(key)!).todoLists).toEqual(todoLists);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).todoLists).toEqual(todoLists);
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
 it("hides connected people and their plans and lists without losing assignments", async () => {
-  const { key, household } = setupWritableCalendars();
-  const morgan = "http://ha.local:8123|person.morgan";
-  const planner = { ...JSON.parse(localStorage.getItem(key)!),
-    events: [{ id: "local", title: "Morgan local plan", date: "2026-10-07", time: "14:00", member: morgan, location: "", note: "" }],
-    todoLists: { "http://ha.local:8123|todo.morgan": { kind: "daily", member: morgan }, "http://ha.local:8123|todo.shared": { kind: "daily", member: "everyone" } },
+  const { household } = setupWritableCalendars();
+  const morgan = "home|person.morgan";
+  const planner = { ...JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!),
+    events: [],
+    todoLists: { "home|todo.morgan": { kind: "daily", member: morgan }, "home|todo.shared": { kind: "daily", member: "everyone" } },
   };
-  localStorage.setItem(key, JSON.stringify(planner));
-  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.morgan") ? [
+  seedSettings(planner);
+  vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.morgan") ? [
     { uid: "remote", summary: "Morgan remote plan", start: "2026-10-07T13:00:00Z", end: "2026-10-07T14:00:00Z" },
   ] : [] }) as Response);
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
@@ -1557,7 +1251,7 @@ it("hides connected people and their plans and lists without losing assignments"
   fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
   expect(screen.getByRole("button", { name: "Remove Morgan calendar from Morgan" })).toBeInTheDocument();
-  expect(screen.getByRole("combobox", { name: "Daily tasks for Morgan" })).toHaveValue("http://ha.local:8123|todo.morgan");
+  expect(screen.getByRole("combobox", { name: "Daily tasks for Morgan" })).toHaveValue("home|todo.morgan");
   const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   nav("Today");
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone"]);
@@ -1577,24 +1271,22 @@ it("hides connected people and their plans and lists without losing assignments"
   window.history.replaceState(null, "", "/settings");
   const restored = render(<App />);
   expect(await screen.findByRole("switch", { name: "Show Morgan in family planner" })).not.toBeChecked();
-  expect(JSON.parse(localStorage.getItem(key)!)).toMatchObject({ ...planner, hiddenMembers: [morgan] });
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!)).toMatchObject({ ...planner, hiddenMembers: [morgan] });
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
   nav("Our week");
   expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
-  expect(screen.getByText("Morgan local plan")).toBeInTheDocument();
+  expect(screen.queryByText("Morgan local plan")).not.toBeInTheDocument();
   nav("Lists");
   expect(screen.getByRole("group", { name: "Morgan daily tasks" })).toBeInTheDocument();
   restored.unmount();
-  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
   render(<App />);
-  expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).hiddenMembers).toEqual([]);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).hiddenMembers).toEqual([]);
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
 it("remembers timetable toggles across school, dashboard and reload without losing saved images", async () => {
   const instance = "http://ha.local:8123";
-  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
-  const riley = `${instance}|person.riley`;
+  const riley = `home|person.riley`;
   const household = { ...states,
     "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
     "person.riley": state("person.riley", "home", { friendly_name: "Riley" }),
@@ -1604,10 +1296,9 @@ it("remembers timetable toggles across school, dashboard and reload without losi
     queueMicrotask(() => callback(household));
     return conn.unsubscribeEntities;
   });
-  const timetables = { [riley]: "https://school.example/riley.png" };
-  const migratedTimetables = { [riley]: [timetables[riley]] };
-  localStorage.setItem("home-harmony:ha-url", instance);
-  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables }));
+  const timetables = { [riley]: ["https://school.example/riley.png"] };
+  const migratedTimetables = timetables;
+  seedSettings({ events: [], items: [], timetables });
   window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).toBeChecked();
@@ -1627,28 +1318,27 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   window.history.replaceState(null, "", "/settings");
   const restored = render(<App />);
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).not.toBeChecked();
-  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(migratedTimetables);
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).timetables).toEqual(migratedTimetables);
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
   if (screen.queryByRole("alertdialog")) await confirmAction("Hide timetable");
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Morgan" }));
   fireEvent.click(screen.getByRole("button", { name: "Move Riley up" }));
   nav("School");
   expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Riley’s school week", "Morgan’s school week"]);
-  expect(screen.getByRole("img", { name: "Riley’s school timetable" })).toHaveAttribute("src", timetables[riley]);
+  expect(screen.getByRole("img", { name: "Riley’s school timetable" })).toHaveAttribute("src", timetables[riley][0]);
   expect(screen.getByRole("button", { name: "Set up timetable images" })).toBeInTheDocument();
   nav("Today");
   expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable", "Enlarge Morgan’s timetable"]);
+  await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
   restored.unmount();
-  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
   render(<App />);
-  expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).timetableEnabled).toEqual({});
-  expect(JSON.parse(localStorage.getItem(key)!).timetables).toEqual(migratedTimetables);
+  await waitFor(() => expect(serverConfig.settings.timetableEnabled).toEqual({ [riley]: true, "home|person.morgan": true }));
+  expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).timetables).toEqual(migratedTimetables);
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
 it("reads and edits assigned HA lists in the dashboard and Lists without storing remote items", async () => {
   const instance = "http://ha.local:8123";
-  const key = `afterglow-connected-planner-v1:${instance}:home-1`;
   const household = { ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
     ...Object.fromEntries(["family", "personal", "daily", "shopping"].map(id => [`todo.${id}`, state(`todo.${id}`, "1", { friendly_name: id, supported_features: 7 })])),
   };
@@ -1675,13 +1365,12 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
     if (service === "remove_item") lists[id] = lists[id].filter(item => item.uid !== value.item);
     return {};
   });
-  localStorage.setItem("home-harmony:ha-url", instance);
-  localStorage.setItem(key, JSON.stringify({ events: [], items: [], timetables: {}, todoLists: {
-    [`${instance}|todo.family`]: { kind: "tasks", member: "everyone" },
-    [`${instance}|todo.personal`]: { kind: "tasks", member: `${instance}|person.morgan` },
-    [`${instance}|todo.daily`]: { kind: "daily", member: `${instance}|person.morgan` },
-    [`${instance}|todo.shopping`]: { kind: "shopping", member: "everyone" },
-  } }));
+  seedSettings({ events: [], items: [], timetables: {}, todoLists: {
+    [`home|todo.family`]: { kind: "tasks", member: "everyone" },
+    [`home|todo.personal`]: { kind: "tasks", member: `home|person.morgan` },
+    [`home|todo.daily`]: { kind: "daily", member: `home|person.morgan` },
+    [`home|todo.shopping`]: { kind: "shopping", member: "everyone" },
+  } });
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const daily = within(await screen.findByRole("group", { name: "Morgan daily tasks" }));
@@ -1798,7 +1487,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   fireEvent.click(shared.getByRole("checkbox", { name: "Plan holiday" }));
   expect(await shared.findByRole("alert")).toHaveTextContent("Home Assistant rejected");
   expect(shared.getByRole("checkbox", { name: "Plan holiday" })).not.toBeChecked();
-  expect(localStorage.getItem(key)).not.toMatch(/Book holiday|Plan holiday|Book dentist|Pack bag|Pack lunch|Milk|Fix bike/);
+  expect(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })).not.toMatch(/Book holiday|Plan holiday|Book dentist|Pack bag|Pack lunch|Milk|Fix bike/);
   act(() => conn.emit("disconnected"));
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   expect(screen.getAllByText(/To-do lists are unavailable while offline/)).toHaveLength(2);
@@ -1840,12 +1529,11 @@ it("shows unavailable and failed lists separately while keeping readable lists u
     queueMicrotask(() => callback(household));
     return conn.unsubscribeEntities;
   });
-  localStorage.setItem("home-harmony:ha-url", instance);
-  localStorage.setItem(`afterglow-connected-planner-v1:${instance}:home-1`, JSON.stringify({ events: [], items: [], timetables: {}, todoLists: {
-    [`${instance}|todo.readonly`]: { kind: "tasks", member: "everyone" },
-    [`${instance}|todo.denied`]: { kind: "tasks", member: `${instance}|person.morgan` },
-    [`${instance}|todo.missing`]: { kind: "tasks", member: `${instance}|person.riley` },
-  } }));
+  seedSettings({ events: [], items: [], timetables: {}, todoLists: {
+    [`home|todo.readonly`]: { kind: "tasks", member: "everyone" },
+    [`home|todo.denied`]: { kind: "tasks", member: `home|person.morgan` },
+    [`home|todo.missing`]: { kind: "tasks", member: `home|person.riley` },
+  } });
   window.history.replaceState(null, "", "/lists?tab=tasks&auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   expect(await screen.findByRole("checkbox", { name: "Read only item" })).toBeDisabled();
@@ -1859,53 +1547,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
-
-it.each(["Disconnect", "Log out"])("requires confirmation before %s changes the session", async label => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
-  render(<App />);
-  await screen.findByText("HA user");
-  const savedLogin = localStorage.getItem(TOKEN_KEY);
-  fireEvent.click(screen.getByRole("button", { name: label }));
-  expect(conn.close).not.toHaveBeenCalled();
-  expect(auth.revoke).not.toHaveBeenCalled();
-  expect(localStorage.getItem(TOKEN_KEY)).toBe(savedLogin);
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(conn.close).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole("button", { name: label }));
-  await confirmAction(label);
-  expect(conn.close).toHaveBeenCalledOnce();
-  if (label === "Log out") {
-    expect(auth.revoke).toHaveBeenCalledOnce();
-    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
-  } else {
-    expect(auth.revoke).not.toHaveBeenCalled();
-    expect(localStorage.getItem(TOKEN_KEY)).toBe(savedLogin);
-  }
-});
-
-it("keeps the original instance and saved login until a replacement is confirmed", async () => {
-  const instance = "http://ha.local:8123";
-  localStorage.setItem("home-harmony:ha-url", instance);
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
-  render(<App />);
-  await screen.findByText("HA user");
-  const savedLogin = localStorage.getItem(TOKEN_KEY);
-  fireEvent.change(screen.getByLabelText("Home Assistant URL"), { target: { value: "http://other.local:8123" } });
-  fireEvent.click(screen.getByRole("button", { name: "Connect" }));
-  expect(screen.getByRole("alertdialog")).toHaveTextContent(instance);
-  expect(conn.close).not.toHaveBeenCalled();
-  expect(localStorage.getItem(TOKEN_KEY)).toBe(savedLogin);
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(localStorage.getItem("home-harmony:ha-url")).toBe(instance);
-  fireEvent.click(screen.getByRole("button", { name: "Connect" }));
-  await confirmAction("Change instance");
-  expect(localStorage.getItem("home-harmony:ha-url")).toBe("http://other.local:8123");
-  expect(conn.close).toHaveBeenCalledOnce();
-});
-
 it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   if (path === "/devices") fireEvent.click(await screen.findByText(/^Other controls/));
@@ -1928,7 +1570,6 @@ it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unass
 });
 
 it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation from %s", async path => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   const activate = await screen.findByRole("button", { name: "Activate Evening" });
@@ -1943,7 +1584,6 @@ it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation fr
 });
 
 it("confirms door and gate movement while keeping Stop immediate", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/devices/cover.blind?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   await screen.findByRole("button", { name: "Close Blind" });
@@ -1964,7 +1604,6 @@ it("confirms door and gate movement while keeping Stop immediate", async () => {
 });
 
 it("keeps favorites intact when individual or bulk removal is canceled", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   await screen.findByRole("switch", { name: "Toggle Living Room Light" });
@@ -1985,7 +1624,6 @@ it("keeps favorites intact when individual or bulk removal is canceled", async (
 });
 
 it("lists devices once, searches their metadata and child readings, and keeps standalone controls secondary", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const card = await screen.findByRole("link", { name: "Multi sensor details" });
@@ -2028,8 +1666,6 @@ it("lists devices once, searches their metadata and child readings, and keeps st
 });
 
 it.each(["/devices/light.living", "/entities/light.living", "/devices/physical-1#light.living"])("opens the parent device and focuses its control from %s after loading", async path => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
   window.history.replaceState(null, "", path);
   const metadata = deferred<typeof registries.devices>();
   conn.sendMessagePromise.mockImplementation(async ({ type }) => type === "config/device_registry/list" ? metadata.promise : ({ "config/area_registry/list": registries.areas, "config/entity_registry/list": registries.entities })[type]);
@@ -2046,7 +1682,6 @@ it.each(["/devices/light.living", "/entities/light.living", "/devices/physical-1
 });
 
 it("retains empty devices, custom names, models and unassigned rooms", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
   conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
     "config/area_registry/list": registries.areas,
@@ -2070,7 +1705,6 @@ it("retains empty devices, custom names, models and unassigned rooms", async () 
 });
 
 it.each(["config/device_registry/list", "config/entity_registry/list"])("keeps controls accessible when %s cannot be loaded", async failed => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
   conn.sendMessagePromise.mockImplementation(async ({ type }) => {
     if (type === failed) throw new Error("Unavailable");
@@ -2087,7 +1721,6 @@ it.each(["config/device_registry/list", "config/entity_registry/list"])("keeps c
 });
 
 it("opens legacy links with readable states when services cannot load", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/devices/light.living?auth_callback=1&code=fixture&state=fixture");
   vi.mocked(ha.getServices).mockRejectedValueOnce(new Error("Unavailable"));
   render(<App />);
@@ -2098,7 +1731,6 @@ it("opens legacy links with readable states when services cannot load", async ()
 });
 
 it("switches room and type grouping while retaining search through detail navigation and reloads", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
   window.history.replaceState(null, "", "/devices?auth_callback=1&code=fixture&state=fixture");
   conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
     "config/area_registry/list": registries.areas,
@@ -2139,8 +1771,6 @@ it("switches room and type grouping while retaining search through detail naviga
 });
 
 it("falls back to room grouping for an invalid bookmarked view", async () => {
-  localStorage.setItem("home-harmony:ha-url", "http://ha.local:8123");
-  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
   window.history.replaceState(null, "", "/devices?group=invalid&q=multi");
   render(<App />);
   expect(await screen.findByRole("region", { name: "Hall" })).toBeInTheDocument();

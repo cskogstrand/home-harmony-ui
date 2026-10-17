@@ -8,7 +8,7 @@ import { MAX_TIMETABLE_BYTES, MAX_TIMETABLE_PAGES } from "../shared/timetables.t
 const exec = promisify(execFile);
 const failure = (status, message) => Object.assign(new Error(message), { status });
 
-export async function convertTimetable(request, dataDir) {
+export async function convertTimetable(request, dataDir, person) {
   if (request.headers["content-type"]?.split(";")[0].trim().toLowerCase() !== "application/pdf") throw failure(415, "Send the PDF as the request body with Content-Type: application/pdf.");
   const chunks = [];
   let size = 0;
@@ -20,7 +20,7 @@ export async function convertTimetable(request, dataDir) {
   const pdf = Buffer.concat(chunks);
   if (!pdf.subarray(0, 1024).includes(Buffer.from("%PDF-"))) throw failure(400, "Choose a valid PDF timetable.");
   const id = randomUUID();
-  const directory = join(dataDir, "timetables", id);
+  const directory = join(dataDir, "timetables", person, id);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   try {
     const source = join(directory, "source.pdf");
@@ -38,10 +38,11 @@ export async function convertTimetable(request, dataDir) {
       await rename(input, join(directory, `${page}.png`));
       const handle = await open(join(directory, `${page}.png`), "r");
       try { await handle.sync(); } finally { await handle.close(); }
-      urls.push(`/api/timetables/${id}/${page}.png`);
+      urls.push(`/api/timetables/${person}/${id}/${page}.png`);
     }
-    await rm(source);
-    for (const path of [directory, join(dataDir, "timetables")]) {
+    const sourceHandle = await open(source, "r");
+    try { await sourceHandle.sync(); } finally { await sourceHandle.close(); }
+    for (const path of [directory, join(dataDir, "timetables", person), join(dataDir, "timetables")]) {
       const handle = await open(path, "r");
       try { await handle.sync(); } finally { await handle.close(); }
     }

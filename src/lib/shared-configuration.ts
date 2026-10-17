@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { configurationSchema, emptyConfiguration, emptyPlanner, parseConfiguration, remapPlanner, type Configuration, type Planner } from "../../shared/configuration";
+import { configurationSchema, emptyConfiguration, parseConfiguration, type Configuration, type Planner } from "../../shared/configuration";
 
 type Request = (method: "GET" | "PUT", body?: string, revision?: string) => Promise<Response>;
 const responseSchema = z.object({ revision: z.string().regex(/^[a-f0-9]{64}$/), config: configurationSchema });
@@ -21,8 +21,8 @@ export class SharedConfiguration {
     const response = await this.request(method, config ? JSON.stringify(config) : undefined, this.revision);
     if (!response.ok) {
       if (response.status === 409) throw new Error("Another screen changed the configuration. Export your unsaved changes, then load the shared version before editing again.");
-      if (response.status === 401) throw new Error("This login cannot access shared storage. Check that the app's Home Assistant URL points to the same instance, then sign in again.");
-      throw new Error("Shared storage is unavailable. Check the app's Home Assistant URL and connection, then retry. Your unsaved changes are still on this screen.");
+      if (response.status === 401) throw new Error("Dashboard access expired. Reload and enter the dashboard password.");
+      throw new Error("Shared storage is unavailable. Check the dashboard server, then retry. Your unsaved changes are still on this screen.");
     }
     return responseSchema.parse(await response.json());
   }
@@ -49,11 +49,9 @@ export class SharedConfiguration {
       if (discard) throw error;
     } finally { if (generation === this.generation) { this.reading = false; this.reloading = false; } }
   };
-  updatePlanner = (id: string, instanceUrl: string, change: (planner: Planner) => Planner) => {
+  updateSettings = (change: (planner: Planner) => Planner) => {
     if (!this.active || this.reloading || !this.snapshot.loaded || this.snapshot.error) throw new Error("Shared settings are not ready. Open App preferences to reconnect or resolve unsaved changes.");
-    const existing = this.snapshot.config.planners[id];
-    const planner = existing ? remapPlanner(existing.planner, existing.instanceUrl, instanceUrl) : emptyPlanner();
-    const config = parseConfiguration(JSON.stringify({ ...this.snapshot.config, planners: { ...this.snapshot.config.planners, [id]: { instanceUrl, planner: change(planner) } } }));
+    const config = parseConfiguration(JSON.stringify({ ...this.snapshot.config, settings: change(this.snapshot.config.settings) }));
     this.update({ config, dirty: true });
     void this.save().catch(() => {});
   };

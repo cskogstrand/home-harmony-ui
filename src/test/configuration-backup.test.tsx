@@ -6,7 +6,7 @@ import { emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shar
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { timeZone: "UTC", entities: [] }, configurationRequest: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
-const backup = () => ({ ...emptyConfiguration(), planners: { "home-1": { instanceUrl: app.haUrl, planner: { ...emptyPlanner(), memberOrder: ["restored-person"], hiddenMembers: ["restored-person"] } } } });
+const backup = () => ({ ...emptyConfiguration(), settings: { ...emptyPlanner(), memberOrder: ["restored-person"], hiddenMembers: ["restored-person"] } });
 function Probe() {
   const { memberOrder, hiddenMembers, appearance, selectedAlarm, setCalendarSettings, setAppearance, setSelectedAlarm, addItem } = useFamily();
   return <><output aria-label="People order">{memberOrder.join(",")}</output><output aria-label="Hidden people">{hiddenMembers.join(",")}</output><output aria-label="App preferences">{JSON.stringify({ appearance, selectedAlarm })}</output><button onClick={() => setCalendarSettings({ view: "people" })}>Change view</button><button onClick={() => setAppearance({ theme: "light", compactMode: true })}>Change appearance</button><button onClick={() => setSelectedAlarm(`${app.haUrl}|alarm.one`)}>Select alarm</button><button onClick={() => addItem("Must stay in HA", "tasks", "everyone")}>Add local content</button></>;
@@ -54,20 +54,15 @@ it("rejects an invalid backup before confirmation and never sends it to storage"
   expect(app.configurationRequest.mock.calls.some(([method]) => method === "PUT")).toBe(false);
 });
 
-it("preserves browser data and migrates it only after explicit confirmation", async () => {
-  const key = `afterglow-connected-planner-v1:${app.haUrl}:home-1`;
-  const original = JSON.stringify({ ...backup().planners["home-1"].planner, events: [], items: [{ id: "legacy", text: "Old local list content", member: "everyone", kind: "tasks", done: false }] });
-  localStorage.setItem(key, original);
+it("ignores old browser settings and loads shared settings while HA is offline", async () => {
+  app.homeOnline = false;
+  localStorage.setItem("afterglow-connected-planner-v1:http://ha.local:8123:home-1", JSON.stringify(backup().settings));
   mount(); await screen.findByText("Shared configuration saved.");
   expect(screen.getByLabelText("People order")).toBeEmptyDOMElement();
-  expect(localStorage.getItem(key)).toBe(original);
-  fireEvent.click(screen.getByRole("button", { name: "Use settings from this browser" }));
-  expect(app.configurationRequest.mock.calls.some(([method]) => method === "PUT")).toBe(false);
-  await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
-  expect(screen.getByLabelText("People order")).toHaveTextContent("restored-person");
-  expect(localStorage.getItem(key)).toBe(original);
-  const body = app.configurationRequest.mock.calls.find(([method]) => method === "PUT")[1];
-  expect(body).not.toMatch(/Old local list content|"events"|"items"/);
+  expect(screen.queryByRole("button", { name: "Use settings from this browser" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Change appearance" }));
+  await screen.findByText("Shared configuration saved.");
+  expect(app.configurationRequest.mock.calls.some(([method]) => method === "PUT")).toBe(true);
 });
 
 it("keeps failed imports recoverable and blocks editing while a conflict is unresolved", async () => {
@@ -83,10 +78,10 @@ it("keeps failed imports recoverable and blocks editing while a conflict is unre
   expect(app.configurationRequest.mock.calls).toHaveLength(count);
 });
 
-it("exports only configuration and can restore it in browser-only mode", async () => {
+it("exports only configuration and restores it through shared storage", async () => {
   vi.stubEnv("MODE", "browser");
   localStorage.setItem("home-harmony:ha-session", "fixture-private-login");
-  mount();
+  mount(); await screen.findByText("Shared configuration saved.");
   const create = vi.fn((_blob: Blob) => "blob:fixture");
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: create });
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
@@ -104,7 +99,7 @@ it("exports only configuration and can restore it in browser-only mode", async (
   await waitFor(() => expect(screen.getByLabelText("People order")).toHaveTextContent("restored-person"));
   expect(screen.getByLabelText("Hidden people")).toHaveTextContent("restored-person");
   expect(localStorage.getItem("home-harmony:ha-session")).toBe("fixture-private-login");
-  expect(app.configurationRequest).not.toHaveBeenCalled();
+  expect(app.configurationRequest).toHaveBeenCalled();
 });
 
 it("persists app preferences across reloads and does not save local list content", async () => {
@@ -118,8 +113,7 @@ it("persists app preferences across reloads and does not save local list content
   fireEvent.click(screen.getByRole("button", { name: "Add local content" }));
   expect(app.configurationRequest).toHaveBeenCalledTimes(count);
   const saved = parseConfiguration(app.configurationRequest.mock.calls.filter(([method]) => method === "PUT").slice(-1)[0][1]);
-  expect(saved.planners["home-1"].instanceUrl).toBe(app.haUrl);
-  expect(saved.planners["home-1"].planner).toMatchObject({ appearance: { theme: "light", compactMode: true }, selectedAlarm: `${app.haUrl}|alarm.one` });
+  expect(saved.settings).toMatchObject({ appearance: { theme: "light", compactMode: true }, selectedAlarm: `${app.haUrl}|alarm.one` });
   expect(JSON.stringify(saved)).not.toMatch(/"events"|"items"|Must stay in HA/);
   view.unmount(); mount();
   await screen.findByText("Shared configuration saved.");

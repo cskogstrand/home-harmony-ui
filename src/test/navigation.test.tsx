@@ -1,441 +1,73 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import App from "@/App";
-import { addDays, homeDate, weekStart, isPlannerDate, itemIsDone } from "@/contexts/FamilyContext";
+import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
+import { mapHome, emptyRegistries } from "@/lib/ha-model";
+import { state } from "./ha-fixtures";
+import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn() }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: () => app, AppProvider: ({ children }) => children }));
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
-
+let settings = emptyConfiguration();
 beforeEach(() => {
-  vi.stubEnv("MODE", "browser");
-  const storage = new Map<string, string>();
-  vi.stubGlobal("localStorage", { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
+  settings = emptyConfiguration();
+  app.currentHome = mapHome({ "person.emma": state("person.emma", "home", { friendly_name: "Emma" }), "person.leo": state("person.leo", "home", { friendly_name: "Leo" }) }, emptyRegistries, "home");
+  app.configurationRequest.mockImplementation(async (method, body) => {
+    if (method === "PUT") settings = parseConfiguration(body);
+    return { ok: true, json: async () => ({ revision: "a".repeat(64), config: structuredClone(settings) }) };
+  });
   window.history.replaceState(null, "", "/");
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal("IntersectionObserver", class { observe() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
-const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+const saved = () => waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
 
-it("starts with configuration and honest empty states while preserving navigation", async () => {
-  render(<App />);
+it("navigates with empty HA data and shows the server-managed connection", async () => {
+  app.currentHome = mapHome({}, emptyRegistries, "home");
+  render(<App />); await saved();
   expect(screen.getByRole("heading", { level: 1, name: "Good to be home." })).toBeInTheDocument();
   expect(screen.getByRole("contentinfo")).toHaveTextContent("Version 9.8.7");
-  expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
   navigate("Smart home");
   fireEvent.click(screen.getByRole("link", { name: /Configure Home Assistant/ }));
-  expect(await screen.findByLabelText("Home Assistant URL")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Connect" })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
+  expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
   for (const [link, heading] of [["Devices", "Devices"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
     fireEvent.click(within(screen.getByRole("navigation", { name: "Smart home navigation" })).getByRole("link", { name: link }));
     expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   }
-  expect(screen.queryByText(/Demo|Viking Guard|1234/)).not.toBeInTheDocument();
-  expect(screen.getByRole("contentinfo")).toHaveTextContent("Version 9.8.7");
 });
 
-it("saves shopping items and daily completion across navigation and a reload", () => {
-  const view = render(<App />);
-  fireEvent.click(screen.getByRole("checkbox", { name: "Set the table" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "New shopping item" }), { target: { value: "Bread <wholegrain>" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));
-  navigate("Lists");
-  fireEvent.click(screen.getByRole("button", { name: /Shopping/ }));
-  expect(screen.getByRole("checkbox", { name: "Bread <wholegrain>" })).toBeInTheDocument();
-  view.unmount();
-  render(<App />);
-  expect(screen.getByRole("checkbox", { name: "Bread <wholegrain>" })).toBeInTheDocument();
-  navigate("Today");
-  fireEvent.click(screen.getByText("Completed (1)"));
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
-});
-
-it("adds, edits and removes an event from the per-person week", async () => {
-  render(<App />);
-  navigate("Our week");
-  fireEvent.click(screen.getByRole("button", { name: "By person" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add a plan" }));
-  fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Library afternoon" } });
-  fireEvent.change(screen.getByLabelText("Who’s going?"), { target: { value: "emma" } });
-  fireEvent.change(screen.getByLabelText("End time (optional)"), { target: { value: "17:30" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  const plan = await screen.findByRole("button", { name: /Library afternoon/ });
-  expect(plan).toHaveTextContent("16:00 – 17:30");
-  fireEvent.click(plan);
-  expect(screen.getByLabelText("End time (optional)")).toHaveValue("17:30");
-  fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Library morning" } });
-  fireEvent.change(screen.getByLabelText("Time"), { target: { value: "09:00" } });
-  fireEvent.change(screen.getByLabelText("End time (optional)"), { target: { value: "10:00" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  const edited = await screen.findByRole("button", { name: /Library morning/ });
-  expect(edited).toHaveTextContent("09:00 – 10:00");
-  fireEvent.click(edited);
-  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-  const beforeDelete = localStorage.getItem("afterglow-planner-v1:home-1");
-  fireEvent.click(screen.getByRole("button", { name: "Keep event" }));
-  expect(localStorage.getItem("afterglow-planner-v1:home-1")).toBe(beforeDelete);
-  fireEvent.click(screen.getByRole("button", { name: "Delete" }));
-  await confirmAction("Remove event");
-  expect(screen.queryByRole("button", { name: /Library morning/ })).not.toBeInTheDocument();
-});
-
-it("preserves legacy plans and restores, validates and clears local end times", async () => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
-  const key = "afterglow-planner-v1:home-1";
-  const legacy = { id: "legacy", title: "Library", date: "2026-10-07", time: "16:00", member: "everyone", location: "", note: "" };
-  localStorage.setItem(key, JSON.stringify({ events: [legacy], items: [], timetables: {} }));
-  const view = render(<App />);
-  const grid = () => within(screen.getByRole("table"));
-  const saved = () => JSON.parse(localStorage.getItem(key)!).events;
-  expect(saved()).toEqual([legacy]);
-  fireEvent.click(grid().getByRole("button", { name: /Library/ }));
-  const end = await screen.findByLabelText("End time (optional)");
-  expect(end).toHaveValue("");
-  for (const invalid of ["15:00", "16:00"]) {
-    fireEvent.change(end, { target: { value: invalid } });
-    fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("End time must be after the start time.");
-    expect(saved()).toEqual([legacy]);
-  }
-  fireEvent.change(end, { target: { value: "17:30" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  expect(grid().getByRole("button", { name: /Library/ })).toHaveTextContent("16:00 – 17:30");
-  expect(within(screen.getByRole("region", { name: "Next family plan" })).getByText("16:00 – 17:30")).toBeInTheDocument();
-  expect(saved()).toEqual([{ ...legacy, endTime: "17:30" }]);
-  view.unmount();
-  render(<App />);
-  expect(grid().getByRole("button", { name: /Library/ })).toHaveTextContent("16:00 – 17:30");
-  fireEvent.click(grid().getByRole("button", { name: /Library/ }));
-  expect(await screen.findByLabelText("End time (optional)")).toHaveValue("17:30");
-  fireEvent.change(screen.getByLabelText("End time (optional)"), { target: { value: "" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  expect(saved()).toEqual([legacy]);
-  expect(grid().getByRole("button", { name: /Library/ })).not.toHaveTextContent("17:30");
-});
-
-it.each([
-  ["/", "Set the table"],
-  ["/lists?tab=daily", "Set the table"],
-  ["/lists?tab=tasks", "Return library books"],
-  ["/lists?tab=shopping", "Oat milk"],
-])("edits task text in %s and only toggles completion with its checkbox", async (path, name) => {
-  window.history.replaceState(null, "", path);
-  const view = render(<App />);
-  const key = "afterglow-planner-v1:home-1";
-  const original = JSON.parse(localStorage.getItem(key)!).items.find(item => item.text === name);
-  const storedItem = () => JSON.parse(localStorage.getItem(key)!).items.find(item => item.id === original.id);
-  const checkbox = screen.getByRole("checkbox", { name });
-  fireEvent.click(screen.getByRole("button", { name: `Edit ${name}` }));
-  expect(checkbox).not.toBeChecked();
-  const input = within(screen.getByRole("dialog")).getByRole("textbox");
-  expect(input).toHaveValue(name);
-  fireEvent.change(input, { target: { value: "Canceled edit" } });
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(storedItem()).toEqual(original);
-  fireEvent.click(screen.getByRole("button", { name: `Edit ${name}` }));
-  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: " " } });
-  expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
-  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: " Updated task " } });
-  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  expect(storedItem()).toEqual({ ...original, text: "Updated task" });
-  fireEvent.click(screen.getByRole("checkbox", { name: "Updated task" }));
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(storedItem().done).toBe(true);
-  expect(checkbox).toBeChecked();
-  expect(checkbox).toBeDisabled();
-  expect(checkbox.closest(".check-row")).toHaveClass("completing");
-  expect(checkbox.closest(".check-row-shell")).toHaveAttribute("aria-hidden", "true");
-  await waitFor(() => expect(checkbox).not.toBeInTheDocument());
-  fireEvent.click(screen.getByText("Completed (1)"));
-  expect(screen.getByRole("checkbox", { name: "Updated task" })).toBeChecked();
-  const completed = storedItem();
-  fireEvent.click(screen.getByRole("button", { name: "Edit Updated task" }));
-  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: "Finished task" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  expect(storedItem()).toEqual({ ...completed, text: "Finished task" });
-  view.unmount();
-  render(<App />);
-  expect(document.querySelector(".completing")).toBeNull();
-  fireEvent.click(screen.getByText("Completed (1)"));
-  expect(screen.getByRole("checkbox", { name: "Finished task" })).toBeChecked();
-});
-
-it("handles quick consecutive completions and reopening during an exit", async () => {
-  render(<App />);
-  const table = screen.getByRole("checkbox", { name: "Set the table" });
-  const dishwasher = screen.getByRole("checkbox", { name: "Empty the dishwasher" });
-  fireEvent.click(table);
-  fireEvent.click(dishwasher);
-  expect(table).toBeChecked();
-  expect(dishwasher).toBeChecked();
-  fireEvent.click(screen.getByText("Completed (2)"));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Set the table" }));
-  await waitFor(() => expect(dishwasher).not.toBeInTheDocument());
-  expect(screen.getAllByRole("checkbox", { name: "Set the table" })).toHaveLength(1);
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).not.toBeChecked();
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeEnabled();
-  expect(document.querySelector(".completing")).toBeNull();
-});
-
-it("transitions the empty state when the last task is completed and reopened", async () => {
-  window.history.replaceState(null, "", "/lists?tab=shopping");
-  render(<App />);
-  const checkboxes = screen.getAllByRole("checkbox");
-  checkboxes.forEach(checkbox => fireEvent.click(checkbox));
-  const emptyNote = screen.getByText("All done.").parentElement;
-  expect(emptyNote).toHaveStyle({ height: "0px", opacity: "0" });
-  await waitFor(() => checkboxes.forEach(checkbox => expect(checkbox).not.toBeInTheDocument()));
-  expect(emptyNote).toHaveStyle({ height: "auto", opacity: "1" });
-  fireEvent.click(screen.getByText("Completed (3)"));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Oat milk" }));
-  expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeChecked();
-  await waitFor(() => expect(emptyNote).not.toBeInTheDocument());
-});
-
-it("suggests list entries and reopens completed items without creating duplicates", async () => {
-  render(<App />);
-  navigate("Lists");
-  fireEvent.click(screen.getByRole("button", { name: /Shopping/ }));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Oat milk" }));
-  expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeVisible();
-  fireEvent.click(screen.getByText("Completed (1)"));
-  expect(screen.getByRole("checkbox", { name: "Oat milk" })).toBeChecked();
-  fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-  const input = screen.getByRole("textbox", { name: "New shopping item" });
-  fireEvent.change(input, { target: { value: "oa" } });
-  const suggestions = within(screen.getByRole("group", { name: "Existing items" }));
-  expect(suggestions.queryByRole("button", { name: "Bananas" })).not.toBeInTheDocument();
-  fireEvent.click(suggestions.getByRole("button", { name: "Oat milk" }));
-  expect(input).toHaveValue("Oat milk");
-  fireEvent.change(input, { target: { value: " OAT MILK " } });
-  fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));
-  expect(screen.getByRole("checkbox", { name: "Oat milk" })).not.toBeChecked();
-  await waitFor(() => expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-  fireEvent.change(screen.getByRole("textbox", { name: "New shopping item" }), { target: { value: "Oat milk" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save shopping item" }));
-  expect(screen.getAllByRole("checkbox", { name: "Oat milk" })).toHaveLength(1);
-  const stored = JSON.parse(localStorage.getItem("afterglow-planner-v1:home-1")!);
-  expect(stored.items.filter(item => item.kind === "shopping")).toHaveLength(3);
-});
-
-it("keeps the family planner usable with no HA connection", () => {
-  render(<App />);
-  expect(screen.getByText(/Cached readings are stale/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("checkbox", { name: "Set the table" }));
-  fireEvent.click(screen.getByText("Completed (1)"));
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
-  navigate("School");
-  expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
-  navigate("Today");
-  fireEvent.click(screen.getByText("Completed (1)"));
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
-});
-
-it("uses the home timezone and calendar dates across a month boundary", () => {
-  expect(homeDate(new Date("2026-10-05T23:30:00Z"), "Europe/Oslo")).toBe("2026-10-06");
-  expect(weekStart("2026-11-01")).toBe("2026-10-26");
-  expect(addDays("2026-10-31", 1)).toBe("2026-11-01");
-  expect(isPlannerDate("2026-02-30")).toBe(false);
-  expect(itemIsDone({ id: "daily", text: "Table", kind: "daily", member: "leo", done: true, completedOn: "2026-10-05" }, "2026-10-06")).toBe(false);
-});
-
-const gridDates = () => Array.from(screen.getByRole("table").querySelectorAll("thead time"), time => time.getAttribute("datetime"));
-
-it("saves one people order for calendars, local lists, school and person selectors", () => {
+it("shares people visibility, order and timetable preferences with another screen", async () => {
   window.history.replaceState(null, "", "/settings");
-  const view = render(<App />);
-  const key = "afterglow-planner-v1:home-1";
-  const original = JSON.parse(localStorage.getItem(key)!);
-  expect(screen.getByRole("button", { name: "Move Anna up" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Move Leo down" })).toBeDisabled();
-  for (let i = 0; i < 3; i++) fireEvent.click(screen.getByRole("button", { name: "Move Leo up" }));
-  fireEvent.click(screen.getByRole("button", { name: "Move Erik down" }));
-  expect(screen.getByRole("button", { name: "Move Leo up" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Move Erik down" })).toBeDisabled();
-  expect(JSON.parse(localStorage.getItem(key)!).memberOrder).toEqual(["leo", "anna", "emma", "erik"]);
-  const dailyOrder = ["Set the table", "Pack tomorrow’s school bags", "Empty the dishwasher"];
-  const checkboxNames = () => screen.getAllByRole("checkbox").map(input => input.getAttribute("aria-label"));
-  navigate("Today");
-  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "LLeo", "AAnna", "EmEmma", "ErErik"]);
-  expect(checkboxNames().slice(0, 3)).toEqual(dailyOrder);
-  navigate("Our week");
-  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "LLeo", "AAnna", "EmEmma", "ErErik"]);
-  fireEvent.click(screen.getByRole("button", { name: "By person" }));
-  expect(screen.getAllByRole("heading", { level: 2, name: /^(Everyone|Leo|Anna|Emma|Erik)$/ }).map(heading => heading.textContent)).toEqual(["Everyone", "Leo", "Anna", "Emma", "Erik"]);
-  navigate("Lists");
-  expect(checkboxNames()).toEqual(dailyOrder);
-  fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
-  expect(checkboxNames()).toEqual(["Return library books", "Book winter tyre change"]);
-  fireEvent.click(screen.getByRole("button", { name: "Add task" }));
-  expect(within(screen.getByRole("combobox", { name: "Assign task" })).getAllByRole("option").map(option => option.textContent)).toEqual(["Everyone", "Leo", "Anna", "Emma", "Erik"]);
-  navigate("School");
-  expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Leo’s school week", "Emma’s school week"]);
-  view.unmount();
-  window.history.replaceState(null, "", "/settings");
-  render(<App />);
-  expect(within(screen.getByRole("list", { name: "People order" })).getAllByRole("button", { name: / up$/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Move Leo up", "Move Anna up", "Move Emma up", "Move Erik up"]);
-  const saved = JSON.parse(localStorage.getItem(key)!);
-  expect(saved.events).toEqual(original.events);
-  expect(saved.items).toEqual(original.items);
-  expect(saved.timetables).toEqual(original.timetables);
-});
-
-it("remembers hidden people across planner views and restores their saved data", () => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
-  window.history.replaceState(null, "", "/settings");
-  const view = render(<App />);
-  const key = "afterglow-planner-v1:home-1";
-  const original = JSON.parse(localStorage.getItem(key)!);
-  expect(screen.getByRole("switch", { name: "Show Leo in family planner" })).toBeChecked();
-  fireEvent.click(screen.getByRole("switch", { name: "Show Leo in family planner" }));
-  expect(screen.getByRole("switch", { name: "Show Leo in family planner" })).not.toBeChecked();
-  expect(screen.getByRole("switch", { name: "Timetable for Leo" })).toBeChecked();
-  navigate("Today");
-  expect(screen.queryByRole("rowheader", { name: "Leo" })).not.toBeInTheDocument();
-  expect(screen.queryByText("Football practice")).not.toBeInTheDocument();
-  expect(screen.queryByRole("checkbox", { name: "Set the table" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Enlarge Leo’s timetable" })).not.toBeInTheDocument();
-  expect(screen.getByRole("rowheader", { name: "Everyone" })).toBeInTheDocument();
-  navigate("Our week");
-  expect(screen.queryByRole("rowheader", { name: "Leo" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Leo" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("rowheader", { name: "Person unavailable" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "By person" }));
-  expect(screen.queryByRole("heading", { name: "Leo" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Add a plan" }));
-  expect(within(screen.getByRole("combobox", { name: "Who’s going?" })).queryByRole("option", { name: "Leo" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  navigate("Lists");
-  expect(screen.getByRole("button", { name: /Daily rhythm/ })).toHaveTextContent("2");
-  expect(screen.queryByRole("checkbox", { name: "Set the table" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Add task" }));
-  expect(within(screen.getByRole("combobox", { name: "Assign task" })).queryByRole("option", { name: "Leo" })).not.toBeInTheDocument();
-  navigate("School");
-  expect(screen.queryByRole("heading", { name: "Leo’s school week" })).not.toBeInTheDocument();
-  view.unmount();
-  window.history.replaceState(null, "", "/settings");
-  render(<App />);
-  expect(screen.getByRole("switch", { name: "Show Leo in family planner" })).not.toBeChecked();
-  for (const name of ["Anna", "Erik", "Emma"]) fireEvent.click(screen.getByRole("switch", { name: `Show ${name} in family planner` }));
-  navigate("Today");
-  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
-  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone"]);
-  navigate("Smart home");
-  fireEvent.click(screen.getByRole("link", { name: "Home settings" }));
-  fireEvent.click(screen.getByRole("switch", { name: "Show Leo in family planner" }));
-  navigate("Today");
-  expect(screen.getByRole("rowheader", { name: "Leo" })).toBeInTheDocument();
-  expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Enlarge Leo’s timetable" })).toBeInTheDocument();
-  const saved = JSON.parse(localStorage.getItem(key)!);
-  expect(saved.events).toEqual(original.events);
-  expect(saved.items).toEqual(original.items);
-  expect(saved.timetables).toEqual(original.timetables);
-  expect(saved.memberOrder).toEqual(original.memberOrder);
-});
-
-it("lets any local person have a timetable without giving them demo school details", async () => {
-  window.history.replaceState(null, "", "/settings");
-  render(<App />);
-  expect(screen.getByRole("switch", { name: "Timetable for Emma" })).toBeChecked();
-  expect(screen.getByRole("switch", { name: "Timetable for Leo" })).toBeChecked();
-  expect(screen.getByRole("switch", { name: "Timetable for Anna" })).not.toBeChecked();
-  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Anna" }));
-  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
-  await confirmAction("Hide timetable");
-  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Leo" }));
-  await confirmAction("Hide timetable");
-  navigate("School");
-  expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Anna’s school week"]);
-  expect(screen.queryByText(/Year 2|Year 5|IN THE SCHOOL BAG/)).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Set up timetable images" })).toBeInTheDocument();
-  navigate("Today");
-  expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ })).toHaveLength(1);
-  expect(screen.getByRole("button", { name: "Enlarge Anna’s timetable" })).toBeInTheDocument();
-});
-
-it("migrates legacy timetable URLs without losing planner entries or enabling empty timetables", () => {
-  window.history.replaceState(null, "", "/settings");
-  const key = "afterglow-planner-v1:home-1";
-  const items = [{ id: "keep", text: "Keep this task", kind: "tasks", member: "emma", done: false }];
-  localStorage.setItem(key, JSON.stringify({ events: [], items, timetables: { emma: "/existing.svg", leo: "", anna: [] }, timetableEnabled: { emma: false } }));
-  render(<App />);
-  for (const name of ["Emma", "Leo", "Anna"]) expect(screen.getByRole("switch", { name: `Timetable for ${name}` })).not.toBeChecked();
-  expect(JSON.parse(localStorage.getItem(key)!)).toMatchObject({ items, timetables: { emma: ["/existing.svg"], leo: [], anna: [] } });
-  expect(localStorage.getItem(`${key}:unreadable-backup`)).toBeNull();
-  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
-  navigate("School");
-  expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "/existing.svg");
-});
-
-it("saves ordered timetable pages across school, dashboard and reload, rejecting invalid updates", async () => {
+  const phone = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("switch", { name: "Show Emma in family planner" })); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Move Leo up" })); await saved();
+  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Leo" })); await saved();
+  expect(settings.settings.hiddenMembers).toEqual(["home|person.emma"]);
+  expect(settings.settings.memberOrder).toEqual(["home|person.leo", "home|person.emma"]);
+  phone.unmount();
   window.history.replaceState(null, "", "/school");
-  const view = render(<App />);
-  const card = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
-  fireEvent.click(card.getByRole("button", { name: "Change timetable images" }));
-  const input = card.getByRole("textbox", { name: "Emma timetable image URLs" });
-  const save = async () => {
-    fireEvent.click(card.getByRole("button", { name: "Save image URLs" }));
-    if (screen.queryByRole("alertdialog")) await confirmAction("Replace images");
-  };
-  const pages = ["https://school.example/page-1.png", "/timetables/page-2.svg"];
-  fireEvent.change(input, { target: { value: `  ${pages[0]} \r\n\n${pages[1]}  ` } });
-  await save();
-  const key = "afterglow-planner-v1:home-1";
-  const storedPages = () => JSON.parse(localStorage.getItem(key)!).timetables.emma;
-  expect(storedPages()).toEqual(pages);
-  expect(card.getByRole("region", { name: "Emma’s timetable pages" })).toBeInTheDocument();
-  expect(card.getAllByRole("img", { hidden: true }).map(image => image.getAttribute("src"))).toEqual(pages);
-  expect(card.getByText("Page 1 of 2")).toBeInTheDocument();
-  for (const value of [`${pages[0]}\njavascript:alert(1)`, `${pages[0]}\nftp://school.example/page.png`, "   \n  "]) {
-    fireEvent.change(input, { target: { value } });
-    await save();
-    expect(storedPages()).toEqual(pages);
-  }
-  const reversed = [...pages].reverse();
-  fireEvent.change(input, { target: { value: reversed.join("\n") } });
-  await save();
-  expect(storedPages()).toEqual(reversed);
-  view.unmount();
-  render(<App />);
-  navigate("Today");
-  const preview = within(screen.getByRole("region", { name: "Emma’s timetable pages" }));
-  expect(preview.getAllByRole("img", { hidden: true }).map(image => image.getAttribute("src"))).toEqual(reversed);
-  fireEvent.error(preview.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" }));
-  expect(preview.getByText("The timetable image couldn’t load.")).toBeInTheDocument();
-  expect(preview.getAllByRole("img", { hidden: true })).toHaveLength(1);
-  navigate("School");
-  const restoredCard = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
-  fireEvent.click(restoredCard.getByRole("button", { name: "Change timetable images" }));
-  const restoredInput = restoredCard.getByRole("textbox", { name: "Emma timetable image URLs" });
-  expect(restoredInput).toHaveValue(reversed.join("\n"));
-  fireEvent.change(restoredInput, { target: { value: pages[0] } });
-  fireEvent.click(restoredCard.getByRole("button", { name: "Save image URLs" }));
-  await confirmAction("Replace images");
-  expect(storedPages()).toEqual([pages[0]]);
-  expect(restoredCard.queryByRole("region")).not.toBeInTheDocument();
-  expect(restoredCard.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", pages[0]);
+  render(<App />); await saved();
+  expect(screen.getByRole("heading", { name: "Leo’s school week" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Emma’s school week" })).not.toBeInTheDocument();
 });
 
-it("navigates timetable pages with arrows and keyboard and enlarges the selected page", () => {
+it("navigates timetable pages with arrows and keyboard and enlarges the selected page", async () => {
   vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockReturnValue(400);
   vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (this: HTMLElement) {
     return this.getAttribute("aria-roledescription") === "slide" ? [...this.parentElement!.children].indexOf(this) * 400 : 0;
   });
-  localStorage.setItem("afterglow-planner-v1:home-1", JSON.stringify({ events: [], items: [], timetables: { emma: ["/first.svg", "/second.svg"] } }));
+  settings.settings.timetables = { "home|person.emma": ["/first.svg", "/second.svg"] };
+  settings.settings.timetableEnabled = { "home|person.emma": true };
   window.history.replaceState(null, "", "/school");
-  render(<><style>{'[aria-roledescription="slide"] { margin-right: 0px; }'}</style><App /></>);
+  render(<><style>{'[aria-roledescription="slide"] { margin-right: 0px; }'}</style><App /></>); await saved();
   const carousel = screen.getByRole("region", { name: "Emma’s timetable pages" });
   const next = within(carousel).getByRole("button", { name: "Next timetable page" });
-  act(() => next.focus());
-  fireEvent.click(next);
+  act(() => next.focus()); fireEvent.click(next);
   expect(carousel).toHaveFocus();
   expect(within(carousel).getByText("Page 2 of 2")).toBeInTheDocument();
   expect(next).toBeDisabled();
@@ -449,157 +81,26 @@ it("navigates timetable pages with arrows and keyboard and enlarges the selected
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" })).toHaveAttribute("src", "/first.svg");
 });
 
-it("shares and remembers calendar layouts and today/Monday ranges without discarding existing plans", () => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
-  const view = render(<App />);
-  // Simulate planner data saved before calendar preferences existed.
-  const key = "afterglow-planner-v1:home-1";
-  const oldPlanner = JSON.parse(localStorage.getItem(key)!);
-  delete oldPlanner.calendar;
-  view.unmount();
-  localStorage.setItem(key, JSON.stringify(oldPlanner));
-  const restored = render(<App />);
-  expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
-  expect(gridDates()).toEqual(Array.from({ length: 7 }, (_, i) => addDays("2026-10-07", i)));
-  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "AAnna", "ErErik", "EmEmma", "LLeo"]);
-  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
-  expect(gridDates()).toEqual(Array.from({ length: 7 }, (_, i) => addDays("2026-10-05", i)));
-  navigate("Our week");
-  expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: /Parents’ meeting/ })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Today" }));
-  fireEvent.click(screen.getByRole("button", { name: "Next week" }));
-  expect(gridDates()[0]).toBe("2026-10-14");
-  fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
-  expect(gridDates()[0]).toBe("2026-10-07");
-  fireEvent.click(screen.getByRole("button", { name: "Next week" }));
-  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
-  expect(gridDates()[0]).toBe("2026-10-05");
-  restored.unmount();
-  const reloaded = render(<App />);
-  expect(screen.getByRole("button", { name: "Monday" })).toHaveAttribute("aria-pressed", "true");
-  expect(gridDates()[0]).toBe("2026-10-05");
-  fireEvent.click(screen.getByRole("button", { name: "By person" }));
-  expect(screen.queryByRole("table")).not.toBeInTheDocument();
-  navigate("Today");
-  expect(screen.getByRole("button", { name: "By person" })).toHaveAttribute("aria-pressed", "true");
-  expect(JSON.parse(localStorage.getItem(key)!).events).toEqual(oldPlanner.events);
-  reloaded.unmount();
-  render(<App />);
-  expect(screen.getByRole("button", { name: "By person" })).toHaveAttribute("aria-pressed", "true");
-});
-
-it("shows every dashboard plan inline and prefills the person and date when adding", async () => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
-  render(<App />);
-  expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
-  const emma = within(screen.getByRole("rowheader", { name: "Emma" }).closest("tbody")!);
-  expect(emma.getByRole("button", { name: /Piano lesson/ })).toBeVisible();
-  expect(emma.queryByRole("button", { name: /Dinner together/ })).not.toBeInTheDocument();
-  const leo = within(screen.getByRole("rowheader", { name: "Leo" }).closest("tbody")!);
-  expect(leo.getAllByRole("button", { name: /Swimming|Football practice|Dinner together/ })).toHaveLength(2);
-  const everyone = within(screen.getByRole("rowheader", { name: "Everyone" }).closest("tbody")!);
-  expect(everyone.getByRole("button", { name: /Dinner together/ })).toBeVisible();
-  expect(within(screen.getByRole("table")).getAllByRole("button", { name: /Dinner together/ })).toHaveLength(1);
-  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  fireEvent.click(emma.getByRole("button", { name: /Piano lesson/ }));
-  expect(await screen.findByLabelText("What’s happening?")).toHaveValue("Piano lesson");
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  fireEvent.click(screen.getByRole("button", { name: "Add a plan for Emma on Tue 13 Oct" }));
-  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-13");
-  expect(screen.getByLabelText("Who’s going?")).toHaveValue("emma");
-  fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Library visit" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  expect(await screen.findByRole("button", { name: /Library visit/ })).toBeVisible();
-  navigate("Our week");
-  fireEvent.click(screen.getByRole("button", { name: /Library visit/ }));
-  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-13");
-});
-
-it("keeps shared plans in Everyone across layouts and prefills new shared plans", async () => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
-  render(<App />);
-  fireEvent.click(screen.getByRole("button", { name: "By person" }));
-  expect(screen.getAllByRole("button", { name: /Dinner together/ })).toHaveLength(1);
-  navigate("Our week");
-  expect(screen.getAllByRole("button", { name: /Dinner together/ })).toHaveLength(1);
-  fireEvent.click(screen.getByRole("button", { name: "Emma" }));
-  expect(screen.queryByRole("button", { name: /Dinner together/ })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Everyone" }));
-  expect(screen.getByRole("button", { name: /Dinner together/ })).toBeVisible();
-  expect(screen.queryByRole("button", { name: /Piano lesson/ })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
-  expect(screen.getAllByRole("rowheader")).toHaveLength(1);
-  expect(screen.getByRole("rowheader", { name: "Everyone" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Add a plan for Everyone on Tue 13 Oct" }));
-  expect(await screen.findByLabelText("Who’s going?")).toHaveValue("everyone");
-  expect(screen.getByLabelText("Date")).toHaveValue("2026-10-13");
-  fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Family outing" } });
-  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
-  expect(await screen.findByRole("button", { name: /Family outing/ })).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "All people" }));
-  expect(screen.getAllByRole("rowheader")).toHaveLength(5);
-  expect(screen.getAllByRole("button", { name: /Family outing/ })).toHaveLength(1);
-});
-
-it("advances an unbrowsed rolling week at midnight in the home timezone across New Year", () => {
-  vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
-  vi.setSystemTime(new Date("2026-12-31T22:59:55Z"));
-  render(<App />);
-  navigate("Our week");
-  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
-  expect(gridDates()[0]).toBe("2026-12-31");
-  expect(gridDates()[6]).toBe("2027-01-06");
-  act(() => vi.advanceTimersByTime(15000));
-  expect(gridDates()[0]).toBe("2027-01-01");
-  expect(gridDates()[6]).toBe("2027-01-07");
-  navigate("Today");
-  expect(gridDates()[0]).toBe("2027-01-01");
-  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
-  expect(gridDates()[0]).toBe("2026-12-28");
-});
-
-
-it.each(["daily", "tasks", "shopping"].flatMap(kind => [false, true].map(done => ({ kind, done }))))("confirms removal of $kind items, including completed=$done", async ({ kind, done }) => {
-  window.history.replaceState(null, "", `/lists?tab=${kind}`);
-  render(<App />);
-  const key = "afterglow-planner-v1:home-1";
-  const item = JSON.parse(localStorage.getItem(key)!).items.find(item => item.kind === kind);
-  if (done) {
-    fireEvent.click(screen.getByRole("checkbox", { name: item.text }));
-    fireEvent.click(screen.getByText("Completed (1)"));
-  }
-  const original = localStorage.getItem(key);
-  fireEvent.click(screen.getByRole("button", { name: `Remove ${item.text}` }));
-  expect(screen.getByRole("alertdialog")).toHaveTextContent(item.text);
-  expect(localStorage.getItem(key)).toBe(original);
-  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(localStorage.getItem(key)).toBe(original);
-  expect(screen.getByRole("checkbox", { name: item.text })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: `Remove ${item.text}` }));
-  await confirmAction("Remove item");
-  expect(JSON.parse(localStorage.getItem(key)!).items).toEqual(JSON.parse(original!).items.filter(entry => entry.id !== item.id));
-});
-
-it("keeps saved timetable images when replacement or hiding is canceled", () => {
+it("keeps timetable pages when replacing or hiding them is cancelled", async () => {
+  settings.settings.timetables = { "home|person.emma": ["/first.svg"] };
+  settings.settings.timetableEnabled = { "home|person.emma": true };
   window.history.replaceState(null, "", "/school");
-  render(<App />);
-  const key = "afterglow-planner-v1:home-1";
-  const original = localStorage.getItem(key);
-  const card = within(screen.getByRole("heading", { name: "Emma’s school week" }).closest("article")!);
-  fireEvent.click(card.getByRole("button", { name: "Change timetable images" }));
-  fireEvent.change(card.getByRole("textbox"), { target: { value: "https://school.example/replacement.png" } });
-  fireEvent.click(card.getByRole("button", { name: "Save image URLs" }));
-  expect(localStorage.getItem(key)).toBe(original);
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
+  fireEvent.change(screen.getByLabelText("Emma timetable image URLs"), { target: { value: "https://school.example/replacement.png" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save image URLs" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(localStorage.getItem(key)).toBe(original);
+  expect(settings.settings.timetables["home|person.emma"]).toEqual(["/first.svg"]);
   fireEvent.click(screen.getByRole("link", { name: "Choose people with timetables" }));
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
-  expect(localStorage.getItem(key)).toBe(original);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(screen.getByRole("switch", { name: "Timetable for Emma" })).toBeChecked();
-  expect(localStorage.getItem(key)).toBe(original);
+  expect(settings.settings.timetableEnabled["home|person.emma"]).toBe(true);
+});
+
+it("uses home time and real calendar dates across month and year boundaries", () => {
+  expect(homeDate(new Date("2026-12-31T23:30:00Z"), "Europe/Oslo")).toBe("2027-01-01");
+  expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
+  expect(weekStart("2027-01-01")).toBe("2026-12-28");
+  expect(isPlannerDate("2026-02-30")).toBe(false);
+  expect(isPlannerDate("2028-02-29")).toBe(true);
 });

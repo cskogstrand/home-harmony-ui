@@ -7,13 +7,14 @@ process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 const docker = (...args) => execFileSync("docker", args, { encoding: "utf8" }).trim();
 const image = "home-harmony-ui:smoke";
 execFileSync("docker", ["build", "--tag", image, "."], { stdio: "inherit" });
-const container = docker("run", "--detach", "--rm", "--init", "--publish", "127.0.0.1::8099", image);
+const container = docker("run", "--detach", "--rm", "--init", "--publish", "127.0.0.1::8099", "-e", "HOME_ASSISTANT_URL=http://127.0.0.1:8123", "-e", "HOME_ASSISTANT_TOKEN=smoke-ha-token", "-e", "DASHBOARD_PASSWORD=smoke-dashboard-password", image);
+const headers = { Authorization: `Basic ${Buffer.from("dashboard:smoke-dashboard-password").toString("base64")}` };
 
 try {
   const base = `http://${docker("port", container, "8099/tcp")}`;
   let response;
   for (let attempt = 0; attempt < 50; attempt++) {
-    response = await fetch(base).catch(() => undefined);
+    response = await fetch(base, { headers }).catch(() => undefined);
     if (response?.ok) break;
     await setTimeout(100);
   }
@@ -25,7 +26,7 @@ try {
   assert.match(html, /Content-Security-Policy/);
 
   for (const route of ["/settings?auth_callback=1&code=smoke-auth-code&state=fixture", "/devices/example", "/calendar"]) {
-    const page = await fetch(`${base}${route}`);
+    const page = await fetch(`${base}${route}`, { headers });
     assert.equal(page.status, 200, `${route} must survive a reload`);
     assert.equal(await page.text(), html, `${route} must serve the SPA`);
   }
@@ -34,21 +35,27 @@ try {
   assert.ok(assets.some(asset => asset.endsWith(".js")), "Built JavaScript must be present");
   assert.ok(assets.some(asset => asset.endsWith(".css")), "Built styles must be present");
   for (const asset of assets) {
-    const resource = await fetch(`${base}${asset}`);
+    const resource = await fetch(`${base}${asset}`, { headers });
     assert.equal(resource.status, 200, asset);
     assert.match(resource.headers.get("content-type"), asset.endsWith(".js") ? /javascript/ : /text\/css/);
     assert.match(resource.headers.get("cache-control"), /immutable/);
   }
-  assert.equal((await fetch(`${base}/assets/missing.js`)).status, 404);
-  assert.equal((await fetch(`${base}/api/config`)).status, 401, "Shared configuration must require a Home Assistant login");
-  assert.equal((await fetch(`${base}/api/timetables`, { method: "POST" })).status, 401, "PDF uploads must require a Home Assistant login");
+  assert.equal((await fetch(`${base}/assets/missing.js`, { headers })).status, 404);
+  assert.equal((await fetch(`${base}/api/config`)).status, 401, "Shared configuration must require the dashboard password");
+  assert.equal((await fetch(`${base}/api/timetables`, { method: "POST" })).status, 401, "PDF uploads must require the dashboard password");
+  const loaded = await (await fetch(`${base}/api/config`, { headers })).json();
+  loaded.config.settings.appearance.compactMode = true;
+  const saved = await fetch(`${base}/api/config`, { method: "PUT", headers: { ...headers, "Content-Type": "application/json", "If-Match": `"${loaded.revision}"` }, body: JSON.stringify(loaded.config) });
+  assert.equal(saved.status, 200);
+  assert.match(docker("exec", container, "cat", "/data/settings.yaml"), /compactMode: true/);
+  assert.equal((await fetch(`${base}/api/runtime`, { headers })).status, 200);
   for (const executable of ["pdfinfo", "pdftoppm"]) {
     const result = spawnSync("docker", ["exec", container, executable, "-v"], { encoding: "utf8" });
     assert.equal(result.status, 0, `${executable} must run in the container: ${result.stderr}`);
   }
   const logs = spawnSync("docker", ["logs", container], { encoding: "utf8" });
   assert.equal(logs.status, 0, logs.stderr);
-  assert.doesNotMatch(logs.stdout + logs.stderr, /smoke-auth-code/, "OAuth codes must not enter logs");
+  assert.doesNotMatch(logs.stdout + logs.stderr, /smoke-auth-code|smoke-ha-token|smoke-dashboard-password/, "OAuth codes must not enter logs");
   console.log("HAOS container smoke test passed.");
 } finally {
   docker("rm", "--force", container);

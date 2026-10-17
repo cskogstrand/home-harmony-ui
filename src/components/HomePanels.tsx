@@ -26,13 +26,13 @@ export function HomeFavorites() {
   const { homeEntities, setHomeEntities } = useFamily();
   const [open, setOpen] = useState(false);
   const defaults = [...currentHome.entities.filter(e => ["light", "climate", "switch"].includes(e.domain)).slice(0, 3), ...currentHome.entities.filter(e => e.domain === "scene").slice(0, 4)].map(e => e.preferenceId);
-  const selected = homeEntities[haUrl] ?? defaults;
+  const selected = homeEntities ?? defaults;
   const entities = selected.flatMap(id => currentHome.entities.find(e => e.preferenceId === id) ?? []);
   const [sceneId, setSceneId] = useState<string>();
   const scenes = entities.filter(e => e.domain === "scene");
   const missing = selected.length - entities.length;
   return <section className="glow-panel home-favorites" aria-label="Home favorites">
-    <div className="panel-heading"><h2>Just right at home</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button className="text-link" disabled={!haUrl}><SlidersHorizontal size={16} />Customize</button></DialogTrigger><DialogContent className="favorites-dialog"><DialogHeader><DialogTitle>Make home yours</DialogTitle><DialogDescription>Choose devices, sensors and scenes for your family dashboard. Saved with your planner.</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(haUrl, ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">All controls<ArrowUpRight size={16} /></Link></div></div>
+    <div className="panel-heading"><h2>Just right at home</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button className="text-link" disabled={!haUrl}><SlidersHorizontal size={16} />Customize</button></DialogTrigger><DialogContent className="favorites-dialog"><DialogHeader><DialogTitle>Make home yours</DialogTitle><DialogDescription>Choose devices, sensors and scenes for your family dashboard. Saved with your planner.</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">All controls<ArrowUpRight size={16} /></Link></div></div>
     {!!entities.length && <div className="favorite-devices">{entities.filter(e => e.domain !== "scene").map(entity => <EntityCard key={entity.entityId} entity={entity} />)}</div>}
     {!!scenes.length && <SceneButtons entities={scenes} />}
     {!selected.length && haUrl && <p className="empty-note">Your favorites go here. Choose them in Customize.</p>}

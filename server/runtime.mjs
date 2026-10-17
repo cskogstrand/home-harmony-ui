@@ -1,0 +1,21 @@
+import { loadEnvFile } from "node:process";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import { instanceUrlSchema } from "../shared/configuration.ts";
+
+export async function runtimeOptions() {
+  try { loadEnvFile(); } catch (error) { if (error.code !== "ENOENT") throw new Error("Cannot read .env."); }
+  const dataDir = resolve(process.env.DATA_DIR ?? "data");
+  let options = {};
+  try { options = JSON.parse(await readFile(resolve(dataDir, "options.json"), "utf8")); }
+  catch (error) { if (error.code !== "ENOENT") throw new Error("Cannot read HAOS app options."); }
+  const homeAssistantUrl = process.env.HOME_ASSISTANT_URL ?? options.home_assistant_url;
+  const homeAssistantToken = process.env.HOME_ASSISTANT_TOKEN ?? options.home_assistant_token;
+  const dashboardPassword = process.env.DASHBOARD_PASSWORD ?? options.dashboard_password;
+  const port = Number(process.env.PORT ?? 8099);
+  if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Set HOME_ASSISTANT_URL (home_assistant_url in HAOS) to an HTTP(S) origin without a trailing slash.");
+  if (typeof homeAssistantToken !== "string" || !/^[A-Za-z0-9._~-]{1,4096}$/.test(homeAssistantToken)) throw new Error("Set HOME_ASSISTANT_TOKEN (home_assistant_token in HAOS) to a Home Assistant long-lived access token.");
+  if (typeof dashboardPassword !== "string" || dashboardPassword.length < 12 || /[\r\n]/.test(dashboardPassword)) throw new Error("Set DASHBOARD_PASSWORD (dashboard_password in HAOS) to at least 12 characters.");
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535.");
+  return { dataDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, port };
+}

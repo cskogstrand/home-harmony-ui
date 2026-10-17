@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { atLeastHaVersion } from "home-assistant-js-websocket/dist/util.js";
 import {
-  getAuth, createConnection, subscribeEntities, getConfig, getServices, getUser, callService,
-  ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK, ERR_INVALID_HTTPS_TO_HTTP, ERR_CONNECTION_LOST,
-  Auth, type AuthData, type Connection, type HassConfig, type HassServices, type HassUser,
+  createConnection, subscribeEntities, getConfig, getServices, getUser, callService,
+  ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK, ERR_CONNECTION_LOST,
+  Auth, type Connection, type HassConfig, type HassServices, type HassUser,
 } from "home-assistant-js-websocket";
 import type { CalendarEvent, EntityAction, EntityStates, Registries, TodoItem } from "@/types/api";
-import { available, emptyRegistries, entityCommand, mapHome, normalizeHaUrl } from "./ha-model";
+import { available, emptyRegistries, entityCommand, mapHome } from "./ha-model";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 interface Snapshot {
@@ -14,7 +14,6 @@ interface Snapshot {
   status: ConnectionStatus;
   error: string;
   warnings: string[];
-  sessionWarning: string;
   states: EntityStates;
   registries: Registries;
   config?: HassConfig;
@@ -32,22 +31,9 @@ const calendarEventsSchema = z.array(z.object({
 const todoItemsSchema = z.object({ items: z.array(z.object({
   uid: z.string().min(1), summary: z.string(), status: z.enum(["needs_action", "completed"]).nullable().default(null),
 })) });
-const URL_KEY = "home-harmony:ha-url";
-const TOKEN_KEY = "home-harmony:ha-session";
-const AUTH_REVISION_KEY = "home-harmony:ha-auth-revision";
-const PAUSED_KEY = "home-harmony:ha-paused";
-const authDataSchema = z.object({
-  hassUrl: z.string(), clientId: z.string(),
-  access_token: z.string().min(1), refresh_token: z.string().min(1),
-  expires: z.number().finite().nonnegative(), expires_in: z.number().finite().positive(),
-});
-const savedAuthSchema = authDataSchema.extend({ storageRevision: z.string().nullable() });
-const NO_SAVED_SESSION = new Error("No saved session");
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
-  ? "Home Assistant authentication expired, was revoked, or the callback did not match. Connect again to sign in."
-  : error === ERR_INVALID_HTTPS_TO_HTTP
-    ? "Mixed content blocked this connection. Use local HTTP for both applications, or trusted HTTPS for both."
-    : "Cannot connect to Home Assistant. Check the local URL, network access and browser certificate trust. No public endpoint is needed.";
+  ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
+  : "Cannot connect to Home Assistant through the dashboard server. Check its configured URL, token and network connection.";
 
 async function bounded<T>(promise: Promise<T>, milliseconds = 15000): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -56,14 +42,10 @@ async function bounded<T>(promise: Promise<T>, milliseconds = 15000): Promise<T>
   } finally { clearTimeout(timer); }
 }
 
-// One concrete HA session owns credentials, socket, subscriptions and command guards.
+// Each screen owns its subscriptions and command guards; credentials stay on the server.
 export class HomeAssistantClient {
   private snapshot: Snapshot;
   private listeners = new Set<() => void>();
-  private auth?: Auth;
-  private authPromise?: Promise<Auth>;
-  private authVersion = 0;
-  private storageRevision: string | null = null;
   private connection?: Connection;
   private cleanup: (() => void)[] = [];
   private requests = new Set<AbortController>();
@@ -74,10 +56,7 @@ export class HomeAssistantClient {
   private metadataVersion = 0;
 
   constructor() {
-    let url = "";
-    try { const saved = localStorage.getItem(URL_KEY); if (saved) url = normalizeHaUrl(saved); } catch { /* A new configuration is available in Settings. */ }
-    try { this.storageRevision = localStorage.getItem(AUTH_REVISION_KEY); } catch { /* Storage failures are reported on connect. */ }
-    this.snapshot = { url, status: "disconnected", error: "", warnings: [], sessionWarning: "", states: {}, registries: emptyRegistries, services: {}, commands: {} };
+    this.snapshot = { url: "", status: "disconnected", error: "", warnings: [], states: {}, registries: emptyRegistries, services: {}, commands: {} };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -85,99 +64,7 @@ export class HomeAssistantClient {
     this.snapshot = { ...this.snapshot, ...patch };
     this.listeners.forEach(listener => listener());
   }
-  private clearCallback() {
-    const url = new URL(window.location.href);
-    for (const key of ["auth_callback", "code", "state", "error", "error_description"]) url.searchParams.delete(key);
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
-  }
-  private readTokens(url: string): AuthData | null {
-    try {
-      const raw = localStorage.getItem(TOKEN_KEY);
-      if (!raw) return null;
-      const data = savedAuthSchema.parse(JSON.parse(raw));
-      if (data.storageRevision !== localStorage.getItem(AUTH_REVISION_KEY)) throw NO_SAVED_SESSION;
-      if (data.hassUrl !== url || data.clientId !== `${window.location.origin}/`) throw NO_SAVED_SESSION;
-      return data as AuthData;
-    } catch {
-      this.saveTokens(null);
-      this.update({ sessionWarning: "The saved browser login could not be read or did not match this instance. Connect again to sign in." });
-      return null;
-    }
-  }
-  private saveTokens(data: AuthData | null, revision = this.storageRevision) {
-    // ponytail: persistent browser storage is JS-readable; isolating tokens requires a backend.
-    try {
-      // Check before writing, even if another tab's storage event has not arrived yet.
-      if (localStorage.getItem(AUTH_REVISION_KEY) !== revision) return;
-      if (data) {
-        const parsed = authDataSchema.parse(data);
-        if (parsed.hassUrl !== this.snapshot.url || parsed.clientId !== `${window.location.origin}/`) throw NO_SAVED_SESSION;
-        localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...parsed, storageRevision: revision }));
-      } else localStorage.removeItem(TOKEN_KEY);
-      this.update({ sessionWarning: "" });
-    } catch {
-      try { localStorage.removeItem(TOKEN_KEY); } catch { /* Report failure without exposing credentials. */ }
-      this.update({ sessionWarning: "This browser could not update the saved login. Reopening or refreshing may require signing in again. If logging out, also clear this site's browser data." });
-    }
-  }
-  private forgetAuth(clearSaved = true) {
-    this.authVersion++;
-    this.auth = undefined;
-    this.authPromise = undefined;
-    if (clearSaved) {
-      // A non-secret revision also prevents a delayed write from becoming valid after logout.
-      try {
-        // An old tab's auth failure must not clear a newer browser login.
-        if (localStorage.getItem(AUTH_REVISION_KEY) !== this.storageRevision) return;
-        this.storageRevision = crypto.getRandomValues(new Uint32Array(4)).join("-");
-        localStorage.setItem(AUTH_REVISION_KEY, this.storageRevision);
-      }
-      catch {
-        try { localStorage.removeItem(TOKEN_KEY); } catch { /* Report blocked cleanup below. */ }
-        this.update({ sessionWarning: "The browser could not synchronize logout. Clear this site's browser data if the saved login cannot be removed." });
-      }
-      this.saveTokens(null);
-    }
-  }
-  private storageChanged = (event: StorageEvent) => {
-    if (event.storageArea !== localStorage || ![null, TOKEN_KEY, AUTH_REVISION_KEY, URL_KEY].includes(event.key)) return;
-    try {
-      const revision = localStorage.getItem(AUTH_REVISION_KEY);
-      const saved = localStorage.getItem(TOKEN_KEY);
-      if (revision === this.storageRevision && saved && localStorage.getItem(URL_KEY) === this.snapshot.url
-        && (!this.auth || JSON.parse(saved).refresh_token === this.auth.data.refresh_token)) return;
-      this.forgetAuth(false);
-      this.storageRevision = revision;
-      this.close();
-      this.update({ status: "disconnected", error: "The Home Assistant login changed in another tab. Connect to use the saved browser login.",
-        states: {}, registries: emptyRegistries, config: undefined, user: undefined, services: {}, commands: {}, warnings: [] });
-    } catch { /* A storage failure is reported when reconnecting. */ }
-  };
-  private setPaused(paused: boolean) {
-    try { if (paused) sessionStorage.setItem(PAUSED_KEY, "true"); else sessionStorage.removeItem(PAUSED_KEY); }
-    catch { this.update({ sessionWarning: "This browser cannot remember Connect/Disconnect across refreshes. Allow session storage for this dashboard." }); }
-  }
-  start = () => {
-    window.addEventListener("storage", this.storageChanged);
-    // Retire the earlier tab-only token store; sign in once to establish the browser login.
-    try { sessionStorage.removeItem(TOKEN_KEY); } catch { /* No fallback to tab-only credentials. */ }
-    if (this.authPromise && this.snapshot.status === "connecting") { void this.connect(this.snapshot.url); return; }
-    const callback = new URLSearchParams(window.location.search).has("auth_callback");
-    if (!callback) {
-      try { if (sessionStorage.getItem(PAUSED_KEY) === "true") return; }
-      catch {
-        this.update({ sessionWarning: "This browser cannot read the reconnect preference. Allow session storage to reconnect after refresh." });
-        return;
-      }
-      if (!this.snapshot.url || !this.readTokens(this.snapshot.url)) return;
-    }
-    if (!this.snapshot.url) {
-      this.clearCallback();
-      this.update({ status: "auth-error", error: "The selected instance is missing. Enter its URL in Home settings and connect again." });
-      return;
-    }
-    void this.connect(this.snapshot.url, !callback);
-  };
+  start = () => { void this.connect(); };
   private close() {
     this.generation++;
     this.epoch++;
@@ -189,65 +76,22 @@ export class HomeAssistantClient {
     this.connection?.close();
     this.connection = undefined;
   }
-  dispose = () => { this.close(); window.removeEventListener("storage", this.storageChanged); };
-  disconnect = () => {
-    this.close();
-    // Cancel a pending login's storage callback without discarding an established session.
-    if (!this.auth) { this.authVersion++; this.authPromise = undefined; }
-    this.setPaused(true);
-    this.update({ status: "disconnected", error: "", commands: {} });
-  };
-  logout = async () => {
-    const saved = this.auth ? null : this.readTokens(this.snapshot.url);
-    const auth = this.auth ?? (saved ? new Auth(saved) : undefined);
-    this.forgetAuth();
-    this.disconnect();
-    const generation = this.generation;
-    this.update({ states: {}, registries: emptyRegistries, config: undefined, user: undefined, services: {}, warnings: [] });
-    if (auth) {
-      try { await bounded(auth.revoke()); }
-      catch { if (generation === this.generation) this.update({ error: "Signed out locally, but server token revocation could not be confirmed. Remove this session in your Home Assistant profile when reachable." }); }
-    }
-  };
-  connect = async (input: string, restoreOnly = false) => {
-    let url: string;
-    try { url = normalizeHaUrl(input); }
-    catch (error) { this.update({ error: error instanceof TypeError ? "Enter a valid HTTP or HTTPS Home Assistant URL." : (error as Error).message }); return; }
+  dispose = () => { this.close(); };
+  disconnect = () => { this.close(); this.update({ status: "disconnected", error: "", commands: {} }); };
+  connect = async () => {
     this.close();
     const generation = this.generation;
-    if (url !== this.snapshot.url) {
-      this.forgetAuth();
-      this.update({ states: {}, registries: emptyRegistries, config: undefined, user: undefined, services: {} });
-    }
-    this.update({ url, status: "connecting", error: "", warnings: [], commands: {} });
     const current = () => generation === this.generation;
+    this.update({ status: "connecting", error: "", warnings: [], commands: {} });
     try {
-      window.addEventListener("storage", this.storageChanged);
-      const revision = localStorage.getItem(AUTH_REVISION_KEY);
-      if (revision !== this.storageRevision) { this.forgetAuth(false); this.storageRevision = revision; }
-      try { localStorage.setItem(URL_KEY, url); } catch { throw new Error("url-storage"); }
-      this.setPaused(false);
-      if (!this.auth) {
-        if (!this.authPromise && new URLSearchParams(window.location.search).has("auth_callback")) this.forgetAuth();
-        const version = this.authVersion;
-        const revision = this.storageRevision;
-        this.authPromise ??= getAuth({
-          hassUrl: url, clientId: `${window.location.origin}/`, redirectUrl: `${window.location.origin}/settings`, limitHassInstance: true,
-          loadTokens: async () => {
-            const data = this.readTokens(url);
-            // A refresh with missing/corrupt credentials must not navigate away from the planner.
-            if (restoreOnly && !data) throw NO_SAVED_SESSION;
-            return data;
-          },
-          saveTokens: data => { if (version === this.authVersion) this.saveTokens(data, revision); },
-        });
-        this.clearCallback();
-        const auth = await bounded(this.authPromise);
-        if (!current() || localStorage.getItem(AUTH_REVISION_KEY) !== revision) return;
-        this.auth = auth;
-        this.authPromise = undefined;
-      }
-      const conn = await createConnection({ auth: this.auth, setupRetry: 0 });
+      const response = await fetch("/api/runtime", { credentials: "same-origin", redirect: "error", signal: AbortSignal.timeout(15000) });
+      if (!response.ok) throw new Error();
+      const runtime = z.object({ homeAssistantUrl: z.string().url() }).parse(await response.json());
+      if (!current()) return;
+      this.update({ url: runtime.homeAssistantUrl });
+      // HA credentials stay on the server; the same-origin socket replaces this placeholder.
+      const auth = new Auth({ hassUrl: window.location.origin, clientId: `${window.location.origin}/`, access_token: "server-managed", refresh_token: "", expires: Number.MAX_SAFE_INTEGER, expires_in: Number.MAX_SAFE_INTEGER });
+      const conn = await createConnection({ auth, setupRetry: 0 });
       if (!current()) { conn.close(); return; }
       this.connection = conn;
       if (!atLeastHaVersion(conn.haVersion, 2023, 9)) throw new Error("unsupported-version");
@@ -267,7 +111,6 @@ export class HomeAssistantClient {
       };
       const authError = () => {
         if (!current()) return;
-        this.forgetAuth();
         this.close();
         this.update({ status: "auth-error", user: undefined, error: connectionError(ERR_INVALID_AUTH) });
       };
@@ -296,13 +139,9 @@ export class HomeAssistantClient {
       }
     } catch (error) {
       if (!current()) return;
-      this.authPromise = undefined;
-      if (error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK) this.forgetAuth();
-      else if (!this.auth) this.authVersion++; // Ignore late saves from a timed-out login.
       this.close();
-      this.clearCallback();
-      this.update({ status: error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK ? "auth-error" : "disconnected",
-        error: error === NO_SAVED_SESSION ? "" : error instanceof Error && error.message === "unsupported-version" ? "Home Assistant 2023.9 or newer is required." : error instanceof Error && error.message === "url-storage" ? "This browser cannot save the instance URL needed for the login callback. Enable local storage for this dashboard and connect again." : connectionError(error) });
+      this.update({ status: error === ERR_INVALID_AUTH ? "auth-error" : "disconnected",
+        error: error instanceof Error && error.message === "unsupported-version" ? "Home Assistant 2023.9 or newer is required." : connectionError(error) });
     }
   };
   private async loadMetadata(conn: Connection, generation: number) {
@@ -337,7 +176,7 @@ export class HomeAssistantClient {
     if (this.snapshot.commands[entityId]?.pending) throw new Error("A command is already pending for this entity.");
     try {
       if (!conn?.connected || !this.fresh || this.snapshot.status !== "connected") throw new Error("Controls are paused until fresh Home Assistant state arrives.");
-      const entity = mapHome(this.snapshot.states, this.snapshot.registries, this.snapshot.url).entities.find(e => e.entityId === entityId);
+      const entity = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities.find(e => e.entityId === entityId);
       if (!entity) throw new Error("This entity no longer exists.");
       const command = entityCommand(entity, action, this.snapshot.services, value, code);
       setCommand({ pending: true });
@@ -364,7 +203,7 @@ export class HomeAssistantClient {
   todoItems = async (entityId: string): Promise<TodoItem[]> => {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;
     try {
-      const entity = mapHome(this.snapshot.states, this.snapshot.registries, this.snapshot.url).entities.find(e => e.entityId === entityId);
+      const entity = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities.find(e => e.entityId === entityId);
       if (!conn?.connected || !this.fresh || this.snapshot.status !== "connected" || entity?.domain !== "todo" || !available(entity)) throw new Error("To-do list unavailable.");
       const response = await bounded(conn.sendMessagePromise({ type: "todo/item/list", entity_id: entityId }));
       if (generation !== this.generation || epoch !== this.epoch || !conn.connected) throw new Error("Connection changed.");
@@ -423,29 +262,23 @@ export class HomeAssistantClient {
 
   storageRequest = async (path: string, options: RequestInit = {}): Promise<Response> => {
     if (!path.startsWith("/api/") || path.includes("\\")) throw new Error("Use a dashboard API path.");
-    const auth = this.auth;
-    const generation = this.generation;
-    if (!auth || this.snapshot.status !== "connected") throw new Error("Connect to Home Assistant to use shared storage.");
     const controller = new AbortController();
-    this.requests.add(controller);
     const timer = setTimeout(() => controller.abort(), options.method === "POST" ? 45000 : 15000);
     try {
-      if (auth.expired) await bounded(auth.refreshAccessToken());
-      if (generation !== this.generation || controller.signal.aborted) throw new Error();
-      const response = await fetch(path, { ...options, credentials: "omit", redirect: "error", signal: controller.signal,
-        headers: { ...Object.fromEntries(new Headers(options.headers)), Authorization: `Bearer ${auth.accessToken}` } });
+      if (controller.signal.aborted) throw new Error();
+      const response = await fetch(path, { ...options, credentials: "same-origin", redirect: "error", signal: controller.signal,
+        headers: options.headers });
       // Consume the response before removing its cancellation guard.
       const contents = await response.arrayBuffer();
-      if (generation !== this.generation || controller.signal.aborted) throw new Error();
+      if (controller.signal.aborted) throw new Error();
       return new Response(contents, { status: response.status, headers: response.headers });
     } catch { throw new Error("Shared storage could not be reached. A save may have completed; check the dashboard before retrying. Your unsaved settings are still on this screen."); }
-    finally { clearTimeout(timer); this.requests.delete(controller); }
+    finally { clearTimeout(timer); }
   };
 
   calendarEvents = async (entityId: string, start: string, end: string, signal: AbortSignal): Promise<CalendarEvent[]> => {
-    const auth = this.auth;
     const generation = this.generation;
-    if (!auth || this.snapshot.status !== "connected" || !entityId.startsWith("calendar.")) throw new Error("Home Assistant calendars are offline.");
+    if (this.snapshot.status !== "connected" || !entityId.startsWith("calendar.")) throw new Error("Home Assistant calendars are offline.");
     const controller = new AbortController();
     const abort = () => controller.abort();
     signal.addEventListener("abort", abort, { once: true });
@@ -453,23 +286,22 @@ export class HomeAssistantClient {
     this.requests.add(controller);
     const timer = setTimeout(abort, 15000);
     try {
-      if (auth.expired) await bounded(auth.refreshAccessToken());
       if (generation !== this.generation || controller.signal.aborted) throw new Error("Calendar request cancelled.");
       const query = new URLSearchParams({ start, end });
-      const response = await fetch(`${this.snapshot.url}/api/calendars/${encodeURIComponent(entityId)}?${query}`, {
-        headers: { Authorization: `Bearer ${auth.accessToken}` }, signal: controller.signal, credentials: "omit", redirect: "error",
+      const response = await fetch(`/api/calendars/${encodeURIComponent(entityId)}?${query}`, {
+        signal: controller.signal, credentials: "same-origin", redirect: "error",
       });
       if (response.status === 401) throw ERR_INVALID_AUTH;
-      if (!response.ok) throw new Error("Calendar API unavailable. Check the integration, permissions and HA CORS configuration.");
+      if (!response.ok) throw new Error("Calendar API unavailable. Check the integration, permissions and server configuration.");
       const events = calendarEventsSchema.parse(await response.json()) as CalendarEvent[];
       if (generation !== this.generation || controller.signal.aborted) throw new Error("Calendar request cancelled.");
       return events;
     } catch (error) {
       if (error === ERR_INVALID_AUTH && generation === this.generation) {
-        this.forgetAuth(); this.close(); this.update({ status: "auth-error", user: undefined, error: connectionError(error) });
+        this.close(); this.update({ status: "auth-error", user: undefined, error: connectionError(error) });
       }
       // Do not expose API responses, which can contain sensitive details.
-      throw new Error("Calendar events could not be read. Check the connection, calendar integration, permissions and CORS settings.");
+      throw new Error("Calendar events could not be read. Check the connection, calendar integration, permissions and server settings.");
     } finally { clearTimeout(timer); signal.removeEventListener("abort", abort); this.requests.delete(controller); }
   };
 }

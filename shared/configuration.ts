@@ -31,7 +31,7 @@ export const plannerSchema = z.object({
   timetables: z.record(keySchema, z.array(imageUrl).max(100)),
   timetableEnabled: z.record(keySchema, z.boolean()).default({}),
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
-  homeEntities: z.record(keySchema, z.array(memberSchema)).default({}),
+  homeEntities: z.array(memberSchema).optional(),
   memberOrder: z.array(memberSchema).default([]),
   hiddenMembers: z.array(memberSchema).default([]),
   appearance: z.object({ theme: z.enum(["light", "dark"]), compactMode: z.boolean() }).strict().default({ theme: "dark", compactMode: false }),
@@ -48,29 +48,14 @@ export const instanceUrlSchema = z.string().max(2048).refine(value => {
   } catch { return false; }
 });
 export const configurationSchema = z.object({
-  format: z.literal("home-harmony-config"), version: z.literal(2),
-  planners: z.record(keySchema, z.object({ instanceUrl: instanceUrlSchema, planner: plannerSchema }).strict()),
+  format: z.literal("home-harmony-config"), version: z.literal(3), settings: plannerSchema,
 }).strict();
 export type Configuration = z.infer<typeof configurationSchema>;
-export const emptyConfiguration = (): Configuration => ({ format: "home-harmony-config", version: 2, planners: {} });
 export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {} });
+export const emptyConfiguration = (): Configuration => ({ format: "home-harmony-config", version: 3, settings: emptyPlanner() });
 export const plannerSettings = (planner: unknown): Planner => plannerSchema.strip().parse(planner);
 export function parseConfiguration(text: string): Configuration {
   if (new TextEncoder().encode(text).length > MAX_CONFIG_BYTES) throw new Error("The backup exceeds the 2 MB limit.");
   try { return configurationSchema.parse(JSON.parse(text)); }
-  catch { throw new Error("This is not a valid Home Harmony settings backup (version 2)."); }
-}
-
-// Only reference fields are remapped; timetable URLs stay exactly as saved.
-export function remapPlanner(planner: Planner, from: string, to: string): Planner {
-  if (!from || from === to) return planner;
-  const reference = (value: string) => value.startsWith(`${from}|`) ? `${to}${value.slice(from.length)}` : value;
-  const keys = <T>(values: Record<string, T>, map: (value: T) => T = value => value) => Object.fromEntries(Object.entries(values).map(([key, value]) => [reference(key), map(value)]));
-  return { ...planner,
-    selectedAlarm: reference(planner.selectedAlarm),
-    timetables: keys(planner.timetables), timetableEnabled: keys(planner.timetableEnabled),
-    memberOrder: planner.memberOrder.map(reference), hiddenMembers: planner.hiddenMembers.map(reference), calendarMembers: keys(planner.calendarMembers, reference),
-    todoLists: keys(planner.todoLists, value => ({ ...value, member: reference(value.member) })),
-    homeEntities: Object.fromEntries(Object.entries(planner.homeEntities).map(([instance, values]) => [instance === from ? to : instance, values.map(reference)])),
-  };
+  catch { throw new Error("This is not a valid Home Harmony settings backup (version 3)."); }
 }

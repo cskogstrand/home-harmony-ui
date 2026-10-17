@@ -1,178 +1,143 @@
 # Home Harmony UI
 
-A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists. App preferences and assignments use shared persistent server storage by default, including local development. Browser-only storage is an explicit opt-in for static hosting.
+Afterglow is a shared family dashboard for Home Assistant. Home Assistant owns people, calendars, to-do items, devices and their permissions. Every screen connected to the same dashboard server shares its preferences and timetable files.
 
-## Install on Home Assistant OS
+## Configuration and storage
 
-[Add this app repository to Home Assistant](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fcskogstrand%2Fhome-harmony-ui).
+| Data | Location |
+| --- | --- |
+| Home Assistant URL/token, dashboard password, server port and data directory | Server environment; `.env` for manual deployment; HAOS Configuration tab for the app |
+| People visibility/order, timetable toggles and references, calendar/list assignments, favorites, appearance and selected alarm | `DATA_DIR/settings.yaml` |
+| Uploaded timetable PDFs and rendered pages | `DATA_DIR/timetables/<person_name>/<upload_id>/` |
+| Calendar events, to-do items, people and device state | Home Assistant |
 
-Or open **Settings → Apps → Install app → ⋮ → Repositories** (older versions: **Add-ons → Add-on Store**) and add `https://github.com/cskogstrand/home-harmony-ui`. Install **Home Harmony UI**, start it, and select **Open Web UI**. Supports `aarch64` and `amd64`; Home Assistant builds the container directly from this repository, so the first install can take several minutes.
+`DATA_DIR` defaults to `./data` for Node/Vite and `/data` in the container. One server owns one household and one data directory. Phones, tablets and hallway screens must connect to that server. Settings refresh within five seconds while a screen is active; browser background throttling can delay refresh until it wakes. Settings and saved timetable pages remain available when HA is offline. HA controls, calendar events and list contents require HA to be online.
 
-The dashboard runs at `http://<HA-device>:8099` with its existing Home Assistant browser login. It opens separately from HA, without ingress/sidebar embedding. Add that exact dashboard origin to HA's CORS allowed origins for calendar REST access. The port is configurable in the app's Network settings. Household settings are stored in `/data/configuration.json` and included in HA app backups. Use **App preferences → Storage and backups** to migrate old browser data or export/import JSON backups. Each screen signs in separately. The app’s `home_assistant_url` option defaults to `http://homeassistant:8123`; change it if Core uses another port or HTTPS.
+Settings saves validate the complete document, check its revision, write a temporary file, sync it and rename it atomically. Simultaneous stale writes are rejected. The unsaved draft stays in memory: keep that screen open, export it if needed, then use **App preferences → Load shared version**. Failed writes are not automatically replayed. **Retry storage** retries a failed save.
 
-See [installation, networking and updates](DOCS.md). These files must be pushed before the app appears in Home Assistant, and the repository must be public for installation from the plain URL above without credentials. This package does not change repository visibility.
+The server reads `settings.yaml` at startup. Stop it before editing the file manually, then restart it. A corrupt file stops startup without overwriting it. Back up the entire data directory, including timetable folders. Settings exports contain references to images, not the files themselves.
 
-## Run and connect locally
+**Breaking change from 0.4:** old `configuration.json`, `.data` contents, browser planners, theme preferences and browser HA credentials are ignored. There is no migration or browser-only build. Old data is not deleted. Configure the server and set up household preferences again. Only version 3 settings exports can be imported.
 
-Requires Node.js **24+**, npm, and Home Assistant **2023.9 or newer**. Browser baseline: Safari 16.4+, Chrome 111+, Firefox 128+.
+## HAOS app installation
+
+1. Add `https://github.com/cskogstrand/home-harmony-ui` to the Home Assistant app/add-on repositories and install **Home Harmony UI**.
+2. Create a [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-tokens) in the HA profile for the account the dashboard should use. Prefer a dedicated account with only the permissions you need.
+3. In the app's **Configuration** tab, set:
+
+   ```yaml
+   home_assistant_url: http://homeassistant:8123
+   home_assistant_token: YOUR_LONG_LIVED_ACCESS_TOKEN
+   dashboard_password: YOUR_UNIQUE_PASSWORD_AT_LEAST_12_CHARACTERS
+   ```
+
+4. Start/restart the app and open its web interface on port **8099**. Enter username **dashboard** and the configured dashboard password in the browser's authentication prompt.
+5. Open **Home settings** to choose visible people, calendars, lists and timetables. Use the same dashboard address on your other screens.
+
+HAOS supplies these options through `/data/options.json`; explicit environment variables take precedence. The Supervisor manages `/data` as persistent app data and includes it in app backups. The app uses its own web port, not HA ingress. The port can be changed under the app's Network settings.
+
+## Manual Docker deployment
+
+Copy `.env.example` to `.env` and replace the URL, token and dashboard password:
 
 ```sh
-npm install
+cp .env.example .env
+# Edit .env before starting.
+docker compose up --build -d
+```
+
+Compose reads `.env`, publishes `${PORT:-8099}`, and mounts `./data` at `/data`. The container always uses `/data`; the example `DATA_DIR=./data` is for native Node/Vite. To restart after changing configuration, run `docker compose up -d` again.
+
+For plain Docker:
+
+```sh
+docker build -t home-harmony-ui .
+docker run -d --name home-harmony-ui --restart unless-stopped \
+  --env-file .env -e DATA_DIR=/data -e PORT=8099 \
+  -p 8099:8099 -v "$PWD/data:/data" home-harmony-ui
+```
+
+Protect `.env` and its backups. It is ignored by Git and excluded from the image. Changing Docker environment configuration requires recreating the container; keep the data mount.
+
+## Local development and Node deployment
+
+Use **Node 24+**. Copy and configure `.env` as above, then:
+
+```sh
+npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite (configured port: `8080`). In **Smart home → Home settings**, enter your HA origin, for example `http://homeassistant.local:8123`, and choose **Connect**. Use your instance’s actual port. Sign in on Home Assistant’s page; its callback returns to `/settings`.
+Vite serves the dashboard and the same authenticated API/WebSocket proxy on port 8080. Development and preview use the same data directory unless `DATA_DIR` is changed. Never run two servers against one data directory.
 
-`npm run dev` runs the storage API alongside Vite and saves configuration in `.data/configuration.json`. Its trusted HA origin defaults to `http://homeassistant.local:8123`; set `HOME_ASSISTANT_URL` before starting if your instance uses another address. This server-side setting must point to the same HA instance you sign into in the browser. For another screen on your LAN, bind Vite with `npm run dev -- --host 0.0.0.0` and open the computer’s LAN address.
-
-### Shared storage outside HAOS
-
-Build and run the app with persistent storage:
+For the production Node server:
 
 ```sh
 npm run build
 npm start
 ```
 
-Open port `8099`. Development, preview and production use `.data/` by default; HAOS uses `/data/`. Set `DATA_DIR` to choose another persistent directory. Run only one server against a data directory at a time. `HOME_ASSISTANT_URL` must be the origin of the one trusted HA instance this server authenticates against; it is never chosen from a browser request. `npm run preview` also runs the storage API for the default build. A missing storage server shows an error rather than silently saving in the browser.
+Node and Vite read `.env` automatically; already-set environment variables win. Required values are `HOME_ASSISTANT_URL`, `HOME_ASSISTANT_TOKEN` and `DASHBOARD_PASSWORD` (at least 12 characters). `HOME_ASSISTANT_URL` is an HTTP(S) origin without credentials, path, or trailing slash. `PORT` defaults to 8099 for the Node server; Vite uses its own `--port` option. `DATA_DIR` selects the persistent directory.
 
-For static hosting without a storage server, explicitly use `npm run build:browser` (or `npm run dev -- --mode browser`). Serve `dist/` with SPA fallback to `index.html`, including `/settings`; when previewing this build use `npm run preview -- --mode browser`. This mode keeps planners on each browser separately. Existing browser data can be migrated through **App preferences → Storage and backups**.
+PDF conversion requires Poppler (`pdfinfo` and `pdftoppm`): `brew install poppler` on macOS or `apt install poppler-utils` on Debian/Ubuntu. The Docker image includes Poppler and fonts.
 
-### Authentication and connection
+## Access and the Home Assistant connection
 
-- `home-assistant-js-websocket` owns the browser `getAuth()` flow, token refresh and WS reconnects. Its `saveTokens`/`loadTokens` hooks keep access/refresh credentials in **browser-profile localStorage** (`home-harmony:ha-session`), scoped to the dashboard origin. Refreshing, opening a new tab or restarting the browser restores that login automatically, refreshes expired access tokens and waits for fresh HA state before enabling controls. Credentials are validated against the selected HA origin and dashboard client ID before reuse. Missing/corrupt/revoked credentials leave the planner usable and require an explicit **Connect**; there is no automatic login redirect loop.
-- The selected HA URL and login are saved in localStorage; tokens never enter source, environment variables, URLs, UI state or logs. The one-time OAuth authorization code is removed from the callback URL immediately. Storage failures appear in Home settings, with no fallback to a different token store. If upgrading from the tab-only version, sign in once again; its old sessionStorage credentials are discarded.
-- **Disconnect** closes subscriptions/socket, keeps the shared browser login and pauses only this tab across refreshes (the pause preference stays in sessionStorage). A newly opened tab can still reconnect. **Connect** resumes it. **Log out** immediately removes the browser login and cached home/user, disconnects other open tabs through storage events, then attempts to revoke the HA session (also when disconnected). A failed revocation is reported. Invalid authentication also removes saved credentials, and saved-session revisions prevent delayed callbacks from restoring a logged-out session or overwriting a different instance's login. The local planner is untouched.
-- **Browser-storage limits:** HA credentials remain in browser storage even when planner configuration uses the server. Persistent localStorage is readable by scripts from this app, including injected scripts, and is not a secret vault. Use a trusted device and a dedicated dashboard origin. Closing tabs does not log out. The login remains until **Log out**, HA revocation or clearing site data. Private browsing can clear it when the last private tab closes. Other browser profiles, devices and dashboard origins have separate storage. See [localStorage lifetime and scope](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). The storage API uses a short-lived bearer token in memory to verify each request against HA; it never saves that token. An HttpOnly session design would be a separate authentication change.
-- Production builds include a Content Security Policy restricting scripts to this origin and blocking plugins/base-URL changes. Development retains Vite's required inline preamble. The policy reduces injection opportunities; it does not make browser storage inaccessible to same-origin scripts.
-- One connection is shared by the app in each browser tab. State comes from `subscribeEntities()`, with area/device/entity registries used for metadata. A physical device may expose several entities. Area priority is entity, then physical device, then Unassigned.
-- Cached values are marked stale on connection loss. Controls stay disabled until a new entity snapshot and service metadata arrive. Commands are never queued or retried; a lost acknowledgement has an unknown outcome. Inspect the reported state before repeating it.
-- HTTP HA uses WS; HTTPS HA uses WSS. An HTTPS dashboard cannot access HTTP HA. Prefer trusted local HTTPS for both to protect credentials in transit; local HTTP is supported but unencrypted. A self-signed/untrusted or mismatched certificate must be fixed/trusted in your browser/OS; the dashboard cannot bypass certificate checks.
-- HA enforces access permissions. Registry/service load failures are shown in settings, without inventing device metadata or granting frontend roles. A non-admin account may have less metadata available.
+The dashboard password protects HTML, assets, settings, timetable images and the WebSocket proxy. All screens act as the configured HA account. The token is sent to HA only by the server; it is absent from browser storage, public runtime configuration, settings backups and image URLs. The browser receives the configured URL for links to HA.
 
-### Calendar access
+The server forwards the [HA WebSocket protocol](https://developers.home-assistant.io/docs/api/websocket/) and calendar REST reads to the configured HA origin. Browsers connect only to the dashboard; HA CORS changes are unnecessary. Cross-origin browser requests are rejected. A reverse proxy must preserve the browser's Host header and support WebSocket upgrades.
 
-Set up [people in Home Assistant](https://www.home-assistant.io/integrations/person/) and add calendar integrations there. In this app, open **Home settings → People and calendars**. Each person’s row shows their selected calendars; use **Add calendar** to add one or the **×** button to remove one. Use **Everyone** for shared calendars. A calendar belongs to one person or Everyone; dropdown options indicate when selecting one moves its assignment. Unselected calendars stay hidden. Assignments use instance-scoped registry IDs where available and survive entity renames.
+Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP Basic authentication does not encrypt the password over plain HTTP. Anyone with the dashboard password has the configured account's HA capabilities, including home controls. Changing the password and restarting invalidates future requests; browsers may remember Basic credentials until their authentication cache is cleared. **Disconnect** pauses live controls in that tab until reconnect/reload; it is not a logout or token revocation. Rotate/revoke the HA token in HA and update the server configuration when needed.
 
-**Everyone** has its own row in the dashboard and calendar, with shared plans shown only there. No separate HA person is needed for the family. **Weekly grid** is the default layout; existing saved layout choices are preserved.
+## Household preferences
 
-Under **Home settings → People order and timetables**, turn off **Visible** for accounts such as a wall tablet. Hidden people are excluded from the dashboard, calendars, tasks, school timetables and person selectors. Their plans, list assignments and timetable images are kept, and they remain in Home settings so you can show them again. Everyone stays visible. Visibility is saved with the household planner and included in shared settings and configuration backups.
+In **Home settings**, choose people visibility and order, calendar assignments, one task and daily-task list per person, and a shared shopping list. Hidden people keep their assignments and timetable files. Everyone remains first. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
 
-Set **Home settings → People order and timetables** with the up/down buttons. The saved order applies to the dashboard, both calendar layouts, tasks, daily tasks, school timetables and person selectors. Everyone stays first, and new people follow the saved people. Order is stored with the planner and survives refreshes and temporarily missing people; the HAOS app shares it across devices.
+Settings use stable registry/entity references within this deployment, so changing the same HA instance's address does not create a new household. A different HA installation may require resetting or reassigning references. People use their `person.<name>` entity IDs; renaming that entity ID requires reassigning its timetable and preferences.
 
-Use each person’s **Timetable** toggle in the same settings section to include them on the School board and dashboard. Existing saved timetable images start enabled; people without an image start disabled. Enable a person before adding their image URLs on the School board, one URL per line in page order. Swipe between pages or use the arrows; tapping a page opens it in an enlarged carousel. Remove or reorder lines to change the pages. Existing single-image timetables carry over automatically. Disabling a timetable hides it without deleting its saved URLs, so it returns when enabled again. These choices use the same planner storage as people order.
+Calendar integrations and to-do lists stay in HA. The app uses reported capabilities to enable creation, editing, deletion and controls. Recurring event edits/deletions require an occurrence ID. Failed writes keep the draft; physical commands are never automatically replayed. Daily task resets belong in an HA automation, which can run while the dashboard is closed.
 
-For PDFs, use **School board → Upload PDF timetable**, or share directly from your phone using the shortcut below. The server converts every page into an image for the existing swipe/enlarge viewer. PDFs can be up to **10 MB / 20 pages**, without password protection. A successful upload replaces that person's pages on every signed-in screen within five seconds. Invalid uploads keep the previous timetable. External image URLs and the existing Nextcloud conversion workflow still work.
+## School timetables
 
-### Share a timetable from iPhone
+Enable a person's timetable in **Home settings**, then use **School → Upload PDF timetable**. PDFs may be up to **10 MB / 20 pages**, without password protection. Confirming an upload replaces that person's visible pages on every screen. Invalid uploads keep the previous timetable.
 
-Create one shortcut per child; then the routine is **school app → Share PDF → Send timetable to [name] → confirm**. Apple supports both [share-sheet shortcuts](https://support.apple.com/guide/shortcuts/run-a-shortcut-from-another-app-apd163eb9f95/ios) and [sending a file with Get Contents of URL](https://support.apple.com/guide/shortcuts/apd58d46713f/ios).
+For `person.emma`, an upload is stored as:
 
-1. Enable the child's timetable in **Home settings**, wait for settings to save, then open **School board → Share from iPhone** and copy their **Upload URL**. Use the dashboard's address, not Home Assistant's API address. This URL includes the correct planner and person IDs; keep the query string intact.
-2. In Home Assistant's profile, create a named [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-tokens), such as `Timetable shortcut`. Use a non-admin account where possible. The token has that account's HA permissions; it is **not limited to uploading timetables**. Keep the shortcut private, remove its token before sharing a copy, and revoke the token in HA if the shortcut/device is no longer trusted.
-3. In Apple's **Shortcuts**, create `Send timetable to [name]`. Turn on **Show in Share Sheet**, accept **PDFs**, and set missing input to stop. Share one PDF at a time.
-4. Add **Show Alert**, with Cancel enabled: `Replace [name]'s timetable on the dashboard?`.
-5. Add **Get Contents of URL** with the copied Upload URL and **Method: POST**. Set **Request Body: File**, explicitly choosing the **Shortcut Input** variable. Add headers `Content-Type: application/pdf` and `Authorization: Bearer YOUR_TOKEN` (one space after `Bearer`). Do not use JSON, Form, or base64.
-6. Add **Show Result** using the response from Get Contents of URL. The server returns a success message and page count, or an error. Do not add an unconditional success notification or automatic retry.
-
-Your phone must reach the dashboard: home Wi-Fi/VPN, or an existing trusted HTTPS reverse proxy. HA's cloud URL does not automatically expose the dashboard's port. Prefer HTTPS; HTTP on a LAN still sends the token unencrypted. If the school app shares only a private link instead of a PDF, save/export the PDF to Files and share it from there, or use the School board's file picker. After a timeout, check the dashboard before retrying because the upload may have completed. Static browser-only hosting cannot receive uploads.
-
-### Timetable upload API
-
-`POST /api/timetables?planner=<encoded-planner-id>&member=<encoded-member-id>` accepts raw PDF bytes, `Content-Type: application/pdf`, and `Authorization: Bearer <HA access token>`. The person must already have a timetable enabled in the saved planner. The server authenticates against its configured HA instance before reading/converting the PDF. It never stores the token or fetches a school URL.
-
-```sh
-# Set TIMETABLE_UPLOAD_URL to the URL copied from School and HA_TOKEN locally.
-curl --fail-with-body "$TIMETABLE_UPLOAD_URL" \
-  -H "Authorization: Bearer $HA_TOKEN" \
-  -H 'Content-Type: application/pdf' \
-  --data-binary @timetable.pdf
+```text
+data/
+  settings.yaml
+  timetables/
+    emma/
+      <upload_id>/
+        source.pdf
+        1.png
+        2.png
 ```
 
-Success: HTTP 200 with `{ "message": "Timetable uploaded. The dashboard will refresh shortly.", "pages": 2 }`. Errors use `{ "error": "..." }`: 400 invalid/protected PDF or too many pages; 401 invalid login; 404 unknown/disabled timetable; 409 timetable changed during conversion; 413 too large; 415 wrong content type; 503 authentication/conversion unavailable or another upload in progress. Uploads are serialized, conversion has a time limit, and unrelated settings edits are preserved. Screen saves with an old configuration revision are rejected after an upload.
+The folder name is the person's HA entity-name slug, not their display name; duplicate display names therefore cannot collide. Upload IDs allow atomic replacement and keep earlier files available for settings-backup restores. Old uploads are retained; disk usage grows until unused upload folders are removed manually. Stop the server and verify references/backups before removing files.
 
-Images are served through authenticated `GET /api/timetables/<upload-id>/<page>.png`. They use private storage and `Cache-Control: no-store`; credentials are never placed in page URLs. All users authenticated to the configured HA instance can access these pages, matching shared settings access. The original PDF is discarded after conversion; this displays the timetable and does not extract lessons into calendar events.
+External image URLs remain supported, one per line in page order. Swipe or use arrows between pages; tap to enlarge. Disabling a timetable hides it without removing its files or URLs.
 
-The HAOS container includes Poppler and fonts. For local development or a standalone Node server, install **Poppler** (`brew install poppler` on macOS or `apt install poppler-utils` on Debian/Ubuntu); `pdfinfo` and `pdftoppm` must be on PATH. The server integration tests also require Poppler. PNGs are stored under `DATA_DIR/timetables/` and must be backed up alongside `configuration.json`. JSON exports contain page references only. Old uploads are retained so older configuration backups still work; there is no automatic retention cleanup, so disk use grows with uploads.
+### Share a PDF from iPhone
 
-### Calendar events
+Create a Shortcuts share-sheet action accepting PDFs. Add **Show Alert** to confirm replacement, then **Get Contents of URL** using the person's Upload URL from **School → Share from iPhone**, method **POST**, and Request Body **File → Shortcut Input**. Set these headers:
 
-Calendar integrations remain in Home Assistant. The app subscribes to events for the displayed day/week and falls back to `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header on older HA versions. It uses HA’s timezone (including DST) and shows HA events in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again.
+- `Content-Type: application/pdf`
+- `Authorization: Basic <Base64 encoding of dashboard:YOUR_DASHBOARD_PASSWORD>`
 
-New plans save through `calendar.create_event` when the selected calendar supports creation. Open an existing event to edit its title, dates/times, location and reminder through `calendar/event/update` when its calendar supports updates and supplies an event UID. All-day end dates in the editor include the last day; the app converts them to HA’s exclusive end. Recurring edits change only the selected occurrence; recurring events without an occurrence ID remain read-only. Calendar/person assignments and recurrence rules cannot be changed in this editor. Failed saves retain the draft; writes are never automatically retried or saved as local duplicates.
+Add **Show Result** afterward. Keep the shortcut private: it contains dashboard access. The phone must reach the dashboard through home Wi-Fi, VPN or your HTTPS proxy. After a timeout, check the dashboard before retrying; the upload may have completed.
 
-The built-in [Google Calendar integration](https://github.com/home-assistant/core/blob/dev/homeassistant/components/google/calendar.py) currently supports creating and deleting events, but does not implement updates. A calendar being writable in Google does not mean HA exposes editing for it. The app follows HA’s reported capabilities and explains whether editing is blocked by the integration, a missing event ID, or a missing recurring occurrence ID.
+`POST /api/timetables?member=home%7Cperson.emma` accepts raw PDF bytes. Success returns `{ "message": "Timetable uploaded. The dashboard will refresh shortly.", "pages": 2 }`. Invalid/oversized PDFs, disabled people, concurrent uploads and settings conflicts return errors without discarding the previous timetable. Images are served through password-protected `/api/timetables/<person>/<upload_id>/<page>.png` routes with `Cache-Control: no-store`.
 
-Events can be deleted from the dashboard or calendar when HA reports deletion support, including Google calendars that cannot be edited. **Delete → Remove event** confirms removal from HA and its source calendar through `calendar/event/delete`. Recurring deletions target only the selected occurrence; a recurring event without an occurrence ID cannot be deleted here. Deletion is disabled while offline, unavailable or pending. The view refreshes after HA confirms deletion; failed requests keep the event visible and are never automatically retried.
-
-Destructive actions require confirmation modals throughout the app: deleting local or HA events and list items (including completed items), removing or clearing favorites, unlinking or moving calendar/list assignments, replacing timetable images, hiding timetables, disconnecting, logging out and changing HA instances. High-impact controls also confirm before disabling automations, turning climate control off, activating scenes or moving doors/gates; lock and alarm actions keep their confirmation/code dialogs. Stop remains immediate. Cancel leaves the action unapplied; pending requests block repeat submissions, and failed requests remain visible in the modal.
-
-Allow the dashboard’s **exact origin**, including scheme and port, in HA’s CORS allowed origins. For current HA versions, use **Settings → System → Network → HTTP server → CORS allowed origins**. For versions configured through YAML, merge the following into the existing `http:` block and restart HA as required:
-
-```yaml
-http:
-  cors_allowed_origins:
-    - http://localhost:8080
-    # Replace/add the exact LAN origin used by your tablet, if different.
-```
-
-Use the actual origin from the dashboard address bar, including `127.0.0.1` versus `localhost`. Do not use a wildcard. HA’s current HTTP settings UI may restart HA and require confirmation after saving; follow its prompts. See the [official HTTP settings documentation](https://www.home-assistant.io/integrations/http/).
-
-REST fallback keeps calendar reads available across the declared HA range. See the [REST API](https://developers.home-assistant.io/docs/api/rest/) and [official frontend calendar API usage](https://github.com/home-assistant/frontend/blob/dev/src/data/calendar.ts).
-
-### Tasks, daily tasks and shopping
-
-Create lists in Home Assistant with [Local to-do](https://www.home-assistant.io/integrations/local_todo/), Shopping list, or another to-do integration (HA 2023.11+). Open **Home settings → People and to-do lists**. Everyone appears first, followed by your HA people. Choose one **Tasks** list and one **Daily tasks** list per person, plus one **Shared shopping list**. Each list has one assignment; choosing a list already assigned elsewhere moves it. Choose **No list selected** to remove an assignment. Selections are scoped to the HA instance and local planner and use registry IDs where available.
-
-Connected dashboard and Lists views use the selected HA lists. Add, complete, reopen and remove items directly in those lists, subject to their supported features and HA permissions. Reads use HA’s `todo/item/list` WebSocket request; writes use `todo.add_item`, `todo.update_item` and `todo.remove_item` with item UIDs. Items are fetched when the view opens, after edits and when the list’s reported state changes; **Refresh list** reloads other external changes. Remote item contents are never saved in browser storage. Failed, missing and offline lists show explicit messages, and writes are disabled offline without queuing or retries.
-
-**Daily resets belong in Home Assistant.** Assigning a daily list does not reset or recreate its items. Configure an HA automation to retrieve completed items with `todo.get_items` and set each item’s status back to `needs_action` using `todo.update_item` at your preferred time. It can run while the dashboard is closed. See [HA to-do actions](https://www.home-assistant.io/integrations/todo/).
-
-Add controls appear above each list. As you type, matching existing entries appear below the input, including completed items. Adding a matching completed item reopens it; matching an active item keeps the existing entry. Matching ignores case and surrounding spaces and stays within the selected list/person. Checked-off entries are grouped under **Completed**, collapsed by default; expand it to reopen or remove them.
-
-## Shared storage and backups
-
-The HAOS app stores one household configuration in `/data/configuration.json`: HA connection URLs, timetable image URLs and toggles, people visibility/order, favorites, calendar/to-do assignments, appearance and selected alarm panel. It writes files atomically and includes them in HA app backups. All users with a valid login to the configured HA instance can read and edit this shared household configuration. HA’s own events, to-do items, device state and device permissions remain in HA.
-
-**App preferences → Storage and backups** exports a versioned JSON file and imports it after validation and a replacement confirmation. A shared import replaces all shared settings profiles. Browser-only mode exports/restores the current profile’s settings. Backups exclude calendar events, list contents, people records, device state, login tokens and alarm codes. Configuration format 2 is required; old formats are not supported. Image files themselves are not embedded; their URLs must still work on the destination. Treat exports as private household data.
-
-To move settings from browser-only mode, sign in and choose **Use settings from this browser**. Only app settings are copied; local event/list contents are excluded. If the old dashboard used another origin, export from that address and import on the new one. Migration is explicit and leaves the browser copy intact. Existing shared data is replaced only after confirmation. When moving the same HA instance to another address, reference prefixes are remapped to the address each screen uses; registry/entity IDs must still exist in the destination. Moving to a different HA installation may require reassigning people, calendars, lists and favorites.
-
-Other screens refresh within five seconds. Revision checks reject simultaneous stale writes instead of silently replacing another screen’s changes. On an error or conflict, keep the tab open and export the unsaved configuration. **Retry storage** retries a failed save; **Load shared version** confirms discarding the local draft. No edits are automatically replayed after reconnecting. HA must be reachable to authenticate storage requests.
-
-### Browser-only family data
-
-Before an HA instance is configured, the local planner includes the starter household. Once an instance URL is configured, all starter people, events, lists and school images are replaced with real HA people and setup messages. Disconnecting, reconnecting, logging out or reloading never brings demo content back.
-
-Connected households use separate `afterglow-connected-planner-v1:<instance>:<planner>` datasets, initially empty. Existing `afterglow-planner-v1:*` data is preserved without copying its sample or edited entries into the connected household; only calendar display preferences and home favorites carry over. **App preferences → Local family planner** selects the planner for the current instance. Add local plans in this app and timetable image URLs on the School board. These entries and calendar/to-do assignments remain local to this browser; HA events and to-do items are never written into localStorage. Existing local list entries are preserved in storage, but connected views show only selected HA lists. Keep the same dashboard origin/browser to retain this data.
-
-Missing people, calendar and to-do integrations link to setup in HA; missing assignments and timetable images explain their setup in this app. Loading, partial read failures and offline states remain explicit. Remote events and to-do items are hidden while offline; local plans remain accessible, including when their person is unavailable.
-
-## Controls and limits
-
-- Smart-home navigation uses **Areas**, **Zones**, **Automations** and **Integrations**. Earlier `/rooms`, `/automation` and `/services` links redirect to the renamed pages.
-- **Devices** lists one card per registered device, grouped by room by default. **Group by** switches between Room, Device type and None; search and grouping are kept in the URL and restored by Back to devices. Types are inferred from primary entities, ignoring diagnostic/configuration entities and supporting sensor readings; ambiguous devices appear under Multi-function and unclassified devices under Other. Device pages group their controls and readings, with entity IDs and attributes under technical details. Unassociated entities remain under **Other controls**. Earlier `/devices/<entityId>` links redirect to the parent device or standalone control; favorites keep their entity-based controls. Availability summaries describe reported readings, not physical connectivity.
-- **Zones** reads `zone.*` entities from the existing live HA state subscription, including presence counts, radius, coordinates and passive-zone metadata. Missing/unavailable values and stale readings remain explicit. Zone editing opens Home Assistant; there are no third-party map requests or location writes. See [Home Assistant zones](https://www.home-assistant.io/integrations/zone/).
-- Lights: power and brightness when advertised. Switches: power. Climate: advertised HVAC modes and a single temperature target when its limits/current target are reported. Covers: advertised open/close/stop/position actions. Locks: explicit confirmation, with a transient code when HA requires one.
-- Sensors and binary sensors display reported states and units, including unknown, unavailable and missing. Other HA domains remain readable; advanced controls are available in HA.
-- Scenes are activation actions, never persistently active moods. Automations use HA enable/disable services; edit their definitions in HA.
-- Alarm panels support selection (using instance + registry ID), advertised modes, transitional/triggered states and HA code requirements. Codes are sent only with the requested service call, are cleared on submit/cancel, and are not locally validated against a demo PIN. Eva entities will work through a future separate HA integration; no Eva logic is implemented here.
-- Energy/power/monetary sensors show their reported values. Charger controls depend on the integration exposing supported entities, such as switches. There is no inferred battery percentage, charging schedule, optimizer, tariff or subscription.
-- Recorded history, advanced energy views, device pairing, area editing and integration setup open HA’s own UI. This app does not load recorder history or manage subscriptions, alarm monitoring, push or email delivery.
-- A service acknowledgement is not proof of physical completion. UI state changes only on HA reports. Errors deliberately avoid echoing raw server messages that might contain codes.
-
-## Validation
+## Verification
 
 ```sh
 npm test
-npx tsc -p tsconfig.app.json --noEmit
-npm run build
 npm run test:server
+npx tsc --noEmit -p tsconfig.app.json
 npm run lint
+npm run build
+npm run test:ha-app
 ```
 
-With Docker running, `npm run test:ha-app` builds and starts the actual app image, checks static assets, deep links, OAuth callback fallback and logging, then removes the test container. It only binds an ephemeral localhost port. `config.yaml` and `Dockerfile` live at the repository root so Supervisor's source build includes the existing app directly. No prebuilt image publication is needed. Bump `config.yaml`'s version and update `CHANGELOG.md` with each app release so HA offers an update. See [Home Assistant's app repository documentation](https://contributors.home-assistant.io/apps/guides/repository/).
-
-Storage tests cover authenticated reads/writes, restart persistence, malformed/oversized imports, stale-write rejection, safe static serving, browser migration, backup confirmation/cancellation and credential exclusion. Focused Vitest/Testing Library fixtures cover mapping, capabilities, units/missing values, payload conversions, authentication callback cleanup, refresh/new-tab recovery and token renewal, logout/revocation across tabs and delayed callbacks, corrupt/denied storage, connection teardown/reconnect, stale controls, rejected/in-flight commands without replay, transient alarm codes, calendar ranges, and preservation of local family data/navigation. These are controlled tests, not live HA validation. Before relying on a household connection, verify browser login, permissions, registry access, calendar CORS and your integration-specific behavior. No real lock, alarm or other physical device was operated during implementation.
-
-API references: [WebSocket client](https://github.com/home-assistant/home-assistant-js-websocket), [WebSocket API](https://developers.home-assistant.io/docs/api/websocket/), [authentication](https://developers.home-assistant.io/docs/auth_api/), [alarm panels](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/), [calendar entities](https://developers.home-assistant.io/docs/core/entity/calendar/).
+Server tests require Poppler and permission to open local test ports. The container smoke test requires Docker. Tests use temporary data and fake credentials; they do not connect to your household or control devices.

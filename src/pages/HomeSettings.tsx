@@ -3,19 +3,16 @@ import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, type ListKind } from "@/contexts/FamilyContext";
 import { MemberAvatar, PageHeading, PanelHeading } from "@/components/FamilyPlanner";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { normalizeHaUrl } from "@/lib/ha-model";
 export default function HomeSettings() {
-  const { haUrl, connect, disconnect, logout, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, sessionWarning, homeOnline } = useApp();
+  const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
   const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [{ id: "everyone", name: "Everyone" }, ...members, ...[...new Set(Object.values(todoLists).map(assigned => assigned.member))]
     .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: "Person unavailable" }))].sort((a, b) => compareMembers(a.id, b.id));
-  const [url, setUrl] = useState(haUrl);
   const [confirmation, setConfirmation] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void | Promise<void>; requiresConnection?: boolean }>();
   const busy = ["connecting", "syncing"].includes(connectionStatus);
   const listLabels = { tasks: "Tasks", daily: "Daily tasks", shopping: "Shared shopping list" };
@@ -35,13 +32,6 @@ export default function HomeSettings() {
     setConfirmation({ title: member ? "Move calendar?" : "Unlink calendar?", confirmLabel: member ? "Move calendar" : "Unlink calendar", requiresConnection: true,
       description: `${member ? "Move" : "Unlink"} “${name}” from ${memberName(previous)}${member ? ` to ${memberName(member)}` : ""}? Events stay in the source calendar.`, onConfirm: () => setCalendarMember(id, member) });
   };
-  const connectHome = () => {
-    let nextUrl: string;
-    try { nextUrl = normalizeHaUrl(url); }
-    catch { void connect(url); return; }
-    if (!haUrl || nextUrl === haUrl) { void connect(nextUrl); return; }
-    setConfirmation({ title: "Change Home Assistant instance?", description: `Disconnect from ${haUrl} and connect to ${nextUrl}? This replaces the saved login in this browser. Export any unsaved planner changes before changing the connection.`, confirmLabel: "Change instance", onConfirm: () => connect(nextUrl) });
-  };
   const listSelector = (kind: ListKind, person: { id: string; name: string }) => {
     const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
     return <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm"><span>{listLabels[kind]}</span>
@@ -55,19 +45,15 @@ export default function HomeSettings() {
       </select>
     </label>;
   };
-  return <div className="planner-page"><PageHeading eyebrow="CONNECTED AT HOME" title="Home settings" description="Connect this screen directly to your local Home Assistant." />
+  return <div className="planner-page"><PageHeading eyebrow="CONNECTED AT HOME" title="Home settings" description="Shared connection and household preferences." />
     <section className="glow-panel"><PanelHeading title="Home Assistant connection" />
-      <form className="space-y-4" onSubmit={event => { event.preventDefault(); connectHome(); }}>
-        <label className="block space-y-2"><span>Home Assistant URL</span><Input type="url" required placeholder="http://homeassistant.local:8123" value={url} onChange={event => setUrl(event.target.value)} /></label>
-        <div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy}>{busy ? "Connecting…" : "Connect"}</Button><Button type="button" variant="outline" onClick={() => setConfirmation({ title: "Disconnect Home Assistant?", description: "Pause the connection in this tab? Live updates and device controls will stop until you reconnect.", confirmLabel: "Disconnect", onConfirm: disconnect })}>Disconnect</Button><Button type="button" variant="outline" onClick={() => setConfirmation({ title: "Log out of Home Assistant?", description: "Clear this browser’s saved login, disconnect its open tabs and revoke this Home Assistant session? You will need to sign in again.", confirmLabel: "Log out", onConfirm: logout })}>Log out</Button></div>
-      </form>
+      <p>Home Assistant: {haUrl || "Loading server configuration…"}</p>
+      <p className="page-note">The connection is configured for every screen in the HAOS app’s Configuration tab, or the server’s .env file. The Home Assistant token stays on the server.</p>
+      <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? "Connecting…" : "Reconnect"}</Button><Button variant="outline" onClick={() => setConfirmation({ title: "Disconnect Home Assistant?", description: "Pause live controls in this tab until you reconnect or reload? Shared settings remain available.", confirmLabel: "Disconnect", onConfirm: disconnect })}>Disconnect</Button></div>
       <p role="status" className="page-note">Connection: {connectionStatus}</p>
       {connectionError && <p role="alert" className="text-destructive">{connectionError}</p>}
-      {sessionWarning && <p role="alert">{sessionWarning}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{warning}</p>)}
-      <p className="page-note">Sign in on Home Assistant’s own page. This browser remembers your login across refreshes, closed tabs and browser restarts. Disconnect pauses this tab; Connect resumes it. Log out clears the browser login, disconnects other open tabs and revokes this HA session.</p>
-      <p className="page-note">Login is saved in this browser profile for this dashboard address, accessible to scripts from this app. Use a trusted device and Log out when finished. Private browsing, clearing site data or revoked credentials require signing in again.</p>
-      <p className="page-note">Use HTTP with WS on your local network, or HTTPS with WSS and a certificate trusted by this browser. An HTTPS dashboard cannot connect to HTTP Home Assistant. Calendar reads also require this dashboard’s exact origin in HA’s CORS configuration.</p>
+      <p className="page-note">Every screen uses the configured HA account’s permissions. Dashboard access is protected with the shared username “dashboard” and password.</p>
     </section>
     <section className="glow-panel" id="people-order"><PanelHeading title="People order and timetables" />
       <p className="page-note">Set the order used throughout the app: calendars, tasks, daily tasks, school timetables and person selectors. Everyone stays first; new people appear at the end.</p>

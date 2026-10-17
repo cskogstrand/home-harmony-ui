@@ -1,3 +1,5 @@
+import { load, dump, JSON_SCHEMA } from "js-yaml";
+import { dashboardAccess, attachHomeAssistantSocket } from "./home-assistant.mjs";
 import { createServer } from "node:http";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
@@ -10,14 +12,14 @@ const revisionOf = config => createHash("sha256").update(JSON.stringify(config))
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
 const failure = (status, message) => Object.assign(new Error(message), { status });
 
-export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
+export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
-  const file = resolve(dataDir, "configuration.json");
+  const file = resolve(dataDir, "settings.yaml");
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
   let config;
-  try { config = parseConfiguration(await readFile(file, "utf8")); }
+  try { config = parseConfiguration(JSON.stringify(load(await readFile(file, "utf8"), { schema: JSON_SCHEMA }))); }
   catch (error) {
-    if (error.code !== "ENOENT") throw new Error("Cannot read configuration.json. Restore a valid backup; the existing file has been kept.");
+    if (error.code !== "ENOENT") throw new Error("Cannot read settings.yaml. Restore a valid backup; the existing file has been kept.");
     config = emptyConfiguration();
   }
   let revision = revisionOf(config);
@@ -25,19 +27,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
   let uploading = false;
   const root = await realpath(distDir);
 
-  async function authenticate(request) {
-    const authorization = request.headers.authorization;
-    if (!authorization || !/^Bearer [A-Za-z0-9._~-]{1,4096}$/.test(authorization)) throw failure(401, "Sign in to Home Assistant to access shared configuration.");
-    let response;
-    try {
-      response = await fetch(`${homeAssistantUrl}/api/`, { headers: { Authorization: authorization }, redirect: "error", signal: AbortSignal.timeout(5000) });
-      if (response.status === 401 || response.status === 403) throw failure(401, "This login is not valid for the storage server's Home Assistant instance.");
-      if (!response.ok || (await response.json()).message !== "API running.") throw new Error();
-    } catch (error) {
-      if (error.status === 401) throw error;
-      throw failure(503, "Cannot verify your login. Check the app's Home Assistant URL and connection.");
-    }
-  }
+  const authenticate = dashboardAccess(dashboardPassword);
 
   function save(change) {
     const write = writes.then(async () => {
@@ -45,7 +35,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
       const temporary = `${file}.${randomUUID()}.tmp`;
       try {
         const handle = await open(temporary, "wx", 0o600);
-        try { await handle.writeFile(JSON.stringify(next)); await handle.sync(); } finally { await handle.close(); }
+        try { await handle.writeFile(dump(next, { noRefs: true, lineWidth: -1 })); await handle.sync(); } finally { await handle.close(); }
         await rename(temporary, file);
         config = next;
         revision = revisionOf(config);
@@ -78,25 +68,27 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
   }
 
   async function upload(request, url) {
-    const plannerId = url.searchParams.get("planner"), member = url.searchParams.get("member");
-    const entry = Object.hasOwn(config.planners, plannerId) ? config.planners[plannerId] : undefined;
-    const enabled = entry && member && (Object.hasOwn(entry.planner.timetableEnabled, member) ? entry.planner.timetableEnabled[member] : Object.hasOwn(entry.planner.timetables, member) && entry.planner.timetables[member].length);
+    const member = url.searchParams.get("member");
+    const entry = config.settings;
+    const enabled = member && Object.hasOwn(entry.timetableEnabled, member) && entry.timetableEnabled[member];
     if (!enabled) throw failure(404, "Enable this person's timetable in Home settings before uploading.");
     if (uploading) throw failure(503, "Another timetable is uploading. Wait for it to finish, then try again.");
     uploading = true;
     let converted;
     try {
-      converted = await convertTimetable(request, dataDir);
+      const entityId = member.replace(/^home\|/, "");
+      if (!/^person\.[a-z0-9_]+$/.test(entityId)) throw failure(400, "Choose a Home Assistant person for this timetable.");
+      converted = await convertTimetable(request, dataDir, entityId.slice("person.".length));
       await save(() => {
-        const current = config.planners[plannerId];
-        if (!current || current.instanceUrl !== entry.instanceUrl || JSON.stringify(current.planner.timetables[member]) !== JSON.stringify(entry.planner.timetables[member]) || current.planner.timetableEnabled[member] !== entry.planner.timetableEnabled[member]) throw failure(409, "This timetable changed during upload. Review the current version before uploading again.");
-        return parseConfiguration(JSON.stringify({ ...config, planners: { ...config.planners, [plannerId]: { ...current, planner: { ...current.planner, timetables: { ...current.planner.timetables, [member]: converted.urls } } } } }));
+        const current = config.settings;
+        if (JSON.stringify(current.timetables[member]) !== JSON.stringify(entry.timetables[member]) || current.timetableEnabled[member] !== entry.timetableEnabled[member]) throw failure(409, "This timetable changed during upload. Review the current version before uploading again.");
+        return parseConfiguration(JSON.stringify({ ...config, settings: { ...current, timetables: { ...current.timetables, [member]: converted.urls } } }));
       });
       // shortcut: retain old pages for settings-backup restores; add retention controls if storage grows.
       return { message: "Timetable uploaded. The dashboard will refresh shortly.", pages: converted.urls.length };
     } catch (error) {
       // A directory-sync failure can follow a committed rename; never remove referenced pages.
-      if (converted && !converted.urls.some(url => config.planners[plannerId]?.planner.timetables[member]?.includes(url))) await rm(converted.directory, { recursive: true, force: true });
+      if (converted && !converted.urls.some(url => config.settings.timetables[member]?.includes(url))) await rm(converted.directory, { recursive: true, force: true });
       throw error;
     } finally { uploading = false; }
   }
@@ -104,16 +96,26 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
   return async (request, response) => {
     const json = (status, body) => { response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }); response.end(JSON.stringify(body)); };
     try {
+      authenticate(request);
       const url = new URL(request.url, "http://localhost");
       const pathname = url.pathname;
+      if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
+      if (/^\/api\/calendars\/calendar\.[a-z0-9_]+$/.test(pathname) && request.method === "GET") {
+        let result;
+        try {
+          result = await fetch(`${homeAssistantUrl}${pathname}${url.search}`, { headers: { Authorization: `Bearer ${homeAssistantToken}` }, redirect: "error", signal: AbortSignal.timeout(15000) });
+          if (!result.ok) throw new Error();
+          json(200, await result.json());
+        } catch { throw failure(502, "Home Assistant calendar unavailable. Check the server connection and token permissions."); }
+        return;
+      }
       if (pathname.startsWith("/api/")) {
         const image = pathname.match(timetableImagePath);
         if (!((pathname === "/api/config" && ["GET", "PUT"].includes(request.method)) || (pathname === "/api/timetables" && request.method === "POST") || (image && request.method === "GET"))) throw failure(404, "Not found.");
-        await authenticate(request);
         if (pathname === "/api/timetables") { json(200, await upload(request, url)); return; }
         if (image) {
           let contents;
-          try { contents = await readFile(resolve(dataDir, "timetables", image[1], `${image[2]}.png`)); }
+          try { contents = await readFile(resolve(dataDir, "timetables", image[1], image[2], `${image[3]}.png`)); }
           catch (error) { if (error.code === "ENOENT") throw failure(404, "Timetable page not found."); throw error; }
           response.writeHead(200, { "Content-Type": "image/png", "Content-Length": contents.length, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
           response.end(contents);
@@ -137,10 +139,14 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
       response.writeHead(200, { "Content-Type": mime[extname(asset)] ?? "application/octet-stream", "Content-Length": contents.length,
         "Cache-Control": pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache", "X-Content-Type-Options": "nosniff" });
       response.end(request.method === "HEAD" ? undefined : contents);
-    } catch (error) { json(error.status ?? 500, { error: error.status ? error.message : "Configuration storage is unavailable. Reload to check the last saved version before retrying." }); }
+    } catch (error) { if (error.status === 401) response.setHeader("WWW-Authenticate", 'Basic realm="Home Harmony", charset="UTF-8"'); json(error.status ?? 500, { error: error.status ? error.message : "Configuration storage is unavailable. Reload to check the last saved version before retrying." }); }
   };
 }
 
 export async function createAppServer(options) {
-  return createServer({ requestTimeout: 15000, headersTimeout: 10000 }, await createAppHandler(options));
+  const server = createServer({ requestTimeout: 15000, headersTimeout: 10000 }, await createAppHandler(options));
+  const closeSockets = attachHomeAssistantSocket(server, options);
+  const close = server.close.bind(server);
+  server.close = callback => { closeSockets(); return close(callback); };
+  return server;
 }

@@ -112,7 +112,7 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
   return plans;
 }
 
-// Remote events never enter FamilyContext/localStorage.
+// Calendar events stay in memory; settings storage never contains HA data.
 export function useCalendarPlans(start: string, end: string) {
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
   const { events, calendarMembers, members, compareMembers, isMemberVisible } = useFamily();

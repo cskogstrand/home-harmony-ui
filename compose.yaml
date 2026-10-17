@@ -1,0 +1,14 @@
+services:
+  dashboard:
+    build: .
+    restart: unless-stopped
+    environment:
+      HOME_ASSISTANT_URL: ${HOME_ASSISTANT_URL:?Set HOME_ASSISTANT_URL in .env}
+      HOME_ASSISTANT_TOKEN: ${HOME_ASSISTANT_TOKEN:?Set HOME_ASSISTANT_TOKEN in .env}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:?Set DASHBOARD_PASSWORD in .env}
+      DATA_DIR: /data
+      PORT: 8099
+    ports:
+      - "${PORT:-8099}:8099"
+    volumes:
+      - ./data:/data

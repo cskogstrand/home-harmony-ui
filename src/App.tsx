@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FamilyProvider } from "@/contexts/FamilyContext";
 import Calendar from "./pages/Calendar";
@@ -33,7 +32,6 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -72,7 +70,6 @@ const App = () => (
           </BrowserRouter></FamilyProvider>
         </AppProvider>
       </TooltipProvider>
-    </ThemeProvider>
   </QueryClientProvider>
 );
 
