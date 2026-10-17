@@ -190,8 +190,8 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     if (!text.trim()) return;
     const matches = list.filter(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(text));
     const existing = matches.find(item => !itemIsDone(item, today)) ?? matches[0];
-    if (!existing) addItem(text, kind, member);
-    else if (itemIsDone(existing, today)) toggleItem(existing.id);
+    if (!existing) { if (!addItem(text, kind, member)) return; }
+    else if (itemIsDone(existing, today)) { if (!toggleItem(existing.id)) return; }
     else toast.info("This item is already on the list.");
     setText(""); setAdding(false);
   };
@@ -210,7 +210,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
     <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={list.length ? "All done." : kind === "shopping" ? "All stocked up. Add something when you need it." : "Nothing on the list. Enjoy the breathing room."} />}</AnimatePresence>
     <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
-    {editing && <ItemEditor text={editing.text} kind={kind} description="Saved to the family list on this screen." onSave={text => renameItem(editing.id, text)} onClose={() => setEditing(undefined)} />}
-    {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title="Remove item?" description={`Remove “${removing.text}” from the family list on this screen? This cannot be undone.`} confirmLabel="Remove item" destructive onConfirm={() => deleteItem(removing.id)} />}
+    {editing && <ItemEditor text={editing.text} kind={kind} description="Saved to the family planner." onSave={text => renameItem(editing.id, text)} onClose={() => setEditing(undefined)} />}
+    {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title="Remove item?" description={`Remove “${removing.text}” from the family planner? This cannot be undone.`} confirmLabel="Remove item" destructive onConfirm={() => deleteItem(removing.id)} />}
   </article>;
 }

@@ -9,11 +9,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:server": "vite build --mode server",
+    "start": "node server/index.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:ha-app": "node scripts/test-ha-app.mjs",
+    "test:server": "node --test server/app.test.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {

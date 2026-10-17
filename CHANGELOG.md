@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Persist shared household configuration in the HAOS app data folder.
+- Authenticate configuration access using each screen’s Home Assistant login.
+- Add JSON export/import, explicit browser migration and restore confirmation.
+- Detect stale writes and retain unsaved drafts for export or manual retry.
+- Replace the static-only nginx container with a Node web and storage server.
+
 ## 0.1.0
 
 - Install Home Harmony UI directly from this repository as a Home Assistant OS app.

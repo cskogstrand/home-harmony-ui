@@ -10,7 +10,6 @@ execFileSync("docker", ["build", "--tag", image, "."], { stdio: "inherit" });
 const container = docker("run", "--detach", "--rm", "--init", "--publish", "127.0.0.1::8099", image);
 
 try {
-  docker("exec", container, "nginx", "-t");
   const base = `http://${docker("port", container, "8099/tcp")}`;
   let response;
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -41,6 +40,7 @@ try {
     assert.match(resource.headers.get("cache-control"), /immutable/);
   }
   assert.equal((await fetch(`${base}/assets/missing.js`)).status, 404);
+  assert.equal((await fetch(`${base}/api/config`)).status, 401, "Shared configuration must require a Home Assistant login");
   const logs = spawnSync("docker", ["logs", container], { encoding: "utf8" });
   assert.equal(logs.status, 0, logs.stderr);
   assert.doesNotMatch(logs.stdout + logs.stderr, /smoke-auth-code/, "OAuth codes must not enter logs");

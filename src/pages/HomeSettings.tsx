@@ -40,7 +40,7 @@ export default function HomeSettings() {
     try { nextUrl = normalizeHaUrl(url); }
     catch { void connect(url); return; }
     if (!haUrl || nextUrl === haUrl) { void connect(nextUrl); return; }
-    setConfirmation({ title: "Change Home Assistant instance?", description: `Disconnect from ${haUrl} and connect to ${nextUrl}? This replaces the saved login in this browser. Your current household’s local planner stays saved separately.`, confirmLabel: "Change instance", onConfirm: () => connect(nextUrl) });
+    setConfirmation({ title: "Change Home Assistant instance?", description: `Disconnect from ${haUrl} and connect to ${nextUrl}? This replaces the saved login in this browser. Export any unsaved planner changes before changing the connection.`, confirmLabel: "Change instance", onConfirm: () => connect(nextUrl) });
   };
   const listSelector = (kind: ListKind, person: { id: string; name: string }) => {
     const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
@@ -81,7 +81,7 @@ export default function HomeSettings() {
           <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={`Move ${person.name} down`} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>
         </div>
       </li>)}</ol>
-      <p className="page-note">These settings are saved automatically for this household and planner in this browser.</p>
+      <p className="page-note">These settings are saved automatically with this household’s planner. Check App preferences for storage status and backups.</p>
     </section>
     <section className="glow-panel" id="family-calendar"><PanelHeading title="People and calendars" />
       <p className="page-note">Add calendars to each person, or Everyone for shared plans. Choosing an assigned calendar moves it here.</p>
@@ -107,7 +107,7 @@ export default function HomeSettings() {
         </div>;
       })}</div>}
       {haUrl && <div className="flex flex-wrap gap-4 mt-4"><a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">Manage people in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up calendar integrations</a><a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open Home Assistant calendar</a></div>}
-      <p className="page-note">Calendar selections are saved for this instance and planner on this browser. Home Assistant events are read-only here. Add local plans and school timetable images in this app.</p>
+      <p className="page-note">Calendar selections are saved with this planner. Home Assistant events are read-only here. Add local plans and school timetable images in this app.</p>
     </section>
     <section className="glow-panel" id="family-lists"><PanelHeading title="People and to-do lists" />
       <p className="page-note">Choose a task list and a daily task list for each person. Everyone’s lists are shared. Choosing an assigned list moves it here.</p>
@@ -118,7 +118,7 @@ export default function HomeSettings() {
         <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}</div>
       </div>)}
       <div className="mt-3 max-w-md">{listSelector("shopping", { id: "everyone", name: "Everyone" })}</div>
-      <p className="page-note">Adding, completing and removing items updates Home Assistant. Daily task lists need a Home Assistant automation to reset them each morning. Selections are saved for this instance and planner on this browser.</p>
+      <p className="page-note">Adding, completing and removing items updates Home Assistant. Daily task lists need a Home Assistant automation to reset them each morning. Selections are saved with this planner.</p>
       {haUrl && <div className="mt-3 flex flex-wrap gap-4"><a className="text-link" href={`${haUrl}/todo`} target="_blank" rel="noreferrer">Open to-do lists in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up to-do integrations</a></div>}
     </section>
     <section className="glow-panel"><PanelHeading title="Your instance" /><dl className="device-readings"><div><dt>Name</dt><dd>{currentHome.name}</dd></div><div><dt>Signed in as</dt><dd>{currentUser?.name ?? "Not signed in"}</dd></div><div><dt>HA access</dt><dd>{currentUser ? currentUser.is_owner ? "Owner" : currentUser.is_admin ? "Administrator" : "User" : "—"}</dd></div><div><dt>Physical devices</dt><dd>{currentHome.devices.length}</dd></div><div><dt>Entities</dt><dd>{currentHome.entities.length}</dd></div></dl><p className="page-note">Home Assistant enforces permissions. Manage integrations, devices, areas, alarm settings and users there.</p>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">Open Home Assistant settings</a>}</section>

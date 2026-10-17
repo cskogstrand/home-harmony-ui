@@ -1,6 +1,6 @@
 # Home Harmony UI
 
-A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists; local plans and dashboard assignments stay in this browser.
+A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists; the HAOS app saves planner data and assignments on its persistent server storage and shares them across devices. Standalone static builds retain browser-only storage.
 
 ## Install on Home Assistant OS
 
@@ -8,7 +8,7 @@ A React 18 / TypeScript / Vite family dashboard with a direct local Home Assista
 
 Or open **Settings → Apps → Install app → ⋮ → Repositories** (older versions: **Add-ons → Add-on Store**) and add `https://github.com/cskogstrand/home-harmony-ui`. Install **Home Harmony UI**, start it, and select **Open Web UI**. Supports `aarch64` and `amd64`; Home Assistant builds the container directly from this repository, so the first install can take several minutes.
 
-The dashboard runs at `http://<HA-device>:8099` with its existing Home Assistant browser login. It opens separately from HA, without ingress/sidebar embedding. Add that exact dashboard origin to HA's CORS allowed origins for calendar REST access. The port is configurable in the app's Network settings. Local planner data remains browser-local and is not part of HA app backups; changing from a development URL to the app URL starts a separate dataset.
+The dashboard runs at `http://<HA-device>:8099` with its existing Home Assistant browser login. It opens separately from HA, without ingress/sidebar embedding. Add that exact dashboard origin to HA's CORS allowed origins for calendar REST access. The port is configurable in the app's Network settings. Household settings are stored in `/data/configuration.json` and included in HA app backups. Use **App preferences → Storage and backups** to migrate old browser data or export/import JSON backups. Each screen signs in separately. The app’s `home_assistant_url` option defaults to `http://homeassistant:8123`; change it if Core uses another port or HTTPS.
 
 See [installation, networking and updates](DOCS.md). These files must be pushed before the app appears in Home Assistant, and the repository must be public for installation from the plain URL above without credentials. This package does not change repository visibility.
 
@@ -25,12 +25,23 @@ Open the URL printed by Vite (configured port: `8080`). In **Smart home → Home
 
 For another screen on your LAN, bind Vite to your LAN interface with `npm run dev -- --host 0.0.0.0` and open the computer’s LAN address. No public hosting, router port forwarding, cloud relay, webhook, or application backend is required. Keep the dashboard at the same origin to retain its browser-local planner storage. Production output is `dist/`; a local static server must provide SPA fallback to `index.html`, including `/settings`.
 
+### Shared storage outside HAOS
+
+Use Node.js **24+** to run the same storage server locally:
+
+```sh
+npm run build:server
+DATA_DIR=.data HOME_ASSISTANT_URL=http://homeassistant.local:8123 npm start
+```
+
+Open port `8099`. `HOME_ASSISTANT_URL` must be the origin of the one trusted HA instance this server authenticates against; it is never chosen from a browser request. Keep `DATA_DIR` on persistent storage. For frontend development, leave this server running and use `npm run dev -- --mode server`; Vite proxies `/api/config` to port 8099. Plain `npm run dev` and `npm run build` continue to use browser-only planners.
+
 ### Authentication and connection
 
 - `home-assistant-js-websocket` owns the browser `getAuth()` flow, token refresh and WS reconnects. Its `saveTokens`/`loadTokens` hooks keep access/refresh credentials in **browser-profile localStorage** (`home-harmony:ha-session`), scoped to the dashboard origin. Refreshing, opening a new tab or restarting the browser restores that login automatically, refreshes expired access tokens and waits for fresh HA state before enabling controls. Credentials are validated against the selected HA origin and dashboard client ID before reuse. Missing/corrupt/revoked credentials leave the planner usable and require an explicit **Connect**; there is no automatic login redirect loop.
 - The selected HA URL and login are saved in localStorage; tokens never enter source, environment variables, URLs, UI state or logs. The one-time OAuth authorization code is removed from the callback URL immediately. Storage failures appear in Home settings, with no fallback to a different token store. If upgrading from the tab-only version, sign in once again; its old sessionStorage credentials are discarded.
 - **Disconnect** closes subscriptions/socket, keeps the shared browser login and pauses only this tab across refreshes (the pause preference stays in sessionStorage). A newly opened tab can still reconnect. **Connect** resumes it. **Log out** immediately removes the browser login and cached home/user, disconnects other open tabs through storage events, then attempts to revoke the HA session (also when disconnected). A failed revocation is reported. Invalid authentication also removes saved credentials, and saved-session revisions prevent delayed callbacks from restoring a logged-out session or overwriting a different instance's login. The local planner is untouched.
-- **Browser-storage limits:** this is the explicitly chosen frontend-only design. Persistent localStorage is readable by scripts from this app, including injected scripts, and is not a secret vault. Use a trusted device and a dedicated dashboard origin. Closing tabs does not log out. The login remains until **Log out**, HA revocation or clearing site data. Private browsing can clear it when the last private tab closes. Other browser profiles, devices and dashboard origins have separate storage. See [localStorage lifetime and scope](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). Keeping tokens inaccessible to app scripts would require a local backend with HttpOnly session cookies.
+- **Browser-storage limits:** HA credentials remain in browser storage even when planner configuration uses the server. Persistent localStorage is readable by scripts from this app, including injected scripts, and is not a secret vault. Use a trusted device and a dedicated dashboard origin. Closing tabs does not log out. The login remains until **Log out**, HA revocation or clearing site data. Private browsing can clear it when the last private tab closes. Other browser profiles, devices and dashboard origins have separate storage. See [localStorage lifetime and scope](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage). The storage API uses a short-lived bearer token in memory to verify each request against HA; it never saves that token. An HttpOnly session design would be a separate authentication change.
 - Production builds include a Content Security Policy restricting scripts to this origin and blocking plugins/base-URL changes. Development retains Vite's required inline preamble. The policy reduces injection opportunities; it does not make browser storage inaccessible to same-origin scripts.
 - One connection is shared by the app in each browser tab. State comes from `subscribeEntities()`, with area/device/entity registries used for metadata. A physical device may expose several entities. Area priority is entity, then physical device, then Unassigned.
 - Cached values are marked stale on connection loss. Controls stay disabled until a new entity snapshot and service metadata arrive. Commands are never queued or retried; a lost acknowledgement has an unknown outcome. Inspect the reported state before repeating it.
@@ -43,9 +54,9 @@ Set up [people in Home Assistant](https://www.home-assistant.io/integrations/per
 
 **Everyone** has its own row in the dashboard and calendar, with shared plans shown only there. No separate HA person is needed for the family. **Weekly grid** is the default layout; existing saved layout choices are preserved.
 
-Set **Home settings → People order and timetables** with the up/down buttons. The saved order applies to the dashboard, both calendar layouts, tasks, daily tasks, school timetables and person selectors. Everyone stays first, and new people follow the saved people. Order is stored per HA instance and local planner in this browser and survives refreshes and temporarily missing people.
+Set **Home settings → People order and timetables** with the up/down buttons. The saved order applies to the dashboard, both calendar layouts, tasks, daily tasks, school timetables and person selectors. Everyone stays first, and new people follow the saved people. Order is stored with the planner and survives refreshes and temporarily missing people; the HAOS app shares it across devices.
 
-Use each person’s **Timetable** toggle in the same settings section to include them on the School board and dashboard. Existing saved timetable images start enabled; people without an image start disabled. Enable a person before adding their image URLs on the School board, one URL per line in page order. Swipe between pages or use the arrows; tapping a page opens it in an enlarged carousel. Remove or reorder lines to change the pages. Existing single-image timetables carry over automatically. Disabling a timetable hides it without deleting its saved URLs, so it returns when enabled again. These choices use the same browser, instance and planner scope as people order.
+Use each person’s **Timetable** toggle in the same settings section to include them on the School board and dashboard. Existing saved timetable images start enabled; people without an image start disabled. Enable a person before adding their image URLs on the School board, one URL per line in page order. Swipe between pages or use the arrows; tapping a page opens it in an enlarged carousel. Remove or reorder lines to change the pages. Existing single-image timetables carry over automatically. Disabling a timetable hides it without deleting its saved URLs, so it returns when enabled again. These choices use the same planner storage as people order.
 
 For multi-page PDFs, the existing Nextcloud → image conversion workflow still works: generate a stable image URL for each page and paste those URLs into the School board. Updating the images at those URLs avoids editing the app’s settings each week when the page count stays the same; browser/server caching controls when replacements become visible.
 
@@ -82,7 +93,17 @@ Connected dashboard and Lists views use the selected HA lists. Add, complete, re
 
 Add controls appear above each list. As you type, matching existing entries appear below the input, including completed items. Adding a matching completed item reopens it; matching an active item keeps the existing entry. Matching ignores case and surrounding spaces and stays within the selected list/person. Checked-off entries are grouped under **Completed**, collapsed by default; expand it to reopen or remove them.
 
-## Local family data
+## Shared storage and backups
+
+The HAOS app stores one household configuration in `/data/configuration.json`: all planners, local plans/list entries, timetable image URLs and toggles, people order, favorites, and calendar/to-do assignments. It writes files atomically and includes them in HA app backups. All users with a valid login to the configured HA instance can read and edit this shared household configuration. HA’s own events, to-do items, device state and device permissions remain in HA.
+
+**App preferences → Storage and backups** exports a versioned JSON file and imports it after validation and a replacement confirmation. A shared import replaces all shared planners. Browser-only mode exports/restores the current planner. Backups exclude login tokens, alarm codes and per-screen preferences. Image files themselves are not embedded; their URLs must still work on the destination. Treat exports as private household data.
+
+To upgrade from 0.1.0, sign in on the browser with your existing settings and choose **Use settings from this browser**. If the old dashboard used another origin, export from that address and import on the new one. Migration is explicit and leaves the browser copy intact. Existing shared data is replaced only after confirmation. When moving the same HA instance to another address, reference prefixes are remapped to the address each screen uses; registry/entity IDs must still exist in the destination. Moving to a different HA installation may require reassigning people, calendars, lists and favorites.
+
+Other screens refresh within five seconds. Revision checks reject simultaneous stale writes instead of silently replacing another screen’s changes. On an error or conflict, keep the tab open and export the unsaved configuration. **Retry storage** retries a failed save; **Load shared version** confirms discarding the local draft. No edits are automatically replayed after reconnecting. HA must be reachable to authenticate storage requests.
+
+### Browser-only family data
 
 Before an HA instance is configured, the local planner includes the starter household. Once an instance URL is configured, all starter people, events, lists and school images are replaced with real HA people and setup messages. Disconnecting, reconnecting, logging out or reloading never brings demo content back.
 
@@ -109,11 +130,12 @@ Missing people, calendar and to-do integrations link to setup in HA; missing ass
 npm test
 npx tsc -p tsconfig.app.json --noEmit
 npm run build
+npm run test:server
 npm run lint
 ```
 
 With Docker running, `npm run test:ha-app` builds and starts the actual app image, checks static assets, deep links, OAuth callback fallback and logging, then removes the test container. It only binds an ephemeral localhost port. `config.yaml` and `Dockerfile` live at the repository root so Supervisor's source build includes the existing app directly. No prebuilt image publication is needed. Bump `config.yaml`'s version and update `CHANGELOG.md` with each app release so HA offers an update. See [Home Assistant's app repository documentation](https://contributors.home-assistant.io/apps/guides/repository/).
 
-Focused Vitest/Testing Library fixtures cover mapping, capabilities, units/missing values, payload conversions, authentication callback cleanup, refresh/new-tab recovery and token renewal, logout/revocation across tabs and delayed callbacks, corrupt/denied storage, connection teardown/reconnect, stale controls, rejected/in-flight commands without replay, transient alarm codes, calendar ranges, and preservation of local family data/navigation. These are controlled tests, not live HA validation. Before relying on a household connection, verify browser login, permissions, registry access, calendar CORS and your integration-specific behavior. No real lock, alarm or other physical device was operated during implementation.
+Storage tests cover authenticated reads/writes, restart persistence, malformed/oversized imports, stale-write rejection, safe static serving, browser migration, backup confirmation/cancellation and credential exclusion. Focused Vitest/Testing Library fixtures cover mapping, capabilities, units/missing values, payload conversions, authentication callback cleanup, refresh/new-tab recovery and token renewal, logout/revocation across tabs and delayed callbacks, corrupt/denied storage, connection teardown/reconnect, stale controls, rejected/in-flight commands without replay, transient alarm codes, calendar ranges, and preservation of local family data/navigation. These are controlled tests, not live HA validation. Before relying on a household connection, verify browser login, permissions, registry access, calendar CORS and your integration-specific behavior. No real lock, alarm or other physical device was operated during implementation.
 
 API references: [WebSocket client](https://github.com/home-assistant/home-assistant-js-websocket), [WebSocket API](https://developers.home-assistant.io/docs/api/websocket/), [authentication](https://developers.home-assistant.io/docs/auth_api/), [alarm panels](https://developers.home-assistant.io/docs/core/entity/alarm-control-panel/), [calendar entities](https://developers.home-assistant.io/docs/core/entity/calendar/).

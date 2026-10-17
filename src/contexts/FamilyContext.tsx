@@ -3,6 +3,9 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { useApp } from "./AppContext";
 import type { CalendarEvent } from "@/types/api";
+import { SharedConfigurationProvider, useSharedConfiguration } from "./SharedConfigurationContext";
+import { calendarSettingsSchema, eventSchema, itemSchema, memberSchema, emptyConfiguration, emptyPlanner, parseConfiguration, remapPlanner, type Configuration, type Planner } from "../../shared/configuration";
+export { isPlannerDate } from "../../shared/configuration";
 
 const demoMembers = [
   { id: "anna", name: "Anna", initials: "A", color: "#d2bd9e" },
@@ -10,29 +13,8 @@ const demoMembers = [
   { id: "emma", name: "Emma", initials: "Em", color: "#cabbce" },
   { id: "leo", name: "Leo", initials: "L", color: "#c7d29c" },
 ] as const;
-const memberSchema = z.string().min(1);
 export interface FamilyMember { id: string; name: string; initials: string; color: string }
-export function isPlannerDate(value: string | null): value is string {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const parsed = new Date(`${value}T12:00:00Z`);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
-}
 export const newPlannerId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-const dateSchema = z.string().refine(isPlannerDate);
-const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-const eventSchema = z.object({
-  id: z.string(), title: z.string().trim().min(1).max(100), date: dateSchema,
-  time: timeSchema, endTime: timeSchema.optional(), member: memberSchema,
-  location: z.string().max(150), note: z.string().max(200),
-}).refine(event => !event.endTime || event.endTime > event.time);
-const itemSchema = z.object({
-  id: z.string(), text: z.string().trim().min(1).max(120),
-  kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema,
-  done: z.boolean(), completedOn: z.string().optional(),
-});
-const calendarSettingsSchema = z.object({
-  view: z.enum(["people", "week"]), startDay: z.enum(["today", "monday"]),
-});
 const plannerSchema = z.object({
   events: z.array(eventSchema), items: z.array(itemSchema),
   timetables: z.record(z.union([z.string().transform(url => url ? [url] : []), z.array(z.string())])),
@@ -49,7 +31,6 @@ export type FamilyEvent = z.infer<typeof eventSchema> & {
   calendarSpan?: { id: string; firstDay: string; lastDay: string };
 };
 export type ListItem = z.infer<typeof itemSchema>;
-type Planner = z.infer<typeof plannerSchema>;
 export type MemberId = z.infer<typeof memberSchema>;
 export type ListKind = ListItem["kind"];
 
@@ -119,19 +100,22 @@ interface FamilyContextValue extends Planner {
   now: Date; today: string; time: string; saved: boolean;
   plannerId: string; plannerIds: string[]; selectPlanner: (id: string) => void;
   calendarStart: string;
+  exportConfiguration: () => Configuration;
+  importConfiguration: (configuration: Configuration) => Promise<void>;
+  browserConfiguration: () => Configuration;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   compareMembers: (a: MemberId, b: MemberId) => number;
   moveMember: (id: MemberId, direction: -1 | 1) => void;
-  setHomeEntities: (instance: string, ids: string[]) => void;
+  setHomeEntities: (instance: string, ids: string[]) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
-  saveEvent: (event: FamilyEvent) => void;
-  deleteEvent: (id: string) => void;
-  addItem: (text: string, kind: ListKind, member: MemberId) => void;
+  saveEvent: (event: FamilyEvent) => boolean;
+  deleteEvent: (id: string) => boolean;
+  addItem: (text: string, kind: ListKind, member: MemberId) => boolean;
   renameItem: (id: string, text: string) => boolean;
-  toggleItem: (id: string) => void;
-  deleteItem: (id: string) => void;
-  setTimetable: (child: MemberId, urls: string[]) => void;
+  toggleItem: (id: string) => boolean;
+  deleteItem: (id: string) => boolean;
+  setTimetable: (child: MemberId, urls: string[]) => boolean;
   hasTimetable: (member: MemberId) => boolean;
   setTimetableEnabled: (member: MemberId, enabled: boolean) => void;
 }
@@ -142,9 +126,13 @@ export function useFamily() {
   return value;
 }
 export function FamilyProvider({ children }: { children: ReactNode }) {
+  return <SharedConfigurationProvider><FamilySelection>{children}</FamilySelection></SharedConfigurationProvider>;
+}
+function FamilySelection({ children }: { children: ReactNode }) {
   const { currentHome, haUrl } = useApp();
+  const shared = useSharedConfiguration();
   // Keep the original household keys; HA connection changes never migrate local data.
-  const [plannerIds] = useState(() => {
+  const [localPlannerIds] = useState(() => {
     const ids = new Set(["home-1"]);
     try {
       for (let i = 0; i < localStorage.length; i++) {
@@ -154,10 +142,15 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
     } catch { /* Local storage may be unavailable. */ }
     return [...ids];
   });
+  const plannerIds = [...new Set([...localPlannerIds, ...Object.keys(shared?.state.config.planners ?? {})])];
   const [plannerId, setPlannerId] = useState(() => {
     try { const id = localStorage.getItem("afterglow-selected-planner"); if (plannerIds.includes(id)) return id; } catch { /* Use the existing default. */ }
     return "home-1";
   });
+  useEffect(() => {
+    const ids = Object.keys(shared?.state.config.planners ?? {});
+    if (shared?.enabled && shared.state.loaded && ids.length && !ids.includes(plannerId)) setPlannerId(ids[0]);
+  }, [shared?.enabled, shared?.state.loaded, shared?.state.config, plannerId]);
   const selectPlanner = (id: string) => {
     if (!plannerIds.includes(id)) return;
     setPlannerId(id);
@@ -168,6 +161,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 }
 function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: { children: ReactNode; homeId: string; timeZone: string; plannerIds: string[]; selectPlanner: (id: string) => void }) {
   const { currentHome, haUrl } = useApp();
+  const shared = useSharedConfiguration();
   const connectedPlanner = !!haUrl;
   const availableMembers: FamilyMember[] = connectedPlanner ? currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
     id: person.preferenceId, name: person.name,
@@ -177,9 +171,8 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
   const [now, setNow] = useState(() => new Date());
   const today = homeDate(now, timeZone);
   const time = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
-  // ponytail: this planner is local to one browser; replace the store when family accounts/sync are connected.
   const key = connectedPlanner ? `afterglow-connected-planner-v1:${haUrl}:${homeId}` : `afterglow-planner-v1:${homeId}`;
-  const [planner, setPlanner] = useState<Planner>(() => {
+  const [localPlanner, setLocalPlanner] = useState<Planner>(() => {
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
@@ -196,22 +189,54 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     try { preferences = plannerSchema.partial().parse(JSON.parse(localStorage.getItem(`afterglow-planner-v1:${homeId}`) ?? "{}")); } catch { /* Start with empty preferences. */ }
     return { events: [], items: [], timetables: {}, timetableEnabled: {}, calendarMembers: {}, todoLists: {}, memberOrder: [], calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
   });
+  const stored = shared?.state.config.planners[homeId];
+  const planner = shared?.enabled ? stored ? remapPlanner(stored.planner, stored.instanceUrl, haUrl) : emptyPlanner() : localPlanner;
+  const setPlanner = (change: (value: Planner) => Planner) => {
+    if (!shared?.enabled) { setLocalPlanner(change); return true; }
+    try { shared.store.updatePlanner(homeId, haUrl, change); return true; }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Configuration could not be saved."); return false; }
+  };
+  const browserConfiguration = (): Configuration => {
+    const config = emptyConfiguration();
+    const prefix = haUrl ? `afterglow-connected-planner-v1:${haUrl}:` : "afterglow-planner-v1:";
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (!key?.startsWith(prefix) || key.endsWith(":unreadable-backup")) continue;
+      const data = plannerSchema.parse(JSON.parse(localStorage.getItem(key)));
+      config.planners[key.slice(prefix.length)] = { instanceUrl: haUrl, planner: data };
+    }
+    if (!shared?.enabled) config.planners[homeId] = { instanceUrl: haUrl, planner: localPlanner };
+    return parseConfiguration(JSON.stringify(config));
+  };
+  const exportConfiguration = (): Configuration => shared?.enabled ? shared.state.config : { ...emptyConfiguration(), planners: { [homeId]: { instanceUrl: haUrl, planner: localPlanner } } };
+  const importConfiguration = async (input: Configuration) => {
+    const config = parseConfiguration(JSON.stringify(input));
+    if (shared?.enabled) { await shared.store.replace(config); return; }
+    const entries = Object.values(config.planners);
+    if (entries.length !== 1) throw new Error("Browser-only mode restores one planner at a time. Use the storage server to restore a full instance backup.");
+    const next = remapPlanner(entries[0].planner, entries[0].instanceUrl, haUrl);
+    try { localStorage.setItem(key, JSON.stringify(next)); }
+    catch { throw new Error("This browser cannot save the backup. The current planner has not been replaced."); }
+    setLocalPlanner(next);
+  };
   const memberIds = [...new Set([...planner.memberOrder, ...availableMembers.map(member => member.id)])].filter(id => id !== "everyone");
   const memberRanks = new Map(["everyone", ...memberIds].map((id, index) => [id, index]));
   const compareMembers = (a: MemberId, b: MemberId) => (memberRanks.get(a) ?? memberRanks.size) - (memberRanks.get(b) ?? memberRanks.size);
   const members = availableMembers.sort((a, b) => compareMembers(a.id, b.id));
-  const [saved, setSaved] = useState(true);
+  const [locallySaved, setSaved] = useState(true);
+  const saved = shared?.enabled ? shared.state.loaded && !shared.state.dirty : locallySaved;
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000 * 15);
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(planner)); setSaved(true); }
+    if (shared?.enabled) return;
+    try { localStorage.setItem(key, JSON.stringify(localPlanner)); setSaved(true); }
     catch { setSaved(false); toast.error("This browser cannot save changes. Keep this tab open to retain your planner."); }
-  }, [key, planner]);
+  }, [key, localPlanner, shared?.enabled]);
   return <FamilyContext.Provider value={{ ...planner, members, connectedPlanner, compareMembers,
     memberName: id => id === "everyone" ? "Everyone" : members.find(m => m.id === id)?.name ?? "Person unavailable",
-    now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner,
+    now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner, exportConfiguration, importConfiguration, browserConfiguration,
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
     moveMember: (id, direction) => {
@@ -236,33 +261,33 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
       return { ...p, todoLists };
     }),
     saveEvent: event => {
-      if (event.calendarId) return;
+      if (event.calendarId) return false;
       const valid = eventSchema.safeParse(event);
-      if (!valid.success) { toast.error("Check the event details before saving."); return; }
-      setPlanner(p => ({ ...p, events: sortEvents([...p.events.filter(e => e.id !== event.id), valid.data]) }));
+      if (!valid.success) { toast.error("Check the event details before saving."); return false; }
+      return setPlanner(p => ({ ...p, events: sortEvents([...p.events.filter(e => e.id !== event.id), valid.data]) }));
     },
     deleteEvent: id => setPlanner(p => ({ ...p, events: p.events.filter(e => e.id !== id) })),
     addItem: (text, kind, member) => {
       const valid = itemSchema.safeParse({ id: newPlannerId(), text, kind, member, done: false });
-      if (valid.success) setPlanner(p => ({ ...p, items: [...p.items, valid.data] }));
+      return valid.success && setPlanner(p => ({ ...p, items: [...p.items, valid.data] }));
     },
     toggleItem: id => setPlanner(p => ({ ...p, items: p.items.map(i => i.id === id ? { ...i, done: !itemIsDone(i, today), completedOn: itemIsDone(i, today) ? "" : today } : i) })),
     renameItem: (id, text) => {
       const valid = itemSchema.shape.text.safeParse(text);
       if (!valid.success) { toast.error("Enter an item within 120 characters."); return false; }
-      setPlanner(p => ({ ...p, items: p.items.map(item => item.id === id ? { ...item, text: valid.data } : item) }));
-      return true;
+      return setPlanner(p => ({ ...p, items: p.items.map(item => item.id === id ? { ...item, text: valid.data } : item) }));
     },
     deleteItem: id => setPlanner(p => ({ ...p, items: p.items.filter(i => i.id !== id) })),
     hasTimetable: member => planner.timetableEnabled[member] ?? !!planner.timetables[member]?.length,
     setTimetableEnabled: (member, enabled) => setPlanner(p => ({ ...p, timetableEnabled: { ...p.timetableEnabled, [member]: enabled } })),
     setTimetable: (child, urls) => {
       const pages = urls.map(url => url.trim()).filter(Boolean);
-      if (!pages.length) { toast.error("Add at least one timetable image URL."); return; }
+      if (!pages.length) { toast.error("Add at least one timetable image URL."); return false; }
       try { if (pages.some(url => !/^https?:$/.test(new URL(url, window.location.origin).protocol))) throw new Error(); }
-      catch { toast.error("Use an HTTP or HTTPS image URL for every page."); return; }
-      setPlanner(p => ({ ...p, timetables: { ...p.timetables, [child]: pages } }));
-      toast.success("Timetable updated on this screen");
+      catch { toast.error("Use an HTTP or HTTPS image URL for every page."); return false; }
+      if (!setPlanner(p => ({ ...p, timetables: { ...p.timetables, [child]: pages } }))) return false;
+      toast.success(shared?.enabled ? "Timetable updated" : "Timetable updated on this screen");
+      return true;
     },
   }}>{children}</FamilyContext.Provider>;
 }

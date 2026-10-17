@@ -1,5 +1,5 @@
 name: Home Harmony UI
-version: "0.1.0"
+version: "0.2.0"
 slug: home_harmony_ui
 description: Afterglow family dashboard, calendars, lists and smart-home controls
 url: https://github.com/cskogstrand/home-harmony-ui
@@ -14,5 +14,7 @@ ports:
 ports_description:
   8099/tcp: Dashboard web interface (HTTP)
 webui: http://[HOST]:[PORT:8099]/
-options: {}
-schema: {}
+options:
+  home_assistant_url: http://homeassistant:8123
+schema:
+  home_assistant_url: url

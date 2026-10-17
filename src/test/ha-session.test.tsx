@@ -46,6 +46,22 @@ const connectedClient = async () => {
 };
 const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
+
+it("authenticates shared storage with a refreshed bearer token and rejects late responses after logout", async () => {
+  const client = await connectedClient();
+  Object.defineProperty(auth, "expired", { value: true, configurable: true });
+  vi.mocked(auth.refreshAccessToken).mockImplementation(async () => { Object.defineProperty(auth, "accessToken", { value: "fixture-renewed-access", configurable: true }); });
+  const read = deferred<Response>();
+  const fetch = vi.fn().mockReturnValue(read.promise);
+  vi.stubGlobal("fetch", fetch);
+  const request = client.configurationRequest("GET");
+  const rejected = expect(request).rejects.toThrow(/Shared storage/);
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/config", expect.objectContaining({ credentials: "omit", redirect: "error", headers: { Authorization: "Bearer fixture-renewed-access" } })));
+  await client.logout();
+  read.resolve(new Response("{}", { status: 200 }));
+  await rejected;
+  await expect(client.configurationRequest("GET")).rejects.toThrow(/Connect to Home Assistant/);
+});
 beforeEach(() => {
   vi.clearAllMocks();
   clients = [];

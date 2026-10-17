@@ -78,7 +78,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     setError("");
     if (!remote) {
       if (endTime && endTime <= draft.time) { setError("End time must be after the start time."); return; }
-      saveEvent({ ...draft, endTime: endTime || undefined }); onOpenChange(false); return;
+      if (saveEvent({ ...draft, endTime: endTime || undefined })) onOpenChange(false); return;
     }
     setSaving(true);
     try {
@@ -102,7 +102,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const remove = async () => {
     if (!confirmDelete || !canDelete) return false;
     setError("");
-    if (!editingRemote) { deleteEvent(event.id); onOpenChange(false); return; }
+    if (!editingRemote) { if (!deleteEvent(event.id)) return false; onOpenChange(false); return; }
     setDeleting(true);
     try {
       await command(calendar.entityId, "delete_event", { uid: source.uid, ...(source.recurrence_id && { recurrence_id: source.recurrence_id }) });
@@ -173,5 +173,5 @@ export function SchoolPreview({ child }: { child: MemberId }) {
   return <><div className="school-preview">
     <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? "Year 5" : "Year 2"}</span>}<Maximize2 size={16} /></div>
     <TimetablePages child={child} onEnlarge={setOpenPage} />
-  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Timetable pages saved on this screen. Change their URLs in School.</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
+  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Saved timetable pages. Change their URLs in School.</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
 }

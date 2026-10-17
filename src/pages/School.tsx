@@ -20,7 +20,7 @@ function SchoolCard({ child }: { child: MemberId }) {
       if ((timetables[child] ?? []).some(url => !pages.includes(url))) setReplacement(pages);
       else setTimetable(child, pages);
     }}><label>Timetable image URLs<textarea aria-label={`${memberName(child)} timetable image URLs`} required rows={4} value={urls} onChange={e => setUrls(e.target.value)} placeholder={"https://school.example/timetable-1.png\nhttps://school.example/timetable-2.png"} /></label><Button type="submit"><Save size={17} />Save image URLs</Button><p className="muted">Add one direct image link per line, in page order. PNG, JPG and SVG work. Remove or reorder lines to change the pages.</p></form>}
-    {replacement && <ConfirmDialog open onOpenChange={open => { if (!open) setReplacement(undefined); }} title="Replace timetable images?" description={`Save these image URLs for ${memberName(child)}? Removed pages will no longer appear, and their saved links will be lost.`} confirmLabel="Replace images" destructive onConfirm={() => setTimetable(child, replacement)} />}
+    {replacement && <ConfirmDialog open onOpenChange={open => { if (!open) setReplacement(undefined); }} title="Replace timetable images?" description={`Save these image URLs for ${memberName(child)}? Removed pages will no longer appear, and their saved links will be lost.`} confirmLabel="Replace images" destructive onConfirm={() => { setTimetable(child, replacement); }} />}
   </article>;
 }
 export default function School() {
@@ -29,6 +29,6 @@ export default function School() {
   return <div className="planner-page"><PageHeading eyebrow="ONE LESS MORNING SCRAMBLE" title="School, sorted." description="The week ahead, straight from the school timetable." />
     {!people.length && <section className="glow-panel"><p>No timetables enabled. Choose who has a timetable in Home settings.</p></section>}
     <div className="school-cards">{people.map(person => <SchoolCard key={person.id} child={person.id} />)}</div>
-    <p className="page-note"><Link className="text-link" to="/settings#people-order">Choose people with timetables</Link>. Swipe between pages or use the arrows, then tap a page to enlarge it. Image URLs are saved on this screen.</p>
+    <p className="page-note"><Link className="text-link" to="/settings#people-order">Choose people with timetables</Link>. Swipe between pages or use the arrows, then tap a page to enlarge it. Image URLs are saved with your planner.</p>
   </div>;
 }

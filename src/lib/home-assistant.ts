@@ -417,6 +417,26 @@ export class HomeAssistantClient {
       void load();
     });
   };
+  configurationRequest = async (method: "GET" | "PUT", body?: string, revision?: string): Promise<Response> => {
+    const auth = this.auth;
+    const generation = this.generation;
+    if (!auth || this.snapshot.status !== "connected") throw new Error("Connect to Home Assistant to use shared storage.");
+    const controller = new AbortController();
+    this.requests.add(controller);
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      if (auth.expired) await bounded(auth.refreshAccessToken());
+      if (generation !== this.generation || controller.signal.aborted) throw new Error();
+      const response = await fetch("/api/config", { method, body, credentials: "omit", redirect: "error", signal: controller.signal,
+        headers: { Authorization: `Bearer ${auth.accessToken}`, ...(body ? { "Content-Type": "application/json", "If-Match": `"${revision}"` } : {}) } });
+      // Consume the response before removing its cancellation guard.
+      const text = await response.text();
+      if (generation !== this.generation || controller.signal.aborted) throw new Error();
+      return new Response(text, { status: response.status, headers: response.headers });
+    } catch { throw new Error("Shared storage could not be reached. Reconnect and retry; your unsaved changes are still on this screen."); }
+    finally { clearTimeout(timer); this.requests.delete(controller); }
+  };
+
   calendarEvents = async (entityId: string, start: string, end: string, signal: AbortSignal): Promise<CalendarEvent[]> => {
     const auth = this.auth;
     const generation = this.generation;

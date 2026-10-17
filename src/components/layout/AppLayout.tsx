@@ -5,12 +5,14 @@ import { HomeSwitcher } from "./HomeSwitcher";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
+import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Moon, Settings, Wifi, WifiOff } from "lucide-react";
 
 export function AppLayout() {
   const { currentUser, homeOnline } = useApp();
   const { saved } = useFamily();
+  const shared = useSharedConfiguration();
   const { pathname, hash } = useLocation();
   useEffect(() => {
     const section = hash && document.getElementById(hash.slice(1));
@@ -23,11 +25,12 @@ export function AppLayout() {
       </div>
     </header>
     <ConnectionBanner />
+    {shared?.enabled && (!saved || shared.state.error || !shared.online) && <div role="status" className="border-b bg-secondary px-4 py-3 text-sm">{shared.state.error || (!shared.online ? "Connect to Home Assistant to load and save shared settings." : shared.state.saving ? "Saving shared settings…" : "Shared settings are not saved yet.")} <Link className="text-link" to="/user-settings">Storage and backups</Link></div>}
     <main id="main-content" className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
       <Outlet />
     </main>
-    <footer className="app-footer"><span>Local family planner · {saved ? "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
+    <footer className="app-footer"><span>{shared?.enabled ? "Shared family planner" : "Local family planner"} · {saved ? shared?.enabled ? "Planner saved on the server" : "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
     <MainNav />
   </div>;
 }

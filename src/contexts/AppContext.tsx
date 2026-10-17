@@ -11,7 +11,7 @@ function useHomeAssistant() {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
     connectionError: state.error, metadataWarnings: state.warnings, sessionWarning: state.sessionWarning, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
-    logout: client.logout, command: client.command, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems,
+    logout: client.logout, command: client.command, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest,
     compactMode, toggleCompactMode: () => setCompactMode(value => !value) };
 }
 const AppContext = createContext<ReturnType<typeof useHomeAssistant> | null>(null);

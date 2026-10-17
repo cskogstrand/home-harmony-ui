@@ -9,4 +9,8 @@
 !src/**
 !public/
 !public/**
-!nginx.conf
+!shared/
+!shared/**
+!server/
+!server/**
+server/*.test.mjs
