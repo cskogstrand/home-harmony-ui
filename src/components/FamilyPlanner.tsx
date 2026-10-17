@@ -139,7 +139,7 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   const { storageRequest } = useApp();
   const { appearance } = useFamily();
   const privateImage = !!imageUrl && timetableImagePath.test(imageUrl);
-  const selectedUrl = privateImage ? imageUrl.replace(/(\.png|-dark\.svg)$/, appearance.darkTimetables ? "-dark.svg" : ".png") : imageUrl;
+  const selectedUrl = privateImage ? imageUrl.replace(/-dark\.svg$/, ".png") : imageUrl;
   const [loaded, setLoaded] = useState<{ url: string; src: string }>();
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -158,7 +158,7 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   const src = privateImage ? loaded?.url === selectedUrl ? loaded.src : undefined : selectedUrl;
   if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>Loading timetable…</p></div>;
   return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "Set up a school timetable in this app."}</p><small>{privateImage ? "Reconnect or reload to try again." : imageUrl ? "Check its URL in School." : "Upload a PDF or add an image URL in School."}</small></div> :
-    <img className="timetable-image" src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
+    <img className={`timetable-image${privateImage && appearance.darkTimetables ? " timetable-image-dark" : ""}`} src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
 }
 function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {
   const { timetables, memberName } = useFamily();

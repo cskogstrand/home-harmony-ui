@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.4
+
+- Apply dark timetable colors directly to the original PNG instead of displaying a filtered SVG that can blur text.
+- Use the same original image in previews and enlarged views, including existing uploads and saved dark-image URLs. No re-upload is needed.
+
 ## 0.7.3
 
 - Render timetable PDFs at 6,000 pixels on the longest edge for sharper normal and dark images.

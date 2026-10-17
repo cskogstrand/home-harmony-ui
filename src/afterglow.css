@@ -140,6 +140,8 @@
 .school-preview > div:first-child > svg { margin-left: auto; color: hsl(var(--muted-foreground)); }
 .school-preview:hover { border-color: hsl(var(--primary) / .6); }
 .timetable-image { width: 100%; display: block; height: auto; border-radius: 7px; }
+/* Color the original PNG directly to avoid rasterizing it through a filtered SVG. */
+.timetable-image-dark { filter: invert(.9) hue-rotate(180deg); }
 .timetable-page { display: block; width: 100%; border-radius: 7px; }
 .timetable-carousel { min-width: 0; }
 .timetable-pages { touch-action: pan-y pinch-zoom; }

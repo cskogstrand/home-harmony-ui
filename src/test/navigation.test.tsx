@@ -96,11 +96,11 @@ it("offers the signed iOS shortcut with each person's upload destination", async
   }
 });
 
-it("shares the dark timetable preference across previews and enlarged views independently of the app theme", async () => {
+it.each([".png", "-dark.svg"])("colors the original PNG for saved %s timetables across previews and enlarged views", async extension => {
   const imagePath = "/api/timetables/emma/00000000-0000-4000-8000-000000000000/1.png";
   const darkPath = imagePath.replace(/\.png$/, "-dark.svg");
   settings.settings.appearance.theme = "light";
-  settings.settings.timetables = { "home|person.emma": [imagePath], "home|person.leo": ["/linked.svg"] };
+  settings.settings.timetables = { "home|person.emma": [imagePath.replace(/\.png$/, extension)], "home|person.leo": ["/linked.svg"] };
   settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
   app.storageRequest.mockReset().mockImplementation(async path => new Response("image", { headers: { "Content-Type": path.endsWith(".svg") ? "image/svg+xml" : "image/png" } }));
   vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL: vi.fn((blob: Blob) => `blob:${blob.type}`), revokeObjectURL: vi.fn() }));
@@ -115,15 +115,19 @@ it("shares the dark timetable preference across previews and enlarged views inde
   for (const path of ["/", "/school"]) {
     window.history.replaceState(null, "", path);
     const view = render(<App />); await saved();
-    await waitFor(() => expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/svg+xml"));
-    expect(app.storageRequest).toHaveBeenLastCalledWith(darkPath);
+    await waitFor(() => expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/png"));
+    expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveClass("timetable-image-dark");
+    expect(app.storageRequest).toHaveBeenLastCalledWith(imagePath);
+    expect(app.storageRequest).not.toHaveBeenCalledWith(darkPath);
     expect(screen.getByRole("img", { name: "Leo’s school timetable" })).toHaveAttribute("src", "/linked.svg");
+    expect(screen.getByRole("img", { name: "Leo’s school timetable" })).not.toHaveClass("timetable-image-dark");
     fireEvent.click(screen.getByRole("button", { name: "Enlarge Emma’s timetable" }));
     const dialog = within(screen.getByRole("dialog", { name: "Emma’s school week" }));
-    await waitFor(() => expect(dialog.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/svg+xml"));
+    await waitFor(() => expect(dialog.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/png"));
+    expect(dialog.getByRole("img", { name: "Emma’s school timetable" })).toHaveClass("timetable-image-dark");
     view.unmount();
   }
-  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:image/svg+xml");
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:image/png");
 
   window.history.replaceState(null, "", "/user-settings");
   const nextPreferences = render(<App />); await saved();
@@ -133,6 +137,7 @@ it("shares the dark timetable preference across previews and enlarged views inde
   window.history.replaceState(null, "", "/school");
   render(<App />); await saved();
   await waitFor(() => expect(screen.getByRole("img", { name: "Emma’s school timetable" })).toHaveAttribute("src", "blob:image/png"));
+  expect(screen.getByRole("img", { name: "Emma’s school timetable" })).not.toHaveClass("timetable-image-dark");
   expect(app.storageRequest).toHaveBeenLastCalledWith(imagePath);
 });
 
