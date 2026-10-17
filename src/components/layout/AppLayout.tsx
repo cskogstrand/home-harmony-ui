@@ -8,6 +8,9 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Moon, Settings, Wifi, WifiOff } from "lucide-react";
+import appConfig from "../../../config.yaml?raw";
+
+const appVersion = appConfig.match(/^version:\s*["']?([^"'\s]+)/m)![1];
 
 export function AppLayout() {
   const { currentUser, homeOnline } = useApp();
@@ -30,7 +33,7 @@ export function AppLayout() {
       {isHomeSection(pathname) && <SmartHomeNav />}
       <Outlet />
     </main>
-    <footer className="app-footer"><span>{shared?.enabled ? "Shared app settings" : "Local family planner"} · {saved ? shared?.enabled ? "Settings saved on the server" : "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
+    <footer className="app-footer"><span><span className="whitespace-nowrap">Version {appVersion}</span> · {shared?.enabled ? "Shared app settings" : "Local family planner"} · {saved ? shared?.enabled ? "Settings saved on the server" : "Planner saved on this screen" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
     <MainNav />
   </div>;
 }

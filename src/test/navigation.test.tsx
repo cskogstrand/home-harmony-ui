@@ -3,6 +3,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import App from "@/App";
 import { addDays, homeDate, weekStart, isPlannerDate, itemIsDone } from "@/contexts/FamilyContext";
 
+vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
+
 beforeEach(() => {
   vi.stubEnv("MODE", "browser");
   const storage = new Map<string, string>();
@@ -19,6 +21,7 @@ const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navi
 it("starts with configuration and honest empty states while preserving navigation", async () => {
   render(<App />);
   expect(screen.getByRole("heading", { level: 1, name: "Good to be home." })).toBeInTheDocument();
+  expect(screen.getByRole("contentinfo")).toHaveTextContent("Version 9.8.7");
   expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
   navigate("Smart home");
   fireEvent.click(screen.getByRole("link", { name: /Configure Home Assistant/ }));
@@ -29,6 +32,7 @@ it("starts with configuration and honest empty states while preserving navigatio
     expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   }
   expect(screen.queryByText(/Demo|Viking Guard|1234/)).not.toBeInTheDocument();
+  expect(screen.getByRole("contentinfo")).toHaveTextContent("Version 9.8.7");
 });
 
 it("saves shopping items and daily completion across navigation and a reload", () => {

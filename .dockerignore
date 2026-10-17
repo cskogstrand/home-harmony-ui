@@ -1,6 +1,7 @@
 *
 !package.json
 !package-lock.json
+!config.yaml
 !index.html
 !vite.config.ts
 !tsconfig*.json
