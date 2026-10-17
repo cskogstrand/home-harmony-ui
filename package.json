@@ -13,6 +13,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:ha-app": "node scripts/test-ha-app.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {

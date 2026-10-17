@@ -2,6 +2,16 @@
 
 A React 18 / TypeScript / Vite family dashboard with a direct local Home Assistant connection. Home Assistant supplies smart-home state, calendars and to-do lists; local plans and dashboard assignments stay in this browser.
 
+## Install on Home Assistant OS
+
+[Add this app repository to Home Assistant](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fcskogstrand%2Fhome-harmony-ui).
+
+Or open **Settings → Apps → Install app → ⋮ → Repositories** (older versions: **Add-ons → Add-on Store**) and add `https://github.com/cskogstrand/home-harmony-ui`. Install **Home Harmony UI**, start it, and select **Open Web UI**. Supports `aarch64` and `amd64`; Home Assistant builds the container directly from this repository, so the first install can take several minutes.
+
+The dashboard runs at `http://<HA-device>:8099` with its existing Home Assistant browser login. It opens separately from HA, without ingress/sidebar embedding. Add that exact dashboard origin to HA's CORS allowed origins for calendar REST access. The port is configurable in the app's Network settings. Local planner data remains browser-local and is not part of HA app backups; changing from a development URL to the app URL starts a separate dataset.
+
+See [installation, networking and updates](DOCS.md). These files must be pushed before the app appears in Home Assistant, and the repository must be public for installation from the plain URL above without credentials. This package does not change repository visibility.
+
 ## Run and connect locally
 
 Requires Node.js 20, 22, or 24+, npm, and Home Assistant **2023.9 or newer**. Browser baseline: Safari 16.4+, Chrome 111+, Firefox 128+.
@@ -101,6 +111,8 @@ npx tsc -p tsconfig.app.json --noEmit
 npm run build
 npm run lint
 ```
+
+With Docker running, `npm run test:ha-app` builds and starts the actual app image, checks static assets, deep links, OAuth callback fallback and logging, then removes the test container. It only binds an ephemeral localhost port. `config.yaml` and `Dockerfile` live at the repository root so Supervisor's source build includes the existing app directly. No prebuilt image publication is needed. Bump `config.yaml`'s version and update `CHANGELOG.md` with each app release so HA offers an update. See [Home Assistant's app repository documentation](https://contributors.home-assistant.io/apps/guides/repository/).
 
 Focused Vitest/Testing Library fixtures cover mapping, capabilities, units/missing values, payload conversions, authentication callback cleanup, refresh/new-tab recovery and token renewal, logout/revocation across tabs and delayed callbacks, corrupt/denied storage, connection teardown/reconnect, stale controls, rejected/in-flight commands without replay, transient alarm codes, calendar ranges, and preservation of local family data/navigation. These are controlled tests, not live HA validation. Before relying on a household connection, verify browser login, permissions, registry access, calendar CORS and your integration-specific behavior. No real lock, alarm or other physical device was operated during implementation.
 
