@@ -6,10 +6,10 @@ import { emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shar
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { timeZone: "UTC", entities: [] }, configurationRequest: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
-const backup = () => ({ ...emptyConfiguration(), planners: { "home-1": { instanceUrl: app.haUrl, planner: { ...emptyPlanner(), memberOrder: ["restored-person"] } } } });
+const backup = () => ({ ...emptyConfiguration(), planners: { "home-1": { instanceUrl: app.haUrl, planner: { ...emptyPlanner(), memberOrder: ["restored-person"], hiddenMembers: ["restored-person"] } } } });
 function Probe() {
-  const { memberOrder, setCalendarSettings } = useFamily();
-  return <><output aria-label="People order">{memberOrder.join(",")}</output><button onClick={() => setCalendarSettings({ view: "people" })}>Change view</button></>;
+  const { memberOrder, hiddenMembers, setCalendarSettings } = useFamily();
+  return <><output aria-label="People order">{memberOrder.join(",")}</output><output aria-label="Hidden people">{hiddenMembers.join(",")}</output><button onClick={() => setCalendarSettings({ view: "people" })}>Change view</button></>;
 }
 const mount = () => render(<FamilyProvider><ConfigurationBackup /><Probe /></FamilyProvider>);
 const upload = async (contents: string) => {
@@ -42,6 +42,7 @@ it("confirms restore, leaves cancellation untouched, and applies a validated bac
   await upload(JSON.stringify(backup()));
   await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
   expect(screen.getByLabelText("People order")).toHaveTextContent("restored-person");
+  expect(screen.getByLabelText("Hidden people")).toHaveTextContent("restored-person");
   expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 });
 
@@ -98,6 +99,7 @@ it("exports only configuration and can restore it in browser-only mode", async (
   await upload(JSON.stringify(backup()));
   await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
   await waitFor(() => expect(screen.getByLabelText("People order")).toHaveTextContent("restored-person"));
+  expect(screen.getByLabelText("Hidden people")).toHaveTextContent("restored-person");
   expect(localStorage.getItem("home-harmony:ha-session")).toBe("fixture-private-login");
   expect(app.configurationRequest).not.toHaveBeenCalled();
 });

@@ -1448,6 +1448,57 @@ it("uses saved people order for connected lists and retains missing people and i
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
+it("hides connected people and their plans and lists without losing assignments", async () => {
+  const { key, household } = setupWritableCalendars();
+  const morgan = "http://ha.local:8123|person.morgan";
+  const planner = { ...JSON.parse(localStorage.getItem(key)!),
+    events: [{ id: "local", title: "Morgan local plan", date: "2026-10-07", time: "14:00", member: morgan, location: "", note: "" }],
+    todoLists: { "http://ha.local:8123|todo.morgan": { kind: "daily", member: morgan }, "http://ha.local:8123|todo.shared": { kind: "daily", member: "everyone" } },
+  };
+  localStorage.setItem(key, JSON.stringify(planner));
+  vi.mocked(fetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.morgan") ? [
+    { uid: "remote", summary: "Morgan remote plan", start: "2026-10-07T13:00:00Z", end: "2026-10-07T14:00:00Z" },
+  ] : [] }) as Response);
+  window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
+  const view = render(<App />);
+  expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
+  expect(screen.getByRole("button", { name: "Remove Morgan calendar from Morgan" })).toBeInTheDocument();
+  expect(screen.getByRole("combobox", { name: "Daily tasks for Morgan" })).toHaveValue("http://ha.local:8123|todo.morgan");
+  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  nav("Today");
+  expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone"]);
+  expect(screen.queryByText("Morgan remote plan")).not.toBeInTheDocument();
+  expect(screen.queryByText("Morgan local plan")).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "Morgan daily tasks" })).not.toBeInTheDocument();
+  expect(screen.getByRole("group", { name: "Everyone daily tasks" })).toBeInTheDocument();
+  expect(screen.queryByText(/select calendars under each person/)).not.toBeInTheDocument();
+  act(() => conn.entityCallback?.(states));
+  expect(screen.queryByRole("rowheader", { name: "Person unavailable" })).not.toBeInTheDocument();
+  act(() => conn.entityCallback?.(household));
+  nav("Lists");
+  expect(screen.queryByRole("group", { name: "Morgan daily tasks" })).not.toBeInTheDocument();
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  window.history.replaceState(null, "", "/settings");
+  const restored = render(<App />);
+  expect(await screen.findByRole("switch", { name: "Show Morgan in family planner" })).not.toBeChecked();
+  expect(JSON.parse(localStorage.getItem(key)!)).toMatchObject({ ...planner, hiddenMembers: [morgan] });
+  fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
+  nav("Our week");
+  expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
+  expect(screen.getByText("Morgan local plan")).toBeInTheDocument();
+  nav("Lists");
+  expect(screen.getByRole("group", { name: "Morgan daily tasks" })).toBeInTheDocument();
+  restored.unmount();
+  localStorage.setItem("home-harmony:ha-url", "http://other.local:8123");
+  render(<App />);
+  expect(JSON.parse(localStorage.getItem("afterglow-connected-planner-v1:http://other.local:8123:home-1")!).hiddenMembers).toEqual([]);
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
 it("remembers timetable toggles across school, dashboard and reload without losing saved images", async () => {
   const instance = "http://ha.local:8123";
   const key = `afterglow-connected-planner-v1:${instance}:home-1`;

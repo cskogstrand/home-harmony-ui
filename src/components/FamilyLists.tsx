@@ -80,10 +80,10 @@ function ItemSuggestions({ id, names, text, select }: { id: string; names: strin
   </div>;
 }
 export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
-  const { connectedPlanner, todoLists, compareMembers } = useFamily();
+  const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline, currentHome } = useApp();
   if (!connectedPlanner) return <LocalListPanel kind={kind} limit={limit} />;
-  const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind)
+  const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && isMemberVisible(assigned.member))
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   return <article className={`glow-panel list-panel list-${kind}`}>
     <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
@@ -174,14 +174,14 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
 }
 
 function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
-  const { items, today, toggleItem, addItem, renameItem, deleteItem, compareMembers } = useFamily();
+  const { items, today, toggleItem, addItem, renameItem, deleteItem, compareMembers, isMemberVisible } = useFamily();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ListItem>();
   const [removing, setRemoving] = useState<ListItem>();
   const [text, setText] = useState("");
   const [member, setMember] = useState<MemberId>("everyone");
   const suggestionsId = useId();
-  const list = items.filter(i => i.kind === kind);
+  const list = items.filter(i => i.kind === kind && isMemberVisible(i.member));
   if (kind !== "shopping") list.sort((a, b) => compareMembers(a.member, b.member));
   const completed = list.filter(i => itemIsDone(i, today));
   const pending = list.filter(i => !itemIsDone(i, today));

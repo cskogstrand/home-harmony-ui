@@ -31,10 +31,11 @@ describe("shared configuration", () => {
     const backend = server();
     const a = await backend.start(), b = await backend.start();
     expect(backend.request.mock.calls.every(([method]) => method === "GET")).toBe(true);
-    a.updatePlanner("home-1", url, planner => ({ ...planner, memberOrder: [`${url}|person.one`] }));
+    a.updatePlanner("home-1", url, planner => ({ ...planner, memberOrder: [`${url}|person.one`], hiddenMembers: [`${url}|person.one`] }));
     await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
     await b.refresh();
     expect(b.getSnapshot().config).toEqual(a.getSnapshot().config);
+    expect(b.getSnapshot().config.planners["home-1"].planner.hiddenMembers).toEqual([`${url}|person.one`]);
   });
 
   it("serializes rapid edits made while a save is pending", async () => {
@@ -128,12 +129,13 @@ it("moves instance references across HA addresses without rewriting free text or
   const old = "http://old.local:8123", next = "https://new.local";
   const planner = { ...emptyPlanner(),
     events: [{ id: "event", title: old, date: "2026-10-17", time: "12:00", member: `${old}|person`, location: old, note: old }],
-    memberOrder: [`${old}|person`], timetables: { [`${old}|person`]: [`${old}/local/timetable.jpg`] },
+    memberOrder: [`${old}|person`], hiddenMembers: [`${old}|person`], timetables: { [`${old}|person`]: [`${old}/local/timetable.jpg`] },
     timetableEnabled: { [`${old}|person`]: true }, calendarMembers: { [`${old}|calendar`]: `${old}|person` },
     todoLists: { [`${old}|list`]: { kind: "daily" as const, member: `${old}|person` } }, homeEntities: { [old]: [`${old}|light`] },
   };
   const moved = remapPlanner(planner, old, next);
   expect(moved.memberOrder).toEqual([`${next}|person`]);
+  expect(moved.hiddenMembers).toEqual([`${next}|person`]);
   expect(moved.calendarMembers[`${next}|calendar`]).toBe(`${next}|person`);
   expect(moved.todoLists[`${next}|list`].member).toBe(`${next}|person`);
   expect(moved.homeEntities[next]).toEqual([`${next}|light`]);

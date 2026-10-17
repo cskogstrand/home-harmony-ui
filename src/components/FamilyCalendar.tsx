@@ -115,7 +115,8 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
 // Remote events never enter FamilyContext/localStorage.
 export function useCalendarPlans(start: string, end: string) {
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
-  const { events: localEvents, calendarMembers, members, compareMembers } = useFamily();
+  const { events, calendarMembers, members, compareMembers, isMemberVisible } = useFamily();
+  const localEvents = events.filter(event => isMemberVisible(event.member));
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
@@ -161,7 +162,7 @@ export function useCalendarPlans(start: string, end: string) {
 
 export function CalendarSetupNotice() {
   const { currentHome, homeOnline } = useApp();
-  const { connectedPlanner, members, calendarMembers } = useFamily();
+  const { connectedPlanner, allMembers: members, calendarMembers } = useFamily();
   if (!connectedPlanner) return null;
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const unassigned = calendars.some(e => calendarMembers[e.preferenceId] !== "everyone" && !members.some(m => m.id === calendarMembers[e.preferenceId]));

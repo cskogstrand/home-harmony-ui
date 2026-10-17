@@ -22,6 +22,7 @@ const plannerSchema = z.object({
   calendar: calendarSettingsSchema.catch({ view: "week", startDay: "today" }),
   homeEntities: z.record(z.array(z.string())).catch({}),
   memberOrder: z.array(memberSchema).catch([]),
+  hiddenMembers: z.array(memberSchema).catch([]),
   calendarMembers: z.record(memberSchema).default({}),
   todoLists: z.record(z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema })).default({}),
 });
@@ -78,6 +79,7 @@ function samplePlanner(today: string): Planner {
     calendar: { view: "week", startDay: "today" },
     homeEntities: {},
     memberOrder: [],
+    hiddenMembers: [],
     calendarMembers: {},
     todoLists: {},
     items: [
@@ -96,7 +98,7 @@ function samplePlanner(today: string): Planner {
 }
 
 interface FamilyContextValue extends Planner {
-  members: FamilyMember[]; memberName: (id: MemberId) => string; connectedPlanner: boolean;
+  members: FamilyMember[]; allMembers: FamilyMember[]; memberName: (id: MemberId) => string; connectedPlanner: boolean;
   now: Date; today: string; time: string; saved: boolean;
   plannerId: string; plannerIds: string[]; selectPlanner: (id: string) => void;
   calendarStart: string;
@@ -106,6 +108,8 @@ interface FamilyContextValue extends Planner {
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   compareMembers: (a: MemberId, b: MemberId) => number;
   moveMember: (id: MemberId, direction: -1 | 1) => void;
+  isMemberVisible: (id: MemberId) => boolean;
+  setMemberVisible: (id: MemberId, visible: boolean) => void;
   setHomeEntities: (instance: string, ids: string[]) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
@@ -187,7 +191,7 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     // Old starter data stays intact; only display preferences carry into the real household.
     let preferences: Partial<Planner> = {};
     try { preferences = plannerSchema.partial().parse(JSON.parse(localStorage.getItem(`afterglow-planner-v1:${homeId}`) ?? "{}")); } catch { /* Start with empty preferences. */ }
-    return { events: [], items: [], timetables: {}, timetableEnabled: {}, calendarMembers: {}, todoLists: {}, memberOrder: [], calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
+    return { events: [], items: [], timetables: {}, timetableEnabled: {}, calendarMembers: {}, todoLists: {}, memberOrder: [], hiddenMembers: [], calendar: preferences.calendar ?? { view: "week", startDay: "today" }, homeEntities: preferences.homeEntities ?? {} };
   });
   const stored = shared?.state.config.planners[homeId];
   const planner = shared?.enabled ? stored ? remapPlanner(stored.planner, stored.instanceUrl, haUrl) : emptyPlanner() : localPlanner;
@@ -222,7 +226,9 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
   const memberIds = [...new Set([...planner.memberOrder, ...availableMembers.map(member => member.id)])].filter(id => id !== "everyone");
   const memberRanks = new Map(["everyone", ...memberIds].map((id, index) => [id, index]));
   const compareMembers = (a: MemberId, b: MemberId) => (memberRanks.get(a) ?? memberRanks.size) - (memberRanks.get(b) ?? memberRanks.size);
-  const members = availableMembers.sort((a, b) => compareMembers(a.id, b.id));
+  const allMembers = availableMembers.sort((a, b) => compareMembers(a.id, b.id));
+  const isMemberVisible = (id: MemberId) => id === "everyone" || !planner.hiddenMembers.includes(id);
+  const members = allMembers.filter(member => isMemberVisible(member.id));
   const [locallySaved, setSaved] = useState(true);
   const saved = shared?.enabled ? shared.state.loaded && !shared.state.dirty : locallySaved;
   useEffect(() => {
@@ -234,20 +240,21 @@ function FamilyStore({ children, homeId, timeZone, plannerIds, selectPlanner }: 
     try { localStorage.setItem(key, JSON.stringify(localPlanner)); setSaved(true); }
     catch { setSaved(false); toast.error("This browser cannot save changes. Keep this tab open to retain your planner."); }
   }, [key, localPlanner, shared?.enabled]);
-  return <FamilyContext.Provider value={{ ...planner, members, connectedPlanner, compareMembers,
-    memberName: id => id === "everyone" ? "Everyone" : members.find(m => m.id === id)?.name ?? "Person unavailable",
+  return <FamilyContext.Provider value={{ ...planner, members, allMembers, connectedPlanner, compareMembers, isMemberVisible,
+    memberName: id => id === "everyone" ? "Everyone" : allMembers.find(m => m.id === id)?.name ?? "Person unavailable",
     now, today, time, saved, plannerId: homeId, plannerIds, selectPlanner, exportConfiguration, importConfiguration, browserConfiguration,
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),
     moveMember: (id, direction) => {
-      const index = members.findIndex(member => member.id === id);
-      const neighbor = members[index + direction];
+      const index = allMembers.findIndex(member => member.id === id);
+      const neighbor = allMembers[index + direction];
       if (index < 0 || !neighbor) return;
       const order = [...memberIds];
       const from = order.indexOf(id), to = order.indexOf(neighbor.id);
       [order[from], order[to]] = [order[to], order[from]];
       setPlanner(p => ({ ...p, memberOrder: order }));
     },
+    setMemberVisible: (id, visible) => setPlanner(p => ({ ...p, hiddenMembers: [...p.hiddenMembers.filter(member => member !== id), ...(visible ? [] : [id])] })),
     setHomeEntities: (instance, ids) => setPlanner(p => ({ ...p, homeEntities: { ...p.homeEntities, [instance]: [...new Set(ids)] } })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };

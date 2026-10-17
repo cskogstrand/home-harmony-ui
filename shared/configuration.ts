@@ -35,6 +35,7 @@ export const plannerSchema = z.object({
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
   homeEntities: z.record(keySchema, z.array(memberSchema)).default({}),
   memberOrder: z.array(memberSchema).default([]),
+  hiddenMembers: z.array(memberSchema).default([]),
   calendarMembers: z.record(keySchema, memberSchema).default({}),
   todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema }).strict()).default({}),
 }).strict();
@@ -68,7 +69,7 @@ export function remapPlanner(planner: Planner, from: string, to: string): Planne
     events: planner.events.map(event => ({ ...event, member: reference(event.member) })),
     items: planner.items.map(item => ({ ...item, member: reference(item.member) })),
     timetables: keys(planner.timetables), timetableEnabled: keys(planner.timetableEnabled),
-    memberOrder: planner.memberOrder.map(reference), calendarMembers: keys(planner.calendarMembers, reference),
+    memberOrder: planner.memberOrder.map(reference), hiddenMembers: planner.hiddenMembers.map(reference), calendarMembers: keys(planner.calendarMembers, reference),
     todoLists: keys(planner.todoLists, value => ({ ...value, member: reference(value.member) })),
     homeEntities: Object.fromEntries(Object.entries(planner.homeEntities).map(([instance, values]) => [instance === from ? to : instance, values.map(reference)])),
   };

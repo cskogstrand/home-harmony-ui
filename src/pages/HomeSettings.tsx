@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { normalizeHaUrl } from "@/lib/ha-model";
 export default function HomeSettings() {
   const { haUrl, connect, disconnect, logout, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, sessionWarning, homeOnline } = useApp();
-  const { members, memberName, moveMember, compareMembers, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
+  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [{ id: "everyone", name: "Everyone" }, ...members, ...[...new Set(Object.values(todoLists).map(assigned => assigned.member))]
@@ -71,11 +71,13 @@ export default function HomeSettings() {
     </section>
     <section className="glow-panel" id="people-order"><PanelHeading title="People order and timetables" />
       <p className="page-note">Set the order used throughout the app: calendars, tasks, daily tasks, school timetables and person selectors. Everyone stays first; new people appear at the end.</p>
+      <p className="page-note">Turn off Visible to hide a person from calendars, tasks, school timetables and person selectors. Their saved plans, lists and settings are kept; turn it back on to show them again.</p>
       <p className="page-note">Turn on Timetable for people who need a school card and dashboard preview. Turning it off keeps their saved image URLs.</p>
       {!members.length && <p className="empty-note">Connect to Home Assistant and set up people there to arrange them here.</p>}
       <ol aria-label="People order">{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
-        <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
+        <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+          <label className="flex items-center gap-2 text-sm">Visible<Switch aria-label={`Show ${person.name} in family planner`} checked={isMemberVisible(person.id)} onCheckedChange={visible => setMemberVisible(person.id, visible)} /></label>
           <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">Timetable<Switch aria-label={`Timetable for ${person.name}`} checked={hasTimetable(person.id)} onCheckedChange={enabled => enabled ? setTimetableEnabled(person.id, true) : setConfirmation({ title: "Hide timetable?", description: `Hide ${person.name}’s timetable from School and the dashboard? Saved image URLs will be kept.`, confirmLabel: "Hide timetable", onConfirm: () => setTimetableEnabled(person.id, false) })} /></label>
           <Button type="button" variant="outline" size="icon" disabled={index === 0} aria-label={`Move ${person.name} up`} onClick={() => moveMember(person.id, -1)}><ArrowUp size={18} aria-hidden="true" /></Button>
           <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={`Move ${person.name} down`} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>

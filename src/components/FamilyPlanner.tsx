@@ -13,7 +13,7 @@ export function PageHeading({ eyebrow, title, description, children }: { eyebrow
   return <header className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{children}</header>;
 }
 export function MemberAvatar({ member, small = false }: { member: MemberId; small?: boolean }) {
-  const { members, memberName } = useFamily();
+  const { allMembers: members, memberName } = useFamily();
   const person = members.find(m => m.id === member);
   return <span className={`member-avatar ${small ? "small" : ""}`} style={{ background: person?.color ?? "#c4d5a3" }} aria-label={memberName(member)}>{person?.initials ?? (member === "everyone" ? "All" : "?")}</span>;
 }
@@ -121,7 +121,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
       <div className="form-row"><label>Date<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => { if (endDate === draft.date) setEndDate(e.target.value); setDraft({ ...draft, date: e.target.value }); }} /></label>
         {!draft.allDay && <label>Time<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
       <div className="form-row">{remote && <label>End date<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>End time{!remote && " (optional)"}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
-      <label>Who’s going?<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>Person unavailable</option>}</select></label>
+      <label>Who’s going?<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
       {editingRemote && <><p>Calendar: {calendar?.name}</p>{!homeOnline && <p role="status">Connect to Home Assistant to save this plan.</p>}</>}
       {remote && !editingRemote && <><label>Calendar<select required value={calendar?.preferenceId ?? ""} onChange={e => { setCalendarId(e.target.value); setError(""); }}><option value="">Choose a calendar</option>{calendars.map(e => <option key={e.preferenceId} value={e.preferenceId} disabled={!writable.includes(e)}>{e.name}{!writable.includes(e) && " · Read-only or unavailable"}</option>)}</select></label>
         {!homeOnline ? <p role="status">Connect to Home Assistant to save this plan.</p> : !writable.length && <p role="status">No writable calendar is available for {memberName(draft.member)}. Assign a calendar that supports creating events in <Link className="text-link" to="/settings#family-calendar">Home settings</Link>.</p>}</>}
