@@ -7,11 +7,12 @@ import { MAX_TIMETABLE_BYTES, MAX_TIMETABLE_PAGES } from "../shared/timetables.t
 
 const exec = promisify(execFile);
 const failure = (status, message) => Object.assign(new Error(message), { status });
+const TIMETABLE_IMAGE_SIZE = 6000;
 
 export function darkTimetableImage(png) {
   if (png.length < 24 || !png.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) throw new Error("Missing rendered page");
   const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
-  if (!width || !height || width > 2000 || height > 2000) throw new Error("Invalid rendered page dimensions");
+  if (!width || !height || width > TIMETABLE_IMAGE_SIZE || height > TIMETABLE_IMAGE_SIZE) throw new Error("Invalid rendered page dimensions");
   // Embed the original pixels so private images need no nested authenticated request.
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 <filter id="dark" color-interpolation-filters="sRGB">
@@ -43,7 +44,7 @@ export async function convertTimetable(request, dataDir, person) {
     const pages = Number(stdout.match(/^Pages:\s+(\d+)\s*$/m)?.[1]);
     if (!Number.isInteger(pages) || pages < 1 || pages > MAX_TIMETABLE_PAGES) throw failure(400, `Choose a PDF with 1–${MAX_TIMETABLE_PAGES} pages.`);
     if (/^Encrypted:\s+yes/m.test(stdout)) throw failure(400, "Choose a PDF without password protection.");
-    await exec("pdftoppm", ["-png", "-scale-to", "2000", "-f", "1", "-l", String(pages), source, join(directory, "page")], { timeout: 30000, maxBuffer: 1024 * 1024 });
+    await exec("pdftoppm", ["-png", "-scale-to", String(TIMETABLE_IMAGE_SIZE), "-f", "1", "-l", String(pages), source, join(directory, "page")], { timeout: 120000, maxBuffer: 1024 * 1024 });
     const urls = [];
     for (let page = 1; page <= pages; page++) {
       const input = join(directory, `page-${String(page).padStart(String(pages).length, "0")}.png`);

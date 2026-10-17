@@ -110,6 +110,8 @@ Enable a person's timetable in **Home settings**, then use **School → Upload P
 
 Each page gets its original PNG and a self-contained dark SVG with a dark background and light text. Turn on **App preferences → Appearance → Dark timetables** to use the dark images throughout the dashboard, School board and enlarged views, independently of the app theme. This shared preference defaults to off. Older PDF uploads get dark images on request without needing another upload; external image URLs keep their original colors.
 
+PDF pages render at 6,000 pixels on their longest edge (about 500 DPI for A4), with the same detail in both normal and dark images. Upload an existing PDF again to replace older, lower-resolution images. Higher-resolution conversion can take longer and uses more storage.
+
 For `person.emma`, an upload is stored as:
 
 ```text

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.3
+
+- Render timetable PDFs at 6,000 pixels on the longest edge for sharper normal and dark images.
+- Allow more time for high-resolution conversion of PDFs up to 20 pages.
+- Upload existing PDFs again to replace older, lower-resolution images.
+
 ## 0.7.2
 
 - Add an opt-in dashboard login bypass for trusted local networks in HAOS, Docker, Node and Vite.

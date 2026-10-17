@@ -94,6 +94,7 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
     assert.equal(image.headers.get("cache-control"), "no-store");
     images.push(Buffer.from(await image.arrayBuffer()));
     assert.equal(images.at(-1).subarray(1, 4).toString(), "PNG");
+    assert.deepEqual([images.at(-1).readUInt32BE(16), images.at(-1).readUInt32BE(20)], [6000, 4500], "Render at high resolution while preserving the page aspect ratio");
   }
   assert.notDeepEqual(images[0], images[1]);
   const directory = join(app.dataDir, "timetables", ...pages[0].split("/").slice(3, 5));
@@ -138,14 +139,14 @@ test("rejects invalid, oversized and excessive-page PDFs without replacing exist
   assert.equal((await app.upload()).status, 200);
 });
 
-test("bounds parallel PDF conversion and handles double-digit page numbers", async t => {
+test("bounds parallel PDF conversion and handles the full 20-page limit", async t => {
   const app = await timetableFixture(t);
-  const responses = await Promise.all([app.upload(timetablePdf(10)), app.upload(timetablePdf(10))]);
+  const responses = await Promise.all([app.upload(timetablePdf(20)), app.upload(timetablePdf(20))]);
   assert.deepEqual(responses.map(response => response.status).sort(), [200, 503]);
   const saved = await (await app.request()).json();
   const pages = saved.config.settings.timetables["home|person.one"];
-  assert.equal(pages.length, 10);
-  assert.equal((await app.api(pages[9])).status, 200);
+  assert.equal(pages.length, 20);
+  assert.equal((await app.api(pages[19])).status, 200);
   assert.equal((await readdir(join(app.dataDir, "timetables"))).length, 1);
 });
 
