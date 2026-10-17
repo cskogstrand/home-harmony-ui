@@ -15,7 +15,7 @@ ports_description:
   8099/tcp: Dashboard web interface (HTTP)
 webui: http://[HOST]:[PORT:8099]/
 options:
-  home_assistant_url: http://homeassistant:8123
+  home_assistant_url: http://homeassistant.local
   home_assistant_token: ""
   dashboard_password: ""
 schema:
