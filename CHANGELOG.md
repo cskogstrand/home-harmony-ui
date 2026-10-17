@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Upload PDF timetables from the School board or an authenticated API.
+- Convert PDFs into private timetable pages shared across dashboard screens.
+- Add per-person upload URLs and iOS share-sheet shortcut instructions.
+- Include PDF conversion tools in the HAOS container and preserve existing timetables when uploads fail.
+
 ## 0.3.0
 
 - Store and export app settings only; calendar events, lists, people and device state stay in Home Assistant.
