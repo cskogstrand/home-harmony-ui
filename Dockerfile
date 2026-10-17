@@ -6,6 +6,7 @@ COPY . .
 RUN npm run build
 
 FROM node:24-alpine
+RUN apk add --no-cache poppler-utils font-dejavu
 WORKDIR /app
 ENV DATA_DIR=/data
 COPY package.json ./

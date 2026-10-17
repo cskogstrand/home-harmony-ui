@@ -1,8 +1,10 @@
 import { createServer } from "node:http";
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, realpath, rename, stat, unlink } from "node:fs/promises";
+import { mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { emptyConfiguration, instanceUrlSchema, MAX_CONFIG_BYTES, parseConfiguration } from "../shared/configuration.ts";
+import { timetableImagePath } from "../shared/timetables.ts";
+import { convertTimetable } from "./timetables.mjs";
 
 const revisionOf = config => createHash("sha256").update(JSON.stringify(config)).digest("hex");
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
@@ -20,6 +22,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
   }
   let revision = revisionOf(config);
   let writes = Promise.resolve();
+  let uploading = false;
   const root = await realpath(distDir);
 
   async function authenticate(request) {
@@ -36,21 +39,9 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
     }
   }
 
-  async function replace(request) {
-    if (!request.headers["content-type"]?.startsWith("application/json")) throw failure(415, "Send a JSON configuration.");
-    if (!request.headers["if-match"]) throw failure(428, "Reload the configuration before saving.");
-    const chunks = [];
-    let size = 0;
-    for await (const chunk of request) {
-      size += chunk.length;
-      if (size > MAX_CONFIG_BYTES) throw failure(413, "The configuration exceeds the 2 MB limit.");
-      chunks.push(chunk);
-    }
-    let next;
-    try { next = parseConfiguration(Buffer.concat(chunks).toString("utf8")); }
-    catch { throw failure(400, "Invalid configuration backup. Nothing was replaced."); }
+  function save(change) {
     const write = writes.then(async () => {
-      if (request.headers["if-match"] !== `"${revision}"`) throw failure(409, "Another screen changed the configuration. Export your unsaved changes, then load the shared version before editing again.");
+      const next = change();
       const temporary = `${file}.${randomUUID()}.tmp`;
       try {
         const handle = await open(temporary, "wx", 0o600);
@@ -67,13 +58,67 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl }) {
     return write;
   }
 
+  async function replace(request) {
+    if (!request.headers["content-type"]?.startsWith("application/json")) throw failure(415, "Send a JSON configuration.");
+    if (!request.headers["if-match"]) throw failure(428, "Reload the configuration before saving.");
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of request) {
+      size += chunk.length;
+      if (size > MAX_CONFIG_BYTES) throw failure(413, "The configuration exceeds the 2 MB limit.");
+      chunks.push(chunk);
+    }
+    let next;
+    try { next = parseConfiguration(Buffer.concat(chunks).toString("utf8")); }
+    catch { throw failure(400, "Invalid configuration backup. Nothing was replaced."); }
+    return save(() => {
+      if (request.headers["if-match"] !== `"${revision}"`) throw failure(409, "Another screen changed the configuration. Export your unsaved changes, then load the shared version before editing again.");
+      return next;
+    });
+  }
+
+  async function upload(request, url) {
+    const plannerId = url.searchParams.get("planner"), member = url.searchParams.get("member");
+    const entry = Object.hasOwn(config.planners, plannerId) ? config.planners[plannerId] : undefined;
+    const enabled = entry && member && (Object.hasOwn(entry.planner.timetableEnabled, member) ? entry.planner.timetableEnabled[member] : Object.hasOwn(entry.planner.timetables, member) && entry.planner.timetables[member].length);
+    if (!enabled) throw failure(404, "Enable this person's timetable in Home settings before uploading.");
+    if (uploading) throw failure(503, "Another timetable is uploading. Wait for it to finish, then try again.");
+    uploading = true;
+    let converted;
+    try {
+      converted = await convertTimetable(request, dataDir);
+      await save(() => {
+        const current = config.planners[plannerId];
+        if (!current || current.instanceUrl !== entry.instanceUrl || JSON.stringify(current.planner.timetables[member]) !== JSON.stringify(entry.planner.timetables[member]) || current.planner.timetableEnabled[member] !== entry.planner.timetableEnabled[member]) throw failure(409, "This timetable changed during upload. Review the current version before uploading again.");
+        return parseConfiguration(JSON.stringify({ ...config, planners: { ...config.planners, [plannerId]: { ...current, planner: { ...current.planner, timetables: { ...current.planner.timetables, [member]: converted.urls } } } } }));
+      });
+      // shortcut: retain old pages for settings-backup restores; add retention controls if storage grows.
+      return { message: "Timetable uploaded. The dashboard will refresh shortly.", pages: converted.urls.length };
+    } catch (error) {
+      // A directory-sync failure can follow a committed rename; never remove referenced pages.
+      if (converted && !converted.urls.some(url => config.planners[plannerId]?.planner.timetables[member]?.includes(url))) await rm(converted.directory, { recursive: true, force: true });
+      throw error;
+    } finally { uploading = false; }
+  }
+
   return async (request, response) => {
     const json = (status, body) => { response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }); response.end(JSON.stringify(body)); };
     try {
-      const pathname = new URL(request.url, "http://localhost").pathname;
+      const url = new URL(request.url, "http://localhost");
+      const pathname = url.pathname;
       if (pathname.startsWith("/api/")) {
-        if (pathname !== "/api/config" || !["GET", "PUT"].includes(request.method)) throw failure(404, "Not found.");
+        const image = pathname.match(timetableImagePath);
+        if (!((pathname === "/api/config" && ["GET", "PUT"].includes(request.method)) || (pathname === "/api/timetables" && request.method === "POST") || (image && request.method === "GET"))) throw failure(404, "Not found.");
         await authenticate(request);
+        if (pathname === "/api/timetables") { json(200, await upload(request, url)); return; }
+        if (image) {
+          let contents;
+          try { contents = await readFile(resolve(dataDir, "timetables", image[1], `${image[2]}.png`)); }
+          catch (error) { if (error.code === "ENOENT") throw failure(404, "Timetable page not found."); throw error; }
+          response.writeHead(200, { "Content-Type": "image/png", "Content-Length": contents.length, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+          response.end(contents);
+          return;
+        }
         json(200, request.method === "PUT" ? await replace(request) : { revision, config });
         return;
       }

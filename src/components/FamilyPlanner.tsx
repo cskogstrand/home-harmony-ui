@@ -8,6 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext
 import { useFamily, newPlannerId, dateLabel, eventTimeLabel, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { available, calendarTimeInput, calendarTimeValue, supportsAction } from "@/lib/ha-model";
+import { timetableImagePath } from "../../shared/timetables";
 
 export function PageHeading({ eyebrow, title, description, children }: { eyebrow: string; title: string; description?: string; children?: ReactNode }) {
   return <header className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{children}</header>;
@@ -135,10 +136,27 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   </DialogContent></Dialog>;
 }
 function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
+  const { storageRequest, homeOnline } = useApp();
+  const privateImage = !!imageUrl && timetableImagePath.test(imageUrl);
+  const [loaded, setLoaded] = useState<{ url: string; src: string }>();
   const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [imageUrl]);
-  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "Set up a school timetable in this app."}</p><small>{imageUrl ? "Check its URL in School." : "Add an image URL in School."}</small></div> :
-    <img className="timetable-image" src={imageUrl} alt={alt} draggable={false} onError={() => setFailed(true)} />;
+  useEffect(() => {
+    setFailed(false);
+    setLoaded(undefined);
+    if (!privateImage || !homeOnline) return;
+    let cancelled = false;
+    let objectUrl: string;
+    void storageRequest(imageUrl).then(async response => {
+      if (!response.ok) throw new Error();
+      const blob = await response.blob();
+      if (!cancelled) { objectUrl = URL.createObjectURL(blob); setLoaded({ url: imageUrl, src: objectUrl }); }
+    }).catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [imageUrl, privateImage, homeOnline, storageRequest]);
+  const src = privateImage ? homeOnline && loaded?.url === imageUrl ? loaded.src : undefined : imageUrl;
+  if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>{homeOnline ? "Loading timetable…" : "Connect to Home Assistant to view this timetable."}</p></div>;
+  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "Set up a school timetable in this app."}</p><small>{privateImage ? "Reconnect or reload to try again." : imageUrl ? "Check its URL in School." : "Upload a PDF or add an image URL in School."}</small></div> :
+    <img className="timetable-image" src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
 }
 function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {
   const { timetables, memberName } = useFamily();
@@ -173,5 +191,5 @@ export function SchoolPreview({ child }: { child: MemberId }) {
   return <><div className="school-preview">
     <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? "Year 5" : "Year 2"}</span>}<Maximize2 size={16} /></div>
     <TimetablePages child={child} onEnlarge={setOpenPage} />
-  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Saved timetable pages. Change their URLs in School.</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
+  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Saved timetable pages. Update the timetable in School.</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
 }

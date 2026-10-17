@@ -417,23 +417,28 @@ export class HomeAssistantClient {
       void load();
     });
   };
-  configurationRequest = async (method: "GET" | "PUT", body?: string, revision?: string): Promise<Response> => {
+  configurationRequest = (method: "GET" | "PUT", body?: string, revision?: string) => this.storageRequest("/api/config", {
+    method, body, headers: body ? { "Content-Type": "application/json", "If-Match": `"${revision}"` } : {},
+  });
+
+  storageRequest = async (path: string, options: RequestInit = {}): Promise<Response> => {
+    if (!path.startsWith("/api/") || path.includes("\\")) throw new Error("Use a dashboard API path.");
     const auth = this.auth;
     const generation = this.generation;
     if (!auth || this.snapshot.status !== "connected") throw new Error("Connect to Home Assistant to use shared storage.");
     const controller = new AbortController();
     this.requests.add(controller);
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(() => controller.abort(), options.method === "POST" ? 45000 : 15000);
     try {
       if (auth.expired) await bounded(auth.refreshAccessToken());
       if (generation !== this.generation || controller.signal.aborted) throw new Error();
-      const response = await fetch("/api/config", { method, body, credentials: "omit", redirect: "error", signal: controller.signal,
-        headers: { Authorization: `Bearer ${auth.accessToken}`, ...(body ? { "Content-Type": "application/json", "If-Match": `"${revision}"` } : {}) } });
+      const response = await fetch(path, { ...options, credentials: "omit", redirect: "error", signal: controller.signal,
+        headers: { ...Object.fromEntries(new Headers(options.headers)), Authorization: `Bearer ${auth.accessToken}` } });
       // Consume the response before removing its cancellation guard.
-      const text = await response.text();
+      const contents = await response.arrayBuffer();
       if (generation !== this.generation || controller.signal.aborted) throw new Error();
-      return new Response(text, { status: response.status, headers: response.headers });
-    } catch { throw new Error("Shared storage could not be reached. Reconnect and retry; your unsaved changes are still on this screen."); }
+      return new Response(contents, { status: response.status, headers: response.headers });
+    } catch { throw new Error("Shared storage could not be reached. A save may have completed; check the dashboard before retrying. Your unsaved settings are still on this screen."); }
     finally { clearTimeout(timer); this.requests.delete(controller); }
   };
 

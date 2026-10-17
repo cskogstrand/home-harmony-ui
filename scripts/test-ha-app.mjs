@@ -41,6 +41,11 @@ try {
   }
   assert.equal((await fetch(`${base}/assets/missing.js`)).status, 404);
   assert.equal((await fetch(`${base}/api/config`)).status, 401, "Shared configuration must require a Home Assistant login");
+  assert.equal((await fetch(`${base}/api/timetables`, { method: "POST" })).status, 401, "PDF uploads must require a Home Assistant login");
+  for (const executable of ["pdfinfo", "pdftoppm"]) {
+    const result = spawnSync("docker", ["exec", container, executable, "-v"], { encoding: "utf8" });
+    assert.equal(result.status, 0, `${executable} must run in the container: ${result.stderr}`);
+  }
   const logs = spawnSync("docker", ["logs", container], { encoding: "utf8" });
   assert.equal(logs.status, 0, logs.stderr);
   assert.doesNotMatch(logs.stdout + logs.stderr, /smoke-auth-code/, "OAuth codes must not enter logs");

@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Readable } from "node:stream";
 import test from "node:test";
-import { createAppServer } from "./app.mjs";
+import { createAppHandler, createAppServer } from "./app.mjs";
 import { createServer as createViteServer, preview } from "vite";
 import { emptyConfiguration, emptyPlanner, MAX_CONFIG_BYTES } from "../shared/configuration.ts";
+import { MAX_TIMETABLE_BYTES, timetableUploadPath } from "../shared/timetables.ts";
 
 const listen = server => new Promise((resolve, reject) => {
   server.once("error", reject);
@@ -34,10 +36,129 @@ async function fixture(t) {
       headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(config !== undefined ? { "Content-Type": "application/json" } : {}), ...(revision ? { "If-Match": `"${revision}"` } : {}), ...headers },
       body: config === undefined ? undefined : typeof config === "string" ? config : JSON.stringify(config) }),
     page: path => fetch(`${url}${path}`),
+    api: (path, options = {}, token = "fixture-valid-token") => fetch(`${url}${path}`, { ...options, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers } }),
     restart: async () => { await close(server); server = await createAppServer({ dataDir, distDir, homeAssistantUrl }); url = await listen(server); },
   };
 }
 const configuration = () => ({ ...emptyConfiguration(), planners: { "home-1": { instanceUrl: "http://ha.local:8123", planner: { ...emptyPlanner(), memberOrder: ["http://ha.local:8123|person.one"] } } } });
+
+function timetablePdf(pages = 2) {
+  const objects = ["<< /Type /Catalog /Pages 2 0 R >>", `<< /Type /Pages /Count ${pages} /Kids [${Array.from({ length: pages }, (_, i) => `${4 + i * 2} 0 R`).join(" ")}] >>`, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"];
+  for (let page = 0; page < pages; page++) {
+    const content = `BT /F1 18 Tf 20 140 Td (Timetable page ${page + 1}) Tj ET`;
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + page * 2} 0 R >>`, `<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+  }
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  objects.forEach((object, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${object}\nendobj\n`; });
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(pdf);
+}
+
+async function timetableFixture(t) {
+  const app = await fixture(t);
+  const { revision } = await (await app.request()).json();
+  const config = configuration();
+  config.planners["home-1"].planner.timetableEnabled = { "http://ha.local:8123|person.one": true };
+  config.planners["home-1"].planner.timetables = { "http://ha.local:8123|person.one": ["/previous.png"], other: ["/keep.png"] };
+  const saved = await (await app.request("PUT", config, revision)).json();
+  const path = timetableUploadPath("home-1", "http://ha.local:8123|person.one");
+  const upload = (body = timetablePdf(), options = {}, token) => app.api(path, { method: "POST", body, headers: { "Content-Type": "application/pdf" }, ...options }, token);
+  return { ...app, saved, path, upload };
+}
+
+test("uploads and converts ordered PDF pages privately, persists them, and rejects stale screen saves", async t => {
+  const app = await timetableFixture(t);
+  assert.equal((await app.upload(undefined, {}, "")).status, 401);
+  assert.equal((await app.upload(undefined, {}, "wrong")).status, 401);
+  const response = await app.upload();
+  assert.equal(response.status, 200, await response.clone().text());
+  assert.equal((await response.json()).pages, 2);
+  const saved = await (await app.request()).json();
+  const pages = saved.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"];
+  assert.equal(pages.length, 2);
+  assert.match(pages[0], /\/1\.png$/);
+  assert.match(pages[1], /\/2\.png$/);
+  assert.deepEqual(saved.config.planners["home-1"].planner.timetables.other, ["/keep.png"]);
+  assert.deepEqual(saved.config.planners["home-1"].planner.memberOrder, app.saved.config.planners["home-1"].planner.memberOrder);
+  assert.equal((await app.request("PUT", app.saved.config, app.saved.revision)).status, 409);
+  await app.restart();
+  assert.deepEqual(await (await app.request()).json(), saved);
+  const images = [];
+  for (const path of pages) {
+    assert.equal((await app.page(path)).status, 401);
+    const image = await app.api(path);
+    assert.equal(image.headers.get("content-type"), "image/png");
+    assert.equal(image.headers.get("cache-control"), "no-store");
+    images.push(Buffer.from(await image.arrayBuffer()));
+    assert.equal(images.at(-1).subarray(1, 4).toString(), "PNG");
+  }
+  assert.notDeepEqual(images[0], images[1]);
+  const directory = join(app.dataDir, "timetables", pages[0].split("/")[3]);
+  assert.deepEqual((await readdir(directory)).sort(), ["1.png", "2.png"]);
+  assert.equal((await app.api(pages[0].replace("1.png", "99.png"))).status, 404);
+  assert.equal((await app.upload(timetablePdf(1))).status, 200);
+  const replaced = await (await app.request()).json();
+  assert.equal(replaced.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"].length, 1);
+  assert.equal((await app.api(pages[0])).status, 200, "Old pages remain available for settings-backup restores");
+});
+
+test("rejects invalid, oversized and excessive-page PDFs without replacing existing timetables or leaving files", async t => {
+  const app = await timetableFixture(t);
+  assert.equal((await app.upload(timetablePdf(), { headers: { "Content-Type": "text/plain" } })).status, 415);
+  assert.equal((await app.upload(Buffer.from("not a PDF"))).status, 400);
+  assert.equal((await app.upload(Buffer.from("%PDF-1.4\nbroken"))).status, 400);
+  assert.equal((await app.upload(Buffer.alloc(MAX_TIMETABLE_BYTES + 1))).status, 413);
+  assert.equal((await app.upload(timetablePdf(21))).status, 400);
+  for (const member of ["missing", "__proto__", "constructor"]) {
+    assert.equal((await app.api(timetableUploadPath("home-1", member), { method: "POST", body: timetablePdf(), headers: { "Content-Type": "application/pdf" } })).status, 404);
+  }
+  assert.deepEqual(await (await app.request()).json(), app.saved);
+  assert.deepEqual(await readdir(join(app.dataDir, "timetables")), []);
+  app.authStatus(503);
+  assert.equal((await app.upload()).status, 503);
+});
+
+test("bounds parallel PDF conversion and handles double-digit page numbers", async t => {
+  const app = await timetableFixture(t);
+  const responses = await Promise.all([app.upload(timetablePdf(10)), app.upload(timetablePdf(10))]);
+  assert.deepEqual(responses.map(response => response.status).sort(), [200, 503]);
+  const saved = await (await app.request()).json();
+  const pages = saved.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"];
+  assert.equal(pages.length, 10);
+  assert.equal((await app.api(pages[9])).status, 200);
+  assert.equal((await readdir(join(app.dataDir, "timetables"))).length, 1);
+});
+
+test("preserves simultaneous unrelated edits and refuses a timetable changed while uploading", async t => {
+  const app = await timetableFixture(t);
+  const handler = await createAppHandler(app);
+  const call = async (method, path, stream = [], headers = {}) => {
+    const request = Object.assign(Readable.from(stream), { method, url: path, headers: { authorization: "Bearer fixture-valid-token", ...headers } });
+    let status, responseHeaders, body;
+    await handler(request, { writeHead: (code, values) => { status = code; responseHeaders = values; }, end: value => { body = value; } });
+    return new Response(body, { status, headers: responseHeaders });
+  };
+  for (const conflict of [false, true]) {
+    const started = Promise.withResolvers(), resume = Promise.withResolvers();
+    async function* slowPdf() { started.resolve(); await resume.promise; yield timetablePdf(1); }
+    const pending = call("POST", app.path, slowPdf(), { "content-type": "application/pdf" });
+    await started.promise;
+    const { config, revision } = await (await call("GET", "/api/config")).json();
+    const planner = config.planners["home-1"].planner;
+    if (conflict) planner.timetables["http://ha.local:8123|person.one"] = ["/changed-elsewhere.png"];
+    else planner.appearance.compactMode = true;
+    const edit = await call("PUT", "/api/config", [Buffer.from(JSON.stringify(config))], { "content-type": "application/json", "if-match": `"${revision}"` });
+    assert.equal(edit.status, 200);
+    resume.resolve();
+    assert.equal((await pending).status, conflict ? 409 : 200);
+    const result = await (await call("GET", "/api/config")).json();
+    assert.equal(result.config.planners["home-1"].planner.appearance.compactMode, true);
+    if (conflict) assert.deepEqual(result.config.planners["home-1"].planner.timetables["http://ha.local:8123|person.one"], ["/changed-elsewhere.png"]);
+  }
+  assert.equal((await readdir(join(app.dataDir, "timetables"))).length, 1, "Failed replacements leave no converted files behind");
+});
 
 test("requires valid HA authentication for reads and writes and fails closed if HA is unavailable", async t => {
   const app = await fixture(t);

@@ -53,9 +53,11 @@ also requires an HTTPS HA URL.
 
 ## Persistent storage and backups
 
-The app stores only app configuration in `/data/configuration.json`: HA connection
+The app stores app configuration in `/data/configuration.json`: HA connection
 URLs, calendar/to-do assignments, people visibility/order, favorites, timetable
-settings, appearance and selected alarm panel. Calendar events, list contents,
+settings, appearance and selected alarm panel. Uploaded timetable PDFs are converted
+to private PNG pages under `/data/timetables/`; the original PDF is discarded.
+Calendar events, list contents,
 people records and smart-home state stay in Home Assistant.
 Shared persistent storage is the default; no storage mode needs enabling.
 HAOS keeps this folder across container updates and restarts and includes it in
@@ -79,8 +81,11 @@ Open **App preferences → Storage and backups**:
 Backups contain household information, so keep them private. They do not contain
 HA login credentials, alarm codes, people records, HA entities, calendar events
 or list contents. Only configuration format 2 is accepted; older formats are not
-supported. Timetable images remain external; only their URLs are
-saved. Each new screen must sign into HA. Moving the same HA instance to a new URL
+supported. JSON exports contain timetable page URLs, not uploaded image files.
+Back up all of `/data/` (or use HA app backups) to preserve uploaded timetables;
+external image URLs still depend on their original host. Old uploads are retained
+for configuration restores, so disk use grows over time. Each new screen must
+sign into HA. Moving the same HA instance to a new URL
 remaps reference prefixes; changing entity/registry IDs in a different HA
 installation requires selecting those people, calendars, lists and favorites again.
 
@@ -91,6 +96,15 @@ is no automatic migration or reset.
 A corrupted storage file stops the server from starting, rather than overwriting
 it. Restore the app's HA backup or replace `/data/configuration.json` with a valid
 export before restarting. The old file is left intact for recovery.
+
+## Timetables from iPhone
+
+Enable a person's timetable in Home settings, then open **School board** to
+upload a PDF (up to 10 MB / 20 pages) or view **Share from iPhone** for their
+upload URL. The container includes PDF conversion tools. Uploads and rendered
+pages require a Home Assistant bearer token; pages are never public static files.
+See the [iOS shortcut and API setup](README.md#share-a-timetable-from-iphone).
+Use your dashboard's reachable HTTPS/LAN/VPN address, not HA's cloud URL.
 
 ## Updates
 

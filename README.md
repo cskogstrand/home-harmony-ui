@@ -62,7 +62,40 @@ Set **Home settings → People order and timetables** with the up/down buttons. 
 
 Use each person’s **Timetable** toggle in the same settings section to include them on the School board and dashboard. Existing saved timetable images start enabled; people without an image start disabled. Enable a person before adding their image URLs on the School board, one URL per line in page order. Swipe between pages or use the arrows; tapping a page opens it in an enlarged carousel. Remove or reorder lines to change the pages. Existing single-image timetables carry over automatically. Disabling a timetable hides it without deleting its saved URLs, so it returns when enabled again. These choices use the same planner storage as people order.
 
-For multi-page PDFs, the existing Nextcloud → image conversion workflow still works: generate a stable image URL for each page and paste those URLs into the School board. Updating the images at those URLs avoids editing the app’s settings each week when the page count stays the same; browser/server caching controls when replacements become visible.
+For PDFs, use **School board → Upload PDF timetable**, or share directly from your phone using the shortcut below. The server converts every page into an image for the existing swipe/enlarge viewer. PDFs can be up to **10 MB / 20 pages**, without password protection. A successful upload replaces that person's pages on every signed-in screen within five seconds. Invalid uploads keep the previous timetable. External image URLs and the existing Nextcloud conversion workflow still work.
+
+### Share a timetable from iPhone
+
+Create one shortcut per child; then the routine is **school app → Share PDF → Send timetable to [name] → confirm**. Apple supports both [share-sheet shortcuts](https://support.apple.com/guide/shortcuts/run-a-shortcut-from-another-app-apd163eb9f95/ios) and [sending a file with Get Contents of URL](https://support.apple.com/guide/shortcuts/apd58d46713f/ios).
+
+1. Enable the child's timetable in **Home settings**, wait for settings to save, then open **School board → Share from iPhone** and copy their **Upload URL**. Use the dashboard's address, not Home Assistant's API address. This URL includes the correct planner and person IDs; keep the query string intact.
+2. In Home Assistant's profile, create a named [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-tokens), such as `Timetable shortcut`. Use a non-admin account where possible. The token has that account's HA permissions; it is **not limited to uploading timetables**. Keep the shortcut private, remove its token before sharing a copy, and revoke the token in HA if the shortcut/device is no longer trusted.
+3. In Apple's **Shortcuts**, create `Send timetable to [name]`. Turn on **Show in Share Sheet**, accept **PDFs**, and set missing input to stop. Share one PDF at a time.
+4. Add **Show Alert**, with Cancel enabled: `Replace [name]'s timetable on the dashboard?`.
+5. Add **Get Contents of URL** with the copied Upload URL and **Method: POST**. Set **Request Body: File**, explicitly choosing the **Shortcut Input** variable. Add headers `Content-Type: application/pdf` and `Authorization: Bearer YOUR_TOKEN` (one space after `Bearer`). Do not use JSON, Form, or base64.
+6. Add **Show Result** using the response from Get Contents of URL. The server returns a success message and page count, or an error. Do not add an unconditional success notification or automatic retry.
+
+Your phone must reach the dashboard: home Wi-Fi/VPN, or an existing trusted HTTPS reverse proxy. HA's cloud URL does not automatically expose the dashboard's port. Prefer HTTPS; HTTP on a LAN still sends the token unencrypted. If the school app shares only a private link instead of a PDF, save/export the PDF to Files and share it from there, or use the School board's file picker. After a timeout, check the dashboard before retrying because the upload may have completed. Static browser-only hosting cannot receive uploads.
+
+### Timetable upload API
+
+`POST /api/timetables?planner=<encoded-planner-id>&member=<encoded-member-id>` accepts raw PDF bytes, `Content-Type: application/pdf`, and `Authorization: Bearer <HA access token>`. The person must already have a timetable enabled in the saved planner. The server authenticates against its configured HA instance before reading/converting the PDF. It never stores the token or fetches a school URL.
+
+```sh
+# Set TIMETABLE_UPLOAD_URL to the URL copied from School and HA_TOKEN locally.
+curl --fail-with-body "$TIMETABLE_UPLOAD_URL" \
+  -H "Authorization: Bearer $HA_TOKEN" \
+  -H 'Content-Type: application/pdf' \
+  --data-binary @timetable.pdf
+```
+
+Success: HTTP 200 with `{ "message": "Timetable uploaded. The dashboard will refresh shortly.", "pages": 2 }`. Errors use `{ "error": "..." }`: 400 invalid/protected PDF or too many pages; 401 invalid login; 404 unknown/disabled timetable; 409 timetable changed during conversion; 413 too large; 415 wrong content type; 503 authentication/conversion unavailable or another upload in progress. Uploads are serialized, conversion has a time limit, and unrelated settings edits are preserved. Screen saves with an old configuration revision are rejected after an upload.
+
+Images are served through authenticated `GET /api/timetables/<upload-id>/<page>.png`. They use private storage and `Cache-Control: no-store`; credentials are never placed in page URLs. All users authenticated to the configured HA instance can access these pages, matching shared settings access. The original PDF is discarded after conversion; this displays the timetable and does not extract lessons into calendar events.
+
+The HAOS container includes Poppler and fonts. For local development or a standalone Node server, install **Poppler** (`brew install poppler` on macOS or `apt install poppler-utils` on Debian/Ubuntu); `pdfinfo` and `pdftoppm` must be on PATH. The server integration tests also require Poppler. PNGs are stored under `DATA_DIR/timetables/` and must be backed up alongside `configuration.json`. JSON exports contain page references only. Old uploads are retained so older configuration backups still work; there is no automatic retention cleanup, so disk use grows with uploads.
+
+### Calendar events
 
 Calendar integrations remain in Home Assistant. The app subscribes to events for the displayed day/week and falls back to `GET /api/calendars/{entity_id}?start=…&end=…` with an in-memory bearer header on older HA versions. It uses HA’s timezone (including DST) and shows HA events in the dashboard, per-person calendar and weekly grid. Change the range or use **Refresh calendars** to fetch again.
 

@@ -7,6 +7,8 @@ import { HomeAssistantClient } from "@/lib/home-assistant";
 import App from "@/App";
 import { PinPadModal } from "@/components/devices/PinPadModal";
 import { config, registries, services, states, state, user } from "./ha-fixtures";
+import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
+import { timetableUploadPath } from "../../shared/timetables";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -61,6 +63,78 @@ it("authenticates shared storage with a refreshed bearer token and rejects late 
   read.resolve(new Response("{}", { status: 200 }));
   await rejected;
   await expect(client.configurationRequest("GET")).rejects.toThrow(/Connect to Home Assistant/);
+});
+
+it("uploads raw PDF bytes and loads binary images without leaking the token into URLs", async () => {
+  const client = await connectedClient();
+  const bytes = new Uint8Array([137, 80, 78, 71, 0, 255]);
+  const fetch = vi.fn().mockImplementation(async () => new Response(bytes, { headers: { "Content-Type": "image/png" } }));
+  vi.stubGlobal("fetch", fetch);
+  const image = await client.storageRequest("/api/timetables/00000000-0000-4000-8000-000000000000/1.png");
+  expect(new Uint8Array(await image.arrayBuffer())).toEqual(bytes);
+  const pdf = new File(["%PDF-1.4"], "week.pdf", { type: "application/pdf" });
+  const path = timetableUploadPath("home-1", "http://ha.local:8123|person.morgan");
+  await client.storageRequest(path, { method: "POST", body: pdf, headers: { "Content-Type": "application/pdf" } });
+  expect(fetch).toHaveBeenLastCalledWith(path, expect.objectContaining({ method: "POST", body: pdf, redirect: "error", credentials: "omit", headers: { "content-type": "application/pdf", Authorization: "Bearer fixture-access-secret" } }));
+  await expect(client.storageRequest("https://other.example/api/timetables")).rejects.toThrow("dashboard API path");
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
+it("confirms PDF uploads, preserves failed drafts, refreshes private previews and revokes them on disconnect", async () => {
+  vi.stubEnv("MODE", "production");
+  const instance = "http://ha.local:8123", previousInstance = "http://old-ha.local:8123";
+  const member = `${previousInstance}|person.morgan`;
+  const imagePath = "/api/timetables/00000000-0000-4000-8000-000000000000/1.png";
+  const saved = { ...emptyConfiguration(), planners: { "home-1": { instanceUrl: previousInstance, planner: { ...emptyPlanner(), timetableEnabled: { [member]: true }, timetables: { [member]: ["/previous.png"] } } } } };
+  const post = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ error: "Invalid PDF; previous timetable kept." }), { status: 400 })).mockImplementationOnce(async () => {
+    saved.planners["home-1"].planner.timetables[member] = [imagePath];
+    return new Response(JSON.stringify({ message: "Timetable uploaded.", pages: 1 }));
+  });
+  const fetch = vi.fn().mockImplementation(async (path: string, options: RequestInit) => {
+    if (options.method === "POST") return post(path, options);
+    if (path === "/api/config") return new Response(JSON.stringify({ revision: "a".repeat(64), config: saved }));
+    if (path === imagePath) return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "Content-Type": "image/png" } });
+    throw new Error(`Unexpected request ${path}`);
+  });
+  vi.stubGlobal("fetch", fetch);
+  vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL: vi.fn(() => "blob:private-timetable"), revokeObjectURL: vi.fn() }));
+  localStorage.setItem("home-harmony:ha-url", instance);
+  localStorage.setItem(TOKEN_KEY, JSON.stringify({ ...tokenData(), storageRevision: null }));
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    conn.entityCallback = callback;
+    queueMicrotask(() => callback({ ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }) }));
+    return conn.unsubscribeEntities;
+  });
+  window.history.replaceState(null, "", "/school");
+  const view = render(<App />);
+  const picker = await screen.findByLabelText("Upload Morgan timetable PDF");
+  await waitFor(() => expect(picker).toBeEnabled());
+  expect(screen.getByLabelText("Morgan upload URL")).toHaveValue(new URL(timetableUploadPath("home-1", member), window.location.origin).href);
+  fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
+  fireEvent.change(screen.getByLabelText("Morgan timetable image URLs"), { target: { value: "/unfinished-draft.png" } });
+  const pdf = new File(["%PDF-1.4"], "week.pdf", { type: "application/pdf" });
+  fireEvent.change(picker, { target: { files: [pdf] } });
+  expect(post).not.toHaveBeenCalled();
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+  expect(post).not.toHaveBeenCalled();
+  fireEvent.change(picker, { target: { files: [pdf] } });
+  await confirmAction("Upload PDF");
+  expect(within(screen.getByRole("alertdialog")).getByRole("alert")).toHaveTextContent("Invalid PDF");
+  expect(screen.getByLabelText("Morgan timetable image URLs")).toHaveValue("/unfinished-draft.png");
+  expect(screen.getByRole("img", { name: "Morgan’s school timetable", hidden: true })).toHaveAttribute("src", "/previous.png");
+  await confirmAction("Upload PDF");
+  expect(post).toHaveBeenCalledTimes(2);
+  expect(post).toHaveBeenLastCalledWith(timetableUploadPath("home-1", member), expect.objectContaining({ body: pdf }));
+  await waitFor(() => expect(screen.getByRole("img", { name: "Morgan’s school timetable" })).toHaveAttribute("src", "blob:private-timetable"));
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("Morgan timetable image URLs")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
+  expect(screen.getByLabelText("Morgan timetable image URLs")).toHaveValue(imagePath);
+  act(() => conn.emit("disconnected"));
+  await screen.findByText("Connect to Home Assistant to view this timetable.");
+  expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:private-timetable");
+  expect(picker).toBeDisabled();
+  view.unmount();
 });
 beforeEach(() => {
   vi.stubEnv("MODE", "browser");
