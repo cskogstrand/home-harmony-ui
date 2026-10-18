@@ -1,6 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
-import { Link } from "react-router-dom";
 import { Check, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
@@ -13,7 +12,6 @@ import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
 const listTitles = { daily: "Before we settle in", shopping: "Pick up on the way", tasks: "The bigger things" };
-const listDescriptions = { daily: "A little help from everyone", shopping: "One list for the whole family", tasks: "Things to remember, without the rush" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 function CheckRow({ id, text, complete, member, disabled, removeDisabled, onToggle, onEdit, onRemove }: {
   id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
@@ -81,15 +79,14 @@ function ItemSuggestions({ id, names, text, select }: { id: string; names: strin
 }
 export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
-  const { haUrl, homeOnline, currentHome } = useApp();
+  const { haUrl, homeOnline } = useApp();
   if (!connectedPlanner) return <LocalListPanel kind={kind} limit={limit} />;
   const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && isMemberVisible(assigned.member))
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   return <article className={`glow-panel list-panel list-${kind}`}>
     <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
-    {!lists.length && <p className="empty-note">{!homeOnline ? "Connect to Home Assistant to load your to-do lists." : currentHome.entities.some(e => e.domain === "todo") ? `Select ${kind === "shopping" ? "a shared shopping list" : kind === "daily" ? "daily task lists for your family" : "task lists for your family"} in Home settings.` : "Set up to-do lists in Home Assistant, then select them in Home settings."}</p>}
+    {!lists.length && <p className="empty-note">{homeOnline ? "No lists selected." : "Lists unavailable while offline."}</p>}
     {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} />)}
-    <p className="page-note"><Link className="text-link" to="/settings#family-lists">Set up to-do lists</Link>{kind === "daily" && " · Daily resets are managed in Home Assistant."}</p>
   </article>;
 }
 
@@ -199,7 +196,6 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     onToggle={() => toggleItem(item.id)} onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <article className={`glow-panel list-panel list-${kind}`}>
     <PanelHeading title={listTitles[kind]} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? "Shopping" : "Tasks"} />
-    {!limit && <p className="muted">{listDescriptions[kind]}{kind === "daily" ? " · Resets each day" : ""}</p>}
     <div className="list-toolbar"><button className="text-link" aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={17} />Add {kind === "shopping" ? "item" : "task"}</button><span>{completed.length} of {list.length} {kind === "shopping" ? "picked up" : "done"}</span></div>
     {adding && <form className="quick-add" onSubmit={e => { e.preventDefault(); add(); }}>
       <input aria-label={kind === "shopping" ? "New shopping item" : `New ${kind} task`} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? "What do we need?" : "What needs doing?"} />

@@ -21,7 +21,7 @@ export default function Devices() {
   const sections = deviceSections(devices, currentHome.areas, grouping);
   const other = currentHome.entities.filter(entity => !entity.device && entityMatches(entity));
   const loading = ["connecting", "syncing", "reconnecting"].includes(connectionStatus);
-  return <div className="planner-page"><PageHeading eyebrow="YOUR CONNECTED HOME" title="Devices" description="Find a device, then explore its controls and readings." />
+  return <div className="planner-page"><PageHeading eyebrow="YOUR CONNECTED HOME" title="Devices" />
     <div className="device-toolbar">
       <Input aria-label="Search devices" placeholder="Search devices, rooms or types…" value={search} onChange={e => setView(grouping, e.target.value)} />
       <fieldset className="device-grouping"><legend>Group by</legend><div className="filter-row">
@@ -36,7 +36,7 @@ export default function Devices() {
     </section>)}
     {!devices.length && <p className="glow-panel empty-note">{loading ? "Loading devices…" : query ? "No devices match your search." : metadataWarnings.length ? "Device information is unavailable. Check your Home Assistant connection and permissions." : haUrl ? "No registered devices found in this home." : "Connect your home in Settings to see your devices."}</p>}
     {!!other.length && <details key={query ? "search" : "browse"} open={query ? true : undefined} className="glow-panel device-details other-controls"><summary>Other controls ({other.length})</summary>
-      <p className="page-note">These controls and readings have no associated device in the loaded home information.</p>
+      <p className="page-note">Controls without an associated device.</p>
       <div className="home-device-grid">{other.map(entity => <EntityCard key={entity.entityId} entity={entity} listSearch={listSearch} />)}</div>
     </details>}
   </div>;

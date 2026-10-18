@@ -28,7 +28,7 @@ export function AppLayout() {
     <header className="app-header"><Link to="/" className="brand" aria-label="Afterglow home"><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow<small>FAMILY, AT THE CENTRE</small></span></Link>
       <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : "HA offline"}</span></span>
         <div className="relative">
-          <DropdownMenu><DropdownMenuTrigger className="icon-button" aria-label="Open app settings" title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? "Household dashboard"}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/user-settings">App preferences</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings">Home settings</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/user-settings">Storage and backups</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger className="icon-button" aria-label="Open app settings" title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? "Household dashboard"}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/user-settings">App preferences</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings">Home settings</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/onboarding">Get started</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/user-settings">Storage and backups</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
           <span role="status" aria-label="Settings storage" className={`pointer-events-none absolute bottom-1 right-1 rounded-full bg-background p-0.5 ${storageWarning ? "text-warning" : "text-muted-foreground"}`}>
             {storageWarning ? <TriangleAlert size={12} aria-hidden="true" /> : storageBusy ? <LoaderCircle size={12} aria-hidden="true" className="motion-safe:animate-spin" /> : <Check size={12} aria-hidden="true" />}
             <span className="sr-only">{storageMessage}</span>
@@ -41,7 +41,7 @@ export function AppLayout() {
       {isHomeSection(pathname) && <SmartHomeNav />}
       <Outlet />
     </main>
-    <footer className="app-footer"><span><span className="whitespace-nowrap">Version {appVersion}</span> · Shared app settings · {saved ? "Settings saved on the server" : "Changes aren’t being saved"}</span><span>Made for the moments in between.</span></footer>
+    <footer className="app-footer"><span>Version {appVersion}</span></footer>
     <MainNav />
   </div>;
 }

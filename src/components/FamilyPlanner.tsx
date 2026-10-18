@@ -157,7 +157,7 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   }, [selectedUrl, privateImage, storageRequest]);
   const src = privateImage ? loaded?.url === selectedUrl ? loaded.src : undefined : selectedUrl;
   if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>Loading timetable…</p></div>;
-  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "Set up a school timetable in this app."}</p><small>{privateImage ? "Reconnect or reload to try again." : imageUrl ? "Check its URL in School." : "Upload a PDF or add an image URL in School."}</small></div> :
+  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "No timetable yet."}</p><small>{privateImage ? "Reconnect or reload to try again." : imageUrl ? "Check its URL in School." : "Add one on the School board."}</small></div> :
     <img className={`timetable-image${privateImage && appearance.darkTimetables ? " timetable-image-dark" : ""}`} src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
 }
 function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { calendarBoundary, calendarDateValue, calendarTimeInput } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
@@ -160,29 +159,12 @@ export function useCalendarPlans(start: string, end: string) {
   };
 }
 
-export function CalendarSetupNotice() {
-  const { currentHome, homeOnline } = useApp();
-  const { connectedPlanner, allMembers: members, calendarMembers } = useFamily();
-  if (!connectedPlanner) return null;
-  const calendars = currentHome.entities.filter(e => e.domain === "calendar");
-  const unassigned = calendars.some(e => calendarMembers[e.preferenceId] !== "everyone" && !members.some(m => m.id === calendarMembers[e.preferenceId]));
-  return <div className="page-note space-y-2">
-    {!homeOnline ? <p role="status">Connect to Home Assistant to load people and calendars. <Link className="text-link" to="/settings">Connection settings</Link></p> : <>
-      {!members.length && <p>Set up people in Home Assistant → Settings → People to see each person’s week.</p>}
-      {!calendars.length && <p>Set up a calendar integration in Home Assistant, then assign its calendar in this app.</p>}
-      {unassigned && <p>Set up calendars in this app: select calendars under each person, or under Everyone for shared plans.</p>}
-    </>}
-    <Link className="text-link" to="/settings#family-calendar">Set up people and calendars</Link>
-  </div>;
-}
-
 export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
   const { homeOnline } = useApp();
   const { connectedPlanner } = useFamily();
   if (!connectedPlanner) return null;
   return <div className="page-note space-y-2">
-    <CalendarSetupNotice />
-    {data.selectedCount > 0 && <p>Plans save to Home Assistant calendars. Open an event to edit it when its calendar supports updates. <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button></p>}
+    {data.selectedCount > 0 && <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button>}
     {data.loading && <p role="status">Loading calendar events…</p>}
     {data.errors.map(error => <p role="alert" key={error}>{error}</p>)}
     {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline.</p>}

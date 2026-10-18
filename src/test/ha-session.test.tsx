@@ -1248,7 +1248,8 @@ it("hides connected people and their plans and lists without losing assignments"
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Set up people and calendars" }));
+  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
+  fireEvent.click(screen.getByRole("menuitem", { name: "Home settings" }));
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
   expect(screen.getByRole("button", { name: "Remove Morgan calendar from Morgan" })).toBeInTheDocument();
   expect(screen.getByRole("combobox", { name: "Daily tasks for Morgan" })).toHaveValue("home|todo.morgan");
@@ -1326,7 +1327,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   nav("School");
   expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Riley’s school week", "Morgan’s school week"]);
   expect(screen.getByRole("img", { name: "Riley’s school timetable" })).toHaveAttribute("src", timetables[riley][0]);
-  expect(screen.getByRole("button", { name: "Set up timetable images" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Add timetable images" })).toBeInTheDocument();
   nav("Today");
   expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable", "Enlarge Morgan’s timetable"]);
   await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));

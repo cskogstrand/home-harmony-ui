@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package } from "lucide-react";
 
 const familyPaths = ["/", "/calendar", "/lists", "/school"];
-export const isHomeSection = (path: string) => !familyPaths.includes(path) && path !== "/user-settings";
+export const isHomeSection = (path: string) => !familyPaths.includes(path) && !["/user-settings", "/onboarding"].includes(path);
 const mainItems = [
   { path: "/", label: "Today", icon: House },
   { path: "/calendar", label: "Our week", icon: CalendarDays },

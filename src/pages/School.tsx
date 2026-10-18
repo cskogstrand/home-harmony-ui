@@ -33,7 +33,7 @@ function SchoolCard({ child }: { child: MemberId }) {
         if (!file.size || file.size > MAX_TIMETABLE_BYTES) { setUploadStatus("Choose a PDF between 1 byte and 10 MB."); return; }
         setPdf(file);
       }} /></label>
-      <p className="muted">Up to 10 MB and 20 pages. All pages replace this person’s current timetable on every screen. Normal and dark images are created automatically; choose which to use in <Link className="text-link" to="/user-settings">App preferences</Link>.</p>
+      <p className="muted">PDF · Up to 10 MB and 20 pages. Replaces this person’s timetable on every screen.</p>
       {!uploadReady && <p role="status">Wait for shared settings to finish saving before uploading.</p>}
       {uploadStatus && <p role="status">{uploadStatus}</p>}
       {shared?.state.loaded && <details><summary className="text-link">Share from iPhone</summary>
@@ -53,22 +53,21 @@ function SchoolCard({ child }: { child: MemberId }) {
       setEdit(false);
       await shared.store.refresh();
     }} />}
-    <button className="text-link" aria-expanded={edit} onClick={() => setEdit(!edit)}><LinkIcon size={16} />{timetables[child]?.length ? "Change timetable images" : "Set up timetable images"}</button>
+    <button className="text-link" aria-expanded={edit} onClick={() => setEdit(!edit)}><LinkIcon size={16} />{timetables[child]?.length ? "Change timetable images" : "Add timetable images"}</button>
     {edit && <form className="planner-form" onSubmit={e => {
       e.preventDefault();
       const pages = urls.split(/\r?\n/).map(url => url.trim()).filter(Boolean);
       if ((timetables[child] ?? []).some(url => !pages.includes(url))) setReplacement(pages);
       else setTimetable(child, pages);
-    }}><label>Timetable image URLs<textarea aria-label={`${memberName(child)} timetable image URLs`} required rows={4} value={urls} onChange={e => setUrls(e.target.value)} placeholder={"https://school.example/timetable-1.png\nhttps://school.example/timetable-2.png"} /></label><Button type="submit"><Save size={17} />Save image URLs</Button><p className="muted">Add one direct image link per line, in page order. PNG, JPG and SVG work. Remove or reorder lines to change the pages.</p></form>}
+    }}><label>Timetable image URLs<textarea aria-label={`${memberName(child)} timetable image URLs`} required rows={4} value={urls} onChange={e => setUrls(e.target.value)} placeholder={"https://school.example/timetable-1.png\nhttps://school.example/timetable-2.png"} /></label><Button type="submit"><Save size={17} />Save image URLs</Button><p className="muted">One image URL per line, in page order. PNG, JPG or SVG.</p></form>}
     {replacement && <ConfirmDialog open onOpenChange={open => { if (!open) setReplacement(undefined); }} title="Replace timetable images?" description={`Save these image URLs for ${memberName(child)}? Removed pages will no longer appear, and their saved links will be lost.`} confirmLabel="Replace images" destructive onConfirm={() => { setTimetable(child, replacement); }} />}
   </article>;
 }
 export default function School() {
   const { members, hasTimetable } = useFamily();
   const people = members.filter(m => hasTimetable(m.id));
-  return <div className="planner-page"><PageHeading eyebrow="ONE LESS MORNING SCRAMBLE" title="School, sorted." description="The week ahead, straight from the school timetable." />
-    {!people.length && <section className="glow-panel"><p>No timetables enabled. Choose who has a timetable in Home settings.</p></section>}
+  return <div className="planner-page"><PageHeading eyebrow="ONE LESS MORNING SCRAMBLE" title="School, sorted."><Button variant="outline" asChild><Link to="/settings#people-order">Manage people</Link></Button></PageHeading>
+    {!people.length && <section className="glow-panel"><p>No timetables enabled.</p></section>}
     <div className="school-cards">{people.map(person => <SchoolCard key={person.id} child={person.id} />)}</div>
-    <p className="page-note"><Link className="text-link" to="/settings#people-order">Choose people with timetables</Link>. Swipe between pages or use the arrows, then tap a page to enlarge it. PDF uploads use shared storage; image URLs are shared across screens too.</p>
   </div>;
 }

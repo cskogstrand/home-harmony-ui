@@ -3,16 +3,13 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { Switch } from "@/components/ui/switch";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
-import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 export default function UserSettings() {
   const { currentUser } = useApp();
   const { appearance, setAppearance } = useFamily();
-  const shared = useSharedConfiguration();
   return <div className="planner-page">
-    <PageHeading eyebrow="MAKE YOURSELF AT HOME" title="Settings" description="Account and app preferences" />
-    <section className="glow-panel"><PanelHeading title="Home Assistant account" /><p>{currentUser?.name ?? "Not signed in"}</p><p className="page-note">Every screen uses the account configured on the dashboard server.</p></section>
-    <section className="glow-panel space-y-4"><PanelHeading title="Appearance" /><p className="page-note">Appearance is saved with your app settings.</p><label className="flex justify-between">Dark mode<Switch checked={appearance.theme === "dark"} onCheckedChange={v => setAppearance({ theme: v ? "dark" : "light" })} aria-label="Toggle dark mode" /></label><label className="flex justify-between">Dark timetables<Switch checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label="Toggle dark timetables" aria-describedby="dark-timetables-description" /></label><p id="dark-timetables-description" className="page-note">Use dark backgrounds for uploaded PDF timetables on every screen, independently of the app theme. Linked images keep their original colors.</p><label className="flex justify-between">Compact mode<Switch checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label="Toggle compact mode" /></label></section>
-    <section className="glow-panel"><PanelHeading title="Shared app settings" /><p className="page-note">Every screen on this app server uses the same settings. Home Assistant owns the calendars, lists, people and device state.</p></section>
+    <PageHeading eyebrow="MAKE YOURSELF AT HOME" title="Settings" />
+    <section className="glow-panel"><PanelHeading title="Home Assistant account" /><p>{currentUser?.name ?? "Not signed in"}</p></section>
+    <section className="glow-panel space-y-4"><PanelHeading title="Appearance" /><label className="flex justify-between">Dark mode<Switch checked={appearance.theme === "dark"} onCheckedChange={v => setAppearance({ theme: v ? "dark" : "light" })} aria-label="Toggle dark mode" /></label><label className="flex justify-between">Dark timetables<Switch checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label="Toggle dark timetables" aria-describedby="dark-timetables-description" /></label><p id="dark-timetables-description" className="page-note">Dark backgrounds for PDF timetables. Linked images keep their colors.</p><label className="flex justify-between">Compact mode<Switch checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label="Toggle compact mode" /></label></section>
     <ConfigurationBackup />
   </div>;
 }

@@ -32,12 +32,11 @@ export function HomeFavorites() {
   const scenes = entities.filter(e => e.domain === "scene");
   const missing = selected.length - entities.length;
   return <section className="glow-panel home-favorites" aria-label="Home favorites">
-    <div className="panel-heading"><h2>Just right at home</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button className="text-link" disabled={!haUrl}><SlidersHorizontal size={16} />Customize</button></DialogTrigger><DialogContent className="favorites-dialog"><DialogHeader><DialogTitle>Make home yours</DialogTitle><DialogDescription>Choose devices, sensors and scenes for your family dashboard. Saved with your planner.</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">All controls<ArrowUpRight size={16} /></Link></div></div>
+    <div className="panel-heading"><h2>Just right at home</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button className="text-link" disabled={!haUrl}><SlidersHorizontal size={16} />Customize</button></DialogTrigger><DialogContent className="favorites-dialog"><DialogHeader><DialogTitle>Make home yours</DialogTitle><DialogDescription>Choose your dashboard favorites.</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">All controls<ArrowUpRight size={16} /></Link></div></div>
     {!!entities.length && <div className="favorite-devices">{entities.filter(e => e.domain !== "scene").map(entity => <EntityCard key={entity.entityId} entity={entity} />)}</div>}
     {!!scenes.length && <SceneButtons entities={scenes} />}
-    {!selected.length && haUrl && <p className="empty-note">Your favorites go here. Choose them in Customize.</p>}
-    {!!missing && <p className="muted">{missing} saved {missing === 1 ? "favorite is" : "favorites are"} unavailable. Manage in Customize.</p>}
-    {!haUrl && <Link className="text-link" to="/settings">Connect your home<ArrowUpRight size={16} /></Link>}
+    {!selected.length && haUrl && <p className="empty-note">No favorites selected.</p>}
+    {!!missing && <p className="muted">{missing} saved {missing === 1 ? "favorite is" : "favorites are"} unavailable.</p>}
   </section>;
 }
 function FavoritePicker({ selected, onSave, onCancel }: { selected: string[]; onSave: (ids: string[]) => void; onCancel: () => void }) {
@@ -59,5 +58,5 @@ function FavoritePicker({ selected, onSave, onCancel }: { selected: string[]; on
   </>;
 }
 export function VehicleCard() {
-  return <article className="glow-panel vehicle-panel"><PanelHeading title="Ready for the road" /><CarFront size={32} /><p className="muted">Connect your charger to see its controls.</p><Link className="text-link" to="/devices">Browse devices<ArrowUpRight size={17} /></Link></article>;
+  return <article className="glow-panel vehicle-panel"><PanelHeading title="Ready for the road" /><CarFront size={32} /><Link className="text-link" to="/devices">Browse devices<ArrowUpRight size={17} /></Link></article>;
 }

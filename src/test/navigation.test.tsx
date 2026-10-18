@@ -12,6 +12,8 @@ vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversi
 let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
+  app.homeOnline = true;
+  app.haUrl = "http://ha.local:8123";
   app.currentHome = mapHome({ "person.emma": state("person.emma", "home", { friendly_name: "Emma" }), "person.leo": state("person.leo", "home", { friendly_name: "Leo" }) }, emptyRegistries, "home");
   app.configurationRequest.mockImplementation(async (method, body) => {
     if (method === "PUT") settings = parseConfiguration(body);
@@ -25,6 +27,65 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 const saved = () => waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
+
+it("offers one setup entry on Today and keeps guidance off the everyday boards", async () => {
+  render(<App />); await saved();
+  expect(screen.getByRole("link", { name: "Get started" })).toHaveAttribute("href", "/onboarding");
+  expect(screen.queryByText(/Set up calendars in this app/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Set up people and calendars" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Set up to-do lists" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Set up school timetables/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Get started" }));
+  expect(screen.getByRole("heading", { level: 1, name: "Get started" })).toBeInTheDocument();
+  expect(screen.getByRole("list", { name: "Household setup" }).children).toHaveLength(5);
+  expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
+  expect(screen.getByRole("link", { name: "Add people in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/person");
+  expect(screen.getByText(/Daily lists need a Home Assistant automation/)).toBeInTheDocument();
+  for (const [label, anchor] of [["Connection settings", "connection"], ["Choose people", "people-order"], ["Choose calendars", "family-calendar"], ["Choose lists", "family-lists"], ["Enable timetables", "people-order"]]) {
+    fireEvent.click(screen.getByRole("link", { name: label }));
+    expect(window.location.pathname).toBe("/settings");
+    expect(window.location.hash).toBe(`#${anchor}`);
+    expect(document.getElementById(anchor)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("link", { name: "Get started" }));
+  }
+  fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
+  expect(window.location.pathname).toBe("/");
+  navigate("Our week");
+  expect(screen.queryByText(/Set up calendars in this app/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Set up people and calendars" })).not.toBeInTheDocument();
+  navigate("Lists");
+  expect(screen.queryByRole("link", { name: "Set up to-do lists" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Daily tasks use your selected/)).not.toBeInTheDocument();
+});
+
+it.each([
+  { calendarMembers: { "home|calendar.family": "everyone" } },
+  { todoLists: { "home|todo.shopping": { kind: "shopping" as const, member: "everyone" } } },
+  { timetableEnabled: { "home|person.emma": true } },
+  { timetables: { "home|person.emma": ["/timetable.png"] } },
+  { homeEntities: [] },
+  { selectedAlarm: "home|alarm_control_panel.home" },
+])("keeps the setup entry in the menu for configured households: %j", async configuration => {
+  Object.assign(settings.settings, configuration);
+  render(<App />); await saved();
+  expect(screen.queryByRole("link", { name: "Get started" })).not.toBeInTheDocument();
+  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
+  fireEvent.click(screen.getByRole("menuitem", { name: "Get started" }));
+  expect(window.location.pathname).toBe("/onboarding");
+  expect(screen.getByRole("heading", { name: "Get started" })).toBeInTheDocument();
+});
+
+it("keeps onboarding available without a Home Assistant connection", async () => {
+  app.haUrl = "";
+  app.homeOnline = false;
+  window.history.replaceState(null, "", "/onboarding");
+  render(<App />); await saved();
+  expect(screen.getByText("Home Assistant not connected")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Add people in Home Assistant" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Choose calendars" })).toHaveAttribute("href", "/settings#family-calendar");
+  expect(screen.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
+});
 
 it("navigates with empty HA data and shows the server-managed connection", async () => {
   app.currentHome = mapHome({}, emptyRegistries, "home");
@@ -151,7 +212,7 @@ it("keeps timetable pages when replacing or hiding them is cancelled", async () 
   fireEvent.click(screen.getByRole("button", { name: "Save image URLs" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetables["home|person.emma"]).toEqual(["/first.svg"]);
-  fireEvent.click(screen.getByRole("link", { name: "Choose people with timetables" }));
+  fireEvent.click(screen.getByRole("link", { name: "Manage people" }));
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetableEnabled["home|person.emma"]).toBe(true);

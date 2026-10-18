@@ -27,6 +27,7 @@ import Alarm from "./pages/Alarm";
 import Integrations from "./pages/Integrations";
 import UserSettings from "./pages/UserSettings";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
             <Routes>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/lists" element={<Lists />} />
                 <Route path="/school" element={<School />} />

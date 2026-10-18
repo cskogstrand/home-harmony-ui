@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- Move household setup guidance into a Get started page for connections, people, calendars, lists and school timetables.
+- Offer onboarding from Today for unconfigured households and keep it available in the settings menu.
+- Remove repeated setup links, helper paragraphs and redundant subtitles across the app while preserving errors and confirmation dialogs.
+
 ## 0.7.4
 
 - Apply dark timetable colors directly to the original PNG instead of displaying a filtered SVG that can blur text.

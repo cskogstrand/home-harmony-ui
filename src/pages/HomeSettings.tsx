@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, type ListKind } from "@/contexts/FamilyContext";
@@ -45,21 +46,16 @@ export default function HomeSettings() {
       </select>
     </label>;
   };
-  return <div className="planner-page"><PageHeading eyebrow="CONNECTED AT HOME" title="Home settings" description="Shared connection and household preferences." />
-    <section className="glow-panel"><PanelHeading title="Home Assistant connection" />
+  return <div className="planner-page"><PageHeading eyebrow="CONNECTED AT HOME" title="Home settings"><Button variant="outline" asChild><Link to="/onboarding">Get started</Link></Button></PageHeading>
+    <section className="glow-panel" id="connection"><PanelHeading title="Home Assistant connection" />
       <p>Home Assistant: {haUrl || "Loading server configuration…"}</p>
-      <p className="page-note">The connection is configured for every screen in the HAOS app’s Configuration tab, or the server’s .env file. The Home Assistant token stays on the server.</p>
       <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? "Connecting…" : "Reconnect"}</Button><Button variant="outline" onClick={() => setConfirmation({ title: "Disconnect Home Assistant?", description: "Pause live controls in this tab until you reconnect or reload? Shared settings remain available.", confirmLabel: "Disconnect", onConfirm: disconnect })}>Disconnect</Button></div>
       <p role="status" className="page-note">Connection: {connectionStatus}</p>
       {connectionError && <p role="alert" className="text-destructive">{connectionError}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{warning}</p>)}
-      <p className="page-note">Every screen uses the configured HA account’s permissions. Unless login is disabled in the server configuration, sign in with username “dashboard” and the shared password.</p>
     </section>
     <section className="glow-panel" id="people-order"><PanelHeading title="People order and timetables" />
-      <p className="page-note">Set the order used throughout the app: calendars, tasks, daily tasks, school timetables and person selectors. Everyone stays first; new people appear at the end.</p>
-      <p className="page-note">Turn off Visible to hide a person from calendars, tasks, school timetables and person selectors. Their saved plans, lists and settings are kept; turn it back on to show them again.</p>
-      <p className="page-note">Turn on Timetable for people who need a school card and dashboard preview. Turning it off keeps their saved image URLs.</p>
-      {!members.length && <p className="empty-note">Connect to Home Assistant and set up people there to arrange them here.</p>}
+      {!members.length && <p className="empty-note">No people available.</p>}
       <ol aria-label="People order">{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
@@ -69,13 +65,10 @@ export default function HomeSettings() {
           <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={`Move ${person.name} down`} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>
         </div>
       </li>)}</ol>
-      <p className="page-note">These settings are saved automatically with this household’s planner. Check App preferences for storage status and backups.</p>
     </section>
     <section className="glow-panel" id="family-calendar"><PanelHeading title="People and calendars" />
-      <p className="page-note">Add calendars to each person, or Everyone for shared plans. Choosing an assigned calendar moves it here.</p>
-      {!homeOnline && <p role="status">Connect to Home Assistant to set up people and calendars.</p>}
-      {homeOnline && !members.length && <p className="empty-note">Set up people in Home Assistant → Settings → People.</p>}
-      {homeOnline && !calendars.length && <p className="empty-note">Set up a calendar integration in Home Assistant, then return here to assign it.</p>}
+      {!homeOnline && <p role="status">Calendars unavailable while offline.</p>}
+      {homeOnline && !calendars.length && <p className="empty-note">No calendars available.</p>}
       {!!calendars.length && <div className="mt-3">{[{ id: "everyone", name: "Everyone" }, ...members].map(person => {
         const selected = calendars.filter(calendar => calendarMembers[calendar.preferenceId] === person.id);
         const available = calendars.filter(calendar => calendarMembers[calendar.preferenceId] !== person.id);
@@ -94,22 +87,17 @@ export default function HomeSettings() {
           </select>
         </div>;
       })}</div>}
-      {haUrl && <div className="flex flex-wrap gap-4 mt-4"><a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">Manage people in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up calendar integrations</a><a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open Home Assistant calendar</a></div>}
-      <p className="page-note">Calendar selections are saved with this planner. Events are managed by Home Assistant. Set school timetable image URLs in this app.</p>
     </section>
     <section className="glow-panel" id="family-lists"><PanelHeading title="People and to-do lists" />
-      <p className="page-note">Choose a task list and a daily task list for each person. Everyone’s lists are shared. Choosing an assigned list moves it here.</p>
-      {!homeOnline && <p role="status">Connect to Home Assistant to set up to-do lists.</p>}
-      {homeOnline && !lists.length && <p className="empty-note">Set up a Local to-do or Shopping list integration in Home Assistant, then select its lists here. To-do lists require Home Assistant 2023.11 or newer.</p>}
+      {!homeOnline && <p role="status">Lists unavailable while offline.</p>}
+      {homeOnline && !lists.length && <p className="empty-note">No to-do lists available.</p>}
       {listPeople.map(person => <div key={person.id} role="group" aria-label={`To-do lists for ${person.name}`} className="flex flex-wrap items-center gap-3 border-b py-3">
         <span className="w-28 shrink-0 break-words font-medium">{person.name}</span>
         <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}</div>
       </div>)}
       <div className="mt-3 max-w-md">{listSelector("shopping", { id: "everyone", name: "Everyone" })}</div>
-      <p className="page-note">Adding, completing and removing items updates Home Assistant. Daily task lists need a Home Assistant automation to reset them each morning. Selections are saved with this planner.</p>
-      {haUrl && <div className="mt-3 flex flex-wrap gap-4"><a className="text-link" href={`${haUrl}/todo`} target="_blank" rel="noreferrer">Open to-do lists in Home Assistant</a><a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">Set up to-do integrations</a></div>}
     </section>
-    <section className="glow-panel"><PanelHeading title="Your instance" /><dl className="device-readings"><div><dt>Name</dt><dd>{currentHome.name}</dd></div><div><dt>Signed in as</dt><dd>{currentUser?.name ?? "Not signed in"}</dd></div><div><dt>HA access</dt><dd>{currentUser ? currentUser.is_owner ? "Owner" : currentUser.is_admin ? "Administrator" : "User" : "—"}</dd></div><div><dt>Physical devices</dt><dd>{currentHome.devices.length}</dd></div><div><dt>Entities</dt><dd>{currentHome.entities.length}</dd></div></dl><p className="page-note">Home Assistant enforces permissions. Manage integrations, devices, areas, alarm settings and users there.</p>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">Open Home Assistant settings</a>}</section>
+    <section className="glow-panel"><PanelHeading title="Your instance" /><dl className="device-readings"><div><dt>Name</dt><dd>{currentHome.name}</dd></div><div><dt>Signed in as</dt><dd>{currentUser?.name ?? "Not signed in"}</dd></div><div><dt>HA access</dt><dd>{currentUser ? currentUser.is_owner ? "Owner" : currentUser.is_admin ? "Administrator" : "User" : "—"}</dd></div><div><dt>Physical devices</dt><dd>{currentHome.devices.length}</dd></div><div><dt>Entities</dt><dd>{currentHome.entities.length}</dd></div></dl>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">Open Home Assistant settings</a>}</section>
     {confirmation && <ConfirmDialog open onOpenChange={open => { if (!open) setConfirmation(undefined); }} {...confirmation} destructive disabled={confirmation.requiresConnection && !homeOnline} />}
   </div>;
 }

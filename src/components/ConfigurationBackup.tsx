@@ -30,8 +30,7 @@ export function ConfigurationBackup() {
   };
   return <section className="glow-panel space-y-4">
     <PanelHeading title="Storage and backups" />
-    <p>App settings are shared across devices and saved on the server. Other screens refresh within five seconds.</p>
-    <p className="page-note">Backups contain visibility toggles, calendar/list assignments, people order, favorites, appearance, alarm selection and timetable image URLs. Calendar events, list contents, people and device state stay in Home Assistant. Login credentials and alarm codes are never included.</p>
+    <p className="page-note">Backups include shared app settings and timetable links. They exclude uploaded files, Home Assistant data, passwords and alarm codes.</p>
       <p role="status">{shared.state.saving ? "Saving shared configuration…" : shared.state.dirty ? "Unsaved changes on this screen." : shared.state.loaded ? "Shared configuration saved." : "Loading shared configuration…"}</p>
       {shared.state.error && <p role="alert" className="text-destructive">{shared.state.error}</p>}
       <div className="flex flex-wrap gap-2">

@@ -9,7 +9,7 @@ export default function Zones() {
   const { currentHome, homeOnline, haUrl } = useApp();
   const zones = currentHome.entities.filter(entity => entity.domain === "zone");
   return <div className="planner-page">
-    <PageHeading eyebrow="THE PLACES IN YOUR DAY" title="Zones" description="Locations and presence reported by Home Assistant, such as home, school and work." />
+    <PageHeading eyebrow="THE PLACES IN YOUR DAY" title="Zones" />
     {haUrl && <a className="text-link" href={`${haUrl}/config/zone`} target="_blank" rel="noreferrer">Manage zones in Home Assistant<ArrowUpRight size={17} /></a>}
     {!homeOnline && !!zones.length && <p className="page-note" role="status">Cached zone readings are stale while Home Assistant is offline.</p>}
     <div className="home-device-grid">{zones.map(zone => {
@@ -27,9 +27,8 @@ export default function Zones() {
           <div><dt>Longitude</dt><dd>{longitude !== undefined && Math.abs(longitude) <= 180 ? longitude : "Not reported"}</dd></div>
           <div><dt>Presence tracking</dt><dd>{passive ? "Passive · automations only" : zone.attributes.passive === false ? "Active" : "Not reported"}</dd></div>
         </dl></details>
-        {passive && <p className="muted">Passive zones can be used in automations without changing a tracked person’s location state.</p>}
       </article>;
     })}</div>
-    {!zones.length && <p className="glow-panel empty-note">No zones loaded. Connect Home Assistant and configure your zones there.</p>}
+    {!zones.length && <p className="glow-panel empty-note">No zones available.</p>}
   </div>;
 }

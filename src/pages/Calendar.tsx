@@ -31,7 +31,7 @@ export default function Calendar() {
   const people = familyMembers.filter(m => member === "all" || member === m.id);
 
   return <div className="planner-page calendar-page">
-    <PageHeading eyebrow="MAKE ROOM FOR WHAT MATTERS" title="Our week." description="Your family plans and Home Assistant calendars, together."><Button onClick={() => openEvent()}><Plus size={18} />Add a plan</Button></PageHeading>
+    <PageHeading eyebrow="MAKE ROOM FOR WHAT MATTERS" title="Our week."><Button onClick={() => openEvent()}><Plus size={18} />Add a plan</Button></PageHeading>
     <section className="glow-panel calendar-toolbar">
       <div className="calendar-pagination">
         <Button variant="outline" size="icon" aria-label="Previous week" onClick={() => navigateWeek(-7)}><ChevronLeft /></Button>
@@ -52,10 +52,9 @@ export default function Calendar() {
         const personal = uniqueCalendarPlans(visible.filter(e => e.member === person.id));
         return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2><p>{personal.length} plans {validDate ? `on ${dateLabel(validDate, { weekday: "long" })}` : "in these 7 days"}</p></div></header>
           {personal.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
-          {!personal.length && <div className="empty-note"><CalendarDays size={25} /><p>{connectedPlanner ? data.loading ? "Loading plans…" : data.errors.length ? "Some calendars could not be loaded." : "No plans to display. Add a plan or check calendar setup above." : "Some room to breathe."}</p></div>}
+          {!personal.length && <div className="empty-note"><CalendarDays size={25} /><p>{connectedPlanner ? data.loading ? "Loading plans…" : data.errors.length ? "Some calendars could not be loaded." : "No plans yet." : "Some room to breathe."}</p></div>}
         </section>;
       })}</div>}
-    <p className="page-note">Tap a plan to view or edit it. Shared plans appear in Everyone’s row.</p>
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date ?? validDate ?? today} member={newPlan?.member} />
   </div>;
 }
