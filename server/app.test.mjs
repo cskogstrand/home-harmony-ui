@@ -1,10 +1,12 @@
 import { load } from "js-yaml";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { readFileSync, readdirSync } from "node:fs";
 import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
+import { setTimeout } from "node:timers/promises";
 import test from "node:test";
 import { createAppHandler, createAppServer } from "./app.mjs";
 import { createServer as createViteServer, preview } from "vite";
@@ -69,14 +71,52 @@ async function timetableFixture(t) {
   return { ...app, saved, path, upload };
 }
 
+async function waitForTimetable(app, before = app.saved) {
+  const deadline = Date.now() + 120000;
+  while (Date.now() < deadline) {
+    const result = await (await app.request()).json();
+    if (result.revision !== before.revision || result.timetableError?.id !== before.timetableError?.id) return result;
+    await setTimeout(50);
+  }
+  assert.fail("Timetable conversion did not finish");
+}
+
+test("acknowledges the complete saved PDF before converting it", async t => {
+  const app = await timetableFixture(t);
+  const handler = await createAppHandler(app);
+  const started = Promise.withResolvers(), resume = Promise.withResolvers();
+  const pdf = timetablePdf(1);
+  async function* slowPdf() { yield pdf.subarray(0, 100); started.resolve(); await resume.promise; yield pdf.subarray(100); }
+  const request = Object.assign(Readable.from(slowPdf()), { method: "POST", url: app.path,
+    headers: { authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}`, "content-type": "application/pdf" } });
+  let status, acknowledgement;
+  const pending = handler(request, {
+    get headersSent() { return status !== undefined; },
+    writeHead: code => { assert.equal(status, undefined, "Respond only once"); status = code; },
+    end: body => {
+      const person = join(app.dataDir, "timetables", "one");
+      const directory = join(person, readdirSync(person)[0]);
+      acknowledgement = { status, body: JSON.parse(body), files: readdirSync(directory), pdf: readFileSync(join(directory, "source.pdf")) };
+    },
+  });
+  await started.promise;
+  assert.equal(status, undefined, "Wait until the whole body arrives");
+  resume.resolve();
+  await pending;
+  assert.equal(acknowledgement.status, 202);
+  assert.match(acknowledgement.body.message, /received.*Conversion/);
+  assert.deepEqual(acknowledgement.files, ["source.pdf"], "No pages are rendered before acknowledgement");
+  assert.deepEqual(acknowledgement.pdf, pdf);
+});
+
 test("uploads and converts ordered PDF pages privately, persists them, and rejects stale screen saves", async t => {
   const app = await timetableFixture(t);
   assert.equal((await app.upload(undefined, {}, "")).status, 401);
   assert.equal((await app.upload(undefined, {}, "wrong")).status, 401);
   const response = await app.upload();
-  assert.equal(response.status, 200, await response.clone().text());
-  assert.equal((await response.json()).pages, 2);
-  const saved = await (await app.request()).json();
+  assert.equal(response.status, 202, await response.clone().text());
+  assert.match((await response.json()).message, /received/);
+  const saved = await waitForTimetable(app);
   const pages = saved.config.settings.timetables["home|person.one"];
   assert.equal(pages.length, 2);
   assert.match(pages[0], /\/1\.png$/);
@@ -116,8 +156,8 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   for (const name of ["99-dark.svg", "1.svg", "1-dark.png", "source.pdf"]) {
     assert.equal((await app.api(pages[0].replace("1.png", name))).status, 404);
   }
-  assert.equal((await app.upload(timetablePdf(1))).status, 200);
-  const replaced = await (await app.request()).json();
+  assert.equal((await app.upload(timetablePdf(1))).status, 202);
+  const replaced = await waitForTimetable(app, saved);
   assert.equal(replaced.config.settings.timetables["home|person.one"].length, 1);
   assert.equal((await app.api(pages[0])).status, 200, "Old pages remain available for settings-backup restores");
   assert.equal((await app.api(pages[0].replace(/\.png$/, "-dark.svg"))).status, 200);
@@ -127,23 +167,33 @@ test("rejects invalid, oversized and excessive-page PDFs without replacing exist
   const app = await timetableFixture(t);
   assert.equal((await app.upload(timetablePdf(), { headers: { "Content-Type": "text/plain" } })).status, 415);
   assert.equal((await app.upload(Buffer.from("not a PDF"))).status, 400);
-  assert.equal((await app.upload(Buffer.from("%PDF-1.4\nbroken"))).status, 400);
   assert.equal((await app.upload(Buffer.alloc(MAX_TIMETABLE_BYTES + 1))).status, 413);
-  assert.equal((await app.upload(timetablePdf(21))).status, 400);
+  for (const [pdf, message] of [[Buffer.from("%PDF-1.4\nbroken"), /could not be converted/], [timetablePdf(21), /1–20 pages/]]) {
+    const before = await (await app.request()).json();
+    assert.equal((await app.upload(pdf)).status, 202);
+    const result = await waitForTimetable(app, before);
+    assert.equal(result.timetableError.member, "home|person.one");
+    assert.match(result.timetableError.message, message);
+  }
   for (const member of ["missing", "__proto__", "constructor"]) {
     assert.equal((await app.api(timetableUploadPath(member), { method: "POST", body: timetablePdf(), headers: { "Content-Type": "application/pdf" } })).status, 404);
   }
-  assert.deepEqual(await (await app.request()).json(), app.saved);
+  const failed = await (await app.request()).json();
+  assert.deepEqual(failed.config, app.saved.config);
+  assert.equal(failed.revision, app.saved.revision);
+  assert.deepEqual((await (await app.request()).json()).timetableError, failed.timetableError, "Errors remain available to other screens");
   assert.deepEqual(await readdir(join(app.dataDir, "timetables", "one")), []);
   app.authStatus(503);
-  assert.equal((await app.upload()).status, 200);
+  assert.equal((await app.upload()).status, 202);
+  const recovered = await waitForTimetable(app, failed);
+  assert.equal(recovered.timetableError, undefined, "A successful retry clears the error");
 });
 
 test("bounds parallel PDF conversion and handles the full 20-page limit", async t => {
   const app = await timetableFixture(t);
   const responses = await Promise.all([app.upload(timetablePdf(20)), app.upload(timetablePdf(20))]);
-  assert.deepEqual(responses.map(response => response.status).sort(), [200, 503]);
-  const saved = await (await app.request()).json();
+  assert.deepEqual(responses.map(response => response.status).sort(), [202, 503]);
+  const saved = await waitForTimetable(app);
   const pages = saved.config.settings.timetables["home|person.one"];
   assert.equal(pages.length, 20);
   assert.equal((await app.api(pages[19])).status, 200);
@@ -156,7 +206,11 @@ test("preserves simultaneous unrelated edits and refuses a timetable changed whi
   const call = async (method, path, stream = [], headers = {}) => {
     const request = Object.assign(Readable.from(stream), { method, url: path, headers: { authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}`, ...headers } });
     let status, responseHeaders, body;
-    await handler(request, { writeHead: (code, values) => { status = code; responseHeaders = values; }, end: value => { body = value; } });
+    await handler(request, {
+      get headersSent() { return status !== undefined; },
+      writeHead: (code, values) => { assert.equal(status, undefined, "Respond only once, including on conversion failure"); status = code; responseHeaders = values; },
+      end: value => { body = value; },
+    });
     return new Response(body, { status, headers: responseHeaders });
   };
   for (const conflict of [false, true]) {
@@ -171,10 +225,13 @@ test("preserves simultaneous unrelated edits and refuses a timetable changed whi
     const edit = await call("PUT", "/api/config", [Buffer.from(JSON.stringify(config))], { "content-type": "application/json", "if-match": `"${revision}"` });
     assert.equal(edit.status, 200);
     resume.resolve();
-    assert.equal((await pending).status, conflict ? 409 : 200);
+    assert.equal((await pending).status, 202);
     const result = await (await call("GET", "/api/config")).json();
     assert.equal(result.config.settings.appearance.compactMode, true);
-    if (conflict) assert.deepEqual(result.config.settings.timetables["home|person.one"], ["/changed-elsewhere.png"]);
+    if (conflict) {
+      assert.deepEqual(result.config.settings.timetables["home|person.one"], ["/changed-elsewhere.png"]);
+      assert.match(result.timetableError.message, /changed during upload/);
+    } else assert.equal(result.timetableError, undefined);
   }
   assert.equal((await readdir(join(app.dataDir, "timetables"))).length, 1, "Failed replacements leave no converted files behind");
 });

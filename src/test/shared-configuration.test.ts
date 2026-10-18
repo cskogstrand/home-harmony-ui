@@ -27,6 +27,27 @@ function server() {
 const url = "http://ha.local:8123";
 
 describe("shared configuration", () => {
+  it("polls upload errors without discarding unsaved settings or their conflict", async () => {
+    const backend = server();
+    let timetableError = null;
+    const send = vi.fn(async (method: "GET" | "PUT", body?: string, revision?: string) => {
+      if (method === "PUT") return response(409, {});
+      const result = await backend.request(method, body, revision);
+      return response(200, { ...await result.json(), timetableError });
+    });
+    const store = await backend.start(send);
+    store.updateSettings(p => ({ ...p, memberOrder: ["unsaved"] }));
+    await waitFor(() => expect(store.getSnapshot().error).toMatch(/Another screen/));
+    timetableError = { id: "upload-one", member: "home|person.one", message: "This PDF could not be converted." };
+    await store.refresh();
+    expect(store.getSnapshot()).toMatchObject({ timetableError, dirty: true, error: expect.stringMatching(/Another screen/) });
+    expect(store.getSnapshot().config.settings.memberOrder).toEqual(["unsaved"]);
+    timetableError = null;
+    await store.refresh();
+    expect(store.getSnapshot().timetableError).toBeNull();
+    expect(send.mock.calls.filter(([method]) => method === "PUT")).toHaveLength(1);
+  });
+
   it("shares settings across devices without uploading a browser's defaults", async () => {
     const backend = server();
     const a = await backend.start(), b = await backend.start();

@@ -11,6 +11,7 @@ import { convertTimetable, darkTimetableImage } from "./timetables.mjs";
 const revisionOf = config => createHash("sha256").update(JSON.stringify(config)).digest("hex");
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
 const failure = (status, message) => Object.assign(new Error(message), { status });
+const storageError = "Configuration storage is unavailable. Reload to check the last saved version before retrying.";
 
 export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
@@ -25,6 +26,8 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
   let revision = revisionOf(config);
   let writes = Promise.resolve();
   let uploading = false;
+  // shortcut: the current conversion and latest error live in memory; add durable jobs if they must survive restarts.
+  let timetableError;
   const root = await realpath(distDir);
 
   const authenticate = dashboardAccess(dashboardPassword, dashboardAuthDisabled);
@@ -67,7 +70,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
     });
   }
 
-  async function upload(request, url) {
+  async function upload(request, url, received) {
     const member = url.searchParams.get("member");
     const entry = config.settings;
     const enabled = member && Object.hasOwn(entry.timetableEnabled, member) && entry.timetableEnabled[member];
@@ -78,15 +81,16 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
     try {
       const entityId = member.replace(/^home\|/, "");
       if (!/^person\.[a-z0-9_]+$/.test(entityId)) throw failure(400, "Choose a Home Assistant person for this timetable.");
-      converted = await convertTimetable(request, dataDir, entityId.slice("person.".length));
+      converted = await convertTimetable(request, dataDir, entityId.slice("person.".length), received);
       await save(() => {
         const current = config.settings;
         if (JSON.stringify(current.timetables[member]) !== JSON.stringify(entry.timetables[member]) || current.timetableEnabled[member] !== entry.timetableEnabled[member]) throw failure(409, "This timetable changed during upload. Review the current version before uploading again.");
         return parseConfiguration(JSON.stringify({ ...config, settings: { ...current, timetables: { ...current.timetables, [member]: converted.urls } } }));
       });
       // shortcut: retain old pages for settings-backup restores; add retention controls if storage grows.
-      return { message: "Timetable uploaded. The dashboard will refresh shortly.", pages: converted.urls.length };
+      if (timetableError?.member === member) timetableError = undefined;
     } catch (error) {
+      timetableError = { id: randomUUID(), member, message: error.status ? error.message : storageError };
       // A directory-sync failure can follow a committed rename; never remove referenced pages.
       if (converted && !converted.urls.some(url => config.settings.timetables[member]?.includes(url))) await rm(converted.directory, { recursive: true, force: true });
       throw error;
@@ -112,7 +116,10 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
       if (pathname.startsWith("/api/")) {
         const image = pathname.match(timetableImagePath);
         if (!((pathname === "/api/config" && ["GET", "PUT"].includes(request.method)) || (pathname === "/api/timetables" && request.method === "POST") || (image && request.method === "GET"))) throw failure(404, "Not found.");
-        if (pathname === "/api/timetables") { json(200, await upload(request, url)); return; }
+        if (pathname === "/api/timetables") {
+          await upload(request, url, () => json(202, { message: "Timetable received. Conversion is running; the dashboard will refresh when ready and show any errors." }));
+          return;
+        }
         if (image) {
           let contents;
           const directory = resolve(dataDir, "timetables", image[1], image[2]);
@@ -130,7 +137,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
           response.end(contents);
           return;
         }
-        json(200, request.method === "PUT" ? await replace(request) : { revision, config });
+        json(200, request.method === "PUT" ? await replace(request) : { revision, config, timetableError });
         return;
       }
       if (!["GET", "HEAD"].includes(request.method)) throw failure(405, "Method not allowed.");
@@ -148,7 +155,11 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
       response.writeHead(200, { "Content-Type": mime[extname(asset)] ?? "application/octet-stream", "Content-Length": contents.length,
         "Cache-Control": pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-cache", "X-Content-Type-Options": "nosniff" });
       response.end(request.method === "HEAD" ? undefined : contents);
-    } catch (error) { if (error.status === 401) response.setHeader("WWW-Authenticate", 'Basic realm="Home Harmony", charset="UTF-8"'); json(error.status ?? 500, { error: error.status ? error.message : "Configuration storage is unavailable. Reload to check the last saved version before retrying." }); }
+    } catch (error) {
+      if (response.headersSent) return;
+      if (error.status === 401) response.setHeader("WWW-Authenticate", 'Basic realm="Home Harmony", charset="UTF-8"');
+      json(error.status ?? 500, { error: error.status ? error.message : storageError });
+    }
   };
 }
 

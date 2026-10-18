@@ -24,8 +24,9 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.stubGlobal("IntersectionObserver", class { observe() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  Object.defineProperty(document, "execCommand", { configurable: true, value: vi.fn(() => false) });
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(document, "execCommand"); });
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 const saved = () => waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
 
@@ -165,20 +166,33 @@ it("offers the signed iOS shortcut and copies each person's upload destination",
   }
 });
 
-it.each(["unavailable", "denied"])("keeps manual URL copying available when clipboard access is %s", async access => {
+it.each([
+  ["unavailable", true], ["denied", true], ["unavailable", false], ["denied", false],
+])("falls back to selected-text copying when clipboard access is %s (copy succeeds: %s)", async (access, copied) => {
   const clipboard = access === "denied" ? { writeText: vi.fn().mockRejectedValue(new Error("Access denied")) } : undefined;
   vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: clipboard } }));
   const error = vi.spyOn(toast, "error").mockImplementation(() => "copy-failed");
-  const success = vi.spyOn(toast, "success");
+  const success = vi.spyOn(toast, "success").mockImplementation(() => "copied");
   settings.settings.timetableEnabled = { "home|person.emma": true };
   window.history.replaceState(null, "", "/school");
   render(<App />); await saved();
   fireEvent.click(screen.getByText("Share from iPhone"));
-  fireEvent.click(screen.getByRole("button", { name: "Copy Emma upload URL" }));
-  await waitFor(() => expect(error).toHaveBeenCalledWith("Could not copy. Select the Upload URL and copy it manually."));
-  expect(success).not.toHaveBeenCalled();
   const input = screen.getByLabelText("Emma upload URL") as HTMLInputElement;
-  fireEvent.focus(input);
+  vi.mocked(document.execCommand).mockImplementation(() => {
+    expect(input).toHaveFocus();
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(input.value.length);
+    return Boolean(copied);
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Copy Emma upload URL" }));
+  if (copied) {
+    await waitFor(() => expect(success).toHaveBeenCalledWith("Upload URL copied"));
+    expect(error).not.toHaveBeenCalled();
+  } else {
+    await waitFor(() => expect(error).toHaveBeenCalledWith("Could not copy. Select the Upload URL and copy it manually."));
+    expect(success).not.toHaveBeenCalled();
+  }
+  expect(document.execCommand).toHaveBeenCalledWith("copy");
   expect(input.selectionStart).toBe(0);
   expect(input.selectionEnd).toBe(input.value.length);
 });

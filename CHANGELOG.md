@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2
+
+- Return 202 Accepted once a timetable PDF is saved, then convert it in the background and show failures at the top of the app.
+- Keep successful iOS shortcut uploads silent. Download and replace installed shortcuts to get the updated behavior.
+- Fix Upload URL copying when clipboard access is unavailable or denied, including local HTTP dashboards.
+
 ## 0.8.1
 
 - Add a Copy button beside each person's Upload URL on the School page, with success feedback and guidance when clipboard access is unavailable.

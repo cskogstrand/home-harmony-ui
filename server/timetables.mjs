@@ -23,7 +23,7 @@ export function darkTimetableImage(png) {
 </svg>`);
 }
 
-export async function convertTimetable(request, dataDir, person) {
+export async function convertTimetable(request, dataDir, person, received) {
   if (request.headers["content-type"]?.split(";")[0].trim().toLowerCase() !== "application/pdf") throw failure(415, "Send the PDF as the request body with Content-Type: application/pdf.");
   const chunks = [];
   let size = 0;
@@ -40,6 +40,9 @@ export async function convertTimetable(request, dataDir, person) {
   try {
     const source = join(directory, "source.pdf");
     await writeFile(source, pdf, { mode: 0o600 });
+    const sourceHandle = await open(source, "r");
+    try { await sourceHandle.sync(); } finally { await sourceHandle.close(); }
+    received();
     const { stdout } = await exec("pdfinfo", [source], { timeout: 5000, maxBuffer: 1024 * 1024, env: { ...process.env, LC_ALL: "C" } });
     const pages = Number(stdout.match(/^Pages:\s+(\d+)\s*$/m)?.[1]);
     if (!Number.isInteger(pages) || pages < 1 || pages > MAX_TIMETABLE_PAGES) throw failure(400, `Choose a PDF with 1–${MAX_TIMETABLE_PAGES} pages.`);
@@ -57,8 +60,6 @@ export async function convertTimetable(request, dataDir, person) {
       }
       urls.push(`/api/timetables/${person}/${id}/${page}.png`);
     }
-    const sourceHandle = await open(source, "r");
-    try { await sourceHandle.sync(); } finally { await sourceHandle.close(); }
     for (const path of [directory, join(dataDir, "timetables", person), join(dataDir, "timetables")]) {
       const handle = await open(path, "r");
       try { await handle.sync(); } finally { await handle.close(); }

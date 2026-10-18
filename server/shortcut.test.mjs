@@ -46,3 +46,19 @@ test("shortcut requires one shared PDF and confirmation before sending raw bytes
   assert.equal(parameters("base64encode").WFBase64LineBreakMode, "None");
   assert.ok(index("showresult") > index("downloadurl"));
 });
+
+test("shortcut shows only response errors and exits silently on acceptance", () => {
+  const actions = shortcut.WFWorkflowActions;
+  const upload = actions.findIndex(action => action.WFWorkflowActionIdentifier === "is.workflow.actions.downloadurl");
+  const tail = actions.slice(upload + 1);
+  assert.deepEqual(tail.map(action => action.WFWorkflowActionIdentifier), ["getvalueforkey", "conditional", "showresult", "conditional", "exit"].map(name => `is.workflow.actions.${name}`));
+  const [value, condition, show, end] = tail.map(action => action.WFWorkflowActionParameters);
+  assert.equal(value.WFDictionaryKey, "error");
+  assert.equal(value.WFInput.Value.OutputUUID, actions[upload].WFWorkflowActionParameters.UUID);
+  assert.equal(condition.WFCondition, 100); // has any value
+  assert.equal(condition.WFControlFlowMode, 0);
+  assert.equal(condition.WFInput.Variable.Value.OutputUUID, value.UUID);
+  assert.equal(show.Text.Value.attachmentsByRange["{0, 1}"].OutputUUID, value.UUID);
+  assert.equal(end.GroupingIdentifier, condition.GroupingIdentifier);
+  assert.equal(end.WFControlFlowMode, 2);
+});

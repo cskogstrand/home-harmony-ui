@@ -2,9 +2,11 @@ import { z } from "zod";
 import { configurationSchema, emptyConfiguration, parseConfiguration, type Configuration, type Planner } from "../../shared/configuration";
 
 type Request = (method: "GET" | "PUT", body?: string, revision?: string) => Promise<Response>;
-const responseSchema = z.object({ revision: z.string().regex(/^[a-f0-9]{64}$/), config: configurationSchema });
+const responseSchema = z.object({ revision: z.string().regex(/^[a-f0-9]{64}$/), config: configurationSchema,
+  timetableError: z.object({ id: z.string(), member: z.string(), message: z.string() }).nullable().optional().default(null),
+});
 export class SharedConfiguration {
-  private snapshot = { config: emptyConfiguration(), loaded: false, dirty: false, saving: false, error: "" };
+  private snapshot = { config: emptyConfiguration(), loaded: false, dirty: false, saving: false, error: "", timetableError: null as z.infer<typeof responseSchema>["timetableError"] };
   private listeners = new Set<() => void>();
   private revision = "";
   private reading = false;
@@ -29,19 +31,21 @@ export class SharedConfiguration {
   start = () => {
     this.active = true;
     void this.refresh();
-    this.timer = setInterval(() => { if (!this.snapshot.dirty) void this.refresh(); }, 5000);
+    this.timer = setInterval(() => { void this.refresh(); }, 5000);
   };
   stop = () => { this.active = false; this.generation++; clearInterval(this.timer); this.reading = false; this.reloading = false; this.update({ saving: false }); };
   refresh = async (discard = false) => {
     if (discard && (!this.active || this.reading || this.snapshot.saving)) throw new Error("Wait for the current request to finish, then load the shared version again.");
-    if (!this.active || this.reading || this.snapshot.saving || (this.snapshot.dirty && !discard)) return;
+    if (!this.active || this.reading || this.snapshot.saving) return;
     const generation = this.generation;
     const before = this.snapshot.config;
     this.reading = true;
     this.reloading = discard;
     try {
       const result = await this.response("GET");
-      if (generation !== this.generation || (!discard && (this.snapshot.dirty || this.snapshot.config !== before))) return;
+      if (generation !== this.generation) return;
+      this.update({ timetableError: result.timetableError });
+      if (!discard && (this.snapshot.dirty || this.snapshot.config !== before)) return;
       this.revision = result.revision;
       this.update({ config: result.config, loaded: true, dirty: false, error: "" });
     } catch (error) {

@@ -52,7 +52,11 @@ export const timetableShortcut = {
         { WFItemType: 0, WFKey: text("Authorization"), WFValue: text("Basic \uFFFC", output(6, "Base64 Encoded")) },
       ] } },
     }),
-    action("showresult", { Text: text("\uFFFC", output(7, "Contents of URL")) }),
+    action("getvalueforkey", { UUID: id(8), WFDictionaryKey: "error", WFInput: attachment(output(7, "Contents of URL")) }),
+    action("conditional", { GroupingIdentifier: id(9), WFControlFlowMode: 0, WFCondition: 100, WFInput: { Type: "Variable", Variable: attachment(output(8, "Dictionary Value")) } }),
+    action("showresult", { Text: text("\uFFFC", output(8, "Dictionary Value")) }),
+    action("conditional", { GroupingIdentifier: id(9), WFControlFlowMode: 2 }),
+    action("exit", {}),
   ],
 };
 
@@ -63,7 +67,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const source = join(temporary, "Upload timetable.shortcut");
     const signed = join(temporary, "signed.shortcut");
     await writeFile(source, JSON.stringify(timetableShortcut));
-    execFileSync("plutil", ["-convert", "binary1", source]);
+    execFileSync("plutil", ["-convert", "xml1", source]);
     // Apple receives only this blank template for validation, never household credentials.
     execFileSync("shortcuts", ["sign", "--mode", "anyone", "--input", source, "--output", signed], { stdio: "inherit", timeout: 60000 });
     const destination = new URL("../public/shortcuts/Upload%20timetable.shortcut", import.meta.url);

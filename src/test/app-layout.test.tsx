@@ -3,19 +3,39 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 
-const shared = vi.hoisted(() => ({ enabled: true, online: true, state: { loaded: true, dirty: false, saving: false, error: "" } }));
+const shared = vi.hoisted(() => ({ enabled: true, online: true, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home" }, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma" }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 
 beforeEach(() => {
   shared.enabled = true;
   shared.online = true;
-  shared.state = { loaded: true, dirty: false, saving: false, error: "" };
+  shared.state = { loaded: true, dirty: false, saving: false, error: "", timetableError: null };
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
+
+it("shows upload errors above the page and allows dismissing each new failure", () => {
+  const view = render(layout());
+  shared.state.timetableError = { id: "first", member: "home|person.emma", message: "Choose a PDF without password protection." };
+  view.rerender(layout());
+  const alert = screen.getByRole("alert");
+  expect(screen.getByRole("banner").nextElementSibling).toBe(alert);
+  expect(alert).toHaveTextContent("Emma’s timetable upload failed.");
+  expect(alert).toHaveTextContent(shared.state.timetableError.message);
+  expect(screen.getByRole("link", { name: "Open School" })).toHaveAttribute("href", "/school");
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss timetable error" }));
+  view.rerender(layout());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  shared.state.timetableError = { ...shared.state.timetableError, id: "second" };
+  view.rerender(layout());
+  expect(screen.getByRole("alert")).toBeInTheDocument();
+  shared.state.timetableError = null;
+  view.rerender(layout());
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
 
 it("keeps save feedback in the header without inserting a page row during saves", () => {
   const view = render(layout());

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { MainNav, SmartHomeNav, isHomeSection } from "./Navigation";
 import { HomeSwitcher } from "./HomeSwitcher";
@@ -7,15 +7,17 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Check, LoaderCircle, Moon, Settings, TriangleAlert, Wifi, WifiOff } from "lucide-react";
+import { Check, LoaderCircle, Moon, Settings, TriangleAlert, Wifi, WifiOff, X } from "lucide-react";
 import appConfig from "../../../config.yaml?raw";
 
 const appVersion = appConfig.match(/^version:\s*["']?([^"'\s]+)/m)![1];
 
 export function AppLayout() {
   const { currentUser, homeOnline } = useApp();
-  const { saved } = useFamily();
+  const { saved, memberName } = useFamily();
   const shared = useSharedConfiguration();
+  const timetableError = shared?.state.timetableError;
+  const [dismissedError, setDismissedError] = useState<string>();
   const storageWarning = shared?.state.error || (shared?.state.loaded && !saved && !shared?.state.saving);
   const storageBusy = shared?.state.saving || !shared?.state.loaded;
   const storageMessage = shared?.state.error || (shared.state.saving ? "Saving shared settings…" : !shared.state.loaded ? "Loading shared settings…" : !saved ? "Shared settings are not saved yet." : "Shared settings saved.");
@@ -36,6 +38,10 @@ export function AppLayout() {
         </div>
       </div>
     </header>
+    {timetableError && timetableError.id !== dismissedError && <div className="connection-banner" role="alert">
+      <TriangleAlert size={19} aria-hidden="true" /><span className="min-w-0 flex-1"><strong>{memberName(timetableError.member)}’s timetable upload failed.</strong>{timetableError.message} <Link to="/school">Open School</Link></span>
+      <button type="button" className="icon-button" aria-label="Dismiss timetable error" onClick={() => setDismissedError(timetableError.id)}><X size={19} aria-hidden="true" /></button>
+    </div>}
     <ConnectionBanner />
     <main id="main-content" className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
