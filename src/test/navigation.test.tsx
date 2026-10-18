@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { toast } from "sonner";
 import App from "@/App";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
@@ -142,7 +143,10 @@ it("navigates timetable pages with arrows and keyboard and enlarges the selected
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" })).toHaveAttribute("src", "/first.svg");
 });
 
-it("offers the signed iOS shortcut with each person's upload destination", async () => {
+it("offers the signed iOS shortcut and copies each person's upload destination", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined);
+  vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: { writeText } } }));
+  const success = vi.spyOn(toast, "success").mockImplementation(() => "copied");
   settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
   window.history.replaceState(null, "", "/school");
   render(<App />); await saved();
@@ -154,7 +158,29 @@ it("offers the signed iOS shortcut with each person's upload destination", async
     expect(destination.origin).toBe(window.location.origin);
     expect(destination.pathname).toBe("/api/timetables");
     expect(destination.searchParams.get("member")).toBe(`home|person.${name.toLowerCase()}`);
+    fireEvent.click(card.getByRole("button", { name: `Copy ${name} upload URL` }));
+    await waitFor(() => expect(success).toHaveBeenCalledWith("Upload URL copied"));
+    expect(writeText).toHaveBeenLastCalledWith(destination.href);
+    success.mockClear();
   }
+});
+
+it.each(["unavailable", "denied"])("keeps manual URL copying available when clipboard access is %s", async access => {
+  const clipboard = access === "denied" ? { writeText: vi.fn().mockRejectedValue(new Error("Access denied")) } : undefined;
+  vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: clipboard } }));
+  const error = vi.spyOn(toast, "error").mockImplementation(() => "copy-failed");
+  const success = vi.spyOn(toast, "success");
+  settings.settings.timetableEnabled = { "home|person.emma": true };
+  window.history.replaceState(null, "", "/school");
+  render(<App />); await saved();
+  fireEvent.click(screen.getByText("Share from iPhone"));
+  fireEvent.click(screen.getByRole("button", { name: "Copy Emma upload URL" }));
+  await waitFor(() => expect(error).toHaveBeenCalledWith("Could not copy. Select the Upload URL and copy it manually."));
+  expect(success).not.toHaveBeenCalled();
+  const input = screen.getByLabelText("Emma upload URL") as HTMLInputElement;
+  fireEvent.focus(input);
+  expect(input.selectionStart).toBe(0);
+  expect(input.selectionEnd).toBe(input.value.length);
 });
 
 it.each([".png", "-dark.svg"])("colors the original PNG for saved %s timetables across previews and enlarged views", async extension => {

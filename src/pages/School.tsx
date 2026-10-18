@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Link as LinkIcon, Save } from "lucide-react";
+import { BookOpen, Copy, Link as LinkIcon, Save } from "lucide-react";
+import { toast } from "sonner";
 import { useFamily, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, SchoolPreview, MemberAvatar } from "@/components/FamilyPlanner";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ function SchoolCard({ child }: { child: MemberId }) {
   const [pdf, setPdf] = useState<File>();
   const [uploadStatus, setUploadStatus] = useState("");
   const uploadPath = timetableUploadPath(child);
+  const uploadUrl = new URL(uploadPath, window.location.origin).href;
   const uploadReady = shared?.state.loaded && !shared.state.dirty && !shared.state.saving && !shared.state.error;
   useEffect(() => { if (!edit) setUrls(savedUrls); }, [savedUrls, edit]);
   const sampleChild = !connectedPlanner && ["emma", "leo"].includes(child);
@@ -38,7 +40,17 @@ function SchoolCard({ child }: { child: MemberId }) {
       {uploadStatus && <p role="status">{uploadStatus}</p>}
       {shared?.state.loaded && <details><summary className="text-link">Share from iPhone</summary>
         <p>Install the PDF shortcut for {memberName(child)}. Copy the Upload URL below, then open the download in Shortcuts and tap Set Up Shortcut / Add Shortcut. iOS requires you to confirm the import.</p>
-        <label>Upload URL<input aria-label={`${memberName(child)} upload URL`} readOnly value={new URL(uploadPath, window.location.origin).href} onFocus={event => event.target.select()} /></label>
+        <div className="flex items-end gap-2">
+          <label className="min-w-0 flex-1">Upload URL<input aria-label={`${memberName(child)} upload URL`} readOnly value={uploadUrl} onFocus={event => event.target.select()} /></label>
+          <Button type="button" variant="outline" className="h-12 shrink-0" aria-label={`Copy ${memberName(child)} upload URL`} onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(uploadUrl);
+              toast.success("Upload URL copied");
+            } catch {
+              toast.error("Could not copy. Select the Upload URL and copy it manually.");
+            }
+          }}><Copy size={16} aria-hidden="true" />Copy</Button>
+        </div>
         <Button asChild><a href="/shortcuts/Upload%20timetable.shortcut">Download iOS shortcut</a></Button>
         <p>During setup, paste this Upload URL and enter your dashboard password. Rename the shortcut to “Upload {memberName(child)}’s timetable” so you can tell people apart. If Safari saves a file, tap it in Downloads to open Shortcuts.</p>
         <p>Open one PDF, tap Share → your shortcut, then confirm the replacement. PDFs and Show in Share Sheet are already enabled. The shortcut shows the server’s response after uploading.</p>

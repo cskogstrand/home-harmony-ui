@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+
+- Add a Copy button beside each person's Upload URL on the School page, with success feedback and guidance when clipboard access is unavailable.
+
 ## 0.8.0
 
 - Move household setup guidance into a Get started page for connections, people, calendars, lists and school timetables.
