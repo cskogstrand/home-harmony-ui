@@ -86,3 +86,21 @@ it.each(["pending", "unsupported"])("disables Home Assistant suggestions when an
   fireEvent.click(suggestion);
   expect(app.command).not.toHaveBeenCalled();
 });
+
+it("shows pending feedback on the selected suggestion and permits retry after failure", async () => {
+  family.connectedPlanner = true;
+  let reject: (reason: Error) => void;
+  app.command.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
+  const { input } = await openSuggestions();
+  const suggestion = screen.getByRole("button", { name: "Oat milk" });
+  fireEvent.click(suggestion);
+  expect(suggestion).toHaveAttribute("aria-busy", "true");
+  expect(suggestion).toBeDisabled();
+  fireEvent.click(suggestion);
+  expect(app.command).toHaveBeenCalledTimes(1);
+  expect(input).toHaveValue(" MIL ");
+  await act(async () => reject(new Error("Could not update item")));
+  expect(suggestion).toHaveAttribute("aria-busy", "false");
+  expect(suggestion).toBeEnabled();
+  expect(input).toHaveValue(" MIL ");
+});

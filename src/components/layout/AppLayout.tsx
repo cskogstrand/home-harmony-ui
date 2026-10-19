@@ -1,4 +1,5 @@
 import { useI18n } from "@/hooks/use-i18n";
+import { useMotionInput } from "@/hooks/use-motion-input";
 import { Suspense, useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
@@ -15,6 +16,7 @@ import appConfig from "../../../config.yaml?raw";
 const appVersion = appConfig.match(/^version:\s*["']?([^"'\s]+)/m)![1];
 
 export function AppLayout() {
+  useMotionInput();
   const { t, message } = useI18n();
   const { currentUser, homeOnline } = useApp();
   const { saved, memberName, appearance } = useFamily();

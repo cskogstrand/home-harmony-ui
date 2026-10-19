@@ -1532,11 +1532,12 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(shopping.getByRole("textbox", { name: "New item in shopping" })).toHaveValue("Keep this item");
   const reopenedShoppingInput = shopping.getByRole("textbox", { name: "New item in shopping" });
   fireEvent.change(reopenedShoppingInput, { target: { value: "mi" } });
-  fireEvent.click(within(shopping.getByRole("group", { name: "Existing items" })).getByRole("button", { name: "Milk" }));
-  expect(reopenedShoppingInput).toHaveValue("Milk");
-  fireEvent.change(reopenedShoppingInput, { target: { value: " milk " } });
-  fireEvent.click(shopping.getByRole("button", { name: "Save item to shopping" }));
+  const suggestion = within(shopping.getByRole("group", { name: "Existing items" })).getByRole("button", { name: "Milk" });
+  fireEvent.click(suggestion);
+  expect(suggestion).toHaveAttribute("aria-busy", "true");
+  expect(suggestion).toBeDisabled();
   await waitFor(() => expect(shopping.getByRole("checkbox", { name: "Milk" })).not.toBeChecked());
+  expect(shopping.queryByRole("textbox")).not.toBeInTheDocument();
   expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "update_item", { item: "milk", status: "needs_action" }, { entity_id: "todo.shopping" });
   const calls = vi.mocked(ha.callService).mock.calls.length;
   fireEvent.click(shopping.getByRole("button", { name: "Add item" }));

@@ -222,6 +222,8 @@
 
 @layer base {
   :root {
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
     --background: 130.0 14.3% 91.8%;
     --foreground: 169.3 30.4% 18.0%;
     --card: 72.0 26.3% 96.3%;

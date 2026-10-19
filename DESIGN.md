@@ -261,7 +261,7 @@ The weekly grid aligns people and dates, marks the current day, and supports con
 
 Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 
-Motion is tied to these state changes: the completion check draws over (200ms), and list reflow lasts up to (480ms). Reduced-motion settings remove animation. Do not add motion to imply a device command succeeded before the state confirms it.
+Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms; confirmed additions and list reflow take up to 240ms, with a 200ms completion check. Suggestion selection shows pending feedback until the update finishes. Keyboard actions stay immediate. Reduced-motion settings replace overlay movement with a 160ms fade and remove list movement. Do not add motion to imply a device command succeeded before the state confirms it.
 
 ## Do's and Don'ts
 

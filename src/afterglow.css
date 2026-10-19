@@ -11,6 +11,47 @@
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 }
 .afterglow-app { --space: 2rem; --panel-space: 1.5rem; --car-fill: hsl(var(--card)); min-height: 100svh; padding-bottom: calc(8rem + env(safe-area-inset-bottom)); background: hsl(var(--background)); }
+
+/* Radix keeps these occasional surfaces mounted until their exit animation ends. */
+.motion-surface, .motion-backdrop { --surface-duration: 240ms; --surface-enter: surface-in; --surface-exit: surface-out; }
+.motion-backdrop { --surface-enter: surface-fade-in; --surface-exit: surface-fade-out; }
+.motion-menu { --surface-duration: 180ms; transform-origin: var(--radix-dropdown-menu-content-transform-origin); }
+[data-motion-input="pointer"] :is(.motion-surface, .motion-backdrop)[data-state="open"] { animation: var(--surface-enter) var(--surface-duration) var(--ease-out); }
+[data-motion-input="pointer"] :is(.motion-surface, .motion-backdrop)[data-state="closed"] { animation: var(--surface-exit) var(--surface-duration) var(--ease-out); }
+@keyframes surface-in { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes surface-out { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.96); } }
+@keyframes surface-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes surface-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+[data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion) {
+  transition: transform 120ms var(--ease-out), opacity 120ms ease;
+}
+[data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion):active:not(:disabled):not([aria-disabled="true"]) { opacity: .8; }
+[data-motion-input="pointer"] :is(.quick-add, .item-suggestions, .content-ready) { transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
+@starting-style {
+  [data-motion-input="pointer"] :is(.quick-add, .item-suggestions, .content-ready) { opacity: 0; }
+}
+.quick-add-field { position: relative; }
+.quick-add-field::after { content: ""; position: absolute; inset: auto 10px 0; height: 2px; background: hsl(var(--primary)); opacity: 0; pointer-events: none; }
+.quick-add-field:focus-within::after { opacity: 1; }
+[data-motion-input="pointer"] .quick-add-field::after { transition: opacity 160ms ease; }
+.item-suggestion { position: relative; }
+.item-suggestion > .suggestion-spinner { position: absolute; inset: 0; margin: auto; }
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion):active:not(:disabled):not([aria-disabled="true"]) { transform: scale(.97); }
+  [data-motion-input="pointer"] .switch-thumb { transition: translate 160ms var(--ease-in-out); }
+  @starting-style {
+    [data-motion-input="pointer"] .quick-add { transform: translateY(-4px); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .motion-surface, .motion-backdrop { --surface-enter: surface-fade-in; --surface-exit: surface-fade-out; }
+  @layer base {
+    .motion-surface, .motion-backdrop { animation-duration: 160ms !important; }
+    [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion, .quick-add, .item-suggestions, .content-ready) { transition-property: opacity !important; transition-duration: 160ms !important; }
+  }
+}
 .app-header { max-width: 1600px; margin-inline: auto; padding: 1.5rem var(--space); display: flex; align-items: center; gap: 1.5rem; min-height: 88px; border-bottom: 1px solid hsl(var(--border)); }
 .brand { display: flex; align-items: center; gap: .65rem; min-height: 48px; font-size: 1.75rem; font-weight: 500; letter-spacing: -.025em; }
 .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; color: hsl(var(--primary)); }
@@ -120,8 +161,8 @@
 .complete .check-text { text-decoration: line-through; color: hsl(var(--muted-foreground)); }
 .check-text { flex: 1; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) {
-  .check-text { transition: color 200ms ease-out; }
-  .completing .check-mark path { stroke-dasharray: 24; animation: task-check-draw 200ms ease-out; }
+  [data-motion-input="pointer"] .check-text { transition: color 200ms ease; }
+  [data-motion-input="pointer"] .completing .check-mark path { stroke-dasharray: 24; animation: task-check-draw 200ms var(--ease-out); }
 }
 @keyframes task-check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 .list-composer { position: sticky; top: .5rem; z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }

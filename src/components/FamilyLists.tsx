@@ -1,7 +1,7 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
-import { Check, Plus, X } from "lucide-react";
+import { Check, LoaderCircle, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem } from "@/contexts/FamilyContext";
@@ -21,15 +21,15 @@ function CheckRow({ id, text, complete, member, disabled, removeDisabled, onTogg
   const { t } = useI18n();
   const present = useIsPresent();
   const completedIds: string[] = usePresenceData() ?? [];
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput !== "pointer";
   const completing = !present && completedIds.includes(id);
   const animateCompletion = completing && !reduceMotion;
-  return <motion.div className="check-row-shell" aria-hidden={!present || undefined} initial={complete ? { height: 0, opacity: 0 } : false}
-    animate={{ height: "auto", opacity: 1 }}
-    transition={{ duration: reduceMotion ? 0 : .48, ease: [.4, 0, .2, 1] }}
+  return <motion.div className="check-row-shell" aria-hidden={!present || undefined} initial={reduceMotion ? false : complete ? { height: 0, opacity: 0 } : { opacity: 0, transform: "translateY(4px)" }}
+    animate={{ height: "auto", opacity: 1, transform: "translateY(0)" }}
+    transition={{ duration: reduceMotion ? 0 : .24, ease: [.23, 1, .32, 1] }}
     exit={{ height: 0, opacity: 0, transition: {
-      height: { delay: animateCompletion ? .08 : 0, duration: animateCompletion ? .4 : 0, ease: [.4, 0, .2, 1] },
-      opacity: { delay: animateCompletion ? .16 : 0, duration: animateCompletion ? .24 : 0, ease: "easeOut" },
+      height: { duration: animateCompletion ? .24 : 0, ease: [.23, 1, .32, 1] },
+      opacity: { duration: animateCompletion ? .24 : 0, ease: [.23, 1, .32, 1] },
     } }}>
     <div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`}>
       <label><input type="checkbox" aria-label={text} checked={complete || completing} disabled={disabled || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} /></span></label>
@@ -39,16 +39,16 @@ function CheckRow({ id, text, complete, member, disabled, removeDisabled, onTogg
   </motion.div>;
 }
 function ListEmptyNote({ text }: { text: string }) {
-  const reduceMotion = useReducedMotion();
-  return <motion.div className="list-empty-note" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .48, ease: [.4, 0, .2, 1] }}>
+  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput !== "pointer";
+  return <motion.div className="list-empty-note" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .24, ease: [.23, 1, .32, 1] }}>
     <p className="empty-note">{text}</p>
   </motion.div>;
 }
 function CompletedItems({ count, children }: { count: number; children: ReactNode }) {
   const { t } = useI18n();
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput !== "pointer";
   const present = useIsPresent();
-  return <motion.details className="completed-items" aria-hidden={!present || undefined} initial={{ height: 0, opacity: 0, marginTop: 0 }} animate={{ height: "auto", opacity: 1, marginTop: 12 }} exit={{ height: 0, opacity: 0, marginTop: 0 }} transition={{ duration: reduceMotion ? 0 : .48, ease: [.4, 0, .2, 1] }}>
+  return <motion.details className="completed-items" aria-hidden={!present || undefined} initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .24, ease: [.23, 1, .32, 1] }}>
     <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} propagate>{children}</AnimatePresence></div>
   </motion.details>;
 }
@@ -74,12 +74,16 @@ function ItemEditor({ text, kind, description, disabled, error, onSave, onClose 
     </fieldset></form>
   </DialogContent></Dialog>;
 }
-function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; names: string[]; text: string; select: (name: string) => void; isDisabled: (name: string) => boolean }) {
+function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; names: string[]; text: string; select: (name: string) => void | Promise<void>; isDisabled: (name: string) => boolean }) {
   const { t } = useI18n();
+  const [selected, setSelected] = useState<string>();
   const matches = text.trim() ? [...new Set(names)].filter(name => itemName(name).includes(itemName(text))).slice(0, 6) : [];
-  return !!matches.length && <div id={id} className="flex basis-full flex-wrap items-center gap-2 pb-2" role="group" aria-label={t("Existing items")}>
+  return !!matches.length && <div id={id} className="item-suggestions flex basis-full flex-wrap items-center gap-2 pb-2" role="group" aria-label={t("Existing items")}>
     <span className="text-xs text-muted-foreground">{t("Existing items")}</span>
-    {matches.map(name => <button type="button" key={name} className="rounded-full bg-secondary px-3 py-1 text-xs" disabled={isDisabled(name)} onClick={() => select(name)}>{name}</button>)}
+    {matches.map(name => <button type="button" key={name} className="item-suggestion rounded-full bg-secondary px-3 py-1 text-xs" disabled={!!selected || isDisabled(name)} aria-busy={selected === name} onClick={async () => {
+      setSelected(name);
+      try { await select(name); } finally { setSelected(undefined); }
+    }}><span className={selected === name ? "opacity-0" : undefined}>{name}</span>{selected === name && <LoaderCircle size={16} className="suggestion-spinner motion-safe:animate-spin" aria-hidden="true" />}</button>)}
   </div>;
 }
 export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {

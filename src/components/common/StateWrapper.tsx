@@ -1,7 +1,6 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { Loader2, WifiOff, ShieldX, AlertTriangle, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
 
 export type ViewState = "loading" | "empty" | "error" | "offline" | "no-access" | "success";
 
@@ -22,19 +21,7 @@ export function StateWrapper({
 }: StateWrapperProps) {
   const { t } = useI18n();
   if (state === "success") {
-    return (
-      <AnimatePresence mode="wait">
-        <motion.div
-          key="content"
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
-          className={className}
-        >
-          {children}
-        </motion.div>
-      </AnimatePresence>
-    );
+    return <div className={`content-ready ${className}`}>{children}</div>;
   }
 
   const configs: Record<Exclude<ViewState, "success">, { icon: React.ReactNode; title: string; desc: string }> = {

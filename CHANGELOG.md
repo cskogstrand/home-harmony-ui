@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.3
+
+- Add subtle feedback to buttons, switches, menus and dialogs, with instant keyboard actions and gentler reduced-motion transitions.
+- Animate task and shopping-list entry, confirmed additions and completion, and show pending feedback when selecting a suggestion.
+- Reopen completed items directly from suggestions and disable suggestions already on the list.
+
 ## 0.9.2
 
 - Load pages on demand and split the React runtime into a shared bundle, keeping every JavaScript chunk below the build warning limit.
