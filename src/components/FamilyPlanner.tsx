@@ -12,15 +12,17 @@ import { useFamily, newPlannerId, addDays, type FamilyEvent, type MemberId } fro
 import { useApp } from "@/contexts/AppContext";
 import { available, calendarTimeInput, calendarTimeValue, supportsAction } from "@/lib/ha-model";
 import { timetableImagePath } from "../../shared/timetables";
+import { memberColorForeground } from "@/lib/member-colors";
 
 export function PageHeading({ context, title, description, children }: { context?: string; title: string; description?: string; children?: ReactNode }) {
   return <header className="page-heading"><div><h1>{title}</h1>{context && <p className="page-context">{context}</p>}{description && <p>{description}</p>}</div>{children}</header>;
 }
 export function MemberAvatar({ member, small = false }: { member: MemberId; small?: boolean }) {
   const { t } = useI18n();
-  const { allMembers: members, memberName } = useFamily();
+  const { allMembers: members, memberName, memberColor } = useFamily();
   const person = members.find(m => m.id === member);
-  return <Avatar className={`member-avatar ${small ? "small" : ""}`} style={{ background: person?.color ?? "#c4d5a3" }} aria-label={memberName(member)}>
+  const color = memberColor(member);
+  return <Avatar className={`member-avatar ${small ? "small" : ""}`} style={{ background: color, color: memberColorForeground(color), border: `2px solid ${color}` }} aria-label={memberName(member)}>
     <AvatarImage src={person?.picture} alt="" className="object-cover" />
     <AvatarFallback className="bg-transparent">{person?.initials ?? (member === "everyone" ? t("All") : "?")}</AvatarFallback>
   </Avatar>;
@@ -36,10 +38,10 @@ export function PanelHeading({ title, to, label = "View all" }: { title: string;
 }
 export function EventButton({ event, onClick, showDate = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
   const { t, dateLabel, eventTimeLabel } = useI18n();
-  const { memberName } = useFamily();
+  const { memberName, memberColor } = useFamily();
   const span = event.calendarSpan;
   const dates = span && span.firstDay !== span.lastDay ? `${dateLabel(span.firstDay)} – ${dateLabel(span.lastDay)}` : dateLabel(event.date, { weekday: "short", day: "numeric" });
-  return <button className={`event-button member-${event.member}${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} onClick={onClick}>
+  return <button className={`event-button${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} style={{ "--member": memberColor(event.member) } as React.CSSProperties} onClick={onClick}>
     <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
     <div><strong>{continuesBefore && <span aria-hidden="true">← </span>}{event.title}{continuesAfter && <span aria-hidden="true"> →</span>}</strong><small>{event.location || memberName(event.member)}{event.calendarId && t(" · Home Assistant")}</small></div>
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}<ArrowUpRight size={15} />

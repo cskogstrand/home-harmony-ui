@@ -7,7 +7,7 @@ import type { Entity } from "@/types/api";
 import { state } from "./ha-fixtures";
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { entities: [] as Entity[] }, commands: {} as Record<string, { pending: boolean }>, services: { todo: { add_item: { fields: {} }, update_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }));
-const family = vi.hoisted(() => ({ connectedPlanner: true, todoLists: { "home|todo.shopping": { kind: "shopping", member: "everyone" } }, items: [] as ListItem[], today: "2026-01-01", compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Everyone", members: [], allMembers: [], addItem: vi.fn(), toggleItem: vi.fn() }));
+const family = vi.hoisted(() => ({ connectedPlanner: true, todoLists: { "home|todo.shopping": { kind: "shopping", member: "everyone" } }, items: [] as ListItem[], today: "2026-01-01", compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Everyone", memberColor: () => "#c4d5a3", members: [], allMembers: [], addItem: vi.fn(), toggleItem: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/FamilyContext")>(), useFamily: () => family }));
 

@@ -1116,6 +1116,69 @@ it("shows spinners on busy device and scene controls, clears them on completion,
   expect(scene).toBeEnabled();
 });
 
+it.each([["Example person", "home|person.example"], ["Everyone", "everyone"]])("saves preset and custom colors for %s, retains them after reordering and reload, and uses them in calendars and lists", async (name, member) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
+  const household = { ...states,
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "person.other": state("person.other", "home", { friendly_name: "Other person" }),
+    "calendar.example": state("calendar.example", "off"),
+    "todo.example": state("todo.example", "0"),
+  };
+  vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
+    (connection as unknown as FakeConnection).entityCallback = callback;
+    queueMicrotask(() => callback(household));
+    return conn.unsubscribeEntities;
+  });
+  setHaFetch(vi.fn().mockResolvedValue({ ok: true, json: async () => [{ summary: "Example event", start: "2026-10-07", end: "2026-10-08" }] }));
+  seedSettings({ calendarMembers: { "home|calendar.example": member }, todoLists: { "home|todo.example": { kind: "tasks", member } } });
+  window.history.replaceState(null, "", "/settings");
+  const view = render(<App />);
+  const trigger = await screen.findByRole("button", { name: `Color for ${name}` });
+  await waitFor(() => expect(trigger).toBeEnabled());
+  await act(async () => fireEvent.click(trigger));
+  expect(within(screen.getByRole("group", { name: "Preset colors" })).getAllByRole("button")).toHaveLength(12);
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Teal" })));
+  expect(serverConfig.settings.memberColors[member]).toBe("#a5c9bd");
+  expect(screen.getByRole("button", { name: "Teal" })).toHaveAttribute("aria-pressed", "true");
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Custom color" })));
+  fireEvent.change(screen.getByLabelText("Hex color"), { target: { value: "invalid" } });
+  fireEvent.click(screen.getByRole("button", { name: "Apply color" }));
+  expect(screen.getByLabelText("Hex color")).toHaveAttribute("aria-invalid", "true");
+  expect(serverConfig.settings.memberColors[member]).toBe("#a5c9bd");
+  fireEvent.change(screen.getByLabelText("Choose custom color"), { target: { value: "#112233" } });
+  expect(screen.getByLabelText("Hex color")).toHaveValue("#112233");
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Apply color" })));
+  expect(serverConfig.settings.memberColors[member]).toBe("#112233");
+  await act(async () => fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" }));
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Move Other person up" })));
+  const avatar = () => screen.getByLabelText(name, { selector: ".member-avatar" });
+  expect(avatar()).toHaveStyle({ background: "#112233", color: "#ffffff", borderColor: "#112233" });
+  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  nav("Our week");
+  const event = await screen.findByRole("button", { name: /Example event/ });
+  expect(event.style.getPropertyValue("--member")).toBe("#112233");
+  expect(event.closest("tbody")?.style.getPropertyValue("--member")).toBe("#112233");
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "By person" })));
+  expect(screen.getByRole("button", { name: /Example event/ }).style.getPropertyValue("--member")).toBe("#112233");
+  expect(screen.getByRole("button", { name: /Example event/ }).closest<HTMLElement>(".calendar-lane")?.style.getPropertyValue("--member")).toBe("#112233");
+  nav("Lists");
+  fireEvent.click(await screen.findByRole("button", { name: /Family tasks/ }));
+  expect(avatar()).toHaveStyle({ background: "#112233" });
+  view.unmount();
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  window.history.replaceState(null, "", "/settings");
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("button", { name: `Color for ${name}` })).toBeEnabled());
+  expect(avatar()).toHaveStyle({ background: "#112233" });
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: `Color for ${name}` })));
+  expect(screen.getByLabelText("Hex color")).toHaveValue("#112233");
+  await act(async () => fireEvent.click(screen.getByRole("button", { name: "Green" })));
+  expect(screen.queryByLabelText("Hex color")).not.toBeInTheDocument();
+  expect(serverConfig.settings.memberColors[member]).toBe("#c7d29c");
+});
+
 it("assigns HA calendars to real people in both views, persists setup, without local event storage", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));

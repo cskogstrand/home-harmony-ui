@@ -9,10 +9,11 @@ import { MemberAvatar, PageHeading, PanelHeading } from "@/components/FamilyPlan
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { MemberColorPicker } from "@/components/MemberColorPicker";
 export default function HomeSettings() {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
-  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
+  const { allMembers: members, memberName, memberColor, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [{ id: "everyone", name: t("Everyone") }, ...members, ...[...new Set(Object.values(todoLists).map(assigned => assigned.member))]
@@ -58,7 +59,12 @@ export default function HomeSettings() {
       {connectionError && <p role="alert" className="text-destructive">{message(connectionError)}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{message(warning)}</p>)}
     </section>
-    <section className="glow-panel" id="people-order"><PanelHeading title={t("People order and timetables")} />
+    <section className="glow-panel" id="people-order"><PanelHeading title={t("People, colors and timetables")} />
+      <p className="page-note">{t("Person colors appear in calendars, lists and timetables on every screen.")}</p>
+      <div className="flex items-center gap-3 border-b py-3">
+        <MemberAvatar member="everyone" small /><span className="min-w-0 flex-1 break-words font-medium">{t("Everyone")}</span>
+        <MemberColorPicker person={{ id: "everyone", name: t("Everyone"), initials: t("All"), color: memberColor("everyone") }} />
+      </div>
       {!members.length && <p className="empty-note">{t("No people available.")}</p>}
       <ol aria-label={t("People order")}>{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
@@ -67,6 +73,7 @@ export default function HomeSettings() {
           <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">{t("Timetable")}<Switch aria-label={t("Timetable for {value1}", { value1: person.name })} checked={hasTimetable(person.id)} onCheckedChange={enabled => enabled ? setTimetableEnabled(person.id, true) : setConfirmation({ title: msg("Hide timetable?"), description: msg("Hide {name}’s timetable from School and the dashboard? Saved image URLs will be kept.", { name: person.name }), confirmLabel: msg("Hide timetable"), onConfirm: () => setTimetableEnabled(person.id, false) })} /></label>
           <Button type="button" variant="outline" size="icon" disabled={index === 0} aria-label={t("Move {value1} up", { value1: person.name })} onClick={() => moveMember(person.id, -1)}><ArrowUp size={18} aria-hidden="true" /></Button>
           <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={t("Move {value1} down", { value1: person.name })} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>
+          <MemberColorPicker person={person} />
         </div>
       </li>)}</ol>
     </section>

@@ -7,6 +7,7 @@ export function isPlannerDate(value: string | null): value is string {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 export const memberSchema = z.string().min(1).max(512);
+export const memberColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 const keySchema = memberSchema.refine(value => !["__proto__", "constructor", "prototype"].includes(value));
 const dateSchema = z.string().refine(isPlannerDate);
 const timeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -34,6 +35,7 @@ export const plannerSchema = z.object({
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
   homeEntities: z.array(memberSchema).optional(),
   memberOrder: z.array(memberSchema).default([]),
+  memberColors: z.record(keySchema, memberColorSchema).default({}),
   hiddenMembers: z.array(memberSchema).default([]),
   appearance: z.object({ theme: z.enum(["light", "dark"]), compactMode: z.boolean(), darkTimetables: z.boolean().default(false) }).strict().default({ theme: "dark", compactMode: false, darkTimetables: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),

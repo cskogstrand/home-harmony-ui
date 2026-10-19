@@ -10,7 +10,7 @@ import type { CalendarEvent } from "@/types/api";
 export function useCalendarPlans(start: string, end: string) {
   const { t } = useI18n();
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
-  const { events, calendarMembers, members, compareMembers, isMemberVisible } = useFamily();
+  const { events, calendarMembers, members, memberColor, compareMembers, isMemberVisible } = useFamily();
   const localEvents = events.filter(event => isMemberVisible(event.member));
   const [refresh, setRefresh] = useState(0);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
@@ -47,7 +47,7 @@ export function useCalendarPlans(start: string, end: string) {
   const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
     .filter(id => id !== "everyone" && !members.some(m => m.id === id))
     .map(id => ({ id, name: t("Person unavailable"), initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id));
-  people.unshift({ id: "everyone", name: t("Everyone"), initials: t("All"), color: "#c4d5a3" });
+  people.unshift({ id: "everyone", name: t("Everyone"), initials: t("All"), color: memberColor("everyone") });
   return { events: sortEvents([...localEvents, ...remote]), people,
     loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
     errors: homeOnline && result.key === requestKey ? result.errors.map(calendar => t("Could not read {value1}. Check the calendar integration, permissions, connection and HA CORS configuration.", { value1: calendar })) : [],

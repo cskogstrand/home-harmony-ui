@@ -165,6 +165,22 @@ it("rejects old formats and HA data in settings backups", () => {
   }
 });
 
+it("shares person colors across screens and restores them from backups", async () => {
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, memberColors: { "home|person.example": "#123456" } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.memberColors).toEqual({ "home|person.example": "#123456" });
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  a.updateSettings(p => ({ ...p, memberColors: { "home|person.example": "#abcdef" } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.memberColors).toEqual(backup.settings.memberColors);
+});
+
 it("shares language changes, keeps conflicting drafts, and restores the language from backups", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();

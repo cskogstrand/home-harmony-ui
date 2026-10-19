@@ -126,12 +126,10 @@
 .lane-heading { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-bottom: 13px; font-size: 0.9375rem; text-align: center; overflow-wrap: anywhere; }
 .lane-heading strong { font-weight: 500; }
 .lane-heading > span:last-child { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
-.member-anna { --member: #d2bd9e; } .member-erik { --member: #aacbd0; } .member-emma { --member: #cabbce; } .member-leo { --member: #c7d29c; } .member-everyone { --member: #c4d5a3; }
 .event-button { width: 100%; display: flex; gap: 12px; text-align: left; padding: 13px 0; border-top: 1px solid hsl(var(--border) / .5); align-items: center; }
 .event-button:hover strong { color: hsl(var(--primary)); }
 .event-button > div:nth-child(2) { min-width: 0; flex: 1; }
 .event-time { color: hsl(var(--foreground)); font-size: 0.9375rem; flex: 0 0 auto; }
-.dark .event-time { color: var(--member); }
 .event-time span { display: block; font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-bottom: 3px; }
 .event-button strong { display: block; font-size: 0.9375rem; font-weight: 500; overflow-wrap: anywhere; }
 .event-button small { display: block; font-size: 0.8125rem; color: hsl(var(--muted-foreground)); margin-top: 3px; }

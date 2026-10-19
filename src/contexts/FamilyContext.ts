@@ -39,6 +39,7 @@ export const sortEvents = (events: FamilyEvent[]) => [...events].sort((a, b) => 
 
 interface FamilyContextValue extends FamilyState {
   members: FamilyMember[]; allMembers: FamilyMember[]; memberName: (id: MemberId) => string; connectedPlanner: boolean;
+  memberColor: (id: MemberId) => string;
   now: Date; today: string; time: string; saved: boolean;
   calendarStart: string;
   exportConfiguration: () => Configuration;
@@ -51,6 +52,7 @@ interface FamilyContextValue extends FamilyState {
   moveMember: (id: MemberId, direction: -1 | 1) => void;
   isMemberVisible: (id: MemberId) => boolean;
   setMemberVisible: (id: MemberId, visible: boolean) => void;
+  setMemberColor: (id: MemberId, color: string) => boolean;
   setHomeEntities: (ids: string[]) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;

@@ -6,8 +6,7 @@ import { FamilyContext, homeDate, weekStart, type FamilyState, type FamilyMember
 import { useSharedConfiguration } from "./SharedConfigurationContext";
 import { SharedConfigurationProvider } from "./SharedConfigurationProvider";
 import { plannerSettings, emptyPlanner, parseConfiguration, type Configuration } from "../../shared/configuration";
-
-const memberColors = ["#d2bd9e", "#aacbd0", "#cabbce", "#c7d29c"];
+import { memberPalette } from "@/lib/member-colors";
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
@@ -16,11 +15,12 @@ function FamilyStore({ children }: { children: ReactNode }) {
   const { t, message, language } = useI18n();
   const { currentHome } = useApp();
   const shared = useSharedConfiguration();
+  const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
   const connectedPlanner = true;
   const availableMembers: FamilyMember[] = currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
     id: person.preferenceId, name: person.name,
     initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
-    color: memberColors[index % memberColors.length],
+    color: planner.memberColors[person.preferenceId] ?? memberPalette[index % memberPalette.length].color,
     // shortcut: only uploaded HA photos are supported; add other picture sources when needed.
     picture: typeof person.attributes.entity_picture === "string" && /^\/api\/image\/serve\/[a-f0-9]{32}\/(original|256x256|512x512)$/.test(person.attributes.entity_picture)
       ? person.attributes.entity_picture : undefined,
@@ -28,7 +28,6 @@ function FamilyStore({ children }: { children: ReactNode }) {
   const [now, setNow] = useState(() => new Date());
   const today = homeDate(now, currentHome.timeZone);
   const time = new Intl.DateTimeFormat("en-GB", { timeZone: currentHome.timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
-  const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
   const setPlanner = (change: (value: FamilyState) => FamilyState) => {
     try { shared.store.updateSettings(settings => plannerSettings(change({ ...settings, events: [], items: [] }))); return true; }
     catch (error) { toast.error(message(error instanceof Error ? error.message : "Configuration could not be saved.")); return false; }
@@ -60,6 +59,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
   }, []);
   return <FamilyContext.Provider value={{ ...planner, members, allMembers, connectedPlanner, compareMembers, isMemberVisible,
     memberName: id => id === "everyone" ? t("Everyone") : allMembers.find(m => m.id === id)?.name ?? t("Person unavailable"),
+    memberColor: id => planner.memberColors[id] ?? allMembers.find(member => member.id === id)?.color ?? "#c4d5a3",
     now, today, time, saved, exportConfiguration, importConfiguration,
     setLanguage: language => setPlanner(p => ({ ...p, language })),
     setAppearance: settings => setPlanner(p => ({ ...p, appearance: { ...p.appearance, ...settings } })),
@@ -76,6 +76,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
       setPlanner(p => ({ ...p, memberOrder: order }));
     },
     setMemberVisible: (id, visible) => setPlanner(p => ({ ...p, hiddenMembers: [...p.hiddenMembers.filter(member => member !== id), ...(visible ? [] : [id])] })),
+    setMemberColor: (id, color) => setPlanner(p => ({ ...p, memberColors: { ...p.memberColors, [id]: color } })),
     setHomeEntities: ids => setPlanner(p => ({ ...p, homeEntities: [...new Set(ids)] })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };

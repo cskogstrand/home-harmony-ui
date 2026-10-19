@@ -6,7 +6,7 @@ import { state } from "./ha-fixtures";
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { entities: [] }, commands: {}, services: { todo: { update_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ connectedPlanner: true, todoLists: { "home|todo.daily": { kind: "daily", member: "everyone" } }, compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Everyone", members: [], allMembers: [] }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ connectedPlanner: true, todoLists: { "home|todo.daily": { kind: "daily", member: "everyone" } }, compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Everyone", memberColor: () => "#c4d5a3", members: [], allMembers: [] }) }));
 afterEach(() => { cleanup(); delete document.documentElement.dataset.motionInput; vi.useRealTimers(); vi.restoreAllMocks(); });
 it("completes HA list items without the animation delay when reduced motion is enabled", async () => {
   document.documentElement.dataset.motionInput = "pointer";
