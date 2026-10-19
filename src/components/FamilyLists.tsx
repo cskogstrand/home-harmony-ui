@@ -74,12 +74,12 @@ function ItemEditor({ text, kind, description, disabled, error, onSave, onClose 
     </fieldset></form>
   </DialogContent></Dialog>;
 }
-function ItemSuggestions({ id, names, text, select }: { id: string; names: string[]; text: string; select: (name: string) => void }) {
+function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; names: string[]; text: string; select: (name: string) => void; isDisabled: (name: string) => boolean }) {
   const { t } = useI18n();
   const matches = text.trim() ? [...new Set(names)].filter(name => itemName(name).includes(itemName(text))).slice(0, 6) : [];
   return !!matches.length && <div id={id} className="flex basis-full flex-wrap items-center gap-2 pb-2" role="group" aria-label={t("Existing items")}>
     <span className="text-xs text-muted-foreground">{t("Existing items")}</span>
-    {matches.map(name => <button type="button" key={name} className="rounded-full bg-secondary px-3 py-1 text-xs" onClick={() => select(name)}>{name}</button>)}
+    {matches.map(name => <button type="button" key={name} className="rounded-full bg-secondary px-3 py-1 text-xs" disabled={isDisabled(name)} onClick={() => select(name)}>{name}</button>)}
   </div>;
 }
 export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
@@ -135,13 +135,13 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
       return true;
     } catch { return false; /* The shared command state displays failures without replaying writes. */ }
   };
-  const add = async () => {
-    if (!can("add_item") || !text.trim()) return;
-    const matches = items.filter(item => itemName(item.summary) === itemName(text));
+  const add = async (name = text) => {
+    if (!can("add_item") || !name.trim()) return;
+    const matches = items.filter(item => itemName(item.summary) === itemName(name));
     const existing = matches.find(item => item.status !== "completed") ?? matches[0];
     if (existing?.status === "completed" && !can("update_item")) { toast.error(t("This list cannot reopen completed items.")); return; }
     if (existing && existing.status !== "completed") toast.info(t("This item is already on the list."));
-    else if (!await change(existing ? "update_item" : "add_item", existing ? { item: existing.uid, status: "needs_action" } : { item: text })) return;
+    else if (!await change(existing ? "update_item" : "add_item", existing ? { item: existing.uid, status: "needs_action" } : { item: name })) return;
     setText(""); setAdding(false);
   };
   const completed = items.filter(item => item.status === "completed");
@@ -160,7 +160,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
       {adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{status?.pending ? t("Saving…") : t("Add")}</Button>
-        <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={setText} />
+        <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={add} isDisabled={name => !can("add_item") || !can("update_item") || pending.some(item => itemName(item.summary) === itemName(name))} />
       </form>}
     </div>
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
@@ -198,11 +198,11 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const completed = list.filter(i => itemIsDone(i, today));
   const pending = list.filter(i => !itemIsDone(i, today));
   const shown = limit ? pending.slice(0, limit) : pending;
-  const add = () => {
-    if (!text.trim()) return;
-    const matches = list.filter(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(text));
+  const add = (name = text) => {
+    if (!name.trim()) return;
+    const matches = list.filter(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(name));
     const existing = matches.find(item => !itemIsDone(item, today)) ?? matches[0];
-    if (!existing) { if (!addItem(text, kind, member)) return; }
+    if (!existing) { if (!addItem(name, kind, member)) return; }
     else if (itemIsDone(existing, today)) { if (!toggleItem(existing.id)) return; }
     else toast.info(t("This item is already on the list."));
     setText(""); setAdding(false);
@@ -217,7 +217,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={kind === "shopping" ? t("New shopping item") : t(kind === "daily" ? "New daily task" : "New task")} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         {kind !== "shopping" && <select aria-label={t("Assign task")} value={member} onChange={e => setMember(e.target.value as MemberId)}><MemberOptions /></select>}
         <Button type="submit" disabled={!text.trim()} aria-label={t(kind === "shopping" ? "Save shopping item" : kind === "daily" ? "Save daily item" : "Save tasks item")}>{t("Add")}</Button>
-        <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={setText} />
+        <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={add} isDisabled={name => pending.some(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(name))} />
       </form>}
     </div>
     <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
