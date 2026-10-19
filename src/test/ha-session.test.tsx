@@ -488,7 +488,7 @@ it("loads only the displayed HA calendar range and never saves its events in the
   expect(screen.getByText(/does not support editing existing events/)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
-  fireEvent.click(screen.getByRole("button", { name: /17:00 – 18:00 Read-only appointment/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Read-only appointment.*17:00 – 18:00/ }));
   expect(within(screen.getByRole("dialog")).getByText(/17:00 – 18:00/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })).not.toContain(event.summary);
@@ -1204,7 +1204,7 @@ it("assigns HA calendars to real people in both views, persists setup, without l
   expect(fetchMock).not.toHaveBeenCalled();
   fireEvent.change(assignment, { target: { value: "home|calendar.morgan" } });
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
-  expect(await screen.findByRole("button", { name: /15:00 – 16:00 Dentist appointment/ })).toBeInTheDocument();
+  expect(await screen.findByRole("button", { name: /Dentist appointment.*15:00 – 16:00/ })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
   const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
   expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();

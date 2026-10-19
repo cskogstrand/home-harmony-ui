@@ -54,8 +54,8 @@ colors:
   dark-nav-background: "hsl(220 25% 16%)"
   dark-nav-foreground: "hsl(216 30% 95%)"
   dark-nav-muted: "hsl(217 20% 80%)"
-  glass-highlight: "hsl(0 0% 100% / .95)"
-  dark-glass-highlight: "hsl(210 40% 88% / .23)"
+  glass-highlight: "hsl(0 0% 100% / .65)"
+  dark-glass-highlight: "hsl(210 40% 88% / .12)"
   glass-shade: "hsl(218 38% 26% / .12)"
   dark-glass-shade: "hsl(224 60% 3% / .45)"
   ambient-blue: "hsl(209 75% 85% / .55)"
@@ -192,6 +192,8 @@ This records the built system in [src/index.css](src/index.css), [src/afterglow.
 
 The experiment follows the separation of controls and content described in [Apple's Materials guidance](https://developer.apple.com/design/human-interface-guidelines/materials) and [Meet Liquid Glass](https://developer.apple.com/videos/play/wwdc2025/219/). The web implementation approximates that material with CSS translucency, blur, highlights and shadows. It does not reproduce native lensing, optical refraction or automatic background-driven material adaptation.
 
+The iOS 27 refinement follows [Apple's readability and contrast updates](https://www.apple.com/os/ios/): quieter rims, stable selection fills and denser text menus. The web app cannot inherit the native Liquid Glass tint slider. It retains the bottom dock for shared wall-display reach instead of adopting iPadOS's native top tab bar.
+
 ## Colors
 
 The palette uses cool neutrals with a blue action color. Ambient blue and warm tints soften the app ground without tinting the reading panels.
@@ -234,7 +236,7 @@ The shared header, main content and footer are centered within a maximum width (
 | --- | --- |
 | Large portrait: width ≥1000px, height ≥1400px, portrait | Root type grows to 20px; page gutters use 2.8rem and panel padding 1.2rem; board gap is 1rem; favorites use four columns. |
 | Wide landscape: width ≥1100px, landscape | Board uses six tracks; the week spans four and lists two. |
-| Width ≤999px | Gutters reduce to 1.5rem; school cards stack and device/favorite grids use two columns. |
+| Width ≤999px | Gutters reduce to 1.5rem; school cards stack and device/favorite grids use two columns. Dock icons sit above 12px captions, aligned even when labels wrap. |
 | Width ≤800px | Device rows put controls below the title and retain readable metadata. |
 | Width ≤699px | Gutters and panels use 1rem; the board and primary grids stack; navigation floats within .75rem side margins, with icons above labels. |
 
@@ -242,15 +244,17 @@ The weekly grid uses horizontal overflow when necessary, with a sticky person co
 
 The dock is centered within the page gutters, capped at (1000px), or (1328px) on large portrait screens. Its bottom margin is (1rem) plus the safe-area inset; phones use (.75rem) plus the inset. App bottom padding reserves (8rem) plus the inset, reduced to (7rem) on phones. Links are at least (56px) high by default, (72px) on large portrait displays and (64px) on phones. Recurring action controls use a (48px) minimum where explicitly styled; portrait event and list rows reach (64px). Compact mode reduces panel gaps and padding while retaining usable control targets.
 
+The shell respects top and side safe-area insets. The dock uses independent left/right safe gutters, and keyboard scroll padding includes the bottom inset. Phone form fields use 1rem text to avoid focus zoom at the default text size.
+
 Synthetic-data captures in `.impeccable/review/liquid-glass/` cover desktop, phone, portrait, dark mode, menus and dialogs. They support visual review; physical touchscreen and target-device performance still need device validation.
 
 ## Elevation & Depth
 
-Opaque work panels use a thin cool border and tonal separation. Glass adds depth only to the floating dock, home selector, settings control and dropdown menus. Its base is a solid navigation fill with a diagonal highlight, inset upper and lower edges, and a soft outer shadow. Header controls use a smaller outer shadow than the dock.
+Opaque work panels use a thin cool border and tonal separation. Glass adds depth only to the floating dock, home selector, settings control and dropdown menus. Its base is a solid navigation fill with restrained inset edges and a soft outer shadow. Header controls use a smaller outer shadow than the dock. Broad specular gradients are omitted to keep labels clear.
 
-Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.76) in light mode and (.82) in dark mode. Browsers without that support retain the solid fill. Reduced transparency and increased contrast use opaque fills, remove blur and the highlight gradient, strengthen the border, and flatten the ambient ground; header controls retain their shallow shadow. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
+Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.84) in light mode and (.88) in dark mode. Text menus use (.96) in both themes. Browsers without that support retain the solid fill. Reduced transparency and increased contrast use opaque fills, remove blur and all glass shadows, strengthen the border, and flatten the ambient ground. Increased contrast also outlines selected navigation and segments. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
 
-The sidecar records the three soft elevation tokens plus glass, header and selection shadows. Dialogs remain opaque foreground surfaces; their rounded corners do not make them glass.
+The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialogs remain opaque foreground surfaces; their rounded corners do not make them glass.
 
 **The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus. Keep schedules, lists, forms and recurring work panels opaque.
 
@@ -280,13 +284,13 @@ Work panels use the opaque card fill, a border at reduced opacity and panel spac
 
 ### Navigation and transient menus
 
-The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue over a (12%) tint, with a restrained highlight and shadow. The large portrait layout emphasizes generous horizontal links. Phones stack icons above captions inside an inset floating dock. Focus uses the navigation selection color. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu.
+The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue, semibold text and an opaque secondary fill. The large portrait layout emphasizes generous horizontal links. Phone and compact tablet layouts align icons above captions inside an inset floating dock. Focus uses an inset outline in the navigation selection color. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu.
 
-The home selector and settings button share the glass material. Dropdown menus use the same material with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Regular dialogs retain opaque surfaces and reachable close actions. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns.
+The home selector and settings button share the glass material. Dropdown menus use a denser version with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Menus scroll within Radix's available viewport height so every destination stays reachable in short windows. Regular dialogs retain opaque surfaces and reachable close actions. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns.
 
 ### Schedules, lists and controls
 
-The weekly grid aligns people and dates, marks the current day, and supports continuous multi-day events. Events wrap long titles and use the configured person tint at low opacity. Lists pair a separate completion target with a full-width edit target; completion adds a check and a strikethrough before the row moves. Timetables retain their aspect ratio and open into a larger pageable view. Home controls show only supported capabilities, with pending and unavailable feedback.
+The weekly grid aligns people and dates, marks the current day, and supports continuous multi-day events. Event cells have equal top and bottom padding and center their cards vertically within each row. Events use an opaque person-tinted fill (30% person color in light, 18% in dark), a narrow color marker and a semibold title above tabular times. Text mixes 20% person color with the foreground; metadata uses 85% of that ink against the event fill. Long titles wrap. Chevron cues and subtly squared open edges indicate continuation beyond the week, with equivalent screen-reader labels. These reading surfaces never use glass. Lists pair a separate completion target with a full-width edit target; completion adds a check and a strikethrough before the row moves. Timetables retain their aspect ratio and open into a larger pageable view. Home controls show only supported capabilities, with pending and unavailable feedback.
 
 Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 

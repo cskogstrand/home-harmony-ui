@@ -223,8 +223,8 @@
 @layer base {
   :root {
     --font-ui: -apple-system, BlinkMacSystemFont, "Public Sans", sans-serif;
-    --glass-opacity: .76;
-    --glass-highlight: 0 0% 100% / .95;
+    --glass-opacity: .84;
+    --glass-highlight: 0 0% 100% / .65;
     --glass-shade: 218 38% 26% / .12;
     --ambient-blue: 209 75% 85% / .55;
     --ambient-warm: 28 80% 89% / .48;
@@ -316,8 +316,8 @@
     --nav-background: 220 25% 16%;
     --nav-foreground: 216 30% 95%;
     --nav-muted: 217 20% 80%;
-    --glass-opacity: .82;
-    --glass-highlight: 210 40% 88% / .23;
+    --glass-opacity: .88;
+    --glass-highlight: 210 40% 88% / .12;
     --glass-shade: 224 60% 3% / .45;
     --ambient-blue: 214 65% 24% / .5;
     --ambient-warm: 264 35% 20% / .32;
@@ -339,7 +339,7 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 
-  html { scroll-padding-bottom: 8rem; scrollbar-color: hsl(var(--input)) hsl(var(--background)); }
+  html { scroll-padding-bottom: calc(8rem + env(safe-area-inset-bottom)); scrollbar-color: hsl(var(--input)) hsl(var(--background)); }
   ::selection { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
   input, textarea { caret-color: hsl(var(--primary)); }
   input::placeholder, textarea::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
