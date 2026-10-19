@@ -1,23 +1,25 @@
+import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { calendarBoundary, calendarDateValue, calendarTimeInput } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
 import { Columns3, Table2, Plus } from "lucide-react";
-import { useFamily, addDays, dateLabel, homeDate, isPlannerDate, sortEvents, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, addDays, homeDate, isPlannerDate, sortEvents, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
+  const { t } = useI18n();
   const { calendar, setCalendarSettings, today } = useFamily();
   const change = (settings: Partial<CalendarSettings>) => { setCalendarSettings(settings); onChange?.(settings); };
   return <div className="calendar-view-controls">
-    <span className="calendar-current-week">Today · Week {weekNumber(today)}</span>
-    <div className="calendar-segment" role="group" aria-label="Calendar layout">
-      <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />Weekly grid</button>
-      <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />By person</button>
+    <span className="calendar-current-week">{t("Today · Week {value1}", { value1: weekNumber(today) })}</span>
+    <div className="calendar-segment" role="group" aria-label={t("Calendar layout")}>
+      <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />{t("Weekly grid")}</button>
+      <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />{t("By person")}</button>
     </div>
-    <div className="calendar-start-control"><span>Start</span><div className="calendar-segment" role="group" aria-label="Seven-day preview starts">
-      <button aria-pressed={calendar.startDay === "today"} onClick={() => change({ startDay: "today" })}>Today</button>
-      <button aria-pressed={calendar.startDay === "monday"} onClick={() => change({ startDay: "monday" })}>Monday</button>
+    <div className="calendar-start-control"><span>{t("Start")}</span><div className="calendar-segment" role="group" aria-label={t("Seven-day preview starts")}>
+      <button aria-pressed={calendar.startDay === "today"} onClick={() => change({ startDay: "today" })}>{t("Today")}</button>
+      <button aria-pressed={calendar.startDay === "monday"} onClick={() => change({ startDay: "monday" })}>{t("Monday")}</button>
     </div></div>
   </div>;
 }
@@ -59,15 +61,16 @@ export function weekEventRows(events: FamilyEvent[], start: string) {
 }
 
 export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
+  const { t, dateLabel } = useI18n();
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label="Family weekly calendar" tabIndex={0}>
+  return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label={t("Family weekly calendar")} tabIndex={0}>
       <table className="family-week-table">
-        <caption className="sr-only">Family plans from {dateLabel(start)} to {dateLabel(addDays(start, 6))}</caption>
+        <caption className="sr-only">{t("Family plans from {value1} to {value2}", { value1: dateLabel(start), value2: dateLabel(addDays(start, 6)) })}</caption>
         <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
-        <thead><tr><th scope="col">Family</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
-          <small className="calendar-week-number">{(day === start || day === weekStart(day)) && `Week ${weekNumber(day)}`}</small>
-          <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? "Today" : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>
+        <thead><tr><th scope="col">{t("Family")}</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
+          <small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small>
+          <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>
         </th>)}</tr></thead>
         {(members ?? familyMembers).map(person => {
           const personal = events.filter(event => event.member === person.id);
@@ -84,7 +87,7 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
               })}
             </tr>)}
             <tr className="week-add-row">{days.map(day => <td key={day}>
-              <button className="week-add-plan" aria-label={`Add a plan for ${person.name} on ${dateLabel(day)}`} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span>{personal.some(event => event.date === day) ? "Add" : "Add plan"}</span></button>
+              <button className="week-add-plan" aria-label={t("Add a plan for {value1} on {value2}", { value1: person.name, value2: dateLabel(day) })} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span>{personal.some(event => event.date === day) ? t("Add") : t("Add plan")}</span></button>
             </td>)}</tr>
           </tbody>;
         })}
@@ -115,6 +118,7 @@ export function calendarPlans(event: CalendarEvent, calendarId: string, member: 
 
 // Calendar events stay in memory; settings storage never contains HA data.
 export function useCalendarPlans(start: string, end: string) {
+  const { t } = useI18n();
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
   const { events, calendarMembers, members, compareMembers, isMemberVisible } = useFamily();
   const localEvents = events.filter(event => isMemberVisible(event.member));
@@ -140,7 +144,7 @@ export function useCalendarPlans(start: string, end: string) {
       results.set(id, events);
       setResult({ key: requestKey, loading: results.size < ids.length,
         events: [...results].flatMap(([calendar, plans]) => (plans ?? []).map(event => ({ event, calendar }))),
-        errors: [...results].flatMap(([calendar, plans]) => plans === null ? [`Could not read ${calendar}. Check the calendar integration, permissions, connection and HA CORS configuration.`] : []),
+        errors: [...results].flatMap(([calendar, plans]) => plans === null ? [calendar] : []),
       });
     });
     return () => controller.abort();
@@ -152,23 +156,24 @@ export function useCalendarPlans(start: string, end: string) {
   // Local plans remain reachable when their HA person is removed or has not loaded yet.
   const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
     .filter(id => id !== "everyone" && !members.some(m => m.id === id))
-    .map(id => ({ id, name: "Person unavailable", initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id));
-  people.unshift({ id: "everyone", name: "Everyone", initials: "All", color: "#c4d5a3" });
+    .map(id => ({ id, name: t("Person unavailable"), initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id));
+  people.unshift({ id: "everyone", name: t("Everyone"), initials: t("All"), color: "#c4d5a3" });
   return { events: sortEvents([...localEvents, ...remote]), people,
     loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
-    errors: homeOnline && result.key === requestKey ? result.errors : [],
+    errors: homeOnline && result.key === requestKey ? result.errors.map(calendar => t("Could not read {value1}. Check the calendar integration, permissions, connection and HA CORS configuration.", { value1: calendar })) : [],
     refresh: () => setRefresh(n => n + 1), selectedCount: selected.length,
   };
 }
 
 export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
+  const { t, message } = useI18n();
   const { homeOnline } = useApp();
   const { connectedPlanner } = useFamily();
   if (!connectedPlanner) return null;
   return <div className="page-note space-y-2">
-    {data.selectedCount > 0 && <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>Refresh calendars</button>}
-    {data.loading && <p role="status">Loading calendar events…</p>}
-    {data.errors.map(error => <p role="alert" key={error}>{error}</p>)}
-    {!homeOnline && <p role="status">Home Assistant calendar events are unavailable while offline.</p>}
+    {data.selectedCount > 0 && <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>{t("Refresh calendars")}</button>}
+    {data.loading && <p role="status">{t("Loading calendar events…")}</p>}
+    {data.errors.map(error => <p role="alert" key={message(error)}>{message(error)}</p>)}
+    {!homeOnline && <p role="status">{t("Home Assistant calendar events are unavailable while offline.")}</p>}
   </div>;
 }

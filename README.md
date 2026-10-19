@@ -7,13 +7,15 @@ Afterglow is a shared family dashboard for Home Assistant. Home Assistant owns p
 | Data | Location |
 | --- | --- |
 | Home Assistant URL/token, dashboard password, server port and data directory | Server environment; `.env` for manual deployment; HAOS Configuration tab for the app |
-| People visibility/order, timetable toggles and references, calendar/list assignments, favorites, appearance and selected alarm | `DATA_DIR/settings.yaml` |
+| People visibility/order, timetable toggles and references, calendar/list assignments, favorites, appearance, language and selected alarm | `DATA_DIR/settings.yaml` |
 | Uploaded timetable PDFs and rendered pages | `DATA_DIR/timetables/<person_name>/<upload_id>/` |
 | Calendar events, to-do items, people and device state | Home Assistant |
 
 `DATA_DIR` defaults to `./data` for Node/Vite and `/data` in the container. One server owns one household and one data directory. Phones, tablets and hallway screens must connect to that server. Settings refresh within five seconds while a screen is active; browser background throttling can delay refresh until it wakes. Settings and saved timetable pages remain available when HA is offline. HA controls, calendar events and list contents require HA to be online.
 
 Settings saves validate the complete document, check its revision, write a temporary file, sync it and rename it atomically. Simultaneous stale writes are rejected. The unsaved draft stays in memory: keep that screen open, export it if needed, then use **App preferences → Load shared version**. Failed writes are not automatically replayed. **Retry storage** retries a failed save.
+
+**Language:** choose English or Norsk bokmål under **App preferences → Language**. The choice is stored as `settings.language` (`en` or `nb`) and applies to every screen connected to this server, including dates, numbers and app messages. Existing settings and backups without this field default to English. Home Assistant names, calendar/list content and generated summaries retain their original text; speech language is configured in Home Assistant. Language is included in settings backups. Older app releases reject the new field, so keep a pre-upgrade backup if you need to downgrade.
 
 The server reads `settings.yaml` at startup. Stop it before editing the file manually, then restart it. A corrupt file stops startup without overwriting it. Back up the entire data directory, including timetable folders. Settings exports contain references to images, not the files themselves.
 

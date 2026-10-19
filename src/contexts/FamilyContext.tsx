@@ -1,3 +1,5 @@
+import { useI18n } from "@/hooks/use-i18n";
+import { createI18n } from "@/lib/i18n";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { getISOWeek } from "date-fns";
@@ -36,16 +38,7 @@ export function weekStart(date: string) {
 export function weekNumber(date: string) {
   return getISOWeek(new Date(`${date}T12:00:00`));
 }
-export function dateLabel(date: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) {
-  return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
-}
-export function eventTimeLabel(event: FamilyEvent) {
-  if (event.allDay) return "All day";
-  const start = event.continues ? "Continues" : event.time;
-  if (!event.endTime) return start;
-  const endDate = event.endDate && event.endDate !== event.date ? `${dateLabel(event.endDate)}, ` : "";
-  return `${start} – ${endDate}${event.endTime}`;
-}
+export const { dateLabel, eventTimeLabel } = createI18n("en");
 export const itemIsDone = (item: ListItem, today: string) => item.kind === "daily" ? item.completedOn === today : item.done;
 export const sortEvents = (events: FamilyEvent[]) => [...events].sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
 
@@ -55,6 +48,7 @@ interface FamilyContextValue extends FamilyState {
   calendarStart: string;
   exportConfiguration: () => Configuration;
   importConfiguration: (configuration: Configuration) => Promise<void>;
+  setLanguage: (language: Planner["language"]) => boolean;
   setAppearance: (settings: Partial<Planner["appearance"]>) => boolean;
   setSelectedAlarm: (id: string) => boolean;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
@@ -85,6 +79,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
   return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
 }
 function FamilyStore({ children }: { children: ReactNode }) {
+  const { t, message, language } = useI18n();
   const { currentHome } = useApp();
   const shared = useSharedConfiguration();
   const connectedPlanner = true;
@@ -99,16 +94,20 @@ function FamilyStore({ children }: { children: ReactNode }) {
   const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
   const setPlanner = (change: (value: FamilyState) => FamilyState) => {
     try { shared.store.updateSettings(settings => plannerSettings(change({ ...settings, events: [], items: [] }))); return true; }
-    catch (error) { toast.error(error instanceof Error ? error.message : "Configuration could not be saved."); return false; }
+    catch (error) { toast.error(message(error instanceof Error ? error.message : "Configuration could not be saved.")); return false; }
   };
   const rejectLocalContent = () => {
-    toast.error("Use Home Assistant calendars and lists. App storage only saves settings.");
+    toast.error(t("Use Home Assistant calendars and lists. App storage only saves settings."));
     return false;
   };
   useEffect(() => {
     document.documentElement.classList.toggle("dark", planner.appearance.theme === "dark");
     document.documentElement.style.colorScheme = planner.appearance.theme;
   }, [planner.appearance.theme]);
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.title = t("Afterglow · Family at home");
+  }, [language, t]);
   const exportConfiguration = (): Configuration => shared.state.config;
   const importConfiguration = async (input: Configuration) => { await shared.store.replace(parseConfiguration(JSON.stringify(input))); };
   const memberIds = [...new Set([...planner.memberOrder, ...availableMembers.map(member => member.id)])].filter(id => id !== "everyone");
@@ -123,8 +122,9 @@ function FamilyStore({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, []);
   return <FamilyContext.Provider value={{ ...planner, members, allMembers, connectedPlanner, compareMembers, isMemberVisible,
-    memberName: id => id === "everyone" ? "Everyone" : allMembers.find(m => m.id === id)?.name ?? "Person unavailable",
+    memberName: id => id === "everyone" ? t("Everyone") : allMembers.find(m => m.id === id)?.name ?? t("Person unavailable"),
     now, today, time, saved, exportConfiguration, importConfiguration,
+    setLanguage: language => setPlanner(p => ({ ...p, language })),
     setAppearance: settings => setPlanner(p => ({ ...p, appearance: { ...p.appearance, ...settings } })),
     setSelectedAlarm: id => setPlanner(p => ({ ...p, selectedAlarm: id })),
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
@@ -157,11 +157,11 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setTimetableEnabled: (member, enabled) => setPlanner(p => ({ ...p, timetableEnabled: { ...p.timetableEnabled, [member]: enabled } })),
     setTimetable: (child, urls) => {
       const pages = urls.map(url => url.trim()).filter(Boolean);
-      if (!pages.length) { toast.error("Add at least one timetable image URL."); return false; }
+      if (!pages.length) { toast.error(t("Add at least one timetable image URL.")); return false; }
       try { if (pages.some(url => !/^https?:$/.test(new URL(url, window.location.origin).protocol))) throw new Error(); }
-      catch { toast.error("Use an HTTP or HTTPS image URL for every page."); return false; }
+      catch { toast.error(t("Use an HTTP or HTTPS image URL for every page.")); return false; }
       if (!setPlanner(p => ({ ...p, timetables: { ...p.timetables, [child]: pages } }))) return false;
-      toast.success("Timetable updated");
+      toast.success(t("Timetable updated"));
       return true;
     },
   }}>{children}</FamilyContext.Provider>;

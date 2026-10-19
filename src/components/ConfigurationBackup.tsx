@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/use-i18n";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useFamily } from "@/contexts/FamilyContext";
@@ -8,6 +9,7 @@ import { PanelHeading } from "@/components/FamilyPlanner";
 import { MAX_CONFIG_BYTES, parseConfiguration, type Configuration } from "../../shared/configuration";
 
 export function ConfigurationBackup() {
+  const { t, message } = useI18n();
   const { exportConfiguration, importConfiguration } = useFamily();
   const shared = useSharedConfiguration();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -29,18 +31,18 @@ export function ConfigurationBackup() {
     } catch { setError("Could not export the configuration. Try again before closing this screen."); }
   };
   return <section className="glow-panel space-y-4">
-    <PanelHeading title="Storage and backups" />
-    <p className="page-note">Backups include shared app settings and timetable links. They exclude uploaded files, Home Assistant data, passwords and alarm codes.</p>
-      <p role="status">{shared.state.saving ? "Saving shared configuration…" : shared.state.dirty ? "Unsaved changes on this screen." : shared.state.loaded ? "Shared configuration saved." : "Loading shared configuration…"}</p>
-      {shared.state.error && <p role="alert" className="text-destructive">{shared.state.error}</p>}
+    <PanelHeading title={t("Storage and backups")} />
+    <p className="page-note">{t("Backups include shared app settings and timetable links. They exclude uploaded files, Home Assistant data, passwords and alarm codes.")}</p>
+      <p role="status">{shared.state.saving ? t("Saving shared configuration…") : shared.state.dirty ? t("Unsaved changes on this screen.") : shared.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
+      {shared.state.error && <p role="alert" className="text-destructive">{message(shared.state.error)}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={shared.state.saving} onClick={() => { void shared.store.retry().catch(() => {}); }}>Retry storage</Button>
-        <Button variant="outline" disabled={shared.state.saving} onClick={() => setReload(true)}>Load shared version</Button>
+        <Button variant="outline" disabled={shared.state.saving} onClick={() => { void shared.store.retry().catch(() => {}); }}>{t("Retry storage")}</Button>
+        <Button variant="outline" disabled={shared.state.saving} onClick={() => setReload(true)}>{t("Load shared version")}</Button>
       </div>
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" disabled={!shared.state.loaded} onClick={download}>{shared?.state.dirty ? "Export unsaved configuration" : "Export configuration"}</Button>
-      <Button variant="outline" disabled={blocked} onClick={() => fileInput.current?.click()}>{reading ? "Reading backup…" : "Import configuration"}</Button>
-      <input ref={fileInput} type="file" accept=".json,application/json" className="sr-only" aria-label="Configuration backup file" disabled={blocked} onChange={async event => {
+      <Button variant="outline" disabled={!shared.state.loaded} onClick={download}>{shared?.state.dirty ? t("Export unsaved configuration") : t("Export configuration")}</Button>
+      <Button variant="outline" disabled={blocked} onClick={() => fileInput.current?.click()}>{reading ? t("Reading backup…") : t("Import configuration")}</Button>
+      <input ref={fileInput} type="file" accept=".json,application/json" className="sr-only" aria-label={t("Configuration backup file")} disabled={blocked} onChange={async event => {
         const file = event.target.files?.[0];
         event.target.value = "";
         if (!file) return;
@@ -52,12 +54,12 @@ export function ConfigurationBackup() {
         finally { setReading(false); }
       }} />
     </div>
-    {error && <p role="alert" className="text-destructive">{error}</p>}
-    {pending && <ConfirmDialog open onOpenChange={open => { if (!open) setPending(undefined); }} title="Restore configuration?" confirmLabel="Restore configuration" destructive disabled={blocked}
-      description="This replaces the entire shared configuration for every screen. Export the current configuration first if you need to keep it. Home Assistant data and server credentials stay unchanged."
-      onConfirm={async () => { await importConfiguration(pending); toast.success("Configuration restored"); }} />}
-    {reload && <ConfirmDialog open onOpenChange={setReload} title="Load shared configuration?" confirmLabel="Load shared version" destructive
-      description="Discard unsaved changes on this screen and load the last saved shared configuration? Export unsaved changes first if you need to keep them."
+    {error && <p role="alert" className="text-destructive">{message(error)}</p>}
+    {pending && <ConfirmDialog open onOpenChange={open => { if (!open) setPending(undefined); }} title={t("Restore configuration?")} confirmLabel={t("Restore configuration")} destructive disabled={blocked}
+      description={t("This replaces the entire shared configuration for every screen. Export the current configuration first if you need to keep it. Home Assistant data and server credentials stay unchanged.")}
+      onConfirm={async () => { await importConfiguration(pending); toast.success(t("Configuration restored")); }} />}
+    {reload && <ConfirmDialog open onOpenChange={setReload} title={t("Load shared configuration?")} confirmLabel={t("Load shared version")} destructive
+      description={t("Discard unsaved changes on this screen and load the last saved shared configuration? Export unsaved changes first if you need to keep them.")}
       onConfirm={() => shared.store.refresh(true)} />}
   </section>;
 }

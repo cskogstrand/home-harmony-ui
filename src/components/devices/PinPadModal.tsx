@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ interface PinPadModalProps {
   disabled?: boolean;
 }
 export function PinPadModal({ open, onOpenChange, title, description, onSubmit, codeRequired = false, numeric = false, disabled = false }: PinPadModalProps) {
+  const { t, message } = useI18n();
   const [code, setCode] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -30,10 +32,10 @@ export function PinPadModal({ open, onOpenChange, title, description, onSubmit, 
       catch { setError("Home Assistant did not confirm the request. Check the code, permissions and reported state."); }
       finally { setPending(false); }
     }}>
-      {codeRequired && <label className="block space-y-2"><span>Code</span><Input aria-label="Code" type="password" autoComplete="off" inputMode={numeric ? "numeric" : "text"} required disabled={pending || disabled} value={code} onChange={event => setCode(event.target.value)} /></label>}
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="relative" aria-label="Confirm" aria-busy={pending} disabled={disabled || pending || (codeRequired && !code)}><span className={pending ? "invisible" : undefined}>Confirm</span>{pending && <Loader2 className="absolute h-4 w-4 animate-spin" aria-hidden="true" />}</Button>
-      <Button type="button" variant="ghost" autoFocus={!codeRequired} disabled={pending} onClick={() => onOpenChange(false)}>Cancel</Button>
+      {codeRequired && <label className="block space-y-2"><span>{t("Code")}</span><Input aria-label={t("Code")} type="password" autoComplete="off" inputMode={numeric ? "numeric" : "text"} required disabled={pending || disabled} value={code} onChange={event => setCode(event.target.value)} /></label>}
+      {error && <p role="alert" className="text-sm text-destructive">{message(error)}</p>}
+      <Button type="submit" className="relative" aria-label={t("Confirm")} aria-busy={pending} disabled={disabled || pending || (codeRequired && !code)}><span className={pending ? "invisible" : undefined}>{t("Confirm")}</span>{pending && <Loader2 className="absolute h-4 w-4 animate-spin" aria-hidden="true" />}</Button>
+      <Button type="button" variant="ghost" autoFocus={!codeRequired} disabled={pending} onClick={() => onOpenChange(false)}>{t("Cancel")}</Button>
     </form>
   </DialogContent></Dialog>;
 }

@@ -1,3 +1,4 @@
+import { createI18n, MessageError, type Language } from "./i18n";
 import type { HassConfig, HassServices } from "home-assistant-js-websocket";
 import { z } from "zod";
 import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityStates, Home, Registries } from "@/types/api";
@@ -25,21 +26,25 @@ const updatedCalendarEvent = calendarEventIdentity.extend({
     location: z.string(), description: z.string(),
   }).refine(event => event.dtstart.includes("T") === event.dtend.includes("T") && Date.parse(event.dtend) > Date.parse(event.dtstart)),
 });
-export function entityStateLabel(entity: Entity) {
-  if (!available(entity)) return entity.state === "unknown" ? "No reading" : "Unavailable";
-  if (entity.domain === "scene") return "Scene";
+export function entityStateLabel(entity: Entity, language: Language = "en") {
+  const { message, number } = createI18n(language);
+  if (!available(entity)) return message(entity.state === "unknown" ? "No reading" : "Unavailable");
+  if (entity.domain === "scene") return message("Scene");
   if (entity.domain === "binary_sensor" && ["on", "off"].includes(entity.state)) {
     const labels: Record<string, [string, string]> = {
-      door: ["Closed", "Open"], window: ["Closed", "Open"], opening: ["Closed", "Open"], garage_door: ["Closed", "Open"],
+      door: ["Closed", "state.open"], window: ["Closed", "state.open"], opening: ["Closed", "state.open"], garage_door: ["Closed", "state.open"],
       motion: ["Clear", "Motion detected"], occupancy: ["Clear", "Occupied"], presence: ["Away", "Home"],
-      smoke: ["Clear", "Smoke detected"], moisture: ["Dry", "Leak detected"], gas: ["Clear", "Gas detected"],
+      smoke: ["Clear", "Smoke detected"], moisture: ["state.dry", "Leak detected"], gas: ["Clear", "Gas detected"],
       safety: ["Safe", "Unsafe"], problem: ["OK", "Problem"], battery: ["OK", "Low battery"],
       connectivity: ["Disconnected", "Connected"], plug: ["Unplugged", "Plugged in"], lock: ["Locked", "Unlocked"],
     };
-    return (labels[String(entity.attributes.device_class)] ?? ["Off", "On"])[entity.state === "on" ? 1 : 0];
+    return message((labels[String(entity.attributes.device_class)] ?? ["Off", "On"])[entity.state === "on" ? 1 : 0]);
   }
-  if (entity.domain === "automation") return entity.state === "on" ? "Enabled" : "Disabled";
-  return humanizeState(entity.state);
+  if (entity.domain === "automation") return message(entity.state === "on" ? "Enabled" : "Disabled");
+  if (entity.state === "open") return message("state.open");
+  if (entity.state.trim() && Number.isFinite(Number(entity.state))) return number(Number(entity.state));
+  const known = ["on", "off", "open", "closed", "opening", "closing", "locked", "unlocked", "locking", "unlocking", "jammed", "home", "not_home", "heat", "cool", "heat_cool", "auto", "dry", "fan_only", "idle", "heating", "cooling", "armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass", "disarmed", "arming", "disarming", "pending", "triggered", "unknown", "unavailable"];
+  return known.includes(entity.state) ? message(humanizeState(entity.state)) : humanizeState(entity.state);
 }
 export const alarmModes: { action: AlarmAction; label: string; flag: number }[] = [
   { action: "alarm_arm_home", label: "Home", flag: 1 },
@@ -177,6 +182,6 @@ export function calendarTimeValue(original: CalendarEvent["start"], input: strin
   // Preserve the original instant when clocks repeat an hour at the end of DST.
   if (local === calendarTimeInput(original, timeZone)) return new Date(calendarDateValue(original)).toISOString();
   const value = calendarBoundary(local.slice(0, 10), timeZone, local.slice(11));
-  if (calendarTimeInput(value, timeZone) !== local) throw new Error(`This time does not exist in ${timeZone}. Choose another time.`);
+  if (calendarTimeInput(value, timeZone) !== local) throw new MessageError("This time does not exist in {timeZone}. Choose another time.", { timeZone });
   return value;
 }

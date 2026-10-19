@@ -1,3 +1,5 @@
+import type { Message } from "@/lib/i18n";
+import { useI18n } from "@/hooks/use-i18n";
 import { useRef, useState } from "react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -7,11 +9,11 @@ import {
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  pendingLabel?: string;
+  title: Message;
+  description: Message;
+  confirmLabel?: Message;
+  cancelLabel?: Message;
+  pendingLabel?: Message;
   disabled?: boolean;
   destructive?: boolean;
   onConfirm: () => void | boolean | Promise<void | boolean>;
@@ -21,6 +23,7 @@ export function ConfirmDialog({
   open, onOpenChange, title, description,
   confirmLabel = "Confirm", cancelLabel = "Cancel", pendingLabel = "Working…", disabled = false, destructive = false, onConfirm,
 }: ConfirmDialogProps) {
+  const { message } = useI18n();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef(false);
@@ -31,12 +34,12 @@ export function ConfirmDialog({
         onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
         onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus(); }}>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogTitle>{message(title)}</AlertDialogTitle>
+          <AlertDialogDescription>{message(description)}</AlertDialogDescription>
         </AlertDialogHeader>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {error && <p role="alert" className="text-sm text-destructive">{message(error)}</p>}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>{message(cancelLabel)}</AlertDialogCancel>
           <AlertDialogAction
             disabled={disabled || pending}
             onClick={async event => {
@@ -50,7 +53,7 @@ export function ConfirmDialog({
             }}
             className={destructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
           >
-            {pending ? pendingLabel : confirmLabel}
+            {message(pending ? pendingLabel : confirmLabel)}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

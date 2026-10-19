@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/use-i18n";
 import { Link } from "react-router-dom";
 import { Blinds, Bot, Camera, ChevronRight, Cpu, Droplets, Fan, Layers, Lightbulb, Lock, Play, Plug, Radio, Shield, Thermometer } from "lucide-react";
 import type { Entity, PhysicalDevice } from "@/types/api";
@@ -14,12 +15,13 @@ export function PhysicalDeviceIcon({ entities, className }: { entities: Entity[]
 }
 
 export function DeviceCard({ device, entities, listSearch }: { device: PhysicalDevice; entities: Entity[]; listSearch: string }) {
+  const { t, message, language } = useI18n();
   const { currentHome, homeOnline } = useApp();
   const area = currentHome.areas.find(area => area.id === device.area_id);
-  return <Link to={`/devices/${encodeURIComponent(device.id)}`} state={{ deviceList: listSearch }} className="physical-device" aria-label={`${deviceName(device)} details`}>
-    <div className="home-device-title"><span className="device-symbol"><PhysicalDeviceIcon entities={entities} className="h-4 w-4" /></span><div className="device-name"><h3>{deviceName(device)}</h3><small>{area?.name ?? "Unassigned"}</small></div></div>
-    <p className="device-model">{[device.manufacturer, device.model].filter(Boolean).join(" · ") || "Connected device"}</p>
-    <span className="device-availability">{deviceReadingsLabel(entities, homeOnline)}</span>
+  return <Link to={`/devices/${encodeURIComponent(device.id)}`} state={{ deviceList: listSearch }} className="physical-device" aria-label={t("{name} details", { name: deviceName(device, language) })}>
+    <div className="home-device-title"><span className="device-symbol"><PhysicalDeviceIcon entities={entities} className="h-4 w-4" /></span><div className="device-name"><h3>{deviceName(device, language)}</h3><small>{area?.name ?? t("Unassigned")}</small></div></div>
+    <p className="device-model">{[device.manufacturer, device.model].filter(Boolean).join(" · ") || t("Connected device")}</p>
+    <span className="device-availability">{message(deviceReadingsLabel(entities, homeOnline))}</span>
     <ChevronRight className="device-row-chevron" size={16} aria-hidden="true" />
   </Link>;
 }

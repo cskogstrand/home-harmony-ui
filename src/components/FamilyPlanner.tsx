@@ -1,3 +1,5 @@
+import { MessageError, type Message } from "@/lib/i18n";
+import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, Trash2, ImageOff, Maximize2 } from "lucide-react";
@@ -5,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
-import { useFamily, newPlannerId, dateLabel, eventTimeLabel, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, newPlannerId, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { available, calendarTimeInput, calendarTimeValue, supportsAction } from "@/lib/ha-model";
 import { timetableImagePath } from "../../shared/timetables";
@@ -14,28 +16,33 @@ export function PageHeading({ eyebrow, title, description, children }: { eyebrow
   return <header className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{children}</header>;
 }
 export function MemberAvatar({ member, small = false }: { member: MemberId; small?: boolean }) {
+  const { t } = useI18n();
   const { allMembers: members, memberName } = useFamily();
   const person = members.find(m => m.id === member);
-  return <span className={`member-avatar ${small ? "small" : ""}`} style={{ background: person?.color ?? "#c4d5a3" }} aria-label={memberName(member)}>{person?.initials ?? (member === "everyone" ? "All" : "?")}</span>;
+  return <span className={`member-avatar ${small ? "small" : ""}`} style={{ background: person?.color ?? "#c4d5a3" }} aria-label={memberName(member)}>{person?.initials ?? (member === "everyone" ? t("All") : "?")}</span>;
 }
 export function MemberOptions() {
+  const { t } = useI18n();
   const { members } = useFamily();
-  return <><option value="everyone">Everyone</option>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</>;
+  return <><option value="everyone">{t("Everyone")}</option>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</>;
 }
 export function PanelHeading({ title, to, label = "View all" }: { title: string; to?: string; label?: string }) {
-  return <div className="panel-heading"><h2>{title}</h2>{to && <Link to={to} className="text-link">{label}<ArrowUpRight size={17} /></Link>}</div>;
+  const { message } = useI18n();
+  return <div className="panel-heading"><h2>{title}</h2>{to && <Link to={to} className="text-link">{message(label)}<ArrowUpRight size={17} /></Link>}</div>;
 }
 export function EventButton({ event, onClick, showDate = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
+  const { t, dateLabel, eventTimeLabel } = useI18n();
   const { memberName } = useFamily();
   const span = event.calendarSpan;
   const dates = span && span.firstDay !== span.lastDay ? `${dateLabel(span.firstDay)} – ${dateLabel(span.lastDay)}` : dateLabel(event.date, { weekday: "short", day: "numeric" });
   return <button className={`event-button member-${event.member}${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} onClick={onClick}>
     <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
-    <div><strong>{continuesBefore && <span aria-hidden="true">← </span>}{event.title}{continuesAfter && <span aria-hidden="true"> →</span>}</strong><small>{event.location || memberName(event.member)}{event.calendarId && " · Home Assistant"}</small></div>
-    {continuesBefore && <span className="sr-only">Starts before this week.</span>}{continuesAfter && <span className="sr-only">Ends after this week.</span>}<ArrowUpRight size={15} />
+    <div><strong>{continuesBefore && <span aria-hidden="true">← </span>}{event.title}{continuesAfter && <span aria-hidden="true"> →</span>}</strong><small>{event.location || memberName(event.member)}{event.calendarId && t(" · Home Assistant")}</small></div>
+    {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}<ArrowUpRight size={15} />
   </button>;
 }
 export function EventEditor({ open, onOpenChange, onSaved, event, date, member = "everyone" }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void; event?: FamilyEvent; date?: string; member?: MemberId }) {
+  const { t, message, dateLabel, eventTimeLabel } = useI18n();
   const { today, saveEvent, deleteEvent, memberName, members, calendarMembers, connectedPlanner } = useFamily();
   const { haUrl, currentHome, homeOnline, services, command, commands } = useApp();
   const [draft, setDraft] = useState<FamilyEvent | null>(null);
@@ -46,7 +53,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const busy = saving || deleting;
-  const [error, setError] = useState("");
+  const [error, setError] = useState<Message>("");
   const wasOpen = useRef(false);
   const source = event?.calendarEvent;
   const editingRemote = !!event?.calendarId;
@@ -65,10 +72,10 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const calendar = editingRemote ? currentHome.entities.find(e => e.entityId === event.calendarId) : calendars.find(e => e.preferenceId === calendarId) ?? (!calendarId && writable.length === 1 ? writable[0] : undefined);
   // ponytail: change individual occurrences; series edits/deletions need an explicit scope selector.
   const readOnlyReason = !editingRemote ? ""
-    : !calendar ? "This calendar is no longer available in Home Assistant."
-    : !supportsAction(calendar, "update_event", services) ? "Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar."
-    : !source?.uid ? "Home Assistant did not provide the event ID needed to save changes. Edit this event in the source calendar."
-    : source.rrule && !source.recurrence_id ? "Home Assistant did not identify this occurrence of the recurring event. Edit it in the source calendar."
+    : !calendar ? t("This calendar is no longer available in Home Assistant.")
+    : !supportsAction(calendar, "update_event", services) ? t("Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar.")
+    : !source?.uid ? t("Home Assistant did not provide the event ID needed to save changes. Edit this event in the source calendar.")
+    : source.rrule && !source.recurrence_id ? t("Home Assistant did not identify this occurrence of the recurring event. Edit it in the source calendar.")
     : "";
   const readOnly = !!readOnlyReason;
   const deletable = !!event && (!editingRemote || !!calendar && supportsAction(calendar, "delete_event", services) && !!source?.uid && (!source.rrule || !!source.recurrence_id));
@@ -97,7 +104,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
       });
       onSaved();
       onOpenChange(false);
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setError(error instanceof MessageError ? error : (error as Error).message); }
     finally { setSaving(false); }
   };
   const remove = async () => {
@@ -112,30 +119,31 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     }
     finally { setDeleting(false); }
   };
-  const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />Delete</Button>;
+  const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />{t("Delete")}</Button>;
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent className="planner-dialog max-h-[90dvh] overflow-y-auto">
-    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? "A moment in your week" : "Make a little plan"}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? "Save to Home Assistant and its connected calendar. Times use " + currentHome.timeZone + "." : "Saved to the family calendar on this screen.")}</DialogDescription></DialogHeader>
-    {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">Open calendar in Home Assistant</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
-      {source?.recurrence_id && <p>Only this occurrence will be changed.</p>}
-      {draft.allDay && <p>All-day event. End date is the last day included.</p>}
-      <label>What’s happening?<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder="Dinner with grandparents" onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
-      <div className="form-row"><label>Date<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => { if (endDate === draft.date) setEndDate(e.target.value); setDraft({ ...draft, date: e.target.value }); }} /></label>
-        {!draft.allDay && <label>Time<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
-      <div className="form-row">{remote && <label>End date<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>End time{!remote && " (optional)"}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
-      <label>Who’s going?<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
-      {editingRemote && <><p>Calendar: {calendar?.name}</p>{!homeOnline && <p role="status">Connect to Home Assistant to save this plan.</p>}</>}
-      {remote && !editingRemote && <><label>Calendar<select required value={calendar?.preferenceId ?? ""} onChange={e => { setCalendarId(e.target.value); setError(""); }}><option value="">Choose a calendar</option>{calendars.map(e => <option key={e.preferenceId} value={e.preferenceId} disabled={!writable.includes(e)}>{e.name}{!writable.includes(e) && " · Read-only or unavailable"}</option>)}</select></label>
-        {!homeOnline ? <p role="status">Connect to Home Assistant to save this plan.</p> : !writable.length && <p role="status">No writable calendar is available for {memberName(draft.member)}. Assign a calendar that supports creating events in <Link className="text-link" to="/settings#family-calendar">Home settings</Link>.</p>}</>}
-      <label>Where?<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder="Add a place" onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
-      <label>A little reminder<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder="Who’s driving? What should we bring?" onChange={e => setDraft({ ...draft, note: e.target.value })} /></label>
+    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
+    {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
+      {source?.recurrence_id && <p>{t("Only this occurrence will be changed.")}</p>}
+      {draft.allDay && <p>{t("All-day event. End date is the last day included.")}</p>}
+      <label>{t("What’s happening?")}<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder={t("Dinner with grandparents")} onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
+      <div className="form-row"><label>{t("Date")}<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => { if (endDate === draft.date) setEndDate(e.target.value); setDraft({ ...draft, date: e.target.value }); }} /></label>
+        {!draft.allDay && <label>{t("Time")}<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
+      <div className="form-row">{remote && <label>{t("End date")}<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>{t("End time{value1}", { value1: remote ? "" : t(" (optional)") })}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
+      <label>{t("Who’s going?")}<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
+      {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p>{!homeOnline && <p role="status">{t("Connect to Home Assistant to save this plan.")}</p>}</>}
+      {remote && !editingRemote && <><label>{t("Calendar")}<select required value={calendar?.preferenceId ?? ""} onChange={e => { setCalendarId(e.target.value); setError(""); }}><option value="">{t("Choose a calendar")}</option>{calendars.map(e => <option key={e.preferenceId} value={e.preferenceId} disabled={!writable.includes(e)}>{e.name}{!writable.includes(e) && t(" · Read-only or unavailable")}</option>)}</select></label>
+        {!homeOnline ? <p role="status">{t("Connect to Home Assistant to save this plan.")}</p> : !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings#family-calendar">{t("Home settings")}</Link>.</p>}</>}
+      <label>{t("Where?")}<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder={t("Add a place")} onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
+      <label>{t("A little reminder")}<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder={t("Who’s driving? What should we bring?")} onChange={e => setDraft({ ...draft, note: e.target.value })} /></label>
       <div className="form-actions">{deleteButton}
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit" disabled={!canSave}>{saving ? "Saving…" : "Save plan"}</Button></div>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("Cancel")}</Button><Button type="submit" disabled={!canSave}>{saving ? t("Saving…") : t("Save plan")}</Button></div>
     </fieldset></form>}
-    {confirmDelete && <ConfirmDialog open onOpenChange={setConfirmDelete} title="Confirm event deletion" description={editingRemote ? source.recurrence_id ? `Remove only this occurrence of “${event.title}” from ${calendar?.name} and its source calendar? Other occurrences will stay.` : `Remove “${event.title}” from ${calendar?.name} and its source calendar? This cannot be undone.` : `Remove “${event.title}” from the family calendar? This cannot be undone.`} cancelLabel="Keep event" confirmLabel="Remove event" pendingLabel="Deleting…" destructive disabled={!canDelete} onConfirm={remove} />}
-    {error && <p role="alert">{error}</p>}
+    {confirmDelete && <ConfirmDialog open onOpenChange={setConfirmDelete} title={t("Confirm event deletion")} description={editingRemote ? source.recurrence_id ? t("Remove only this occurrence of “{value1}” from {value2} and its source calendar? Other occurrences will stay.", { value1: event.title, value2: calendar?.name }) : t("Remove “{value1}” from {value2} and its source calendar? This cannot be undone.", { value1: event.title, value2: calendar?.name }) : t("Remove “{value1}” from the family calendar? This cannot be undone.", { value1: event.title })} cancelLabel={t("Keep event")} confirmLabel={t("Remove event")} pendingLabel={t("Deleting…")} destructive disabled={!canDelete} onConfirm={remove} />}
+    {error && <p role="alert">{message(error)}</p>}
   </DialogContent></Dialog>;
 }
 function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
+  const { t } = useI18n();
   const { storageRequest } = useApp();
   const { appearance } = useFamily();
   const privateImage = !!imageUrl && timetableImagePath.test(imageUrl);
@@ -156,11 +164,12 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [selectedUrl, privateImage, storageRequest]);
   const src = privateImage ? loaded?.url === selectedUrl ? loaded.src : undefined : selectedUrl;
-  if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>Loading timetable…</p></div>;
-  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? "The timetable image couldn’t load." : "No timetable yet."}</p><small>{privateImage ? "Reconnect or reload to try again." : imageUrl ? "Check its URL in School." : "Add one on the School board."}</small></div> :
+  if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>{t("Loading timetable…")}</p></div>;
+  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? t("The timetable image couldn’t load.") : t("No timetable yet.")}</p><small>{privateImage ? t("Reconnect or reload to try again.") : imageUrl ? t("Check its URL in School.") : t("Add one on the School board.")}</small></div> :
     <img className={`timetable-image${privateImage && appearance.darkTimetables ? " timetable-image-dark" : ""}`} src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
 }
 function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {
+  const { t } = useI18n();
   const { timetables, memberName } = useFamily();
   const pages = timetables[child] ?? [];
   const carousel = useRef<HTMLDivElement>(null);
@@ -177,21 +186,22 @@ function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId;
     return () => { api.off("select", updatePage).off("reInit", updatePage); };
   }, [api]);
   const renderPage = (url: string | undefined, index: number) => {
-    const pageLabel = pages.length > 1 ? `, page ${index + 1} of ${pages.length}` : "";
-    const image = <TimetableImage imageUrl={url} alt={`${memberName(child)}’s school timetable${pageLabel}`} />;
-    return onEnlarge ? <button className="timetable-page" onClick={() => onEnlarge(index)} tabIndex={pages.length <= 1 || page === index ? 0 : -1} aria-label={`Enlarge ${memberName(child)}’s timetable${pageLabel}`}>{image}</button> : image;
+    const pageLabel = pages.length > 1 ? t(", page {page} of {total}", { page: index + 1, total: pages.length }) : "";
+    const image = <TimetableImage imageUrl={url} alt={t("{value1}’s school timetable{value2}", { value1: memberName(child), value2: pageLabel })} />;
+    return onEnlarge ? <button className="timetable-page" onClick={() => onEnlarge(index)} tabIndex={pages.length <= 1 || page === index ? 0 : -1} aria-label={t("Enlarge {value1}’s timetable{value2}", { value1: memberName(child), value2: pageLabel })}>{image}</button> : image;
   };
   if (pages.length <= 1) return renderPage(pages[0], 0);
-  return <Carousel ref={carousel} tabIndex={0} className="timetable-carousel" aria-label={`${memberName(child)}’s timetable pages`} opts={{ startIndex }} setApi={setApi}>
-    <CarouselContent className="timetable-pages">{pages.map((url, index) => <CarouselItem key={index} aria-label={`Page ${index + 1} of ${pages.length}`} aria-hidden={page !== index}>{renderPage(url, index)}</CarouselItem>)}</CarouselContent>
-    <div className="timetable-controls"><CarouselPrevious className="static translate-y-0" aria-label="Previous timetable page" /><span aria-live="polite" aria-atomic="true">Page {page + 1} of {pages.length}</span><CarouselNext className="static translate-y-0" aria-label="Next timetable page" /></div>
+  return <Carousel ref={carousel} tabIndex={0} className="timetable-carousel" aria-label={t("{value1}’s timetable pages", { value1: memberName(child) })} opts={{ startIndex }} setApi={setApi}>
+    <CarouselContent className="timetable-pages">{pages.map((url, index) => <CarouselItem key={index} aria-label={t("Page {value1} of {value2}", { value1: index + 1, value2: pages.length })} aria-hidden={page !== index}>{renderPage(url, index)}</CarouselItem>)}</CarouselContent>
+    <div className="timetable-controls"><CarouselPrevious className="static translate-y-0" aria-label={t("Previous timetable page")} /><span aria-live="polite" aria-atomic="true">{t("Page {value1} of {value2}", { value1: page + 1, value2: pages.length })}</span><CarouselNext className="static translate-y-0" aria-label={t("Next timetable page")} /></div>
   </Carousel>;
 }
 export function SchoolPreview({ child }: { child: MemberId }) {
+  const { t } = useI18n();
   const { memberName, connectedPlanner } = useFamily();
   const [openPage, setOpenPage] = useState<number | null>(null);
   return <><div className="school-preview">
-    <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? "Year 5" : "Year 2"}</span>}<Maximize2 size={16} /></div>
+    <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? t("Year 5") : t("Year 2")}</span>}<Maximize2 size={16} /></div>
     <TimetablePages child={child} onEnlarge={setOpenPage} />
-  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{memberName(child)}’s school week</DialogTitle><DialogDescription>Saved timetable pages. Update the timetable in School.</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
+  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{t("{value1}’s school week", { value1: memberName(child) })}</DialogTitle><DialogDescription>{t("Saved timetable pages. Update the timetable in School.")}</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
 }

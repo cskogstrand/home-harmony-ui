@@ -316,6 +316,7 @@ test("persists a validated backup across restart and exposes it to a second devi
   const app = await fixture(t);
   const initial = await (await app.request()).json();
   const input = configuration();
+  input.settings.language = "nb";
   const response = await app.request("PUT", input, initial.revision);
   assert.equal(response.status, 200);
   const saved = await response.json();
@@ -345,6 +346,7 @@ test("invalid, credential-bearing, oversized and future-version imports leave ex
   const initial = await (await app.request()).json();
   const saved = await (await app.request("PUT", configuration(), initial.revision)).json();
   const invalid = ["not json", { ...configuration(), version: 4 }, { ...configuration(), access_token: "fixture-secret" }];
+  const unsupportedLanguage = configuration(); unsupportedLanguage.settings.language = "invalid"; invalid.push(unsupportedLanguage);
   const unsafe = configuration(); unsafe.settings.timetables = { child: ["javascript:alert(1)"] }; invalid.push(unsafe);
   const missing = configuration(); delete missing.settings.timetables; invalid.push(missing);
   for (const field of ["events", "items", "people", "states"]) {

@@ -28,6 +28,7 @@ const imageUrl = z.string().max(4096).refine(value => {
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
 });
 export const plannerSchema = z.object({
+  language: z.enum(["en", "nb"]).default("en"),
   timetables: z.record(keySchema, z.array(imageUrl).max(100)),
   timetableEnabled: z.record(keySchema, z.boolean()).default({}),
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),

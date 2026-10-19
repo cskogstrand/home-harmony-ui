@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/use-i18n";
 import { Link, useLocation } from "react-router-dom";
 import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package } from "lucide-react";
 
@@ -11,8 +12,9 @@ const mainItems = [
   { path: "/home", label: "Smart home", icon: SlidersHorizontal },
 ];
 export function MainNav() {
+  const { t, message } = useI18n();
   const { pathname } = useLocation();
-  return <nav className="family-dock" aria-label="Main navigation">{mainItems.map(item => <Link to={item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : pathname === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.6} /><span>{item.label}</span></Link>)}</nav>;
+  return <nav className="family-dock" aria-label={t("Main navigation")}>{mainItems.map(item => <Link to={item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : pathname === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.6} /><span>{message(item.label)}</span></Link>)}</nav>;
 }
 const smartItems = [
   { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },
@@ -24,6 +26,7 @@ const smartItems = [
   { path: "/settings", label: "Home settings", icon: Settings },
 ];
 export function SmartHomeNav() {
+  const { t, message } = useI18n();
   const { pathname } = useLocation();
-  return <nav className="smart-nav" aria-label="Smart home navigation">{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) || item.path === "/devices" && pathname.startsWith("/entities/") ? "page" : undefined}><item.icon size={16} />{item.label}</Link>)}</nav>;
+  return <nav className="smart-nav" aria-label={t("Smart home navigation")}>{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) || item.path === "/devices" && pathname.startsWith("/entities/") ? "page" : undefined}><item.icon size={16} />{message(item.label)}</Link>)}</nav>;
 }

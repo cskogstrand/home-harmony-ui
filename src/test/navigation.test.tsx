@@ -294,3 +294,35 @@ it("uses home time and real calendar dates across month and year boundaries", ()
   expect(isPlannerDate("2026-02-30")).toBe(false);
   expect(isPlannerDate("2028-02-29")).toBe(true);
 });
+
+it("saves the server language, updates navigation and labels, and restores it on reload", async () => {
+  window.history.replaceState(null, "", "/user-settings");
+  const first = render(<App />); await saved();
+  fireEvent.change(screen.getByRole("combobox", { name: "Language" }), { target: { value: "nb" } });
+  await waitFor(() => expect(settings.settings.language).toBe("nb"));
+  expect(screen.getByRole("heading", { level: 1, name: "Innstillinger" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "I dag" })).toBeInTheDocument();
+  expect(screen.getByRole("switch", { name: "Slå mørk modus av eller på" })).toBeInTheDocument();
+  expect(document.documentElement.lang).toBe("nb");
+  expect(document.title).toBe("Afterglow · Familien hjemme");
+  first.unmount();
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("combobox", { name: "Språk" })).toHaveValue("nb"));
+  fireEvent.change(screen.getByRole("combobox", { name: "Språk" }), { target: { value: "en" } });
+  await saved();
+  expect(document.documentElement.lang).toBe("en");
+  expect(screen.getByRole("link", { name: "Today" })).toBeInTheDocument();
+});
+
+it("refreshes language from another screen while a confirmation stays open", async () => {
+  settings.settings.language = "nb";
+  window.history.replaceState(null, "", "/settings");
+  render(<App />);
+  await waitFor(() => expect(screen.getByRole("button", { name: "Koble fra" })).toBeInTheDocument());
+  fireEvent.click(screen.getByRole("button", { name: "Koble fra" }));
+  expect(screen.getByRole("alertdialog", { name: "Koble fra Home Assistant?" })).toBeInTheDocument();
+  settings.settings.language = "en";
+  await waitFor(() => expect(screen.getByRole("alertdialog", { name: "Disconnect Home Assistant?" })).toBeInTheDocument(), { timeout: 6500 });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(app.disconnect).not.toHaveBeenCalled();
+}, 10000);

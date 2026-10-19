@@ -164,3 +164,23 @@ it("rejects old formats and HA data in settings backups", () => {
     expect(() => parseConfiguration(JSON.stringify(input))).toThrow();
   }
 });
+
+it("shares language changes, keeps conflicting drafts, and restores the language from backups", async () => {
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, language: "nb" }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  b.updateSettings(p => ({ ...p, appearance: { ...p.appearance, compactMode: true } }));
+  await waitFor(() => expect(b.getSnapshot().error).toMatch(/Another screen/));
+  expect(backend.current().settings.language).toBe("nb");
+  await b.refresh(true);
+  expect(b.getSnapshot().config.settings.language).toBe("nb");
+  const backup = structuredClone(b.getSnapshot().config);
+  a.updateSettings(p => ({ ...p, language: "en" }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.language).toBe("en");
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.language).toBe("nb");
+});

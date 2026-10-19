@@ -1,11 +1,13 @@
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/hooks/use-i18n";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast";
 
 export function Toaster() {
   const { toasts } = useToast();
+  const { t } = useI18n();
 
   return (
-    <ToastProvider>
+    <ToastProvider label={t("Notification")}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
@@ -14,11 +16,11 @@ export function Toaster() {
               {description && <ToastDescription>{description}</ToastDescription>}
             </div>
             {action}
-            <ToastClose />
+            <ToastClose aria-label={t("Close")} />
           </Toast>
         );
       })}
-      <ToastViewport />
+      <ToastViewport label={t("Notifications ({hotkey})")} />
     </ToastProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { useI18n } from "@/hooks/use-i18n";
 import { useSearchParams } from "react-router-dom";
 import { PageHeading } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
@@ -6,6 +7,7 @@ import { useApp } from "@/contexts/AppContext";
 import { available } from "@/lib/ha-model";
 const tabs: { id: ListKind; name: string }[] = [{ id: "daily", name: "Daily rhythm" }, { id: "shopping", name: "Shopping" }, { id: "tasks", name: "Family tasks" }];
 export default function Lists() {
+  const { t, message } = useI18n();
   const [params, setParams] = useSearchParams();
   const { items, today, connectedPlanner, todoLists, isMemberVisible } = useFamily();
   const { currentHome, homeOnline } = useApp();
@@ -15,8 +17,8 @@ export default function Lists() {
     return homeOnline && lists.length && lists.every(e => e && available(e) && /^\d+$/.test(e.state)) ? lists.reduce((sum, e) => sum + Number(e.state), 0) : "—";
   };
   const selected = tabs.find(t => t.id === params.get("tab"))?.id ?? "daily";
-  return <div className="planner-page lists-page"><PageHeading eyebrow="SMALL THINGS, SHARED" title="A little less to remember." />
-    <div className="list-tabs" role="group" aria-label="Family lists">{tabs.map(tab => <button aria-pressed={tab.id === selected} aria-controls={`list-${tab.id}`} id={`tab-${tab.id}`} key={tab.id} onClick={() => setParams({ tab: tab.id })}>{tab.name}<span>{count(tab.id)}</span></button>)}</div>
+  return <div className="planner-page lists-page"><PageHeading eyebrow={t("SMALL THINGS, SHARED")} title={t("A little less to remember.")} />
+    <div className="list-tabs" role="group" aria-label={t("Family lists")}>{tabs.map(tab => <button aria-pressed={tab.id === selected} aria-controls={`list-${tab.id}`} id={`tab-${tab.id}`} key={tab.id} onClick={() => setParams({ tab: tab.id })}>{message(tab.name)}<span>{count(tab.id)}</span></button>)}</div>
     <section aria-labelledby={`tab-${selected}`} id={`list-${selected}`}><ListPanel key={selected} kind={selected} /></section>
   </div>;
 }

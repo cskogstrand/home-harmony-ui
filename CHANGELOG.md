@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.6
+
+- Add English and Norwegian Bokmål under App preferences → Language, saved per server and shared across screens.
+- Translate app text, dialogs, accessibility labels and known device states, and format dates and numbers in the selected language.
+- Include language in settings backups; existing settings without a language default to English. Home Assistant names, calendar/list content and generated summaries retain their original text.
+- Keep a pre-upgrade settings backup before downgrading: older app releases reject the new language field.
+
 ## 0.8.5
 
 - Add Norwegian morning-summary speech through Home Assistant Cloud, with varied wording on each run.

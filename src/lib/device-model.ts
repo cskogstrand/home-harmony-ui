@@ -1,12 +1,13 @@
+import { createI18n, locales, type Language } from "./i18n";
 import type { Entity, Home, PhysicalDevice } from "@/types/api";
 import { available } from "./ha-model";
 
-export const deviceName = (device: PhysicalDevice) => device.name_by_user || device.name || device.model || "Unnamed device";
+export const deviceName = (device: PhysicalDevice, language: Language = "en") => device.name_by_user || device.name || device.model || createI18n(language).t("Unnamed device");
 export const entityDetailPath = (entity: Entity) => entity.device
   ? `/devices/${encodeURIComponent(entity.device.id)}#${encodeURIComponent(entity.entityId)}`
   : `/entities/${encodeURIComponent(entity.entityId)}`;
 
-export function deviceGroups(home: Home) {
+export function deviceGroups(home: Home, language: Language = "en") {
   const entitiesByDevice = new Map<string, Entity[]>();
   for (const entity of home.entities) {
     if (!entity.device) continue;
@@ -14,7 +15,7 @@ export function deviceGroups(home: Home) {
     entitiesByDevice.get(entity.device.id)!.push(entity);
   }
   return home.devices.map(device => ({ device, entities: entitiesByDevice.get(device.id) ?? [] }))
-    .sort((a, b) => deviceName(a.device).localeCompare(deviceName(b.device)));
+    .sort((a, b) => deviceName(a.device, language).localeCompare(deviceName(b.device, language), locales[language]));
 }
 
 const deviceTypes = new Map([
@@ -34,19 +35,21 @@ export function deviceType(entities: Entity[]) {
 
 export type DeviceGrouping = "room" | "type" | "none";
 
-export function deviceSections(devices: ReturnType<typeof deviceGroups>, areas: Home["areas"], grouping: DeviceGrouping) {
+export function deviceSections(devices: ReturnType<typeof deviceGroups>, areas: Home["areas"], grouping: DeviceGrouping, language: Language = "en") {
+  const { message } = createI18n(language);
   if (!devices.length) return [];
-  if (grouping === "none") return [{ id: "all", name: "All devices", devices }];
+  if (grouping === "none") return [{ id: "all", name: message("All devices"), devices }];
   const sections = new Map<string, { id: string; name: string; devices: typeof devices }>();
   for (const item of devices) {
     const area = areas.find(area => area.id === item.device.area_id);
-    const name = grouping === "room" ? area?.name ?? "Unassigned" : deviceType(item.entities);
-    const id = grouping === "room" ? area?.id ?? "unassigned" : name;
+    const type = deviceType(item.entities);
+    const name = grouping === "room" ? area?.name ?? message("Unassigned") : message(type);
+    const id = grouping === "room" ? area?.id ?? "unassigned" : type;
     if (!sections.has(id)) sections.set(id, { id, name, devices: [] });
     sections.get(id)!.devices.push(item);
   }
   const last = grouping === "room" ? "unassigned" : "Other";
-  return [...sections.values()].sort((a, b) => Number(a.id === last) - Number(b.id === last) || a.name.localeCompare(b.name));
+  return [...sections.values()].sort((a, b) => Number(a.id === last) - Number(b.id === last) || a.name.localeCompare(b.name, locales[language]));
 }
 
 export function deviceReadingsLabel(entities: Entity[], homeOnline: boolean) {
