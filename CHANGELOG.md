@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.2
+
+- Load pages on demand and split the React runtime into a shared bundle, keeping every JavaScript chunk below the build warning limit.
+- Keep navigation visible while pages load and scroll to linked sections after their content is ready.
+- Separate shared helpers from React components to restore Fast Refresh compatibility and clear lint warnings.
+
 ## 0.9.1
 
 - Make list creation easier to find with prominent, labeled plus buttons and inline forms that stay visible while scrolling each list.

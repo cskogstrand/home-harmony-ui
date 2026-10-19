@@ -1,3 +1,5 @@
+import { uniqueCalendarPlans } from "@/lib/family-calendar";
+import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -5,7 +7,7 @@ import { ArrowUpRight, Plus } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
-import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, uniqueCalendarPlans, useCalendarPlans } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";

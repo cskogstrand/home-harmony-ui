@@ -1,7 +1,8 @@
 import { useI18n } from "@/hooks/use-i18n";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { MainNav, SmartHomeNav, isHomeSection } from "./Navigation";
+import { MainNav, SmartHomeNav } from "./Navigation";
+import { isHomeSection } from "@/lib/navigation";
 import { HomeSwitcher } from "./HomeSwitcher";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { useApp } from "@/contexts/AppContext";
@@ -23,11 +24,7 @@ export function AppLayout() {
   const storageWarning = shared?.state.error || (shared?.state.loaded && !saved && !shared?.state.saving);
   const storageBusy = shared?.state.saving || !shared?.state.loaded;
   const storageMessage = (shared?.state.error && message(shared.state.error)) || (shared.state.saving ? t("Saving shared settings…") : !shared.state.loaded ? t("Loading shared settings…") : !saved ? t("Shared settings are not saved yet.") : t("Shared settings saved."));
-  const { pathname, hash } = useLocation();
-  useEffect(() => {
-    const section = hash && document.getElementById(hash.slice(1));
-    if (section) section.scrollIntoView?.(); else window.scrollTo?.(0, 0);
-  }, [pathname, hash]);
+  const { pathname } = useLocation();
   return <div className={`afterglow-app${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
@@ -47,9 +44,18 @@ export function AppLayout() {
     <ConnectionBanner />
     <main id="main-content" tabIndex={-1} className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
-      <Outlet />
+      <Suspense fallback={<p role="status">{t("Loading…")}</p>}><PageOutlet /></Suspense>
     </main>
     <footer className="app-footer"><span>{t("Version {value1}", { value1: appVersion })}</span></footer>
     <MainNav />
   </div>;
+}
+
+function PageOutlet() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    const section = hash && document.getElementById(hash.slice(1));
+    if (section) section.scrollIntoView?.(); else window.scrollTo?.(0, 0);
+  }, [pathname, hash]);
+  return <Outlet />;
 }

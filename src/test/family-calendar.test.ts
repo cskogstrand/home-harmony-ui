@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { calendarPlans, uniqueCalendarPlans, weekEventRows } from "@/components/FamilyCalendar";
+import { calendarPlans, uniqueCalendarPlans, weekEventRows } from "@/lib/family-calendar";
 import { addDays, eventTimeLabel, weekNumber } from "@/contexts/FamilyContext";
 import type { CalendarEvent } from "@/types/api";
 

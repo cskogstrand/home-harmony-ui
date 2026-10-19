@@ -1299,10 +1299,11 @@ it("uses saved people order for connected lists and retains missing people acros
   const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   const listOrder = (kind: string) => screen.getAllByRole("group", { name: new RegExp(` ${kind}$`) }).map(group => group.getAttribute("aria-label"));
   nav("Today");
+  await screen.findByRole("heading", { level: 1, name: "Good to be home." });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "RRiley", "MMorgan"]);
   expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
   nav("Lists");
-  fireEvent.click(screen.getByRole("button", { name: /Daily rhythm/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /Daily rhythm/ }));
   expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
   fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
   expect(listOrder("tasks")).toEqual(["Everyone tasks", "Riley tasks", "Morgan tasks"]);
@@ -1311,6 +1312,7 @@ it("uses saved people order for connected lists and retains missing people acros
   const newPerson = { "person.alex": state("person.alex", "home", { friendly_name: "Alex" }) };
   act(() => conn.entityCallback?.({ ...newPerson, ...household }));
   nav("Our week");
+  await screen.findByRole("heading", { level: 1, name: "Our week." });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["AllEveryone", "RRiley", "MMorgan", "AAlex"]);
   expect(order()).toEqual([personId("riley"), personId("morgan")]);
   view.unmount();

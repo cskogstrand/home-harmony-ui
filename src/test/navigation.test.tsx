@@ -8,8 +8,9 @@ import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => app, AppProvider: ({ children }) => children }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
+vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));
 let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
@@ -28,8 +29,15 @@ beforeEach(() => {
   Object.defineProperty(document, "execCommand", { configurable: true, value: vi.fn(() => false) });
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(document, "execCommand"); });
-const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-const saved = () => waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
+const pageReady = () => waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
+const navigate = async (name: string) => {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  await screen.findByRole("heading", { level: 1, name: name === "Our week" ? "Our week." : name });
+};
+const saved = async () => {
+  await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
+  await pageReady();
+};
 
 it("keeps household records out of the smart-home device overview", async () => {
   app.currentHome = mapHome({
@@ -81,7 +89,7 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   expect(screen.queryByRole("link", { name: "Set up to-do lists" })).not.toBeInTheDocument();
   expect(screen.queryByText(/Set up school timetables/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Get started" }));
-  expect(screen.getByRole("heading", { level: 1, name: "Get started" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { level: 1, name: "Get started" })).toBeInTheDocument();
   expect(screen.getByRole("list", { name: "Household setup" }).children).toHaveLength(5);
   expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
@@ -91,15 +99,17 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
     fireEvent.click(screen.getByRole("link", { name: label }));
     expect(window.location.pathname).toBe("/settings");
     expect(window.location.hash).toBe(`#${anchor}`);
-    expect(document.getElementById(anchor)).toBeInTheDocument();
+    await screen.findByRole("heading", { level: 1, name: "Home settings" });
+    await waitFor(() => expect(document.getElementById(anchor)).toBeInTheDocument());
     fireEvent.click(screen.getByRole("link", { name: "Get started" }));
+    await screen.findByRole("heading", { level: 1, name: "Get started" });
   }
   fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
   expect(window.location.pathname).toBe("/");
-  navigate("Our week");
+  await navigate("Our week");
   expect(screen.queryByText(/Set up calendars in this app/)).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Set up people and calendars" })).not.toBeInTheDocument();
-  navigate("Lists");
+  await navigate("Lists");
   expect(screen.getByRole("button", { name: /Shopping/ })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByRole("link", { name: "Set up to-do lists" })).not.toBeInTheDocument();
   expect(screen.queryByText(/Daily tasks use your selected/)).not.toBeInTheDocument();
@@ -119,7 +129,7 @@ it.each([
   fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
   fireEvent.click(screen.getByRole("menuitem", { name: "Get started" }));
   expect(window.location.pathname).toBe("/onboarding");
-  expect(screen.getByRole("heading", { name: "Get started" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Get started" })).toBeInTheDocument();
 });
 
 it("keeps onboarding available without a Home Assistant connection", async () => {
@@ -138,7 +148,7 @@ it("navigates with empty HA data and shows the server-managed connection", async
   render(<App />); await saved();
   expect(screen.getByRole("heading", { level: 1, name: "Good to be home." })).toBeInTheDocument();
   expect(screen.getByRole("contentinfo")).toHaveTextContent("Version 9.8.7");
-  navigate("Smart home");
+  await navigate("Smart home");
   fireEvent.click(screen.getByRole("link", { name: /Configure Home Assistant/ }));
   expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
@@ -303,7 +313,7 @@ it("keeps timetable pages when replacing or hiding them is cancelled", async () 
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetables["home|person.emma"]).toEqual(["/first.svg"]);
   fireEvent.click(screen.getByRole("link", { name: "Manage people" }));
-  fireEvent.click(screen.getByRole("switch", { name: "Timetable for Emma" }));
+  fireEvent.click(await screen.findByRole("switch", { name: "Timetable for Emma" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetableEnabled["home|person.emma"]).toBe(true);
 });
@@ -367,7 +377,7 @@ it("distinguishes offline plans and security from successful empty reads", async
   const view = render(<App />); await saved();
   expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars unavailable while offline.");
   expect(screen.getByRole("button", { name: "Add a family plan" })).toBeDisabled();
-  navigate("Smart home");
+  await navigate("Smart home");
   expect(screen.queryByText("No alarm")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();
   view.unmount();

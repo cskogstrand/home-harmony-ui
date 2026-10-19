@@ -1,10 +1,9 @@
+import { isHomeSection } from "@/lib/navigation";
 import { useI18n } from "@/hooks/use-i18n";
 import { Link, useLocation } from "react-router-dom";
 import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const familyPaths = ["/", "/calendar", "/lists", "/school"];
-export const isHomeSection = (path: string) => !familyPaths.includes(path) && !["/user-settings", "/onboarding"].includes(path);
 const mainItems = [
   { path: "/", label: "Today", icon: House },
   { path: "/calendar", label: "Our week", icon: CalendarDays },

@@ -1,4 +1,4 @@
-import { Toaster as Sonner, toast } from "sonner";
+import { Toaster as Sonner } from "sonner";
 import { useI18n } from "@/hooks/use-i18n";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
@@ -24,4 +24,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
   );
 };
 
-export { Toaster, toast };
+export { Toaster };

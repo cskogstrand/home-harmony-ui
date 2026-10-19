@@ -24,6 +24,15 @@ async function configurationMiddleware(server: import("vite").ViteDevServer | im
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+        },
+      },
+    },
+  },
   server: {
     host: "::",
     port: 8080,

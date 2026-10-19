@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import { mapHome } from "@/lib/ha-model";
 
-function useHomeAssistant() {
+export function useHomeAssistant() {
   const [client] = useState(() => new HomeAssistantClient());
   const state = useSyncExternalStore(client.subscribe, client.getSnapshot);
   useEffect(() => { client.start(); return client.dispose; }, [client]);
@@ -12,12 +12,9 @@ function useHomeAssistant() {
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
     command: client.command, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
 }
-const AppContext = createContext<ReturnType<typeof useHomeAssistant> | null>(null);
+export const AppContext = createContext<ReturnType<typeof useHomeAssistant> | null>(null);
 export function useApp() {
   const context = useContext(AppContext);
   if (!context) throw new Error("useApp must be used within AppProvider");
   return context;
-}
-export function AppProvider({ children }: { children: ReactNode }) {
-  return <AppContext.Provider value={useHomeAssistant()}>{children}</AppContext.Provider>;
 }

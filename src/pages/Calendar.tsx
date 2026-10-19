@@ -1,3 +1,5 @@
+import { uniqueCalendarPlans } from "@/lib/family-calendar";
+import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -5,7 +7,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
-import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, uniqueCalendarPlans, useCalendarPlans } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 
 export default function Calendar() {
   const { t, dateLabel } = useI18n();

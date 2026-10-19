@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { FamilyProvider, useFamily } from "@/contexts/FamilyContext";
+import { FamilyProvider } from "@/contexts/FamilyProvider";
+import { useFamily } from "@/contexts/FamilyContext";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import { emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shared/configuration";
 

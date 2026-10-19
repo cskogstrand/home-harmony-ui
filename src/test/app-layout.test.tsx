@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { lazy } from "react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SmartHomeNav } from "@/components/layout/Navigation";
 
@@ -17,6 +18,24 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
+
+it("keeps navigation visible during page loading and scrolls to the anchor after it loads", async () => {
+  const scrollIntoView = vi.fn();
+  const Page = () => <section id="example" ref={element => { if (element) element.scrollIntoView = scrollIntoView; }}>Page content</section>;
+  let resolvePage: (module: { default: typeof Page }) => void;
+  const LazyPage = lazy(() => new Promise<{ default: typeof Page }>(resolve => { resolvePage = resolve; }));
+  render(<MemoryRouter initialEntries={["/example#example"]}><Routes>
+    <Route element={<AppLayout />}><Route path="/example" element={<LazyPage />} /></Route>
+  </Routes></MemoryRouter>);
+
+  expect(screen.getByText("Loading…")).toHaveAttribute("role", "status");
+  expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+  expect(window.scrollTo).not.toHaveBeenCalled();
+  await act(async () => resolvePage({ default: Page }));
+  expect(screen.getByText("Page content")).toBeVisible();
+  expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+  expect(scrollIntoView).toHaveBeenCalledOnce();
+});
 
 it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device section on %s", path => {
   render(<MemoryRouter initialEntries={[path]}><SmartHomeNav /></MemoryRouter>);
