@@ -12,8 +12,8 @@ import { useApp } from "@/contexts/AppContext";
 import { available, calendarTimeInput, calendarTimeValue, supportsAction } from "@/lib/ha-model";
 import { timetableImagePath } from "../../shared/timetables";
 
-export function PageHeading({ eyebrow, title, description, children }: { eyebrow: string; title: string; description?: string; children?: ReactNode }) {
-  return <header className="page-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{description && <p>{description}</p>}</div>{children}</header>;
+export function PageHeading({ context, title, description, children }: { context?: string; title: string; description?: string; children?: ReactNode }) {
+  return <header className="page-heading"><div><h1>{title}</h1>{context && <p className="page-context">{context}</p>}{description && <p>{description}</p>}</div>{children}</header>;
 }
 export function MemberAvatar({ member, small = false }: { member: MemberId; small?: boolean }) {
   const { t } = useI18n();
@@ -123,6 +123,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent className="planner-dialog max-h-[90dvh] overflow-y-auto">
     <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
     {readOnly ? <div className="space-y-3"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
+      {remote && !homeOnline && <p className="form-notice" role="status">{t("Connect to Home Assistant to save this plan.")} <Link className="text-link" to="/settings#connection">{t("Connection settings")}</Link></p>}
       {source?.recurrence_id && <p>{t("Only this occurrence will be changed.")}</p>}
       {draft.allDay && <p>{t("All-day event. End date is the last day included.")}</p>}
       <label>{t("What’s happening?")}<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder={t("Dinner with grandparents")} onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
@@ -130,11 +131,11 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
         {!draft.allDay && <label>{t("Time")}<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
       <div className="form-row">{remote && <label>{t("End date")}<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>{t("End time{value1}", { value1: remote ? "" : t(" (optional)") })}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
       <label>{t("Who’s going?")}<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
-      {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p>{!homeOnline && <p role="status">{t("Connect to Home Assistant to save this plan.")}</p>}</>}
+      {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p></>}
       {remote && !editingRemote && <><label>{t("Calendar")}<select required value={calendar?.preferenceId ?? ""} onChange={e => { setCalendarId(e.target.value); setError(""); }}><option value="">{t("Choose a calendar")}</option>{calendars.map(e => <option key={e.preferenceId} value={e.preferenceId} disabled={!writable.includes(e)}>{e.name}{!writable.includes(e) && t(" · Read-only or unavailable")}</option>)}</select></label>
-        {!homeOnline ? <p role="status">{t("Connect to Home Assistant to save this plan.")}</p> : !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings#family-calendar">{t("Home settings")}</Link>.</p>}</>}
-      <label>{t("Where?")}<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder={t("Add a place")} onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
-      <label>{t("A little reminder")}<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder={t("Who’s driving? What should we bring?")} onChange={e => setDraft({ ...draft, note: e.target.value })} /></label>
+        {homeOnline && !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings#family-calendar">{t("Home settings")}</Link>.</p>}</>}
+      <details className="optional-fields"><summary>{t("Location and notes")}</summary><div className="planner-form"><label>{t("Where?")}<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder={t("Add a place")} onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
+      <label>{t("A little reminder")}<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder={t("Who’s driving? What should we bring?")} onChange={e => setDraft({ ...draft, note: e.target.value })} /></label></div></details>
       <div className="form-actions">{deleteButton}
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("Cancel")}</Button><Button type="submit" disabled={!canSave}>{saving ? t("Saving…") : t("Save plan")}</Button></div>
     </fieldset></form>}

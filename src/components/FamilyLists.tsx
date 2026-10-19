@@ -12,7 +12,7 @@ import { Button } from "./ui/button";
 import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
-const listTitles = { daily: "Before we settle in", shopping: "Pick up on the way", tasks: "The bigger things" };
+const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 function CheckRow({ id, text, complete, member, disabled, removeDisabled, onToggle, onEdit, onRemove }: {
   id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
@@ -150,7 +150,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     disabled={!can("update_item")} removeDisabled={!can("remove_item")}
     onToggle={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })}
     onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
-  return <section role="group" aria-label={t(kind === "daily" ? "{name} daily tasks" : kind === "shopping" ? "{name} shopping" : "{name} tasks", { name: memberName(member) })} className="glow-panel mt-4" aria-busy={loading || !!status?.pending}>
+  return <section role="group" aria-label={t(kind === "daily" ? "{name} daily tasks" : kind === "shopping" ? "{name} shopping" : "{name} tasks", { name: memberName(member) })} className="household-list" aria-busy={loading || !!status?.pending}>
     <div className="flex items-center gap-2"><MemberAvatar member={member} small /><h3 className="font-semibold">{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span className="text-xs text-muted-foreground">{entity?.name ?? t("List unavailable")}</span></div>
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}

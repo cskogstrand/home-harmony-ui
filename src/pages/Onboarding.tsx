@@ -8,7 +8,7 @@ export default function Onboarding() {
   const { t } = useI18n();
   const { haUrl, homeOnline } = useApp();
   return <div className="planner-page mx-auto max-w-4xl">
-    <PageHeading eyebrow={t("WELCOME TO AFTERGLOW")} title={t("Get started")} description={t("Connect your home, then choose what your household shares.")} />
+    <PageHeading title={t("Get started")} description={t("Connect your home, then choose what your household shares.")} />
     <ol className="space-y-5" aria-label={t("Household setup")}>
       <li className="glow-panel space-y-3" id="connection">
         <h2>{t("1. Connect Home Assistant")}</h2>

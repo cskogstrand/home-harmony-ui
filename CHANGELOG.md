@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+- Rebuild the dashboard for a shared portrait touchscreen with clearer calendar, list, school and home-control layouts.
+- Improve light and dark contrast, bundle Public Sans locally and enlarge touch targets.
+- Simplify smart-home navigation, activate compact mode and distinguish offline information from empty results.
+- Keep event actions visible on phones and group optional location and notes fields.
+- Add the UX audit and reusable design-system documentation.
+
 ## 0.8.8
 
 - Preserve calendar start, end and arrival times without truncating the morning summary.

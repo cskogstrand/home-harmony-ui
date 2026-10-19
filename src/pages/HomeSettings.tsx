@@ -50,7 +50,7 @@ export default function HomeSettings() {
       </select>
     </label>;
   };
-  return <div className="planner-page"><PageHeading eyebrow={t("CONNECTED AT HOME")} title={t("Home settings")}><Button variant="outline" asChild><Link to="/onboarding">{t("Get started")}</Link></Button></PageHeading>
+  return <div className="planner-page"><PageHeading title={t("Home settings")}><Button variant="outline" asChild><Link to="/onboarding">{t("Get started")}</Link></Button></PageHeading>
     <section className="glow-panel" id="connection"><PanelHeading title={t("Home Assistant connection")} />
       <p>{t("Home Assistant: {value1}", { value1: haUrl || t("Loading server configuration…") })}</p>
       <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? t("Connecting…") : t("Reconnect")}</Button><Button variant="outline" onClick={() => setConfirmation({ title: msg("Disconnect Home Assistant?"), description: msg("Pause live controls in this tab until you reconnect or reload? Shared settings remain available."), confirmLabel: msg("Disconnect"), onConfirm: disconnect })}>{t("Disconnect")}</Button></div>

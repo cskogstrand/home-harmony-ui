@@ -28,7 +28,7 @@ function RangeControl({ label, name, value, min, max, step = 1, unit = "", disab
   const [draft, setDraft] = useState(value);
   useEffect(() => setDraft(value), [value, disabled]);
   const shown = draft === undefined ? "—" : `${number(draft)}${unit}`;
-  return <div className="device-range"><span>{label}<strong>{shown}</strong></span><Slider className="h-11" aria-label={`${name} ${label.toLowerCase()}`} aria-valuetext={draft === undefined ? t("Not reported") : shown} min={min} max={max} step={step} value={[Math.min(max, Math.max(min, draft ?? min))]} disabled={disabled} onValueChange={([v]) => setDraft(v)} onValueCommit={([v]) => commit(v)} /></div>;
+  return <div className="device-range"><span>{label}<strong>{shown}</strong></span><Slider className="h-12" aria-label={`${name} ${label.toLowerCase()}`} aria-valuetext={draft === undefined ? t("Not reported") : shown} min={min} max={max} step={step} value={[Math.min(max, Math.max(min, draft ?? min))]} disabled={disabled} onValueChange={([v]) => setDraft(v)} onValueCommit={([v]) => commit(v)} /></div>;
 }
 export function DeviceControl({ entity }: { entity: Entity }) {
   const { t, message, language, number } = useI18n();

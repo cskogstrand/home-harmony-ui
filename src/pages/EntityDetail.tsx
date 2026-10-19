@@ -17,7 +17,7 @@ export default function EntityDetail() {
   if (entity.device) return <Navigate to={entityDetailPath(entity)} state={state} replace />;
   const area = currentHome.areas.find(area => area.id === entity.areaId);
   return <div className="planner-page device-page"><Link to={backTo} className="text-link">{t("Back to devices")}</Link>
-    <PageHeading eyebrow={(area?.id === "unassigned" ? t("Unassigned") : area?.name)?.toUpperCase() ?? t("OTHER CONTROLS")} title={entity.name} description={t("No associated device in the loaded home information.")}><span className="device-symbol"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-6 w-6" /></span></PageHeading>
+    <PageHeading context={(area?.id === "unassigned" ? t("Unassigned") : area?.name)?.toUpperCase() ?? t("OTHER CONTROLS")} title={entity.name} description={t("No associated device in the loaded home information.")}><span className="device-symbol"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-6 w-6" /></span></PageHeading>
     <section className="glow-panel"><PanelHeading title={t("Controls and readings")} /><DeviceControl key={entity.entityId} entity={entity} /></section>
     {area && <section className="glow-panel"><dl className="device-readings"><div><dt>{t("Room")}</dt><dd><Link className="text-link" to={`/areas/${encodeURIComponent(area.id)}`}>{area.id === "unassigned" ? t("Unassigned") : area.name}</Link></dd></div></dl></section>}
     <section className="glow-panel"><EntityDetails entity={entity} /></section>

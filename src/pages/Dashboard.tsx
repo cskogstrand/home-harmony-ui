@@ -1,7 +1,7 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Plus, Sparkles } from "lucide-react";
+import { ArrowUpRight, Plus } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
@@ -9,9 +9,11 @@ import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, uniqueCale
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";
+import { useApp } from "@/contexts/AppContext";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
+  const { homeOnline } = useApp();
   const { today, time, members, memberName, connectedPlanner, hasTimetable, calendar, calendarStart: start, calendarMembers, todoLists, timetables, timetableEnabled, homeEntities, selectedAlarm } = useFamily();
   const shared = useSharedConfiguration();
   const needsSetup = shared?.state.loaded && !Object.keys(calendarMembers).length && !Object.keys(todoLists).length
@@ -28,14 +30,15 @@ export default function Dashboard() {
   const next = upcoming.find(e => !e.allDay);
   const weekEvents = events.filter(e => e.date >= start && e.date < addDays(start, 7));
   return <div className="portrait-board">
-    <header className="ambient-heading"><div className="clock-block"><time className="ambient-clock">{time}</time><span>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</span></div>
-      <div className="greeting"><span className="eyebrow">{t("YOUR FAMILY, A LITTLE MORE IN SYNC")}</span><h1>{t("Good to be home.")}</h1><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}</div></div>
+    <header className="ambient-heading">
+      <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}</div></div>
+      <time className="ambient-clock">{time}</time>
     </header>
     <MorningSummary />
     <section className="next-chapter" aria-label={t("Next family plan")}>
-      {next ? <><button className="next-event" onClick={() => openEvent(next)}><span className="eyebrow"><span className="live-dot" />{t("UP NEXT · {value1}{value2}", { value1: memberName(next.member), value2: next.date !== today ? ` · ${dateLabel(next.date, { weekday: "short" })}` : "" })}</span><h2>{next.title}</h2><p>{next.location}{next.note && ` · ${next.note}`}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
-        <div className="next-event"><span className="eyebrow"><Sparkles size={15} />{t("YOUR FAMILY CALENDAR")}</span><h2>{data.loading ? t("Loading your calendar…") : t("No upcoming plans to display.")}</h2></div>}
-      <button className="add-plan" onClick={() => openEvent()} aria-label={t("Add a family plan")}><Plus size={20} /></button>
+      {next ? <><button className="next-event" onClick={() => openEvent(next)}><h2>{next.title}</h2><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
+        <div className="next-event"><h2>{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : t("No upcoming plans to display.")}</h2></div>}
+      <Button className="add-plan" onClick={() => openEvent()} aria-label={t("Add a family plan")} disabled={connectedPlanner && !homeOnline}><Plus size={20} /><span>{t("Add a plan")}</span></Button>
     </section>
     <section className="glow-panel family-week">
       <div className="panel-heading calendar-panel-heading"><h2>{t("Everyone’s week")}</h2><CalendarViewControls /><Link to="/calendar" className="text-link">{t("Open calendar")}<ArrowUpRight size={17} /></Link></div>
@@ -55,7 +58,7 @@ export default function Dashboard() {
     </section>
     <ListPanel kind="daily" limit={3} />
     <ListPanel kind="shopping" limit={3} />
-    {!!schoolMembers.length && <section className="glow-panel school-strip"><div><span className="eyebrow">{t("READY FOR TOMORROW")}</span><h2>{t("School, sorted.")}</h2><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>}
+    {!!schoolMembers.length && <section className="glow-panel school-strip"><div><h2>{t("School")}</h2><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>}
     <HomeFavorites />
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;

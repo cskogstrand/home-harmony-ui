@@ -16,7 +16,7 @@ const appVersion = appConfig.match(/^version:\s*["']?([^"'\s]+)/m)![1];
 export function AppLayout() {
   const { t, message } = useI18n();
   const { currentUser, homeOnline } = useApp();
-  const { saved, memberName } = useFamily();
+  const { saved, memberName, appearance } = useFamily();
   const shared = useSharedConfiguration();
   const timetableError = shared?.state.timetableError;
   const [dismissedError, setDismissedError] = useState<string>();
@@ -28,8 +28,8 @@ export function AppLayout() {
     const section = hash && document.getElementById(hash.slice(1));
     if (section) section.scrollIntoView?.(); else window.scrollTo?.(0, 0);
   }, [pathname, hash]);
-  return <div className="afterglow-app"><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
-    <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow<small>{t("FAMILY, AT THE CENTRE")}</small></span></Link>
+  return <div className={`afterglow-app${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
+    <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <div className="header-home"><HomeSwitcher /></div><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
         <div className="relative">
           <DropdownMenu><DropdownMenuTrigger className="icon-button" aria-label={t("Open app settings")} title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? t("Household dashboard")}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/user-settings">{t("App preferences")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings">{t("Home settings")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/onboarding">{t("Get started")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/user-settings">{t("Storage and backups")}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>

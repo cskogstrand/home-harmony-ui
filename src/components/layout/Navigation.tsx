@@ -1,7 +1,7 @@
 import { useI18n } from "@/hooks/use-i18n";
-import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package } from "lucide-react";
+import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const familyPaths = ["/", "/calendar", "/lists", "/school"];
 export const isHomeSection = (path: string) => !familyPaths.includes(path) && !["/user-settings", "/onboarding"].includes(path);
@@ -19,9 +19,11 @@ export function MainNav() {
 }
 const smartItems = [
   { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },
-  { path: "/zones", label: "Zones", icon: MapPin },
   { path: "/devices", label: "Devices", icon: Lightbulb }, { path: "/moods", label: "Scenes", icon: Sparkles },
-  { path: "/alarm", label: "Security", icon: Shield }, { path: "/energy", label: "Car & energy", icon: Zap },
+  { path: "/alarm", label: "Security", icon: Shield },
+];
+const moreItems = [
+  { path: "/energy", label: "Car & energy", icon: Zap }, { path: "/zones", label: "Zones", icon: MapPin },
   { path: "/automations", label: "Automations", icon: Workflow }, { path: "/notifications", label: "Alerts", icon: Bell },
   { path: "/history", label: "Activity", icon: Clock }, { path: "/integrations", label: "Integrations", icon: Package },
   { path: "/settings", label: "Home settings", icon: Settings },
@@ -29,9 +31,13 @@ const smartItems = [
 export function SmartHomeNav() {
   const { t, message } = useI18n();
   const { pathname } = useLocation();
-  const navigation = useRef<HTMLElement>(null);
-  useEffect(() => {
-    navigation.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: "nearest", inline: "nearest", behavior: "instant" });
-  }, [pathname]);
-  return <nav ref={navigation} className="smart-nav" aria-label={t("Smart home navigation")}>{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) || item.path === "/devices" && pathname.startsWith("/entities/") ? "page" : undefined}><item.icon size={16} />{message(item.label)}</Link>)}</nav>;
+  const active = (path: string) => pathname === path || pathname.startsWith(`${path}/`) || path === "/devices" && pathname.startsWith("/entities/");
+  const selectedMore = moreItems.find(item => active(item.path));
+  return <nav className="smart-nav" aria-label={t("Smart home navigation")}>
+    {smartItems.map(item => <Link key={item.path} to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>)}
+    <div className="smart-more"><DropdownMenu>
+      <DropdownMenuTrigger data-active={!!selectedMore}>{selectedMore ? message(selectedMore.label) : t("More controls")}<ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="smart-menu">{moreItems.map(item => <DropdownMenuItem asChild key={item.path}><Link to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link></DropdownMenuItem>)}</DropdownMenuContent>
+    </DropdownMenu></div>
+  </nav>;
 }

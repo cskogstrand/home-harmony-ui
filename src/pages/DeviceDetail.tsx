@@ -32,7 +32,7 @@ export default function DeviceDetail() {
   const area = currentHome.areas.find(area => area.id === device.area_id);
   return <div className="planner-page device-page">
     <Link to={backTo} className="text-link">{t("Back to devices")}</Link>
-    <PageHeading eyebrow={(area?.id === "unassigned" ? t("Unassigned") : area?.name)?.toUpperCase() ?? t("UNASSIGNED")} title={deviceName(device, language)} description={[device.manufacturer, device.model].filter(Boolean).join(" · ")}><span className="device-symbol"><PhysicalDeviceIcon entities={entities} className="h-6 w-6" /></span></PageHeading>
+    <PageHeading context={(area?.id === "unassigned" ? t("Unassigned") : area?.name)?.toUpperCase() ?? t("UNASSIGNED")} title={deviceName(device, language)} description={[device.manufacturer, device.model].filter(Boolean).join(" · ")}><span className="device-symbol"><PhysicalDeviceIcon entities={entities} className="h-6 w-6" /></span></PageHeading>
     <section className="device-overview" aria-label={t("About this device")}>
       <div className="device-summary"><span className="muted">{t("Room: ")}{area ? <Link className="text-link" to={`/areas/${encodeURIComponent(area.id)}`}>{area.id === "unassigned" ? t("Unassigned") : area.name}</Link> : t("Unassigned")}</span>
         <span className="muted">{message(deviceReadingsLabel(entities, homeOnline))}</span>

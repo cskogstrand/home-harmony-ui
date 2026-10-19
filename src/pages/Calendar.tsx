@@ -33,7 +33,7 @@ export default function Calendar() {
   const people = familyMembers.filter(m => member === "all" || member === m.id);
 
   return <div className="planner-page calendar-page">
-    <PageHeading eyebrow={t("MAKE ROOM FOR WHAT MATTERS")} title={t("Our week.")}><Button onClick={() => openEvent()}><Plus size={18} />{t("Add a plan")}</Button></PageHeading>
+    <PageHeading title={t("Our week.")}><Button onClick={() => openEvent()}><Plus size={18} />{t("Add a plan")}</Button></PageHeading>
     <section className="glow-panel calendar-toolbar">
       <div className="calendar-pagination">
         <Button variant="outline" size="icon" aria-label={t("Previous week")} onClick={() => navigateWeek(-7)}><ChevronLeft /></Button>

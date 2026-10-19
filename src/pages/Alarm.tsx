@@ -16,7 +16,7 @@ export default function Alarm() {
   const alarms = currentHome.entities.filter(e => e.domain === "alarm_control_panel");
   const alarm = alarms.find(e => e.preferenceId === selected) ?? alarms[0];
   useEffect(() => { setAction(undefined); }, [alarm?.entityId]);
-  return <div className="planner-page"><PageHeading eyebrow={t("HOME SECURITY")} title={t("Alarm")} />
+  return <div className="planner-page"><PageHeading title={t("Alarm")} />
     {!alarm ? <section className="glow-panel empty-note"><h2>{t("No alarm connected")}</h2>{haUrl && <a className="text-link" href={haUrl} target="_blank" rel="noreferrer">{t("Open Home Assistant")}</a>}</section> : <section className="glow-panel">
       {alarms.length > 1 && <label>{t("Alarm ")}<select aria-label={t("Select alarm")} className="rounded border bg-background p-2" value={alarm.preferenceId} onChange={e => { setAction(undefined); setSelectedAlarm(e.target.value); }}>{alarms.map(e => <option key={e.entityId} value={e.preferenceId}>{e.name}</option>)}</select></label>}
       <PanelHeading title={alarm.name} /><p role="status" className="text-lg font-semibold">{homeOnline ? entityStateLabel(alarm, language) : t("Offline")}</p><p className="page-note">{alarm.lastChanged ? t("Last changed: {value1}", { value1: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: currentHome.timeZone }).format(new Date(alarm.lastChanged)) }) : t("No state reported")}</p>

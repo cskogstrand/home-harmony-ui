@@ -629,7 +629,8 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
   expect(train).toHaveTextContent("22:00 – Thu 8 Oct, 08:00");
   expect(train.closest("tr")).not.toBe(trip.closest("tr"));
   expect(grid.getByRole("button", { name: /Midnight finish/ }).closest("td")).toHaveAttribute("colspan", "1");
-  expect(grid.getAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(7);
+  expect(grid.queryAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(path === "/calendar" ? 7 : 0);
+  expect(screen.getByRole("button", { name: path === "/" ? "Add a family plan" : "Add a plan" })).toBeEnabled();
   fireEvent.click(train);
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-07");
   expect(screen.getByLabelText("Time")).toHaveValue("22:00:00");

@@ -12,7 +12,7 @@ export default function UserSettings() {
   const { appearance, setAppearance, language, setLanguage } = useFamily();
   const shared = useSharedConfiguration();
   return <div className="planner-page">
-    <PageHeading eyebrow={t("MAKE YOURSELF AT HOME")} title={t("Settings")} />
+    <PageHeading title={t("Settings")} />
     <section className="glow-panel"><PanelHeading title={t("Home Assistant account")} /><p>{currentUser?.name ?? t("Not signed in")}</p></section>
     <section className="glow-panel space-y-4"><PanelHeading title={t("Appearance")} /><label className="flex justify-between">{t("Dark mode")}<Switch checked={appearance.theme === "dark"} onCheckedChange={v => setAppearance({ theme: v ? "dark" : "light" })} aria-label={t("Toggle dark mode")} /></label><label className="flex justify-between">{t("Dark timetables")}<Switch checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label={t("Toggle dark timetables")} aria-describedby="dark-timetables-description" /></label><p id="dark-timetables-description" className="page-note">{t("Dark backgrounds for PDF timetables. Linked images keep their colors.")}</p><label className="flex justify-between">{t("Compact mode")}<Switch checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label={t("Toggle compact mode")} /></label></section>
     <section className="glow-panel space-y-4"><PanelHeading title={t("Language")} />

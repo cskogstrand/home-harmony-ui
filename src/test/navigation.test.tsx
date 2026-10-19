@@ -14,6 +14,7 @@ let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
   app.homeOnline = true;
+  app.connectionStatus = "connected";
   app.haUrl = "http://ha.local:8123";
   app.currentHome = mapHome({ "person.emma": state("person.emma", "home", { friendly_name: "Emma" }), "person.leo": state("person.leo", "home", { friendly_name: "Leo" }) }, emptyRegistries, "home");
   app.configurationRequest.mockImplementation(async (method, body) => {
@@ -29,6 +30,19 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(document, "execCommand"); });
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 const saved = () => waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
+
+it("keeps household records out of the smart-home device overview", async () => {
+  app.currentHome = mapHome({
+    "light.lamp": state("light.lamp", "off", { friendly_name: "Reading lamp" }),
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "calendar.example": state("calendar.example", "off", { friendly_name: "Example calendar" }),
+    "todo.example": state("todo.example", "0", { friendly_name: "Example list" }),
+  }, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/home");
+  render(<App />); await saved();
+  expect(screen.getByRole("link", { name: "Reading lamp details" })).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /Example.* details/ })).not.toBeInTheDocument();
+});
 
 it.each(["/", "/calendar"])("marks Monday week changes and keeps today's week visible on %s", async path => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -128,7 +142,13 @@ it("navigates with empty HA data and shows the server-managed connection", async
   expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
   for (const [link, heading] of [["Devices", "Devices"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
-    fireEvent.click(within(screen.getByRole("navigation", { name: "Smart home navigation" })).getByRole("link", { name: link }));
+    const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
+    const direct = nav.queryByRole("link", { name: link });
+    if (direct) fireEvent.click(direct);
+    else {
+      fireEvent.keyDown(nav.getByRole("button"), { key: "Enter" });
+      fireEvent.click(await screen.findByRole("menuitem", { name: link }));
+    }
     expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   }
 });
@@ -326,3 +346,29 @@ it("refreshes language from another screen while a confirmation stays open", asy
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(app.disconnect).not.toHaveBeenCalled();
 }, 10000);
+
+
+it("applies shared compact density and restores it on reload", async () => {
+  window.history.replaceState(null, "", "/user-settings");
+  const view = render(<App />); await saved();
+  expect(screen.getByRole("main").closest(".afterglow-app")).not.toHaveClass("compact-mode");
+  fireEvent.click(screen.getByRole("switch", { name: "Toggle compact mode" }));
+  await saved();
+  expect(screen.getByRole("main").closest(".afterglow-app")).toHaveClass("compact-mode");
+  view.unmount();
+  render(<App />); await saved();
+  expect(screen.getByRole("main").closest(".afterglow-app")).toHaveClass("compact-mode");
+});
+
+it("distinguishes offline plans and security from successful empty reads", async () => {
+  app.homeOnline = false;
+  app.connectionStatus = "disconnected";
+  const view = render(<App />); await saved();
+  expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars unavailable while offline.");
+  expect(screen.getByRole("button", { name: "Add a family plan" })).toBeDisabled();
+  navigate("Smart home");
+  expect(screen.queryByText("No alarm")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();
+  view.unmount();
+  app.connectionStatus = "connected";
+});

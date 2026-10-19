@@ -90,7 +90,7 @@ export default function School() {
   const { t } = useI18n();
   const { members, hasTimetable } = useFamily();
   const people = members.filter(m => hasTimetable(m.id));
-  return <div className="planner-page"><PageHeading eyebrow={t("ONE LESS MORNING SCRAMBLE")} title={t("School, sorted.")}><Button variant="outline" asChild><Link to="/settings#people-order">{t("Manage people")}</Link></Button></PageHeading>
+  return <div className="planner-page"><PageHeading title={t("School")}><Button variant="outline" asChild><Link to="/settings#people-order">{t("Manage people")}</Link></Button></PageHeading>
     {!people.length && <section className="glow-panel"><p>{t("No timetables enabled.")}</p></section>}
     <div className="school-cards">{people.map(person => <SchoolCard key={person.id} child={person.id} />)}</div>
   </div>;

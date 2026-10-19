@@ -11,7 +11,7 @@ export default function Zones() {
   const { currentHome, homeOnline, haUrl } = useApp();
   const zones = currentHome.entities.filter(entity => entity.domain === "zone");
   return <div className="planner-page">
-    <PageHeading eyebrow={t("THE PLACES IN YOUR DAY")} title={t("Zones")} />
+    <PageHeading title={t("Zones")} />
     {haUrl && <a className="text-link" href={`${haUrl}/config/zone`} target="_blank" rel="noreferrer">{t("Manage zones in Home Assistant")}<ArrowUpRight size={17} /></a>}
     {!homeOnline && !!zones.length && <p className="page-note" role="status">{t("Cached zone readings are stale while Home Assistant is offline.")}</p>}
     <div className="home-device-grid">{zones.map(zone => {

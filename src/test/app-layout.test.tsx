@@ -6,7 +6,7 @@ import { SmartHomeNav } from "@/components/layout/Navigation";
 
 const shared = vi.hoisted(() => ({ enabled: true, online: true, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home" }, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma" }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma", appearance: { compactMode: false } }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 
 beforeEach(() => {
@@ -18,23 +18,21 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
 
-it.each(["/settings", "/devices/sample", "/entities/light.sample"])("reveals the active smart home tab on %s and after navigation", path => {
-  const scroll = vi.fn();
-  const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
-  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scroll });
-  try {
-    render(<MemoryRouter initialEntries={[path]}><SmartHomeNav /></MemoryRouter>);
-    const active = screen.getByRole("link", { name: path === "/settings" ? "Home settings" : "Devices" });
-    expect(scroll.mock.contexts[scroll.mock.contexts.length - 1]).toBe(active);
-    expect(scroll).toHaveBeenLastCalledWith({ block: "nearest", inline: "nearest", behavior: "instant" });
-    const overview = screen.getByRole("link", { name: "Overview" });
-    fireEvent.click(overview);
-    expect(overview).toHaveAttribute("aria-current", "page");
-    expect(scroll.mock.contexts[scroll.mock.contexts.length - 1]).toBe(overview);
-  } finally {
-    if (original) Object.defineProperty(Element.prototype, "scrollIntoView", original);
-    else Reflect.deleteProperty(Element.prototype, "scrollIntoView");
-  }
+it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device section on %s", path => {
+  render(<MemoryRouter initialEntries={[path]}><SmartHomeNav /></MemoryRouter>);
+  expect(screen.getByRole("link", { name: "Devices" })).toHaveAttribute("aria-current", "page");
+  fireEvent.click(screen.getByRole("link", { name: "Overview" }));
+  expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
+});
+
+it("keeps secondary routes discoverable with their current destination visible", () => {
+  render(<MemoryRouter initialEntries={["/settings"]}><SmartHomeNav /></MemoryRouter>);
+  const trigger = screen.getByRole("button", { name: "Home settings" });
+  expect(trigger).toHaveAttribute("data-active", "true");
+  fireEvent.keyDown(trigger, { key: "Enter" });
+  expect(screen.getByRole("menuitem", { name: "Home settings" })).toHaveAttribute("aria-current", "page");
+  fireEvent.click(screen.getByRole("menuitem", { name: "Car & energy" }));
+  expect(screen.getByRole("button", { name: "Car & energy" })).toHaveAttribute("data-active", "true");
 });
 
 it("shows upload errors above the page and allows dismissing each new failure", () => {

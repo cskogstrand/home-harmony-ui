@@ -23,7 +23,7 @@ export default function Devices() {
   const sections = deviceSections(devices, currentHome.areas, grouping, language);
   const other = currentHome.entities.filter(entity => !entity.device && entityMatches(entity));
   const loading = ["connecting", "syncing", "reconnecting"].includes(connectionStatus);
-  return <div className="planner-page"><PageHeading eyebrow={t("YOUR CONNECTED HOME")} title={t("Devices")} />
+  return <div className="planner-page"><PageHeading title={t("Devices")} />
     <div className="device-toolbar">
       <Input aria-label={t("Search devices")} placeholder={t("Search devices, rooms or types…")} value={search} onChange={e => setView(grouping, e.target.value)} />
       <fieldset className="device-grouping"><legend>{t("Group by")}</legend><div className="filter-row">
