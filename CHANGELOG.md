@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.4
+
+- Refresh the app with Liquid Glass surfaces, clearer calendar cards and consistent modal styling and footers.
+- Add twelve global color palettes for light and dark mode, shared across connected screens.
+- Add preset and custom person colors, larger calendar avatars and Home Assistant person photos with initials as a fallback.
+- Keep a pre-upgrade settings backup before downgrading: older releases reject the new person-color and palette settings.
+
 ## 0.9.3
 
 - Add subtle feedback to buttons, switches, menus and dialogs, with instant keyboard actions and gentler reduced-motion transitions.
