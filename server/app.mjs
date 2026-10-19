@@ -1,7 +1,7 @@
 import { load, dump, JSON_SCHEMA } from "js-yaml";
 import { dashboardAccess, attachHomeAssistantSocket } from "./home-assistant.mjs";
 import { createServer } from "node:http";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import { emptyConfiguration, instanceUrlSchema, MAX_CONFIG_BYTES, parseConfiguration } from "../shared/configuration.ts";
@@ -13,7 +13,7 @@ const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css
 const failure = (status, message) => Object.assign(new Error(message), { status });
 const storageError = "Configuration storage is unavailable. Reload to check the last saved version before retrying.";
 
-export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled }) {
+export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
   const file = resolve(dataDir, "settings.yaml");
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
@@ -31,6 +31,8 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
   const root = await realpath(distDir);
 
   const authenticate = dashboardAccess(dashboardPassword, dashboardAuthDisabled);
+  const checkTimetableOrigin = dashboardAccess(undefined, true);
+  const timetableKeyDigest = timetableApiKey ? createHash("sha256").update(timetableApiKey).digest() : undefined;
 
   function save(change) {
     const write = writes.then(async () => {
@@ -100,9 +102,25 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
   return async (request, response) => {
     const json = (status, body) => { response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }); response.end(JSON.stringify(body)); };
     try {
-      authenticate(request);
       const url = new URL(request.url, "http://localhost");
-      const pathname = url.pathname;
+      let pathname = url.pathname;
+      const keyedPath = pathname.match(/^\/api\/timetables\/([^/]+)(\/.*)?$/);
+      const timetablePath = keyedPath && `/api/timetables${keyedPath[2] ?? ""}`;
+      const keyedRead = request.method === "GET" && timetablePath && (timetablePath === "/api/timetables" || timetableImagePath.test(timetablePath));
+      if (keyedRead) {
+        if (!timetableKeyDigest || !timingSafeEqual(createHash("sha256").update(keyedPath[1]).digest(), timetableKeyDigest)) throw failure(401, "Invalid timetable API key.");
+        checkTimetableOrigin(request);
+        response.setHeader("Referrer-Policy", "no-referrer");
+        pathname = timetablePath;
+      } else authenticate(request);
+      const image = pathname.match(timetableImagePath);
+      if (pathname === "/api/timetables" && request.method === "GET") {
+        json(200, { timetables: Object.entries(config.settings.timetables).map(([member, pages]) => ({
+          member, enabled: config.settings.timetableEnabled[member] ?? pages.length > 0,
+          pages: pages.map(page => keyedRead && timetableImagePath.test(page) ? page.replace("/api/timetables/", `/api/timetables/${timetableApiKey}/`) : page),
+        })) });
+        return;
+      }
       if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
       if (/^\/api\/calendars\/calendar\.[a-z0-9_]+$/.test(pathname) && request.method === "GET") {
         let result;
@@ -114,7 +132,6 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       if (pathname.startsWith("/api/")) {
-        const image = pathname.match(timetableImagePath);
         if (!((pathname === "/api/config" && ["GET", "PUT"].includes(request.method)) || (pathname === "/api/timetables" && request.method === "POST") || (image && request.method === "GET"))) throw failure(404, "Not found.");
         if (pathname === "/api/timetables") {
           await upload(request, url, () => json(202, { message: "Timetable received. Conversion is running; the dashboard will refresh when ready and show any errors." }));

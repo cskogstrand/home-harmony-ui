@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { z } from "zod";
+import { getISOWeek } from "date-fns";
 import { toast } from "sonner";
 import { useApp } from "./AppContext";
 import type { CalendarEvent } from "@/types/api";
@@ -31,6 +32,9 @@ export function addDays(date: string, days: number) {
 }
 export function weekStart(date: string) {
   return addDays(date, -((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7));
+}
+export function weekNumber(date: string) {
+  return getISOWeek(new Date(`${date}T12:00:00`));
 }
 export function dateLabel(date: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) {
   return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));

@@ -30,6 +30,7 @@ The server reads `settings.yaml` at startup. Stop it before editing the file man
    home_assistant_token: YOUR_LONG_LIVED_ACCESS_TOKEN
    dashboard_password: YOUR_UNIQUE_PASSWORD_AT_LEAST_12_CHARACTERS
    dashboard_auth_disabled: false
+   timetable_api_key: "" # Optional read-only timetable access; see below.
    ```
 
 4. Start/restart the app and open its web interface on port **8099**. Enter username **dashboard** and the configured dashboard password in the browser's authentication prompt. To skip login on a trusted local network, set `dashboard_auth_disabled: true`; the dashboard password can then be empty.
@@ -130,6 +131,42 @@ data/
 The folder name is the person's HA entity-name slug, not their display name; duplicate display names therefore cannot collide. Upload IDs allow atomic replacement and keep earlier files available for settings-backup restores. Old uploads are retained; disk usage grows until unused upload folders are removed manually. Stop the server and verify references/backups before removing files.
 
 External image URLs remain supported, one per line in page order. Swipe or use arrows between pages; tap to enlarge. Disabling a timetable hides it without removing its files or URLs.
+
+### Read timetables from an automation
+
+Set `timetable_api_key` in the HAOS app configuration, or `TIMETABLE_API_KEY` in `.env` for Node, Vite and Docker Compose. Use a separate random key of 32–4096 URL-safe characters (letters, digits, `.`, `_`, `~`, `-`); `openssl rand -hex 32` generates one. Restart the app after changing it. An empty value disables key access. The key stays out of dashboard settings, exports and `/api/runtime`.
+
+Fetch `GET /api/timetables/<api-key>` without authentication headers:
+
+```sh
+curl 'http://YOUR_DASHBOARD:8099/api/timetables/YOUR_API_KEY'
+```
+
+The response contains all saved timetable entries, their enabled flag and ordered page URLs:
+
+```json
+{
+  "timetables": [
+    {
+      "member": "home|person.emma",
+      "enabled": true,
+      "pages": ["/api/timetables/YOUR_API_KEY/emma/UPLOAD_ID/1.png"]
+    }
+  ]
+}
+```
+
+Prefix relative page URLs with your dashboard's origin to download the images without headers. A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. External image URLs are returned unchanged; never send your API key to those hosts. Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have an empty `pages` array. Disabled timetables remain listed with `enabled: false`, so automations can skip them.
+
+The key permits only listing timetables and downloading stored PNG/SVG pages, including older retained uploads. It cannot upload PDFs, read/change dashboard settings, or access HA controls. Responses use `Cache-Control: no-store`. Dashboard credentials still work on the original routes, including `GET /api/timetables` (which returns page URLs without a key).
+
+Treat the entire URL as a secret: anyone with it can read timetables, and URLs may appear in automation traces, proxy logs or AI-provider requests. Use HTTPS or a trusted LAN/VPN. Rotate the key and restart to invalidate old URLs. For AI image analysis, attach the PNG through the AI integration's supported image input; a URL in a text prompt alone does not guarantee that the model will fetch it.
+
+### Morning summary in Home Assistant
+
+The disabled [morning-summary automation draft](examples/home-assistant/morning-summary.yaml) runs when the **Morgen** scene changes its activation timestamp. It selects all `calendar.familie_*` entities, reads today's full local calendar day with [`calendar.get_events`](https://www.home-assistant.io/actions/calendar.get_events/), and asks `ai_task.nvidia_nemotron_3_super_free` for a concise summary using [`ai_task.generate_data`](https://www.home-assistant.io/actions/ai_task.generate_data/). The final action is a notification to **Christer sin**; its action ID and `scene.morgen` are placeholders until verified in your installation. No matching calendars or a failed calendar/AI request prevents the notification.
+
+Paste the file into a new automation's YAML editor, verify the scene and notification action, and approve notification delivery before enabling it. Remove `initial_state: false` when activating it so later restarts preserve the enabled state. It runs each time Morgen is activated, with overlapping runs suppressed. Edit the `instructions` block to expand the summary later. Timetables are currently omitted; once the API URL is deployed, fetch its listing and attach the relevant enabled timetable PNG pages using an AI integration that supports image attachments.
 
 ### Share a PDF from iPhone
 

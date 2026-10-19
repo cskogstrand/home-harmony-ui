@@ -18,7 +18,9 @@ const listen = server => new Promise((resolve, reject) => {
   server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${server.address().port}`));
 });
 const close = server => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-async function fixture(t) {
+const timetableApiKey = "fixture-timetable-api-key-1234567890";
+const timetableApiPath = `/api/timetables/${timetableApiKey}`;
+async function fixture(t, options = {}) {
   const dir = await mkdtemp(join(tmpdir(), "home-harmony-storage-"));
   const distDir = join(dir, "dist"), dataDir = join(dir, "data");
   await mkdir(distDir);
@@ -29,18 +31,18 @@ async function fixture(t) {
     res.end(JSON.stringify({ message: "API running." }));
   });
   const homeAssistantUrl = await listen(ha);
-  let server = await createAppServer({ dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token" });
+  let server = await createAppServer({ dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token", ...options });
   let url = await listen(server);
   t.after(async () => { await close(server); await close(ha); await rm(dir, { recursive: true, force: true }); });
   return {
-    dir, dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token",
+    dir, dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token", ...options,
     authStatus: status => { authStatus = status; },
     request: (method = "GET", config, revision, token = "fixture-valid-token", headers = {}) => fetch(`${url}/api/config`, { method,
       headers: { ...(token ? { Authorization: `Basic ${Buffer.from(`dashboard:${token}`).toString("base64")}` } : {}), ...(config !== undefined ? { "Content-Type": "application/json" } : {}), ...(revision ? { "If-Match": `"${revision}"` } : {}), ...headers },
       body: config === undefined ? undefined : typeof config === "string" ? config : JSON.stringify(config) }),
     page: path => fetch(`${url}${path}`, { headers: { Authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}` } }),
     api: (path, options = {}, token = "fixture-valid-token") => fetch(`${url}${path}`, { ...options, headers: { ...(token ? { Authorization: `Basic ${Buffer.from(`dashboard:${token}`).toString("base64")}` } : {}), ...options.headers } }),
-    restart: async () => { await close(server); server = await createAppServer({ dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token" }); url = await listen(server); },
+    restart: async () => { await close(server); server = await createAppServer({ dataDir, distDir, homeAssistantUrl, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-valid-token", ...options }); url = await listen(server); },
   };
 }
 const configuration = () => ({ ...emptyConfiguration(), settings: { ...emptyPlanner(), memberOrder: ["home|person.one"] } });
@@ -59,8 +61,8 @@ function timetablePdf(pages = 2) {
   return Buffer.from(pdf);
 }
 
-async function timetableFixture(t) {
-  const app = await fixture(t);
+async function timetableFixture(t, options) {
+  const app = await fixture(t, options);
   const { revision } = await (await app.request()).json();
   const config = configuration();
   config.settings.timetableEnabled = { "home|person.one": true };
@@ -80,6 +82,56 @@ async function waitForTimetable(app, before = app.saved) {
   }
   assert.fail("Timetable conversion did not finish");
 }
+
+test("lists saved timetables with a read-only key in the path without exposing dashboard settings", async t => {
+  const app = await fixture(t, { timetableApiKey });
+  assert.deepEqual(await (await app.api(timetableApiPath, {}, "")).json(), { timetables: [] });
+  const { config, revision } = await (await app.request()).json();
+  config.settings.timetables = {
+    "home|person.one": ["https://school.example/first.png", "https://school.example/second.png"],
+    "home|person.two": ["/hidden.png"],
+    "home|person.empty": [],
+  };
+  config.settings.timetableEnabled = { "home|person.two": false };
+  assert.equal((await app.request("PUT", config, revision)).status, 200);
+  const expected = { timetables: [
+    { member: "home|person.one", enabled: true, pages: config.settings.timetables["home|person.one"] },
+    { member: "home|person.two", enabled: false, pages: ["/hidden.png"] },
+    { member: "home|person.empty", enabled: false, pages: [] },
+  ] };
+  await app.restart();
+  const response = await app.api(timetableApiPath, {}, "");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+  assert.deepEqual(await response.json(), expected);
+  assert.deepEqual(await (await app.api("/api/timetables")).json(), expected, "Dashboard credentials still work");
+  for (const headers of [{}, { Authorization: `Bearer ${timetableApiKey}` }, { Authorization: `Basic ${Buffer.from(`dashboard:${timetableApiKey}`).toString("base64")}` }]) {
+    assert.equal((await app.api("/api/timetables", { headers }, "")).status, 401);
+  }
+  assert.equal((await app.api("/api/timetables/wrong-key", {}, "")).status, 401);
+  assert.equal((await app.api("/api/timetables/wrong-key")).status, 401, "Dashboard login cannot bypass a wrong URL key");
+  for (const [method, path] of [["GET", `/${timetableApiKey}`], ["GET", `/api/config/${timetableApiKey}`], ["PUT", `/api/config/${timetableApiKey}`], ["GET", `/api/runtime/${timetableApiKey}`], ["GET", `/api/calendars/${timetableApiKey}/calendar.family`], ["POST", `${timetableApiPath}?member=home%7Cperson.one`], ["DELETE", timetableApiPath]]) {
+    assert.equal((await app.api(path, { method }, "")).status, 401, `${method} ${path} must require dashboard credentials`);
+  }
+  for (const headers of [{ Origin: "https://other.example" }, { "Sec-Fetch-Site": "cross-site" }]) {
+    assert.equal((await app.api(timetableApiPath, { headers }, "")).status, 403);
+  }
+  for (const path of ["/api/runtime", "/api/config"]) assert.ok(!(await (await app.api(path)).text()).includes(timetableApiKey));
+  assert.ok(!(await readFile(join(app.dataDir, "settings.yaml"), "utf8")).includes(timetableApiKey));
+});
+
+test("an unset or empty timetable key keeps dashboard authentication and the explicit login bypass", async t => {
+  for (const timetableApiKey of [undefined, ""]) {
+    const app = await fixture(t, { timetableApiKey });
+    for (const path of ["/api/timetables", timetableApiPath, "/api/timetables/"]) assert.equal((await app.api(path, {}, "")).status, 401);
+    assert.equal((await app.api("/api/timetables")).status, 200);
+  }
+  const app = await fixture(t, { dashboardAuthDisabled: true });
+  assert.equal((await app.api("/api/timetables", {}, "")).status, 200);
+  assert.equal((await app.api(timetableApiPath, {}, "")).status, 401, "A URL key must be configured even when dashboard login is disabled");
+  assert.equal((await app.api("/api/timetables", { headers: { Origin: "https://other.example" } }, "")).status, 403);
+});
 
 test("acknowledges the complete saved PDF before converting it", async t => {
   const app = await timetableFixture(t);
@@ -110,7 +162,7 @@ test("acknowledges the complete saved PDF before converting it", async t => {
 });
 
 test("uploads and converts ordered PDF pages privately, persists them, and rejects stale screen saves", async t => {
-  const app = await timetableFixture(t);
+  const app = await timetableFixture(t, { timetableApiKey });
   assert.equal((await app.upload(undefined, {}, "")).status, 401);
   assert.equal((await app.upload(undefined, {}, "wrong")).status, 401);
   const response = await app.upload();
@@ -118,6 +170,9 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   assert.match((await response.json()).message, /received/);
   const saved = await waitForTimetable(app);
   const pages = saved.config.settings.timetables["home|person.one"];
+  const keyedPages = pages.map(path => path.replace("/api/timetables", timetableApiPath));
+  const listing = await (await app.api(timetableApiPath, {}, "")).json();
+  assert.deepEqual(listing.timetables.find(timetable => timetable.member === "home|person.one").pages, keyedPages);
   assert.equal(pages.length, 2);
   assert.match(pages[0], /\/1\.png$/);
   assert.match(pages[1], /\/2\.png$/);
@@ -129,10 +184,16 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   const images = [];
   for (const path of pages) {
     assert.equal((await app.api(path, {}, "")).status, 401);
+    assert.equal((await app.api(path.replace("/api/timetables", "/api/timetables/wrong-key"), {}, "")).status, 401);
     const image = await app.api(path);
     assert.equal(image.headers.get("content-type"), "image/png");
     assert.equal(image.headers.get("cache-control"), "no-store");
     images.push(Buffer.from(await image.arrayBuffer()));
+    const keyedImage = await app.api(path.replace("/api/timetables", timetableApiPath), {}, "");
+    assert.equal(keyedImage.status, 200);
+    assert.equal(keyedImage.headers.get("cache-control"), "no-store");
+    assert.equal(keyedImage.headers.get("referrer-policy"), "no-referrer");
+    assert.deepEqual(Buffer.from(await keyedImage.arrayBuffer()), images.at(-1));
     assert.equal(images.at(-1).subarray(1, 4).toString(), "PNG");
     assert.deepEqual([images.at(-1).readUInt32BE(16), images.at(-1).readUInt32BE(20)], [6000, 4500], "Render at high resolution while preserving the page aspect ratio");
   }
@@ -146,6 +207,7 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
     assert.equal(dark.headers.get("content-type"), "image/svg+xml");
     assert.equal(dark.headers.get("cache-control"), "no-store");
     const svg = await dark.text();
+    assert.equal(await (await app.api(darkPath.replace("/api/timetables", timetableApiPath), {}, "")).text(), svg);
     assert.match(svg, /filter="url\(#dark\)"/);
     assert.ok(svg.includes(`width="${images[index].readUInt32BE(16)}" height="${images[index].readUInt32BE(20)}"`));
     assert.deepEqual(Buffer.from(svg.match(/base64,([^\"]+)/)[1], "base64"), images[index], "Dark image embeds the matching original page");
@@ -156,6 +218,9 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   for (const name of ["99-dark.svg", "1.svg", "1-dark.png", "source.pdf"]) {
     assert.equal((await app.api(pages[0].replace("1.png", name))).status, 404);
   }
+  assert.equal((await app.api(keyedPages[0].replace("1.png", "source.pdf"), {}, "")).status, 401);
+  assert.equal((await app.api(keyedPages[0], { method: "POST" }, "")).status, 401);
+  assert.equal((await app.api(keyedPages[0], { headers: { Origin: "https://other.example" } }, "")).status, 403);
   assert.equal((await app.upload(timetablePdf(1))).status, 202);
   const replaced = await waitForTimetable(app, saved);
   assert.equal(replaced.config.settings.timetables["home|person.one"].length, 1);

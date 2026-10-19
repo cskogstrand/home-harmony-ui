@@ -8,7 +8,7 @@ import { runtimeOptions } from "./runtime.mjs";
 test("loads .env and HAOS options, gives environment values precedence, and rejects incomplete configuration", async () => {
   const directory = await mkdtemp(join(tmpdir(), "home-harmony-env-"));
   const cwd = process.cwd(), saved = { ...process.env };
-  const keys = ["DATA_DIR", "HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN", "DASHBOARD_PASSWORD", "DASHBOARD_AUTH_DISABLED", "PORT"];
+  const keys = ["DATA_DIR", "HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN", "DASHBOARD_PASSWORD", "DASHBOARD_AUTH_DISABLED", "TIMETABLE_API_KEY", "PORT"];
   try {
     process.chdir(directory);
     keys.forEach(key => delete process.env[key]);
@@ -20,6 +20,23 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
     assert.equal(options.homeAssistantToken, "haos-token");
     assert.equal(options.dashboardPassword, "haos-password-123");
     assert.equal(options.dashboardAuthDisabled, false);
+    assert.equal(options.timetableApiKey, "");
+    haosOptions.timetable_api_key = "haos-timetable-api-key-12345678901";
+    await writeFile("data/options.json", JSON.stringify(haosOptions));
+    assert.equal((await runtimeOptions()).timetableApiKey, haosOptions.timetable_api_key);
+    process.env.TIMETABLE_API_KEY = "env-timetable-api-key-123456789012";
+    assert.equal((await runtimeOptions()).timetableApiKey, process.env.TIMETABLE_API_KEY);
+    process.env.TIMETABLE_API_KEY = "";
+    assert.equal((await runtimeOptions()).timetableApiKey, "", "An empty environment value disables the configured HAOS key");
+    delete process.env.TIMETABLE_API_KEY;
+    for (const key of [123, "short", "a".repeat(31), "a".repeat(4097), `Bearer ${haosOptions.timetable_api_key}`, `${haosOptions.timetable_api_key}\n`, `${haosOptions.timetable_api_key}\u200b`]) {
+      await writeFile("data/options.json", JSON.stringify({ ...haosOptions, timetable_api_key: key }));
+      await assert.rejects(runtimeOptions(), error => {
+        assert.match(error.message, /TIMETABLE_API_KEY/);
+        assert.ok(!error.message.includes(String(key)), "Key must not appear in validation errors");
+        return true;
+      });
+    }
     for (const token of [" \thaos-token\r\n", "\u00a0haos-token\u00a0"]) {
       await writeFile("data/options.json", JSON.stringify({ ...haosOptions, home_assistant_token: token }));
       assert.equal((await runtimeOptions()).homeAssistantToken, "haos-token");

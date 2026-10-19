@@ -108,7 +108,11 @@ Enable a person's timetable in Home settings, then open **School board** to
 upload a PDF (up to 10 MB / 20 pages) or view **Share from iPhone** for their
 upload URL. The container includes PDF conversion tools. Uploads and rendered
 pages use the dashboard login unless it is disabled.
-See the [iOS shortcut and API setup](README.md#share-a-timetable-from-iphone).
+For read-only automation access, configure an optional `timetable_api_key` (at
+least 32 URL-safe characters) and restart. `GET /api/timetables/<api-key>` lists
+saved timetables with keyed image URLs that need no authentication headers.
+Keep the entire URL private. See [timetable API setup](README.md#read-timetables-from-an-automation)
+and the [iOS shortcut setup](README.md#share-a-pdf-from-iphone).
 Use your dashboard's reachable HTTPS/LAN/VPN address, not HA's cloud URL.
 
 ## Updates

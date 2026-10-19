@@ -30,6 +30,35 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstub
 const navigate = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
 const saved = () => waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
 
+it.each(["/", "/calendar"])("marks Monday week changes and keeps today's week visible on %s", async path => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-12-31T23:30:00Z"));
+  window.history.replaceState(null, "", path);
+  render(<App />); await saved();
+
+  expect(screen.getByText("Today · Week 53")).toBeInTheDocument();
+  expect(screen.getByText("Week 53").closest("th")).toHaveTextContent("Today1 Jan");
+  expect(screen.getByText("Week 1").closest("th")).toHaveTextContent("Mon4 Jan");
+  expect(screen.getAllByText(/^Week \d+$/)).toHaveLength(2);
+
+  fireEvent.click(screen.getByRole("button", { name: "By person" }));
+  expect(screen.getByText("Week 53").closest("a, button")).toHaveTextContent("Fri01");
+  expect(screen.getByText("Week 1").closest("a, button")).toHaveTextContent("Mon04");
+  expect(screen.getAllByText(/^Week \d+$/)).toHaveLength(2);
+  if (path === "/calendar") {
+    fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+    expect(screen.getByText("Today · Week 53")).toBeInTheDocument();
+    expect(screen.getByText("Week 1").closest("button")).toHaveTextContent("Fri08");
+    expect(screen.getByText("Week 2").closest("button")).toHaveTextContent("Mon11");
+  }
+
+  fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
+  fireEvent.click(screen.getByRole("button", { name: "Monday" }));
+  expect(screen.getAllByText(/^Week \d+$/)).toHaveLength(1);
+  expect(screen.getByText("Week 53").closest("th")).toHaveTextContent("Mon28 Dec");
+  expect(screen.getByText("Today · Week 53")).toBeInTheDocument();
+});
+
 it("offers one setup entry on Today and keeps guidance off the everyday boards", async () => {
   render(<App />); await saved();
   expect(screen.getByRole("link", { name: "Get started" })).toHaveAttribute("href", "/onboarding");

@@ -3,13 +3,14 @@ import { useApp } from "@/contexts/AppContext";
 import { calendarBoundary, calendarDateValue, calendarTimeInput } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
 import { Columns3, Table2, Plus } from "lucide-react";
-import { useFamily, addDays, dateLabel, homeDate, isPlannerDate, sortEvents, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, addDays, dateLabel, homeDate, isPlannerDate, sortEvents, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
-  const { calendar, setCalendarSettings } = useFamily();
+  const { calendar, setCalendarSettings, today } = useFamily();
   const change = (settings: Partial<CalendarSettings>) => { setCalendarSettings(settings); onChange?.(settings); };
   return <div className="calendar-view-controls">
+    <span className="calendar-current-week">Today · Week {weekNumber(today)}</span>
     <div className="calendar-segment" role="group" aria-label="Calendar layout">
       <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />Weekly grid</button>
       <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />By person</button>
@@ -65,6 +66,7 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
         <caption className="sr-only">Family plans from {dateLabel(start)} to {dateLabel(addDays(start, 6))}</caption>
         <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
         <thead><tr><th scope="col">Family</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
+          <small className="calendar-week-number">{(day === start || day === weekStart(day)) && `Week ${weekNumber(day)}`}</small>
           <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? "Today" : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>
         </th>)}</tr></thead>
         {(members ?? familyMembers).map(person => {

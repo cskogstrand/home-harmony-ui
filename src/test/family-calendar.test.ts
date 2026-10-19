@@ -1,7 +1,15 @@
 import { expect, it } from "vitest";
 import { calendarPlans, uniqueCalendarPlans, weekEventRows } from "@/components/FamilyCalendar";
-import { addDays, eventTimeLabel } from "@/contexts/FamilyContext";
+import { addDays, eventTimeLabel, weekNumber } from "@/contexts/FamilyContext";
 import type { CalendarEvent } from "@/types/api";
+
+it.each([
+  ["2026-10-18", 42], ["2026-10-19", 43],
+  ["2024-12-30", 1], ["2026-12-28", 53],
+  ["2027-01-01", 53], ["2027-01-03", 53], ["2027-01-04", 1],
+])("uses ISO week numbers for %s", (date, expected) => {
+  expect(weekNumber(date)).toBe(expected);
+});
 
 it("places HA events on home-timezone days with exclusive ends and clips multi-day events to the visible range", () => {
   const plans = (start: CalendarEvent["start"], end: CalendarEvent["end"]) => calendarPlans({ summary: "Trip", start, end }, "calendar.family", "everyone", "2026-10-24", "2026-10-27", "Europe/Oslo", 0);

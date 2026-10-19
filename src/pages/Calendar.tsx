@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useFamily, isPlannerDate, weekStart, addDays, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, dateLabel, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar, uniqueCalendarPlans, useCalendarPlans } from "@/components/FamilyCalendar";
 
@@ -43,7 +43,7 @@ export default function Calendar() {
         if (change.startDay) setParams({});
         else if (change.view === "week" && validDate) setParams(start === calendarStart ? {} : { week: start });
       }} />
-      {calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === validDate ? "is-today" : day === today ? "today-outline" : ""} onClick={() => setParams(day === validDate ? { week: start } : { week: start, date: day })} aria-pressed={day === validDate}><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={events.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
+      {calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === validDate ? "is-today" : day === today ? "today-outline" : ""} onClick={() => setParams(day === validDate ? { week: start } : { week: start, date: day })} aria-pressed={day === validDate}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && `Week ${weekNumber(day)}`}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={events.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
       <div className="filter-row"><button aria-pressed={member === "all"} onClick={() => setMember("all")}>All people</button>{familyMembers.map(m => <button key={m.id} aria-label={m.name} aria-pressed={member === m.id} onClick={() => setMember(m.id)}><MemberAvatar member={m.id} small />{m.name}</button>)}{calendar.view === "people" && validDate && <button onClick={() => setParams({ week: start })}>Show whole week</button>}</div>
       <HomeAssistantCalendar data={data} />
     </section>

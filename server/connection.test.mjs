@@ -62,7 +62,8 @@ test("protects every dashboard surface and exposes only the configured URL", asy
 });
 
 test("authenticates the socket on the server without disclosing or accepting browser HA tokens", { timeout: 10000 }, async t => {
-  const app = await fixture(t);
+  const timetableApiKey = "fixture-timetable-api-key-1234567890";
+  const app = await fixture(t, { timetableApiKey });
   const socket = new WebSocket(app.url.replace(/^http/, "ws") + "/api/websocket", { headers: { ...headers, Origin: app.url } });
   t.after(() => socket.terminate());
   socket.on("open", () => socket.send(JSON.stringify({ type: "auth", access_token: "server-managed" })));
@@ -74,7 +75,7 @@ test("authenticates the socket on the server without disclosing or accepting bro
   const [pong] = await once(socket, "message");
   assert.deepEqual(JSON.parse(pong), { id: 1, type: "pong" });
   socket.close(); await once(socket, "close");
-  for (const extra of [{}, { ...headers, Origin: "https://other.example" }]) {
+  for (const extra of [{}, { ...headers, Origin: "https://other.example" }, { Authorization: `Bearer ${timetableApiKey}` }]) {
     const rejected = new WebSocket(app.url.replace(/^http/, "ws") + "/api/websocket", { headers: extra });
     const error = await new Promise(resolve => rejected.once("error", resolve));
     assert.match(error.message, /401|403/);
