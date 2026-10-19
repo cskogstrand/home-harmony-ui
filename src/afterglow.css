@@ -29,14 +29,16 @@
 @media (width <= 499px) { .palette-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (forced-colors: active) { .palette-option:has([data-state="checked"]) { outline-color: Highlight; } }
 
-/* Glass belongs to floating controls; schedules and lists keep an opaque reading surface. */
+/* Glass belongs to floating layers; schedules, lists and fields keep an opaque reading surface. */
 .glass-surface {
+  --muted-foreground: var(--nav-muted);
   background-color: hsl(var(--nav-background));
   border: 1px solid hsl(var(--nav-border) / .45);
   box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), inset 0 -1px 0 hsl(var(--glass-shade)), 0 8px 32px hsl(var(--glass-shade));
 }
 .header-home.glass-surface, .header-actions .glass-surface { border-radius: 999px; box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), 0 3px 12px hsl(var(--glass-shade)); }
-.motion-menu.glass-surface { --glass-opacity: .96; border-radius: 22px; padding: .5rem; color: hsl(var(--foreground)); max-height: min(var(--radix-dropdown-menu-content-available-height), calc(100dvh - 1rem)); max-width: calc(100vw - 2rem); overflow-y: auto; overscroll-behavior: contain; }
+.motion-menu.glass-surface, .glass-surface[role="dialog"], .glass-surface[role="alertdialog"] { --glass-opacity: var(--glass-panel-opacity); }
+.motion-menu.glass-surface { border-radius: 22px; padding: .5rem; color: hsl(var(--foreground)); max-height: min(var(--radix-dropdown-menu-content-available-height), calc(100dvh - 1rem)); max-width: calc(100vw - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 .motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: 14px; min-height: 48px; overflow-wrap: anywhere; }
 .motion-menu [role="menuitem"] { padding-inline: .75rem; }
 .motion-surface[role="dialog"], .motion-surface[role="alertdialog"] { border-radius: 28px; }

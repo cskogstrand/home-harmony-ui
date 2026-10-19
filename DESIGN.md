@@ -256,13 +256,13 @@ Synthetic-data captures in `.impeccable/review/liquid-glass/` cover desktop, pho
 
 ## Elevation & Depth
 
-Opaque work panels use a thin cool border and tonal separation. Glass adds depth only to the floating dock, home selector, settings control and dropdown menus. Its base is a solid navigation fill with restrained inset edges and a soft outer shadow. Header controls use a smaller outer shadow than the dock. Broad specular gradients are omitted to keep labels clear.
+Opaque work panels use a thin cool border and tonal separation. Glass adds depth to the floating dock, home selector, settings control, dropdown menus, popovers and dialogs. Its base is a solid navigation fill with restrained inset edges and a soft outer shadow. Header controls use a smaller outer shadow than the dock. Broad specular gradients are omitted to keep labels clear.
 
-Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.84) in light mode and (.88) in dark mode. Text menus use (.96) in both themes. Browsers without that support retain the solid fill. Reduced transparency and increased contrast use opaque fills, remove blur and all glass shadows, strengthen the border, and flatten the ambient ground. Increased contrast also outlines selected navigation and segments. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
+Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.72) in light mode and (.78) in dark mode. Menus, popovers and dialogs use denser fills (.82 light, .86 dark), with secondary text using the stronger navigation ink. Modal backdrops dim the page with a black fill at (.35). Browsers without backdrop-filter support retain solid surfaces. Reduced transparency and increased contrast use opaque fills, remove blur and all glass shadows, strengthen the border, and flatten the ambient ground. Increased contrast also outlines selected navigation and segments. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
 
-The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialogs remain opaque foreground surfaces; their rounded corners do not make them glass.
+The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialog shells share the glass material while form fields and sticky action rows retain their opaque reading surfaces.
 
-**The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus. Keep schedules, lists, forms and recurring work panels opaque.
+**The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus, popovers and dialogs. Keep schedules, lists, form fields and recurring work panels opaque.
 
 ## Shapes
 
@@ -292,7 +292,7 @@ Work panels use the opaque card fill, a border at reduced opacity and panel spac
 
 The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue, semibold text and an opaque secondary fill. The large portrait layout emphasizes generous horizontal links. Phone and compact tablet layouts align icons above captions inside an inset floating dock. Focus uses an inset outline in the navigation selection color. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu.
 
-The home selector and settings button share the glass material. Dropdown menus use a denser version with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Menus scroll within Radix's available viewport height so every destination stays reachable in short windows. Regular dialogs retain opaque surfaces and reachable close actions. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns.
+The home selector and settings button share the glass material. Dropdown menus use a denser version with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Menus scroll within Radix's available viewport height so every destination stays reachable in short windows. Dialogs and popovers use that denser material, with reachable close actions and readable fields. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns and dialogs.
 
 ### Schedules, lists and controls
 
