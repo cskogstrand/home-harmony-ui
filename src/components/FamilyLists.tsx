@@ -109,7 +109,8 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const [editing, setEditing] = useState<TodoItem>();
   const [removing, setRemoving] = useState<TodoItem>();
   const [text, setText] = useState("");
-  const suggestionsId = useId();
+  const formId = useId();
+  const suggestionsId = `${formId}-suggestions`;
   const requestKey = `${haUrl}|${entityId}|${entity?.lastUpdated}|${entity?.state}|${refresh}`;
   useEffect(() => {
     if (!online) { setResult({ key: "", items: [] }); return; }
@@ -151,16 +152,21 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     onToggle={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })}
     onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <section role="group" aria-label={t(kind === "daily" ? "{name} daily tasks" : kind === "shopping" ? "{name} shopping" : "{name} tasks", { name: memberName(member) })} className="household-list" aria-busy={loading || !!status?.pending}>
-    <div className="flex items-center gap-2"><MemberAvatar member={member} small /><h3 className="font-semibold">{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span className="text-xs text-muted-foreground">{entity?.name ?? t("List unavailable")}</span></div>
+    <div className="list-composer">
+      <div className="list-action-bar">
+        <div className="list-identity"><MemberAvatar member={member} small /><div><h3>{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span>{entity?.name ?? t("List unavailable")}</span></div></div>
+        <Button className="list-add-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</Button>
+      </div>
+      {adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
+        <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
+        <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{status?.pending ? t("Saving…") : t("Add")}</Button>
+        <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={setText} />
+      </form>}
+    </div>
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
       {hasResult && (result.error ? <p role="alert">{message(result.error)}</p> : <>
-        <div className="list-toolbar"><button className="text-link" disabled={!can("add_item")} aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={17} />{t(kind === "shopping" ? "Add item" : "Add task")}</button><span>{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</span></div>
-        {adding && <form className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
-          <input aria-label={t("New item in {value1}", { value1: entity.name })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} />
-          <Button type="submit" disabled={!can("add_item")} aria-label={t("Save item to {value1}", { value1: entity.name })}><Plus size={19} /></Button>
-          <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={setText} />
-        </form>}
+        <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>
         <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.uid)}>{shown.map(row)}</AnimatePresence></div>
         <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
         <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
@@ -185,7 +191,8 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const [removing, setRemoving] = useState<ListItem>();
   const [text, setText] = useState("");
   const [member, setMember] = useState<MemberId>("everyone");
-  const suggestionsId = useId();
+  const formId = useId();
+  const suggestionsId = `${formId}-suggestions`;
   const list = items.filter(i => i.kind === kind && isMemberVisible(i.member));
   if (kind !== "shopping") list.sort((a, b) => compareMembers(a.member, b.member));
   const completed = list.filter(i => itemIsDone(i, today));
@@ -203,14 +210,16 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const row = (item: ListItem) => <CheckRow key={item.id} id={item.id} text={item.text} complete={itemIsDone(item, today)} member={kind !== "shopping" ? item.member : undefined}
     onToggle={() => toggleItem(item.id)} onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <article className={`glow-panel list-panel list-${kind}`}>
-    <PanelHeading title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
-    <div className="list-toolbar"><button className="text-link" aria-expanded={adding} onClick={() => setAdding(!adding)}><Plus size={17} />{t(kind === "shopping" ? "Add item" : "Add task")}</button><span>{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span></div>
-    {adding && <form className="quick-add" onSubmit={e => { e.preventDefault(); add(); }}>
-      <input aria-label={kind === "shopping" ? t("New shopping item") : t(kind === "daily" ? "New daily task" : "New task")} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} />
-      {kind !== "shopping" && <select aria-label={t("Assign task")} value={member} onChange={e => setMember(e.target.value as MemberId)}><MemberOptions /></select>}
-      <Button type="submit" aria-label={t(kind === "shopping" ? "Save shopping item" : kind === "daily" ? "Save daily item" : "Save tasks item")}><Plus size={19} /></Button>
-      <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={setText} />
-    </form>}
+    <div className="list-composer">
+      <PanelHeading title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
+      <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</Button></div>
+      {adding && <form id={formId} className="quick-add" onSubmit={e => { e.preventDefault(); add(); }}>
+        <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={kind === "shopping" ? t("New shopping item") : t(kind === "daily" ? "New daily task" : "New task")} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
+        {kind !== "shopping" && <select aria-label={t("Assign task")} value={member} onChange={e => setMember(e.target.value as MemberId)}><MemberOptions /></select>}
+        <Button type="submit" disabled={!text.trim()} aria-label={t(kind === "shopping" ? "Save shopping item" : kind === "daily" ? "Save daily item" : "Save tasks item")}>{t("Add")}</Button>
+        <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={setText} />
+      </form>}
+    </div>
     <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
     <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={list.length ? t("All done.") : kind === "shopping" ? t("All stocked up. Add something when you need it.") : t("Nothing on the list. Enjoy the breathing room.")} />}</AnimatePresence>
     <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>

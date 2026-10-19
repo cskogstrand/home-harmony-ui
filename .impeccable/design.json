@@ -798,9 +798,9 @@
       "name": "Main navigation",
       "kind": "nav",
       "refersTo": "navigation",
-      "description": "Evergreen navigation with a sage active route; shown in normal flow for the preview.",
+      "description": "Deep evergreen navigation with a sage active route. Dark mode adds a thin sage outline and a quieter selection. Shown in normal flow for the preview.",
       "html": "<nav class=\"ds-nav\" aria-label=\"Main navigation\"><a href=\"#today\" aria-current=\"page\">Today</a><a href=\"#week\">Our week</a><a href=\"#lists\">Lists</a></nav>",
-      "css": ".ds-nav{display:flex;gap:.5rem;padding:.5rem;border-radius:16px;background:hsl(var(--nav-background, 164 30% 18%))}.ds-nav a{flex:1;display:flex;align-items:center;justify-content:center;min-height:56px;padding:.85rem .6rem;border-radius:10px;color:hsl(var(--nav-muted, 142 17% 76%));font:500 .9375rem/1.5 'Public Sans',sans-serif;text-decoration:none}.ds-nav a:hover{color:hsl(var(--nav-foreground, 130 25% 94%));background:hsl(var(--nav-foreground,130 25% 94%) / .1)}.ds-nav a[aria-current]{background:hsl(var(--nav-active, 143 25% 78%));color:hsl(var(--nav-background, 164 30% 18%))}.ds-nav a:focus-visible{outline:2px solid hsl(var(--nav-active, 143 25% 78%));outline-offset:3px}"
+      "css": ".ds-nav{display:flex;gap:.5rem;padding:.5rem;border:1px solid hsl(var(--nav-border,164 35% 9%));border-radius:16px;background:hsl(var(--nav-background, 164 35% 9%))}.ds-nav a{flex:1;display:flex;align-items:center;justify-content:center;min-height:56px;padding:.85rem .6rem;border-radius:10px;color:hsl(var(--nav-muted, 142 17% 76%));font:500 .9375rem/1.5 'Public Sans',sans-serif;text-decoration:none}.ds-nav a:hover{color:hsl(var(--nav-foreground, 130 25% 94%));background:hsl(var(--nav-foreground,130 25% 94%) / .1)}.ds-nav a[aria-current]{background:hsl(var(--nav-active, 143 25% 78%));color:hsl(var(--nav-background, 164 35% 9%))}.ds-nav a:focus-visible{outline:2px solid hsl(var(--nav-active, 143 25% 78%));outline-offset:3px}"
     },
     {
       "name": "Filter chip",

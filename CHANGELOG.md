@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1
+
+- Make list creation easier to find with prominent, labeled plus buttons and inline forms that stay visible while scrolling each list.
+- Preserve item drafts after cancellation or failed saves, and show unavailable add actions consistently.
+- Open Shopping by default on the Lists page and clarify the Norwegian daily-task label.
+- Increase bottom-navigation contrast with a deeper evergreen fill, a sage outline in dark mode and a softer selected tab.
+
 ## 0.9.0
 
 - Rebuild the dashboard for a shared portrait touchscreen with clearer calendar, list, school and home-control layouts.

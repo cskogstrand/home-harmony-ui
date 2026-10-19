@@ -23,10 +23,13 @@ colors:
   success-foreground: "hsl(0.0 0.0% 100.0%)"
   info: "hsl(206.3 57.6% 33.3%)"
   info-foreground: "hsl(0.0 0.0% 100.0%)"
-  nav-background: "hsl(164 30% 18%)"
+  nav-background: "hsl(164 35% 9%)"
+  nav-border: "hsl(164 35% 9%)"
   nav-foreground: "hsl(130 25% 94%)"
   nav-muted: "hsl(142 17% 76%)"
   nav-active: "hsl(143 25% 78%)"
+  dark-nav-border: "hsl(143 17% 50%)"
+  dark-nav-active: "hsl(143 25% 65%)"
   dark-primary: "hsl(143.6 25.0% 78.0%)"
   dark-primary-foreground: "hsl(155.3 42.5% 15.7%)"
   dark-background: "hsl(167.0 36.5% 12.4%)"
@@ -250,11 +253,13 @@ Work panels use the card fill, a border at reduced opacity and panel spacing fro
 
 ### Navigation
 
-The main dock has five labeled destinations, with `aria-current` for the active route. The large portrait layout emphasizes generous horizontal links. Phones stack icons above captions inside a full-width dock. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu. Focus remains visible against the evergreen background.
+The main dock has five labeled destinations, with `aria-current` for the active route. A deep evergreen fill separates navigation from the content beneath it; dark mode adds a thin sage outline and a quieter sage selection. The selected destination reverses the dock contrast. The large portrait layout emphasizes generous horizontal links. Phones stack icons above captions inside a full-width dock. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu. Focus uses the contrasting selection color.
 
 ### Schedules, lists and controls
 
 The weekly grid aligns people and dates, marks the current day, and supports continuous multi-day events. Events wrap long titles and use the configured person tint at low opacity. Lists pair a separate completion target with a full-width edit target; completion adds a check and a strikethrough before the row moves. Timetables retain their aspect ratio and open into a larger pageable view. Home controls show only supported capabilities, with pending and unavailable feedback.
+
+Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 
 Motion is tied to these state changes: the completion check draws over (200ms), and list reflow lasts up to (480ms). Reduced-motion settings remove animation. Do not add motion to imply a device command succeeded before the state confirms it.
 

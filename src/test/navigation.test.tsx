@@ -100,6 +100,7 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   expect(screen.queryByText(/Set up calendars in this app/)).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Set up people and calendars" })).not.toBeInTheDocument();
   navigate("Lists");
+  expect(screen.getByRole("button", { name: /Shopping/ })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByRole("link", { name: "Set up to-do lists" })).not.toBeInTheDocument();
   expect(screen.queryByText(/Daily tasks use your selected/)).not.toBeInTheDocument();
 });

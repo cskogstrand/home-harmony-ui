@@ -253,7 +253,8 @@
     --offline: 146.7 8.3% 42.7%;
     --pending: 36.6 89.8% 26.9%;
     --radius: .75rem;
-    --nav-background: 164 30% 18%;
+    --nav-background: 164 35% 9%;
+    --nav-border: var(--nav-background);
     --nav-foreground: 130 25% 94%;
     --nav-muted: 142 17% 76%;
     --nav-active: 143 25% 78%;
@@ -302,6 +303,8 @@
     --online: 128.2 36.1% 76.1%;
     --offline: 132.0 9.3% 58.0%;
     --pending: 38.7 75.3% 71.4%;
+    --nav-border: 143 17% 50%;
+    --nav-active: 143 25% 65%;
   }
 }
 

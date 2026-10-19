@@ -542,7 +542,7 @@ export const nb = {
   "Before we settle in": "Før vi slår oss til ro",
   "Pick up on the way": "Ta med på veien",
   "The bigger things": "De større tingene",
-  "Daily rhythm": "Dagens rytme",
+  "Daily rhythm": "Daglige gjøremål",
   "Family tasks": "Familiens oppgaver",
   "Our week": "Uken vår",
   "Lists": "Lister",
