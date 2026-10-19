@@ -210,6 +210,56 @@ it("shows the morning notification on the front page, updates live, and hides st
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
+it("plays the morning summary only on request and blocks duplicate, unavailable and offline starts", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  const scriptId = "script.morning_summary_voice";
+  const summaryId = "sensor.afterglow_morning_summary";
+  const publish = (scriptState?: string) => act(() => conn.entityCallback?.({
+    ...states,
+    [summaryId]: state(summaryId, "2026-10-19", { message: "God morgen! Husk gymtøy." }),
+    ...(scriptState ? { [scriptId]: state(scriptId, scriptState) } : {}),
+  }));
+  publish();
+  const panel = await screen.findByRole("region", { name: "Morning summary" });
+  const play = within(panel).getByRole("button", { name: "Play summary" });
+  expect(play).toBeDisabled();
+  publish("off");
+  await waitFor(() => expect(play).toBeEnabled());
+  expect(ha.callService).not.toHaveBeenCalled();
+
+  const request = deferred<object>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  fireEvent.click(play);
+  fireEvent.click(play);
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "script", "turn_on", {}, { entity_id: scriptId });
+  expect(play).toBeDisabled();
+  expect(play).toHaveTextContent("Preparing summary…");
+  publish("on");
+  await act(async () => request.resolve({}));
+  expect(play).toBeDisabled();
+  publish("off");
+  expect(play).toBeEnabled();
+
+  vi.mocked(ha.callService).mockRejectedValueOnce(new Error("Permission denied"));
+  fireEvent.click(play);
+  expect(await within(panel).findByRole("alert")).toHaveTextContent("Home Assistant rejected or did not acknowledge the command");
+  expect(play).toBeEnabled();
+  for (const scriptState of [undefined, "unknown", "unavailable", "on"]) {
+    publish(scriptState);
+    expect(play).toBeDisabled();
+    fireEvent.click(play);
+  }
+  publish("off");
+  act(() => conn.emit("disconnected"));
+  expect(play).toBeDisabled();
+  fireEvent.click(play);
+  expect(ha.callService).toHaveBeenCalledTimes(2);
+});
+
 it("cleans subscriptions/listeners and closes obsolete connections", async () => {
   const client = await connectedClient();
   client.disconnect();

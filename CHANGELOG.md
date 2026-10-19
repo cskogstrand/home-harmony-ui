@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.5
+
+- Add Norwegian morning-summary speech through Home Assistant Cloud, with varied wording on each run.
+- Play the summary from a compact button at the top right of its dashboard card, with pending/error feedback and guards for unavailable or running scripts.
+- Preserve explicit activity and arrival times, avoid calculating new times, and clarify that school reflector reminders apply on the morning journey unless another time is specified.
+- When updating the HA examples, rename the AI Task secret to `main_ai_task_entity`, add `main_announcement_speaker`, install the named voice script in `scripts.yaml`, update the summary automation, and reload scripts.
+
 ## 0.8.4
 
 - Show today's morning summary on the Afterglow front page, updating from Home Assistant and preserving group emojis and line breaks.

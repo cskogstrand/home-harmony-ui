@@ -46,7 +46,7 @@ script morning_summary:
             status: "{{ timetable_response.status }}"
             content: "{{ timetable_response.content }}"
             dashboard_origin: "{{ dashboard_origin }}"
-            ai_task_entity: !secret home_harmony_ai_task_entity
+            ai_task_entity: !secret main_ai_task_entity
             main_notify_device: !secret main_notify_device
             calendar_prefix: !secret home_harmony_calendar_prefix
             summary_groups: !secret home_harmony_summary_groups

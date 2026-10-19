@@ -86,7 +86,7 @@ export function supportsAction(entity: Entity, action: EntityAction, services: H
   const service = ({ brightness: "turn_on", temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position" } as Record<string, string>)[action] ?? action;
   if (!services[domain]?.[service]) return false;
   if (["light", "switch", "automation"].includes(domain) && ["turn_on", "turn_off"].includes(action)) return true;
-  if (domain === "scene") return action === "turn_on";
+  if (domain === "scene" || domain === "script") return action === "turn_on";
   if (domain === "light" && action === "brightness") return stringValues(a.supported_color_modes).some(m => !["onoff", "unknown"].includes(m));
   if (domain === "climate") return action === "temperature" ? feature(entity, 1) && numberValue(a.min_temp) !== undefined && numberValue(a.max_temp) !== undefined : action === "hvac_mode" && stringValues(a.hvac_modes).length > 0;
   if (domain === "cover") return feature(entity, ({ open_cover: 1, close_cover: 2, position: 4, stop_cover: 8 } as Record<string, number>)[action] ?? 0);

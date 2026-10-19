@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CarFront, Sparkles, ArrowUpRight, SlidersHorizontal, Search } from "lucide-react";
+import { CarFront, Sparkles, ArrowUpRight, SlidersHorizontal, Search, Volume2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { available, humanizeState, supportsAction } from "@/lib/ha-model";
@@ -13,14 +13,26 @@ import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PanelHeading } from "./FamilyPlanner";
 export function MorningSummary() {
-  const { currentHome, homeOnline } = useApp();
+  const { currentHome, homeOnline, command, commands, services } = useApp();
   const { today } = useFamily();
   const summary = currentHome.entities.find(entity => entity.entityId === "sensor.afterglow_morning_summary");
+  const scriptId = "script.morning_summary_voice";
+  const script = currentHome.entities.find(entity => entity.entityId === scriptId);
+  const running = script?.state === "on" || !!commands[scriptId]?.pending;
   const message = summary?.attributes.message;
   if (summary?.state !== today || typeof message !== "string" || !message.trim()) return null;
   return <section className="glow-panel col-span-full" aria-label="Morning summary">
-    <div className="panel-heading"><h2>Morning summary</h2><Sparkles size={18} aria-hidden="true" /></div>
+    <div className="panel-heading">
+      <h2>Morning summary</h2>
+      <div className="command-controller shrink-0" aria-busy={running}>
+        <Button variant="outline" size="sm" title={running ? "Preparing summary…" : "Play summary"} disabled={!homeOnline || !script || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on").catch(() => {}); }}>
+          <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? "Preparing summary…" : "Play summary"}</span>
+        </Button>
+        {!commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
+      </div>
+    </div>
     <p className="whitespace-pre-wrap break-words leading-relaxed">{message}</p>
+    {commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
     {!homeOnline && <p className="page-note">Cached summary · Home Assistant is offline.</p>}
   </section>;
 }
