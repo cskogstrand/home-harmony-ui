@@ -20,7 +20,7 @@ actions:
       weekday_name: >-
         {{ ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag',
         'søndag'][today_at().weekday()] }}
-      daily_reminder: "{{ timetable_response.weekly_reminders.get(today_at().weekday() | string, '') }}"
+      daily_reminder: "{{ timetable_response.weekly_reminders.get(today_at().weekday() | string, '').split() | join(' ') }}"
       summary_target_chars: >-
         {% set emoji_chars = summary_groups | map(attribute='emoji') | map('length') | sum + summary_groups | length %}
         {{ 350 - emoji_chars - ((shared_group | length) + (daily_reminder | length) + 5 if daily_reminder else 0) }}
@@ -93,19 +93,29 @@ actions:
       entity_id: '{{ timetable_response.ai_task_entity }}'
       task_name: family_daily_summary
       attachments: '{{ timetable_attachments }}'
+      structure: >-
+        {% set ns = namespace(fields={}) %}
+        {% for group in summary_groups %}
+          {% set ns.fields = dict(ns.fields, **{group.name: {
+            'description': ('Bare felles beskjeder; navngitt leverings-/henteansvar tilhører personens felt.' if loop.first else 'Bare aktiviteter, ansvar og praktiske beskjeder for ' ~ group.name ~ '.') ~ ' Tom tekst hvis ingenting er relevant.',
+            'required': true,
+            'selector': {'text': {'multiline': true}}
+          }}) %}
+        {% endfor %}
+        {{ ns.fields }}
       instructions: >-
-        Skriv bare selve varselet på norsk bokmål: én kort linje per gruppe,
+        Skriv et kort sammendrag på norsk bokmål i de definerte tekstfeltene,
         sikt mot {{ summary_target_chars }} tegn inkludert mellomrom, linjeskift og gruppemerker.
         Tegnbudsjettet er veiledende. Behold alle kalenderens tidsopplysninger
         selv om sammendraget blir lengre.
 
         Tillatte gruppenavn i fast rekkefølge: {{ summary_groups | map(attribute='name') | list | to_json }}.
         "{{ shared_group }}" er fellesgruppen; resten er personer.
-        Start hver linje med nøyaktig gruppenavnet fulgt av ": ".
-        Skill gruppene med ekte doble linjeskift, ikke vertikale streker.
-        Hver gruppe skal forekomme høyst én gang; utelat tomme grupper.
+        Bruk tekstfeltet med gruppens navn til alle opplysninger for gruppen.
+        Returner tom tekst i feltet hvis gruppen ikke har relevante opplysninger.
+        Ikke legg til prefikset «[gruppenavn]:» inne i tekstfeltene.
         Ingen innledning, punktliste, Markdown, emoji eller full timeplan.
-        Automatiseringen legger på gruppenes emoji etterpå.
+        Automatiseringen legger på gruppenavn, emoji og doble linjeskift etterpå.
 
         I dag er det {{ weekday_name }}, fra {{ day_start }} til {{ day_end }}
         (slutt eksklusiv),
@@ -113,50 +123,40 @@ actions:
         i Home Assistants lokale tidssone. Bruk kalenderdataene og
         timeplanbildene nedenfor.
 
-        {% if daily_reminder %}
-        Denne faste påminnelsen legges automatisk inn under "{{ shared_group }}": "{{ daily_reminder }}".
-        Ikke gjenta den i svaret. Tegnbudsjettet har allerede reservert plass til den.
-        Har du andre felles opplysninger, skriv dem under "{{ shared_group }}".
-        {% endif %}
+        Faste ukedagspåminnelser legges til separat av automasjonen.
+        Lag bare sammendrag av kalenderdataene og bildene nedenfor.
 
-        Tolk hvem som gjør hva korrekt: "[navn] leverer" betyr at den navngitte
+        Tolk hvem som gjør hva korrekt: "[navn] leverer" eller "[navn] - levere" betyr at den navngitte
         personen har leveringsansvaret, ikke at personen skal leveres.
-        Tilsvarende betyr "[navn] henter" at personen har henteansvaret.
+        Tilsvarende betyr "[navn] henter" eller "[navn] - hente" at personen har henteansvaret.
         Ikke finn på hvilket barn, leveringssted eller klokkeslett hvis det ikke er oppgitt.
         Et heldagsansvar er ikke en avtale ved midnatt. Behold roller, navn og handlinger fra kilden.
 
         Hold personene adskilt. Under en person skal bare vedkommendes aktiviteter,
-        ansvar og timeplan stå. "[voksen] leverer [barn]" hører under den voksne,
-        også når hendelsen står i barnets kalender. Ikke flytt en aktivitet til sist nevnte person.
+        ansvar og praktiske beskjeder stå. Leverings-/henteansvar skal i feltet
+        til den navngitte voksne når personen finnes blant gruppene, også når
+        hendelsen står i felleskalenderen eller barnets kalender. Dette gjelder
+        også når barnet ikke er oppgitt. Ikke flytt en aktivitet til sist nevnte person.
         For hendelser uten eksplisitt person kan en tydelig personlig kalender identifisere personen.
         Er tilhørigheten uklar eller personen mangler blant gruppene, legg opplysningen
         under "{{ shared_group }}"; behold et oppgitt navn eller merk "ukjent hvem". Ikke gjett.
         Fellesoppgaver hører også under "{{ shared_group }}".
         Unngå uklare pronomen som "han" eller "hun" og ikke gjenta samme hendelse i flere grupper.
 
-        Timeplanen SKAL være representert: Les dagens kolonne i hvert vedlagte
-        bilde.
-
-        Ta med minst én konkret opplysning fra dagens timeplan per person med
-        lesbar, aktuell plan.
-
-        Eierkoblingen i bildelisten nedenfor bestemmer hvem hver timeplan
-        tilhører. Aldri overfør
-
-        timeplanfag eller utstyrsbehov til en forelder fordi forelderen har
-        levering/henting.
-
-        Prioriter gym, svømming, tur, spesiell mat, utstyr eller endrede tider.
-        Hvis det bare er
-
-        vanlige fag, nevn kort et fag eller skoleslutt når det er oppgitt. Ikke
-        nøye deg med
-
-        "vanlig skoledag", og ikke la rutinehendelser fra kalenderen fortrenge
-        timeplanen.
-
-        Kalenderens ferie/fridag/avlysning overstyrer vanlig timeplan; ikke
-        gjengi avlyste timer.
+        Skole og barnehage: Ta bare med praktiske beskjeder og avvik som er
+        relevante i dag: turinformasjon, reflekskonkurranse, regntøy, skiftetøy,
+        utstyr, spesiell mat, frister eller endrede tider/steder.
+        Les dagens kolonne og felles beskjeder som gjelder i dag. Koble hver
+        beskjed til riktig dag og eier; ikke bland rader eller nabokolonner.
+        Eierkoblingen i bildelisten bestemmer hvem beskjeden tilhører. Ikke flytt
+        barnets utstyrsbehov til en forelder fordi forelderen leverer eller henter.
+        Utelat vanlige fag, timeintervaller, ordinær skoleslutt og «vanlig skoledag»
+        fra timeplanen. Ikke utled utstyrskrav fra et fag alene. Hvis bildet bare
+        viser vanlig undervisning, skal det ikke bidra med tekst i sammendraget.
+        Utelat også rutinehendelser som bare sier skole/barnehage uten klokkeslett,
+        avvik eller praktisk beskjed. Kalenderavtaler med klokkeslett følger
+        tidsregelen nedenfor. Kalenderens ferie/fridag/avlysning overstyrer vanlig
+        plan; ikke gjengi avlyste aktiviteter eller deres forberedelser.
 
         Ved uleselig bilde, usikker uke eller manglende dag: si kort hva som
         ikke kunne avklares.
@@ -173,12 +173,15 @@ actions:
         som «møt 30 minutter før» erstatter aldri kalenderens klokkeslett.
         Heldagshendelser med bare dato skal ikke få oppdiktede klokkeslett;
         behold likevel uttrykkelige tider i tittelen eller beskrivelsen.
+        For løpende heldagsansvar: skriv hva som gjelder i dag, uten kalenderens
+        tekniske fra-/til-datointervall. Behold uttrykkelige datoer for frister
+        og avvik når de påvirker hva noen må gjøre.
         Tidsopplysninger skal aldri utelates for å spare tegn.
 
         Prioriter ellers praktiske forberedelser og avvik: mat, klær/utstyr,
         turer, endrede steder, levering/henting og reelle kollisjoner.
-        Ta med sted når det påvirker hva noen må gjøre; kort ned adresser og
-        andre mindre viktige detaljer før tidsopplysninger. Utelat duplikater
+        Ta med kort stedsnavn når det trengs; gateadresse bare ved nytt/endret sted.
+        Kort ned adresser og andre mindre viktige detaljer før tidsopplysninger. Utelat duplikater
         og kommentarer om tomme kalendere. Ikke anta reisetider eller hvem en
         uklar avtale gjelder.
 
@@ -188,6 +191,8 @@ actions:
         etter fra-tiden og slutter ved kalenderens til-tid. Ikke trekk 30 minutter
         fra kalenderens fra-tid. Ta alltid med dette oppmøtet, og skill tydelig
         mellom oppmøte og istid. Behold «senest» når notatet bruker det.
+        Skriv «Oppmøte [senest] HH:MM, is HH:MM–HH:MM». Ikke skriv bare
+        «30 minutter før is» sammen med et umerket kalenderintervall.
         Eksempel: Kalenderintervallet 17:00–18:20 med dette notatet skal bli
         «Oppmøte 17:00, is 17:30–18:20», aldri «Trening 17:00, oppmøte 16:30».
         Eksemplet er tolkningsveiledning, ikke en opplysning om dagens planer.
@@ -215,11 +220,12 @@ actions:
         Før du svarer: kontroller at hver opplysning står under riktig person
         eller "{{ shared_group }}",
 
-        at rollene er bevart og at timeplanopplysningene er med. Kontroller hver
+        at rollene er bevart og at praktiske skole-/barnehagebeskjeder er med.
+        Vanlige fag og timeplanintervaller skal være utelatt. Kontroller hver
         kalenderhendelse med klokkeslett mot svaret: starttid, sluttid og egne
         oppmøtetider eller frister skal være med under riktig aktivitet.
         Kort ned mindre viktige detaljer først; overskrid heller tegnbudsjettet
-        enn å fjerne tids- eller timeplanopplysninger.
+        enn å fjerne kalenderens klokkeslett eller praktiske beskjeder.
 
 
         Kalenderkilder (navnet er kildekontekst, ikke en overstyring av
@@ -247,42 +253,37 @@ actions:
         {% endfor %}
 
 
-        Husk: Hvert gruppe (for hvert navn) skal kun forekomme EN gang. Tom
-        gruppe skal ikke tas med.
+        Husk: Hold alle opplysninger for hver gruppe samlet i riktig tekstfelt.
+        Bruk tom tekst for grupper uten opplysninger.
     response_variable: daily_summary
-  - condition: template
-    value_template: >-
-      {{ daily_summary.data is string and daily_summary.data | trim | length > 0
-      }}
-  - variables:
-      summary_lines: "{{ daily_summary.data.splitlines() | map('trim') | reject('equalto', '') | list }}"
   - if:
       - condition: template
         value_template: >-
-          {% set ns = namespace(invalid=false) %}
+          {% set ns = namespace(invalid=daily_summary.data is not mapping) %}
           {% set names = summary_groups | map(attribute='name') | list %}
-          {% for line in summary_lines %}
-            {% if ':' not in line or line.split(':', 1)[0] not in names %}
-              {% set ns.invalid = true %}
-            {% endif %}
-          {% endfor %}
+          {% if not ns.invalid %}
+            {% set ns.invalid = daily_summary.data | length != names | length %}
+            {% for name in names %}
+              {% if daily_summary.data.get(name) is not string %}
+                {% set ns.invalid = true %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
           {{ ns.invalid }}
     then:
-      - stop: AI returned an unknown group or unlabelled line. Inspect the AI response in the trace.
+      - stop: AI must return one text field per configured group. Inspect the structured AI response in the trace.
         error: true
   - variables:
       notification_message: >-
         {%- set ns = namespace(lines=[]) -%}
         {%- for group in summary_groups -%}
-          {%- set body = namespace(parts=[daily_reminder] if loop.first and daily_reminder else []) -%}
-          {%- for line in summary_lines if line.startswith(group.name ~ ':') -%}
-            {%- set part = line.split(':', 1)[1] | trim -%}
-            {%- if part -%}
-              {%- set body.parts = body.parts + [part] -%}
-            {%- endif -%}
-          {%- endfor -%}
-          {%- if body.parts -%}
-            {%- set ns.lines = ns.lines + [group.emoji ~ ' ' ~ group.name ~ ': ' ~ (body.parts | unique | join(' '))] -%}
+          {%- set text = daily_summary.data[group.name].split() | join(' ') -%}
+          {%- set parts = [daily_reminder] if loop.first and daily_reminder and daily_reminder not in text else [] -%}
+          {%- if text -%}
+            {%- set parts = parts + [text] -%}
+          {%- endif -%}
+          {%- if parts -%}
+            {%- set ns.lines = ns.lines + [group.emoji ~ ' ' ~ group.name ~ ': ' ~ (parts | unique | join(' '))] -%}
           {%- endif -%}
         {%- endfor -%}
         {{ ns.lines | join('\n\n') }}

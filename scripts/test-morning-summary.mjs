@@ -61,6 +61,10 @@ assert.match(summaryInstructions, /Behold starttid og sluttid fra start\/end sam
 assert.match(summaryInstructions, /Heldagshendelser med bare dato skal ikke få oppdiktede klokkeslett/);
 assert.match(summaryInstructions, /Tegnbudsjettet er veiledende/);
 assert.doesNotMatch(summaryInstructions, /Utelat rutinemessig oppmøte/);
+assert.match(summaryInstructions, /Skole og barnehage: Ta bare med praktiske beskjeder og avvik/);
+assert.match(summaryInstructions, /Utelat vanlige fag, timeintervaller, ordinær skoleslutt/);
+assert.doesNotMatch(summaryInstructions, /Ta med minst én konkret opplysning|Timeplanen SKAL være representert/);
+assert.doesNotMatch(summaryInstructions, /{{\s*daily_reminder\s*}}/, "Keep automatically inserted reminders out of the AI prompt");
 const notificationTemplate = automation.actions.find(action => action.variables?.notification_message).variables.notification_message;
 assert.doesNotMatch(notificationTemplate, /\btruncate\s*\(/, "Formatting must not cut off calendar times at the end of a long summary");
 
