@@ -178,6 +178,17 @@ actions:
         duplikater og kommentarer om tomme kalendere. Ikke anta reisetider eller
         hvem en uklar avtale gjelder.
 
+        Presisering for istrening med notatet «Oppmøte 30 minutter før is»:
+        Kalenderens fra-tid er allerede oppmøtetiden. Istiden begynner 30 minutter
+        etter fra-tiden og slutter ved kalenderens til-tid. Ikke trekk 30 minutter
+        fra kalenderens fra-tid. Ta alltid med dette oppmøtet, selv om rutinemessig
+        oppmøte ellers utelates, og skill tydelig mellom oppmøte og istid.
+        Eksempel: Kalenderintervallet 17:00–18:20 med dette notatet skal bli
+        «Oppmøte 17:00, is 17:30–18:20», aldri «Trening 17:00, oppmøte 16:30».
+        Eksemplet er tolkningsveiledning, ikke en opplysning om dagens planer.
+        Ikke bruk denne regelen på andre aktiviteter eller uten dette notatet.
+        Ved motstridende eksplisitte tider i notatet: si at tidene må avklares.
+
         Sier kilden at grillmat erstatter matpakke på turdagen, fremhev dette.
 
         "Turdag" alene betyr ikke grilling eller endret lunsj: foreslå heller å
