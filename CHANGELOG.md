@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.7
+
+- Keep personal and household-specific values in local Home Assistant secrets; use generic placeholders in repository examples and ignore real `secrets.yaml` files.
+- Add repository instructions prohibiting personal information and credentials in committed files.
+- Clarify arrival and ice start times in morning summaries when the calendar interval already includes arrival.
+
 ## 0.8.6
 
 - Add English and Norwegian Bokmål under App preferences → Language, saved per server and shared across screens.
