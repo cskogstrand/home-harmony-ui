@@ -6,7 +6,7 @@ import type { CalendarEvent } from "@/types/api";
 import { calendarSettingsSchema, eventSchema, itemSchema, memberSchema, type Configuration, type Planner } from "../../shared/configuration";
 export { isPlannerDate } from "../../shared/configuration";
 
-export interface FamilyMember { id: string; name: string; initials: string; color: string }
+export interface FamilyMember { id: string; name: string; initials: string; color: string; picture?: string }
 export const newPlannerId = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export type FamilyState = Planner & { events: FamilyEvent[]; items: ListItem[] };
 export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;

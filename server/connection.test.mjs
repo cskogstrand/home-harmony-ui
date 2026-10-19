@@ -16,7 +16,10 @@ const headers = { Authorization: `Basic ${Buffer.from(`dashboard:${password}`).t
 const listen = async server => { server.listen(0, "127.0.0.1"); await once(server, "listening"); return `http://127.0.0.1:${server.address().port}`; };
 const close = server => new Promise(resolve => server.close(resolve));
 
-async function fixture(t, { legacy = false, ...options } = {}) {
+const photoPath = "/api/image/serve/0123456789abcdef0123456789abcdef/original";
+const photo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=", "base64");
+
+async function fixture(t, { legacy = false, imageResponse, ...options } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "home-harmony-proxy-"));
   const distDir = join(directory, "dist"), dataDir = join(directory, "data");
   await mkdir(distDir); await mkdir(dataDir);
@@ -24,6 +27,11 @@ async function fixture(t, { legacy = false, ...options } = {}) {
   const requests = [];
   const ha = createServer((req, res) => {
     requests.push({ url: req.url, authorization: req.headers.authorization });
+    if (req.url.startsWith("/api/image/serve/")) {
+      res.writeHead(imageResponse?.status ?? 200, imageResponse?.headers ?? { "Content-Type": "image/png" });
+      res.end(photo);
+      return;
+    }
     res.setHeader("Content-Type", "application/json");
     res.end(JSON.stringify([{ summary: "Family event", start: "2026-10-17", end: "2026-10-18" }]));
   });
@@ -47,7 +55,7 @@ async function fixture(t, { legacy = false, ...options } = {}) {
 
 test("protects every dashboard surface and exposes only the configured URL", async t => {
   const app = await fixture(t);
-  for (const path of ["/", "/settings", "/api/runtime", "/api/config", "/api/calendars/calendar.family"]) {
+  for (const path of ["/", "/settings", "/api/runtime", "/api/config", "/api/calendars/calendar.family", photoPath]) {
     const denied = await fetch(`${app.url}${path}`);
     assert.equal(denied.status, 401);
     assert.match(denied.headers.get("www-authenticate"), /Basic/);
@@ -59,6 +67,37 @@ test("protects every dashboard surface and exposes only the configured URL", asy
   assert.equal((await fetch(`${app.url}/api/calendars/calendar.family?start=2026-10-17&end=2026-10-18`, { headers })).status, 200);
   assert.deepEqual(app.requests, [{ url: "/api/calendars/calendar.family?start=2026-10-17&end=2026-10-18", authorization: `Bearer ${token}` }]);
   assert.equal((await fetch(`${app.url}/api/services/light/turn_on`, { method: "POST", headers })).status, 404);
+});
+
+test("serves uploaded person photos through the authenticated dashboard without exposing the HA token", async t => {
+  const app = await fixture(t);
+  const result = await fetch(`${app.url}${photoPath}`, { headers });
+  assert.equal(result.status, 200);
+  assert.equal(result.headers.get("content-type"), "image/png");
+  assert.equal(result.headers.get("cache-control"), "no-store");
+  assert.equal(result.headers.get("x-content-type-options"), "nosniff");
+  assert.deepEqual(Buffer.from(await result.arrayBuffer()), photo);
+  assert.deepEqual(app.requests, [{ url: photoPath, authorization: `Bearer ${token}` }]);
+  for (const path of ["/api/image/serve/not-an-id/original", photoPath.replace("original", "unsupported"), "/api/image/upload"]) {
+    assert.equal((await fetch(`${app.url}${path}`, { headers })).status, 404);
+  }
+  assert.equal((await fetch(`${app.url}${photoPath}`, { method: "POST", headers })).status, 404);
+  assert.equal((await fetch(`${app.url}${photoPath}`, { headers: { ...headers, Origin: "https://other.example" } })).status, 403);
+  assert.equal(app.requests.length, 1);
+});
+
+test("rejects failed, non-image and redirecting person photo responses", async t => {
+  for (const imageResponse of [
+    { status: 404 },
+    { headers: { "Content-Type": "text/html" } },
+    { status: 302, headers: { Location: "/unexpected" } },
+  ]) {
+    const app = await fixture(t, { imageResponse });
+    const result = await fetch(`${app.url}${photoPath}`, { headers });
+    assert.equal(result.status, 502);
+    assert.deepEqual(await result.json(), { error: "Home Assistant person photo unavailable." });
+    assert.equal(app.requests.length, 1);
+  }
 });
 
 test("authenticates the socket on the server without disclosing or accepting browser HA tokens", { timeout: 10000 }, async t => {

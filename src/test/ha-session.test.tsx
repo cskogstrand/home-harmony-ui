@@ -170,6 +170,41 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
+it.each(["/", "/calendar"])("loads uploaded person photos and falls back to initials from %s", async path => {
+  const photo = "/api/image/serve/0123456789abcdef0123456789abcdef/original";
+  vi.stubGlobal("Image", class extends EventTarget {
+    complete = false;
+    naturalWidth = 0;
+    source = "";
+    get src() { return this.source; }
+    set src(value: string) {
+      this.source = value; this.complete = false; this.naturalWidth = 0;
+      queueMicrotask(() => { this.complete = true; this.naturalWidth = value === photo ? 256 : 0; this.dispatchEvent(new Event(value === photo ? "load" : "error")); });
+    }
+  });
+  const person = (picture?: unknown) => ({ ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan", entity_picture: picture }) });
+  vi.mocked(ha.subscribeEntities).mockImplementation((_connection, callback) => {
+    conn.entityCallback = callback;
+    queueMicrotask(() => callback(person(photo)));
+    return conn.unsubscribeEntities;
+  });
+  window.history.replaceState(null, "", path);
+  render(<App />);
+  const row = await screen.findByRole("rowheader", { name: "Morgan" });
+  await waitFor(() => expect(row.querySelector("img")).toHaveAttribute("src", photo));
+  expect(row.querySelector("img")).toHaveAttribute("alt", "");
+  act(() => conn.entityCallback?.(person(photo.replace("original", "256x256"))));
+  await waitFor(() => expect(row.querySelector("img")).toBeNull());
+  expect(within(row).getByText("M")).toBeVisible();
+  act(() => conn.entityCallback?.(person(photo)));
+  await waitFor(() => expect(row.querySelector("img")).toHaveAttribute("src", photo));
+  for (const picture of [undefined, 42, "https://other.example/photo.png"]) {
+    act(() => conn.entityCallback?.(person(picture)));
+    await waitFor(() => expect(row.querySelector("img")).toBeNull());
+    expect(within(row).getByText("M")).toBeVisible();
+  }
+});
+
 it("shows the morning notification on the front page, updates live, and hides stale or invalid summaries", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   // Already the next day in the home's timezone, even though UTC is still Sunday.

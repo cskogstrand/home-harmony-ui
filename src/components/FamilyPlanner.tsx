@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Trash2, ImageOff, Maximize2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { useFamily, newPlannerId, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
@@ -19,7 +20,10 @@ export function MemberAvatar({ member, small = false }: { member: MemberId; smal
   const { t } = useI18n();
   const { allMembers: members, memberName } = useFamily();
   const person = members.find(m => m.id === member);
-  return <span className={`member-avatar ${small ? "small" : ""}`} style={{ background: person?.color ?? "#c4d5a3" }} aria-label={memberName(member)}>{person?.initials ?? (member === "everyone" ? t("All") : "?")}</span>;
+  return <Avatar className={`member-avatar ${small ? "small" : ""}`} style={{ background: person?.color ?? "#c4d5a3" }} aria-label={memberName(member)}>
+    <AvatarImage src={person?.picture} alt="" className="object-cover" />
+    <AvatarFallback className="bg-transparent">{person?.initials ?? (member === "everyone" ? t("All") : "?")}</AvatarFallback>
+  </Avatar>;
 }
 export function MemberOptions() {
   const { t } = useI18n();

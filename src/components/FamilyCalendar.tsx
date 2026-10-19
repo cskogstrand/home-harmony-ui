@@ -49,7 +49,7 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
           const rows = weekEventRows(personal, start);
           return <tbody key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
             {rows.map((row, index) => <tr key={index} className="week-event-row">
-              {index === 0 && <th scope="rowgroup" rowSpan={rows.length + (compact ? 0 : 1)}><div className="week-person"><span aria-hidden="true"><MemberAvatar member={person.id} small /></span><span>{person.name}</span></div></th>}
+              {index === 0 && <th scope="rowgroup" rowSpan={rows.length + (compact ? 0 : 1)}><div className="week-person"><span aria-hidden="true"><MemberAvatar member={person.id} /></span><span>{person.name}</span></div></th>}
               {days.map((day, column) => {
                 if (row.some(span => span.start < column && span.end > column)) return null;
                 const span = row.find(span => span.start === column);

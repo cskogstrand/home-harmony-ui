@@ -21,6 +21,9 @@ function FamilyStore({ children }: { children: ReactNode }) {
     id: person.preferenceId, name: person.name,
     initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
     color: memberColors[index % memberColors.length],
+    // shortcut: only uploaded HA photos are supported; add other picture sources when needed.
+    picture: typeof person.attributes.entity_picture === "string" && /^\/api\/image\/serve\/[a-f0-9]{32}\/(original|256x256|512x512)$/.test(person.attributes.entity_picture)
+      ? person.attributes.entity_picture : undefined,
   }));
   const [now, setNow] = useState(() => new Date());
   const today = homeDate(now, currentHome.timeZone);

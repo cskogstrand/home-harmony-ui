@@ -122,6 +122,17 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
+      if (/^\/api\/image\/serve\/[a-f0-9]{32}\/(original|256x256|512x512)$/.test(pathname) && request.method === "GET") {
+        try {
+          const result = await fetch(`${homeAssistantUrl}${pathname}`, { headers: { Authorization: `Bearer ${homeAssistantToken}` }, redirect: "error", signal: AbortSignal.timeout(15000) });
+          const contentType = result.headers.get("content-type")?.split(";")[0];
+          if (!result.ok || !["image/jpeg", "image/png", "image/gif", "image/webp"].includes(contentType)) throw new Error();
+          const contents = Buffer.from(await result.arrayBuffer());
+          response.writeHead(200, { "Content-Type": contentType, "Content-Length": contents.length, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+          response.end(contents);
+        } catch { throw failure(502, "Home Assistant person photo unavailable."); }
+        return;
+      }
       if (/^\/api\/calendars\/calendar\.[a-z0-9_]+$/.test(pathname) && request.method === "GET") {
         let result;
         try {

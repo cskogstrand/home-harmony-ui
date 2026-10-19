@@ -52,7 +52,7 @@ export default function Dashboard() {
         const future = personal.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
         const remaining = future.length ? future : personal;
         const shown = uniqueCalendarPlans(remaining).slice(0, 2);
-        return <div className="family-lane" style={{ "--member": member.color } as React.CSSProperties} key={member.id}><div className="lane-heading"><MemberAvatar member={member.id} small /><strong>{member.name}</strong><span>{t(uniqueCalendarPlans(personal).length === 1 ? "{count} plan" : "{count} plans", { count: uniqueCalendarPlans(personal).length })}</span></div>
+        return <div className="family-lane" style={{ "--member": member.color } as React.CSSProperties} key={member.id}><div className="lane-heading"><MemberAvatar member={member.id} /><strong>{member.name}</strong><span>{t(uniqueCalendarPlans(personal).length === 1 ? "{count} plan" : "{count} plans", { count: uniqueCalendarPlans(personal).length })}</span></div>
           {shown.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
           {shown.length === 0 && <p className="empty-note">{connectedPlanner ? t("No plans yet.") : t("A lovely open week.")}</p>}
         </div>;
