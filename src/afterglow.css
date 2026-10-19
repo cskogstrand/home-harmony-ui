@@ -498,7 +498,7 @@
 .smart-menu [role="menuitem"] { min-height: 48px; gap: .75rem; font-size: .9375rem; }
 .optional-fields summary { min-height: 48px; cursor: pointer; padding-block: .75rem; font-size: .9375rem; color: hsl(var(--primary)); }
 .optional-fields > .planner-form { margin-top: .75rem; }
-.planner-dialog .form-actions { position: sticky; bottom: -1.5rem; padding: 1rem 0; margin-bottom: -1.5rem; background: hsl(var(--popover)); border-top: 1px solid hsl(var(--border)); z-index: 1; }
+.planner-dialog .form-actions { position: sticky; bottom: -1.5rem; padding: 1rem 0; margin-bottom: -1.5rem; background: hsl(var(--background)); border-top: 1px solid hsl(var(--border)); z-index: 1; }
 .form-notice { padding: .75rem; background: hsl(var(--warning) / .12); color: hsl(var(--warning)); border-radius: 8px; }
 .compact-mode { --panel-space: 1rem; }
 .compact-mode .portrait-board, .compact-mode .planner-page { gap: 1rem; }
