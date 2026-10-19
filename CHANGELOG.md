@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.8
+
+- Preserve calendar start, end and arrival times without truncating the morning summary.
+- Use structured per-group AI output and avoid repeating an already included weekday reminder.
+- Keep school and kindergarten summaries focused on practical notices; read weekly notices across all timetable pages and preserve explicit reflector travel directions in notifications and speech.
+- Map timetable images to their owner's response field and stop before AI generation if an enabled timetable has no unique personal group.
+- When updating the HA examples, add each timetable's exact API `member` as `timetable_member` in its personal group in local `secrets.yaml`, update the summary automation and voice script, and reload scripts.
+
 ## 0.8.7
 
 - Keep personal and household-specific values in local Home Assistant secrets; use generic placeholders in repository examples and ignore real `secrets.yaml` files.

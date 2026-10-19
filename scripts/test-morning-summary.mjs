@@ -46,6 +46,7 @@ for (const group of settings.summary_groups) {
 const genericFiles = readExample("morning-summary.yaml") + readExample("morning-summary-config.yaml");
 for (const value of [
   ...settings.summary_groups.slice(1).map(group => group.name),
+  ...settings.summary_groups.map(group => group.timetable_member).filter(Boolean),
   ...Object.values(settings.weekly_reminders),
   exampleSecrets.home_harmony_morning_scene,
   settings.calendar_prefix,
@@ -62,6 +63,9 @@ assert.match(summaryInstructions, /Heldagshendelser med bare dato skal ikke få 
 assert.match(summaryInstructions, /Tegnbudsjettet er veiledende/);
 assert.doesNotMatch(summaryInstructions, /Utelat rutinemessig oppmøte/);
 assert.match(summaryInstructions, /Skole og barnehage: Ta bare med praktiske beskjeder og avvik/);
+assert.match(summaryInstructions, /ukebeskjedene på alle vedlagte sider/);
+assert.match(summaryInstructions, /«Reflekskonkurranse», «refleks-konkurranse» og «refleksaksjon».*skal bli en konkret påminnelse om å bruke refleks under riktig barn/);
+assert.match(summaryInstructions, /konkurransen er avsluttet, avlyst eller først gjelder senere/);
 assert.match(summaryInstructions, /Utelat vanlige fag, timeintervaller, ordinær skoleslutt/);
 assert.doesNotMatch(summaryInstructions, /Ta med minst én konkret opplysning|Timeplanen SKAL være representert/);
 assert.doesNotMatch(summaryInstructions, /{{\s*daily_reminder\s*}}/, "Keep automatically inserted reminders out of the AI prompt");
@@ -84,6 +88,11 @@ assert.equal(source.summary, `{{ state_attr('${sensorId}', 'message') }}`);
 assert.equal(source.summary_date, `{{ states('${sensorId}') }}`);
 const generateIndex = voice.sequence.findIndex(action => action.action === "ai_task.generate_data");
 const speakIndex = voice.sequence.findIndex(action => action.action === "tts.speak");
+const voiceInstructions = voice.sequence[generateIndex].data.instructions.replace(/\s+/g, " ");
+for (const instructions of [summaryInstructions, voiceInstructions]) {
+  assert.match(instructions, /«Til og fra skolen» skal bli «Husk refleks til og fra skolen»/);
+  assert.match(instructions, /Bare når verken tidspunkt eller retning er oppgitt/);
+}
 assert.ok(generateIndex > 1 && speakIndex > generateIndex);
 assert.equal(voice.sequence[1].then[0].error, true, "Reject missing/stale source before generation");
 assert.equal(voice.sequence[speakIndex - 1].then[0].error, true, "Reject invalid AI output before playback");

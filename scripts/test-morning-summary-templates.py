@@ -2,6 +2,7 @@
 
 from ast import literal_eval
 from pathlib import Path
+import re
 
 from jinja2 import StrictUndefined
 from jinja2.sandbox import ImmutableSandboxedEnvironment
@@ -19,6 +20,7 @@ assert guard["then"][0]["error"] is True
 assert "notification_message" in actions[generate_index + 2]["variables"]
 
 env = ImmutableSandboxedEnvironment(undefined=StrictUndefined)
+env.filters["regex_replace"] = lambda value, pattern, replacement: re.sub(pattern, replacement, value)
 structure = env.from_string(generate["data"]["structure"])
 invalid = env.from_string(guard["if"][0]["value_template"])
 message = env.from_string(actions[generate_index + 2]["variables"]["notification_message"])
@@ -27,6 +29,37 @@ message = env.from_string(actions[generate_index + 2]["variables"]["notification
 groups = [{"name": name, "emoji": emoji} for name, emoji in [
     ("Felles", "🏡"), ("Person A", "🧑"), ("Person B", "🧑"), ("Person C", "🧒"),
 ]]
+groups[2]["timetable_member"] = "home|person.example_second"
+groups[3]["timetable_member"] = "home|person.example_first"
+
+owner_guard = next(action for action in actions if action.get("then", [{}])[0].get("stop", "").startswith("Each enabled timetable"))
+assert owner_guard["then"][0]["error"] is True
+owner_invalid = env.from_string(owner_guard["if"][0]["value_template"])
+page_template = env.from_string(next(action["variables"]["timetable_pages"] for action in actions if "timetable_pages" in action.get("variables", {})))
+timetables = [
+    {"member": groups[3]["timetable_member"], "enabled": True, "pages": [
+        "/api/timetables/example/1-dark.svg", "https://school.example/notices.png", "https://school.example/homework.png",
+    ]},
+    {"member": groups[2]["timetable_member"], "enabled": True, "pages": ["https://school.example/other-child.png"]},
+    {"member": "unmapped-disabled", "enabled": False, "pages": ["https://school.example/disabled.png"]},
+    {"member": "unmapped-empty", "enabled": True, "pages": []},
+]
+page_context = {"summary_groups": groups, "timetable_response": {
+    "content": {"timetables": timetables}, "dashboard_origin": "https://dashboard.example",
+}}
+assert literal_eval(owner_invalid.render(**page_context).strip()) is False
+pages = literal_eval(page_template.render(**page_context).strip())
+assert [page["group"] for page in pages] == ["Person C", "Person C", "Person C", "Person B"]
+assert [page["page"] for page in pages] == [1, 2, 3, 1]
+assert [page["filename"] for page in pages] == ["1.png", "2.png", "3.png", "4.png"]
+assert pages[0]["url"] == "https://dashboard.example/api/timetables/example/1.png"
+for wrong_groups in [
+    groups[:3],
+    [*groups, {"name": "Duplicate", "timetable_member": groups[3]["timetable_member"]}],
+    [{**groups[0], "timetable_member": groups[3]["timetable_member"]}, *groups[1:3]],
+]:
+    assert literal_eval(owner_invalid.render(**{**page_context, "summary_groups": wrong_groups}).strip()) is True
+
 fields = literal_eval(structure.render(summary_groups=groups).strip())
 assert list(fields) == [group["name"] for group in groups]
 assert all(field["required"] is True and "text" in field["selector"] for field in fields.values())
