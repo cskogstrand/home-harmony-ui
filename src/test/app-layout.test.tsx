@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { SmartHomeNav } from "@/components/layout/Navigation";
 
 const shared = vi.hoisted(() => ({ enabled: true, online: true, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home" }, metadataWarnings: [] }) }));
@@ -16,6 +17,25 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
+
+it.each(["/settings", "/devices/sample", "/entities/light.sample"])("reveals the active smart home tab on %s and after navigation", path => {
+  const scroll = vi.fn();
+  const original = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
+  Object.defineProperty(Element.prototype, "scrollIntoView", { configurable: true, value: scroll });
+  try {
+    render(<MemoryRouter initialEntries={[path]}><SmartHomeNav /></MemoryRouter>);
+    const active = screen.getByRole("link", { name: path === "/settings" ? "Home settings" : "Devices" });
+    expect(scroll.mock.contexts[scroll.mock.contexts.length - 1]).toBe(active);
+    expect(scroll).toHaveBeenLastCalledWith({ block: "nearest", inline: "nearest", behavior: "instant" });
+    const overview = screen.getByRole("link", { name: "Overview" });
+    fireEvent.click(overview);
+    expect(overview).toHaveAttribute("aria-current", "page");
+    expect(scroll.mock.contexts[scroll.mock.contexts.length - 1]).toBe(overview);
+  } finally {
+    if (original) Object.defineProperty(Element.prototype, "scrollIntoView", original);
+    else Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+  }
+});
 
 it("shows upload errors above the page and allows dismissing each new failure", () => {
   const view = render(layout());

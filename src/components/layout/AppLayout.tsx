@@ -45,7 +45,7 @@ export function AppLayout() {
       <button type="button" className="icon-button" aria-label={t("Dismiss timetable error")} onClick={() => setDismissedError(timetableError.id)}><X size={19} aria-hidden="true" /></button>
     </div>}
     <ConnectionBanner />
-    <main id="main-content" className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
+    <main id="main-content" tabIndex={-1} className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
       <Outlet />
     </main>

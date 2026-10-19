@@ -1,4 +1,5 @@
 import { useI18n } from "@/hooks/use-i18n";
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package } from "lucide-react";
 
@@ -28,5 +29,9 @@ const smartItems = [
 export function SmartHomeNav() {
   const { t, message } = useI18n();
   const { pathname } = useLocation();
-  return <nav className="smart-nav" aria-label={t("Smart home navigation")}>{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) || item.path === "/devices" && pathname.startsWith("/entities/") ? "page" : undefined}><item.icon size={16} />{message(item.label)}</Link>)}</nav>;
+  const navigation = useRef<HTMLElement>(null);
+  useEffect(() => {
+    navigation.current?.querySelector('[aria-current="page"]')?.scrollIntoView?.({ block: "nearest", inline: "nearest", behavior: "instant" });
+  }, [pathname]);
+  return <nav ref={navigation} className="smart-nav" aria-label={t("Smart home navigation")}>{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={pathname === item.path || pathname.startsWith(`${item.path}/`) || item.path === "/devices" && pathname.startsWith("/entities/") ? "page" : undefined}><item.icon size={16} />{message(item.label)}</Link>)}</nav>;
 }

@@ -1,6 +1,6 @@
 @layer base {
   body { font-family: "Avenir Next", Avenir, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  button, a, input, select { -webkit-tap-highlight-color: transparent; }
+  button, a, input, select { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   button { cursor: pointer; }
   button:disabled { cursor: not-allowed; opacity: .45; }
   button, [role="combobox"], [role="tab"] { min-height: 44px; }
@@ -13,10 +13,11 @@
 }
 .afterglow-app { --space: clamp(18px, 2.8vw, 40px); --car-fill: hsl(var(--card)); min-height: 100svh; padding-bottom: calc(106px + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 85% 0%, hsl(var(--accent) / .65), transparent 55%); }
 .app-header { max-width: 1600px; margin-inline: auto; padding: 24px var(--space) 12px; display: flex; align-items: center; gap: 24px; min-height: 86px; }
-.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; font-size: 26px; letter-spacing: -.8px; line-height: 1.1; }
+.brand { display: flex; align-items: center; gap: 12px; min-height: 44px; text-decoration: none; font-size: 26px; letter-spacing: -.8px; line-height: 1.1; }
 .brand-mark { display: grid; place-items: center; width: 46px; height: 46px; border: 1px solid hsl(var(--border)); border-radius: 50%; color: hsl(var(--primary)); }
 .brand small { display: block; font-size: 8px; font-weight: 500; color: hsl(var(--muted-foreground)); letter-spacing: 2.1px; margin-top: 7px; }
 .header-home { margin-left: auto; max-width: 260px; }
+.header-home a { min-height: 44px; }
 .header-actions { display: flex; align-items: center; gap: 18px; }
 .hub-state { display: flex; align-items: center; gap: 7px; color: hsl(var(--muted-foreground)); font-size: 12px; white-space: nowrap; }
 .hub-state svg { color: hsl(var(--primary)); }
@@ -38,7 +39,7 @@
 .glow-panel { padding: clamp(18px, 2vw, 28px); border: 1px solid hsl(var(--border) / .8); border-radius: 22px; background: hsl(var(--card) / .8); min-width: 0; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
 .panel-heading h2 { font-size: 18px; font-weight: 500; letter-spacing: -.45px; line-height: 1.3; }
-.panel-heading .text-link { min-height: 36px; }
+.panel-heading .text-link { min-height: 44px; }
 .portrait-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .ambient-heading { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 18px 5px 25px; gap: 30px; }
 .clock-block { display: flex; flex-direction: column; }
@@ -89,7 +90,8 @@
 .event-button { width: 100%; display: flex; gap: 12px; text-align: left; padding: 13px 0; border-top: 1px solid hsl(var(--border) / .5); align-items: center; }
 .event-button:hover strong { color: hsl(var(--primary)); }
 .event-button > div:nth-child(2) { min-width: 0; flex: 1; }
-.event-time { color: var(--member); font-size: 13px; flex: 0 0 auto; }
+.event-time { color: hsl(var(--foreground)); font-size: 13px; flex: 0 0 auto; }
+.dark .event-time { color: var(--member); }
 .event-time span { display: block; font-size: 10px; color: hsl(var(--muted-foreground)); margin-bottom: 3px; }
 .event-button strong { display: block; font-size: 13px; font-weight: 500; overflow-wrap: anywhere; }
 .event-button small { display: block; font-size: 11px; color: hsl(var(--muted-foreground)); margin-top: 3px; }
@@ -107,7 +109,7 @@
 .check-row { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 53px; }
 .check-row-shell:last-child .check-row { border-bottom: 0; }
 .check-row :is(label, .edit-item) { display: flex; align-items: center; gap: 12px; cursor: pointer; min-height: 50px; font-size: 13px; position: relative; }
-.check-row label { flex-shrink: 0; }
+.check-row label { flex-shrink: 0; min-width: 44px; justify-content: center; }
 .check-row .edit-item { flex: 1; min-width: 0; align-self: stretch; text-align: left; }
 .check-row .edit-item:disabled, .completing button:disabled { opacity: 1; }
 .check-row input { position: absolute; opacity: 0; width: 25px; height: 25px; }
@@ -158,6 +160,7 @@
 .device-range > span { display: flex; justify-content: space-between; gap: 10px; color: hsl(var(--muted-foreground)); font-size: 12px; }
 .device-range strong { color: hsl(var(--foreground)); font-weight: 500; }
 .device-range input { width: 100%; }
+.touch-switch::after { content: ""; position: absolute; inset: -8px 0; }
 .temperature-control { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .temperature-control > span { display: flex; flex-direction: column; align-items: center; min-width: 72px; }
 .temperature-control strong { font-size: 27px; font-weight: 400; }
