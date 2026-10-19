@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { useFamily } from "@/contexts/FamilyContext";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
+import UserSettings from "@/pages/UserSettings";
 import { emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shared/configuration";
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { timeZone: "UTC", entities: [] }, configurationRequest: vi.fn() }));
@@ -131,4 +132,39 @@ it("persists app preferences across reloads and does not save local list content
   expect(screen.getByLabelText("App preferences")).toHaveTextContent('"theme":"light"');
   expect(screen.getByLabelText("App preferences")).toHaveTextContent('"compactMode":true');
   expect(screen.getByLabelText("App preferences")).toHaveTextContent("alarm.one");
+});
+
+it.each([
+  ["Sage", "sage"], ["Mist", "mist"], ["Rose", "rose"], ["Olive", "olive"],
+  ["Clay", "clay"], ["Lavender", "lavender"], ["Seafoam", "seafoam"], ["Honey", "honey"], ["Slate", "slate"],
+])("applies %s globally, keeps dark mode independent, and restores the choice after reload", async (name, colorPalette) => {
+  const view = render(<FamilyProvider><UserSettings /></FamilyProvider>);
+  await screen.findByText("Shared configuration saved.");
+  expect(screen.getByRole("radio", { name: "Pearl" })).toBeChecked();
+  fireEvent.click(screen.getByRole("radio", { name }));
+  await screen.findByText("Shared configuration saved.");
+  expect(document.documentElement).toHaveAttribute("data-color-palette", colorPalette);
+  expect(document.documentElement).toHaveClass("dark");
+  fireEvent.click(screen.getByRole("switch", { name: "Toggle dark mode" }));
+  await screen.findByText("Shared configuration saved.");
+  expect(document.documentElement).not.toHaveClass("dark");
+  expect(screen.getByRole("radio", { name })).toBeChecked();
+  view.unmount();
+  render(<FamilyProvider><UserSettings /></FamilyProvider>);
+  await screen.findByText("Shared configuration saved.");
+  expect(screen.getByRole("radio", { name })).toBeChecked();
+  expect(document.documentElement).toHaveAttribute("data-color-palette", colorPalette);
+  expect(document.documentElement).not.toHaveClass("dark");
+});
+
+it("keeps a failed palette save as an unsaved draft and blocks further choices until recovery", async () => {
+  render(<FamilyProvider><UserSettings /></FamilyProvider>);
+  await screen.findByText("Shared configuration saved.");
+  app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  fireEvent.click(screen.getByRole("radio", { name: "Sand" }));
+  await screen.findByText(/Another screen changed the configuration/);
+  expect(document.documentElement).toHaveAttribute("data-color-palette", "sand");
+  expect(screen.getByRole("radio", { name: "Sand" })).toBeChecked();
+  expect(screen.getByRole("radio", { name: "Dusk" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
 });

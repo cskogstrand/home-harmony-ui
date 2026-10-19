@@ -322,6 +322,92 @@
     --ambient-blue: 214 65% 24% / .5;
     --ambient-warm: 264 35% 20% / .32;
   }
+
+  /* Palette previews reuse the same tokens as the document. */
+  [data-color-palette="pearl"] { --background: 218 32% 95%; --card: 0 0% 100%; --primary: 213 92% 39%; }
+  .dark[data-color-palette="pearl"], .dark [data-color-palette="pearl"] { --background: 222 30% 9%; --card: 221 23% 14%; --primary: 211 100% 75%; }
+  [data-color-palette="sage"] { --palette-hue: 145; --primary: 145 30% 30%; --accent-foreground: 145 30% 25%; }
+  [data-color-palette="sand"] { --palette-hue: 32; --primary: 28 42% 32%; --accent-foreground: 28 42% 27%; }
+  [data-color-palette="dusk"] { --palette-hue: 265; --primary: 265 24% 42%; --accent-foreground: 265 24% 35%; }
+  [data-color-palette="mist"] { --palette-hue: 195; --primary: 195 30% 32%; --accent-foreground: 195 30% 26%; }
+  [data-color-palette="rose"] { --palette-hue: 350; --primary: 350 28% 39%; --accent-foreground: 350 28% 32%; }
+  [data-color-palette="olive"] { --palette-hue: 75; --primary: 75 30% 29%; --accent-foreground: 75 30% 24%; }
+  [data-color-palette="clay"] { --palette-hue: 16; --primary: 16 38% 37%; --accent-foreground: 16 38% 30%; }
+  [data-color-palette="lavender"] { --palette-hue: 245; --primary: 245 35% 47%; --accent-foreground: 245 35% 38%; }
+  [data-color-palette="seafoam"] { --palette-hue: 170; --primary: 170 30% 30%; --accent-foreground: 170 30% 25%; }
+  [data-color-palette="honey"] { --palette-hue: 44; --primary: 44 48% 30%; --accent-foreground: 44 48% 25%; }
+  [data-color-palette="slate"] { --palette-hue: 215; --primary: 215 12% 37%; --accent-foreground: 215 12% 30%; }
+
+  :is([data-color-palette="sage"], [data-color-palette="sand"], [data-color-palette="dusk"],
+      [data-color-palette="mist"], [data-color-palette="rose"], [data-color-palette="olive"],
+      [data-color-palette="clay"], [data-color-palette="lavender"], [data-color-palette="seafoam"],
+      [data-color-palette="honey"], [data-color-palette="slate"]) {
+    --background: var(--palette-hue) 20% 95%;
+    --foreground: var(--palette-hue) 18% 16%;
+    --card: var(--palette-hue) 20% 99%;
+    --card-foreground: var(--foreground);
+    --popover: var(--palette-hue) 20% 98%;
+    --popover-foreground: var(--foreground);
+    --primary-foreground: 0 0% 100%;
+    --secondary: var(--palette-hue) 16% 90%;
+    --secondary-foreground: var(--foreground);
+    --muted: var(--palette-hue) 14% 92%;
+    --muted-foreground: var(--palette-hue) 12% 37%;
+    --accent: var(--palette-hue) 22% 90%;
+    --border: var(--palette-hue) 14% 80%;
+    --input: var(--palette-hue) 12% 48%;
+    --ring: var(--primary);
+    --nav-background: var(--palette-hue) 20% 98%;
+    --nav-foreground: var(--foreground);
+    --nav-muted: var(--palette-hue) 12% 36%;
+    --nav-active: var(--primary);
+    --glass-shade: var(--palette-hue) 20% 26% / .12;
+    --ambient-blue: var(--palette-hue) 24% 83% / .4;
+    --ambient-warm: var(--palette-hue) 20% 87% / .3;
+    --home-shadow-sm: 0 2px 6px hsl(var(--palette-hue) 20% 18% / .04);
+    --home-shadow-md: 0 8px 24px hsl(var(--palette-hue) 20% 18% / .09);
+    --home-shadow-lg: 0 20px 60px hsl(var(--palette-hue) 20% 12% / .18);
+  }
+
+  .dark[data-color-palette="sage"], .dark [data-color-palette="sage"] { --primary: 145 27% 72%; --accent-foreground: 145 30% 82%; }
+  .dark[data-color-palette="sand"], .dark [data-color-palette="sand"] { --primary: 32 42% 73%; --accent-foreground: 32 45% 83%; }
+  .dark[data-color-palette="dusk"], .dark [data-color-palette="dusk"] { --primary: 265 32% 78%; --accent-foreground: 265 35% 86%; }
+  .dark[data-color-palette="mist"], .dark [data-color-palette="mist"] { --primary: 195 30% 73%; --accent-foreground: 195 33% 83%; }
+  .dark[data-color-palette="rose"], .dark [data-color-palette="rose"] { --primary: 350 30% 76%; --accent-foreground: 350 33% 85%; }
+  .dark[data-color-palette="olive"], .dark [data-color-palette="olive"] { --primary: 75 32% 73%; --accent-foreground: 75 35% 83%; }
+  .dark[data-color-palette="clay"], .dark [data-color-palette="clay"] { --primary: 16 40% 76%; --accent-foreground: 16 43% 85%; }
+  .dark[data-color-palette="lavender"], .dark [data-color-palette="lavender"] { --primary: 245 40% 79%; --accent-foreground: 245 43% 87%; }
+  .dark[data-color-palette="seafoam"], .dark [data-color-palette="seafoam"] { --primary: 170 30% 71%; --accent-foreground: 170 33% 82%; }
+  .dark[data-color-palette="honey"], .dark [data-color-palette="honey"] { --primary: 44 48% 72%; --accent-foreground: 44 48% 83%; }
+  .dark[data-color-palette="slate"], .dark [data-color-palette="slate"] { --primary: 215 17% 75%; --accent-foreground: 215 20% 85%; }
+
+  .dark:is([data-color-palette="sage"], [data-color-palette="sand"], [data-color-palette="dusk"],
+           [data-color-palette="mist"], [data-color-palette="rose"], [data-color-palette="olive"],
+           [data-color-palette="clay"], [data-color-palette="lavender"], [data-color-palette="seafoam"],
+           [data-color-palette="honey"], [data-color-palette="slate"]),
+  .dark :is([data-color-palette="sage"], [data-color-palette="sand"], [data-color-palette="dusk"],
+            [data-color-palette="mist"], [data-color-palette="rose"], [data-color-palette="olive"],
+            [data-color-palette="clay"], [data-color-palette="lavender"], [data-color-palette="seafoam"],
+            [data-color-palette="honey"], [data-color-palette="slate"]) {
+    --background: var(--palette-hue) 14% 9%;
+    --foreground: var(--palette-hue) 15% 95%;
+    --card: var(--palette-hue) 12% 14%;
+    --popover: var(--palette-hue) 12% 17%;
+    --primary-foreground: var(--palette-hue) 24% 14%;
+    --secondary: var(--palette-hue) 12% 22%;
+    --muted: var(--palette-hue) 12% 19%;
+    --muted-foreground: var(--palette-hue) 15% 74%;
+    --accent: var(--palette-hue) 18% 25%;
+    --border: var(--palette-hue) 12% 29%;
+    --input: var(--palette-hue) 14% 51%;
+    --nav-background: var(--palette-hue) 14% 16%;
+    --nav-border: var(--palette-hue) 14% 64%;
+    --nav-muted: var(--palette-hue) 15% 80%;
+    --glass-highlight: var(--palette-hue) 20% 88% / .12;
+    --glass-shade: var(--palette-hue) 30% 3% / .45;
+    --ambient-blue: var(--palette-hue) 24% 24% / .4;
+    --ambient-warm: var(--palette-hue) 20% 20% / .3;
+  }
 }
 
 @layer base {

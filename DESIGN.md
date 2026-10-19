@@ -198,6 +198,12 @@ The iOS 27 refinement follows [Apple's readability and contrast updates](https:/
 
 The palette uses cool neutrals with a blue action color. Ambient blue and warm tints soften the app ground without tinting the reading panels.
 
+### User-selectable palettes
+
+Settings → Appearance offers **Pearl** (the default blue), **Sage** (muted green), **Sand** (warm earth), **Dusk** (soft violet), **Mist** (soft blue-gray), **Rose** (dusty pink), **Olive** (earthy yellow-green), **Clay** (muted terracotta), **Lavender** (blue-violet), **Seafoam** (soft teal), **Honey** (warm ochre), and **Slate** (cool gray). Each has an independent light and dark treatment, selected with the existing dark-mode switch. The palette remaps global surface, ink, action, focus, navigation, ambient and shadow tokens through `data-color-palette` on the document root. Semantic status colors and person assignments retain their meaning.
+
+The labeled radio choices show the current mode's actual background, card and primary tokens. Selection and keyboard focus have visible outlines. Choices form three rows of four on wider screens and wrap to two columns on phones. They use the existing shared settings, conflict recovery and backup flow; older settings default to Pearl.
+
 ### Primary
 
 - **Action blue** (`primary`): primary buttons, links, selected filters, current-day emphasis and focus.

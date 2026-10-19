@@ -26,6 +26,26 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("defaults older settings to Pearl and rejects unknown palettes", () => {
+  const config = emptyConfiguration();
+  const { colorPalette: _colorPalette, ...oldAppearance } = config.settings.appearance;
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, appearance: oldAppearance } })).settings.appearance.colorPalette).toBe("pearl");
+  config.settings.appearance.colorPalette = "unknown" as never;
+  expect(() => parseConfiguration(JSON.stringify(config))).toThrow();
+});
+
+it.each(["pearl", "sage", "sand", "dusk", "mist", "rose", "olive", "clay", "lavender", "seafoam", "honey", "slate"] as const)("shares the %s palette and includes it in backups", async colorPalette => {
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, appearance: { ...p.appearance, colorPalette } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.appearance.colorPalette).toBe(colorPalette);
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.appearance.colorPalette).toBe(colorPalette);
+  expect(backup.settings.appearance.theme).toBe("dark");
+});
+
 describe("shared configuration", () => {
   it("polls upload errors without discarding unsaved settings or their conflict", async () => {
     const backend = server();

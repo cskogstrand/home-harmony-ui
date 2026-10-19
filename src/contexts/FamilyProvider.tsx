@@ -39,7 +39,8 @@ function FamilyStore({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", planner.appearance.theme === "dark");
     document.documentElement.style.colorScheme = planner.appearance.theme;
-  }, [planner.appearance.theme]);
+    document.documentElement.dataset.colorPalette = planner.appearance.colorPalette;
+  }, [planner.appearance.theme, planner.appearance.colorPalette]);
   useEffect(() => {
     document.documentElement.lang = language;
     document.title = t("Afterglow · Family at home");

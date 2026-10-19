@@ -12,6 +12,23 @@
 }
 .afterglow-app { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; --car-fill: hsl(var(--card)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(8rem + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); background-size: 100% 100svh; background-repeat: no-repeat; }
 
+.palette-fieldset { min-width: 0; padding-block: 1rem; border-block: 1px solid hsl(var(--border) / .6); }
+.palette-fieldset legend { float: left; width: 100%; margin-bottom: .5rem; }
+.palette-fieldset > p { clear: both; }
+.palette-options { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; max-width: 40rem; margin-top: 1rem; }
+.palette-option { min-width: 0; padding: .65rem; border: 1px solid hsl(var(--input)); border-radius: 14px; cursor: pointer; }
+.palette-option:hover { background: hsl(var(--secondary)); }
+.palette-option:has([data-state="checked"]) { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+.palette-option:has(:focus-visible) { outline: 2px solid hsl(var(--ring)); outline-offset: 5px; }
+.palette-option:has(:disabled) { opacity: .5; cursor: not-allowed; }
+.palette-preview { display: grid; grid-template-columns: 2fr 1fr 1fr; height: 3rem; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 8px; }
+.palette-preview > :nth-child(1) { background: hsl(var(--background)); }
+.palette-preview > :nth-child(2) { background: hsl(var(--card)); }
+.palette-preview > :nth-child(3) { background: hsl(var(--primary)); }
+.palette-option-label { display: flex; align-items: center; gap: .5rem; margin-top: .65rem; font-size: .875rem; }
+@media (width <= 499px) { .palette-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (forced-colors: active) { .palette-option:has([data-state="checked"]) { outline-color: Highlight; } }
+
 /* Glass belongs to floating controls; schedules and lists keep an opaque reading surface. */
 .glass-surface {
   background-color: hsl(var(--nav-background));
