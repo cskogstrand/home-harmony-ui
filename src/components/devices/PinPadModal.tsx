@@ -34,8 +34,8 @@ export function PinPadModal({ open, onOpenChange, title, description, onSubmit, 
     }}>
       {codeRequired && <label className="block space-y-2"><span>{t("Code")}</span><Input aria-label={t("Code")} type="password" autoComplete="off" inputMode={numeric ? "numeric" : "text"} required disabled={pending || disabled} value={code} onChange={event => setCode(event.target.value)} /></label>}
       {error && <p role="alert" className="text-sm text-destructive">{message(error)}</p>}
-      <Button type="submit" className="relative" aria-label={t("Confirm")} aria-busy={pending} disabled={disabled || pending || (codeRequired && !code)}><span className={pending ? "invisible" : undefined}>{t("Confirm")}</span>{pending && <Loader2 className="absolute h-4 w-4 animate-spin" aria-hidden="true" />}</Button>
-      <Button type="button" variant="ghost" autoFocus={!codeRequired} disabled={pending} onClick={() => onOpenChange(false)}>{t("Cancel")}</Button>
+      <div className="form-actions"><Button type="button" variant="ghost" autoFocus={!codeRequired} disabled={pending} onClick={() => onOpenChange(false)}>{t("Cancel")}</Button>
+      <Button type="submit" className="relative" aria-label={t("Confirm")} aria-busy={pending} disabled={disabled || pending || (codeRequired && !code)}><span className={pending ? "invisible" : undefined}>{t("Confirm")}</span>{pending && <Loader2 className="absolute h-4 w-4 animate-spin" aria-hidden="true" />}</Button></div>
     </form>
   </DialogContent></Dialog>;
 }

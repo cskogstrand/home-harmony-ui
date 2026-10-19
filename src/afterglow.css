@@ -254,7 +254,7 @@
 .timetable-pages { touch-action: pan-y pinch-zoom; }
 .timetable-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
 .image-unavailable { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
-.timetable-dialog { width: min(1100px, calc(100vw - 36px)); max-width: 1100px; max-height: 90dvh; overflow-y: auto; }
+.timetable-dialog { max-width: 1100px; }
 .timetable-dialog .timetable-image { max-height: 65dvh; object-fit: contain; }
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
@@ -445,7 +445,6 @@
 .home-favorites > .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .home-favorites .scene-buttons { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 16px; }
 .home-favorites .scene-buttons button { flex-direction: row; font-size: 0.9375rem; padding: 12px; }
-.favorites-dialog { width: min(580px, calc(100vw - 24px)); max-width: 580px; border-radius: 20px; }
 .favorite-search { position: relative; }
 .favorite-search > svg { position: absolute; top: 14px; left: 13px; color: hsl(var(--muted-foreground)); }
 .favorite-search input { padding-left: 39px; min-height: 48px; }
@@ -510,7 +509,6 @@
   .home-device-grid { grid-template-columns: 1fr; }
   .favorite-heading-actions { gap: 14px; flex-wrap: wrap; }
   .favorite-devices { grid-template-columns: 1fr; }
-  .favorites-dialog { padding: 20px; }
 }
 
 /* Shared reading order and density, from the portrait board to a phone. */
@@ -548,7 +546,7 @@
 .smart-menu [role="menuitem"] { min-height: 48px; gap: .75rem; font-size: .9375rem; }
 .optional-fields summary { min-height: 48px; cursor: pointer; padding-block: .75rem; font-size: .9375rem; color: hsl(var(--primary)); }
 .optional-fields > .planner-form { margin-top: .75rem; }
-.planner-dialog .form-actions { position: sticky; bottom: -1.5rem; padding: 1rem 0; margin-bottom: -1.5rem; background: hsl(var(--background)); border-top: 1px solid hsl(var(--border)); z-index: 1; }
+.dialog-form-body { max-height: 48dvh; overflow-y: auto; overscroll-behavior: contain; padding: 4px; margin: -4px; }
 .form-notice { padding: .75rem; background: hsl(var(--warning) / .12); color: hsl(var(--warning)); border-radius: 8px; }
 .compact-mode { --panel-space: 1rem; }
 .compact-mode .portrait-board, .compact-mode .planner-page { gap: 1rem; }

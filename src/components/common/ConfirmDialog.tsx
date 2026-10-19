@@ -30,7 +30,7 @@ export function ConfirmDialog({
   const returnFocus = useRef<HTMLElement | null>(null);
   return (
     <AlertDialog open={open} onOpenChange={value => { if (!inFlight.current) { setError(""); onOpenChange(value); } }}>
-      <AlertDialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-lg" aria-busy={pending}
+      <AlertDialogContent aria-busy={pending}
         onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
         onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus(); }}>
         <AlertDialogHeader>

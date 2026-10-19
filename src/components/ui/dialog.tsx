@@ -39,7 +39,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg motion-surface glass-surface sm:rounded-lg",
+        "fixed left-[50%] top-[50%] z-50 grid w-[calc(100%-24px)] max-w-[580px] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-5 shadow-lg motion-surface glass-surface sm:p-6 sm:rounded-lg",
         className,
       )}
       {...props}
@@ -55,7 +55,7 @@ const DialogContent = React.forwardRef<
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left", className)} {...props} />
+  <div className={cn("flex min-w-0 flex-col space-y-1.5 break-words pr-8 text-left", className)} {...props} />
 );
 DialogHeader.displayName = "DialogHeader";
 

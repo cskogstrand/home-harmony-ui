@@ -65,12 +65,13 @@ function ItemEditor({ text, kind, description, disabled, error, onSave, onClose 
     try { if (await onSave(draft.trim())) onClose(); }
     finally { setSaving(false); }
   };
-  return <Dialog open onOpenChange={open => { if (!open && !saving) onClose(); }}><DialogContent className="planner-dialog">
+  return <Dialog open onOpenChange={open => { if (!open && !saving) onClose(); }}><DialogContent>
     <DialogHeader><DialogTitle>{kind === "shopping" ? t("Edit item") : t("Edit task")}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
     <form onSubmit={event => { event.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={saving} aria-busy={saving}>
-      <label>{kind === "shopping" ? t("Item") : t("Task")}<input autoFocus required maxLength={120} value={draft} onChange={event => setDraft(event.target.value)} /></label>
+      <div className="planner-form dialog-form-body"><label>{kind === "shopping" ? t("Item") : t("Task")}<input autoFocus required maxLength={120} value={draft} onChange={event => setDraft(event.target.value)} /></label>
       {error && <p role="alert">{message(error)}</p>}
-      <div className="form-actions"><Button type="button" variant="outline" onClick={onClose}>{t("Cancel")}</Button><Button type="submit" disabled={disabled || !draft.trim()}>{saving ? t("Saving…") : t("Save changes")}</Button></div>
+      </div>
+      <div className="form-actions"><Button type="button" variant="ghost" onClick={onClose}>{t("Cancel")}</Button><Button type="submit" disabled={disabled || !draft.trim()}>{saving ? t("Saving…") : t("Save changes")}</Button></div>
     </fieldset></form>
   </DialogContent></Dialog>;
 }

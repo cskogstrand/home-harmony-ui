@@ -260,7 +260,7 @@ Opaque work panels use a thin cool border and tonal separation. Glass adds depth
 
 Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.72) in light mode and (.78) in dark mode. Menus, popovers and dialogs use denser fills (.82 light, .86 dark), with secondary text using the stronger navigation ink. Modal backdrops dim the page with a black fill at (.35). Browsers without backdrop-filter support retain solid surfaces. Reduced transparency and increased contrast use opaque fills, remove blur and all glass shadows, strengthen the border, and flatten the ambient ground. Increased contrast also outlines selected navigation and segments. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
 
-The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialog shells share the glass material while form fields and sticky action rows retain their opaque reading surfaces.
+The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialog shells and action rows share one continuous glass surface. Form fields retain their opaque reading surfaces; long editor bodies scroll independently above the actions, without a separate footer fill or divider.
 
 **The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus, popovers and dialogs. Keep schedules, lists, form fields and recurring work panels opaque.
 
@@ -278,7 +278,7 @@ Clear labels in rounded capsules. Reuse the shared Button variants: primary, des
 
 ### Inputs and fields
 
-Planner fields use an opaque ground fill, a stronger input border and a minimum height (48px). Labels sit above the field. Primary-colored caret and visible focus remain consistent with other controls. Optional details can expand; form actions stay reachable in a scrollable dialog. Validation and failed-write messages stay beside the operation, with the draft preserved.
+Planner fields use an opaque ground fill, a stronger input border and a minimum height (48px). Labels sit above the field. Primary-colored caret and visible focus remain consistent with other controls. Optional details can expand; planner and list editor bodies scroll within (48dvh), with actions outside the scrolling body. Standard dialogs share the favorites dialog’s (580px) maximum width, (12px) minimum side gutters and (20px) phone / (24px) desktop padding. The PIN dialog remains compact at (360px), and timetable previews retain their (1100px) maximum width. Headers reserve room for the close control and wrap long names. Validation and failed-write messages stay beside the operation, with the draft preserved.
 
 ### Chips and segmented controls
 
