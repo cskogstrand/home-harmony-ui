@@ -12,6 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PanelHeading } from "./FamilyPlanner";
+export function MorningSummary() {
+  const { currentHome, homeOnline } = useApp();
+  const { today } = useFamily();
+  const summary = currentHome.entities.find(entity => entity.entityId === "sensor.afterglow_morning_summary");
+  const message = summary?.attributes.message;
+  if (summary?.state !== today || typeof message !== "string" || !message.trim()) return null;
+  return <section className="glow-panel col-span-full" aria-label="Morning summary">
+    <div className="panel-heading"><h2>Morning summary</h2><Sparkles size={18} aria-hidden="true" /></div>
+    <p className="whitespace-pre-wrap break-words leading-relaxed">{message}</p>
+    {!homeOnline && <p className="page-note">Cached summary · Home Assistant is offline.</p>}
+  </section>;
+}
 export function SceneButtons({ entities }: { entities?: Entity[] }) {
   const { currentHome, command, commands, homeOnline, services } = useApp();
   const [sceneId, setSceneId] = useState<string>();

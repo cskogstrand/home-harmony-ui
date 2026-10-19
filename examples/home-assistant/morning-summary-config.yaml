@@ -1,0 +1,67 @@
+# Merge into Home Assistant's configuration.yaml, keeping existing keys/commands.
+# Restart after first setup; reload the changed YAML integrations for later edits.
+# File-loaded scripts can resolve secrets; the automation UI cannot.
+automation morning_summary_trigger:
+  - id: home_harmony_morning_summary_trigger
+    alias: Morning summary - scene trigger
+    triggers:
+      - trigger: state
+        entity_id: !secret home_harmony_morning_scene
+        to: null
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ trigger.from_state is not none and trigger.to_state is not none
+             and trigger.to_state.state not in ['unknown', 'unavailable'] }}
+    actions:
+      - event: home_harmony_morning_summary
+    mode: single
+
+template:
+  - triggers:
+      - trigger: event
+        event_type: home_harmony_morning_summary_ready
+    sensor:
+      - name: Afterglow morning summary
+        unique_id: afterglow_morning_summary
+        default_entity_id: sensor.afterglow_morning_summary
+        state: "{{ trigger.event.data.date }}"
+        attributes:
+          # Attributes keep the full summary beyond HA's 255-character state limit.
+          message: "{{ trigger.event.data.message }}"
+
+script morning_summary:
+  family_timetables:
+    alias: Fetch family timetables
+    variables:
+      dashboard_origin: !secret home_harmony_dashboard_origin
+      timetable_api_key: !secret home_harmony_timetable_api_key
+    sequence:
+      - action: rest_command.family_timetables
+        data:
+          url: "{{ dashboard_origin.rstrip('/') }}/api/timetables/{{ timetable_api_key }}"
+        response_variable: timetable_response
+      - variables:
+          result:
+            status: "{{ timetable_response.status }}"
+            content: "{{ timetable_response.content }}"
+            dashboard_origin: "{{ dashboard_origin }}"
+            ai_task_entity: !secret home_harmony_ai_task_entity
+            main_notify_device: !secret main_notify_device
+            calendar_prefix: !secret home_harmony_calendar_prefix
+            summary_groups: !secret home_harmony_summary_groups
+            weekly_reminders: !secret home_harmony_weekly_reminders
+      - stop: Return the timetable listing and summary settings
+        response_variable: result
+
+rest_command:
+  family_timetables:
+    url: "{{ url }}"
+    method: GET
+    timeout: 30
+
+# /media must exist and be writable. Also configure the Downloader integration
+# through Settings > Devices & services with /media as its download directory.
+homeassistant:
+  media_dirs:
+    local: /media

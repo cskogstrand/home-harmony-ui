@@ -169,6 +169,47 @@ beforeEach(() => {
   vi.mocked(ha.callService).mockResolvedValue({});
 });
 afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+it("shows the morning notification on the front page, updates live, and hides stale or invalid summaries", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  // Already the next day in the home's timezone, even though UTC is still Sunday.
+  vi.setSystemTime(new Date("2026-10-18T22:05:00Z"));
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  expect(screen.queryByRole("region", { name: "Morning summary" })).not.toBeInTheDocument();
+
+  const entityId = "sensor.afterglow_morning_summary";
+  const message = `🏡 Household: ${"Remember today's plans. ".repeat(11)}\n\n🧑 Parent: Bring gym shoes.`;
+  const publish = (date: string, value: unknown) => act(() => conn.entityCallback?.({ ...states, [entityId]: state(entityId, date, { message: value }) }));
+  publish("2026-10-19", message);
+  const panel = await screen.findByRole("region", { name: "Morning summary" });
+  expect(message.length).toBeGreaterThan(255);
+  expect(panel.querySelector("p")?.textContent).toBe(message);
+  expect(panel.querySelector("p")).toHaveClass("whitespace-pre-wrap", "break-words");
+
+  publish("2026-10-19", "🏡 Household: Updated plans. <b>Bring food.</b>");
+  expect(panel).toHaveTextContent("Updated plans. <b>Bring food.</b>");
+  expect(panel.querySelector("b")).toBeNull();
+  act(() => conn.emit("disconnected"));
+  expect(within(panel).getByText("Cached summary · Home Assistant is offline.")).toBeInTheDocument();
+  act(() => conn.emit("ready"));
+  publish("2026-10-19", message);
+  await waitFor(() => expect(screen.queryByText("Cached summary · Home Assistant is offline.")).not.toBeInTheDocument());
+
+  for (const [date, value] of [
+    ["2026-10-18", message], ["2026-10-20", message], ["unavailable", message],
+    ["unknown", message], ["2026-10-19", "  "], ["2026-10-19", null], ["2026-10-19", { text: message }],
+  ] as const) {
+    publish(date, value);
+    expect(screen.queryByRole("region", { name: "Morning summary" })).not.toBeInTheDocument();
+  }
+  publish("2026-10-19", message);
+  expect(screen.getByRole("region", { name: "Morning summary" })).toBeInTheDocument();
+  act(() => conn.entityCallback?.(states));
+  expect(screen.queryByRole("region", { name: "Morning summary" })).not.toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
 it("cleans subscriptions/listeners and closes obsolete connections", async () => {
   const client = await connectedClient();
   client.disconnect();

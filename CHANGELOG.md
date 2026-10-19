@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.4
+
+- Show today's morning summary on the Afterglow front page, updating from Home Assistant and preserving group emojis and line breaks.
+- Include timetable images in compact AI summaries, with group order, household settings and weekly reminders configured through secrets.
+- Store the formatted notification in a reusable template sensor and hide summaries from other days on the dashboard.
+- Upgrade the example by merging the new config and secrets entries, updating the automation, and reloading the changed Home Assistant YAML integrations.
+
 ## 0.8.3
 
 - Add optional read-only timetable access with an API key in the URL, configured through HAOS options or the environment.
