@@ -14,7 +14,7 @@ const mainItems = [
 export function MainNav() {
   const { t, message } = useI18n();
   const { pathname } = useLocation();
-  return <nav className="family-dock" aria-label={t("Main navigation")}>{mainItems.map(item => <Link to={item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : pathname === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.6} /><span>{message(item.label)}</span></Link>)}</nav>;
+  return <nav className="family-dock glass-surface" aria-label={t("Main navigation")}>{mainItems.map(item => <Link className="press-feedback" to={item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : pathname === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.8} aria-hidden="true" /><span>{message(item.label)}</span></Link>)}</nav>;
 }
 const smartItems = [
   { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },

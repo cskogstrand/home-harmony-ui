@@ -2,23 +2,23 @@
 version: 1
 slug: "src-pages-dashboard-tsx"
 primary_target: "src/pages/Dashboard.tsx"
-related_targets: ["src/afterglow.css","src/index.css","src/components/layout/Navigation.tsx","src/components/FamilyPlanner.tsx"]
+related_targets: ["src/afterglow.css","src/index.css","src/components/layout/Navigation.tsx","src/components/layout/AppLayout.tsx","src/components/ui/button-variants.ts","src/components/ui/dropdown-menu.tsx"]
 ---
 
 # Shared household board
 
-Mode: Operate. Primary target: 1440 × 2560 portrait touchscreen; phone and desktop layouts remain supported. Rebuild the shared shell and reusable UI, Today, calendar, lists, school and smart-home navigation without changing data ownership or command safety.
+Mode: Operate. Primary target: 1440 × 2560 portrait touchscreen; phone and desktop layouts remain supported. The experiment changes the app's shared visual system while preserving workflows, content, safe commands, and data ownership.
 
 ## Direction contract
 
-THESIS: Library wayfinding makes household plans and controls readable and easy to find. Task information takes precedence over slogans and oversized decoration.
+THESIS: An iOS Liquid Glass inspired control layer floats above a readable household board.
 
-OWN-WORLD: Deep evergreen navigation, pale green-gray ground, near-white work surfaces, dark green ink; the dark counterpart uses evergreen surfaces with a lighter green action color. A consistent sans, restrained 12–16px corners and clear dividers support dense schedules.
+OWN-WORLD: Cool pearl and midnight blue grounds, native system typography, crisp blue actions, opaque rounded work surfaces. Translucent navigation has a softly illuminated rim and a restrained shadow; content never competes with the controls.
 
-STORY: Read the next plan, scan everyone's week, act on lists, inspect school and home controls. Current location is obvious in the bottom navigation. Offline is visibly distinct from empty.
+STORY: Read the next plan, scan the family week, act on lists, inspect school and home controls. Keep the five labeled destinations and visible offline, pending, and error states.
 
-FIRST VIEWPORT: A modest header; greeting/date opposite the clock; next plan; full-width family week; paired daily and shopping lists; school previews; home favorites. At 1440 × 2560, essential text is 18–24px and touch targets at least 48px. Overflow remains scrollable; content is never hidden to fit. The signature is consistent aligned person/date lanes with a clearly marked current day.
+FIRST VIEWPORT: Preserve the compact brand/home header, greeting and clock, next plan, and existing responsive board. The signature is a floating glass navigation capsule, with a tinted current route and existing press feedback. Glass is reserved for the dock, header controls, and transient menus. Lists, forms and calendar rows remain opaque. Phone dock floats clear of the screen edge; portrait touch targets remain generous.
 
-FORM: User selected Library wayfinding, grounded candidate 1 (pick), over assigned candidate 6. seed:dbcc6d3e13cfa3e8. Code-led; approved arrangement at .impeccable/mocks/decision/library.html. Other grounded candidates considered: linen, swim-lane graphics, school planner, transit wayfinding, gallery wayfinding, garden labels.
+FORM: User pinned iOS Liquid Glass and asked to implement an experiment on a branch. This overrides the direction roll (seed:04333850e6d199d9); code-led, no decision comp. Sources: Apple's Materials HIG and WWDC25 Meet Liquid Glass. CSS supplies blur, translucency and specular edges; native optical refraction is outside the web implementation.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: Verify light/dark, desktop, phone, portrait, navigation, lists and dialogs with fictional fixtures; preserve reduced motion and provide solid surfaces for reduced transparency, increased contrast and missing backdrop-filter support. Finish with independent review and matching design documentation.
