@@ -21,7 +21,7 @@ actions:
         {{ ['mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag',
         'søndag'][today_at().weekday()] }}
       daily_reminder: "{{ timetable_response.weekly_reminders.get(today_at().weekday() | string, '') }}"
-      summary_max_chars: >-
+      summary_target_chars: >-
         {% set emoji_chars = summary_groups | map(attribute='emoji') | map('length') | sum + summary_groups | length %}
         {{ 350 - emoji_chars - ((shared_group | length) + (daily_reminder | length) + 5 if daily_reminder else 0) }}
   - if:
@@ -95,7 +95,9 @@ actions:
       attachments: '{{ timetable_attachments }}'
       instructions: >-
         Skriv bare selve varselet på norsk bokmål: én kort linje per gruppe,
-        maks {{ summary_max_chars }} tegn inkludert mellomrom, linjeskift og gruppemerker.
+        sikt mot {{ summary_target_chars }} tegn inkludert mellomrom, linjeskift og gruppemerker.
+        Tegnbudsjettet er veiledende. Behold alle kalenderens tidsopplysninger
+        selv om sammendraget blir lengre.
 
         Tillatte gruppenavn i fast rekkefølge: {{ summary_groups | map(attribute='name') | list | to_json }}.
         "{{ shared_group }}" er fellesgruppen; resten er personer.
@@ -163,26 +165,29 @@ actions:
         Ikke dikt opp timeplandetaljer.
 
 
-        Velg deretter de viktigste kalenderopplysningene ut fra konsekvensen av
-        å glemme dem.
+        Ta med alle kalenderhendelser som har klokkeslett, også rutinemessige.
+        Behold starttid og sluttid fra start/end samt eksplisitte oppmøtetider
+        og tidsfrister i tittel eller beskrivelse. Skriv klokkeslett som HH:MM
+        i Home Assistants lokale tidssone, med riktig person og aktivitet.
+        Behold datoen når tidspunktet gjelder en annen dag. En relativ beskjed
+        som «møt 30 minutter før» erstatter aldri kalenderens klokkeslett.
+        Heldagshendelser med bare dato skal ikke få oppdiktede klokkeslett;
+        behold likevel uttrykkelige tider i tittelen eller beskrivelsen.
+        Tidsopplysninger skal aldri utelates for å spare tegn.
 
-        Sett praktiske forberedelser og avvik først: mat, klær/utstyr, turer,
-        endrede tider/steder,
+        Prioriter ellers praktiske forberedelser og avvik: mat, klær/utstyr,
+        turer, endrede steder, levering/henting og reelle kollisjoner.
+        Ta med sted når det påvirker hva noen må gjøre; kort ned adresser og
+        andre mindre viktige detaljer før tidsopplysninger. Utelat duplikater
+        og kommentarer om tomme kalendere. Ikke anta reisetider eller hvem en
+        uklar avtale gjelder.
 
-        levering/henting og reelle kollisjoner. Ta med viktige avtaler med
-        person og starttid;
-
-        sted og sluttid bare når det påvirker hva noen må gjøre. Utelat
-        rutinemessig oppmøte,
-
-        duplikater og kommentarer om tomme kalendere. Ikke anta reisetider eller
-        hvem en uklar avtale gjelder.
-
-        Presisering for istrening med notatet «Oppmøte 30 minutter før is»:
+        Presisering for istrening med notatet «Oppmøte 30 minutter før is»
+        eller «Oppmøte senest 30 minutter før is»:
         Kalenderens fra-tid er allerede oppmøtetiden. Istiden begynner 30 minutter
         etter fra-tiden og slutter ved kalenderens til-tid. Ikke trekk 30 minutter
-        fra kalenderens fra-tid. Ta alltid med dette oppmøtet, selv om rutinemessig
-        oppmøte ellers utelates, og skill tydelig mellom oppmøte og istid.
+        fra kalenderens fra-tid. Ta alltid med dette oppmøtet, og skill tydelig
+        mellom oppmøte og istid. Behold «senest» når notatet bruker det.
         Eksempel: Kalenderintervallet 17:00–18:20 med dette notatet skal bli
         «Oppmøte 17:00, is 17:30–18:20», aldri «Trening 17:00, oppmøte 16:30».
         Eksemplet er tolkningsveiledning, ikke en opplysning om dagens planer.
@@ -210,10 +215,11 @@ actions:
         Før du svarer: kontroller at hver opplysning står under riktig person
         eller "{{ shared_group }}",
 
-        at rollene er bevart og at timeplanopplysningene er med, og kort ned til
-
-        tegnbudsjettet. Fjern mindre viktige kalenderdetaljer før du fjerner
-        timeplanopplysninger.
+        at rollene er bevart og at timeplanopplysningene er med. Kontroller hver
+        kalenderhendelse med klokkeslett mot svaret: starttid, sluttid og egne
+        oppmøtetider eller frister skal være med under riktig aktivitet.
+        Kort ned mindre viktige detaljer først; overskrid heller tegnbudsjettet
+        enn å fjerne tids- eller timeplanopplysninger.
 
 
         Kalenderkilder (navnet er kildekontekst, ikke en overstyring av
@@ -279,7 +285,7 @@ actions:
             {%- set ns.lines = ns.lines + [group.emoji ~ ' ' ~ group.name ~ ': ' ~ (body.parts | unique | join(' '))] -%}
           {%- endif -%}
         {%- endfor -%}
-        {{ ns.lines | join('\n\n') | truncate(350, false, '…', 0) }}
+        {{ ns.lines | join('\n\n') }}
   - condition: template
     value_template: '{{ notification_message | trim | length > 0 }}'
   - event: home_harmony_morning_summary_ready

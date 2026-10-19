@@ -54,6 +54,16 @@ for (const value of [
 }
 assert.equal(automation.initial_state, false);
 
+// Guard the time-preservation instructions; model compliance still needs a live run.
+const summaryInstructions = automation.actions.find(action => action.action === "ai_task.generate_data").data.instructions.replace(/\s+/g, " ");
+assert.match(summaryInstructions, /Ta med alle kalenderhendelser som har klokkeslett, også rutinemessige/);
+assert.match(summaryInstructions, /Behold starttid og sluttid fra start\/end samt eksplisitte oppmøtetider/);
+assert.match(summaryInstructions, /Heldagshendelser med bare dato skal ikke få oppdiktede klokkeslett/);
+assert.match(summaryInstructions, /Tegnbudsjettet er veiledende/);
+assert.doesNotMatch(summaryInstructions, /Utelat rutinemessig oppmøte/);
+const notificationTemplate = automation.actions.find(action => action.variables?.notification_message).variables.notification_message;
+assert.doesNotMatch(notificationTemplate, /\btruncate\s*\(/, "Formatting must not cut off calendar times at the end of a long summary");
+
 // Keep the standalone voice script wired to the published sensor and AI response.
 const voiceScripts = yaml.load(readExample("morning-summary-voice.yaml"), { schema });
 assert.deepEqual([...secrets].sort(), Object.keys(exampleSecrets).sort());
@@ -79,4 +89,4 @@ assert.equal(voice.sequence[speakIndex].data.media_player_entity_id, "{{ speaker
 assert.equal(voice.sequence[speakIndex].data.language, "nb-NO");
 assert.equal(voice.sequence[speakIndex].data.options, undefined);
 assert.equal(voice.sequence[speakIndex].data.message, `{{ ${voice.sequence[generateIndex].response_variable}.data | trim }}`);
-console.log("Morning summary YAML passes: UI-safe automation, secret-backed scripts/settings, sensor publication and voice wiring.");
+console.log("Morning summary YAML passes: UI-safe automation, secret-backed scripts/settings, time-preservation instructions, sensor publication and voice wiring.");
