@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3
+
+- Add optional read-only timetable access with an API key in the URL, configured through HAOS options or the environment.
+- Include a disabled morning-summary automation draft for family calendars, with editable AI instructions and notification delivery.
+- Show ISO week numbers on Today and calendar views.
+
 ## 0.8.2
 
 - Return 202 Accepted once a timetable PDF is saved, then convert it in the background and show failures at the top of the app.
