@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
+type ListPresence = { itemIds: string[]; completedIds: string[] };
 function ListPanelSurface() {
   const reduceMotion = useReducedMotion();
   return <motion.div className="list-panel-surface" aria-hidden="true" layout={!reduceMotion}
@@ -28,17 +29,19 @@ const CheckRow = forwardRef<HTMLDivElement, {
 }>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, onToggle, onEdit, onRemove }, ref) {
   const { t } = useI18n();
   const present = useIsPresent();
-  const completedIds: string[] = usePresenceData() ?? [];
+  const presence: ListPresence | undefined = usePresenceData();
   const reduceMotion = useReducedMotion();
-  const completing = !present && completedIds.includes(id);
+  const completing = !present && !complete && presence?.completedIds.includes(id);
+  const deleting = !present && presence && !presence.itemIds.includes(id);
+  const exiting = completing || deleting;
   const entering = feedback === "added" || feedback === "reopened";
   const busy = !!pending && present;
   return <motion.div ref={ref} className="check-row-shell" aria-hidden={!present || undefined}
     initial={entering && !reduceMotion ? { opacity: 0, transform: "translateX(24px) scale(.97)" } : false}
     layout={reduceMotion ? false : "position"} animate={{ opacity: 1, transform: "translateX(0px) scale(1)" }}
     transition={reduceMotion ? { duration: 0 } : rowTransition}
-    exit={{ opacity: 0, transform: completing && !reduceMotion ? "translateX(24px) scale(.97)" : "translateX(0px) scale(1)",
-      transition: { duration: completing ? reduceMotion ? .16 : .7 : 0, ease: [.23, 1, .32, 1] } }}>
+    exit={{ opacity: 0, transform: exiting && !reduceMotion ? "translateX(24px) scale(.97)" : "translateX(0px) scale(1)",
+      transition: { duration: exiting ? reduceMotion ? .16 : .7 : 0, ease: [.23, 1, .32, 1] } }}>
     <motion.div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`} data-feedback={feedback}
       initial={false} animate={{ transform: feedback === "edited" && !reduceMotion ? "translateX(12px)" : "translateX(0px)" }}
       transition={reduceMotion ? { duration: 0 } : rowTransition}>
@@ -54,12 +57,14 @@ const ListEmptyNote = forwardRef<HTMLDivElement, { text: string }>(function List
     <p className="empty-note">{text}</p>
   </motion.div>;
 });
-const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; children: ReactNode }>(function CompletedItems({ count, children }, ref) {
+const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence: ListPresence; children: ReactNode }>(function CompletedItems({ count, presence, children }, ref) {
   const { t } = useI18n();
+  // Presence data updates on exit; live sections need current IDs from props.
+  const exitPresence: ListPresence | undefined = usePresenceData();
   const reduceMotion = useReducedMotion();
   const present = useIsPresent();
   return <motion.details ref={ref} className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
-    <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" propagate>{children}</AnimatePresence></div>
+    <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={present ? presence : exitPresence} propagate>{children}</AnimatePresence></div>
   </motion.details>;
 });
 function ItemEditor({ text, kind, description, disabled, error, onSave, onClose }: {
@@ -143,7 +148,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     return () => { active = false; };
   }, [online, entityId, requestKey, refresh, todoItems]);
   const loading = online && result.key !== requestKey;
-  // Keep the last rows mounted during refresh so confirmed completions can animate out.
+  // Keep the last rows mounted during refresh so confirmed changes can animate out.
   const hasResult = result.entityId === entityId && !!result.key;
   const items = online && hasResult ? result.items : [];
   const feedback = useListItemFeedback(online && hasResult && !result.error
@@ -172,6 +177,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     setText(""); setAdding(false);
   };
   const completed = items.filter(item => item.status === "completed");
+  const presence: ListPresence = { itemIds: items.map(item => item.uid), completedIds: completed.map(item => item.uid) };
   const pending = items.filter(item => item.status !== "completed");
   const shown = limit ? pending.slice(0, limit) : pending;
   const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
@@ -194,9 +200,9 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
       {hasResult && (result.error ? <p role="alert">{message(result.error)}</p> : <>
         <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>
-        <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={completed.map(item => item.uid)}>{shown.map(row)}</AnimatePresence></div>
+        <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
         <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
-        <AnimatePresence initial={false} mode="popLayout">{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{!!completed.length && <CompletedItems key="completed" count={completed.length} presence={presence}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}
@@ -224,6 +230,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const list = items.filter(i => i.kind === kind && isMemberVisible(i.member));
   if (kind !== "shopping") list.sort((a, b) => compareMembers(a.member, b.member));
   const completed = list.filter(i => itemIsDone(i, today));
+  const presence: ListPresence = { itemIds: items.map(item => item.id), completedIds: completed.map(item => item.id) };
   const pending = list.filter(i => !itemIsDone(i, today));
   const shown = limit ? pending.slice(0, limit) : pending;
   const add = (name = text) => {
@@ -249,9 +256,9 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
         <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={add} isDisabled={name => pending.some(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(name))} />
       </form>}
     </div>
-    <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
+    <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
     <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={list.length ? t("All done.") : kind === "shopping" ? t("All stocked up. Add something when you need it.") : t("Nothing on the list. Enjoy the breathing room.")} />}</AnimatePresence>
-    <AnimatePresence initial={false} mode="popLayout">{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
+    <AnimatePresence initial={false} mode="popLayout" custom={presence}>{!!completed.length && <CompletedItems key="completed" count={completed.length} presence={presence}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
     {editing && <ItemEditor text={editing.text} kind={kind} description={t("Saved to the family planner.")} onSave={text => renameItem(editing.id, text)} onClose={() => setEditing(undefined)} />}
     {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from the family planner? This cannot be undone.", { value1: removing.text })} confirmLabel={t("Remove item")} destructive onConfirm={() => deleteItem(removing.id)} />}
   </article>;

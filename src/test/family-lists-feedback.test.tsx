@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ListPanel } from "@/components/FamilyLists";
 import type { ListItem } from "@/contexts/FamilyContext";
@@ -59,6 +59,24 @@ describe.each([true, false])("list change feedback (Home Assistant: %s)", connec
     update();
     const milk = await screen.findByRole("checkbox", { name: "Milk" });
     expect(milk.closest(".check-row")).not.toHaveAttribute("data-feedback");
+  });
+
+  it.each(["pending", "completed", "last completed"])("retains a deleted %s row for its exit without marking it complete", async section => {
+    const complete = section !== "pending";
+    family.items.push({ id: "milk", text: "Milk", kind: "shopping", member: "everyone", done: complete });
+    if (section === "completed") family.items.push({ id: "rice", text: "Rice", kind: "shopping", member: "everyone", done: true });
+    const update = await openList();
+    if (complete) fireEvent.click(screen.getByText(`Completed (${section === "completed" ? 2 : 1})`));
+    const milk = screen.getByRole("checkbox", { name: "Milk" });
+    family.items = family.items.filter(item => item.id !== "milk");
+    await act(async () => update());
+    expect(milk).toBeInTheDocument();
+    expect(milk.closest(".check-row-shell")).toHaveAttribute("aria-hidden", "true");
+    expect(milk).toBeDisabled();
+    expect(milk).toHaveProperty("checked", complete);
+    expect(milk.closest(".check-row")).not.toHaveClass("completing");
+    await waitFor(() => expect(milk).not.toBeInTheDocument());
+    expect(screen.getByRole("checkbox", { name: "Bread" })).toBeEnabled();
   });
 
 });

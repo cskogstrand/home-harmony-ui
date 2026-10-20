@@ -311,15 +311,18 @@ List changes use deliberately slower, flowing motion so people can follow what c
 | Added or reopened | Fade in from 24px to the right and 97% scale; highlight the row. | 800ms, `cubic-bezier(.77, 0, .175, 1)` |
 | Edited | Move 12px to the right, then settle back as the highlight fades. | 800ms each direction, same curve |
 | Completed | Show the confirmed check and strikethrough; slide 24px right, shrink to 97% and fade out. | 700ms, `cubic-bezier(.23, 1, .32, 1)` |
+| Deleted | Slide 24px right, shrink to 97% and fade out, preserving the previous checked state. Remaining rows reflow alongside the exit, including inside Completed. | 700ms, `cubic-bezier(.23, 1, .32, 1)` |
 | Reflow | Move remaining rows, the completed section and empty state; resize the panel surface alongside them. | 800ms, `cubic-bezier(.77, 0, .175, 1)` |
 | Highlight | Primary color at 14% opacity, fading in and then out. | 350ms in; feedback clears after 800ms, followed by a 750ms fade |
 | Check | Fade in and scale from 90% to full size. | 450ms opacity, 600ms scale, shared `--ease-out` |
 
 Compare previous and new items by stable ID to identify additions, edits and completion changes. Initial loads, reconnects, unchanged refreshes and reordering do not highlight rows. New changes extend the active feedback window so overlapping updates remain legible.
 
+Deletion starts only after the item disappears from confirmed data. Keep its row mounted for the exit, with controls disabled and the row hidden from assistive technology. Cancelled or failed deletion keeps the item in place; filtering or a dashboard limit must not be mistaken for deletion. Pass current item IDs through nested presence boundaries so deleting the last completed item also animates.
+
 On a Home Assistant checkbox click, show a spinner immediately inside that checkbox and keep it there through command submission and the following item refresh. Preserve the last confirmed checked state until fresh data arrives. The spinner uses a steady 1s linear rotation, matching existing suggestion feedback; other rows do not spin. A failed command or refresh ends pending feedback and displays the existing error. Suggestions also show pending feedback while submitting their update.
 
-Confirmed list changes animate identically for pointer and keyboard input, including Enter to submit an addition or edit. Input method must not suppress the row highlight, entry, exit or coordinated reflow. With reduced motion, remove translation, scaling and spinner rotation; use a static loading glyph with `aria-busy`, and limit check, highlight and completion fades to 160ms. Pending feedback remains available for keyboard users.
+Confirmed list changes animate identically for pointer and keyboard input, including Enter to submit an addition or edit. Input method must not suppress the row highlight, entry, exit or coordinated reflow. With reduced motion, remove translation, scaling and spinner rotation; use a static loading glyph with `aria-busy`, and limit check, highlight and exit fades to 160ms. Pending feedback remains available for keyboard users.
 
 Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode="popLayout"` for coordinated reflow. Keep forwarded refs on presence children. Animate the panel's separate background surface so text does not stretch; avoid animating row height. CSS owns the highlight and check, and the existing motion-safe spinner utility owns rotation. Sources: [list components](src/components/FamilyLists.tsx), [item diff and feedback lifetime](src/hooks/use-list-item-feedback.ts), and [motion styles](src/afterglow.css).
 
