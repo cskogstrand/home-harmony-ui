@@ -34,7 +34,8 @@ describe.each([true, false])("list change feedback (Home Assistant: %s)", connec
     return update;
   }
 
-  it("highlights additions and confirmed edits without replaying the initial list", async () => {
+  it.each(["pointer", "keyboard"])("highlights additions and confirmed edits without replaying the initial list (%s)", async input => {
+    document.documentElement.dataset.motionInput = input;
     const update = await openList();
     const bread = screen.getByRole("checkbox", { name: "Bread" }).closest(".check-row");
     expect(bread).not.toHaveAttribute("data-feedback");
@@ -60,12 +61,4 @@ describe.each([true, false])("list change feedback (Home Assistant: %s)", connec
     expect(milk.closest(".check-row")).not.toHaveAttribute("data-feedback");
   });
 
-  it("keeps keyboard-triggered changes immediate", async () => {
-    const update = await openList();
-    document.documentElement.dataset.motionInput = "keyboard";
-    family.items = [{ ...family.items[0], text: "Bread rolls" }];
-    update();
-    const bread = await screen.findByRole("checkbox", { name: "Bread rolls" });
-    expect(bread.closest(".check-row")).not.toHaveAttribute("data-feedback");
-  });
 });

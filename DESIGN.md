@@ -300,7 +300,7 @@ The weekly grid aligns people and dates, marks the current day, and supports con
 
 Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 
-Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms. Keyboard actions stay immediate. Reduced-motion settings replace overlay movement with a 160ms fade. Do not add motion to imply a device command succeeded before the state confirms it.
+Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms. Keyboard control and overlay transitions stay immediate. List-change feedback follows the rules below. Reduced-motion settings replace overlay movement with a 160ms fade. Do not add motion to imply a device command succeeded before the state confirms it.
 
 ### List motion
 
@@ -319,7 +319,7 @@ Compare previous and new items by stable ID to identify additions, edits and com
 
 On a Home Assistant checkbox click, show a spinner immediately inside that checkbox and keep it there through command submission and the following item refresh. Preserve the last confirmed checked state until fresh data arrives. The spinner uses a steady 1s linear rotation, matching existing suggestion feedback; other rows do not spin. A failed command or refresh ends pending feedback and displays the existing error. Suggestions also show pending feedback while submitting their update.
 
-Keyboard-triggered row movement and highlights are immediate or omitted. With reduced motion, remove translation, scaling and spinner rotation; use a static loading glyph with `aria-busy`, and limit check, highlight and completion fades to 160ms. Pending feedback remains available for keyboard users.
+Confirmed list changes animate identically for pointer and keyboard input, including Enter to submit an addition or edit. Input method must not suppress the row highlight, entry, exit or coordinated reflow. With reduced motion, remove translation, scaling and spinner rotation; use a static loading glyph with `aria-busy`, and limit check, highlight and completion fades to 160ms. Pending feedback remains available for keyboard users.
 
 Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode="popLayout"` for coordinated reflow. Keep forwarded refs on presence children. Animate the panel's separate background surface so text does not stretch; avoid animating row height. CSS owns the highlight and check, and the existing motion-safe spinner utility owns rotation. Sources: [list components](src/components/FamilyLists.tsx), [item diff and feedback lifetime](src/hooks/use-list-item-feedback.ts), and [motion styles](src/afterglow.css).
 

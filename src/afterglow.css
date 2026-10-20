@@ -103,7 +103,7 @@
   @layer base {
     .motion-surface, .motion-backdrop { animation-duration: 160ms !important; }
     [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion, .quick-add, .item-suggestions, .content-ready) { transition-property: opacity !important; transition-duration: 160ms !important; }
-    :root:not([data-motion-input="keyboard"]) .check-row::before, :root:not([data-motion-input="keyboard"]) .check-mark .check-icon { transition-duration: 160ms !important; }
+    .check-row::before, .check-mark .check-icon { transition-duration: 160ms !important; }
   }
 }
 .app-header { max-width: 1600px; margin-inline: auto; padding: 1.5rem var(--space); display: flex; align-items: center; gap: 1.5rem; min-height: 88px; }
@@ -206,7 +206,6 @@
 .check-row { position: relative; isolation: isolate; display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 56px; }
 .check-row::before { content: ""; position: absolute; inset: 2px 0; z-index: -1; border-radius: 8px; background: hsl(var(--primary) / .14); pointer-events: none; opacity: 0; transition: opacity 750ms var(--ease-out); }
 .check-row[data-feedback]::before, .check-row.completing::before { opacity: 1; transition-duration: 350ms; }
-[data-motion-input="keyboard"] .check-row::before { opacity: 0; transition: none; }
 .check-row-shell:last-child .check-row { display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 56px; }
 .check-row :is(label, .edit-item) { display: flex; align-items: center; gap: 12px; cursor: pointer; min-height: 50px; font-size: 0.9375rem; position: relative; }
 .check-row label { flex-shrink: 0; min-width: 48px; justify-content: center; }
@@ -226,7 +225,6 @@
   .check-mark .check-icon { transform: scale(.9); transition: opacity 450ms var(--ease-out), transform 600ms var(--ease-out); }
   .check-row input:checked + .check-mark .check-icon { transform: scale(1); }
 }
-[data-motion-input="keyboard"] .check-mark .check-icon { transition: none; }
 @media (prefers-reduced-motion: reduce) { .check-row::before { background: hsl(var(--primary) / .08); } }
 .list-composer { position: sticky; top: .5rem; z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }
 .list-action-bar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }

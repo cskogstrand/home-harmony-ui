@@ -17,7 +17,7 @@ const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
 function ListPanelSurface() {
-  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput === "keyboard";
+  const reduceMotion = useReducedMotion();
   return <motion.div className="list-panel-surface" aria-hidden="true" layout={!reduceMotion}
     style={{ borderRadius: 24 }} transition={reduceMotion ? { duration: 0 } : rowTransition} />;
 }
@@ -29,8 +29,7 @@ const CheckRow = forwardRef<HTMLDivElement, {
   const { t } = useI18n();
   const present = useIsPresent();
   const completedIds: string[] = usePresenceData() ?? [];
-  const keyboard = document.documentElement.dataset.motionInput === "keyboard";
-  const reduceMotion = useReducedMotion() || keyboard;
+  const reduceMotion = useReducedMotion();
   const completing = !present && completedIds.includes(id);
   const entering = feedback === "added" || feedback === "reopened";
   const busy = !!pending && present;
@@ -39,8 +38,8 @@ const CheckRow = forwardRef<HTMLDivElement, {
     layout={reduceMotion ? false : "position"} animate={{ opacity: 1, transform: "translateX(0px) scale(1)" }}
     transition={reduceMotion ? { duration: 0 } : rowTransition}
     exit={{ opacity: 0, transform: completing && !reduceMotion ? "translateX(24px) scale(.97)" : "translateX(0px) scale(1)",
-      transition: { duration: completing && !keyboard ? reduceMotion ? .16 : .7 : 0, ease: [.23, 1, .32, 1] } }}>
-    <motion.div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`} data-feedback={!keyboard ? feedback : undefined}
+      transition: { duration: completing ? reduceMotion ? .16 : .7 : 0, ease: [.23, 1, .32, 1] } }}>
+    <motion.div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`} data-feedback={feedback}
       initial={false} animate={{ transform: feedback === "edited" && !reduceMotion ? "translateX(12px)" : "translateX(0px)" }}
       transition={reduceMotion ? { duration: 0 } : rowTransition}>
       <label><input type="checkbox" aria-label={text} aria-busy={busy} checked={complete || completing} disabled={disabled || busy || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} className="check-icon" />{busy && <LoaderCircle size={16} className="motion-safe:animate-spin" />}</span></label>
@@ -50,14 +49,14 @@ const CheckRow = forwardRef<HTMLDivElement, {
   </motion.div>;
 });
 const ListEmptyNote = forwardRef<HTMLDivElement, { text: string }>(function ListEmptyNote({ text }, ref) {
-  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput === "keyboard";
+  const reduceMotion = useReducedMotion();
   return <motion.div ref={ref} className="list-empty-note" layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
     <p className="empty-note">{text}</p>
   </motion.div>;
 });
 const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; children: ReactNode }>(function CompletedItems({ count, children }, ref) {
   const { t } = useI18n();
-  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput === "keyboard";
+  const reduceMotion = useReducedMotion();
   const present = useIsPresent();
   return <motion.details ref={ref} className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
     <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" propagate>{children}</AnimatePresence></div>
