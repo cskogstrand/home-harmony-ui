@@ -29,7 +29,7 @@
 @media (width <= 499px) { .palette-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (forced-colors: active) { .palette-option:has([data-state="checked"]) { outline-color: Highlight; } }
 
-/* Glass belongs to floating layers; schedules, lists and fields keep an opaque reading surface. */
+/* Glass frames floating layers and calendar timetables; lesson text keeps a dense reading surface. */
 .glass-surface {
   --muted-foreground: var(--nav-muted);
   background-color: hsl(var(--nav-background));
@@ -269,14 +269,14 @@
 .timetable-administration .planner-form { margin-block: 1rem; }
 .calendar-timetable { container-type: inline-size; min-width: 0; }
 .timetable-week-label { margin: .5rem 0 1rem; font-weight: 600; }
-.timetable-week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid hsl(var(--border)); }
-.timetable-day { min-width: 0; padding: .75rem; overflow-wrap: anywhere; }
-.timetable-day + .timetable-day { border-left: 1px solid hsl(var(--border)); }
+.timetable-week { --glass-opacity: var(--glass-panel-opacity); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: 22px; }
+.timetable-day { min-width: 0; padding: .75rem; border-radius: 16px; overflow-wrap: anywhere; background: hsl(var(--card) / .65); }
 .timetable-day[aria-current="date"] { background: hsl(var(--accent)); }
-.timetable-day h3 { display: flex; flex-direction: column; gap: .25rem; margin-bottom: 1rem; font-size: .875rem; font-weight: 600; }
-.timetable-day h3 time { color: hsl(var(--muted-foreground)); font-weight: 400; }
+.timetable-day h3 { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin-bottom: .75rem; font-size: .875rem; font-weight: 600; }
+.timetable-day h3 time { display: inline-block; padding: .25rem .65rem; margin-left: -.65rem; border-radius: 999px; color: hsl(var(--muted-foreground)); font-weight: 500; font-variant-numeric: tabular-nums; }
+.timetable-day[aria-current="date"] h3 time { margin-left: 0; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .timetable-event { display: flex; flex-direction: column; gap: .3rem; padding-block: .75rem; font-size: .875rem; }
-.timetable-event + .timetable-event { border-top: 1px solid hsl(var(--border)); }
+.timetable-event + .timetable-event { border-top: 1px solid hsl(var(--border) / .6); }
 .timetable-event > span { font-size: .8125rem; font-variant-numeric: tabular-nums; }
 .timetable-event summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding-block: .5rem; }
 .timetable-event p, .timetable-message p { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -296,10 +296,16 @@
 .timetable-dialog-scroll { overflow-y: auto; max-height: 65dvh; }
 @container (max-width: 620px) {
   .timetable-week { grid-template-columns: 1fr; }
-  .timetable-day { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 0 .75rem; }
-  .timetable-day + .timetable-day { border-left: 0; border-top: 1px solid hsl(var(--border)); }
+  .timetable-day { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 0 .75rem; }
   .timetable-day h3 { grid-column: 1; margin: .75rem 0; }
   .timetable-day > :not(h3) { grid-column: 2; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .timetable-day { background: hsl(var(--card)); }
+  .timetable-event + .timetable-event { border-color: hsl(var(--border)); }
+}
+@media (forced-colors: active) {
+  .timetable-day[aria-current="date"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 @media (max-width: 699px) {
   .planner-form .timetable-source { grid-template-columns: 1fr; }

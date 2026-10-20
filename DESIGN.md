@@ -248,6 +248,8 @@ The shared header, main content and footer are centered within a maximum width (
 
 The weekly grid uses horizontal overflow when necessary, with a sticky person column. Its usual minimum width is (840px), reduced to (760px) in wide landscape and removed for the large portrait layout. Multi-day events remain aligned across dates. Content below the viewport stays reachable by scrolling.
 
+Calendar timetables use five equal weekday columns. At a container width of (620px) or less, days stack with dates beside their events in flexible one-to-two columns. Full-width messages remain beneath the week.
+
 The dock is centered within the page gutters, capped at (1000px), or (1328px) on large portrait screens. Its bottom margin is (1rem) plus the safe-area inset; phones use (.75rem) plus the inset. App bottom padding reserves (8rem) plus the inset, reduced to (7rem) on phones. Links are at least (56px) high by default, (72px) on large portrait displays and (64px) on phones. Recurring action controls use a (48px) minimum where explicitly styled; portrait event and list rows reach (64px). Compact mode reduces panel gaps and padding while retaining usable control targets.
 
 The shell respects top and side safe-area insets. The dock uses independent left/right safe gutters, and keyboard scroll padding includes the bottom inset. Phone form fields use 1rem text to avoid focus zoom at the default text size.
@@ -262,13 +264,15 @@ Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), w
 
 The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialog shells and action rows share one continuous glass surface. Form fields retain their opaque reading surfaces; long editor bodies scroll independently above the actions, without a separate footer fill or divider.
 
-**The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus, popovers and dialogs. Keep schedules, lists, form fields and recurring work panels opaque.
+**The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus, popovers and dialogs, with one local exception: calendar timetable frames reuse the shared panel glass on School, dashboard previews and the expanded view. Keep the regular calendar, lists, form fields and other recurring work panels opaque; saved image/PDF timetables retain their existing presentation.
 
 ## Shapes
 
 The system pairs rounded work panels with capsule controls. Work panels use the `panel` radius, planner fields the `field` radius, transient menus the `menu` radius and standard dialogs the `dialog` radius. Shared component radii derive from the CSS base radius (1rem); smaller variants subtract (2px) and (4px). Calendar events retain tighter corners for aligned rows.
 
 Shared buttons, the desktop dock, its destinations and segmented controls use full capsules. Phone navigation uses the smaller `phoneDock` and `phoneDestination` radii so the two-line controls nest within the outer shape. Header icon controls and avatars remain circular. Borders are normally thin (1px), with opacity separating major boundaries from row dividers.
+
+Calendar timetable frames have rounded corners (22px), an inset (.5rem) and gaps (.375rem) around day surfaces with smaller corners (16px).
 
 ## Components
 
@@ -296,7 +300,9 @@ The home selector and settings button share the glass material. Dropdown menus u
 
 ### Schedules, lists and controls
 
-The weekly grid aligns people and dates, marks the current day, and supports continuous multi-day events. Event cells have equal top and bottom padding and center their cards vertically within each row. Events use an opaque person-tinted fill (30% person color in light, 18% in dark), a narrow color marker and a semibold title above tabular times. Text mixes 20% person color with the foreground; metadata uses 85% of that ink against the event fill. Long titles wrap. Chevron cues and subtly squared open edges indicate continuation beyond the week, with equivalent screen-reader labels. These reading surfaces never use glass. Lists pair a separate completion target with a full-width edit target; completion adds a check and a strikethrough before the row moves. Timetables retain their aspect ratio and open into a larger pageable view. Home controls show only supported capabilities, with pending and unavailable feedback.
+The weekly grid aligns people and dates, marks the current day, and supports continuous multi-day events. Event cells have equal top and bottom padding and center their cards vertically within each row. Events use an opaque person-tinted fill (30% person color in light, 18% in dark), a narrow color marker and a semibold title above tabular times. Text mixes 20% person color with the foreground; metadata uses 85% of that ink against the event fill. Long titles wrap. Chevron cues and subtly squared open edges indicate continuation beyond the week, with equivalent screen-reader labels. These reading surfaces never use glass. Lists pair a separate completion target with a full-width edit target; completion adds a check and a strikethrough before the row moves. Saved image/PDF timetables retain their aspect ratio and open into a larger pageable view. Home controls show only supported capabilities, with pending and unavailable feedback.
+
+Calendar timetables place dense day surfaces using the card fill at (65% opacity) inside the shared glass frame. Today uses the accent fill and a primary date capsule with primary foreground, reinforced by `aria-current="date"`. Lesson text, details, messages and controls retain their existing hierarchy and behavior. Reduced transparency and increased contrast make day surfaces opaque; forced colors outline today with system Highlight. The frame inherits the shared glass accessibility fallbacks.
 
 Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 
@@ -342,6 +348,6 @@ Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode
 
 - **Don't** shrink or hide task content to force a tall screen into one viewport.
 - **Don't** encode a person, device state or selected route through color alone.
-- **Don't** spread glass, decorative gradients or elevation into recurring work panels.
+- **Don't** spread glass beyond the documented control layers and calendar timetable frame exception, or add decorative gradients or elevation to other recurring work panels.
 - **Don't** turn a timetable preview into a cropped substitute for the full, pageable view.
 - **Don't** describe CSS blur and specular edges as native optical refraction.

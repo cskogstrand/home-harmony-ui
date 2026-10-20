@@ -20,7 +20,7 @@ export function CalendarTimetable({ child, settings }: { child: string; settings
     <p className="timetable-week-label">{t("Week of {date}", { date: dateLabel(start, { day: "numeric", month: "long" }) })}</p>
     {loading && <p role="status">{t("Loading timetable…")}</p>}
     {!!errors.length && <div role="status" className="timetable-load-error"><p>{t("Some calendars could not be read: {calendars}. Check the connection and calendar integration. Opening hours stay hidden until closure calendars are available.", { calendars: errors.map(calendarName).join(", ") })}</p><Button variant="outline" onClick={refresh}>{t("Retry")}</Button></div>}
-    <div className="timetable-week">{days.map(day => <section key={day.date} className="timetable-day" aria-label={dateLabel(day.date)} aria-current={day.date === today ? "date" : undefined}>
+    <div className="timetable-week glass-surface">{days.map(day => <section key={day.date} className="timetable-day" aria-label={dateLabel(day.date)} aria-current={day.date === today ? "date" : undefined}>
       <h3><span>{dateLabel(day.date, { weekday: "long" })}</span><time dateTime={day.date}>{dateLabel(day.date, { day: "numeric", month: "short" })}</time></h3>
       <div className="timetable-day-events">{day.events.map(event => <div key={event.id} className="timetable-event">
         {event.role === "closures" && <span className="timetable-closure">{t("Closed")}</span>}
