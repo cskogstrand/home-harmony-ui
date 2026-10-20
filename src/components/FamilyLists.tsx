@@ -1,6 +1,7 @@
 import { useI18n } from "@/hooks/use-i18n";
-import { useEffect, useId, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
+import { useListItemFeedback, type ItemFeedback } from "@/hooks/use-list-item-feedback";
+import { forwardRef, useEffect, useId, useState, type ReactNode } from "react";
+import { AnimatePresence, LayoutGroup, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
 import { Check, LoaderCircle, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
@@ -14,44 +15,53 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 
 const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
-function CheckRow({ id, text, complete, member, disabled, removeDisabled, onToggle, onEdit, onRemove }: {
+const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
+function ListPanelSurface() {
+  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput === "keyboard";
+  return <motion.div className="list-panel-surface" aria-hidden="true" layout={!reduceMotion}
+    style={{ borderRadius: 24 }} transition={reduceMotion ? { duration: 0 } : rowTransition} />;
+}
+const CheckRow = forwardRef<HTMLDivElement, {
   id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
+  feedback?: ItemFeedback;
   onToggle: () => void; onEdit: () => void; onRemove?: () => void;
-}) {
+}>(function CheckRow({ id, text, complete, member, feedback, disabled, removeDisabled, onToggle, onEdit, onRemove }, ref) {
   const { t } = useI18n();
   const present = useIsPresent();
   const completedIds: string[] = usePresenceData() ?? [];
-  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput !== "pointer";
+  const keyboard = document.documentElement.dataset.motionInput === "keyboard";
+  const reduceMotion = useReducedMotion() || keyboard;
   const completing = !present && completedIds.includes(id);
-  const animateCompletion = completing && !reduceMotion;
-  return <motion.div className="check-row-shell" aria-hidden={!present || undefined} initial={reduceMotion ? false : complete ? { height: 0, opacity: 0 } : { opacity: 0, transform: "translateY(4px)" }}
-    animate={{ height: "auto", opacity: 1, transform: "translateY(0)" }}
-    transition={{ duration: reduceMotion ? 0 : .24, ease: [.23, 1, .32, 1] }}
-    exit={{ height: 0, opacity: 0, transition: {
-      height: { duration: animateCompletion ? .24 : 0, ease: [.23, 1, .32, 1] },
-      opacity: { duration: animateCompletion ? .24 : 0, ease: [.23, 1, .32, 1] },
-    } }}>
-    <div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`}>
+  const entering = feedback === "added" || feedback === "reopened";
+  return <motion.div ref={ref} className="check-row-shell" aria-hidden={!present || undefined}
+    initial={entering && !reduceMotion ? { opacity: 0, transform: "translateX(24px) scale(.97)" } : false}
+    layout={reduceMotion ? false : "position"} animate={{ opacity: 1, transform: "translateX(0px) scale(1)" }}
+    transition={reduceMotion ? { duration: 0 } : rowTransition}
+    exit={{ opacity: 0, transform: completing && !reduceMotion ? "translateX(24px) scale(.97)" : "translateX(0px) scale(1)",
+      transition: { duration: completing && !keyboard ? reduceMotion ? .16 : .7 : 0, ease: [.23, 1, .32, 1] } }}>
+    <motion.div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`} data-feedback={!keyboard ? feedback : undefined}
+      initial={false} animate={{ transform: feedback === "edited" && !reduceMotion ? "translateX(12px)" : "translateX(0px)" }}
+      transition={reduceMotion ? { duration: 0 } : rowTransition}>
       <label><input type="checkbox" aria-label={text} checked={complete || completing} disabled={disabled || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} /></span></label>
       <button className="edit-item" aria-label={t("Edit {value1}", { value1: text })} disabled={disabled || !present} onClick={onEdit}><span className="check-text">{text}</span>{member && <MemberAvatar member={member} small />}</button>
       {onRemove && <button className="icon-button delete-item" disabled={removeDisabled || !present} aria-label={t("Remove {value1}", { value1: text })} onClick={onRemove}><X size={16} /></button>}
-    </div>
+    </motion.div>
   </motion.div>;
-}
-function ListEmptyNote({ text }: { text: string }) {
-  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput !== "pointer";
-  return <motion.div className="list-empty-note" initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .24, ease: [.23, 1, .32, 1] }}>
+});
+const ListEmptyNote = forwardRef<HTMLDivElement, { text: string }>(function ListEmptyNote({ text }, ref) {
+  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput === "keyboard";
+  return <motion.div ref={ref} className="list-empty-note" layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
     <p className="empty-note">{text}</p>
   </motion.div>;
-}
-function CompletedItems({ count, children }: { count: number; children: ReactNode }) {
+});
+const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; children: ReactNode }>(function CompletedItems({ count, children }, ref) {
   const { t } = useI18n();
-  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput !== "pointer";
+  const reduceMotion = useReducedMotion() || document.documentElement.dataset.motionInput === "keyboard";
   const present = useIsPresent();
-  return <motion.details className="completed-items" aria-hidden={!present || undefined} initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .24, ease: [.23, 1, .32, 1] }}>
-    <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} propagate>{children}</AnimatePresence></div>
+  return <motion.details ref={ref} className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
+    <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" propagate>{children}</AnimatePresence></div>
   </motion.details>;
-}
+});
 function ItemEditor({ text, kind, description, disabled, error, onSave, onClose }: {
   text: string; kind: ListKind; description: string; disabled?: boolean; error?: string;
   onSave: (text: string) => boolean | Promise<boolean>; onClose: () => void;
@@ -91,14 +101,15 @@ export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const { t, message } = useI18n();
   const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline } = useApp();
-  if (!connectedPlanner) return <LocalListPanel kind={kind} limit={limit} />;
+  if (!connectedPlanner) return <LayoutGroup><LocalListPanel kind={kind} limit={limit} /></LayoutGroup>;
   const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && isMemberVisible(assigned.member))
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
-  return <article className={`glow-panel list-panel list-${kind}`}>
+  return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
+    <ListPanelSurface />
     <PanelHeading title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
     {!lists.length && <p className="empty-note">{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p>}
     {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} />)}
-  </article>;
+  </article></LayoutGroup>;
 }
 
 function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId: string; member: MemberId; kind: ListKind; limit?: number }) {
@@ -131,6 +142,8 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   // Keep the last rows mounted during refresh so confirmed completions can animate out.
   const hasResult = result.entityId === entityId && !!result.key;
   const items = online && hasResult ? result.items : [];
+  const feedback = useListItemFeedback(online && hasResult && !result.error
+    ? items.map(item => ({ id: item.uid, text: item.summary, complete: item.status === "completed" })) : null);
   const status = commands[entityId];
   const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && supportsAction(entity, action, services);
   const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string }) => {
@@ -152,7 +165,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const completed = items.filter(item => item.status === "completed");
   const pending = items.filter(item => item.status !== "completed");
   const shown = limit ? pending.slice(0, limit) : pending;
-  const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} complete={item.status === "completed"}
+  const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
     disabled={!can("update_item")} removeDisabled={!can("remove_item")}
     onToggle={() => void change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })}
     onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
@@ -172,9 +185,9 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
       {hasResult && (result.error ? <p role="alert">{message(result.error)}</p> : <>
         <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>
-        <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.uid)}>{shown.map(row)}</AnimatePresence></div>
-        <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
-        <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
+        <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={completed.map(item => item.uid)}>{shown.map(row)}</AnimatePresence></div>
+        <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout">{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}
@@ -198,6 +211,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const [member, setMember] = useState<MemberId>("everyone");
   const formId = useId();
   const suggestionsId = `${formId}-suggestions`;
+  const feedback = useListItemFeedback(items.map(item => ({ id: item.id, text: item.text, complete: itemIsDone(item, today) })));
   const list = items.filter(i => i.kind === kind && isMemberVisible(i.member));
   if (kind !== "shopping") list.sort((a, b) => compareMembers(a.member, b.member));
   const completed = list.filter(i => itemIsDone(i, today));
@@ -212,9 +226,10 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     else toast.info(t("This item is already on the list."));
     setText(""); setAdding(false);
   };
-  const row = (item: ListItem) => <CheckRow key={item.id} id={item.id} text={item.text} complete={itemIsDone(item, today)} member={kind !== "shopping" ? item.member : undefined}
+  const row = (item: ListItem) => <CheckRow key={item.id} id={item.id} text={item.text} complete={itemIsDone(item, today)} member={kind !== "shopping" ? item.member : undefined} feedback={feedback.get(item.id)}
     onToggle={() => toggleItem(item.id)} onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <article className={`glow-panel list-panel list-${kind}`}>
+    <ListPanelSurface />
     <div className="list-composer">
       <PanelHeading title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
       <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</Button></div>
@@ -225,9 +240,9 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
         <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={add} isDisabled={name => pending.some(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(name))} />
       </form>}
     </div>
-    <div className="checklist"><AnimatePresence initial={false} custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
-    <AnimatePresence initial={false}>{!pending.length && <ListEmptyNote key="empty" text={list.length ? t("All done.") : kind === "shopping" ? t("All stocked up. Add something when you need it.") : t("Nothing on the list. Enjoy the breathing room.")} />}</AnimatePresence>
-    <AnimatePresence initial={false}>{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
+    <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={completed.map(item => item.id)}>{shown.map(row)}</AnimatePresence></div>
+    <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={list.length ? t("All done.") : kind === "shopping" ? t("All stocked up. Add something when you need it.") : t("Nothing on the list. Enjoy the breathing room.")} />}</AnimatePresence>
+    <AnimatePresence initial={false} mode="popLayout">{!!completed.length && <CompletedItems key="completed" count={completed.length}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
     {editing && <ItemEditor text={editing.text} kind={kind} description={t("Saved to the family planner.")} onSave={text => renameItem(editing.id, text)} onClose={() => setEditing(undefined)} />}
     {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from the family planner? This cannot be undone.", { value1: removing.text })} confirmLabel={t("Remove item")} destructive onConfirm={() => deleteItem(removing.id)} />}
   </article>;
