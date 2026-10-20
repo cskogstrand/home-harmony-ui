@@ -26,6 +26,33 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("defaults old timetables to images and validates calendar roles without accepting event content", () => {
+  const config = emptyConfiguration();
+  delete config.settings.timetableSettings;
+  expect(parseConfiguration(JSON.stringify(config)).settings.timetableSettings).toEqual({});
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, timetableSettings: { example: { type: "calendar" } } } })).settings.timetableSettings.example.education).toBe("school");
+  for (const settings of [{ type: "unknown" }, { education: "unknown" }, { type: "calendar", calendars: { example: "unknown" } }, { type: "calendar", events: [] }]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, timetableSettings: { example: settings } } }))).toThrow();
+  }
+});
+
+it("shares timetable types and source roles, backs them up and keeps image pages when switching", async () => {
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  const settings = { type: "calendar" as const, education: "kindergarten" as const, calendars: { example: "events" as const, notices: "message" as const, closed: "closures" as const, opening: "hours" as const } };
+  a.updateSettings(p => ({ ...p, timetables: { example: ["/example.png"] }, timetableSettings: { example: settings } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.timetableSettings.example).toEqual(settings);
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  b.updateSettings(p => ({ ...p, timetableSettings: { example: { ...settings, type: "images" } } }));
+  await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
+  expect(b.getSnapshot().config.settings.timetables.example).toEqual(["/example.png"]);
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.timetableSettings.example).toEqual(settings);
+});
+
 it("defaults older settings to Pearl and rejects unknown palettes", () => {
   const config = emptyConfiguration();
   const { colorPalette: _colorPalette, ...oldAppearance } = config.settings.appearance;

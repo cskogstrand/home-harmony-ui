@@ -116,7 +116,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
       const image = pathname.match(timetableImagePath);
       if (pathname === "/api/timetables" && request.method === "GET") {
         json(200, { timetables: Object.entries(config.settings.timetables).map(([member, pages]) => ({
-          member, enabled: config.settings.timetableEnabled[member] ?? pages.length > 0,
+          member, enabled: config.settings.timetableSettings[member]?.type !== "calendar" && (config.settings.timetableEnabled[member] ?? pages.length > 0),
           pages: pages.map(page => keyedRead && timetableImagePath.test(page) ? page.replace("/api/timetables/", `/api/timetables/${timetableApiKey}/`) : page),
         })) });
         return;

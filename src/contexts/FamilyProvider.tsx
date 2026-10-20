@@ -92,8 +92,11 @@ function FamilyStore({ children }: { children: ReactNode }) {
     }),
     saveEvent: rejectLocalContent, deleteEvent: rejectLocalContent, addItem: rejectLocalContent,
     toggleItem: rejectLocalContent, renameItem: rejectLocalContent, deleteItem: rejectLocalContent,
-    hasTimetable: member => planner.timetableEnabled[member] ?? !!planner.timetables[member]?.length,
+    hasTimetable: member => planner.timetableEnabled[member] ?? (planner.timetableSettings[member]?.type === "calendar" || !!planner.timetables[member]?.length),
     setTimetableEnabled: (member, enabled) => setPlanner(p => ({ ...p, timetableEnabled: { ...p.timetableEnabled, [member]: enabled } })),
+    setTimetableSettings: (member, settings) => setPlanner(p => ({ ...p, timetableSettings: { ...p.timetableSettings,
+      [member]: { type: "images", education: "school", calendars: {}, ...p.timetableSettings[member], ...settings },
+    } })),
     setTimetable: (child, urls) => {
       const pages = urls.map(url => url.trim()).filter(Boolean);
       if (!pages.length) { toast.error(t("Add at least one timetable image URL.")); return false; }

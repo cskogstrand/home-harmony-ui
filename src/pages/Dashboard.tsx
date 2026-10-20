@@ -16,10 +16,10 @@ import { useApp } from "@/contexts/AppContext";
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
   const { homeOnline } = useApp();
-  const { today, time, members, memberName, connectedPlanner, hasTimetable, calendar, calendarStart: start, calendarMembers, todoLists, timetables, timetableEnabled, homeEntities, selectedAlarm } = useFamily();
+  const { today, time, members, memberName, connectedPlanner, hasTimetable, calendar, calendarStart: start, calendarMembers, todoLists, timetables, timetableEnabled, timetableSettings, homeEntities, selectedAlarm } = useFamily();
   const shared = useSharedConfiguration();
   const needsSetup = shared?.state.loaded && !Object.keys(calendarMembers).length && !Object.keys(todoLists).length
-    && !Object.values(timetables).some(pages => pages.length) && !Object.values(timetableEnabled).some(Boolean) && homeEntities === undefined && !selectedAlarm;
+    && !Object.values(timetables).some(pages => pages.length) && !Object.values(timetableEnabled).some(Boolean) && !Object.values(timetableSettings).some(settings => settings.type === "calendar") && homeEntities === undefined && !selectedAlarm;
   const data = useCalendarPlans(start, addDays(start, 7));
   const { events, people: familyMembers } = data;
   const schoolMembers = members.filter(m => hasTimetable(m.id));

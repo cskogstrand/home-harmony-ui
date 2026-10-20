@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberColorPicker } from "@/components/MemberColorPicker";
+import { TimetableAdministration } from "@/components/TimetableAdministration";
 export default function HomeSettings() {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
@@ -70,12 +71,17 @@ export default function HomeSettings() {
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
           <label className="flex items-center gap-2 text-sm">{t("Visible")}<Switch aria-label={t("Show {value1} in family planner", { value1: person.name })} checked={isMemberVisible(person.id)} onCheckedChange={visible => setMemberVisible(person.id, visible)} /></label>
-          <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">{t("Timetable")}<Switch aria-label={t("Timetable for {value1}", { value1: person.name })} checked={hasTimetable(person.id)} onCheckedChange={enabled => enabled ? setTimetableEnabled(person.id, true) : setConfirmation({ title: msg("Hide timetable?"), description: msg("Hide {name}’s timetable from School and the dashboard? Saved image URLs will be kept.", { name: person.name }), confirmLabel: msg("Hide timetable"), onConfirm: () => setTimetableEnabled(person.id, false) })} /></label>
+          <label className="mr-auto flex items-center gap-2 text-sm sm:mr-0">{t("Timetable")}<Switch aria-label={t("Timetable for {value1}", { value1: person.name })} checked={hasTimetable(person.id)} onCheckedChange={enabled => enabled ? setTimetableEnabled(person.id, true) : setConfirmation({ title: msg("Hide timetable?"), description: msg("Hide {name}’s timetable from School and the dashboard? Saved pages and calendar choices will be kept.", { name: person.name }), confirmLabel: msg("Hide timetable"), onConfirm: () => setTimetableEnabled(person.id, false) })} /></label>
           <Button type="button" variant="outline" size="icon" disabled={index === 0} aria-label={t("Move {value1} up", { value1: person.name })} onClick={() => moveMember(person.id, -1)}><ArrowUp size={18} aria-hidden="true" /></Button>
           <Button type="button" variant="outline" size="icon" disabled={index === members.length - 1} aria-label={t("Move {value1} down", { value1: person.name })} onClick={() => moveMember(person.id, 1)}><ArrowDown size={18} aria-hidden="true" /></Button>
           <MemberColorPicker person={person} />
         </div>
       </li>)}</ol>
+    </section>
+    <section className="glow-panel" id="timetables"><PanelHeading title={t("Timetables")} />
+      <p className="page-note">{t("Choose timetable types and sources here. School and the dashboard display the result.")}</p>
+      {!members.some(person => hasTimetable(person.id)) && <p className="empty-note">{t("Enable Timetable for a person above to configure it here.")}</p>}
+      {members.filter(person => hasTimetable(person.id)).map(person => <TimetableAdministration key={person.id} child={person.id} />)}
     </section>
     <section className="glow-panel" id="family-calendar"><PanelHeading title={t("People and calendars")} />
       {!homeOnline && <p role="status">{t("Calendars unavailable while offline.")}</p>}

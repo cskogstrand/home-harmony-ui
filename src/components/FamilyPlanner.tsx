@@ -12,6 +12,7 @@ import { useFamily, newPlannerId, addDays, type FamilyEvent, type MemberId } fro
 import { useApp } from "@/contexts/AppContext";
 import { available, calendarTimeInput, calendarTimeValue, supportsAction } from "@/lib/ha-model";
 import { timetableImagePath } from "../../shared/timetables";
+import { CalendarTimetable } from "./CalendarTimetable";
 import { memberColorForeground } from "@/lib/member-colors";
 
 export function PageHeading({ context, title, description, children }: { context?: string; title: string; description?: string; children?: ReactNode }) {
@@ -175,12 +176,12 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   }, [selectedUrl, privateImage, storageRequest]);
   const src = privateImage ? loaded?.url === selectedUrl ? loaded.src : undefined : selectedUrl;
   if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>{t("Loading timetable…")}</p></div>;
-  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? t("The timetable image couldn’t load.") : t("No timetable yet.")}</p><small>{privateImage ? t("Reconnect or reload to try again.") : imageUrl ? t("Check its URL in School.") : t("Add one on the School board.")}</small></div> :
+  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? t("The timetable image couldn’t load.") : t("No timetable yet.")}</p><small>{privateImage ? t("Reconnect or reload to try again.") : imageUrl ? t("Check its URL in Settings → Timetables.") : t("Add one in Settings → Timetables.")}</small></div> :
     <img className={`timetable-image${privateImage && appearance.darkTimetables ? " timetable-image-dark" : ""}`} src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
 }
 function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {
   const { t } = useI18n();
-  const { timetables, memberName } = useFamily();
+  const { timetables, memberName, timetableSettings } = useFamily();
   const pages = timetables[child] ?? [];
   const carousel = useRef<HTMLDivElement>(null);
   const [api, setApi] = useState<CarouselApi>();
@@ -197,7 +198,7 @@ function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId;
   }, [api]);
   const renderPage = (url: string | undefined, index: number) => {
     const pageLabel = pages.length > 1 ? t(", page {page} of {total}", { page: index + 1, total: pages.length }) : "";
-    const image = <TimetableImage imageUrl={url} alt={t("{value1}’s school timetable{value2}", { value1: memberName(child), value2: pageLabel })} />;
+    const image = <TimetableImage imageUrl={url} alt={t(timetableSettings[child]?.education === "kindergarten" ? "{value1}’s kindergarten timetable{value2}" : "{value1}’s school timetable{value2}", { value1: memberName(child), value2: pageLabel })} />;
     return onEnlarge ? <button className="timetable-page" onClick={() => onEnlarge(index)} tabIndex={pages.length <= 1 || page === index ? 0 : -1} aria-label={t("Enlarge {value1}’s timetable{value2}", { value1: memberName(child), value2: pageLabel })}>{image}</button> : image;
   };
   if (pages.length <= 1) return renderPage(pages[0], 0);
@@ -208,10 +209,12 @@ function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId;
 }
 export function SchoolPreview({ child }: { child: MemberId }) {
   const { t } = useI18n();
-  const { memberName, connectedPlanner } = useFamily();
+  const { memberName, connectedPlanner, timetableSettings } = useFamily();
   const [openPage, setOpenPage] = useState<number | null>(null);
-  return <><div className="school-preview">
+  const settings = timetableSettings[child];
+  const calendar = settings?.type === "calendar";
+  return <><div className={`school-preview${calendar ? " school-preview-calendar" : ""}`}>
     <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? t("Year 5") : t("Year 2")}</span>}<Maximize2 size={16} /></div>
-    <TimetablePages child={child} onEnlarge={setOpenPage} />
-  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{t("{value1}’s school week", { value1: memberName(child) })}</DialogTitle><DialogDescription>{t("Saved timetable pages. Update the timetable in School.")}</DialogDescription></DialogHeader><TimetablePages child={child} startIndex={openPage ?? 0} /></DialogContent></Dialog></>;
+    {calendar ? <><CalendarTimetable child={child} settings={settings} /><Button variant="outline" className="mt-3" onClick={() => setOpenPage(0)}><Maximize2 size={16} />{t("Expand timetable")}</Button></> : <TimetablePages child={child} onEnlarge={setOpenPage} />}
+  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{t(settings?.education === "kindergarten" ? "{value1}’s kindergarten week" : "{value1}’s school week", { value1: memberName(child) })}</DialogTitle><DialogDescription>{calendar ? t("Live calendars from Home Assistant. Change sources in Settings → Timetables.") : t("Saved timetable pages. Update them in Settings → Timetables.")}</DialogDescription></DialogHeader>{calendar ? <div className="timetable-dialog-scroll"><CalendarTimetable child={child} settings={settings} /></div> : <TimetablePages child={child} startIndex={openPage ?? 0} />}</DialogContent></Dialog></>;
 }

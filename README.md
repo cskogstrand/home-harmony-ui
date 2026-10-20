@@ -109,7 +109,20 @@ Calendar integrations and to-do lists stay in HA. The app uses reported capabili
 
 ## School timetables
 
-Enable a person's timetable in **Home settings**, then use **School → Upload PDF timetable**. PDFs may be up to **10 MB / 20 pages**, without password protection. Confirming an upload replaces that person's visible pages on every screen. Invalid uploads keep the previous timetable.
+Enable a person's timetable in **Home settings**, then choose **School or kindergarten** and **Timetable type** under **Settings → Timetables**. School is the default; Kindergarten changes that person's week heading and timetable descriptions in both languages. **PDF / images** keeps the existing uploaded pages; **Calendar week** reads selected Home Assistant calendars. Switching types preserves both saved pages and calendar choices, and the dashboard shows the same type.
+
+For a calendar week, assign each calendar a display role:
+
+| Role | Suggested source | Behavior |
+| --- | --- | --- |
+| Daily events | Activities, Meetings; optionally Invitations | Monday–Friday events with times and expandable descriptions. Matching title, times and location across calendars appear once. |
+| Message below the week | Pedagogy or repeated long notices | Full-width text beneath the timetable, using today's entries or the next available day's entries within a year. Duplicate title/text on that day appears once per source. |
+| Closure days | Nursery closures, planning days, holidays | Marks the day closed and hides opening hours. |
+| Opening hours | Regular opening times | Shows hours unless a selected closure calendar marks the day closed. Hidden while any selected closure calendar cannot be read. |
+
+On weekends the grid advances to the coming Monday. Messages show their date when using a future entry. These assignments are separate from the family calendar, work with read-only calendars, and never edit the source events. Settings and backups contain source references only; event contents stay in memory. Missing calendars remain listed so they can be removed or restored.
+
+For saved pages, use **Settings → Timetables → PDF / images → Upload PDF timetable**. PDFs may be up to **10 MB / 20 pages**, without password protection. Confirming an upload replaces that person's visible pages on every screen. Invalid uploads keep the previous timetable.
 
 Each page gets its original PNG and a self-contained dark SVG for older clients. Turn on **App preferences → Appearance → Dark timetables** for dark backgrounds and light text throughout the dashboard, School board and enlarged views, independently of the app theme. The app applies these colors directly to the original PNG, avoiding the filtered SVG rendering that can blur text. This shared preference defaults to off and works with existing uploads without uploading again; external image URLs keep their original colors.
 
@@ -158,7 +171,7 @@ The response contains all saved timetable entries, their enabled flag and ordere
 }
 ```
 
-Prefix relative page URLs with your dashboard's origin to download the images without headers. A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. External image URLs are returned unchanged; never send your API key to those hosts. Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have an empty `pages` array. Disabled timetables remain listed with `enabled: false`, so automations can skip them.
+Prefix relative page URLs with your dashboard's origin to download the images without headers. A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. External image URLs are returned unchanged; never send your API key to those hosts. Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have an empty `pages` array. Disabled timetables remain listed with `enabled: false`, so automations can skip them. Saved pages also report `enabled: false` while the person uses Calendar week, preventing image-based automations from reading an inactive timetable. Calendar events remain available through Home Assistant’s calendar APIs.
 
 The key permits only listing timetables and downloading stored PNG/SVG pages, including older retained uploads. It cannot upload PDFs, read/change dashboard settings, or access HA controls. Responses use `Cache-Control: no-store`. Dashboard credentials still work on the original routes, including `GET /api/timetables` (which returns page URLs without a key).
 
@@ -226,7 +239,7 @@ The AI provider receives the source summary and the TTS provider receives the sp
 
 ### Share a PDF from iPhone
 
-1. On your iPhone, open **School → Share from iPhone** for the person receiving the timetable and copy their **Upload URL**.
+1. On your iPhone, open **Settings → Timetables → Share from iPhone** for the person receiving the timetable and copy their **Upload URL**.
 2. Tap **Download iOS shortcut**. Open the downloaded file in Shortcuts if Safari saves it to Downloads, then tap **Set Up Shortcut / Add Shortcut**. Apple requires this confirmation; a website cannot silently install a shortcut.
 3. Answer the setup questions with the Upload URL and your **dashboard password**, not the HA token. Rename it to identify the person, for example **Upload Emma’s timetable**. Install another copy with the other person's URL when needed.
 4. Open one PDF in Files or another app, tap **Share → Upload Emma’s timetable**, and confirm replacement. The template already accepts PDFs and has **Show in Share Sheet** enabled. Share the actual PDF file, not a webpage link. The shortcut finishes silently as soon as the server saves the PDF and only displays upload errors. The server converts it in the background. Conversion or saving errors appear in a dismissible notification at the top of the app on its next refresh; connection failures are shown by Shortcuts.

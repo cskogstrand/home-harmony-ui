@@ -28,10 +28,17 @@ const imageUrl = z.string().max(4096).refine(value => {
   if (value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) return true;
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
 });
+export const timetableSettingsSchema = z.object({
+  type: z.enum(["images", "calendar"]).default("images"),
+  education: z.enum(["school", "kindergarten"]).default("school"),
+  calendars: z.record(keySchema, z.enum(["events", "message", "closures", "hours"])).default({}),
+}).strict();
+export type TimetableSettings = z.infer<typeof timetableSettingsSchema>;
 export const plannerSchema = z.object({
   language: z.enum(["en", "nb"]).default("en"),
   timetables: z.record(keySchema, z.array(imageUrl).max(100)),
   timetableEnabled: z.record(keySchema, z.boolean()).default({}),
+  timetableSettings: z.record(keySchema, timetableSettingsSchema).default({}),
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
   homeEntities: z.array(memberSchema).optional(),
   memberOrder: z.array(memberSchema).default([]),

@@ -40,7 +40,7 @@ export function AppLayout() {
       </div>
     </header>
     {timetableError && timetableError.id !== dismissedError && <div className="connection-banner" role="alert">
-      <TriangleAlert size={19} aria-hidden="true" /><span className="min-w-0 flex-1"><strong>{t("{value1}’s timetable upload failed.", { value1: memberName(timetableError.member) })}</strong>{message(timetableError.message)} <Link to="/school">{t("Open School")}</Link></span>
+      <TriangleAlert size={19} aria-hidden="true" /><span className="min-w-0 flex-1"><strong>{t("{value1}’s timetable upload failed.", { value1: memberName(timetableError.member) })}</strong>{message(timetableError.message)} <Link to="/settings#timetables">{t("Timetable settings")}</Link></span>
       <button type="button" className="icon-button" aria-label={t("Dismiss timetable error")} onClick={() => setDismissedError(timetableError.id)}><X size={19} aria-hidden="true" /></button>
     </div>}
     <ConnectionBanner />

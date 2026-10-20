@@ -262,6 +262,48 @@
 .image-unavailable { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
 .timetable-dialog { max-width: 1100px; }
 .timetable-dialog .timetable-image { max-height: 65dvh; object-fit: contain; }
+.school-card-calendar, .school-preview-calendar { grid-column: 1 / -1; }
+.timetable-administration { padding-block: 1.5rem; }
+.timetable-administration + .timetable-administration { border-top: 1px solid hsl(var(--border)); }
+.timetable-administration h3 { font-weight: 600; font-size: 1.125rem; }
+.timetable-administration .planner-form { margin-block: 1rem; }
+.calendar-timetable { container-type: inline-size; min-width: 0; }
+.timetable-week-label { margin: .5rem 0 1rem; font-weight: 600; }
+.timetable-week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-block: 1px solid hsl(var(--border)); }
+.timetable-day { min-width: 0; padding: .75rem; overflow-wrap: anywhere; }
+.timetable-day + .timetable-day { border-left: 1px solid hsl(var(--border)); }
+.timetable-day[aria-current="date"] { background: hsl(var(--accent)); }
+.timetable-day h3 { display: flex; flex-direction: column; gap: .25rem; margin-bottom: 1rem; font-size: .875rem; font-weight: 600; }
+.timetable-day h3 time { color: hsl(var(--muted-foreground)); font-weight: 400; }
+.timetable-event { display: flex; flex-direction: column; gap: .3rem; padding-block: .75rem; font-size: .875rem; }
+.timetable-event + .timetable-event { border-top: 1px solid hsl(var(--border)); }
+.timetable-event > span { font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.timetable-event summary { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding-block: .5rem; }
+.timetable-event p, .timetable-message p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.timetable-closure { color: hsl(var(--destructive)); font-weight: 600; }
+.timetable-message { margin-top: 1.5rem; max-width: 75ch; }
+.timetable-message h3 { font-size: 1rem; font-weight: 600; }
+.timetable-message h4 { margin-top: .75rem; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
+.timetable-message p { margin-top: .35rem; }
+.timetable-load-error { margin-bottom: 1rem; }
+.timetable-load-error p { margin-bottom: .5rem; overflow-wrap: anywhere; }
+.timetable-settings { border-top: 1px solid hsl(var(--border)); padding-top: 1.25rem; }
+.timetable-settings fieldset { min-width: 0; }
+.timetable-settings legend { font-weight: 600; margin-bottom: .5rem; }
+.timetable-settings fieldset > p { margin-block: .75rem; }
+.planner-form .timetable-source { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .75rem; padding-block: .75rem; border-bottom: 1px solid hsl(var(--border)); }
+.timetable-source span { overflow-wrap: anywhere; }
+.timetable-dialog-scroll { overflow-y: auto; max-height: 65dvh; }
+@container (max-width: 620px) {
+  .timetable-week { grid-template-columns: 1fr; }
+  .timetable-day { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 0 .75rem; }
+  .timetable-day + .timetable-day { border-left: 0; border-top: 1px solid hsl(var(--border)); }
+  .timetable-day h3 { grid-column: 1; margin: .75rem 0; }
+  .timetable-day > :not(h3) { grid-column: 2; }
+}
+@media (max-width: 699px) {
+  .planner-form .timetable-source { grid-template-columns: 1fr; }
+}
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
 .control-stack { display: flex; flex-direction: column; gap: 11px; width: 100%; }

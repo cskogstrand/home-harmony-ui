@@ -7,13 +7,14 @@ import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
 vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));
 let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
+  app.watchCalendarEvents.mockReset();
   app.homeOnline = true;
   app.connectionStatus = "connected";
   app.haUrl = "http://ha.local:8123";
@@ -38,6 +39,97 @@ const saved = async () => {
   await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
   await pageReady();
 };
+
+it("configures calendar timetables only in settings and presents read-only weeks on School and the dashboard", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example child" }),
+    ...Object.fromEntries(["Activities", "Invitations", "Pedagogy", "Closures", "Hours"].map(name => [`calendar.${name.toLowerCase()}`, state(`calendar.${name.toLowerCase()}`, "off", { friendly_name: name })])),
+  }, emptyRegistries, "home");
+  const child = "home|person.example";
+  settings.settings.timetableEnabled = { [child]: true };
+  settings.settings.timetables = { [child]: ["/sample.png"] };
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => {
+    const activity = { summary: "Example activity", start: "2026-10-26T09:00:00Z", end: "2026-10-26T10:00:00Z" };
+    receive(id === "calendar.activities" || id === "calendar.invitations" ? [activity]
+      : [{ summary: id === "calendar.pedagogy" ? "Shared focus" : id === "calendar.closures" ? "Planning day" : "Regular hours", description: id === "calendar.pedagogy" ? "A long educational message.\nA second paragraph." : "", start: "2026-10-26", end: "2026-10-27" }]);
+  });
+  window.history.replaceState(null, "", "/settings#timetables");
+  const view = render(<App />); await saved();
+  expect(screen.getByLabelText("School or kindergarten for Example child")).toHaveValue("school");
+  fireEvent.change(screen.getByLabelText("School or kindergarten for Example child"), { target: { value: "kindergarten" } });
+  fireEvent.change(screen.getByLabelText("Timetable type for Example child"), { target: { value: "calendar" } });
+  for (const [name, role] of [["Activities", "events"], ["Invitations", "events"], ["Pedagogy", "message"], ["Closures", "closures"], ["Hours", "hours"]]) {
+    fireEvent.change(screen.getByLabelText(`Display ${name} for Example child`), { target: { value: role } });
+  }
+  await saved();
+  expect(app.watchCalendarEvents).not.toHaveBeenCalled();
+  expect(settings.settings.timetables[child]).toEqual(["/sample.png"]);
+  expect(JSON.stringify(settings)).not.toContain("Shared focus");
+  await navigate("School");
+  expect(await screen.findByText("Shared focus")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Example child’s kindergarten week" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Expand timetable" }));
+  const dialog = screen.getByRole("dialog", { name: "Example child’s kindergarten week" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  expect(screen.getAllByText("Example activity")).toHaveLength(1);
+  expect(screen.getByText("Planning day")).toBeInTheDocument();
+  expect(screen.queryByText("Regular hours")).not.toBeInTheDocument();
+  expect(screen.getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/Upload .* timetable PDF/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Share from iPhone")).not.toBeInTheDocument();
+  const subscriptions = [...app.watchCalendarEvents.mock.calls];
+  expect(homeDate(new Date(subscriptions.find(([id]) => id === "calendar.pedagogy")[2]), app.currentHome.timeZone)).toBe("2027-10-25");
+  view.unmount();
+  expect(subscriptions.every(call => call[3].aborted)).toBe(true);
+  window.history.replaceState(null, "", "/");
+  render(<App />); await saved();
+  expect(await screen.findByText("Shared focus")).toBeInTheDocument();
+  expect(screen.getAllByText("Example activity")).toHaveLength(1);
+});
+
+it("keeps unavailable source selections editable and suppresses hours when closure data fails", async () => {
+  const child = "home|person.emma";
+  settings.settings.timetableSettings = { [child]: { type: "calendar", education: "school", calendars: { "home|calendar.hours": "hours", "home|calendar.closures": "closures", "home|calendar.removed": "message" } } };
+  const start = weekStart(homeDate(new Date(), app.currentHome.timeZone));
+  app.currentHome.entities.push(...mapHome({
+    "calendar.hours": state("calendar.hours", "off", { friendly_name: "Example hours" }),
+    "calendar.closures": state("calendar.closures", "off", { friendly_name: "Example closures" }),
+  }, emptyRegistries, "home").entities);
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive(id === "calendar.closures" ? null : [{ summary: "Regular hours", start, end: addDays(start, 14) }]));
+  window.history.replaceState(null, "", "/school");
+  const view = render(<App />); await saved();
+  expect(await screen.findByText(/Some calendars could not be read/)).toHaveTextContent("Example closures");
+  expect(screen.queryByText("Regular hours")).not.toBeInTheDocument();
+  const calls = app.watchCalendarEvents.mock.calls.length;
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(app.watchCalendarEvents.mock.calls.length).toBeGreaterThan(calls);
+  view.unmount();
+  app.homeOnline = false;
+  window.history.replaceState(null, "", "/settings#timetables");
+  render(<App />); await saved();
+  fireEvent.change(screen.getByLabelText("Unavailable calendar: home|calendar.removed"), { target: { value: "" } });
+  await saved();
+  expect(settings.settings.timetableSettings[child].calendars).not.toHaveProperty("home|calendar.removed");
+  await navigate("School");
+  expect(screen.getByText("Connect to Home Assistant to see this timetable.")).toBeInTheDocument();
+  expect(screen.queryByText("Regular hours")).not.toBeInTheDocument();
+});
+
+it("uses kindergarten wording for Norwegian image timetables and enlarged views", async () => {
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example child" }) }, emptyRegistries, "home");
+  settings.settings.language = "nb";
+  settings.settings.timetables = { "home|person.example": ["/sample.png"] };
+  settings.settings.timetableSettings = { "home|person.example": { type: "images", education: "kindergarten", calendars: {} } };
+  window.history.replaceState(null, "", "/school");
+  render(<App />);
+  expect(await screen.findByRole("heading", { name: "Example childs barnehageuke" })).toBeInTheDocument();
+  expect(screen.getByRole("img", { name: "Example childs barnehagetimeplan" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Forstørr/ }));
+  expect(screen.getByRole("dialog", { name: "Example childs barnehageuke" })).toBeInTheDocument();
+});
 
 it("keeps household records out of the smart-home device overview", async () => {
   app.currentHome = mapHome({
@@ -95,7 +187,7 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
   expect(screen.getByRole("link", { name: "Add people in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/person");
   expect(screen.getByText(/Daily lists need a Home Assistant automation/)).toBeInTheDocument();
-  for (const [label, anchor] of [["Connection settings", "connection"], ["Choose people", "people-order"], ["Choose calendars", "family-calendar"], ["Choose lists", "family-lists"], ["Enable timetables", "people-order"]]) {
+  for (const [label, anchor] of [["Connection settings", "connection"], ["Choose people", "people-order"], ["Choose calendars", "family-calendar"], ["Choose lists", "family-lists"], ["Configure timetables", "timetables"]]) {
     fireEvent.click(screen.getByRole("link", { name: label }));
     expect(window.location.pathname).toBe("/settings");
     expect(window.location.hash).toBe(`#${anchor}`);
@@ -209,10 +301,10 @@ it("offers the signed iOS shortcut and copies each person's upload destination",
   vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: { writeText } } }));
   const success = vi.spyOn(toast, "success").mockImplementation(() => "copied");
   settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
-  window.history.replaceState(null, "", "/school");
+  window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
   for (const name of ["Emma", "Leo"]) {
-    const card = within(screen.getByRole("heading", { name: `${name}’s school week` }).closest("article")!);
+    const card = within(screen.getByRole("heading", { name: name }).closest("article")!);
     fireEvent.click(card.getByText("Share from iPhone"));
     expect(card.getByRole("link", { name: "Download iOS shortcut" })).toHaveAttribute("href", "/shortcuts/Upload%20timetable.shortcut");
     const destination = new URL((card.getByLabelText(`${name} upload URL`) as HTMLInputElement).value);
@@ -234,7 +326,7 @@ it.each([
   const error = vi.spyOn(toast, "error").mockImplementation(() => "copy-failed");
   const success = vi.spyOn(toast, "success").mockImplementation(() => "copied");
   settings.settings.timetableEnabled = { "home|person.emma": true };
-  window.history.replaceState(null, "", "/school");
+  window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
   fireEvent.click(screen.getByText("Share from iPhone"));
   const input = screen.getByLabelText("Emma upload URL") as HTMLInputElement;
@@ -305,14 +397,13 @@ it.each([".png", "-dark.svg"])("colors the original PNG for saved %s timetables 
 it("keeps timetable pages when replacing or hiding them is cancelled", async () => {
   settings.settings.timetables = { "home|person.emma": ["/first.svg"] };
   settings.settings.timetableEnabled = { "home|person.emma": true };
-  window.history.replaceState(null, "", "/school");
+  window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
   fireEvent.change(screen.getByLabelText("Emma timetable image URLs"), { target: { value: "https://school.example/replacement.png" } });
   fireEvent.click(screen.getByRole("button", { name: "Save image URLs" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetables["home|person.emma"]).toEqual(["/first.svg"]);
-  fireEvent.click(screen.getByRole("link", { name: "Manage people" }));
   fireEvent.click(await screen.findByRole("switch", { name: "Timetable for Emma" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetableEnabled["home|person.emma"]).toBe(true);

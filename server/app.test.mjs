@@ -91,13 +91,16 @@ test("lists saved timetables with a read-only key in the path without exposing d
     "home|person.one": ["https://school.example/first.png", "https://school.example/second.png"],
     "home|person.two": ["/hidden.png"],
     "home|person.empty": [],
+    "home|person.calendar": ["/saved-for-later.png"],
   };
   config.settings.timetableEnabled = { "home|person.two": false };
+  config.settings.timetableSettings = { "home|person.calendar": { type: "calendar", calendars: { "home|calendar.example": "events" } } };
   assert.equal((await app.request("PUT", config, revision)).status, 200);
   const expected = { timetables: [
     { member: "home|person.one", enabled: true, pages: config.settings.timetables["home|person.one"] },
     { member: "home|person.two", enabled: false, pages: ["/hidden.png"] },
     { member: "home|person.empty", enabled: false, pages: [] },
+    { member: "home|person.calendar", enabled: false, pages: ["/saved-for-later.png"] },
   ] };
   await app.restart();
   const response = await app.api(timetableApiPath, {}, "");
