@@ -1,4 +1,9 @@
 export const nb = {
+  "Activities": "Aktiviteter",
+  "Meetings": "Møter",
+  "Pedagogy": "Pedagogikk",
+  "Invitations": "Invitasjoner",
+  "Daily focus": "Dagens fokus",
   "School or kindergarten": "Skole eller barnehage",
   "School or kindergarten for {name}": "Skole eller barnehage for {name}",
   "Kindergarten": "Barnehage",

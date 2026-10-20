@@ -6,7 +6,7 @@ import type { TimetableSettings as Settings } from "../../shared/configuration";
 export function TimetableSettings({ child }: { child: string }) {
   const { timetableSettings, setTimetableSettings, memberName } = useFamily();
   const { currentHome, homeOnline } = useApp();
-  const { t } = useI18n();
+  const { t, calendarName } = useI18n();
   const settings = timetableSettings[child] ?? { type: "images", education: "school", calendars: {} };
   const calendars = currentHome.entities.filter(entity => entity.domain === "calendar");
   const missing = Object.keys(settings.calendars).filter(id => !calendars.some(entity => entity.preferenceId === id));
@@ -27,7 +27,7 @@ export function TimetableSettings({ child }: { child: string }) {
       <p className="muted">{t("Choose how each calendar appears. Changes are shared across your screens.")}</p>
       {!homeOnline && <p role="status">{t("Connect to Home Assistant to choose calendars.")}</p>}
       {homeOnline && !calendars.length && <p role="status">{t("No calendars available.")}</p>}
-      {calendars.map(calendar => <label className="timetable-source" key={calendar.preferenceId}><span>{calendar.name}</span><select aria-label={t("Display {calendar} for {name}", { calendar: calendar.name, name: memberName(child) })} value={settings.calendars[calendar.preferenceId] ?? ""} disabled={!homeOnline} onChange={event => setRole(calendar.preferenceId, event.target.value)}>
+      {calendars.map(calendar => <label className="timetable-source" key={calendar.preferenceId}><span>{calendarName(calendar.name)}</span><select aria-label={t("Display {calendar} for {name}", { calendar: calendarName(calendar.name), name: memberName(child) })} value={settings.calendars[calendar.preferenceId] ?? ""} disabled={!homeOnline} onChange={event => setRole(calendar.preferenceId, event.target.value)}>
         <option value="">{t("Not used")}</option><option value="events">{t("Daily events")}</option><option value="message">{t("Message below the week")}</option><option value="closures">{t("Closure days")}</option><option value="hours">{t("Opening hours")}</option>
       </select></label>)}
       {missing.map(id => <label className="timetable-source" key={id}><span className="break-all">{t("Unavailable calendar: {calendar}", { calendar: id })}</span><select aria-label={t("Unavailable calendar: {calendar}", { calendar: id })} value={settings.calendars[id]} onChange={event => setRole(id, event.target.value)}><option value={settings.calendars[id]}>{t("Keep selection")}</option><option value="">{t("Remove selection")}</option></select></label>)}

@@ -122,6 +122,8 @@ For a calendar week, assign each calendar a display role:
 
 On weekends the grid advances to the coming Monday. Messages show their date when using a future entry. These assignments are separate from the family calendar, work with read-only calendars, and never edit the source events. Settings and backups contain source references only; event contents stay in memory. Missing calendars remain listed so they can be removed or restored.
 
+With Norwegian selected, timetable source names translate the six category labels above, including category suffixes after a person's name. Standard event titles such as “Daily focus” display in Norwegian too. Names, custom titles and descriptions stay as written; the original Home Assistant data is unchanged.
+
 For saved pages, use **Settings → Timetables → PDF / images → Upload PDF timetable**. PDFs may be up to **10 MB / 20 pages**, without password protection. Confirming an upload replaces that person's visible pages on every screen. Invalid uploads keep the previous timetable.
 
 Each page gets its original PNG and a self-contained dark SVG for older clients. Turn on **App preferences → Appearance → Dark timetables** for dark backgrounds and light text throughout the dashboard, School board and enlarged views, independently of the app theme. The app applies these colors directly to the original PNG, avoiding the filtered SVG rendering that can blur text. This shared preference defaults to off and works with existing uploads without uploading again; external image URLs keep their original colors.

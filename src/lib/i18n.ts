@@ -15,6 +15,7 @@ export class MessageError extends Error {
   }
 }
 export const locales = { en: "en-GB", nb: "nb-NO" } as const;
+const calendarCategories = ["Activities", "Meetings", "Pedagogy", "Closure days", "Invitations", "Opening hours"] as const;
 
 // English source messages are keys, so the default language needs no duplicate catalogue.
 export function createI18n(language: Language) {
@@ -40,5 +41,14 @@ export function createI18n(language: Language) {
     const endDate = event.endDate && event.endDate !== event.date ? `${dateLabel(event.endDate)}, ` : "";
     return `${start} – ${endDate}${event.endTime}`;
   };
-  return { language, locale, number, dateLabel, eventTimeLabel, message, t: (key: MessageKey, values?: MessageValues) => message(key, values) };
+  // Only known integration labels are translated; names and free-form content stay literal.
+  const calendarName = (name: string) => {
+    const category = calendarCategories.find(key => name.toLowerCase() === key.toLowerCase() || name.toLowerCase().endsWith(` ${key.toLowerCase()}`));
+    return language !== "en" && category ? name.slice(0, -category.length) + message(category) : name;
+  };
+  const calendarTitle = (title: string) => {
+    const key = [...calendarCategories, "Daily focus" as const].find(key => title.trim().toLowerCase() === key.toLowerCase());
+    return language !== "en" && key ? message(key) : title;
+  };
+  return { language, locale, number, dateLabel, eventTimeLabel, calendarName, calendarTitle, message, t: (key: MessageKey, values?: MessageValues) => message(key, values) };
 }

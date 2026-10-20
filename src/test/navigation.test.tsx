@@ -131,6 +131,33 @@ it("uses kindergarten wording for Norwegian image timetables and enlarged views"
   expect(screen.getByRole("dialog", { name: "Example childs barnehageuke" })).toBeInTheDocument();
 });
 
+it.each(["/school", "/"])("translates known timetable labels on %s and in settings while preserving source content", async path => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T12:00:00Z"));
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example child" }),
+    "calendar.pedagogy": state("calendar.pedagogy", "off", { friendly_name: "Example nursery Example child Pedagogy" }),
+    "calendar.activities": state("calendar.activities", "off", { friendly_name: "Example child Activities" }),
+  }, emptyRegistries, "home");
+  settings.settings.language = "nb";
+  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": "message", "home|calendar.activities": "events" } } };
+  const message = { summary: "Daily focus", description: "Daily focus: exploring shapes.", start: "2026-10-20", end: "2026-10-21" };
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive([id === "calendar.pedagogy" ? message : { ...message, summary: "Activities" }]));
+  window.history.replaceState(null, "", path);
+  const view = render(<App />);
+  expect(await screen.findByRole("heading", { name: "Dagens fokus" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Example nursery Example child Pedagogikk" })).toBeInTheDocument();
+  expect(screen.getByText("Aktiviteter")).toBeInTheDocument();
+  expect(screen.getAllByText(message.description).length).toBeGreaterThan(0);
+  expect(message.summary).toBe("Daily focus");
+  expect(app.currentHome.entities.find(entity => entity.entityId === "calendar.pedagogy").name).toBe("Example nursery Example child Pedagogy");
+  view.unmount();
+  window.history.replaceState(null, "", "/settings#timetables");
+  render(<App />);
+  expect(await screen.findByLabelText("Visning av Example nursery Example child Pedagogikk for Example child")).toHaveValue("message");
+  expect(screen.getByLabelText("Visning av Example child Aktiviteter for Example child")).toHaveValue("events");
+});
+
 it("keeps household records out of the smart-home device overview", async () => {
   app.currentHome = mapHome({
     "light.lamp": state("light.lamp", "off", { friendly_name: "Reading lamp" }),

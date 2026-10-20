@@ -44,6 +44,26 @@ it("translates stored messages again after switching languages and keeps inserte
   expect(createI18n("nb").message("External integration detail")).toBe("External integration detail");
 });
 
+it("translates known calendar categories and titles without changing names or free-form content", () => {
+  const norwegian = createI18n("nb");
+  const english = createI18n("en");
+  for (const [source, translated] of [["Activities", "Aktiviteter"], ["Meetings", "Møter"], ["Pedagogy", "Pedagogikk"], ["Closure days", "Stengedager"], ["Invitations", "Invitasjoner"], ["Opening hours", "Åpningstider"]]) {
+    expect(norwegian.calendarName(source)).toBe(translated);
+    expect(norwegian.calendarName(`Example child ${source}`)).toBe(`Example child ${translated}`);
+    expect(norwegian.calendarTitle(source)).toBe(translated);
+    expect(english.calendarName(`Example child ${source}`)).toBe(`Example child ${source}`);
+    expect(english.calendarTitle(source)).toBe(source);
+  }
+  expect(norwegian.calendarTitle("Daily focus")).toBe("Dagens fokus");
+  expect(norwegian.calendarTitle(" daily focus ")).toBe("Dagens fokus");
+  expect(english.calendarTitle("Daily focus")).toBe("Daily focus");
+  expect(norwegian.calendarName("Example {name} – pedagogy")).toBe("Example {name} – Pedagogikk");
+  for (const text of ["Example child", "MyPedagogy", "Activities for everyone", "Daily focus: outdoor play", "Dagens fokus", "Home"]) {
+    expect(norwegian.calendarName(text)).toBe(text);
+    expect(norwegian.calendarTitle(text)).toBe(text);
+  }
+});
+
 describe("device readings", () => {
   it("translates known states and numeric readings while retaining names and custom states", () => {
     const home = mapHome({
