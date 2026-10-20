@@ -300,7 +300,28 @@ The weekly grid aligns people and dates, marks the current day, and supports con
 
 Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 
-Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms; confirmed additions and list reflow take up to 240ms, with a 200ms completion check. Suggestion selection shows pending feedback until the update finishes. Keyboard actions stay immediate. Reduced-motion settings replace overlay movement with a 160ms fade and remove list movement. Do not add motion to imply a device command succeeded before the state confirms it.
+Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms. Keyboard actions stay immediate. Reduced-motion settings replace overlay movement with a 160ms fade. Do not add motion to imply a device command succeeded before the state confirms it.
+
+### List motion
+
+List changes use deliberately slower, flowing motion so people can follow what changed. Rows, surrounding items and the panel surface move together, without a stagger or a pause between exit and reflow. Keep this pace distinct from the short control and overlay transitions above.
+
+| Change | Motion | Timing |
+| --- | --- | --- |
+| Added or reopened | Fade in from 24px to the right and 97% scale; highlight the row. | 800ms, `cubic-bezier(.77, 0, .175, 1)` |
+| Edited | Move 12px to the right, then settle back as the highlight fades. | 800ms each direction, same curve |
+| Completed | Show the confirmed check and strikethrough; slide 24px right, shrink to 97% and fade out. | 700ms, `cubic-bezier(.23, 1, .32, 1)` |
+| Reflow | Move remaining rows, the completed section and empty state; resize the panel surface alongside them. | 800ms, `cubic-bezier(.77, 0, .175, 1)` |
+| Highlight | Primary color at 14% opacity, fading in and then out. | 350ms in; feedback clears after 800ms, followed by a 750ms fade |
+| Check | Fade in and scale from 90% to full size. | 450ms opacity, 600ms scale, shared `--ease-out` |
+
+Compare previous and new items by stable ID to identify additions, edits and completion changes. Initial loads, reconnects, unchanged refreshes and reordering do not highlight rows. New changes extend the active feedback window so overlapping updates remain legible.
+
+On a Home Assistant checkbox click, show a spinner immediately inside that checkbox and keep it there through command submission and the following item refresh. Preserve the last confirmed checked state until fresh data arrives. The spinner uses a steady 1s linear rotation, matching existing suggestion feedback; other rows do not spin. A failed command or refresh ends pending feedback and displays the existing error. Suggestions also show pending feedback while submitting their update.
+
+Keyboard-triggered row movement and highlights are immediate or omitted. With reduced motion, remove translation, scaling and spinner rotation; use a static loading glyph with `aria-busy`, and limit check, highlight and completion fades to 160ms. Pending feedback remains available for keyboard users.
+
+Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode="popLayout"` for coordinated reflow. Keep forwarded refs on presence children. Animate the panel's separate background surface so text does not stretch; avoid animating row height. CSS owns the highlight and check, and the existing motion-safe spinner utility owns rotation. Sources: [list components](src/components/FamilyLists.tsx), [item diff and feedback lifetime](src/hooks/use-list-item-feedback.ts), and [motion styles](src/afterglow.css).
 
 
 ## Do's and Don'ts

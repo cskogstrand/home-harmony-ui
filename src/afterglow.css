@@ -103,7 +103,7 @@
   @layer base {
     .motion-surface, .motion-backdrop { animation-duration: 160ms !important; }
     [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion, .quick-add, .item-suggestions, .content-ready) { transition-property: opacity !important; transition-duration: 160ms !important; }
-    :root:not([data-motion-input="keyboard"]) .check-row::before, :root:not([data-motion-input="keyboard"]) .check-mark svg { transition-duration: 160ms !important; }
+    :root:not([data-motion-input="keyboard"]) .check-row::before, :root:not([data-motion-input="keyboard"]) .check-mark .check-icon { transition-duration: 160ms !important; }
   }
 }
 .app-header { max-width: 1600px; margin-inline: auto; padding: 1.5rem var(--space); display: flex; align-items: center; gap: 1.5rem; min-height: 88px; }
@@ -214,17 +214,19 @@
 .check-row .edit-item:disabled, .completing button:disabled { opacity: 1; }
 .check-row input { position: absolute; opacity: 0; width: 25px; height: 25px; }
 .check-mark { flex-shrink: 0; width: 22px; height: 22px; border: 1px solid hsl(var(--muted-foreground) / .5); border-radius: 7px; display: grid; place-items: center; }
-.check-mark svg { opacity: 0; transition: opacity 450ms var(--ease-out); }
+.check-mark svg { grid-area: 1 / 1; }
+.check-mark .check-icon { opacity: 0; transition: opacity 450ms var(--ease-out); }
 .check-row input:focus-visible + .check-mark { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
 .check-row input:checked + .check-mark { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
-.check-row input:checked + .check-mark svg { opacity: 1; }
+.check-row input:checked + .check-mark .check-icon { opacity: 1; }
+.check-row input[aria-busy="true"] + .check-mark .check-icon { opacity: 0; transition: none; }
 .complete .check-text { text-decoration: line-through; color: hsl(var(--muted-foreground)); }
 .check-text { flex: 1; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: no-preference) {
-  .check-mark svg { transform: scale(.9); transition: opacity 450ms var(--ease-out), transform 600ms var(--ease-out); }
-  .check-row input:checked + .check-mark svg { transform: scale(1); }
+  .check-mark .check-icon { transform: scale(.9); transition: opacity 450ms var(--ease-out), transform 600ms var(--ease-out); }
+  .check-row input:checked + .check-mark .check-icon { transform: scale(1); }
 }
-[data-motion-input="keyboard"] .check-mark svg { transition: none; }
+[data-motion-input="keyboard"] .check-mark .check-icon { transition: none; }
 @media (prefers-reduced-motion: reduce) { .check-row::before { background: hsl(var(--primary) / .08); } }
 .list-composer { position: sticky; top: .5rem; z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }
 .list-action-bar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
