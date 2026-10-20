@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.5
+
+- Add calendar timetables for school and kindergarten, with events, shared messages, closures and opening hours configured in Settings → Timetables.
+- Give calendar timetables a Liquid Glass frame and clearer current-day marker, preserving saved PDF/image timetables.
+- Translate known timetable calendar labels between English and Norwegian Bokmål.
+- Animate confirmed list additions, edits, completion and deletion for pointer and keyboard input, and show pending checkbox updates.
+
 ## 0.9.4
 
 - Refresh the app with Liquid Glass surfaces, clearer calendar cards and consistent modal styling and footers.
