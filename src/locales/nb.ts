@@ -40,6 +40,8 @@ export const nb = {
   "Choose calendars for this person in Settings → Timetables.": "Velg kalendere for denne personen i Innstillinger → Timeplaner.",
   "Connect to Home Assistant to see this timetable.": "Koble til Home Assistant for å se denne timeplanen.",
   "Week of {date}": "Uken fra {date}",
+  "View activities for {date}": "Vis aktiviteter for {date}",
+  "Activities for {name}": "Aktiviteter for {name}",
   "Some calendars could not be read: {calendars}. Check the connection and calendar integration. Opening hours stay hidden until closure calendars are available.": "Noen kalendere kunne ikke leses: {calendars}. Sjekk tilkoblingen og kalenderintegrasjonen. Åpningstider skjules til kalenderne for stengedager er tilgjengelige.",
   "Calendar unavailable": "Kalender utilgjengelig",
   "Next message · {date}": "Neste melding · {date}",

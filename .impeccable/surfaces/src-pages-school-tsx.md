@@ -17,7 +17,7 @@ OWN-WORLD: Inherit Afterglow's system typography, semantic palette and existing 
 
 STORY: Choose School or Kindergarten per person, choose a timetable type, assign calendars to events, shared messages, closures or opening hours, then read the same result on School and the dashboard. The education choice changes week headings and timetable descriptions, defaulting to School. Saved image pages survive switching types.
 
-FIRST VIEWPORT: Retain the person's heading and timetable preview. Show five weekday columns on wide panels and stacked dated sections at a container width of 620px or less. Place full-width messages below the days. School only presents; all administration, including uploads, lives in Settings → Timetables. The signature interaction assigns a calendar's display role and updates the School and dashboard presentation through shared settings.
+FIRST VIEWPORT: Retain the person's heading and timetable preview. Show five weekday columns on wide panels and stacked dated sections at a container width of 620px or less. Each day opens a shared, scrollable dialog with that day's activities, times, locations, full notes and source calendars. Keep inline Details usable, keyboard focus visible and restored on dismissal, and day dialogs available inside the expanded timetable. Place full-width messages below the days. School only presents; all administration, including uploads, lives in Settings → Timetables.
 
 FORM: Local extension, code-led; Monday–Friday confirmed by the user. Today’s message takes priority, otherwise the next available event within a year, with the source date shown. Preserve loading, unavailable and empty states separately.
 
