@@ -1,60 +1,123 @@
-import { useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { deviceGroups, deviceName, smartHomeEntities } from "@/lib/device-model";
+import { smartHomeEntities } from "@/lib/device-model";
+import { visibilityGroup, visibilityGroupings, visibilityTree, type VisibilityDimension, type VisibilityGroup, type VisibilityGrouping } from "@/lib/smart-home-visibility";
 import type { Entity } from "@/types/api";
 import { PanelHeading } from "@/components/FamilyPlanner";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 export function SmartHomeSettings() {
   const { t, message, language } = useI18n();
   const { currentHome, homeOnline } = useApp();
-  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible } = useFamily();
+  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible, setSmartHomeEntitiesVisible } = useFamily();
   const shared = useSharedConfiguration();
   const [search, setSearch] = useState("");
+  const [grouping, setGrouping] = useState<VisibilityGrouping>("domain");
+  const [filters, setFilters] = useState({ domain: "all", integration: "all", room: "all", visibility: "all", category: "all" });
+  const [expansion, setExpansion] = useState<"default" | "all" | "none">("default");
+  const [expansionVersion, setExpansionVersion] = useState(0);
+  const [pending, setPending] = useState<{ name: string; ids: string[]; deviceId?: string; visible: boolean } | null>(null);
   const query = search.trim().toLocaleLowerCase(language);
-  const entities = smartHomeEntities(currentHome.entities);
+  const entities = useMemo(() => smartHomeEntities(currentHome.entities), [currentHome.entities]);
+  const visibleIds = new Set(smartHomeEntities(entities, smartHome).map(entity => entity.preferenceId));
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const matches = (value: string) => value.toLocaleLowerCase(language).includes(query);
-  const matchesEntity = (entity: Entity) => matches(`${entity.name} ${entity.entityId} ${currentHome.areas.find(area => area.id === entity.areaId)?.name ?? ""}`);
-  const groups = deviceGroups({ ...currentHome, entities }, language).map(group => ({ ...group,
-    entities: matches(deviceName(group.device, language)) ? group.entities : group.entities.filter(matchesEntity),
-  })).filter(group => group.entities.length);
-  const standalone = entities.filter(entity => !entity.device && matchesEntity(entity));
-  const entityRow = (entity: Entity, deviceHidden = false) => <label key={entity.preferenceId} className="flex min-h-12 cursor-pointer items-center justify-between gap-4 py-3">
-    <span className="min-w-0"><span className="block break-words text-sm font-medium">{entity.name}</span><span className="block break-all text-xs text-muted-foreground">{entity.entityId}</span></span>
-    <Switch aria-label={t("Show entity {name} on Smart home", { name: entity.name })} checked={!deviceHidden && !smartHome.hiddenEntities.includes(entity.preferenceId)} disabled={disabled || deviceHidden}
-      onCheckedChange={visible => setSmartHomeEntityVisible(entity.preferenceId, visible)} />
-  </label>;
+  const groupFor = (entity: Entity, dimension: VisibilityDimension) => visibilityGroup(entity, dimension, currentHome.areas, language);
+  const filtered = entities.filter(entity => {
+    const groups = (["domain", "integration", "room"] as const).map(dimension => ({ dimension, ...groupFor(entity, dimension) }));
+    return groups.every(group => filters[group.dimension] === "all" || filters[group.dimension] === group.id)
+      && (filters.visibility === "all" || visibleIds.has(entity.preferenceId) === (filters.visibility === "visible"))
+      && (filters.category === "all" || (entity.category || "main") === filters.category)
+      && matches([entity.name, entity.entityId, groupFor(entity, "device").name, ...groups.flatMap(group => [group.id, group.name])].join(" "));
+  }).sort((a, b) => a.name.localeCompare(b.name, language));
+  const groups = visibilityTree(filtered, visibilityGroupings[grouping], currentHome.areas, language);
+  const deviceCounts = new Map<string, number>();
+  for (const entity of entities) if (entity.device) deviceCounts.set(entity.device.id, (deviceCounts.get(entity.device.id) ?? 0) + 1);
+  const hasFilters = !!query || Object.values(filters).some(value => value !== "all");
+  const entityRow = (entity: Entity) => {
+    const deviceHidden = !!entity.device && smartHome.hiddenDevices.includes(entity.device.id);
+    return <label key={entity.preferenceId} className="flex min-h-12 cursor-pointer items-center justify-between gap-3 py-3">
+      <span className="min-w-0"><span className="block break-words text-sm font-medium">{entity.name}</span><span className="block break-all text-xs text-muted-foreground">{entity.entityId}</span>{deviceHidden && <span className="block text-xs text-muted-foreground">{t("Hidden by device")}</span>}</span>
+      <Switch aria-label={t("Show entity {name} on Smart home", { name: entity.name })} checked={visibleIds.has(entity.preferenceId)} disabled={disabled || deviceHidden}
+        onCheckedChange={visible => setSmartHomeEntityVisible(entity.preferenceId, visible)} />
+    </label>;
+  };
+  const groupRows = (items: VisibilityGroup[], parents: string[] = []): ReactNode => items.map(group => {
+    const path = [...parents, group.name];
+    const name = path.join(" / ");
+    const visible = group.entities.filter(entity => visibleIds.has(entity.preferenceId)).length;
+    const wholeDevice = group.deviceId && deviceCounts.get(group.deviceId) === group.entities.length ? group.deviceId : undefined;
+    return <li key={group.id} className="relative border-b last:border-0">
+        <details className="min-w-0" open={expansion === "all" || (expansion === "default" && (!!query || !parents.length))}>
+          <summary className="min-h-12 cursor-pointer rounded-sm py-3 pr-14 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
+            <span className="break-words font-medium">{group.name}</span>
+            <span className="block pl-4 text-xs text-muted-foreground">{t("{visible} of {total} visible", { visible, total: group.entities.length })}</span>
+          </summary>
+          <ul className="border-l pl-2 sm:pl-3">{group.children.length ? groupRows(group.children, path) : group.entities.map(entity => <li key={entity.preferenceId}>{entityRow(entity)}</li>)}</ul>
+        </details>
+        <Switch className="absolute right-0 top-3" aria-label={wholeDevice ? t("Show device {name} on Smart home", { name: group.name }) : t("Show group {name} on Smart home", { name })}
+          checked={wholeDevice ? !smartHome.hiddenDevices.includes(wholeDevice) : visible > 0} disabled={disabled}
+          onCheckedChange={value => setPending({ name, ids: group.entities.map(entity => entity.preferenceId), deviceId: wholeDevice, visible: value })} />
+    </li>;
+  });
 
   return <section className="glow-panel" id="smart-home-visibility" aria-label={t("Smart home visibility")}>
     <PanelHeading title={t("Smart home visibility")} to="/home" label={t("Smart home")} />
     <p className="page-note">{t("Choose which devices, entities and scenes appear on Smart home. Changes are saved automatically and shared across screens.")}</p>
     <p className="page-note">{t("New devices and entities are shown by default. Hiding a device also hides its future entities. Other pages and Home Assistant are unchanged.")}</p>
-    <label className="mt-4 block text-sm font-medium">{t("Search devices and entities")}
-      <Input type="search" className="mt-2" value={search} onChange={event => setSearch(event.target.value)} placeholder={t("Search devices, rooms or scenes…")} />
-    </label>
-    {!homeOnline && <p role="status" className="page-note">{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
-    <div className="mt-3 max-h-96 overflow-y-auto pr-2">
-      {groups.map(({ device, entities }) => {
-        const hidden = smartHome.hiddenDevices.includes(device.id);
-        const name = deviceName(device, language);
-        return <div key={device.id} className="flex items-start gap-4 border-b last:border-0">
-          <details className="min-w-0 flex-1" open={query ? true : undefined}>
-            <summary className="min-h-12 cursor-pointer break-words py-3 font-medium">{name}</summary>
-            <div className="pl-3">{hidden && <p className="page-note">{t("Show this device to choose its individual entities.")}</p>}{entities.map(entity => entityRow(entity, hidden))}</div>
-          </details>
-          <Switch className="my-3" aria-label={t("Show device {name} on Smart home", { name })} checked={!hidden} disabled={disabled}
-            onCheckedChange={visible => setSmartHomeDeviceVisible(device.id, visible)} />
-        </div>;
+    <div className="planner-form mt-4"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <label className="min-w-0 text-sm font-medium sm:col-span-2">{t("Search devices and entities")}
+        <Input type="search" value={search} onChange={event => { setSearch(event.target.value); setExpansion("default"); }} placeholder={t("Search names, IDs, rooms or integrations…")} />
+      </label>
+      <label className="min-w-0 text-sm font-medium">{t("Group by")}
+        <select value={grouping} onChange={event => { setGrouping(event.target.value as VisibilityGrouping); setExpansion("default"); }}>
+          <option value="domain">{t("Domain → integration → device")}</option>
+          <option value="integration">{t("Integration → domain → device")}</option>
+          <option value="room">{t("Room → domain → integration → device")}</option>
+          <option value="device">{t("Device → entity")}</option>
+          <option value="none">{t("Entities without grouping")}</option>
+        </select>
+      </label>
+      {([ ["domain", t("Domain")], ["integration", t("Integration")], ["room", t("Room")] ] as const).map(([dimension, label]) => {
+        const options = [...new Map(entities.map(entity => { const group = groupFor(entity, dimension); return [group.id, group]; })).values()].sort((a, b) => a.name.localeCompare(b.name, language));
+        return <label key={dimension} className="min-w-0 text-sm font-medium">{label}<select value={filters[dimension]} onChange={event => setFilters({ ...filters, [dimension]: event.target.value })}>
+          <option value="all">{t("All")}</option>{options.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
+        </select></label>;
       })}
-      {!!standalone.length && <div className="mt-3"><h3 className="font-medium">{t("Entities without a device")}</h3>{standalone.map(entity => entityRow(entity))}</div>}
-      {!groups.length && !standalone.length && <p className="empty-note">{entities.length ? t("No matches. Try another name or room.") : t("No devices available.")}</p>}
+      <label className="min-w-0 text-sm font-medium">{t("Visibility")}<select value={filters.visibility} onChange={event => setFilters({ ...filters, visibility: event.target.value })}>
+        <option value="all">{t("All")}</option><option value="visible">{t("Visible")}</option><option value="hidden">{t("Hidden")}</option>
+      </select></label>
+      <label className="min-w-0 text-sm font-medium">{t("Entity category")}<select value={filters.category} onChange={event => setFilters({ ...filters, category: event.target.value })}>
+        <option value="all">{t("All")}</option><option value="main">{t("Primary entities")}</option><option value="config">{t("Configuration")}</option><option value="diagnostic">{t("Diagnostic")}</option>
+      </select></label>
+    </div></div>
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+      <p role="status" className="text-sm text-muted-foreground">{t("{count} of {total} entities", { count: filtered.length, total: entities.length })}</p>
+      <div className="flex flex-wrap gap-1">
+        {hasFilters && <Button variant="ghost" onClick={() => { setSearch(""); setFilters({ domain: "all", integration: "all", room: "all", visibility: "all", category: "all" }); }}>{t("Clear filters")}</Button>}
+        {grouping !== "none" && <><Button variant="ghost" onClick={() => { setExpansion("all"); setExpansionVersion(version => version + 1); }}>{t("Expand all")}</Button><Button variant="ghost" onClick={() => { setExpansion("none"); setExpansionVersion(version => version + 1); }}>{t("Collapse all")}</Button></>}
+      </div>
     </div>
+    <p className="page-note">{t("Group changes affect matching entities only. Whole-device toggles keep individual choices and also hide future entities.")}</p>
+    {!homeOnline && <p role="status" className="page-note">{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
+    <div className="mt-3 max-h-[32rem] overflow-y-auto pr-2">
+      <ul key={JSON.stringify([grouping, search, filters, expansion, expansionVersion])} aria-label={t("Visibility groups")}>{grouping === "none" ? filtered.map(entity => <li key={entity.preferenceId}>{entityRow(entity)}</li>) : groupRows(groups)}</ul>
+      {!filtered.length && <p className="empty-note">{entities.length ? t("No matching entities. Change or clear the filters.") : t("No devices available.")}</p>}
+    </div>
+    <ConfirmDialog open={!!pending} onOpenChange={open => { if (!open) setPending(null); }} title="Are you sure?" disabled={disabled}
+      description={pending ? { key: pending.deviceId
+        ? pending.visible ? "Show {name} and its {count} entities again? Individual visibility choices will be kept." : "Hide {name} and its {count} entities? Future entities on this device will also be hidden."
+        : pending.visible ? "Show the {count} matching entities in {name}? Other entities stay unchanged." : "Hide the {count} matching entities in {name}? Other entities stay unchanged.",
+      values: { name: pending.name, count: pending.ids.length } } : ""}
+      confirmLabel={pending?.visible ? "Show group" : "Hide group"}
+      onConfirm={() => pending ? (pending.deviceId ? setSmartHomeDeviceVisible(pending.deviceId, pending.visible) : setSmartHomeEntitiesVisible(pending.ids, pending.visible)) : false} />
     <p role="status" className="page-note">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
     {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><Link to="/user-settings" className="text-link">{t("App preferences")}</Link></div>}
   </section>;

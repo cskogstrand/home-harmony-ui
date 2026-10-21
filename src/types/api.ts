@@ -13,6 +13,7 @@ export interface PhysicalDevice {
 export interface EntityRegistryEntry {
   id: string;
   entity_id: string;
+  platform?: string;
   area_id?: string | null;
   device_id?: string | null;
   name?: string | null;
@@ -32,6 +33,7 @@ export interface Entity {
   preferenceId: string;
   name: string;
   domain: string;
+  integration?: string;
   category?: string | null;
   state: string;
   attributes: Record<string, unknown>;

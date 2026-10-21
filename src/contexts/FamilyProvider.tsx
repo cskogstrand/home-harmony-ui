@@ -7,6 +7,7 @@ import { useSharedConfiguration } from "./SharedConfigurationContext";
 import { SharedConfigurationProvider } from "./SharedConfigurationProvider";
 import { plannerSettings, emptyPlanner, parseConfiguration, type Configuration } from "../../shared/configuration";
 import { memberPalette } from "@/lib/member-colors";
+import { setEntitiesVisible } from "@/lib/smart-home-visibility";
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
@@ -82,6 +83,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setHomeEntities: ids => setPlanner(p => ({ ...p, homeEntities: [...new Set(ids)] })),
     setSmartHomeDeviceVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, hiddenDevices: [...p.smartHome.hiddenDevices.filter(device => device !== id), ...(visible ? [] : [id])] } })),
     setSmartHomeEntityVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, hiddenEntities: [...p.smartHome.hiddenEntities.filter(entity => entity !== id), ...(visible ? [] : [id])] } })),
+    setSmartHomeEntitiesVisible: (ids, visible) => setPlanner(p => ({ ...p, smartHome: setEntitiesVisible(p.smartHome, currentHome.entities, ids, visible) })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };
       if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];
