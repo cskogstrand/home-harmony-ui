@@ -7,7 +7,7 @@ import { ArrowUpRight, Plus } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
-import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
+import { CalendarRefreshButton, CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,9 @@ export default function Dashboard() {
   const shared = useSharedConfiguration();
   const needsSetup = shared?.state.loaded && !Object.keys(calendarMembers).length && !Object.keys(todoLists).length
     && !Object.values(timetables).some(pages => pages.length) && !Object.values(timetableEnabled).some(Boolean) && !Object.values(timetableSettings).some(settings => settings.type === "calendar") && homeEntities === undefined && !selectedAlarm;
-  const data = useCalendarPlans(start, addDays(start, 7));
+  const weekEnd = addDays(start, 7);
+  const tomorrowEnd = addDays(today, 2);
+  const data = useCalendarPlans(start, dashboard.day && dashboard.showTomorrow && tomorrowEnd > weekEnd ? tomorrowEnd : weekEnd);
   const { events, people: familyMembers } = data;
   const schoolMembers = members.filter(m => hasTimetable(m.id));
   const [editing, setEditing] = useState<FamilyEvent>();
@@ -32,13 +34,13 @@ export default function Dashboard() {
   const addPlan = (date: string, member: MemberId) => { setEditing(undefined); setNewPlan({ date, member }); setEditorOpen(true); };
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
   const next = upcoming.find(e => !e.allDay);
-  const weekEvents = events.filter(e => e.date >= start && e.date < addDays(start, 7));
+  const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
   return <div className="portrait-board">
     <header className="ambient-heading">
       <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}<DashboardSettings /></div></div>
       <time className="ambient-clock">{time}</time>
     </header>
-    {!Object.values(dashboard).some(Boolean) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use Customize Today to show them again.")}</p>}
+    {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use Customize Today to show them again.")}</p>}
     {dashboard.morningSummary && <MorningSummary />}
     {dashboard.nextPlan && <section className="next-chapter" aria-label={t("Next family plan")}>
       {next ? <><button className="next-event" onClick={() => openEvent(next)}><h2>{next.title}</h2><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
@@ -47,7 +49,7 @@ export default function Dashboard() {
     </section>}
     {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
     {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
-      <div className="panel-heading calendar-panel-heading"><h2>{t("Everyone’s week")}</h2><CalendarViewControls /><Link to="/calendar" className="text-link">{t("Open calendar")}<ArrowUpRight size={17} /></Link></div>
+      <div className="panel-heading calendar-panel-heading"><h2>{t("Everyone’s week")}</h2><CalendarViewControls /><CalendarRefreshButton data={data} /></div>
       <HomeAssistantCalendar data={data} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
       <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={t("View {value1}, week {value2}", { value1: dateLabel(day), value2: weekNumber(day) })} aria-current={day === today ? "date" : undefined}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>

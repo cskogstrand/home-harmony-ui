@@ -1,4 +1,7 @@
 export const nb = {
+  "Show tomorrow’s plans": "Vis morgendagens planer",
+  "Tomorrow": "I morgen",
+  "No plans tomorrow.": "Ingen planer i morgen.",
   "Everyone’s day": "Dagen vår",
   "No plans today.": "Ingen planer i dag.",
   "Customize Today": "Tilpass I dag",
@@ -255,6 +258,7 @@ export const nb = {
   "Edit item": "Rediger vare",
   "Edit task": "Rediger oppgave",
   "Edit {value1}": "Rediger {value1}",
+  "Editing unavailable": "Redigering er utilgjengelig",
   "Enable Timetable for the people who need it, then choose PDF / images or Calendars in Settings → Timetables. Read the result on School or the dashboard.": "Aktiver Timeplan for dem som trenger det, og velg PDF / bilder eller Kalendere i Innstillinger → Timeplaner. Se resultatet på Skole eller oversikten.",
   "Enable timetables": "Aktiver timeplaner",
   "End date": "Sluttdato",

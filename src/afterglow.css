@@ -183,6 +183,9 @@
 .family-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 16px; flex: 1; }
 .family-lane { padding-left: 16px; border-left: 1px solid hsl(var(--border)); display: flex; flex-direction: column; }
 .family-lane:first-child { padding-left: 0; border-left: 0; }
+.family-day-board .family-lane { border-left: 0; }
+.family-day-column-lines { position: absolute; inset: 0; grid-template-rows: 1fr; grid-auto-rows: 0; row-gap: 0; pointer-events: none; }
+.family-day-column-lines > span:not(:first-child) { border-left: 1px solid hsl(var(--border)); }
 .lane-heading { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-bottom: 13px; font-size: 0.9375rem; text-align: center; overflow-wrap: anywhere; }
 .lane-heading strong { font-weight: 500; }
 .lane-heading > span:last-child { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
@@ -237,7 +240,6 @@
 .list-add-button { min-height: 56px; flex-shrink: 0; border-radius: 50px; padding-inline: 1rem; font-size: .9375rem; }
 .list-add-button > svg { width: 22px; height: 22px; }
 .quick-add-field { display: flex; flex-direction: column; flex: 1 1 140px; min-width: 0; gap: .35rem; font-size: .875rem; }
-.list-refresh { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
 .completed-items { margin-top: 12px; }
 .completed-items summary { cursor: pointer; color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .quick-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-top: .75rem; }
@@ -798,6 +800,8 @@
   .add-plan { margin-left: auto; }
   .add-plan span { display: none; }
   .family-lanes { grid-template-columns: 1fr; }
+  .family-day-people { grid-template-columns: repeat(auto-fit, minmax(min(100%, 64px), 1fr)); }
+  .family-day-column-lines { display: none; }
   .family-lane { border-left: 0; padding-left: 0; }
   .family-dock { bottom: calc(.75rem + env(safe-area-inset-bottom)); left: max(.75rem, env(safe-area-inset-left)); right: max(.75rem, env(safe-area-inset-right)); border-radius: 34px; padding: .35rem; gap: .15rem; }
   .family-dock a { font-size: .6875rem; border-radius: 27px; }

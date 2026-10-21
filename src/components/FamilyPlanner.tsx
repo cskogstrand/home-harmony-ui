@@ -2,9 +2,10 @@ import { MessageError, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2 } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2, PencilOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
@@ -37,7 +38,7 @@ export function PanelHeading({ title, to, label = "View all" }: { title: string;
   const { message } = useI18n();
   return <div className="panel-heading"><h2>{title}</h2>{to && <Link to={to} className="text-link">{message(label)}<ArrowUpRight size={17} /></Link>}</div>;
 }
-export function EventButton({ event, onClick, showDate = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
+export function EventButton({ event, onClick, showDate = false, showMember = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; showMember?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
   const { t, dateLabel, eventTimeLabel } = useI18n();
   const { memberName, memberColor } = useFamily();
   const span = event.calendarSpan;
@@ -45,7 +46,7 @@ export function EventButton({ event, onClick, showDate = false, continuesBefore 
   return <button type="button" className={`event-button press-feedback${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} style={{ "--member": memberColor(event.member) } as React.CSSProperties} onClick={onClick}>
     <strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>
     <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
-    <small>{event.location || memberName(event.member)}{event.calendarId && t(" · Home Assistant")}</small>
+    <small>{event.location && showMember && `${memberName(event.member)} · `}{event.location || memberName(event.member)}{event.calendarId && t(" · Home Assistant")}</small>
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}
   </button>;
 }
@@ -78,10 +79,11 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const calendars = currentHome.entities.filter(e => e.domain === "calendar" && calendarMembers[e.preferenceId] === draft?.member);
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
   const calendar = editingRemote ? currentHome.entities.find(e => e.entityId === event.calendarId) : calendars.find(e => e.preferenceId === calendarId) ?? (!calendarId && writable.length === 1 ? writable[0] : undefined);
+  const editingUnsupported = editingRemote && !!calendar && !supportsAction(calendar, "update_event", services);
   // ponytail: change individual occurrences; series edits/deletions need an explicit scope selector.
   const readOnlyReason = !editingRemote ? ""
     : !calendar ? t("This calendar is no longer available in Home Assistant.")
-    : !supportsAction(calendar, "update_event", services) ? t("Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar.")
+    : editingUnsupported ? t("Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar.")
     : !source?.uid ? t("Home Assistant did not provide the event ID needed to save changes. Edit this event in the source calendar.")
     : source.rrule && !source.recurrence_id ? t("Home Assistant did not identify this occurrence of the recurring event. Edit it in the source calendar.")
     : "";
@@ -129,8 +131,12 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   };
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />{t("Delete")}</Button>;
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent>
-    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
-    {readOnly ? <div className="space-y-3 break-words"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}</div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
+    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription className={editingUnsupported ? "sr-only" : undefined}>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
+    {readOnly ? <div className="space-y-3 break-words"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}
+      {editingUnsupported && <Popover><PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("Editing unavailable")}><PencilOff size={18} aria-hidden="true" /></Button></PopoverTrigger>
+        <PopoverContent side="top" align="end" className="max-w-[calc(100vw-2rem)] text-sm" aria-label={t("Editing unavailable")}>{readOnlyReason}</PopoverContent>
+      </Popover>}
+    </div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
       <div className="planner-form dialog-form-body">
       {remote && !homeOnline && <p className="form-notice" role="status">{t("Connect to Home Assistant to save this plan.")} <Link className="text-link" to="/settings#connection">{t("Connection settings")}</Link></p>}
       {source?.recurrence_id && <p>{t("Only this occurrence will be changed.")}</p>}

@@ -1,34 +1,47 @@
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
+import { addDays, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
-import { HomeAssistantCalendar } from "./FamilyCalendar";
-import { EventButton, MemberAvatar, PanelHeading } from "./FamilyPlanner";
+import { CalendarRefreshButton, HomeAssistantCalendar } from "./FamilyCalendar";
+import { EventButton, MemberAvatar } from "./FamilyPlanner";
 
 export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalendarPlans>; onEdit: (event: FamilyEvent) => void }) {
-  const { t } = useI18n();
+  const { t, dateLabel } = useI18n();
   const { homeOnline, currentHome } = useApp();
-  const { today, calendarMembers } = useFamily();
-  const events = data.events.filter(event => event.date === today);
+  const { today, calendarMembers, dashboard } = useFamily();
+  const days = dashboard.showTomorrow ? [today, addDays(today, 1)] : [today];
   return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
-    <PanelHeading title={t("Everyone’s day")} to={`/calendar?date=${today}`} label="Open calendar" />
+    <div className="panel-heading"><h2>{t("Everyone’s day")}</h2><CalendarRefreshButton data={data} /></div>
     <HomeAssistantCalendar data={data} />
-    <div className="family-lanes mt-4">{data.people.map(person => {
-      const personal = uniqueCalendarPlans(events.filter(event => event.member === person.id));
-      const calendars = Object.keys(calendarMembers).filter(id => calendarMembers[id] === person.id);
-      const missing = calendars.some(id => !currentHome.entities.some(entity => entity.preferenceId === id));
-      const emptyMessage = !homeOnline ? t("Calendars unavailable while offline.")
-        : !calendars.length ? t("No calendars selected")
-        : data.loading ? t("Loading plans…")
-        : data.errors.length || missing ? t("Some calendars could not be loaded.")
-        : t("No plans today.");
-      return <div className="family-lane" role="group" aria-label={person.name} key={person.id}>
-        <div className="lane-heading"><MemberAvatar member={person.id} /><h3 className="font-medium">{person.name}</h3></div>
-        {personal.map(event => <EventButton key={event.id} event={event} onClick={() => onEdit(event)} />)}
-        {!personal.length && <p className="empty-note">{emptyMessage}</p>}
-        {!!personal.length && missing && <p className="empty-note">{t("Some calendars could not be loaded.")}</p>}
-      </div>;
+    <div className="family-day-board relative mt-4">
+    <div className="family-lanes family-day-column-lines" aria-hidden="true">{data.people.map(person => <span key={person.id} />)}</div>
+    <div className="family-lanes family-day-people">{data.people.map(person => <div className="family-lane" key={person.id}>
+      <div className="lane-heading"><MemberAvatar member={person.id} /><strong>{person.name}</strong></div>
+    </div>)}</div>
+    <div className="mt-4 space-y-6">{days.map(date => {
+      const label = t(date === today ? "Today" : "Tomorrow");
+      return <section key={date} aria-label={label} className={date === today ? undefined : "border-t border-border pt-6"}>
+        <h3 className={dashboard.showTomorrow ? "mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-medium" : "sr-only"}>
+          <span>{label}</span><time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { day: "numeric", month: "short" })}</time>
+        </h3>
+        <div className="family-lanes">{data.people.map(person => {
+          const personal = uniqueCalendarPlans(data.events.filter(event => event.member === person.id && event.date === date));
+          const calendars = Object.keys(calendarMembers).filter(id => calendarMembers[id] === person.id);
+          const missing = calendars.some(id => !currentHome.entities.some(entity => entity.preferenceId === id));
+          const unavailableMessage = !homeOnline ? t("Calendars unavailable while offline.")
+            : !calendars.length ? t("No calendars selected")
+            : data.loading ? t("Loading plans…")
+            : data.errors.length || missing ? t("Some calendars could not be loaded.")
+            : null;
+          return <div className="family-lane" role="group" aria-label={person.name} key={person.id}>
+            {personal.map(event => <EventButton key={event.id} event={event} showMember onClick={() => onEdit(event)} />)}
+            {!personal.length && <p className="empty-note">{person.name}: {unavailableMessage ?? t(date === today ? "No plans today." : "No plans tomorrow.")}</p>}
+            {!!personal.length && missing && <p className="empty-note">{person.name}: {t("Some calendars could not be loaded.")}</p>}
+          </div>;
+        })}</div>
+      </section>;
     })}</div>
+    </div>
   </section>;
 }

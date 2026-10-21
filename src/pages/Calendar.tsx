@@ -7,7 +7,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
-import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
+import { CalendarRefreshButton, CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 
 export default function Calendar() {
   const { t, dateLabel } = useI18n();
@@ -35,7 +35,7 @@ export default function Calendar() {
   const people = familyMembers.filter(m => member === "all" || member === m.id);
 
   return <div className="planner-page calendar-page">
-    <PageHeading title={t("Our week.")}><Button onClick={() => openEvent()}><Plus size={18} />{t("Add a plan")}</Button></PageHeading>
+    <PageHeading title={t("Our week.")}><div className="flex items-center gap-2"><CalendarRefreshButton data={data} /><Button onClick={() => openEvent()}><Plus size={18} />{t("Add a plan")}</Button></div></PageHeading>
     <section className="glow-panel calendar-toolbar">
       <div className="calendar-pagination">
         <Button variant="outline" size="icon" aria-label={t("Previous week")} onClick={() => navigateWeek(-7)}><ChevronLeft /></Button>

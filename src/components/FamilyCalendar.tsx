@@ -2,9 +2,10 @@ import { weekEventRows } from "@/lib/family-calendar";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
-import { Columns3, Table2, Plus } from "lucide-react";
+import { Columns3, Table2, Plus, RefreshCw } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
+import { Button } from "./ui/button";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
   const { t } = useI18n();
@@ -67,13 +68,23 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
     </div>;
 }
 
+export function CalendarRefreshButton({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
+  const { t } = useI18n();
+  const { homeOnline } = useApp();
+  const { connectedPlanner } = useFamily();
+  if (!connectedPlanner || !data.selectedCount) return null;
+  return <Button variant="ghost" size="icon" className="shrink-0" aria-label={t("Refresh calendars")} title={t("Refresh calendars")}
+    disabled={!homeOnline || data.loading} aria-busy={data.loading} onClick={data.refresh}>
+    <RefreshCw aria-hidden="true" className={data.loading ? "motion-safe:animate-spin" : undefined} />
+  </Button>;
+}
+
 export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
   const { t, message } = useI18n();
   const { homeOnline } = useApp();
   const { connectedPlanner } = useFamily();
-  if (!connectedPlanner) return null;
+  if (!connectedPlanner || (homeOnline && !data.loading && !data.errors.length)) return null;
   return <div className="page-note space-y-2">
-    {data.selectedCount > 0 && <button className="text-link" disabled={!homeOnline || data.loading} onClick={data.refresh}>{t("Refresh calendars")}</button>}
     {data.loading && <p role="status">{t("Loading calendar events…")}</p>}
     {data.errors.map(error => <p role="alert" key={message(error)}>{message(error)}</p>)}
     {!homeOnline && <p role="status">{t("Home Assistant calendar events are unavailable while offline.")}</p>}

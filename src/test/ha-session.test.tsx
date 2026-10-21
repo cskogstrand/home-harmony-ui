@@ -770,6 +770,13 @@ it.each([
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Read-only plan/ }));
   expect(screen.getByText(reason)).toBeInTheDocument();
+  if (features === 1 || features === 3) {
+    expect(screen.getByText(reason)).toHaveClass("sr-only");
+    const editHelp = screen.getByRole("button", { name: "Editing unavailable" });
+    expect(editHelp.closest(".form-actions")).not.toBeNull();
+    fireEvent.click(editHelp);
+    expect(screen.getByRole("dialog", { name: "Editing unavailable" })).toHaveTextContent(reason);
+  }
   expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
   expect(conn.sendMessagePromise.mock.calls.filter(([message]) => message.type === "calendar/event/update")).toHaveLength(0);
 });

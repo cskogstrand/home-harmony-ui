@@ -48,6 +48,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   }, emptyRegistries, "home");
   app.currentHome.timeZone = "UTC";
   settings.settings.timetables = { "home|person.example": ["/example.png"] };
+  settings.settings.dashboard.showTomorrow = true;
   const originalTimetables = structuredClone(settings.settings.timetables);
   const first = render(<App />); await saved();
   const headings = ["Morning summary", "Everyone’s day", "Everyone’s week", "Daily rhythm", "Shopping", "School", "Just right at home"];
@@ -55,16 +56,18 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   expect(screen.getByRole("region", { name: "Next family plan" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
-  const toggles = within(dialog).getAllByRole("switch");
+  const toggles = within(dialog).getAllByRole("switch").filter(toggle => toggle.getAttribute("aria-label") !== "Show tomorrow’s plans");
   expect(toggles).toHaveLength(8);
   for (const toggle of toggles) { expect(toggle).toBeChecked(); fireEvent.click(toggle); }
+  expect(within(dialog).getByRole("switch", { name: "Show tomorrow’s plans" })).toBeDisabled();
   await waitFor(() => expect(within(dialog).getByRole("status")).toHaveTextContent("Shared configuration saved."));
   fireEvent.keyDown(dialog, { key: "Escape" });
   await saved();
   for (const name of headings) expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Next family plan" })).not.toBeInTheDocument();
   expect(screen.getByText("All sections are hidden. Use Customize Today to show them again.")).toBeInTheDocument();
-  expect(Object.values(settings.settings.dashboard).every(value => !value)).toBe(true);
+  expect(settings.settings.dashboard.showTomorrow).toBe(true);
+  expect(Object.entries(settings.settings.dashboard).filter(([key]) => key !== "showTomorrow").every(([, value]) => !value)).toBe(true);
   expect(settings.settings.timetables).toEqual(originalTimetables);
   first.unmount();
   render(<App />); await saved();
@@ -80,7 +83,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ morningSummary: false, nextPlan: false, day: false, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ morningSummary: false, nextPlan: false, day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
 });
 
 it("translates Today settings and keeps a failed save visible and recoverable", async () => {
@@ -89,6 +92,7 @@ it("translates Today settings and keeps a failed save visible and recoverable", 
   fireEvent.click(await screen.findByRole("button", { name: "Tilpass I dag" }));
   const dialog = screen.getByRole("dialog", { name: "Tilpass I dag" });
   expect(within(dialog).getByRole("switch", { name: "Dagen vår" })).toBeChecked();
+  expect(within(dialog).getByRole("switch", { name: "Vis morgendagens planer" })).not.toBeChecked();
   await waitFor(() => expect(within(dialog).getByRole("switch", { name: "Handleliste" })).toBeEnabled());
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
   fireEvent.click(within(dialog).getByRole("switch", { name: "Handleliste" }));
@@ -115,7 +119,7 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   settings.settings.memberOrder = ["home|person.b", "home|person.a", "home|person.c"];
   const events = {
     "calendar.a": [
-      { summary: "Later example", start: "2026-10-21T14:00:00Z", end: "2026-10-21T15:00:00Z", description: "Example preparation details" },
+      { summary: "Later example", start: "2026-10-21T14:00:00Z", end: "2026-10-21T15:00:00Z", description: "Example preparation details", location: "Example hall" },
       { summary: "Previous day example", start: "2026-10-20T18:00:00Z", end: "2026-10-20T22:00:00Z" },
       { summary: "Next day example", start: "2026-10-22T08:00:00Z", end: "2026-10-22T09:00:00Z" },
       { summary: "Overnight example", start: "2026-10-20T20:00:00Z", end: "2026-10-21T05:00:00Z" },
@@ -131,36 +135,112 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   expect(person.getAllByRole("button").map(button => button.querySelector("strong")?.textContent)).toEqual(["Overnight example", "Early example", "Later example"]);
   expect(person.getByRole("button", { name: /Early example/ })).toHaveTextContent("00:15 – 00:25");
   expect(person.getByRole("button", { name: /Overnight example/ })).toHaveTextContent("Continues – 07:00");
+  expect(person.getByRole("button", { name: /Later example/ })).toHaveTextContent("Example A · Example hall");
   expect(day.queryByText("Previous day example")).not.toBeInTheDocument();
   expect(day.queryByText("Next day example")).not.toBeInTheDocument();
   expect(within(day.getByRole("group", { name: "Everyone" })).getByRole("button", { name: /Shared example/ })).toHaveTextContent("All day");
   expect(day.getAllByText("Shared example")).toHaveLength(1);
-  expect(day.getByRole("group", { name: "Example B" })).toHaveTextContent("No plans today.");
-  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars selected");
+  expect(day.getByRole("group", { name: "Example B" })).toHaveTextContent("Example B: No plans today.");
+  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent("Example C: No calendars selected");
   expect(app.watchCalendarEvents.mock.calls.map(([id]) => id).sort()).toEqual(["calendar.a", "calendar.b", "calendar.extra", "calendar.shared"]);
+  const refresh = day.getByRole("button", { name: "Refresh calendars" });
+  expect(refresh).toHaveAttribute("title", "Refresh calendars");
+  expect(refresh).toHaveTextContent(/^$/);
+  expect(day.queryByRole("link", { name: "Open calendar" })).not.toBeInTheDocument();
+  fireEvent.click(refresh);
+  await waitFor(() => expect(app.watchCalendarEvents).toHaveBeenCalledTimes(8));
   fireEvent.click(person.getByRole("button", { name: /Later example/ }));
   expect(screen.getByRole("dialog", { name: "Later example" })).toHaveTextContent("Example preparation details");
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Show tomorrow’s plans" }));
   fireEvent.click(screen.getByRole("switch", { name: "Everyone’s week" }));
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   await saved();
   expect(screen.getByRole("region", { name: "Everyone’s day" })).toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Everyone’s week" })).not.toBeInTheDocument();
+  expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example B" })).toHaveTextContent("No plans tomorrow.");
+  expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars selected");
 });
 
-it.each(["loading", "failed", "offline", "missing"])("does not claim today's plans are empty when a calendar is %s", async condition => {
+it.each([
+  ["2026-10-25", "monday"],
+  ["2026-10-25", "today"],
+  ["2026-12-31", "monday"],
+] as const)("optionally shows tomorrow after %s with the week starting on %s", async (today, startDay) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(`${today}T12:00:00Z`));
+  const tomorrow = addDays(today, 1), afterTomorrow = addDays(today, 2);
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "calendar.example": state("calendar.example", "off"), "calendar.shared": state("calendar.shared", "off"),
+  }, emptyRegistries, "home");
+  app.currentHome.timeZone = "Europe/Oslo";
+  settings.settings.calendar.startDay = startDay;
+  settings.settings.dashboard.week = false;
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example", "home|calendar.shared": "everyone" };
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive(id === "calendar.example" ? [
+    { summary: "Tomorrow later", start: `${tomorrow}T14:00:00Z`, end: `${tomorrow}T15:00:00Z`, description: "Example preparation" },
+    { summary: "Tomorrow early", start: `${tomorrow}T08:00:00Z`, end: `${tomorrow}T09:00:00Z` },
+    { summary: "Overnight example", start: `${today}T21:00:00Z`, end: `${tomorrow}T05:00:00Z` },
+    { summary: "Beyond tomorrow", start: afterTomorrow, end: addDays(today, 3) },
+  ] : [{ summary: "Shared two-day plan", start: today, end: afterTomorrow }]));
+  const first = render(<App />); await saved();
+  let day = within(screen.getByRole("region", { name: "Everyone’s day" }));
+  expect(day.queryByText("Tomorrow early")).not.toBeInTheDocument();
+  expect(day.queryByRole("region", { name: "Tomorrow" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Show tomorrow’s plans" }));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  expect(day.getAllByRole("region").map(row => row.getAttribute("aria-label"))).toEqual(["Today", "Tomorrow"]);
+  expect(day.getAllByRole("heading", { name: /^Today / })).toHaveLength(1);
+  expect(day.getAllByRole("heading", { name: /^Tomorrow / })).toHaveLength(1);
+  const todayRow = within(day.getByRole("region", { name: "Today" }));
+  const tomorrowRow = within(day.getByRole("region", { name: "Tomorrow" }));
+  for (const row of [todayRow, tomorrowRow]) expect(row.getAllByRole("group").map(group => group.getAttribute("aria-label"))).toEqual(["Everyone", "Example person"]);
+  expect(within(todayRow.getByRole("group", { name: "Example person" })).getAllByRole("button")).toHaveLength(1);
+  const nextDay = within(tomorrowRow.getByRole("group", { name: "Example person" }));
+  expect(nextDay.getAllByRole("button").map(button => button.querySelector("strong")?.textContent)).toEqual(["Overnight example", "Tomorrow early", "Tomorrow later"]);
+  expect(nextDay.getByRole("button", { name: /Overnight example/ })).toHaveTextContent("Continues – 06:00");
+  expect(nextDay.getByRole("button", { name: /Tomorrow early/ })).toHaveTextContent("09:00 – 10:00");
+  expect(day.queryByText("Beyond tomorrow")).not.toBeInTheDocument();
+  for (const row of [todayRow, tomorrowRow]) expect(within(row.getByRole("group", { name: "Everyone" })).getByRole("button", { name: /Shared two-day plan/ })).toBeInTheDocument();
+  const expectedEnd = startDay === "today" ? addDays(today, 7) : [addDays(weekStart(today), 7), afterTomorrow].sort()[1];
+  expect(app.watchCalendarEvents.mock.calls.slice(-2).every(([, , to]) => homeDate(new Date(to), app.currentHome.timeZone) === expectedEnd)).toBe(true);
+  expect(app.watchCalendarEvents).toHaveBeenCalledTimes(today === "2026-10-25" && startDay === "monday" ? 4 : 2);
+  fireEvent.click(nextDay.getByRole("button", { name: /Tomorrow later/ }));
+  expect(screen.getByRole("dialog", { name: "Tomorrow later" })).toHaveTextContent("Example preparation");
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  first.unmount();
+  render(<App />); await saved();
+  day = within(screen.getByRole("region", { name: "Everyone’s day" }));
+  expect(day.getByRole("button", { name: /Tomorrow early/ })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  expect(screen.getByRole("switch", { name: "Show tomorrow’s plans" })).toBeChecked();
+  fireEvent.click(screen.getByRole("switch", { name: "Show tomorrow’s plans" }));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  expect(day.queryByRole("region", { name: "Tomorrow" })).not.toBeInTheDocument();
+  expect(settings.settings.dashboard.showTomorrow).toBe(false);
+});
+
+it.each(["loading", "failed", "offline", "missing"])("does not claim daily plans are empty when a calendar is %s", async condition => {
   app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }),
     ...(condition === "missing" ? {} : { "calendar.example": state("calendar.example", "off") }),
   }, emptyRegistries, "home");
   settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  settings.settings.dashboard.showTomorrow = true;
   if (condition === "offline") app.homeOnline = false;
   if (condition === "failed") app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive(null));
   render(<App />); await saved();
   const day = within(screen.getByRole("region", { name: "Everyone’s day" }));
-  const person = day.getByRole("group", { name: "Example person" });
-  expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars unavailable while offline." : "Some calendars could not be loaded.");
+  for (const label of ["Today", "Tomorrow"]) {
+    const person = within(day.getByRole("region", { name: label })).getByRole("group", { name: "Example person" });
+    expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars unavailable while offline." : "Some calendars could not be loaded.");
+  }
   expect(day.queryByText("No plans today.")).not.toBeInTheDocument();
+  expect(day.queryByText("No plans tomorrow.")).not.toBeInTheDocument();
 });
 
 it("configures calendars in settings, shows today's agenda on School and keeps the full week accessible", async () => {

@@ -30,21 +30,23 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  expect(Object.values(dashboard).every(Boolean)).toBe(true);
+  const { showTomorrow, ...sections } = dashboard;
+  expect(showTomorrow).toBe(false);
+  expect(Object.values(sections).every(Boolean)).toBe(true);
   const read = (dashboard: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, dashboard } }));
   expect(read({ shopping: false }).settings.dashboard).toEqual({ ...dashboard, shopping: false });
-  const { day: _day, ...oldDashboard } = dashboard;
+  const { day: _day, ...oldDashboard } = sections;
   expect(read({ ...oldDashboard, week: false }).settings.dashboard).toEqual({ ...dashboard, week: false });
-  for (const invalid of [{ shopping: "false" }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
+  for (const invalid of [{ shopping: "false" }, { showTomorrow: "true" }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
 });
 
 it("shares dashboard sections across screens and restores them from backups", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, day: false, week: false, shopping: false } }));
+  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, day: false, showTomorrow: true, week: false, shopping: false } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
-  expect(b.getSnapshot().config.settings.dashboard).toEqual({ ...emptyPlanner().dashboard, day: false, week: false, shopping: false });
+  expect(b.getSnapshot().config.settings.dashboard).toEqual({ ...emptyPlanner().dashboard, day: false, showTomorrow: true, week: false, shopping: false });
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
   b.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, shopping: true } }));
   await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
