@@ -96,6 +96,7 @@ test("lists saved timetables with a read-only key in the path without exposing d
   config.settings.timetableEnabled = { "home|person.two": false };
   config.settings.timetableSettings = { "home|person.calendar": { type: "calendar", calendars: { "home|calendar.example": "events" } } };
   assert.equal((await app.request("PUT", config, revision)).status, 200);
+  assert.deepEqual((await (await app.request()).json()).config.settings.timetableSettings["home|person.calendar"].calendars, { "home|calendar.example": ["events", "popup"] });
   const expected = { timetables: [
     { member: "home|person.one", enabled: true, pages: config.settings.timetables["home|person.one"] },
     { member: "home|person.two", enabled: false, pages: ["/hidden.png"] },

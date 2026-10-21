@@ -3,7 +3,7 @@ import { timetableDays, timetableMessages, timetableWeek, type TimetableSource }
 import type { CalendarEvent } from "@/types/api";
 
 // Synthetic calendars and dates; never household data.
-const source = (id: string, role: TimetableSource["role"], events: CalendarEvent[]): TimetableSource => ({ id, name: id, role, events });
+const source = (id: string, roles: TimetableSource["roles"] | TimetableSource["roles"][number], events: CalendarEvent[]): TimetableSource => ({ id, name: id, roles: Array.isArray(roles) ? roles : [roles], events });
 const allDay = (summary: string, start = "2026-10-19", end = "2026-10-20", description = ""): CalendarEvent => ({ summary, start, end, description });
 
 it("shows five weekdays and advances to the coming week on weekends, including year boundaries", () => {
@@ -30,6 +30,27 @@ it("combines cross-calendar invitations, preserves richer descriptions and disti
 it("does not combine distinct occurrences from the same calendar", () => {
   const days = timetableDays([source("activities", "events", [allDay("Example"), allDay("Example")])], "2026-10-19", "UTC", "example");
   expect(days[0].events).toHaveLength(2);
+});
+
+it("selects popup calendars independently, including message calendars, without duplicating multi-category events", () => {
+  const [day] = timetableDays([
+    source("week", "events", [allDay("Week only")]),
+    source("shared", ["events", "message", "popup"], [allDay("Shared activity")]),
+    source("popup", "popup", [allDay("Popup only")]),
+    source("message", ["message", "popup"], [allDay("Daily message")]),
+    source("notice", "message", [allDay("Notice only")]),
+  ], "2026-10-19", "UTC", "example");
+  expect(day.events.map(event => event.title)).toEqual(["Week only", "Shared activity"]);
+  expect(day.popupEvents.map(event => event.title)).toEqual(["Shared activity", "Popup only", "Daily message"]);
+});
+
+it("uses closure calendars to suppress popup opening hours even when closures are not selected for the popup", () => {
+  const days = timetableDays([
+    source("closed", "closures", [allDay("Planning day")]),
+    source("hours", ["hours", "popup"], [allDay("Opening hours", "2026-10-19", "2026-10-22")]),
+  ], "2026-10-19", "UTC", "example");
+  expect(days[0].popupEvents).toEqual([]);
+  expect(days[1].popupEvents).toMatchObject([{ title: "Opening hours", role: "hours" }]);
 });
 
 it("hides opening hours on occupied closure dates, preserving other events and the exclusive end", () => {

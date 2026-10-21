@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { SharedConfiguration } from "@/lib/shared-configuration";
-import { emptyConfiguration, emptyPlanner, parseConfiguration, type Configuration } from "../../shared/configuration";
+import { emptyConfiguration, emptyPlanner, parseConfiguration, type Configuration, type TimetableSettings } from "../../shared/configuration";
 
 const response = (status: number, value: unknown) => ({ ok: status === 200, status, json: async () => structuredClone(value) }) as Response;
 const deferred = <T,>() => { let resolve: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve: resolve! }; };
@@ -39,7 +39,7 @@ it("defaults old timetables to images and validates calendar roles without accep
 it("shares timetable types and source roles, backs them up and keeps image pages when switching", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  const settings = { type: "calendar" as const, education: "kindergarten" as const, calendars: { example: "events" as const, notices: "message" as const, closed: "closures" as const, opening: "hours" as const } };
+  const settings: TimetableSettings = { type: "calendar", education: "kindergarten", calendars: { example: ["events", "popup"], notices: ["message", "popup"], closed: ["closures"], opening: ["hours"], extra: ["popup"] } };
   a.updateSettings(p => ({ ...p, timetables: { example: ["/example.png"] }, timetableSettings: { example: settings } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
@@ -51,6 +51,16 @@ it("shares timetable types and source roles, backs them up and keeps image pages
   await b.replace(backup);
   await a.refresh();
   expect(a.getSnapshot().config.settings.timetableSettings.example).toEqual(settings);
+});
+
+it("migrates single timetable roles without changing existing popup contents", () => {
+  const config = emptyConfiguration();
+  const read = (calendars: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, timetableSettings: { example: { type: "calendar", calendars } } } })).settings.timetableSettings.example.calendars;
+  expect(read({ activities: "events", notices: "message", closed: "closures", opening: "hours" })).toEqual({
+    activities: ["events", "popup"], notices: ["message"], closed: ["closures", "popup"], opening: ["hours", "popup"],
+  });
+  expect(read({ activities: ["events"], notices: ["message", "popup"], extra: ["popup"] })).toEqual({ activities: ["events"], notices: ["message", "popup"], extra: ["popup"] });
+  for (const roles of [[], ["unknown"], ["events", "events"], ["popup", "unknown"], "popup"]) expect(() => read({ example: roles })).toThrow();
 });
 
 it("defaults older settings to Pearl and rejects unknown palettes", () => {

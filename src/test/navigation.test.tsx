@@ -60,10 +60,21 @@ it("configures calendar timetables only in settings and presents read-only weeks
   expect(screen.getByLabelText("School or kindergarten for Example child")).toHaveValue("school");
   fireEvent.change(screen.getByLabelText("School or kindergarten for Example child"), { target: { value: "kindergarten" } });
   fireEvent.change(screen.getByLabelText("Timetable type for Example child"), { target: { value: "calendar" } });
-  for (const [name, role] of [["Activities", "events"], ["Invitations", "events"], ["Pedagogy", "message"], ["Closures", "closures"], ["Hours", "hours"]]) {
-    fireEvent.change(screen.getByLabelText(`Display ${name} for Example child`), { target: { value: role } });
+  for (const [category, names] of [["Daily events", ["Activities", "Invitations"]], ["Message below the week", ["Pedagogy"]], ["Closure days", ["Closures"]], ["Opening hours", ["Hours"]], ["Day popup", ["Activities", "Pedagogy"]]] as const) {
+    fireEvent.click(screen.getByRole("button", { name: `${category} calendars for Example child` }));
+    const picker = screen.getByRole("dialog", { name: category });
+    for (const name of names) fireEvent.click(within(picker).getByRole("checkbox", { name }));
+    fireEvent.keyDown(picker, { key: "Escape" });
   }
   await saved();
+  expect(settings.settings.timetableSettings[child].calendars["home|calendar.activities"]).toEqual(["events", "popup"]);
+  expect(settings.settings.timetableSettings[child].calendars["home|calendar.pedagogy"]).toEqual(["message", "popup"]);
+  fireEvent.click(screen.getByRole("button", { name: "Day popup calendars for Example child" }));
+  const popupPicker = screen.getByRole("dialog", { name: "Day popup" });
+  fireEvent.click(within(popupPicker).getByRole("checkbox", { name: "Activities" }));
+  fireEvent.keyDown(popupPicker, { key: "Escape" });
+  await saved();
+  expect(settings.settings.timetableSettings[child].calendars["home|calendar.activities"]).toEqual(["events"]);
   expect(app.watchCalendarEvents).not.toHaveBeenCalled();
   expect(settings.settings.timetables[child]).toEqual(["/sample.png"]);
   expect(JSON.stringify(settings)).not.toContain("Shared focus");
@@ -77,6 +88,11 @@ it("configures calendar timetables only in settings and presents read-only weeks
   expect(screen.getByText("Planning day")).toBeInTheDocument();
   expect(screen.queryByText("Regular hours")).not.toBeInTheDocument();
   expect(screen.getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 26 October 2026" }));
+  const dayDialog = screen.getByRole("dialog", { name: "Monday, 26 October 2026" });
+  expect(within(dayDialog).getByText("Shared focus")).toBeVisible();
+  expect(within(dayDialog).queryByText("Example activity")).not.toBeInTheDocument();
+  fireEvent.click(within(dayDialog).getByRole("button", { name: "Close" }));
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/Upload .* timetable PDF/)).not.toBeInTheDocument();
   expect(screen.queryByText("Share from iPhone")).not.toBeInTheDocument();
@@ -92,7 +108,7 @@ it("configures calendar timetables only in settings and presents read-only weeks
 
 it("keeps unavailable source selections editable and suppresses hours when closure data fails", async () => {
   const child = "home|person.emma";
-  settings.settings.timetableSettings = { [child]: { type: "calendar", education: "school", calendars: { "home|calendar.hours": "hours", "home|calendar.closures": "closures", "home|calendar.removed": "message" } } };
+  settings.settings.timetableSettings = { [child]: { type: "calendar", education: "school", calendars: { "home|calendar.hours": ["hours", "popup"], "home|calendar.closures": ["closures"], "home|calendar.removed": ["message"] } } };
   const start = weekStart(homeDate(new Date(), app.currentHome.timeZone));
   app.currentHome.entities.push(...mapHome({
     "calendar.hours": state("calendar.hours", "off", { friendly_name: "Example hours" }),
@@ -110,7 +126,10 @@ it("keeps unavailable source selections editable and suppresses hours when closu
   app.homeOnline = false;
   window.history.replaceState(null, "", "/settings#timetables");
   render(<App />); await saved();
-  fireEvent.change(screen.getByLabelText("Unavailable calendar: home|calendar.removed"), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Message below the week calendars for Emma" }));
+  const picker = screen.getByRole("dialog", { name: "Message below the week" });
+  fireEvent.click(within(picker).getByRole("checkbox", { name: "Unavailable calendar: home|calendar.removed" }));
+  fireEvent.keyDown(picker, { key: "Escape" });
   await saved();
   expect(settings.settings.timetableSettings[child].calendars).not.toHaveProperty("home|calendar.removed");
   await navigate("School");
@@ -140,7 +159,7 @@ it.each(["/school", "/"])("translates known timetable labels on %s and in settin
     "calendar.activities": state("calendar.activities", "off", { friendly_name: "Example child Activities" }),
   }, emptyRegistries, "home");
   settings.settings.language = "nb";
-  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": "message", "home|calendar.activities": "events" } } };
+  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": ["message"], "home|calendar.activities": ["events", "popup"] } } };
   const message = { summary: "Daily focus", description: "Daily focus: exploring shapes.", start: "2026-10-20", end: "2026-10-21" };
   app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive([id === "calendar.pedagogy" ? message : { ...message, summary: "Activities" }]));
   window.history.replaceState(null, "", path);
@@ -154,8 +173,8 @@ it.each(["/school", "/"])("translates known timetable labels on %s and in settin
   view.unmount();
   window.history.replaceState(null, "", "/settings#timetables");
   render(<App />);
-  expect(await screen.findByLabelText("Visning av Example nursery Example child Pedagogikk for Example child")).toHaveValue("message");
-  expect(screen.getByLabelText("Visning av Example child Aktiviteter for Example child")).toHaveValue("events");
+  expect(await screen.findByRole("button", { name: "Kalendere i Melding under uken for Example child" })).toHaveTextContent("Example nursery Example child Pedagogikk");
+  expect(screen.getByRole("button", { name: "Kalendere i Daglige hendelser for Example child" })).toHaveTextContent("Example child Aktiviteter");
 });
 
 it("keeps household records out of the smart-home device overview", async () => {

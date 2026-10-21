@@ -28,10 +28,15 @@ const imageUrl = z.string().max(4096).refine(value => {
   if (value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) return true;
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
 });
+const timetableRoleSchema = z.enum(["events", "message", "closures", "hours", "popup"]);
+const timetableRolesSchema = z.union([
+  z.enum(["events", "message", "closures", "hours"]).transform(role => role === "message" ? [role] : [role, "popup"]),
+  z.array(timetableRoleSchema).min(1).max(5).refine(roles => new Set(roles).size === roles.length),
+]).pipe(z.array(timetableRoleSchema));
 export const timetableSettingsSchema = z.object({
   type: z.enum(["images", "calendar"]).default("images"),
   education: z.enum(["school", "kindergarten"]).default("school"),
-  calendars: z.record(keySchema, z.enum(["events", "message", "closures", "hours"])).default({}),
+  calendars: z.record(keySchema, timetableRolesSchema).default({}),
 }).strict();
 export type TimetableSettings = z.infer<typeof timetableSettingsSchema>;
 export const plannerSchema = z.object({

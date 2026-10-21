@@ -13,8 +13,9 @@ export function CalendarTimetable({ child, settings }: { child: string; settings
   const { currentHome, homeOnline } = useApp();
   const { t, dateLabel, eventTimeLabel, calendarName, calendarTitle } = useI18n();
   const start = timetableWeek(today);
-  const { sources, loading, errors, refresh } = useTimetableCalendars(settings, start, today);
-  const days = timetableDays(sources, start, currentHome.timeZone, child);
+  const { sources, closuresUnknown, loading, errors, refresh } = useTimetableCalendars(settings, start, today);
+  const daySources = sources.filter(source => !closuresUnknown || !source.roles.includes("hours") || source.roles.includes("closures"));
+  const days = timetableDays(daySources, start, currentHome.timeZone, child);
   const messages = timetableMessages(sources, today, currentHome.timeZone, child);
   if (!Object.keys(settings.calendars).length) return <p className="empty-note">{t("Choose calendars for this person in Settings → Timetables.")}</p>;
   if (!homeOnline) return <p role="status" className="empty-note">{t("Connect to Home Assistant to see this timetable.")}</p>;
@@ -45,7 +46,7 @@ export function CalendarTimetable({ child, settings }: { child: string; settings
         <DialogHeader><DialogTitle>{dateLabel(day.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</DialogTitle><DialogDescription>{t("Activities for {name}", { name: memberName(child) })}</DialogDescription></DialogHeader>
         <div className="timetable-dialog-scroll break-words" aria-busy={loading}>
           {loading && <p role="status">{t("Loading timetable…")}</p>}{loadError}
-          {renderEvents(day.events, true)}
+          {Object.values(settings.calendars).some(roles => roles.includes("popup")) ? renderEvents(day.popupEvents, true) : <p className="muted">{t("Choose calendars for Day popup in Settings → Timetables.")}</p>}
         </div>
       </DialogContent>
     </Dialog>)}</div>

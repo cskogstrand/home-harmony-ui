@@ -299,8 +299,16 @@
 .timetable-settings fieldset { min-width: 0; }
 .timetable-settings legend { font-weight: 600; margin-bottom: .5rem; }
 .timetable-settings fieldset > p { margin-block: .75rem; }
-.planner-form .timetable-source { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .75rem; padding-block: .75rem; border-bottom: 1px solid hsl(var(--border)); }
-.timetable-source span { overflow-wrap: anywhere; }
+.timetable-category { margin-block: 1rem; }
+.timetable-category legend { padding-bottom: .5rem; }
+.timetable-calendar-picker { width: 100%; justify-content: space-between; min-height: 48px; }
+.timetable-calendar-picker > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.timetable-calendar-picker > svg { flex-shrink: 0; }
+.timetable-calendar-options { width: min(400px, calc(100vw - 24px)); max-height: min(360px, var(--radix-popover-content-available-height)); overflow-y: auto; overscroll-behavior: contain; padding: .5rem; }
+.timetable-calendar-option { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem; cursor: pointer; }
+.timetable-calendar-option [role="checkbox"] { width: 22px; height: 22px; min-height: 0; border-radius: 7px; }
+.timetable-calendar-option span { min-width: 0; overflow-wrap: anywhere; }
+.timetable-calendar-option:has(:disabled) { opacity: .6; cursor: not-allowed; }
 .timetable-dialog-scroll { overflow-y: auto; max-height: 65dvh; }
 @container (max-width: 620px) {
   .timetable-week { grid-template-columns: 1fr; }
@@ -314,9 +322,6 @@
 }
 @media (forced-colors: active) {
   .timetable-day[aria-current="date"] { outline: 2px solid Highlight; outline-offset: -2px; }
-}
-@media (max-width: 699px) {
-  .planner-form .timetable-source { grid-template-columns: 1fr; }
 }
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }

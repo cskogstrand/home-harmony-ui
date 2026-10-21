@@ -7,10 +7,10 @@ import type { TimetableSettings } from "../../shared/configuration";
 export interface TimetableSource {
   id: string;
   name: string;
-  role: TimetableSettings["calendars"][string];
+  roles: TimetableSettings["calendars"][string];
   events: CalendarEvent[];
 }
-export type TimetableEvent = FamilyEvent & { role: TimetableSource["role"]; source: string };
+export type TimetableEvent = FamilyEvent & { role: "events" | "closures" | "hours"; source: string };
 
 export function timetableWeek(today: string) {
   const monday = weekStart(today);
@@ -18,23 +18,27 @@ export function timetableWeek(today: string) {
 }
 
 export function timetableDays(sources: TimetableSource[], start: string, timeZone: string, member: string) {
-  const plans = sources.filter(source => source.role !== "message").flatMap(source => source.events.flatMap((event, index) =>
+  const plans = sources.filter(source => source.roles.some(role => role !== "message")).flatMap(source => source.events.flatMap((event, index) =>
     calendarPlans(event, source.id, member, start, addDays(start, 5), timeZone, index)
-      .map(plan => ({ ...plan, role: source.role, source: source.name }))));
+      .map(plan => ({ ...plan, roles: source.roles, source: source.name,
+        role: source.roles.includes("closures") ? "closures" as const : source.roles.includes("hours") ? "hours" as const : "events" as const }))));
   return Array.from({ length: 5 }, (_, index) => {
     const date = addDays(start, index);
     const day = plans.filter(plan => plan.date === date);
     const closed = day.some(plan => plan.role === "closures");
-    const unique = new Map<string, TimetableEvent>();
-    for (const plan of day.filter(plan => !closed || plan.role !== "hours")) {
-      // Invitations can repeat across calendars with different UIDs and descriptions.
-      const key = JSON.stringify([plan.title.trim(), plan.time, plan.endTime, plan.endDate, plan.allDay, plan.location.trim()]);
-      const previous = unique.get(key);
-      if (!previous || previous.calendarId === plan.calendarId) unique.set(previous ? `${key}:${plan.id}` : key, plan);
-      else unique.set(key, { ...previous, note: previous.note.length >= plan.note.length ? previous.note : plan.note,
-        role: plan.role === "closures" ? "closures" : previous.role });
-    }
-    return { date, closed, events: sortEvents([...unique.values()]) as TimetableEvent[] };
+    const eventsFor = (popup: boolean) => {
+      const unique = new Map<string, TimetableEvent>();
+      for (const plan of day.filter(plan => (!closed || plan.role !== "hours") && (popup ? plan.roles.includes("popup") : plan.roles.some(role => role !== "message" && role !== "popup")))) {
+        // Invitations can repeat across calendars with different UIDs and descriptions.
+        const key = JSON.stringify([plan.title.trim(), plan.time, plan.endTime, plan.endDate, plan.allDay, plan.location.trim()]);
+        const previous = unique.get(key);
+        if (!previous || previous.calendarId === plan.calendarId) unique.set(previous ? `${key}:${plan.id}` : key, plan);
+        else unique.set(key, { ...previous, note: previous.note.length >= plan.note.length ? previous.note : plan.note,
+          role: plan.role === "closures" ? "closures" : previous.role });
+      }
+      return sortEvents([...unique.values()]) as TimetableEvent[];
+    };
+    return { date, closed, events: eventsFor(false), popupEvents: eventsFor(true) };
   });
 }
 
@@ -45,7 +49,7 @@ export function timetableMessages(sources: TimetableSource[], today: string, tim
     const text = calendarDateValue(value);
     return Date.parse(isPlannerDate(text) ? calendarBoundary(text, timeZone) : text);
   };
-  return sources.filter(source => source.role === "message").map(source => {
+  return sources.filter(source => source.roles.includes("message")).map(source => {
     const eligible = source.events.filter(event => timestamp(event.end) > midnight && timestamp(event.end) > timestamp(event.start))
       .sort((a, b) => timestamp(a.start) - timestamp(b.start));
     const todays = eligible.filter(event => timestamp(event.start) < tomorrow);
