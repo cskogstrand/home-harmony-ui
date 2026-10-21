@@ -40,7 +40,7 @@ const saved = async () => {
   await pageReady();
 };
 
-it("configures calendar timetables only in settings and presents read-only weeks on School and the dashboard", async () => {
+it("configures calendars in settings, shows today's agenda on School and keeps the full week accessible", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));
   app.currentHome = mapHome({
@@ -80,15 +80,17 @@ it("configures calendar timetables only in settings and presents read-only weeks
   expect(settings.settings.timetables[child]).toEqual(["/sample.png"]);
   expect(JSON.stringify(settings)).not.toContain("Shared focus");
   await navigate("School");
-  expect(await screen.findByText("Shared focus")).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Example child’s kindergarten week" })).toBeInTheDocument();
+  const today = await screen.findByRole("region", { name: "Today's activities" });
+  expect(within(today).queryByText("Shared focus")).not.toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Today's activities for Example child" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Expand timetable" }));
   const dialog = screen.getByRole("dialog", { name: "Example child’s kindergarten week" });
+  expect(within(dialog).getAllByText("Example activity")).toHaveLength(1);
+  expect(within(dialog).getByText("Planning day")).toBeInTheDocument();
+  expect(within(dialog).queryByText("Regular hours")).not.toBeInTheDocument();
+  expect(within(dialog).getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-  expect(screen.getAllByText("Example activity")).toHaveLength(1);
-  expect(screen.getByText("Planning day")).toBeInTheDocument();
-  expect(screen.queryByText("Regular hours")).not.toBeInTheDocument();
-  expect(screen.getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
+  expect(screen.queryByText("Example activity")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 26 October 2026" }));
   const dayDialog = screen.getByRole("dialog", { name: "Monday, 26 October 2026" });
   expect(within(within(dayDialog).getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Shared focus")).toBeVisible();
@@ -160,14 +162,17 @@ it.each(["/school", "/"])("translates known timetable labels on %s and in settin
     "calendar.activities": state("calendar.activities", "off", { friendly_name: "Example child Activities" }),
   }, emptyRegistries, "home");
   settings.settings.language = "nb";
-  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": ["message"], "home|calendar.activities": ["events", "popupActivities"] } } };
+  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": ["message", "popupMessages"], "home|calendar.activities": ["events", "popupActivities"] } } };
   const message = { summary: "Daily focus", description: "Daily focus: exploring shapes.", start: "2026-10-20", end: "2026-10-21" };
   app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive([id === "calendar.pedagogy" ? message : { ...message, summary: "Activities" }]));
   window.history.replaceState(null, "", path);
   const view = render(<App />);
-  expect(await screen.findByRole("heading", { name: "Dagens fokus" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Example nursery Example child Pedagogikk" })).toBeInTheDocument();
-  expect(screen.getByText("Aktiviteter")).toBeInTheDocument();
+  expect(await screen.findByText("Dagens fokus")).toBeInTheDocument();
+  if (path === "/school") {
+    expect(screen.getByRole("heading", { name: "Meldinger (pedagogikk)" })).toBeInTheDocument();
+    expect(screen.queryByText("Example nursery Example child Pedagogikk")).not.toBeInTheDocument();
+  } else expect(screen.getByRole("heading", { name: "Example nursery Example child Pedagogikk" })).toBeInTheDocument();
+  expect(screen.getAllByText("Aktiviteter").length).toBeGreaterThan(0);
   expect(screen.getAllByText(message.description).length).toBeGreaterThan(0);
   expect(message.summary).toBe("Daily focus");
   expect(app.currentHome.entities.find(entity => entity.entityId === "calendar.pedagogy").name).toBe("Example nursery Example child Pedagogy");

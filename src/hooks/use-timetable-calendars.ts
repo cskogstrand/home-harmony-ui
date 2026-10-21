@@ -15,7 +15,7 @@ export function useTimetableCalendars(settings: TimetableSettings, start: string
   }));
   const requests = JSON.stringify(selected.filter(source => source.entity).map(({ entity, roles }) => ({
     id: entity.entityId,
-    from: calendarBoundary(roles.includes("message") && (roles.length === 1 || today < start) ? today : start, currentHome.timeZone),
+    from: calendarBoundary(today < start || (roles.includes("message") && roles.length === 1) ? today : start, currentHome.timeZone),
     // shortcut: search messages up to one year ahead; extend if integrations need longer gaps.
     to: calendarBoundary(roles.includes("message") ? addDays(today, 366) : addDays(start, 5), currentHome.timeZone),
   })).sort((a, b) => a.id.localeCompare(b.id)));

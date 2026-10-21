@@ -64,6 +64,7 @@ export function TimetableSettings({ child }: { child: string }) {
       {homeOnline && !calendars.length && <p role="status">{t("No calendars available.")}</p>}
       {categories.map(category => categoryPicker(category))}
       <fieldset className="timetable-popup-settings"><legend>{t("Day popup")}</legend>
+        <p className="muted">{t("Also used for today's activities on School.")}</p>
         <p className="muted">{t("Choose calendars for each popup section. These choices are separate from the week. Use Closure days to hide popup opening hours on closed days.")}</p>
         {popupCategories.map(category => categoryPicker(category, true))}
       </fieldset>

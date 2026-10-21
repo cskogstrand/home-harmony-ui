@@ -21,6 +21,7 @@ const receive = new Map<string, (events: CalendarEvent[] | null) => void>();
 beforeEach(() => {
   vi.clearAllMocks();
   receive.clear();
+  clock.today = "2026-10-19";
   clock.now = new Date("2026-10-19T09:30:00Z");
   clock.time = "09:30";
   app.homeOnline = true;
@@ -31,6 +32,45 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+it("shows only today's grouped agenda and keeps other days available through their popup", () => {
+  render(<CalendarTimetable child="example" settings={settings} todayOnly />);
+  const today = screen.getByRole("region", { name: "Today's activities" });
+  expect(within(today).getByText("Example activity")).toBeVisible();
+  expect(within(today).getByText("Example meeting")).toBeVisible();
+  expect(within(today).getByText("Bring example materials. Second paragraph.")).toBeVisible();
+  expect(screen.queryByText("Next day activity")).not.toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Mon 19 Oct" })).queryByText("Example activity")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "View activities for Tuesday, 20 October 2026" }));
+  expect(within(screen.getByRole("dialog")).getByText("Next day activity")).toBeVisible();
+  expect(within(screen.getByRole("dialog")).queryByText("Example activity")).not.toBeInTheDocument();
+});
+
+it("updates the inline agenda when the home's date changes", () => {
+  const view = render(<CalendarTimetable child="example" settings={settings} todayOnly />);
+  clock.today = "2026-10-20";
+  clock.now = new Date("2026-10-20T09:30:00Z");
+  view.rerender(<CalendarTimetable child="example" settings={settings} todayOnly />);
+  const today = within(screen.getByRole("region", { name: "Today's activities" }));
+  expect(today.getByText("Next day activity")).toBeVisible();
+  expect(today.queryByText("Example activity")).not.toBeInTheDocument();
+});
+
+it("loads the actual weekend day while the compact weekday strip advances to next week", () => {
+  clock.today = "2026-10-24";
+  clock.now = new Date("2026-10-24T09:30:00Z");
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, callback) => callback([
+    { summary: "Weekend workshop", start: "2026-10-24T09:00:00Z", end: "2026-10-24T10:00:00Z" },
+    { summary: "Next week workshop", start: "2026-10-26T09:00:00Z", end: "2026-10-26T10:00:00Z" },
+  ]));
+  render(<CalendarTimetable child="example" settings={{ ...settings, calendars: { "home|calendar.activities": ["popupActivities"] } }} todayOnly />);
+  const today = within(screen.getByRole("region", { name: "Today's activities" }));
+  expect(today.getByText("Weekend workshop")).toBeVisible();
+  expect(today.getByText("Happening now")).toBeVisible();
+  expect(screen.queryByText("Next week workshop")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "View activities for Monday, 26 October 2026" })).toBeVisible();
+  expect(app.watchCalendarEvents.mock.calls[0].slice(0, 3)).toEqual(["calendar.activities", "2026-10-24T00:00:00.000Z", "2026-10-31T00:00:00.000Z"]);
+});
 
 it("shows the home clock and updates the current activity while today's popup stays open", () => {
   const view = render(<CalendarTimetable child="example" settings={settings} />);

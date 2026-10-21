@@ -268,6 +268,17 @@
 .timetable-administration h3 { font-weight: 600; font-size: 1.125rem; }
 .timetable-administration .planner-form { margin-block: 1rem; }
 .calendar-timetable { container: timetable / inline-size; min-width: 0; }
+.timetable-today { overflow-wrap: anywhere; }
+.timetable-today-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 1rem; }
+.timetable-today-heading > p { font-weight: 600; }
+.timetable-today-heading .timetable-popup-status { padding-top: 0; }
+.timetable-day-layout { container: timetable-popup / inline-size; min-width: 0; }
+.timetable-strip-label { margin: 1.25rem 0 .5rem; font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+.timetable-week-strip { display: grid; grid-template-columns: repeat(5, minmax(5.5rem, 1fr)); gap: .375rem; overflow-x: auto; padding: 2px; }
+.timetable-day-choice { position: relative; padding: .75rem; border-radius: 16px; font-size: .8125rem; }
+.timetable-day-choice[aria-current="date"] { background: hsl(var(--primary) / .1); }
+.timetable-day-choice time { font-weight: 400; font-variant-numeric: tabular-nums; color: hsl(var(--muted-foreground)); }
+.timetable-day-choice[aria-current="date"] time { color: hsl(var(--primary)); }
 .timetable-week-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: .5rem 0 1rem; }
 .timetable-week-label { font-weight: 600; }
 .timetable-week { --glass-opacity: var(--glass-panel-opacity); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: 22px; }
@@ -353,7 +364,7 @@
   .timetable-popup-grid:has(.timetable-popup-activities):has(.timetable-popup-meetings) { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .timetable-day-dialog, .timetable-week {
+  .timetable-day-dialog, .timetable-week, .school-card.glass-surface {
     background-color: hsl(var(--nav-background) / .68);
     background-image: linear-gradient(145deg, hsl(var(--glass-highlight)), transparent 38%);
     -webkit-backdrop-filter: blur(40px) saturate(1.6);
@@ -364,23 +375,23 @@
 @container timetable (max-width: 48rem) {
   .timetable-week { grid-template-columns: 1fr; }
   .timetable-day + .timetable-day { border-top: 1px solid hsl(var(--border)); }
-  .timetable-day-trigger { flex-direction: row; align-items: center; justify-content: space-between; }
-  .timetable-day-trigger > span { width: auto; }
-  .timetable-day-trigger time { margin-left: auto; }
+  .timetable-day .timetable-day-trigger { flex-direction: row; align-items: center; justify-content: space-between; }
+  .timetable-day .timetable-day-trigger > span { width: auto; }
+  .timetable-day .timetable-day-trigger time { margin-left: auto; }
 }
 @container timetable-day (min-width: 18rem) {
   .timetable-day-events .timetable-agenda-event { grid-template-columns: 7.5rem minmax(0, 1fr); }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .timetable-day-dialog, .timetable-week { background: hsl(var(--nav-background)); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+  .timetable-day-dialog, .timetable-week, .school-card.glass-surface { background: hsl(var(--nav-background)); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
   .timetable-agenda-event[aria-current="time"] { outline: 1px solid currentColor; outline-offset: -1px; }
   .timetable-day { background: hsl(var(--card)); }
   .timetable-event + .timetable-event { border-color: hsl(var(--border)); }
 }
 @media (forced-colors: active) {
-  .timetable-day-dialog, .timetable-week { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+  .timetable-day-dialog, .timetable-week, .school-card.glass-surface { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
   .timetable-agenda-event[aria-current="time"], .timetable-clock { outline: 1px solid Highlight; outline-offset: -1px; }
-  .timetable-day[aria-current="date"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .timetable-day[aria-current="date"], .timetable-day-choice[aria-current="date"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
