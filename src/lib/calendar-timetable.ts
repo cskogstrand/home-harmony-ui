@@ -10,7 +10,13 @@ export interface TimetableSource {
   roles: TimetableSettings["calendars"][string];
   events: CalendarEvent[];
 }
-export type TimetableEvent = FamilyEvent & { role: "events" | "closures" | "hours"; source: string };
+export type TimetableEvent = FamilyEvent & { role: "events" | "closures" | "hours" };
+
+export function timetableEventIsCurrent(event: TimetableEvent, now: Date, today: string) {
+  return event.date === today && !event.allDay && !!event.calendarEvent
+    && Date.parse(calendarDateValue(event.calendarEvent.start)) <= now.getTime()
+    && now.getTime() < Date.parse(calendarDateValue(event.calendarEvent.end));
+}
 
 export function timetableWeek(today: string) {
   const monday = weekStart(today);
@@ -20,15 +26,20 @@ export function timetableWeek(today: string) {
 export function timetableDays(sources: TimetableSource[], start: string, timeZone: string, member: string) {
   const plans = sources.filter(source => source.roles.some(role => role !== "message")).flatMap(source => source.events.flatMap((event, index) =>
     calendarPlans(event, source.id, member, start, addDays(start, 5), timeZone, index)
-      .map(plan => ({ ...plan, roles: source.roles, source: source.name,
-        role: source.roles.includes("closures") ? "closures" as const : source.roles.includes("hours") ? "hours" as const : "events" as const }))));
+      .map(plan => ({ ...plan, roles: source.roles }))));
   return Array.from({ length: 5 }, (_, index) => {
     const date = addDays(start, index);
     const day = plans.filter(plan => plan.date === date);
-    const closed = day.some(plan => plan.role === "closures");
-    const eventsFor = (popup: boolean) => {
+    const closed = day.some(plan => plan.roles.includes("closures"));
+    const popupClosed = day.some(plan => plan.roles.includes("popupClosures"));
+    const eventsFor = (roles: TimetableSource["roles"], isClosed = false) => {
       const unique = new Map<string, TimetableEvent>();
-      for (const plan of day.filter(plan => (!closed || plan.role !== "hours") && (popup ? plan.roles.includes("popup") : plan.roles.some(role => role !== "message" && role !== "popup")))) {
+      for (const event of day) {
+        const selected = event.roles.filter(role => roles.includes(role));
+        if (!selected.length) continue;
+        const role = selected.includes("closures") || selected.includes("popupClosures") ? "closures" : selected.includes("hours") || selected.includes("popupHours") ? "hours" : "events";
+        if (isClosed && role === "hours") continue;
+        const plan: TimetableEvent = { ...event, role };
         // Invitations can repeat across calendars with different UIDs and descriptions.
         const key = JSON.stringify([plan.title.trim(), plan.time, plan.endTime, plan.endDate, plan.allDay, plan.location.trim()]);
         const previous = unique.get(key);
@@ -38,7 +49,10 @@ export function timetableDays(sources: TimetableSource[], start: string, timeZon
       }
       return sortEvents([...unique.values()]) as TimetableEvent[];
     };
-    return { date, closed, events: eventsFor(false), popupEvents: eventsFor(true) };
+    return { date, closed, events: eventsFor(["events", "closures", "hours"], closed), popup: {
+      activities: eventsFor(["popupActivities"]), meetings: eventsFor(["popupMeetings"]),
+      hours: eventsFor(["popupHours", "popupClosures"], popupClosed), messages: eventsFor(["popupMessages"]),
+    } };
   });
 }
 

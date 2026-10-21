@@ -60,18 +60,19 @@ it("configures calendar timetables only in settings and presents read-only weeks
   expect(screen.getByLabelText("School or kindergarten for Example child")).toHaveValue("school");
   fireEvent.change(screen.getByLabelText("School or kindergarten for Example child"), { target: { value: "kindergarten" } });
   fireEvent.change(screen.getByLabelText("Timetable type for Example child"), { target: { value: "calendar" } });
-  for (const [category, names] of [["Daily events", ["Activities", "Invitations"]], ["Message below the week", ["Pedagogy"]], ["Closure days", ["Closures"]], ["Opening hours", ["Hours"]], ["Day popup", ["Activities", "Pedagogy"]]] as const) {
+  for (const [category, names] of [["Daily events", ["Activities", "Invitations"]], ["Message below the week", ["Pedagogy"]], ["Closure days", ["Closures"]], ["Opening hours", ["Hours"]], ["Day popup · Activities", ["Activities", "Invitations"]], ["Day popup · Messages (Pedagogy)", ["Pedagogy"]]] as const) {
     fireEvent.click(screen.getByRole("button", { name: `${category} calendars for Example child` }));
-    const picker = screen.getByRole("dialog", { name: category });
+    const picker = screen.getByRole("dialog", { name: category.replace("Day popup · ", "") });
     for (const name of names) fireEvent.click(within(picker).getByRole("checkbox", { name }));
     fireEvent.keyDown(picker, { key: "Escape" });
   }
   await saved();
-  expect(settings.settings.timetableSettings[child].calendars["home|calendar.activities"]).toEqual(["events", "popup"]);
-  expect(settings.settings.timetableSettings[child].calendars["home|calendar.pedagogy"]).toEqual(["message", "popup"]);
-  fireEvent.click(screen.getByRole("button", { name: "Day popup calendars for Example child" }));
-  const popupPicker = screen.getByRole("dialog", { name: "Day popup" });
+  expect(settings.settings.timetableSettings[child].calendars["home|calendar.activities"]).toEqual(["events", "popupActivities"]);
+  expect(settings.settings.timetableSettings[child].calendars["home|calendar.pedagogy"]).toEqual(["message", "popupMessages"]);
+  fireEvent.click(screen.getByRole("button", { name: "Day popup · Activities calendars for Example child" }));
+  const popupPicker = screen.getByRole("dialog", { name: "Activities" });
   fireEvent.click(within(popupPicker).getByRole("checkbox", { name: "Activities" }));
+  fireEvent.click(within(popupPicker).getByRole("checkbox", { name: "Invitations" }));
   fireEvent.keyDown(popupPicker, { key: "Escape" });
   await saved();
   expect(settings.settings.timetableSettings[child].calendars["home|calendar.activities"]).toEqual(["events"]);
@@ -90,7 +91,7 @@ it("configures calendar timetables only in settings and presents read-only weeks
   expect(screen.getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 26 October 2026" }));
   const dayDialog = screen.getByRole("dialog", { name: "Monday, 26 October 2026" });
-  expect(within(dayDialog).getByText("Shared focus")).toBeVisible();
+  expect(within(within(dayDialog).getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Shared focus")).toBeVisible();
   expect(within(dayDialog).queryByText("Example activity")).not.toBeInTheDocument();
   fireEvent.click(within(dayDialog).getByRole("button", { name: "Close" }));
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
@@ -108,7 +109,7 @@ it("configures calendar timetables only in settings and presents read-only weeks
 
 it("keeps unavailable source selections editable and suppresses hours when closure data fails", async () => {
   const child = "home|person.emma";
-  settings.settings.timetableSettings = { [child]: { type: "calendar", education: "school", calendars: { "home|calendar.hours": ["hours", "popup"], "home|calendar.closures": ["closures"], "home|calendar.removed": ["message"] } } };
+  settings.settings.timetableSettings = { [child]: { type: "calendar", education: "school", calendars: { "home|calendar.hours": ["hours", "popupHours"], "home|calendar.closures": ["closures", "popupClosures"], "home|calendar.removed": ["message"] } } };
   const start = weekStart(homeDate(new Date(), app.currentHome.timeZone));
   app.currentHome.entities.push(...mapHome({
     "calendar.hours": state("calendar.hours", "off", { friendly_name: "Example hours" }),
@@ -159,7 +160,7 @@ it.each(["/school", "/"])("translates known timetable labels on %s and in settin
     "calendar.activities": state("calendar.activities", "off", { friendly_name: "Example child Activities" }),
   }, emptyRegistries, "home");
   settings.settings.language = "nb";
-  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": ["message"], "home|calendar.activities": ["events", "popup"] } } };
+  settings.settings.timetableSettings = { "home|person.example": { type: "calendar", education: "kindergarten", calendars: { "home|calendar.pedagogy": ["message"], "home|calendar.activities": ["events", "popupActivities"] } } };
   const message = { summary: "Daily focus", description: "Daily focus: exploring shapes.", start: "2026-10-20", end: "2026-10-21" };
   app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive([id === "calendar.pedagogy" ? message : { ...message, summary: "Activities" }]));
   window.history.replaceState(null, "", path);

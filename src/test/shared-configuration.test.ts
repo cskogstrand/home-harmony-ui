@@ -39,7 +39,7 @@ it("defaults old timetables to images and validates calendar roles without accep
 it("shares timetable types and source roles, backs them up and keeps image pages when switching", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  const settings: TimetableSettings = { type: "calendar", education: "kindergarten", calendars: { example: ["events", "popup"], notices: ["message", "popup"], closed: ["closures"], opening: ["hours"], extra: ["popup"] } };
+  const settings: TimetableSettings = { type: "calendar", education: "kindergarten", calendars: { example: ["events", "popupActivities"], notices: ["message", "popupMessages"], closed: ["closures", "popupClosures"], opening: ["hours", "popupHours"], extra: ["popupMeetings"] } };
   a.updateSettings(p => ({ ...p, timetables: { example: ["/example.png"] }, timetableSettings: { example: settings } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
@@ -53,13 +53,16 @@ it("shares timetable types and source roles, backs them up and keeps image pages
   expect(a.getSnapshot().config.settings.timetableSettings.example).toEqual(settings);
 });
 
-it("migrates single timetable roles without changing existing popup contents", () => {
+it("migrates old popup selections into sections and preserves explicit section choices", () => {
   const config = emptyConfiguration();
   const read = (calendars: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, timetableSettings: { example: { type: "calendar", calendars } } } })).settings.timetableSettings.example.calendars;
   expect(read({ activities: "events", notices: "message", closed: "closures", opening: "hours" })).toEqual({
-    activities: ["events", "popup"], notices: ["message"], closed: ["closures", "popup"], opening: ["hours", "popup"],
+    activities: ["events", "popupActivities"], notices: ["message"], closed: ["closures", "popupClosures"], opening: ["hours", "popupHours"],
   });
-  expect(read({ activities: ["events"], notices: ["message", "popup"], extra: ["popup"] })).toEqual({ activities: ["events"], notices: ["message", "popup"], extra: ["popup"] });
+  expect(read({ activities: ["events"], notices: ["message", "popup"], extra: ["popup"] })).toEqual({ activities: ["events"], notices: ["message", "popupMessages"], extra: ["popupActivities"] });
+  const categories = { example: ["events", "popupActivities", "popupMeetings", "popupHours", "popupClosures", "popupMessages"] };
+  expect(read(categories)).toEqual(categories);
+  expect(read(read({ closed: ["closures", "popup"], opening: ["hours", "popup"] }))).toEqual({ closed: ["closures", "popupClosures"], opening: ["hours", "popupHours"] });
   for (const roles of [[], ["unknown"], ["events", "events"], ["popup", "unknown"], "popup"]) expect(() => read({ example: roles })).toThrow();
 });
 

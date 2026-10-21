@@ -28,11 +28,15 @@ const imageUrl = z.string().max(4096).refine(value => {
   if (value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) return true;
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
 });
-const timetableRoleSchema = z.enum(["events", "message", "closures", "hours", "popup"]);
+const timetableRoleSchema = z.enum(["events", "message", "closures", "hours", "popupActivities", "popupMeetings", "popupHours", "popupClosures", "popupMessages"]);
 const timetableRolesSchema = z.union([
   z.enum(["events", "message", "closures", "hours"]).transform(role => role === "message" ? [role] : [role, "popup"]),
-  z.array(timetableRoleSchema).min(1).max(5).refine(roles => new Set(roles).size === roles.length),
-]).pipe(z.array(timetableRoleSchema));
+  z.array(z.union([timetableRoleSchema, z.literal("popup")])).min(1).max(10).refine(roles => new Set(roles).size === roles.length),
+]).transform(roles => {
+  if (!roles.includes("popup")) return roles;
+  const popupRole = roles.includes("closures") ? "popupClosures" : roles.includes("hours") ? "popupHours" : roles.includes("message") ? "popupMessages" : "popupActivities";
+  return [...new Set([...roles.filter(role => role !== "popup"), popupRole])];
+}).pipe(z.array(timetableRoleSchema));
 export const timetableSettingsSchema = z.object({
   type: z.enum(["images", "calendar"]).default("images"),
   education: z.enum(["school", "kindergarten"]).default("school"),
