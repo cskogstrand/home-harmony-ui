@@ -34,6 +34,12 @@ afterEach(cleanup);
 
 it("shows the home clock and updates the current activity while today's popup stays open", () => {
   const view = render(<CalendarTimetable child="example" settings={settings} />);
+  const day = screen.getByRole("region", { name: "Mon 19 Oct" });
+  expect(screen.getByText("09:30")).toBeVisible();
+  expect(day.querySelector('[aria-current="time"]')).toHaveTextContent("Example activity");
+  expect(within(day).getByText("Bring example materials. Second paragraph.")).not.toBeVisible();
+  fireEvent.click(within(day).getByText("Example activity"));
+  expect(within(day).getByText("Bring example materials. Second paragraph.")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 19 October 2026" }));
   const dialog = screen.getByRole("dialog");
   expect(within(dialog).getByText("09:30")).toBeVisible();
@@ -44,6 +50,7 @@ it("shows the home clock and updates the current activity while today's popup st
   view.rerender(<CalendarTimetable child="example" settings={settings} />);
   expect(within(dialog).getByText("10:00")).toBeVisible();
   expect(dialog.querySelector('[aria-current="time"]')).toBeNull();
+  expect(day.querySelector('[aria-current="time"]')).toBeNull();
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
   fireEvent.click(screen.getByRole("button", { name: "View activities for Tuesday, 20 October 2026" }));
   expect(within(screen.getByRole("dialog")).queryByText("Now")).not.toBeInTheDocument();
@@ -143,7 +150,11 @@ it("puts opening hours and closure status in the header, retaining notes behind 
     receive.set(id, callback);
     callback(id === "calendar.activities" ? [hours] : []);
   });
-  render(<CalendarTimetable child="example" settings={{ ...settings, calendars: { "home|calendar.activities": ["popupHours"], "home|calendar.meetings": ["popupClosures"] } }} />);
+  render(<CalendarTimetable child="example" settings={{ ...settings, calendars: { "home|calendar.activities": ["hours", "popupHours"], "home|calendar.meetings": ["closures", "popupClosures"] } }} />);
+  const day = screen.getByRole("region", { name: "Mon 19 Oct" });
+  expect(within(day).getAllByText("Opening hours")).toHaveLength(1);
+  expect(within(day).queryByText(hours.summary)).not.toBeInTheDocument();
+  expect(day.querySelector('[aria-current="time"]')).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 19 October 2026" }));
   const dialog = within(screen.getByRole("dialog"));
   const header = dialog.getByRole("heading", { level: 2 }).parentElement!;
@@ -158,6 +169,7 @@ it("puts opening hours and closure status in the header, retaining notes behind 
   act(() => receive.get("calendar.meetings")!([closed]));
   expect(within(status).getByText("Closed for the day")).toBeVisible();
   expect(within(status).getByText(closed.summary)).toBeVisible();
+  expect(within(day).getByText(closed.summary)).toBeInTheDocument();
   expect(dialog.queryByText(hours.summary)).not.toBeInTheDocument();
   expect(dialog.queryByText(/^Calendar:/)).not.toBeInTheDocument();
 });
