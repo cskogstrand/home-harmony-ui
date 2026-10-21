@@ -18,7 +18,7 @@
     "test:release": "node scripts/test-release-workflow.mjs",
     "test:deploy": "node scripts/test-deploy.mjs",
     "test:server": "node --test server/*.test.mjs",
-    "deploy": "node scripts/deploy.mjs",
+    "deploy": "./deploy.sh",
     "test:watch": "vitest"
   },
   "dependencies": {

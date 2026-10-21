@@ -41,21 +41,29 @@ Server tests require Poppler and permission to open local test ports. The contai
 
 `npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
 
-## Deploying all three repositories
+## Deploying this repository
 
-With this repository, `../home-assistant-unofficial-dibber` and `../home-assistant-onics-app-api` checked out on clean `main` branches, run:
+Run from a clean `main` checkout after committing your code and changelog changes:
 
 ```sh
-npm run deploy
+./deploy.sh
 ```
 
-Commit your code and changelog changes first. The script fetches each `origin/main` and stops if a checkout is behind or diverged; pull those changes yourself and retry. Committed local changes ahead of `origin/main` are included in the push. Install this project's dependencies with `npm ci` and run `./scripts/setup` in each integration first. Docker must be running with enough disk space, and Poppler must be installed for the server tests. The signed `public/shortcuts/Upload timetable.shortcut` must also be present and committed; its build command is documented in the [setup guide](../DOCS.md).
+`npm run deploy` is an alias. This script operates only on this repository; run each integration's own `./deploy.sh` separately. It fetches `origin/main` and stops if the checkout is behind or diverged. Committed local changes ahead of `origin/main` are included in the push.
 
-The script increments each repository's own patch version: this project's `VERSION`, Dibber's `custom_components/dibber/manifest.json`, and Onics' `custom_components/eva/manifest.json`. It preserves manifest formatting and leaves this project's `config.yaml` for CI to promote. Automatic bumps require stable `MAJOR.MINOR.PATCH` versions; use the individual release process for minor, major or prerelease versions.
+Install the local test dependencies once:
 
-Before any commit or push, it runs all local tests across all three projects, including the UI/server/release/deploy tests, morning-summary and design checks, TypeScript, lint, production build, Docker smoke test, both integrations' lint and pytest suites, and Onics' Compose validation. Morning-summary Python tests reuse Dibber's existing virtual environment. GitHub-only Hassfest and HACS checks still run in CI.
+```sh
+npm ci
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-test.txt
+```
 
-If a check fails, the script restores its version edits and pushes nothing. It then requires that only the version files have changed, commits just those files, and pushes each `main` normally, triggering the existing release workflows. **Pushes across repositories are not atomic:** if a commit or push fails, inspect the reported local commits and manually finish the remaining pushes; do not rerun the script and bump again. Concurrent changes are never force-pushed or reset.
+Docker must be running with enough disk space, and Poppler must be installed. The signed `public/shortcuts/Upload timetable.shortcut` must be present and committed; see its build command in the [setup guide](../DOCS.md).
+
+The script patch-bumps `VERSION`, leaving `config.yaml` for CI to promote. It runs the UI, server, release and deploy tests, morning-summary and design checks, TypeScript, lint, production build and Docker smoke test. Only after all checks pass does it commit the version file and push `main`. Automatic bumps require stable `MAJOR.MINOR.PATCH` versions; use the manual release process below for other version changes.
+
+**If any check fails, the original version is restored and nothing is committed or pushed.** Concurrent edits are preserved. If the commit or push fails after testing, inspect the local release commit and finish the push manually; do not run the script again and bump twice. The script never force-pushes or resets your work.
 
 `npm run test:deploy` exercises the deploy script with temporary local Git repositories and fake test commands; it never publishes a real release.
 
