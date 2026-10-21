@@ -268,17 +268,22 @@
 .timetable-administration h3 { font-weight: 600; font-size: 1.125rem; }
 .timetable-administration .planner-form { margin-block: 1rem; }
 .calendar-timetable { container: timetable / inline-size; min-width: 0; }
-.timetable-today { overflow-wrap: anywhere; }
-.timetable-today-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 1rem; }
-.timetable-today-heading > p { font-weight: 600; }
-.timetable-today-heading .timetable-popup-status { padding-top: 0; }
+.timetable-selected-day { margin-top: 1.5rem; overflow-wrap: anywhere; }
+.timetable-day-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 1rem; }
+.timetable-day-heading > p { font-weight: 600; }
+.timetable-day-heading .timetable-popup-status { padding-top: 0; }
 .timetable-day-layout { container: timetable-popup / inline-size; min-width: 0; }
-.timetable-strip-label { margin: 1.25rem 0 .5rem; font-size: .8125rem; color: hsl(var(--muted-foreground)); }
-.timetable-week-strip { display: grid; grid-template-columns: repeat(5, minmax(5.5rem, 1fr)); gap: .375rem; overflow-x: auto; padding: 2px; }
-.timetable-day-choice { position: relative; padding: .75rem; border-radius: 16px; font-size: .8125rem; }
-.timetable-day-choice[aria-current="date"] { background: hsl(var(--primary) / .1); }
-.timetable-day-choice time { font-weight: 400; font-variant-numeric: tabular-nums; color: hsl(var(--muted-foreground)); }
-.timetable-day-choice[aria-current="date"] time { color: hsl(var(--primary)); }
+.timetable-week-tabs { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(9rem, 1fr); align-items: stretch; justify-content: normal; gap: .375rem; width: 100%; height: auto; overflow-x: auto; padding: 2px; background: transparent; border-radius: 0; }
+.timetable-day-tab { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: .375rem; min-width: 0; padding: .75rem; border-radius: 16px; font-size: .8125rem; text-align: left; white-space: normal; overflow-wrap: anywhere; color: hsl(var(--foreground)); background: hsl(var(--card) / .2); box-shadow: none; transition-property: background-color, color; }
+.timetable-day-tab:hover { background: hsl(var(--primary) / .06); }
+.timetable-day-tab[data-state="active"] { background: hsl(var(--primary) / .12); box-shadow: inset 0 0 0 1px hsl(var(--primary) / .3); }
+.timetable-day-tab:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.timetable-tab-date { color: hsl(var(--muted-foreground)); font-weight: 400; font-variant-numeric: tabular-nums; }
+.timetable-day-tab[aria-current="date"] .timetable-tab-date { color: hsl(var(--primary)); }
+.timetable-tab-summary { display: flex; align-items: baseline; gap: .375rem; color: hsl(var(--muted-foreground)); font-size: .75rem; font-weight: 400; font-variant-numeric: tabular-nums; }
+.timetable-tab-summary svg { flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+.timetable-tab-hours { display: block; }
+.timetable-tab-meetings { padding: .125rem .5rem; border-radius: 999px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
 .timetable-week-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: .5rem 0 1rem; }
 .timetable-week-label { font-weight: 600; }
 .timetable-week { --glass-opacity: var(--glass-panel-opacity); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: 22px; }
@@ -385,13 +390,14 @@
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .timetable-day-dialog, .timetable-week, .school-card.glass-surface { background: hsl(var(--nav-background)); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
   .timetable-agenda-event[aria-current="time"] { outline: 1px solid currentColor; outline-offset: -1px; }
+  .timetable-day-tab[data-state="active"] { outline: 2px solid currentColor; outline-offset: -2px; }
   .timetable-day { background: hsl(var(--card)); }
   .timetable-event + .timetable-event { border-color: hsl(var(--border)); }
 }
 @media (forced-colors: active) {
   .timetable-day-dialog, .timetable-week, .school-card.glass-surface { background: Canvas; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
   .timetable-agenda-event[aria-current="time"], .timetable-clock { outline: 1px solid Highlight; outline-offset: -1px; }
-  .timetable-day[aria-current="date"], .timetable-day-choice[aria-current="date"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .timetable-day[aria-current="date"], .timetable-day-tab[data-state="active"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }

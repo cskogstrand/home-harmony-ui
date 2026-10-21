@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -5,25 +6,35 @@ import { useTimetableCalendars } from "@/hooks/use-timetable-calendars";
 import { timetableDays, timetableEventIsCurrent, timetableMessages, timetableWeek, type TimetableEvent } from "@/lib/calendar-timetable";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ChevronRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronRight, Clock3, UsersRound } from "lucide-react";
 import type { TimetableSettings } from "../../shared/configuration";
 
-export function CalendarTimetable({ child, settings, todayOnly = false }: { child: string; settings: TimetableSettings; todayOnly?: boolean }) {
+export function CalendarTimetable({ child, settings, dayView = false }: { child: string; settings: TimetableSettings; dayView?: boolean }) {
   const { today, now, time, memberName } = useFamily();
   const { currentHome, homeOnline } = useApp();
   const { t, dateLabel, eventTimeLabel, calendarName, calendarTitle } = useI18n();
+  const revealedList = useRef<HTMLDivElement | null>(null);
+  const revealToday = useCallback((list: HTMLDivElement | null) => {
+    if (!list || revealedList.current === list) return;
+    revealedList.current = list;
+    const tab = list.querySelector<HTMLElement>('[aria-current="date"]');
+    if (tab) list.scrollLeft = tab.offsetLeft - (list.clientWidth - tab.offsetWidth) / 2;
+  }, []);
   const start = timetableWeek(today);
-  const { sources, closuresUnknown, popupClosuresUnknown, loading, errors, refresh } = useTimetableCalendars(settings, start, today);
+  const { sources, closuresUnknown, popupClosuresUnknown, popupMeetingsLoading, popupMeetingsUnavailable, loading, errors, refresh } = useTimetableCalendars(settings, start, today);
   const daySources = sources.map(source => ({ ...source, roles: source.roles.filter(role =>
     !(closuresUnknown && role === "hours") && !(popupClosuresUnknown && role === "popupHours")) }));
   const days = timetableDays(daySources, start, currentHome.timeZone, child);
-  const todayDay = todayOnly ? days.find(day => day.date === today) ?? timetableDays(daySources, today, currentHome.timeZone, child)[0] : null;
-  const messages = todayOnly ? [] : timetableMessages(sources, today, currentHome.timeZone, child);
+  const selectableDays = dayView && !days.some(day => day.date === today) ? [timetableDays(daySources, today, currentHome.timeZone, child)[0], ...days] : days;
+  const messages = dayView ? [] : timetableMessages(sources, today, currentHome.timeZone, child);
   const popupGroups = [
     ["activities", "Activities", ["popupActivities"]], ["meetings", "Meetings", ["popupMeetings"]],
     ["messages", "Messages (Pedagogy)", ["popupMessages"]],
   ] as const;
   const selectedPopupGroups = popupGroups.filter(([, , roles]) => Object.values(settings.calendars).some(selected => roles.some(role => selected.includes(role))));
+  const hasPopupMeetings = selectedPopupGroups.some(([key]) => key === "meetings");
+  const meetingsReady = !popupMeetingsLoading && !popupMeetingsUnavailable;
   const hasPopupHours = Object.values(settings.calendars).some(roles => roles.includes("popupHours") || roles.includes("popupClosures"));
   const emptyEventsLabel = loading ? t("Loading…") : errors.length ? t("Calendar unavailable") : t("No events");
   if (!Object.keys(settings.calendars).length) return <p className="empty-note">{t("Choose calendars for this person in Settings → Timetables.")}</p>;
@@ -67,23 +78,32 @@ export function CalendarTimetable({ child, settings, todayOnly = false }: { chil
   </section>)}</div> : !hasPopupHours && <p className="muted">{t("Choose calendars for Day popup in Settings → Timetables.")}</p>;
   const weekLabel = t("Week of {date}", { date: dateLabel(start, { day: "numeric", month: "long" }) });
   return <div className="calendar-timetable" aria-busy={loading}>
-    {!todayOnly && <div className="timetable-week-heading"><p className="timetable-week-label">{weekLabel}</p>{days.some(day => day.date === today) && clock}</div>}
+    <div className="timetable-week-heading"><p className="timetable-week-label">{weekLabel}</p>{!dayView && days.some(day => day.date === today) && clock}</div>
     {loading && <p role="status">{t("Loading timetable…")}</p>}
     {loadError}
-    {todayDay && <section className="timetable-today" aria-label={t("Today's activities")}>
-      <header className="timetable-today-heading"><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>{renderDayStatus(todayDay)}</header>
-      <div className="timetable-day-layout">{renderDayGroups(todayDay)}</div>
-    </section>}
-    {todayOnly && <p className="timetable-week-label timetable-strip-label">{weekLabel}</p>}
-    <div className={todayOnly ? "timetable-week-strip" : "timetable-week glass-surface"}>{days.map(day => <Dialog key={day.date}>
-      <section className={todayOnly ? "timetable-day-choice" : "timetable-day"} aria-label={dateLabel(day.date)} aria-current={day.date === today ? "date" : undefined}>
+    {dayView ? <Tabs key={today} defaultValue={today}>
+      <TabsList ref={revealToday} className="timetable-week-tabs" aria-label={t("Choose a day")}>
+        {selectableDays.map(day => <TabsTrigger key={day.date} value={day.date} className="timetable-day-tab" aria-current={day.date === today ? "date" : undefined}>
+          <strong>{dateLabel(day.date, { weekday: "long" })}</strong>
+          <span className="timetable-tab-date"><time dateTime={day.date}>{dateLabel(day.date, { day: "numeric", month: "short" })}</time>{day.date === today && <span> · {t("Today")}</span>}</span>
+          {hasPopupHours && <span className="timetable-tab-summary"><Clock3 size={14} aria-hidden="true" /><span>
+            {day.popup.hours.some(event => event.role === "closures") ? <span className="timetable-closure">{t("Closed for the day")}</span>
+              : day.popup.hours.length ? <><span className="sr-only">{t("Opening hours")}: </span>{day.popup.hours.map(event => <span className="timetable-tab-hours" key={event.id}>{eventTimeLabel(event)}</span>)}</> : emptyEventsLabel}
+          </span></span>}
+          {hasPopupMeetings && (!meetingsReady || day.popup.meetings.length > 0) && <span className={`timetable-tab-summary${meetingsReady ? " timetable-tab-meetings" : ""}`}><UsersRound size={14} aria-hidden="true" /><span>{!meetingsReady ? `${t("Meetings")} · ${t(popupMeetingsUnavailable ? "Calendar unavailable" : "Loading…")}` : day.popup.meetings.length === 1 ? t("1 meeting") : t("{count} meetings", { count: day.popup.meetings.length })}</span></span>}
+        </TabsTrigger>)}
+      </TabsList>
+      {selectableDays.map(day => <TabsContent value={day.date} key={day.date} className="timetable-selected-day">
+        <header className="timetable-day-heading"><p>{dateLabel(day.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>{renderDayStatus(day)}</header>
+        <div className="timetable-day-layout">{renderDayGroups(day)}</div>
+      </TabsContent>)}
+    </Tabs> : <div className="timetable-week glass-surface">{days.map(day => <Dialog key={day.date}>
+      <section className="timetable-day" aria-label={dateLabel(day.date)} aria-current={day.date === today ? "date" : undefined}>
         <h3><DialogTrigger asChild><button type="button" className="timetable-day-trigger" aria-label={t("View activities for {date}", { date: dateLabel(day.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) })}>
-          <span>{dateLabel(day.date, { weekday: todayOnly ? "short" : "long" })}<ChevronRight size={16} aria-hidden="true" /></span><time dateTime={day.date}>{dateLabel(day.date, { day: "numeric", month: "short" })}</time>
+          <span>{dateLabel(day.date, { weekday: "long" })}<ChevronRight size={16} aria-hidden="true" /></span><time dateTime={day.date}>{dateLabel(day.date, { day: "numeric", month: "short" })}</time>
         </button></DialogTrigger></h3>
-        {!todayOnly && <>
-          <div className="timetable-day-hours">{day.events.some(event => event.role !== "events") && renderHours(day.events.filter(event => event.role !== "events"))}</div>
-          <div className="timetable-day-events">{(day.events.some(event => event.role === "events") || !day.events.length) && renderAgenda(day.events.filter(event => event.role === "events"), "week")}</div>
-        </>}
+        <div className="timetable-day-hours">{day.events.some(event => event.role !== "events") && renderHours(day.events.filter(event => event.role !== "events"))}</div>
+        <div className="timetable-day-events">{(day.events.some(event => event.role === "events") || !day.events.length) && renderAgenda(day.events.filter(event => event.role === "events"), "week")}</div>
       </section>
       <DialogContent className="timetable-day-dialog">
         <DialogHeader className="timetable-popup-header">
@@ -96,8 +116,8 @@ export function CalendarTimetable({ child, settings, todayOnly = false }: { chil
           {renderDayGroups(day)}
         </div>
       </DialogContent>
-    </Dialog>)}</div>
-    {!todayOnly && messages.map(source => <section className="timetable-message" key={source.id}>
+    </Dialog>)}</div>}
+    {messages.map(source => <section className="timetable-message" key={source.id}>
       <h3>{calendarName(source.name)}</h3>
       {source.date && <p className="muted">{source.date === today ? t("Today") : t("Next message · {date}", { date: dateLabel(source.date) })}</p>}
       {source.messages.map(event => <div key={event.id}><h4>{calendarTitle(event.title)}</h4>{event.note && event.note.trim() !== event.title.trim() && <p>{event.note}</p>}</div>)}

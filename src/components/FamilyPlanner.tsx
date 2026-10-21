@@ -207,7 +207,7 @@ function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId;
     <div className="timetable-controls"><CarouselPrevious className="static translate-y-0" aria-label={t("Previous timetable page")} /><span aria-live="polite" aria-atomic="true">{t("Page {value1} of {value2}", { value1: page + 1, value2: pages.length })}</span><CarouselNext className="static translate-y-0" aria-label={t("Next timetable page")} /></div>
   </Carousel>;
 }
-export function SchoolPreview({ child, todayOnly = false }: { child: MemberId; todayOnly?: boolean }) {
+export function SchoolPreview({ child, dayView = false }: { child: MemberId; dayView?: boolean }) {
   const { t } = useI18n();
   const { memberName, connectedPlanner, timetableSettings } = useFamily();
   const [openPage, setOpenPage] = useState<number | null>(null);
@@ -215,6 +215,6 @@ export function SchoolPreview({ child, todayOnly = false }: { child: MemberId; t
   const calendar = settings?.type === "calendar";
   return <><div className={`school-preview${calendar ? " school-preview-calendar" : ""}`}>
     <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? t("Year 5") : t("Year 2")}</span>}<Maximize2 size={16} /></div>
-    {calendar ? <><CalendarTimetable child={child} settings={settings} todayOnly={todayOnly} /><Button variant="outline" className="mt-3" onClick={() => setOpenPage(0)}><Maximize2 size={16} />{t("Expand timetable")}</Button></> : <TimetablePages child={child} onEnlarge={setOpenPage} />}
+    {calendar ? <><CalendarTimetable child={child} settings={settings} dayView={dayView} />{!dayView && <Button variant="outline" className="mt-3" onClick={() => setOpenPage(0)}><Maximize2 size={16} />{t("Expand timetable")}</Button>}</> : <TimetablePages child={child} onEnlarge={setOpenPage} />}
   </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{t(settings?.education === "kindergarten" ? "{value1}’s kindergarten week" : "{value1}’s school week", { value1: memberName(child) })}</DialogTitle><DialogDescription>{calendar ? t("Live calendars from Home Assistant. Change sources in Settings → Timetables.") : t("Saved timetable pages. Update them in Settings → Timetables.")}</DialogDescription></DialogHeader>{calendar ? <div className="timetable-dialog-scroll"><CalendarTimetable child={child} settings={settings} /></div> : <TimetablePages child={child} startIndex={openPage ?? 0} />}</DialogContent></Dialog></>;
 }

@@ -80,22 +80,15 @@ it("configures calendars in settings, shows today's agenda on School and keeps t
   expect(settings.settings.timetables[child]).toEqual(["/sample.png"]);
   expect(JSON.stringify(settings)).not.toContain("Shared focus");
   await navigate("School");
-  const today = await screen.findByRole("region", { name: "Today's activities" });
+  const today = await screen.findByRole("tabpanel");
   expect(within(today).queryByText("Shared focus")).not.toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Today's activities for Example child" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Expand timetable" }));
-  const dialog = screen.getByRole("dialog", { name: "Example child’s kindergarten week" });
-  expect(within(dialog).getAllByText("Example activity")).toHaveLength(1);
-  expect(within(dialog).getByText("Planning day")).toBeInTheDocument();
-  expect(within(dialog).queryByText("Regular hours")).not.toBeInTheDocument();
-  expect(within(dialog).getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
-  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-  expect(screen.queryByText("Example activity")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 26 October 2026" }));
-  const dayDialog = screen.getByRole("dialog", { name: "Monday, 26 October 2026" });
-  expect(within(within(dayDialog).getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Shared focus")).toBeVisible();
-  expect(within(dayDialog).queryByText("Example activity")).not.toBeInTheDocument();
-  fireEvent.click(within(dayDialog).getByRole("button", { name: "Close" }));
+  expect(screen.getByRole("heading", { name: "Activities for Example child" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Expand timetable" })).not.toBeInTheDocument();
+  fireEvent.mouseDown(screen.getByRole("tab", { name: /Monday/ }), { button: 0, ctrlKey: false });
+  const selectedDay = screen.getByRole("tabpanel");
+  expect(within(within(selectedDay).getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Shared focus")).toBeVisible();
+  expect(within(selectedDay).queryByText("Example activity")).not.toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   expect(screen.queryByLabelText(/Upload .* timetable PDF/)).not.toBeInTheDocument();
   expect(screen.queryByText("Share from iPhone")).not.toBeInTheDocument();
@@ -107,6 +100,13 @@ it("configures calendars in settings, shows today's agenda on School and keeps t
   render(<App />); await saved();
   expect(await screen.findByText("Shared focus")).toBeInTheDocument();
   expect(screen.getAllByText("Example activity")).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Expand timetable" }));
+  const dialog = screen.getByRole("dialog", { name: "Example child’s kindergarten week" });
+  expect(within(dialog).getAllByText("Example activity")).toHaveLength(1);
+  expect(within(dialog).getByText("Planning day")).toBeInTheDocument();
+  expect(within(dialog).queryByText("Regular hours")).not.toBeInTheDocument();
+  expect(within(dialog).getByText("Next message · Mon 26 Oct")).toBeInTheDocument();
+
 });
 
 it("keeps unavailable source selections editable and suppresses hours when closure data fails", async () => {

@@ -33,43 +33,101 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-it("shows only today's grouped agenda and keeps other days available through their popup", () => {
-  render(<CalendarTimetable child="example" settings={settings} todayOnly />);
-  const today = screen.getByRole("region", { name: "Today's activities" });
+it("switches weekday tabs in place while retaining today's live agenda", () => {
+  render(<CalendarTimetable child="example" settings={settings} dayView />);
+  const today = screen.getByRole("tabpanel");
   expect(within(today).getByText("Example activity")).toBeVisible();
   expect(within(today).getByText("Example meeting")).toBeVisible();
   expect(within(today).getByText("Bring example materials. Second paragraph.")).toBeVisible();
   expect(screen.queryByText("Next day activity")).not.toBeInTheDocument();
-  expect(within(screen.getByRole("region", { name: "Mon 19 Oct" })).queryByText("Example activity")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "View activities for Tuesday, 20 October 2026" }));
-  expect(within(screen.getByRole("dialog")).getByText("Next day activity")).toBeVisible();
-  expect(within(screen.getByRole("dialog")).queryByText("Example activity")).not.toBeInTheDocument();
+  const monday = screen.getByRole("tab", { name: /Monday/ });
+  expect(monday).toHaveAttribute("aria-selected", "true");
+  expect(monday).toHaveAttribute("aria-current", "date");
+  expect(within(monday).getByText("1 meeting")).toBeVisible();
+  expect(monday.querySelector(".timetable-tab-meetings")).toHaveTextContent("1 meeting");
+  expect(within(screen.getByRole("tab", { name: /Tuesday/ })).queryByText("0 meetings")).not.toBeInTheDocument();
+  fireEvent.mouseDown(screen.getByRole("tab", { name: /Tuesday/ }), { button: 0, ctrlKey: false });
+  expect(within(screen.getByRole("tabpanel")).getByText("Next day activity")).toBeVisible();
+  expect(screen.queryByText("Example activity")).not.toBeInTheDocument();
+  expect(screen.queryByText("Now")).not.toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(monday).toHaveAttribute("aria-current", "date");
+  expect(monday).toHaveAttribute("aria-selected", "false");
+  fireEvent.mouseDown(monday, { button: 0, ctrlKey: false });
+  expect(screen.getByRole("tabpanel").querySelector('[aria-current="time"]')).toHaveTextContent("Example activity");
 });
 
-it("updates the inline agenda when the home's date changes", () => {
-  const view = render(<CalendarTimetable child="example" settings={settings} todayOnly />);
+it("updates the selected day when the home's date changes", () => {
+  const view = render(<CalendarTimetable child="example" settings={settings} dayView />);
+  fireEvent.mouseDown(screen.getByRole("tab", { name: /Friday/ }), { button: 0, ctrlKey: false });
   clock.today = "2026-10-20";
   clock.now = new Date("2026-10-20T09:30:00Z");
-  view.rerender(<CalendarTimetable child="example" settings={settings} todayOnly />);
-  const today = within(screen.getByRole("region", { name: "Today's activities" }));
+  view.rerender(<CalendarTimetable child="example" settings={settings} dayView />);
+  expect(screen.getByRole("tab", { name: /Tuesday/ })).toHaveAttribute("aria-selected", "true");
+  const today = within(screen.getByRole("tabpanel"));
   expect(today.getByText("Next day activity")).toBeVisible();
   expect(today.queryByText("Example activity")).not.toBeInTheDocument();
 });
 
-it("loads the actual weekend day while the compact weekday strip advances to next week", () => {
+it("keeps the actual weekend day accessible alongside next week's tabs", () => {
   clock.today = "2026-10-24";
   clock.now = new Date("2026-10-24T09:30:00Z");
   app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, callback) => callback([
     { summary: "Weekend workshop", start: "2026-10-24T09:00:00Z", end: "2026-10-24T10:00:00Z" },
     { summary: "Next week workshop", start: "2026-10-26T09:00:00Z", end: "2026-10-26T10:00:00Z" },
   ]));
-  render(<CalendarTimetable child="example" settings={{ ...settings, calendars: { "home|calendar.activities": ["popupActivities"] } }} todayOnly />);
-  const today = within(screen.getByRole("region", { name: "Today's activities" }));
-  expect(today.getByText("Weekend workshop")).toBeVisible();
-  expect(today.getByText("Happening now")).toBeVisible();
+  render(<CalendarTimetable child="example" settings={{ ...settings, calendars: { "home|calendar.activities": ["popupActivities"] } }} dayView />);
+  const today = screen.getByRole("tab", { name: /Saturday/ });
+  expect(today).toHaveAttribute("aria-selected", "true");
+  expect(screen.getAllByRole("tab")).toHaveLength(6);
+  expect(screen.getByText("Weekend workshop")).toBeVisible();
+  expect(screen.getByText("Happening now")).toBeVisible();
   expect(screen.queryByText("Next week workshop")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "View activities for Monday, 26 October 2026" })).toBeVisible();
+  fireEvent.mouseDown(screen.getByRole("tab", { name: /Monday/ }), { button: 0, ctrlKey: false });
+  expect(screen.getByText("Next week workshop")).toBeVisible();
+  fireEvent.mouseDown(today, { button: 0, ctrlKey: false });
+  expect(screen.getByText("Weekend workshop")).toBeVisible();
   expect(app.watchCalendarEvents.mock.calls[0].slice(0, 3)).toEqual(["calendar.activities", "2026-10-24T00:00:00.000Z", "2026-10-31T00:00:00.000Z"]);
+});
+
+it("keeps tab status and meeting counts accurate through loading, closures, updates and failure", () => {
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, callback) => receive.set(id, callback));
+  render(<CalendarTimetable child="example" settings={{ ...settings, calendars: {
+    "home|calendar.activities": ["popupHours"], "home|calendar.meetings": ["popupMeetings"], "home|calendar.unselected": ["popupClosures"],
+  } }} dayView />);
+  const monday = screen.getByRole("tab", { name: /Monday/ });
+  const tuesday = screen.getByRole("tab", { name: /Tuesday/ });
+  expect(monday).toHaveTextContent("Loading…");
+  expect(monday).not.toHaveTextContent("0 meetings");
+  const meeting = { summary: "Example meeting", start: "2026-10-19T11:00:00Z", end: "2026-10-19T12:00:00Z" };
+  act(() => receive.get("calendar.meetings")!([meeting]));
+  expect(monday.querySelector(".timetable-tab-meetings")).toHaveTextContent("1 meeting");
+  act(() => receive.get("calendar.unselected")!(null));
+  expect(monday.querySelector(".timetable-tab-meetings")).toHaveTextContent("1 meeting");
+  act(() => {
+    receive.get("calendar.activities")!(["19", "20"].map(date => ({ summary: "Regular hours", start: `2026-10-${date}T07:00:00Z`, end: `2026-10-${date}T17:00:00Z` })));
+    receive.get("calendar.meetings")!([meeting]);
+    receive.get("calendar.unselected")!([{ summary: "Example closure", start: "2026-10-20", end: "2026-10-21" }]);
+  });
+  expect(monday).toHaveTextContent("07:00 – 17:00");
+  expect(monday).toHaveTextContent("1 meeting");
+  expect(monday).not.toHaveTextContent("Regular hours");
+  expect(tuesday).toHaveTextContent("Closed for the day");
+  expect(tuesday).not.toHaveTextContent("07:00 – 17:00");
+  expect(tuesday).not.toHaveTextContent("0 meetings");
+  expect(tuesday.querySelector(".timetable-tab-meetings")).toBeNull();
+  act(() => receive.get("calendar.meetings")!([meeting, { ...meeting, summary: "Another meeting" }]));
+  expect(monday).toHaveTextContent("2 meetings");
+  act(() => receive.get("calendar.meetings")!([]));
+  expect(monday.querySelector(".timetable-tab-meetings")).toBeNull();
+  expect(monday).not.toHaveTextContent("0 meetings");
+  fireEvent.mouseDown(tuesday, { button: 0, ctrlKey: false });
+  expect(within(screen.getByRole("tabpanel")).getByText("Example closure")).toBeVisible();
+  act(() => { receive.get("calendar.unselected")!(null); receive.get("calendar.meetings")!(null); });
+  expect(monday).toHaveTextContent("Calendar unavailable");
+  expect(monday).not.toHaveTextContent("07:00 – 17:00");
+  expect(tuesday).not.toHaveTextContent("Closed for the day");
+  expect(tuesday).not.toHaveTextContent("0 meetings");
 });
 
 it("shows the home clock and updates the current activity while today's popup stays open", () => {

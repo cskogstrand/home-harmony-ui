@@ -34,9 +34,12 @@ export function useTimetableCalendars(settings: TimetableSettings, start: string
   const events = homeOnline && result.key === key ? result.events : {};
   const closuresUnknown = selected.some(source => source.roles.includes("closures") && (!source.entity || !events[source.entity.entityId]));
   const popupClosuresUnknown = selected.some(source => source.roles.includes("popupClosures") && (!source.entity || !events[source.entity.entityId]));
+  const meetingSources = selected.filter(source => source.roles.includes("popupMeetings"));
   const sources: TimetableSource[] = selected.flatMap(({ entity, roles }) => entity && events[entity.entityId]
     ? [{ id: entity.entityId, name: entity.name, roles, events: events[entity.entityId] }] : []);
   return { sources, closuresUnknown, popupClosuresUnknown,
+    popupMeetingsLoading: homeOnline && meetingSources.some(({ entity }) => entity && events[entity.entityId] === undefined),
+    popupMeetingsUnavailable: homeOnline && meetingSources.some(({ entity }) => !entity || events[entity.entityId] === null),
     loading: homeOnline && selected.some(({ entity }) => entity && events[entity.entityId] === undefined),
     errors: homeOnline ? selected.filter(({ entity }) => !entity || events[entity.entityId] === null).map(({ entity, id }) => entity?.name ?? id) : [],
     refresh: () => setRetry(value => value + 1),
