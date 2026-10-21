@@ -64,6 +64,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     now, today, time, saved, exportConfiguration, importConfiguration,
     setLanguage: language => setPlanner(p => ({ ...p, language })),
     setAppearance: settings => setPlanner(p => ({ ...p, appearance: { ...p.appearance, ...settings } })),
+    setDashboard: settings => setPlanner(p => ({ ...p, dashboard: { ...p.dashboard, ...settings } })),
     setSelectedAlarm: id => setPlanner(p => ({ ...p, selectedAlarm: id })),
     calendarStart: planner.calendar.startDay === "today" ? today : weekStart(today),
     setCalendarSettings: settings => setPlanner(p => ({ ...p, calendar: { ...p.calendar, ...settings } })),

@@ -46,6 +46,7 @@ interface FamilyContextValue extends FamilyState {
   importConfiguration: (configuration: Configuration) => Promise<void>;
   setLanguage: (language: Planner["language"]) => boolean;
   setAppearance: (settings: Partial<Planner["appearance"]>) => boolean;
+  setDashboard: (settings: Partial<Planner["dashboard"]>) => boolean;
   setSelectedAlarm: (id: string) => boolean;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   compareMembers: (a: MemberId, b: MemberId) => number;

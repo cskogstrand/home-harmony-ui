@@ -140,13 +140,14 @@
 .panel-heading h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.35; }
 .panel-heading .text-link { min-height: 48px; }
 .portrait-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.portrait-board:where(:not(:has(> .list-panel ~ .list-panel))) > .list-panel { grid-column: 1 / -1; }
 .ambient-heading { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: .5rem 0 1rem; gap: 1.5rem; }
 .clock-block { display: flex; flex-direction: column; }
 .ambient-clock { font-size: 6rem; letter-spacing: -.04em; font-weight: 300; font-variant-numeric: tabular-nums; line-height: 1; }
 .clock-block > span { font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 19px; }
 .greeting { min-width: 0; }
 .greeting h1 { font-size: 2.25rem; font-weight: 600; letter-spacing: -.025em; margin: 0 0 .5rem; line-height: 1.2; }
-.greeting-bottom { display: flex; align-items: center; gap: 1rem; margin-top: .75rem; }
+.greeting-bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: .75rem; }
 .greeting-bottom > span { color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .avatar-group { display: flex; padding-left: 5px; }
 .avatar-group .member-avatar { margin-left: -5px; box-shadow: 0 0 0 3px hsl(var(--background)); }
@@ -711,7 +712,9 @@
 @media (min-width: 1100px) and (orientation: landscape) {
   .portrait-board { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .family-week { grid-column: span 4; grid-row: span 2; }
-  .portrait-board > .list-panel { grid-column: span 2; }
+  .portrait-board:where(:has(> .list-panel ~ .list-panel)) > .list-panel { grid-column: span 3; }
+  .portrait-board:has(> .family-week) > .list-panel { grid-column: span 2; }
+  .portrait-board:not(:has(> .list-panel)) > .family-week { grid-column: 1 / -1; }
   .portrait-board > .school-strip { grid-column: 1 / -1; }
   .family-week-table { min-width: 760px; }
 }

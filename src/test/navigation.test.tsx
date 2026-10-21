@@ -40,6 +40,66 @@ const saved = async () => {
   await pageReady();
 };
 
+it("hides each Today section, persists the choices and keeps hidden content available on other pages", async () => {
+  const today = homeDate(new Date(), "UTC");
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", today, { message: "Example summary" }),
+  }, emptyRegistries, "home");
+  app.currentHome.timeZone = "UTC";
+  settings.settings.timetables = { "home|person.example": ["/example.png"] };
+  const originalTimetables = structuredClone(settings.settings.timetables);
+  const first = render(<App />); await saved();
+  const headings = ["Morning summary", "Everyone’s week", "Daily rhythm", "Shopping", "School", "Just right at home"];
+  for (const name of headings) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Next family plan" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const dialog = screen.getByRole("dialog", { name: "Customize Today" });
+  const toggles = within(dialog).getAllByRole("switch");
+  expect(toggles).toHaveLength(7);
+  for (const toggle of toggles) { expect(toggle).toBeChecked(); fireEvent.click(toggle); }
+  await waitFor(() => expect(within(dialog).getByRole("status")).toHaveTextContent("Shared configuration saved."));
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await saved();
+  for (const name of headings) expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Next family plan" })).not.toBeInTheDocument();
+  expect(screen.getByText("All sections are hidden. Use Customize Today to show them again.")).toBeInTheDocument();
+  expect(Object.values(settings.settings.dashboard).every(value => !value)).toBe(true);
+  expect(settings.settings.timetables).toEqual(originalTimetables);
+  first.unmount();
+  render(<App />); await saved();
+  expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
+  await navigate("Lists");
+  expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
+  await navigate("School");
+  expect(screen.getByRole("img", { name: "Example person’s school timetable" })).toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Shopping" }));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
+  expect(settings.settings.dashboard).toEqual({ morningSummary: false, nextPlan: false, week: false, daily: false, shopping: true, school: false, home: false });
+});
+
+it("translates Today settings and keeps a failed save visible and recoverable", async () => {
+  settings.settings.language = "nb";
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: "Tilpass I dag" }));
+  const dialog = screen.getByRole("dialog", { name: "Tilpass I dag" });
+  await waitFor(() => expect(within(dialog).getByRole("switch", { name: "Handleliste" })).toBeEnabled());
+  app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  fireEvent.click(within(dialog).getByRole("switch", { name: "Handleliste" }));
+  expect(await within(dialog).findByRole("alert")).toHaveTextContent("En annen skjerm");
+  expect(within(dialog).getByRole("switch", { name: "Handleliste" })).not.toBeChecked();
+  for (const toggle of within(dialog).getAllByRole("switch")) expect(toggle).toBeDisabled();
+  expect(within(dialog).getByRole("status")).toHaveTextContent("Ulagrede endringer");
+  expect(settings.settings.dashboard.shopping).toBe(true);
+  fireEvent.click(within(dialog).getByRole("link", { name: "Appinnstillinger" }));
+  expect(await screen.findByRole("button", { name: "Last felles versjon" })).toBeInTheDocument();
+});
+
 it("configures calendars in settings, shows today's agenda on School and keeps the full week accessible", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));

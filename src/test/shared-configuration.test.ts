@@ -26,6 +26,31 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("preserves the current dashboard for older backups and validates section choices", () => {
+  const config = emptyConfiguration();
+  const { dashboard, ...oldSettings } = config.settings;
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
+  expect(Object.values(dashboard).every(Boolean)).toBe(true);
+  const read = (dashboard: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, dashboard } }));
+  expect(read({ shopping: false }).settings.dashboard).toEqual({ ...dashboard, shopping: false });
+  for (const invalid of [{ shopping: "false" }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
+});
+
+it("shares dashboard sections across screens and restores them from backups", async () => {
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, week: false, shopping: false } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.dashboard).toEqual({ ...emptyPlanner().dashboard, week: false, shopping: false });
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  b.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, shopping: true } }));
+  await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.dashboard).toEqual(backup.settings.dashboard);
+});
+
 it("defaults old timetables to images and validates calendar roles without accepting event content", () => {
   const config = emptyConfiguration();
   delete config.settings.timetableSettings;

@@ -1,4 +1,8 @@
 export const nb = {
+  "Customize Today": "Tilpass I dag",
+  "Choose which sections appear. Changes are saved automatically and shared across screens.": "Velg hvilke seksjoner som vises. Endringene lagres automatisk og deles mellom skjermene.",
+  "Morning summary appears when available. School appears when timetables are configured.": "Morgenoppsummeringen vises når den er tilgjengelig. Skole vises når timeplaner er konfigurert.",
+  "All sections are hidden. Use Customize Today to show them again.": "Alle seksjoner er skjult. Bruk Tilpass I dag for å vise dem igjen.",
   "Activities": "Aktiviteter",
   "Meetings": "Møter",
   "Pedagogy": "Pedagogikk",
