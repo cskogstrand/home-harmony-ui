@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 process.chdir(fileURLToPath(new URL("..", import.meta.url)));
 const docker = (...args) => execFileSync("docker", args, { encoding: "utf8" }).trim();
-const image = "home-harmony-ui:smoke";
-execFileSync("docker", ["build", "--tag", image, "."], { stdio: "inherit" });
+const image = process.argv[2] ?? "home-harmony-ui:smoke";
+if (!process.argv[2]) execFileSync("docker", ["build", "--tag", image, "."], { stdio: "inherit" });
 const container = docker("run", "--detach", "--rm", "--init", "--publish", "127.0.0.1::8099", "-e", "HOME_ASSISTANT_URL=http://127.0.0.1:8123", "-e", "HOME_ASSISTANT_TOKEN=smoke-ha-token", "-e", "DASHBOARD_PASSWORD=smoke-dashboard-password", image);
 const headers = { Authorization: `Basic ${Buffer.from("dashboard:smoke-dashboard-password").toString("base64")}` };
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.8
+
+- Download prebuilt app images on Home Assistant updates instead of installing build dependencies and compiling on the device.
+
 ## 0.9.7
 
 - Choose which sections appear on Today, with preferences saved automatically and shared across screens.

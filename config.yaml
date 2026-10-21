@@ -1,5 +1,6 @@
 name: Home Harmony UI
-version: "0.9.7"
+version: "0.9.8"
+image: "ghcr.io/cskogstrand/home-harmony-ui"
 slug: home_harmony_ui
 description: Afterglow family dashboard, calendars, lists and smart-home controls
 url: https://github.com/cskogstrand/home-harmony-ui

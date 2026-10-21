@@ -9,9 +9,9 @@ running 64-bit HAOS) and x86-64 (`amd64`).
 1. Open **Settings → Apps → Install app → ⋮ → Repositories**. Older Home Assistant
    versions call this **Settings → Add-ons → Add-on Store**.
 2. Add `https://github.com/cskogstrand/home-harmony-ui`.
-3. Select **Home Harmony UI**, then **Install**. The device builds the app from
-   this repository; the first install needs internet access to download the
-   Node image and npm packages and can take several minutes.
+3. Select **Home Harmony UI**, then **Install**. The device downloads a prebuilt
+   image for its architecture; it does not install npm packages or compile the app.
+   Internet access is required to download images from GitHub Container Registry.
 4. In the app's **Configuration** tab, set `home_assistant_url` to the HA Core
    address reachable from the container, and `home_assistant_token` to a
    long-lived access token from your HA profile. Set `dashboard_password` to
@@ -118,6 +118,9 @@ Use your dashboard's reachable HTTPS/LAN/VPN address, not HA's cloud URL.
 ## Updates
 
 Refresh the app store and use **Update** when a new app version is available.
-The maintainer must bump `version` in `config.yaml` when publishing an update.
+Updates download the prebuilt image matching `version` in `config.yaml`, then
+restart the app. Settings and timetable files remain in `/data`.
+Maintainers must publish the image before merging the version bump; see
+[Publishing an app update](README.md#publishing-an-app-update).
 See the repository [README](https://github.com/cskogstrand/home-harmony-ui#readme)
 for calendar/list setup and local server development.

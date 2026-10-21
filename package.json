@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:ha-app": "node scripts/test-ha-app.mjs",
+    "test:release": "node scripts/test-release-workflow.mjs",
     "test:server": "node --test server/*.test.mjs",
     "test:watch": "vitest"
   },
