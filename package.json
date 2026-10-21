@@ -14,10 +14,12 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:silent": "vitest run --silent=passed-only --reporter=dot",
     "test:ha-app": "node scripts/test-ha-app.mjs",
     "test:release": "node scripts/test-release-workflow.mjs",
     "test:deploy": "node scripts/test-deploy.mjs",
     "test:server": "node --test server/*.test.mjs",
+    "test:server:silent": "node --test --test-reporter=dot server/*.test.mjs",
     "deploy": "./deploy.sh",
     "test:watch": "vitest"
   },

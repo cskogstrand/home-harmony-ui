@@ -5,7 +5,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 const directory = mkdtempSync(join(tmpdir(), "home-harmony-deploy-"));
-const checks = ["npm test", "npm run test:server", "npm run test:release", "npm run test:deploy", "node scripts/test-morning-summary.mjs", "python scripts/test-morning-summary-templates.py", "node scripts/check-designs.cjs", "tsc --noEmit -p tsconfig.app.json", "npm run lint", "npm run build", "npm run test:ha-app"];
+const prerequisites = ["pdfinfo -v", "pdftoppm -v"];
+const checks = ["npm run --silent test:silent", "npm run --silent test:server:silent", "npm run --silent test:release", "npm run --silent test:deploy", "node scripts/test-morning-summary.mjs", "python scripts/test-morning-summary-templates.py", "node scripts/check-designs.cjs", "tsc --noEmit -p tsconfig.app.json", "npm run --silent lint", "npm run --silent build", "npm run --silent test:ha-app"];
 const write = (file, content, executable = false) => {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, content, { mode: executable ? 0o755 : 0o644 });
@@ -33,10 +34,12 @@ if (process.env.DEPLOY_TEST_DIRTY === call) fs.writeFileSync('unrelated.txt', 'c
 if (process.env.DEPLOY_TEST_FAIL === call) process.exit(1);
 `;
   write(join(root, "bin/npm"), check("npm"), true);
+  for (const executable of ["pdfinfo", "pdftoppm"]) write(join(root, "bin", executable), check(executable), true);
   write(log, "");
   write(join(cwd, "VERSION"), "0.9.9\n");
   write(join(cwd, ".gitignore"), ".venv/\nnode_modules/\n");
   write(join(cwd, "config.yaml"), 'version: "0.9.8"\n');
+  write(join(cwd, "public/shortcuts/Upload timetable.shortcut"), "Deploy prerequisite fixture\n");
   copyFileSync(new URL("../deploy.sh", import.meta.url), join(cwd, "deploy.sh"));
   chmodSync(join(cwd, "deploy.sh"), 0o755);
   for (const script of ["test-morning-summary.mjs", "check-designs.cjs"]) {
@@ -80,9 +83,9 @@ try {
   assert.equal(success.git(success.cwd, "status", "--porcelain"), "");
   assert.equal(success.git(success.cwd, "rev-parse", "HEAD"), success.git(success.remote, "rev-parse", "main"));
   assert.equal(readFileSync(join(success.cwd, "config.yaml"), "utf8"), 'version: "0.9.8"\n');
-  assert.deepEqual(success.calls(), [...checks, "push"], "Every local check must pass before pushing");
+  assert.deepEqual(success.calls(), [...prerequisites, ...checks, "push"], "Every local check must pass before pushing");
 
-  for (const check of ["npm run test:server", "npm run test:ha-app"]) {
+  for (const check of ["npm run --silent test:server:silent", "npm run --silent test:ha-app"]) {
     const failed = fixture(check.replaceAll(" ", "-"));
     failed.env.DEPLOY_TEST_FAIL = check;
     const failure = failed.run();
@@ -90,6 +93,26 @@ try {
     assert.match(failure.stderr, /Version restored/);
     unchanged(failed);
   }
+
+  const missingPoppler = fixture("missing-poppler");
+  missingPoppler.env.DEPLOY_TEST_FAIL = "pdfinfo -v";
+  const popplerFailure = missingPoppler.run();
+  assert.notEqual(popplerFailure.status, 0);
+  assert.match(popplerFailure.stderr, /brew install poppler/);
+  assert.deepEqual(missingPoppler.calls(), ["pdfinfo -v"]);
+  unchanged(missingPoppler);
+
+  const missingShortcut = fixture("missing-shortcut");
+  missingShortcut.git(missingShortcut.cwd, "rm", "public/shortcuts/Upload timetable.shortcut");
+  missingShortcut.git(missingShortcut.cwd, "commit", "-m", "test: missing shortcut");
+  const shortcutHead = missingShortcut.git(missingShortcut.cwd, "rev-parse", "HEAD");
+  const shortcutFailure = missingShortcut.run();
+  assert.notEqual(shortcutFailure.status, 0);
+  assert.match(shortcutFailure.stderr, /Missing signed shortcut/);
+  assert.deepEqual(missingShortcut.calls(), prerequisites);
+  assert.equal(readFileSync(join(missingShortcut.cwd, "VERSION"), "utf8"), "0.9.9\n");
+  assert.equal(missingShortcut.git(missingShortcut.cwd, "rev-parse", "HEAD"), shortcutHead);
+  assert.equal(missingShortcut.git(missingShortcut.remote, "rev-parse", "main"), missingShortcut.head);
 
   const dirty = fixture("dirty");
   write(join(dirty.cwd, "unrelated.txt"), "local work\n");
@@ -113,7 +136,7 @@ try {
   assert.equal(readFileSync(join(behind.cwd, "VERSION"), "utf8"), "0.9.9\n");
 
   const edited = fixture("edited-during-tests");
-  edited.env.DEPLOY_TEST_DIRTY = "npm run test:ha-app";
+  edited.env.DEPLOY_TEST_DIRTY = "npm run --silent test:ha-app";
   assert.notEqual(edited.run().status, 0);
   unchanged(edited);
   assert.equal(readFileSync(join(edited.cwd, "unrelated.txt"), "utf8"), "concurrent work\n");

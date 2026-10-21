@@ -8,6 +8,10 @@ fail() { echo "$*" >&2; exit 1; }
 [[ -z $(git status --porcelain) ]] || fail "Commit or stash local changes first."
 git fetch origin main
 git merge-base --is-ancestor FETCH_HEAD HEAD || fail "Pull origin/main before deploying."
+for executable in pdfinfo pdftoppm; do
+  "$executable" -v >/dev/null 2>&1 || fail "Poppler is required: run 'brew install poppler' on macOS or install poppler-utils on Linux."
+done
+[[ -f "public/shortcuts/Upload timetable.shortcut" ]] || fail "Missing signed shortcut: run 'node scripts/build-timetable-shortcut.mjs' on macOS and commit the generated file."
 
 deploy_file=VERSION
 deploy_head=$(git rev-parse HEAD)
@@ -52,17 +56,17 @@ NODE
 cp "$deploy_expected" "$deploy_file"
 echo "Testing release $deploy_version"
 
-npm test
-npm run test:server
-npm run test:release
-npm run test:deploy
+npm run --silent test:silent
+npm run --silent test:server:silent
+npm run --silent test:release
+npm run --silent test:deploy
 node scripts/test-morning-summary.mjs
 .venv/bin/python scripts/test-morning-summary-templates.py
 node scripts/check-designs.cjs
 ./node_modules/.bin/tsc --noEmit -p tsconfig.app.json
-npm run lint
-npm run build
-npm run test:ha-app
+npm run --silent lint
+npm run --silent build
+npm run --silent test:ha-app
 
 [[ $(git branch --show-current) == main && $(git rev-parse HEAD) == "$deploy_head" ]] || fail "Branch or HEAD changed during tests."
 cmp -s "$deploy_file" "$deploy_expected" || fail "Version changed during tests."

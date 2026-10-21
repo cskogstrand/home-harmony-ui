@@ -39,6 +39,8 @@ npm run test:deploy
 
 Server tests require Poppler and permission to open local test ports. The container smoke test requires Docker. Tests use temporary data and fake credentials; they do not connect to your household or control devices.
 
+For compact output, use `npm run --silent test:silent` and `npm run --silent test:server:silent`. Passing tests show dots; failures retain their details. `deploy.sh` uses these commands automatically.
+
 `npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
 
 ## Deploying this repository
@@ -59,7 +61,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-test.txt
 ```
 
-Docker must be running with enough disk space, and Poppler must be installed. The signed `public/shortcuts/Upload timetable.shortcut` must be present and committed; see its build command in the [setup guide](../DOCS.md).
+Docker must be running with enough disk space, and Poppler must be installed. The signed `public/shortcuts/Upload timetable.shortcut` must be present and committed; see its build command in the [setup guide](../DOCS.md). The script checks the PDF tools and shortcut before changing `VERSION`, with setup instructions if either is missing.
 
 The script patch-bumps `VERSION`, leaving `config.yaml` for CI to promote. It runs the UI, server, release and deploy tests, morning-summary and design checks, TypeScript, lint, production build and Docker smoke test. Only after all checks pass does it commit the version file and push `main`. Automatic bumps require stable `MAJOR.MINOR.PATCH` versions; use the manual release process below for other version changes.
 
