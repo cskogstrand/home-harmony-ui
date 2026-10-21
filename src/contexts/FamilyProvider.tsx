@@ -80,6 +80,8 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setMemberVisible: (id, visible) => setPlanner(p => ({ ...p, hiddenMembers: [...p.hiddenMembers.filter(member => member !== id), ...(visible ? [] : [id])] })),
     setMemberColor: (id, color) => setPlanner(p => ({ ...p, memberColors: { ...p.memberColors, [id]: color } })),
     setHomeEntities: ids => setPlanner(p => ({ ...p, homeEntities: [...new Set(ids)] })),
+    setSmartHomeDeviceVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, hiddenDevices: [...p.smartHome.hiddenDevices.filter(device => device !== id), ...(visible ? [] : [id])] } })),
+    setSmartHomeEntityVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, hiddenEntities: [...p.smartHome.hiddenEntities.filter(entity => entity !== id), ...(visible ? [] : [id])] } })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };
       if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];

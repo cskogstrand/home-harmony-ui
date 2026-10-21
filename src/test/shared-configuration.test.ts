@@ -26,6 +26,31 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("defaults older backups to visible smart home entities and validates visibility settings", () => {
+  const config = emptyConfiguration();
+  const { smartHome, ...oldSettings } = config.settings;
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [] });
+  const read = (smartHome: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, smartHome } }));
+  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ ...smartHome, hiddenDevices: ["example-device"] });
+  for (const invalid of [{ hiddenDevices: "device" }, { hiddenEntities: [1] }, { hiddenEntities: [""] }, { unknown: [] }, null]) expect(() => read(invalid)).toThrow();
+});
+
+it("shares smart home visibility across screens and restores it from backups", async () => {
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  const smartHome = { hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"] };
+  a.updateSettings(p => ({ ...p, smartHome }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.smartHome).toEqual(smartHome);
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  b.updateSettings(p => ({ ...p, smartHome: { hiddenDevices: [], hiddenEntities: [] } }));
+  await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.smartHome).toEqual(smartHome);
+});
+
 it("preserves the current dashboard for older backups and validates section choices", () => {
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;

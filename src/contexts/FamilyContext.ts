@@ -55,6 +55,8 @@ interface FamilyContextValue extends FamilyState {
   setMemberVisible: (id: MemberId, visible: boolean) => void;
   setMemberColor: (id: MemberId, color: string) => boolean;
   setHomeEntities: (ids: string[]) => boolean;
+  setSmartHomeDeviceVisible: (id: string, visible: boolean) => boolean;
+  setSmartHomeEntityVisible: (id: string, visible: boolean) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
   saveEvent: (event: FamilyEvent) => boolean;

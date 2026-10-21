@@ -40,6 +40,96 @@ const saved = async () => {
   await pageReady();
 };
 
+it("saves device and entity visibility, restores individual choices, and filters Smart home after reload", async () => {
+  app.currentHome = mapHome({
+    "light.example": state("light.example", "on", { friendly_name: "Example lamp" }),
+    "sensor.example": state("sensor.example", "20", { friendly_name: "Example temperature" }),
+    "scene.example": state("scene.example", "unknown", { friendly_name: "Example scene" }),
+    "switch.example": state("switch.example", "off", { friendly_name: "Example switch" }),
+  }, {
+    areas: [{ area_id: "example-area", name: "Example room" }],
+    devices: [{ id: "example-device", name: "Example hub", area_id: "example-area" }],
+    entities: [
+      { id: "example-light", entity_id: "light.example", device_id: "example-device" },
+      { id: "example-temperature", entity_id: "sensor.example", device_id: "example-device" },
+    ],
+  }, "home");
+  settings.settings.smartHome.hiddenEntities = ["home|unavailable-example"];
+  settings.settings.homeEntities = ["home|example-light"];
+  window.history.replaceState(null, "", "/settings");
+  const first = render(<App />); await saved();
+  const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
+  fireEvent.change(region.getByRole("searchbox"), { target: { value: "Example" } });
+  const lamp = () => region.getByRole("switch", { name: "Show entity Example lamp on Smart home" });
+  const temperature = () => region.getByRole("switch", { name: "Show entity Example temperature on Smart home" });
+  const device = () => region.getByRole("switch", { name: "Show device Example hub on Smart home" });
+  expect(lamp()).toBeChecked();
+  fireEvent.click(temperature());
+  fireEvent.click(device());
+  expect(lamp()).not.toBeChecked();
+  expect(lamp()).toBeDisabled();
+  fireEvent.click(device());
+  expect(lamp()).toBeChecked();
+  expect(temperature()).not.toBeChecked();
+  fireEvent.click(device());
+  fireEvent.click(region.getByRole("switch", { name: "Show entity Example scene on Smart home" }));
+  await saved();
+  expect(settings.settings.smartHome).toEqual({ hiddenDevices: ["example-device"], hiddenEntities: ["home|unavailable-example", "home|example-temperature", "home|scene.example"] });
+  expect(settings.settings.homeEntities).toEqual(["home|example-light"]);
+  await navigate("Smart home");
+  expect(screen.queryByText("Example lamp")).not.toBeInTheDocument();
+  expect(screen.queryByText("Example temperature")).not.toBeInTheDocument();
+  expect(screen.queryByText("Example scene")).not.toBeInTheDocument();
+  expect(screen.getByText("Example switch")).toBeInTheDocument();
+  expect(screen.getByText("0 visible lights on")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Example room" }));
+  expect(screen.getByText("No visible devices in this area.")).toBeInTheDocument();
+  first.unmount();
+  render(<App />); await saved();
+  expect(screen.queryByText("Example lamp")).not.toBeInTheDocument();
+  expect(screen.getByText("Example switch")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("link", { name: "Choose visible devices" }));
+  await screen.findByRole("heading", { level: 1, name: "Home settings" });
+  expect(window.location.hash).toBe("#smart-home-visibility");
+  fireEvent.click(screen.getByRole("switch", { name: "Show device Example hub on Smart home" }));
+  await saved();
+  await navigate("Smart home");
+  expect(screen.getByText("Example lamp")).toBeInTheDocument();
+  expect(screen.queryByText("Example temperature")).not.toBeInTheDocument();
+});
+
+it("labels summaries as visible selections when all lights, climate and alarms are hidden", async () => {
+  app.currentHome = mapHome({
+    "light.example": state("light.example", "on"),
+    "climate.example": state("climate.example", "heat", { current_temperature: 25 }),
+    "alarm_control_panel.example": state("alarm_control_panel.example", "armed_away"),
+  }, emptyRegistries, "home");
+  settings.settings.smartHome.hiddenEntities = app.currentHome.entities.map(entity => entity.preferenceId);
+  window.history.replaceState(null, "", "/home");
+  render(<App />); await saved();
+  expect(screen.getByRole("link", { name: "Lighting 0 visible lights on" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Climate No visible climate device" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Security No visible alarm" })).toBeInTheDocument();
+  expect(screen.queryByText("Armed away")).not.toBeInTheDocument();
+  expect(screen.getByText("No devices visible on Smart home.")).toBeInTheDocument();
+});
+
+it("keeps smart home visibility drafts on save failure and disables further changes", async () => {
+  app.currentHome = mapHome({ "switch.example": state("switch.example", "off", { friendly_name: "Example switch" }) }, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/settings");
+  render(<App />); await saved();
+  const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
+  app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  const toggle = region.getByRole("switch", { name: "Show entity Example switch on Smart home" });
+  fireEvent.click(toggle);
+  await waitFor(() => expect(region.getByRole("alert")).toHaveTextContent("Another screen changed the configuration"));
+  expect(toggle).not.toBeChecked();
+  expect(toggle).toBeDisabled();
+  expect(region.getByText("Unsaved changes on this screen.")).toBeInTheDocument();
+  expect(settings.settings.smartHome.hiddenEntities).toEqual([]);
+  expect(region.getByRole("link", { name: "App preferences" })).toBeInTheDocument();
+});
+
 it("hides each Today section, persists the choices and keeps hidden content available on other pages", async () => {
   const today = homeDate(new Date(), "UTC");
   app.currentHome = mapHome({
@@ -738,7 +828,7 @@ it("distinguishes offline plans and security from successful empty reads", async
   expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars unavailable while offline.");
   expect(screen.getByRole("button", { name: "Add a family plan" })).toBeDisabled();
   await navigate("Smart home");
-  expect(screen.queryByText("No alarm")).not.toBeInTheDocument();
+  expect(screen.queryByText("No visible alarm")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();
   view.unmount();
   app.connectionStatus = "connected";

@@ -1,6 +1,13 @@
 import { createI18n, locales, type Language } from "./i18n";
 import type { Entity, Home, PhysicalDevice } from "@/types/api";
 import { available } from "./ha-model";
+import type { Planner } from "../../shared/configuration";
+
+export function smartHomeEntities(entities: Entity[], settings?: Planner["smartHome"]) {
+  return entities.filter(entity => !["person", "calendar", "todo", "zone"].includes(entity.domain)
+    && !settings?.hiddenEntities.includes(entity.preferenceId)
+    && !(entity.device && settings?.hiddenDevices.includes(entity.device.id)));
+}
 
 export const deviceName = (device: PhysicalDevice, language: Language = "en") => device.name_by_user || device.name || device.model || createI18n(language).t("Unnamed device");
 export const entityDetailPath = (entity: Entity) => entity.device

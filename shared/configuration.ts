@@ -70,6 +70,10 @@ export const plannerSchema = z.object({
     home: z.boolean().default(true),
   }).strict().default({}),
   homeEntities: z.array(memberSchema).optional(),
+  smartHome: z.object({
+    hiddenDevices: z.array(memberSchema).default([]),
+    hiddenEntities: z.array(memberSchema).default([]),
+  }).strict().default({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: z.record(keySchema, memberColorSchema).default({}),
   hiddenMembers: z.array(memberSchema).default([]),
