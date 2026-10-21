@@ -1,4 +1,6 @@
 export const nb = {
+  "Everyone’s day": "Dagen vår",
+  "No plans today.": "Ingen planer i dag.",
   "Customize Today": "Tilpass I dag",
   "Choose which sections appear. Changes are saved automatically and shared across screens.": "Velg hvilke seksjoner som vises. Endringene lagres automatisk og deles mellom skjermene.",
   "Morning summary appears when available. School appears when timetables are configured.": "Morgenoppsummeringen vises når den er tilgjengelig. Skole vises når timeplaner er konfigurert.",

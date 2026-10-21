@@ -13,6 +13,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
 import { DashboardSettings } from "@/components/DashboardSettings";
+import { FamilyDay } from "@/components/FamilyDay";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
@@ -44,7 +45,8 @@ export default function Dashboard() {
         <div className="next-event"><h2>{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : t("No upcoming plans to display.")}</h2></div>}
       <Button className="add-plan" onClick={() => openEvent()} aria-label={t("Add a family plan")} disabled={connectedPlanner && !homeOnline}><Plus size={20} /><span>{t("Add a plan")}</span></Button>
     </section>}
-    {dashboard.week && <section className="glow-panel family-week">
+    {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
+    {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
       <div className="panel-heading calendar-panel-heading"><h2>{t("Everyone’s week")}</h2><CalendarViewControls /><Link to="/calendar" className="text-link">{t("Open calendar")}<ArrowUpRight size={17} /></Link></div>
       <HomeAssistantCalendar data={data} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>

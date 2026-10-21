@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.7
+
+- Choose which sections appear on Today, with preferences saved automatically and shared across screens.
+- Add Everyone’s day (Dagen vår), grouping today's events by person from their selected calendars, including all-day and overnight plans and a separate group for shared events.
+- Keep a pre-upgrade settings backup before downgrading: older releases reject the new dashboard settings.
+
 ## 0.9.6
 
 - Show the selected day's school activities with weekday tabs, opening or closed status, and highlighted meeting counts.

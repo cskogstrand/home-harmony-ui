@@ -683,9 +683,10 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
     await grid.findByRole("button", { name: /Night train/ });
   }
   fireEvent.click(screen.getByRole("button", { name: "By person" }));
-  expect(screen.getAllByRole("button", { name: /Family trip/ })).toHaveLength(1);
-  expect(screen.getByText("Tue 6 Oct – Thu 15 Oct")).toBeVisible();
-  expect(screen.getByText(/^3 plans/)).toBeInTheDocument();
+  const week = path === "/" ? within(screen.getByRole("region", { name: "Everyone’s week" })) : screen;
+  expect(week.getAllByRole("button", { name: /Family trip/ })).toHaveLength(1);
+  expect(week.getByText("Tue 6 Oct – Thu 15 Oct")).toBeVisible();
+  expect(week.getByText(/^3 plans/)).toBeInTheDocument();
   if (path === "/calendar") {
     fireEvent.click(screen.getByRole("button", { name: "Fri 09" }));
     expect(await screen.findByRole("button", { name: /Family trip/ })).toBeInTheDocument();
@@ -802,7 +803,7 @@ it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar
   setupWritableCalendars();
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Refresh calendars" })).not.toBeDisabled());
+  await waitFor(() => screen.getAllByRole("button", { name: "Refresh calendars" }).forEach(button => expect(button).toBeEnabled()));
   fireEvent.click(screen.getByRole("button", { name: path === "/" ? "Add a family plan" : "Add a plan" }));
   fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Evening walk" } });
   const select = screen.getByRole("combobox", { name: "Calendar" });

@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 const sections = [
   ["morningSummary", "Morning summary"],
   ["nextPlan", "Next family plan"],
+  ["day", "Everyone’s day"],
   ["week", "Everyone’s week"],
   ["daily", "Daily rhythm"],
   ["shopping", "Shopping"],

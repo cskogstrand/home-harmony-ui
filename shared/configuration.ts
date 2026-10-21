@@ -61,6 +61,7 @@ export const plannerSchema = z.object({
   dashboard: z.object({
     morningSummary: z.boolean().default(true),
     nextPlan: z.boolean().default(true),
+    day: z.boolean().default(true),
     week: z.boolean().default(true),
     daily: z.boolean().default(true),
     shopping: z.boolean().default(true),

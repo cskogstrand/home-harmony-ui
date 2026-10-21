@@ -50,13 +50,13 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   settings.settings.timetables = { "home|person.example": ["/example.png"] };
   const originalTimetables = structuredClone(settings.settings.timetables);
   const first = render(<App />); await saved();
-  const headings = ["Morning summary", "Everyone’s week", "Daily rhythm", "Shopping", "School", "Just right at home"];
+  const headings = ["Morning summary", "Everyone’s day", "Everyone’s week", "Daily rhythm", "Shopping", "School", "Just right at home"];
   for (const name of headings) expect(screen.getByRole("heading", { name })).toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Next family plan" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
   const toggles = within(dialog).getAllByRole("switch");
-  expect(toggles).toHaveLength(7);
+  expect(toggles).toHaveLength(8);
   for (const toggle of toggles) { expect(toggle).toBeChecked(); fireEvent.click(toggle); }
   await waitFor(() => expect(within(dialog).getByRole("status")).toHaveTextContent("Shared configuration saved."));
   fireEvent.keyDown(dialog, { key: "Escape" });
@@ -80,7 +80,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ morningSummary: false, nextPlan: false, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ morningSummary: false, nextPlan: false, day: false, week: false, daily: false, shopping: true, school: false, home: false });
 });
 
 it("translates Today settings and keeps a failed save visible and recoverable", async () => {
@@ -88,6 +88,7 @@ it("translates Today settings and keeps a failed save visible and recoverable", 
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Tilpass I dag" }));
   const dialog = screen.getByRole("dialog", { name: "Tilpass I dag" });
+  expect(within(dialog).getByRole("switch", { name: "Dagen vår" })).toBeChecked();
   await waitFor(() => expect(within(dialog).getByRole("switch", { name: "Handleliste" })).toBeEnabled());
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
   fireEvent.click(within(dialog).getByRole("switch", { name: "Handleliste" }));
@@ -98,6 +99,68 @@ it("translates Today settings and keeps a failed save visible and recoverable", 
   expect(settings.settings.dashboard.shopping).toBe(true);
   fireEvent.click(within(dialog).getByRole("link", { name: "Appinnstillinger" }));
   expect(await screen.findByRole("button", { name: "Last felles versjon" })).toBeInTheDocument();
+});
+
+it.each(["today", "monday"] as const)("groups today's assigned calendar events by person when the week starts on %s", async startDay => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T22:30:00Z"));
+  app.currentHome = mapHome(Object.fromEntries([
+    ...["a", "b", "c", "hidden"].map(id => [`person.${id}`, state(`person.${id}`, "home", { friendly_name: `Example ${id.toUpperCase()}` })]),
+    ...["a", "extra", "b", "shared", "hidden", "unselected"].map(id => [`calendar.${id}`, state(`calendar.${id}`, "off")]),
+  ]), emptyRegistries, "home");
+  app.currentHome.timeZone = "Europe/Oslo";
+  settings.settings.calendar.startDay = startDay;
+  settings.settings.calendarMembers = { "home|calendar.a": "home|person.a", "home|calendar.extra": "home|person.a", "home|calendar.b": "home|person.b", "home|calendar.shared": "everyone", "home|calendar.hidden": "home|person.hidden" };
+  settings.settings.hiddenMembers = ["home|person.hidden"];
+  settings.settings.memberOrder = ["home|person.b", "home|person.a", "home|person.c"];
+  const events = {
+    "calendar.a": [
+      { summary: "Later example", start: "2026-10-21T14:00:00Z", end: "2026-10-21T15:00:00Z", description: "Example preparation details" },
+      { summary: "Previous day example", start: "2026-10-20T18:00:00Z", end: "2026-10-20T22:00:00Z" },
+      { summary: "Next day example", start: "2026-10-22T08:00:00Z", end: "2026-10-22T09:00:00Z" },
+      { summary: "Overnight example", start: "2026-10-20T20:00:00Z", end: "2026-10-21T05:00:00Z" },
+    ],
+    "calendar.extra": [{ summary: "Early example", start: "2026-10-20T22:15:00Z", end: "2026-10-20T22:25:00Z" }],
+    "calendar.shared": [{ summary: "Shared example", start: "2026-10-20", end: "2026-10-23" }],
+  };
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive(events[id] ?? []));
+  render(<App />); await saved();
+  const day = within(screen.getByRole("region", { name: "Everyone’s day" }));
+  expect(day.getAllByRole("group").map(group => group.getAttribute("aria-label"))).toEqual(["Everyone", "Example B", "Example A", "Example C"]);
+  const person = within(day.getByRole("group", { name: "Example A" }));
+  expect(person.getAllByRole("button").map(button => button.querySelector("strong")?.textContent)).toEqual(["Overnight example", "Early example", "Later example"]);
+  expect(person.getByRole("button", { name: /Early example/ })).toHaveTextContent("00:15 – 00:25");
+  expect(person.getByRole("button", { name: /Overnight example/ })).toHaveTextContent("Continues – 07:00");
+  expect(day.queryByText("Previous day example")).not.toBeInTheDocument();
+  expect(day.queryByText("Next day example")).not.toBeInTheDocument();
+  expect(within(day.getByRole("group", { name: "Everyone" })).getByRole("button", { name: /Shared example/ })).toHaveTextContent("All day");
+  expect(day.getAllByText("Shared example")).toHaveLength(1);
+  expect(day.getByRole("group", { name: "Example B" })).toHaveTextContent("No plans today.");
+  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars selected");
+  expect(app.watchCalendarEvents.mock.calls.map(([id]) => id).sort()).toEqual(["calendar.a", "calendar.b", "calendar.extra", "calendar.shared"]);
+  fireEvent.click(person.getByRole("button", { name: /Later example/ }));
+  expect(screen.getByRole("dialog", { name: "Later example" })).toHaveTextContent("Example preparation details");
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Everyone’s week" }));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  expect(screen.getByRole("region", { name: "Everyone’s day" })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Everyone’s week" })).not.toBeInTheDocument();
+});
+
+it.each(["loading", "failed", "offline", "missing"])("does not claim today's plans are empty when a calendar is %s", async condition => {
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    ...(condition === "missing" ? {} : { "calendar.example": state("calendar.example", "off") }),
+  }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  if (condition === "offline") app.homeOnline = false;
+  if (condition === "failed") app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive(null));
+  render(<App />); await saved();
+  const day = within(screen.getByRole("region", { name: "Everyone’s day" }));
+  const person = day.getByRole("group", { name: "Example person" });
+  expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars unavailable while offline." : "Some calendars could not be loaded.");
+  expect(day.queryByText("No plans today.")).not.toBeInTheDocument();
 });
 
 it("configures calendars in settings, shows today's agenda on School and keeps the full week accessible", async () => {
