@@ -34,11 +34,30 @@ npm run lint
 npm run build
 npm run test:ha-app
 npm run test:release
+npm run test:deploy
 ```
 
 Server tests require Poppler and permission to open local test ports. The container smoke test requires Docker. Tests use temporary data and fake credentials; they do not connect to your household or control devices.
 
 `npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
+
+## Deploying all three repositories
+
+With this repository, `../home-assistant-unofficial-dibber` and `../home-assistant-onics-app-api` checked out on clean `main` branches, run:
+
+```sh
+npm run deploy
+```
+
+Commit your code and changelog changes first. The script fetches each `origin/main` and stops if a checkout is behind or diverged; pull those changes yourself and retry. Committed local changes ahead of `origin/main` are included in the push. Install this project's dependencies with `npm ci` and run `./scripts/setup` in each integration first. Docker must be running with enough disk space, and Poppler must be installed for the server tests. The signed `public/shortcuts/Upload timetable.shortcut` must also be present and committed; its build command is documented in the [setup guide](../DOCS.md).
+
+The script increments each repository's own patch version: this project's `VERSION`, Dibber's `custom_components/dibber/manifest.json`, and Onics' `custom_components/eva/manifest.json`. It preserves manifest formatting and leaves this project's `config.yaml` for CI to promote. Automatic bumps require stable `MAJOR.MINOR.PATCH` versions; use the individual release process for minor, major or prerelease versions.
+
+Before any commit or push, it runs all local tests across all three projects, including the UI/server/release/deploy tests, morning-summary and design checks, TypeScript, lint, production build, Docker smoke test, both integrations' lint and pytest suites, and Onics' Compose validation. Morning-summary Python tests reuse Dibber's existing virtual environment. GitHub-only Hassfest and HACS checks still run in CI.
+
+If a check fails, the script restores its version edits and pushes nothing. It then requires that only the version files have changed, commits just those files, and pushes each `main` normally, triggering the existing release workflows. **Pushes across repositories are not atomic:** if a commit or push fails, inspect the reported local commits and manually finish the remaining pushes; do not rerun the script and bump again. Concurrent changes are never force-pushed or reset.
+
+`npm run test:deploy` exercises the deploy script with temporary local Git repositories and fake test commands; it never publishes a real release.
 
 ## Publishing an app update
 

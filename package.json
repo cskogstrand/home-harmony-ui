@@ -16,7 +16,9 @@
     "test": "vitest run",
     "test:ha-app": "node scripts/test-ha-app.mjs",
     "test:release": "node scripts/test-release-workflow.mjs",
+    "test:deploy": "node scripts/test-deploy.mjs",
     "test:server": "node --test server/*.test.mjs",
+    "deploy": "node scripts/deploy.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {
