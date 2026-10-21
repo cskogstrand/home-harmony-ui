@@ -39,7 +39,7 @@ const saved = async () => {
   await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
   await pageReady();
 };
-const confirmVisibility = async (name: "Show group" | "Hide group") => {
+const confirmVisibility = async (name: "Show group" | "Hide group" | "Show all matches" | "Hide all matches") => {
   fireEvent.click(within(screen.getByRole("alertdialog", { name: "Are you sure?" })).getByRole("button", { name }));
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
 };
@@ -138,6 +138,7 @@ it("keeps smart home visibility drafts on save failure and disables further chan
   await waitFor(() => expect(region.getByRole("alert")).toHaveTextContent("Another screen changed the configuration"));
   expect(toggle).not.toBeChecked();
   expect(toggle).toBeDisabled();
+  expect(region.getByRole("switch", { name: "Show all matching entities" })).toBeDisabled();
   expect(region.getByText("Unsaved changes on this screen.")).toBeInTheDocument();
   expect(settings.settings.smartHome.hiddenEntities).toEqual([]);
   expect(region.getByRole("link", { name: "App preferences" })).toBeInTheDocument();
@@ -192,6 +193,58 @@ it("groups visibility by domain, integration and device, and confirms only the f
   fireEvent.click(region.getByRole("switch", { name: "Show entity Example reading on Smart home" }));
   expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   await saved();
+});
+
+it("toggles all filtered entities with confirmation independently of grouping", async () => {
+  app.currentHome = mapHome({
+    "light.example": state("light.example", "on"),
+    "sensor.example": state("sensor.example", "20"),
+    "light.other": state("light.other", "off"),
+  }, { areas: [], devices: [{ id: "example-device", name: "Example hub" }], entities: [
+    { id: "example-light", entity_id: "light.example", device_id: "example-device", platform: "mqtt" },
+    { id: "example-reading", entity_id: "sensor.example", device_id: "example-device", platform: "mqtt" },
+    { id: "other-light", entity_id: "light.other", platform: "hue" },
+  ] }, "home");
+  settings.settings.smartHome.hiddenDevices = ["example-device"];
+  window.history.replaceState(null, "", "/settings");
+  render(<App />); await saved();
+  const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
+  const filters = within(region.getByRole("group", { name: "Filters" }));
+  const grouping = within(region.getByRole("group", { name: "Grouping" }));
+  expect(filters.queryByRole("combobox", { name: "Group by" })).not.toBeInTheDocument();
+  expect(grouping.queryByRole("combobox", { name: "Domain" })).not.toBeInTheDocument();
+  fireEvent.change(filters.getByRole("combobox", { name: "Domain" }), { target: { value: "light" } });
+  const toggle = () => region.getByRole("switch", { name: "Show all matching entities" });
+  expect(toggle()).not.toBeChecked();
+  expect(region.getByText("2 of 3 entities")).toBeInTheDocument();
+  fireEvent.change(grouping.getByRole("combobox", { name: "Group by" }), { target: { value: "none" } });
+  expect(region.getByText("2 of 3 entities")).toBeInTheDocument();
+  fireEvent.click(toggle());
+  expect(screen.getByRole("alertdialog")).toHaveTextContent("Show all entities matching the filters (2)?");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(toggle()).not.toBeChecked();
+  expect(settings.settings.smartHome.hiddenDevices).toEqual(["example-device"]);
+  fireEvent.click(toggle());
+  await confirmVisibility("Show all matches");
+  await saved();
+  expect(toggle()).toBeChecked();
+  expect(settings.settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: ["home|example-reading"] });
+  fireEvent.click(toggle());
+  await confirmVisibility("Hide all matches");
+  await saved();
+  expect(toggle()).not.toBeChecked();
+  expect(settings.settings.smartHome.hiddenEntities).toEqual(["home|example-reading", "home|example-light", "home|other-light"]);
+  fireEvent.change(filters.getByRole("combobox", { name: "Visibility" }), { target: { value: "hidden" } });
+  fireEvent.click(toggle());
+  await confirmVisibility("Show all matches");
+  await saved();
+  expect(toggle()).toBeDisabled();
+  expect(toggle()).not.toBeChecked();
+  expect(region.getByText("0 of 3 entities")).toBeInTheDocument();
+  fireEvent.click(filters.getByRole("button", { name: "Clear filters" }));
+  expect(grouping.getByRole("combobox", { name: "Group by" })).toHaveValue("none");
+  expect(region.getByText("3 of 3 entities")).toBeInTheDocument();
+  expect(toggle()).toBeEnabled();
 });
 
 it("confirms single-child device groups and disables confirmation if shared settings fail", async () => {
