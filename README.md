@@ -109,20 +109,27 @@ Calendar integrations and to-do lists stay in HA. The app uses reported capabili
 
 ## School timetables
 
-Enable a person's timetable in **Home settings**, then choose **School or kindergarten** and **Timetable type** under **Settings → Timetables**. School is the default; Kindergarten changes that person's week heading and timetable descriptions in both languages. **PDF / images** keeps the existing uploaded pages; **Calendar week** reads selected Home Assistant calendars. Switching types preserves both saved pages and calendar choices, and the dashboard shows the same type.
+Enable a person's timetable in **Home settings**, then choose **School or kindergarten** and **Timetable type** under **Settings → Timetables**. School is the default; Kindergarten changes that person's week heading and timetable descriptions in both languages. **PDF / images** keeps the existing uploaded pages; **Calendars** reads selected Home Assistant calendars. Switching types preserves both saved pages and calendar choices, and the dashboard shows the same type.
 
-For a calendar week, assign each calendar a display role:
+**School day view** contains a live preview of the actual School timetable. Choose calendars where their content should appear: opening hours and closures in the heading, Activities and Meetings in their sections, and Messages (Pedagogy) underneath. Short hints explain each picker. Changes update the preview immediately and save automatically. All sections stay visible before calendars are selected or while Home Assistant is offline; live events require a connection.
 
-| Role | Suggested source | Behavior |
+One set of five calendar selections supplies School, the weekly timetable on **Today** and its day dialogs. Each category accepts multiple calendars, and a calendar can belong to several categories. There is no separate dashboard mapping.
+
+| Category | School and settings preview | Today dashboard |
 | --- | --- | --- |
-| Daily events | Activities, Meetings; optionally Invitations | Monday–Friday events with times and expandable descriptions. Matching title, times and location across calendars appear once. |
-| Message below the week | Pedagogy or repeated long notices | Full-width text beneath the timetable, using today's entries or the next available day's entries within a year. Duplicate title/text on that day appears once per source. |
-| Closure days | Nursery closures, planning days, holidays | Marks the day closed and hides opening hours. |
-| Opening hours | Regular opening times | Shows hours unless a selected closure calendar marks the day closed. Hidden while any selected closure calendar cannot be read. |
+| Activities | Main activity section for the selected day. | Events in each weekday. |
+| Meetings | Meeting section and positive counts on weekday tabs. | Combined with Activities in each weekday. |
+| Opening hours | Hours in the heading and weekday tabs. | Hours beneath each day heading. |
+| Closure days | Closed status replaces opening hours. | Marks the day closed and hides opening hours. |
+| Messages (Pedagogy) | Full-width messages for the selected day below its schedule. | Messages beneath the week. |
 
-On weekends the grid advances to the coming Monday. Messages show their date when using a future entry. These assignments are separate from the family calendar, work with read-only calendars, and never edit the source events. Settings and backups contain source references only; event contents stay in memory. Missing calendars remain listed so they can be removed or restored.
+Existing School day selections become the shared mapping and take precedence over old separate dashboard assignments. Configurations with only weekly assignments migrate into the matching categories; **Daily events** becomes **Activities**. Saved timetable pages are unaffected.
 
-With Norwegian selected, timetable source names translate the six category labels above, including category suffixes after a person's name. Standard event titles such as “Daily focus” display in Norwegian too. Names, custom titles and descriptions stay as written; the original Home Assistant data is unchanged.
+School and the settings preview show messages for the selected date only. The Today dashboard keeps today's entries or the next available day's entries within a year, showing their date when using a future entry. Its weekday grid advances to the coming Monday on weekends; School still includes the actual current day. Matching title, times and location across event calendars appear once. Dashboard messages with duplicate title/text on a day appear once per source. Opening hours stay hidden while any selected closure calendar cannot be read.
+
+These assignments are separate from the family calendar, work with read-only calendars, and never edit the source events. Settings and backups contain source references only; event contents stay in memory. Missing calendars remain listed so they can be removed or restored.
+
+With Norwegian selected, timetable source categories and view labels translate too. Standard event titles such as “Daily focus” display in Norwegian as well. Names, custom titles and descriptions stay as written; the original Home Assistant data is unchanged.
 
 For saved pages, use **Settings → Timetables → PDF / images → Upload PDF timetable**. PDFs may be up to **10 MB / 20 pages**, without password protection. Confirming an upload replaces that person's visible pages on every screen. Invalid uploads keep the previous timetable.
 
@@ -173,7 +180,7 @@ The response contains all saved timetable entries, their enabled flag and ordere
 }
 ```
 
-Prefix relative page URLs with your dashboard's origin to download the images without headers. A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. External image URLs are returned unchanged; never send your API key to those hosts. Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have an empty `pages` array. Disabled timetables remain listed with `enabled: false`, so automations can skip them. Saved pages also report `enabled: false` while the person uses Calendar week, preventing image-based automations from reading an inactive timetable. Calendar events remain available through Home Assistant’s calendar APIs.
+Prefix relative page URLs with your dashboard's origin to download the images without headers. A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. External image URLs are returned unchanged; never send your API key to those hosts. Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have an empty `pages` array. Disabled timetables remain listed with `enabled: false`, so automations can skip them. Saved pages also report `enabled: false` while the person uses Calendars, preventing image-based automations from reading an inactive timetable. Calendar events remain available through Home Assistant’s calendar APIs.
 
 The key permits only listing timetables and downloading stored PNG/SVG pages, including older retained uploads. It cannot upload PDFs, read/change dashboard settings, or access HA controls. Responses use `Cache-Control: no-store`. Dashboard credentials still work on the original routes, including `GET /api/timetables` (which returns page URLs without a key).
 

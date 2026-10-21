@@ -29,10 +29,11 @@ const imageUrl = z.string().max(4096).refine(value => {
   try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; }
 });
 const timetableRoleSchema = z.enum(["events", "message", "closures", "hours", "popupActivities", "popupMeetings", "popupHours", "popupClosures", "popupMessages"]);
+const timetableWeekRoles = { popupActivities: "events", popupMeetings: "events", popupHours: "hours", popupClosures: "closures", popupMessages: "message" } as const;
 const timetableRolesSchema = z.union([
-  z.enum(["events", "message", "closures", "hours"]).transform(role => role === "message" ? [role] : [role, "popup"]),
+  z.enum(["events", "message", "closures", "hours"]).transform(role => [role]),
   z.array(z.union([timetableRoleSchema, z.literal("popup")])).min(1).max(10).refine(roles => new Set(roles).size === roles.length),
-]).transform(roles => {
+]).transform((roles: (z.infer<typeof timetableRoleSchema> | "popup")[]) => {
   if (!roles.includes("popup")) return roles;
   const popupRole = roles.includes("closures") ? "popupClosures" : roles.includes("hours") ? "popupHours" : roles.includes("message") ? "popupMessages" : "popupActivities";
   return [...new Set([...roles.filter(role => role !== "popup"), popupRole])];
@@ -40,7 +41,15 @@ const timetableRolesSchema = z.union([
 export const timetableSettingsSchema = z.object({
   type: z.enum(["images", "calendar"]).default("images"),
   education: z.enum(["school", "kindergarten"]).default("school"),
-  calendars: z.record(keySchema, timetableRolesSchema).default({}),
+  calendars: z.record(keySchema, timetableRolesSchema).default({}).transform(calendars => {
+    const hasSections = Object.values(calendars).some(roles => roles.some(role => role in timetableWeekRoles));
+    return Object.fromEntries(Object.entries(calendars).flatMap(([id, roles]) => {
+      // School selections lead; older week-only configurations inherit matching sections.
+      const sections = hasSections ? roles.filter((role): role is keyof typeof timetableWeekRoles => role in timetableWeekRoles)
+        : roles.map(role => role === "events" ? "popupActivities" : role === "message" ? "popupMessages" : role === "closures" ? "popupClosures" : "popupHours");
+      return sections.length ? [[id, [...new Set(sections.flatMap(role => [timetableWeekRoles[role], role]))]]] : [];
+    }));
+  }),
 }).strict();
 export type TimetableSettings = z.infer<typeof timetableSettingsSchema>;
 export const plannerSchema = z.object({

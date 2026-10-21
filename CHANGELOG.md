@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.6
+
+- Show the selected day's school activities with weekday tabs, opening or closed status, and highlighted meeting counts.
+- Group activities, meetings and messages in a clearer timetable layout, highlight current activities, and make saved PDF/image timetables full width on School.
+- Configure calendars directly in a live timetable preview, with multiple sources per category and explanations beside each picker.
+- Use the same calendar selections on School and Today. Existing School selections take precedence over separate dashboard assignments; older weekly-only assignments migrate into matching day categories.
+
 ## 0.9.5
 
 - Add calendar timetables for school and kindergarten, with events, shared messages, closures and opening hours configured in Settings → Timetables.

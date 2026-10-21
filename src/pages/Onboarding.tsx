@@ -44,7 +44,7 @@ export default function Onboarding() {
       </li>
       <li className="glow-panel space-y-3" id="timetables">
         <h2>{t("5. Add school timetables ")}<span className="text-sm text-muted-foreground">{t("Optional")}</span></h2>
-        <p className="page-note">{t("Enable Timetable for the people who need it, then choose PDF / images or Calendar week in Settings → Timetables. Read the result on School or the dashboard.")}</p>
+        <p className="page-note">{t("Enable Timetable for the people who need it, then choose PDF / images or Calendars in Settings → Timetables. Read the result on School or the dashboard.")}</p>
         <div className="flex flex-wrap gap-4">
           <Link className="text-link" to="/settings#timetables">{t("Configure timetables")}</Link>
           <Link className="text-link" to="/school">{t("Open School board")}</Link>

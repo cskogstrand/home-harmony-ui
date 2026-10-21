@@ -217,7 +217,7 @@ it("shows only popup selections and explains how to configure an empty selection
   expect(dialog.getByText("Example meeting")).toBeVisible();
   expect(dialog.queryByText("Example activity")).not.toBeInTheDocument();
   view.rerender(<CalendarTimetable child="example" settings={{ ...settings, calendars: { "home|calendar.activities": ["events"] } }} />);
-  expect(dialog.getByText("Choose calendars for Day popup in Settings → Timetables.")).toBeVisible();
+  expect(dialog.getByText("Choose calendars for School day view in Settings → Timetables.")).toBeVisible();
   expect(dialog.queryByText("Example activity")).not.toBeInTheDocument();
 });
 
@@ -263,7 +263,7 @@ it("puts opening hours and closure status in the header, retaining notes behind 
   expect(within(status).getByText(hours.description)).not.toBeVisible();
   fireEvent.click(within(status).getByText("Details"));
   expect(within(status).getByText(hours.description)).toBeVisible();
-  expect(dialog.queryByText("Choose calendars for Day popup in Settings → Timetables.")).not.toBeInTheDocument();
+  expect(dialog.queryByText("Choose calendars for School day view in Settings → Timetables.")).not.toBeInTheDocument();
   act(() => receive.get("calendar.meetings")!([closed]));
   expect(within(status).getByText("Closed for the day")).toBeVisible();
   expect(within(status).getByText(closed.summary)).toBeVisible();

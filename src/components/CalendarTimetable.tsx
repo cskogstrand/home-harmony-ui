@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight, Clock3, UsersRound } from "lucide-react";
 import type { TimetableSettings } from "../../shared/configuration";
 
-export function CalendarTimetable({ child, settings, dayView = false }: { child: string; settings: TimetableSettings; dayView?: boolean }) {
+export function CalendarTimetable({ child, settings, dayView = false, sourceControls }: { child: string; settings: TimetableSettings; dayView?: boolean; sourceControls?: Record<"hours" | "activities" | "meetings" | "messages", ReactNode> }) {
   const { today, now, time, memberName } = useFamily();
   const { currentHome, homeOnline } = useApp();
   const { t, dateLabel, eventTimeLabel, calendarName, calendarTitle } = useI18n();
@@ -33,12 +33,13 @@ export function CalendarTimetable({ child, settings, dayView = false }: { child:
     ["messages", "Messages (Pedagogy)", ["popupMessages"]],
   ] as const;
   const selectedPopupGroups = popupGroups.filter(([, , roles]) => Object.values(settings.calendars).some(selected => roles.some(role => selected.includes(role))));
+  const displayedPopupGroups: readonly (typeof popupGroups)[number][] = sourceControls ? popupGroups : selectedPopupGroups;
   const hasPopupMeetings = selectedPopupGroups.some(([key]) => key === "meetings");
   const meetingsReady = !popupMeetingsLoading && !popupMeetingsUnavailable;
   const hasPopupHours = Object.values(settings.calendars).some(roles => roles.includes("popupHours") || roles.includes("popupClosures"));
-  const emptyEventsLabel = loading ? t("Loading…") : errors.length ? t("Calendar unavailable") : t("No events");
-  if (!Object.keys(settings.calendars).length) return <p className="empty-note">{t("Choose calendars for this person in Settings → Timetables.")}</p>;
-  if (!homeOnline) return <p role="status" className="empty-note">{t("Connect to Home Assistant to see this timetable.")}</p>;
+  const emptyEventsLabel = !homeOnline ? t("Calendar unavailable") : loading ? t("Loading…") : errors.length ? t("Calendar unavailable") : t("No events");
+  if (!sourceControls && !Object.keys(settings.calendars).length) return <p className="empty-note">{t("Choose calendars for this person in Settings → Timetables.")}</p>;
+  if (!sourceControls && !homeOnline) return <p role="status" className="empty-note">{t("Connect to Home Assistant to see this timetable.")}</p>;
   const loadError = !!errors.length && <div role="status" className="timetable-load-error"><p>{t("Some calendars could not be read: {calendars}. Check the connection and calendar integration. Opening hours stay hidden until closure calendars are available.", { calendars: errors.map(calendarName).join(", ") })}</p><Button variant="outline" onClick={refresh}>{t("Retry")}</Button></div>;
   const renderHours = (events: TimetableEvent[]) => <>
     {events.map(event => <div key={event.id} className="timetable-event">
@@ -73,9 +74,10 @@ export function CalendarTimetable({ child, settings, dayView = false }: { child:
       {day.popup.hours.length ? renderHours(day.popup.hours) : <p className="muted">{t("Opening hours / Closed")} · {emptyEventsLabel}</p>}
     </section>}
   </div>;
-  const renderDayGroups = (day: typeof days[number]) => selectedPopupGroups.length ? <div className="timetable-popup-grid">{selectedPopupGroups.map(([key, label]) => <section className={`timetable-popup-section timetable-popup-${key}`} aria-label={t(label)} key={key}>
-    <h3>{t(label)}</h3>{renderAgenda(day.popup[key], key === "messages" ? "messages" : "popup")}
-  </section>)}</div> : !hasPopupHours && <p className="muted">{t("Choose calendars for Day popup in Settings → Timetables.")}</p>;
+  const renderDayGroups = (day: typeof days[number]) => displayedPopupGroups.length ? <div className="timetable-popup-grid">{displayedPopupGroups.map(([key, label]) => <section className={`timetable-popup-section timetable-popup-${key}`} aria-label={t(label)} key={key}>
+    {sourceControls?.[key] ?? <h3>{t(label)}</h3>}
+    {sourceControls && !selectedPopupGroups.some(([selected]) => selected === key) ? <p className="muted">{t("No calendars selected")}</p> : renderAgenda(day.popup[key], key === "messages" ? "messages" : "popup")}
+  </section>)}</div> : !hasPopupHours && <p className="muted">{t("Choose calendars for School day view in Settings → Timetables.")}</p>;
   const weekLabel = t("Week of {date}", { date: dateLabel(start, { day: "numeric", month: "long" }) });
   return <div className="calendar-timetable" aria-busy={loading}>
     <div className="timetable-week-heading"><p className="timetable-week-label">{weekLabel}</p>{!dayView && days.some(day => day.date === today) && clock}</div>
@@ -94,7 +96,9 @@ export function CalendarTimetable({ child, settings, dayView = false }: { child:
         </TabsTrigger>)}
       </TabsList>
       {selectableDays.map(day => <TabsContent value={day.date} key={day.date} className="timetable-selected-day">
-        <header className="timetable-day-heading"><p>{dateLabel(day.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>{renderDayStatus(day)}</header>
+        <header className="timetable-day-heading"><p>{dateLabel(day.date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>{renderDayStatus(day)}
+          {sourceControls && <div className="timetable-source-hours">{sourceControls.hours}</div>}
+        </header>
         <div className="timetable-day-layout">{renderDayGroups(day)}</div>
       </TabsContent>)}
     </Tabs> : <div className="timetable-week glass-surface">{days.map(day => <Dialog key={day.date}>
