@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.12
+
+<!-- release-source: b492af22784b691e40e5f65b1341afb1dbce8351 -->
+
+- feat: add light colors and opt-in visibility
+- docs: fix links in Home Assistant app pages
+
 ## 0.9.11
 
 <!-- release-source: 39bafab5ff408562ac4c06da42dcc820ad359a79 -->
