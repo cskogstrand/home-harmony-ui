@@ -22,7 +22,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
     </div>)}</div>
     <div className="mt-4 space-y-6">{days.map(date => {
       const label = t(date === today ? "Today" : "Tomorrow");
-      return <section key={date} aria-label={label} className={date === today ? undefined : "border-t border-border pt-6"}>
+      return <section key={date} aria-label={label} className={date === today ? undefined : "border-border pt-6"}>
         <h3 className={dashboard.showTomorrow ? "mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-medium" : "sr-only"}>
           <span>{label}</span><time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { day: "numeric", month: "short" })}</time>
         </h3>
