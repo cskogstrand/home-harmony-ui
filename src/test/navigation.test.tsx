@@ -14,6 +14,7 @@ vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => childr
 let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
+  delete settings.settings.smartHome.knownEntities;
   app.watchCalendarEvents.mockReset();
   app.homeOnline = true;
   app.connectionStatus = "connected";
@@ -43,6 +44,55 @@ const confirmVisibility = async (name: "Show group" | "Hide group" | "Show all m
   fireEvent.click(within(screen.getByRole("alertdialog", { name: "Are you sure?" })).getByRole("button", { name }));
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
 };
+
+it("migrates existing choices once after a complete sync and keeps later discoveries hidden after reload", async () => {
+  const initial = mapHome({ "light.example": state("light.example", "on", { friendly_name: "Example lamp" }) }, {
+    areas: [], devices: [{ id: "example-device", name: "Example hub" }],
+    entities: [{ id: "example-light", entity_id: "light.example", device_id: "example-device" }],
+  }, "home");
+  app.currentHome = initial;
+  app.metadataWarnings = ["Registry unavailable"];
+  window.history.replaceState(null, "", "/settings");
+  const view = render(<App />); await saved();
+  expect(settings.settings.smartHome.knownEntities).toBeUndefined();
+  app.metadataWarnings = [];
+  app.homeOnline = false;
+  view.rerender(<App />);
+  expect(settings.settings.smartHome.knownEntities).toBeUndefined();
+  app.homeOnline = true;
+  view.rerender(<App />); await saved();
+  expect(settings.settings.smartHome.knownEntities).toEqual(["home|example-light"]);
+  app.currentHome = { ...initial, entities: [...initial.entities, { ...initial.entities[0], entityId: "light.new", preferenceId: "home|new-light", name: "New lamp" }] };
+  view.rerender(<App />);
+  fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+  expect(screen.getByRole("switch", { name: "Show entity Example lamp on Smart home" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Show entity New lamp on Smart home" })).not.toBeChecked();
+  view.unmount();
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+  const toggle = screen.getByRole("switch", { name: "Show entity New lamp on Smart home" });
+  expect(toggle).not.toBeChecked();
+  fireEvent.click(toggle); await saved();
+  expect(settings.settings.smartHome.knownEntities).toEqual(["home|example-light", "home|new-light"]);
+});
+
+it("starts fresh devices disabled and enables only their current entities with confirmation", async () => {
+  settings = emptyConfiguration();
+  app.currentHome = mapHome({ "light.example": state("light.example", "on", { friendly_name: "Example lamp" }) }, {
+    areas: [], devices: [{ id: "example-device", name: "Example hub" }],
+    entities: [{ id: "example-light", entity_id: "light.example", device_id: "example-device" }],
+  }, "home");
+  window.history.replaceState(null, "", "/settings");
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
+  const device = screen.getByRole("switch", { name: "Show device Example hub on Smart home" });
+  expect(device).not.toBeChecked();
+  expect(screen.getByRole("switch", { name: "Show entity Example lamp on Smart home" })).not.toBeChecked();
+  fireEvent.click(device);
+  await confirmVisibility("Show group"); await saved();
+  expect(settings.settings.smartHome.knownEntities).toEqual(["home|example-light"]);
+  expect(screen.getByRole("switch", { name: "Show entity Example lamp on Smart home" })).toBeChecked();
+});
 
 it("saves device and entity visibility, restores individual choices, and filters Smart home after reload", async () => {
   app.currentHome = mapHome({
@@ -84,7 +134,7 @@ it("saves device and entity visibility, restores individual choices, and filters
   await confirmVisibility("Hide group");
   fireEvent.click(region.getByRole("switch", { name: "Show entity Example scene on Smart home" }));
   await saved();
-  expect(settings.settings.smartHome).toEqual({ hiddenDevices: ["example-device"], hiddenEntities: ["home|unavailable-example", "home|example-temperature", "home|scene.example"] });
+  expect(settings.settings.smartHome).toMatchObject({ hiddenDevices: ["example-device"], hiddenEntities: ["home|unavailable-example", "home|example-temperature", "home|scene.example"] });
   expect(settings.settings.homeEntities).toEqual(["home|example-light"]);
   await navigate("Smart home");
   expect(screen.queryByText("Example lamp")).not.toBeInTheDocument();
@@ -172,11 +222,11 @@ it("groups visibility by domain, integration and device, and confirms only the f
   expect(toggleBeforeConfirmation).toBeChecked();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(toggle()).toBeChecked();
-  expect(settings.settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [] });
+  expect(settings.settings.smartHome).toMatchObject({ hiddenDevices: [], hiddenEntities: [] });
   fireEvent.click(toggle());
   await confirmVisibility("Hide group");
   await saved();
-  expect(settings.settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: ["home|example-light"] });
+  expect(settings.settings.smartHome).toMatchObject({ hiddenDevices: [], hiddenEntities: ["home|example-light"] });
   expect(region.getByRole("switch", { name: "Show entity Example reading on Smart home" })).toBeChecked();
   fireEvent.change(region.getByRole("combobox", { name: "Visibility" }), { target: { value: "hidden" } });
   expect(region.getByText("1 of 3 entities")).toBeInTheDocument();
@@ -228,7 +278,7 @@ it("toggles all filtered entities with confirmation independently of grouping", 
   await confirmVisibility("Show all matches");
   await saved();
   expect(toggle()).toBeChecked();
-  expect(settings.settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: ["home|example-reading"] });
+  expect(settings.settings.smartHome).toMatchObject({ hiddenDevices: [], hiddenEntities: ["home|example-reading"] });
   fireEvent.click(toggle());
   await confirmVisibility("Hide all matches");
   await saved();
@@ -264,7 +314,7 @@ it("confirms single-child device groups and disables confirmation if shared sett
   await waitFor(() => expect(screen.getByRole("button", { name: "Hide group" })).toBeDisabled());
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(toggle).toBeDisabled();
-  expect(settings.settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [] });
+  expect(settings.settings.smartHome).toMatchObject({ hiddenDevices: [], hiddenEntities: [] });
 });
 
 it("hides each Today section, persists the choices and keeps hidden content available on other pages", async () => {

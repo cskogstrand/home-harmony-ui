@@ -30,6 +30,22 @@ function RangeControl({ label, name, value, min, max, step = 1, unit = "", disab
   const shown = draft === undefined ? "—" : `${number(draft)}${unit}`;
   return <div className="device-range"><span>{label}<strong>{shown}</strong></span><Slider className="h-12" aria-label={`${name} ${label.toLowerCase()}`} aria-valuetext={draft === undefined ? t("Not reported") : shown} min={min} max={max} step={step} value={[Math.min(max, Math.max(min, draft ?? min))]} disabled={disabled} onValueChange={([v]) => setDraft(v)} onValueCommit={([v]) => commit(v)} /></div>;
 }
+function LightColorControl({ entity, disabled, commit }: { entity: Entity; disabled: boolean; commit: (value: number[]) => void }) {
+  const { t } = useI18n();
+  const rgb = entity.attributes.rgb_color;
+  const reported = Array.isArray(rgb) && rgb.length === 3 && rgb.every(v => Number.isInteger(v) && v >= 0 && v <= 255)
+    ? `#${rgb.map(v => v.toString(16).padStart(2, "0")).join("")}` : "#ffffff";
+  const [draft, setDraft] = useState(reported);
+  useEffect(() => setDraft(reported), [reported]);
+  return <form className="flex flex-wrap items-center justify-between gap-2" onSubmit={event => {
+    event.preventDefault();
+    if (!disabled) commit([1, 3, 5].map(start => parseInt(draft.slice(start, start + 2), 16)));
+  }}>
+    <label className="flex items-center gap-3 text-sm"><span>{t("Color")}</span><input type="color" aria-label={t("Color for {name}", { name: entity.name })}
+      className="h-12 w-12 cursor-pointer rounded-lg border bg-background p-1 disabled:cursor-not-allowed disabled:opacity-50" value={draft} disabled={disabled} onChange={event => setDraft(event.target.value)} /></label>
+    <Button type="submit" variant="outline" disabled={disabled}>{t("Apply color")}</Button>
+  </form>;
+}
 export function DeviceControl({ entity }: { entity: Entity }) {
   const { t, message, language, number } = useI18n();
   const { homeOnline, command, commands, services, currentHome } = useApp();
@@ -64,7 +80,14 @@ export function DeviceControl({ entity }: { entity: Entity }) {
     {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={t("Toggle {value1}", { value1: entity.name })} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
       : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{currentHome.temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
       : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}
-    {supports("brightness") && <RangeControl label={t("Brightness")} name={entity.name} value={entity.state === "off" ? 0 : brightness === undefined ? undefined : Math.round(brightness * 100 / 255)} min={0} max={100} unit="%" disabled={disabled} commit={v => send("brightness", v)} />}
+    {supports("brightness") && <RangeControl label={t("Brightness")} name={entity.name} value={brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255))} min={1} max={100} unit="%" disabled={disabled} commit={v => send("brightness", v)} />}
+    {supports("color_temp_kelvin") && <RangeControl label={t("Color temperature")} name={entity.name} value={numberValue(entity.attributes.color_temp_kelvin)} min={numberValue(entity.attributes.min_color_temp_kelvin)} max={numberValue(entity.attributes.max_color_temp_kelvin)} unit=" K" disabled={disabled} commit={v => send("color_temp_kelvin", v)} />}
+    {supports("rgb_color") && <LightColorControl entity={entity} disabled={disabled} commit={v => send("rgb_color", v)} />}
+    {supports("white") && <Button variant="outline" disabled={disabled} onClick={() => send("white", brightness === undefined ? 100 : Math.max(1, Math.round(brightness * 100 / 255)))}>{t("White light")}</Button>}
+    {supports("effect") && <label className="device-mode"><span>{t("Effect")}</span><select aria-label={t("Effect for {name}", { name: entity.name })} value={typeof entity.attributes.effect === "string" ? entity.attributes.effect : ""} disabled={disabled} onChange={event => send("effect", event.target.value)}>
+      {!stringValues(entity.attributes.effect_list).includes(String(entity.attributes.effect)) && <option value={typeof entity.attributes.effect === "string" ? entity.attributes.effect : ""} disabled>{t("Choose effect")}</option>}
+      {stringValues(entity.attributes.effect_list).map(effect => <option key={effect} value={effect}>{effect}</option>)}
+    </select></label>}
     {entity.domain === "climate" && <>
       {supports("temperature") && <RangeControl label={t("Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={currentHome.temperatureUnit ?? ""} disabled={disabled} commit={v => send("temperature", v)} />}
       {supports("hvac_mode") && <label className="device-mode"><span>{t("Mode")}</span><select aria-label={t("{name} mode", { name: entity.name })} value={entity.state} disabled={disabled} onChange={e => send("hvac_mode", e.target.value)}>{!stringValues(entity.attributes.hvac_modes).includes(entity.state) && <option value={entity.state}>{message(humanizeState(entity.state))}</option>}{stringValues(entity.attributes.hvac_modes).map(mode => <option key={mode} value={mode}>{message(humanizeState(mode))}</option>)}</select></label>}

@@ -1014,9 +1014,9 @@ it("keeps dimmers on the family dashboard, including off lights without a bright
   await waitFor(() => expect(slider).not.toHaveAttribute("data-disabled"));
   const off = state("light.living", "off", { friendly_name: "Living Room Light", supported_color_modes: ["brightness"] });
   act(() => conn.entityCallback?.({ ...states, "light.living": off }));
-  expect(slider).toHaveAttribute("aria-valuenow", "0");
+  expect(slider).toHaveAttribute("aria-valuenow", "1");
   fireEvent.keyDown(slider, { key: "ArrowRight" });
-  await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "light", "turn_on", { brightness: 3 }, { entity_id: "light.living" }));
+  await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "light", "turn_on", { brightness: 5 }, { entity_id: "light.living" }));
   expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
   act(() => conn.entityCallback?.({ ...states, "light.living": { ...off, attributes: { ...off.attributes, supported_color_modes: ["onoff"] } } }));
   expect(screen.queryByRole("slider", { name: "Living Room Light brightness" })).not.toBeInTheDocument();
@@ -1070,6 +1070,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
 });
 
 it("offers temperature, mode and blind controls without duplicating raw state labels", async () => {
+  serverConfig.settings.smartHome.knownEntities = ["home|climate.living", "home|cover.blind", "home|lock.front"];
   window.history.replaceState(null, "", "/home?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const target = await screen.findByRole("slider", { name: "Living target" });
@@ -1797,6 +1798,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
 });
 
 it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
+  serverConfig.settings.smartHome.knownEntities = ["home|automation.sunset"];
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   if (path === "/devices") fireEvent.click(await screen.findByText(/^Other controls/));

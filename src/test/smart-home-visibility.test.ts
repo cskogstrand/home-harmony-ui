@@ -17,6 +17,16 @@ const home = mapHome({
   ],
 }, "test");
 
+it("hides newly discovered entities, including those on enabled devices, until explicitly selected", () => {
+  const settings = { hiddenDevices: [], hiddenEntities: [], knownEntities: ["test|example-light", "missing-entity"] };
+  expect(smartHomeEntities(home.entities, settings).map(entity => entity.entityId)).toEqual(["light.example"]);
+  const shown = setEntitiesVisible(settings, home.entities, ["test|example-sensor"], true);
+  expect(shown.knownEntities).toEqual(["test|example-light", "missing-entity", "test|example-sensor"]);
+  expect(smartHomeEntities(home.entities, shown).map(entity => entity.entityId)).toEqual(["light.example", "sensor.example"]);
+  expect(smartHomeEntities(home.entities, { ...settings, knownEntities: [] })).toEqual([]);
+  expect(settings.knownEntities).toEqual(["test|example-light", "missing-entity"]);
+});
+
 it("preserves registry integration metadata and defaults to domain, integration, device, entity", () => {
   expect(home.entities.map(entity => entity.integration)).toEqual(["mqtt", "mqtt", undefined]);
   const tree = visibilityTree(home.entities, visibilityGroupings.domain, home.areas, "en");

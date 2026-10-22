@@ -73,6 +73,7 @@ export const plannerSchema = z.object({
   smartHome: z.object({
     hiddenDevices: z.array(memberSchema).default([]),
     hiddenEntities: z.array(memberSchema).default([]),
+    knownEntities: z.array(memberSchema).optional(),
   }).strict().default({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: z.record(keySchema, memberColorSchema).default({}),
@@ -99,7 +100,7 @@ export const configurationSchema = z.object({
   format: z.literal("home-harmony-config"), version: z.literal(3), settings: plannerSchema,
 }).strict();
 export type Configuration = z.infer<typeof configurationSchema>;
-export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {} });
+export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {}, smartHome: { knownEntities: [] } });
 export const emptyConfiguration = (): Configuration => ({ format: "home-harmony-config", version: 3, settings: emptyPlanner() });
 export const plannerSettings = (planner: unknown): Planner => plannerSchema.strip().parse(planner);
 export function parseConfiguration(text: string): Configuration {

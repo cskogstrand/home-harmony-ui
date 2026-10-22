@@ -88,11 +88,16 @@ export function supportsAction(entity: Entity, action: EntityAction, services: H
   const { domain, attributes: a } = entity;
   if (domain === "calendar" && action === "update_event") return feature(entity, 4);
   if (domain === "calendar" && action === "delete_event") return feature(entity, 2);
-  const service = ({ brightness: "turn_on", temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position" } as Record<string, string>)[action] ?? action;
+  const service = ({ brightness: "turn_on", rgb_color: "turn_on", color_temp_kelvin: "turn_on", white: "turn_on", effect: "turn_on", temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position" } as Record<string, string>)[action] ?? action;
   if (!services[domain]?.[service]) return false;
   if (["light", "switch", "automation"].includes(domain) && ["turn_on", "turn_off"].includes(action)) return true;
   if (domain === "scene" || domain === "script") return action === "turn_on";
   if (domain === "light" && action === "brightness") return stringValues(a.supported_color_modes).some(m => !["onoff", "unknown"].includes(m));
+  if (domain === "light" && action === "rgb_color") return stringValues(a.supported_color_modes).some(m => ["hs", "xy", "rgb", "rgbw", "rgbww"].includes(m));
+  if (domain === "light" && action === "color_temp_kelvin") return stringValues(a.supported_color_modes).some(m => ["color_temp", "rgbww"].includes(m))
+    && numberValue(a.min_color_temp_kelvin) > 0 && numberValue(a.max_color_temp_kelvin) > numberValue(a.min_color_temp_kelvin);
+  if (domain === "light" && action === "white") return stringValues(a.supported_color_modes).includes("white");
+  if (domain === "light" && action === "effect") return feature(entity, 4) && stringValues(a.effect_list).length > 0;
   if (domain === "climate") return action === "temperature" ? feature(entity, 1) && numberValue(a.min_temp) !== undefined && numberValue(a.max_temp) !== undefined : action === "hvac_mode" && stringValues(a.hvac_modes).length > 0;
   if (domain === "cover") return feature(entity, ({ open_cover: 1, close_cover: 2, position: 4, stop_cover: 8 } as Record<string, number>)[action] ?? 0);
   if (domain === "lock") return action === "lock" || action === "unlock";
@@ -128,13 +133,25 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
       }
     }
   }
-  if (["brightness", "position", "temperature"].includes(action)) {
-    const min = action === "temperature" ? numberValue(entity.attributes.min_temp) : 0;
-    const max = action === "temperature" ? numberValue(entity.attributes.max_temp) : 100;
+  if (["brightness", "white", "position", "temperature", "color_temp_kelvin"].includes(action)) {
+    const min = action === "temperature" ? numberValue(entity.attributes.min_temp) : action === "color_temp_kelvin" ? numberValue(entity.attributes.min_color_temp_kelvin) : action === "position" ? 0 : 1;
+    const max = action === "temperature" ? numberValue(entity.attributes.max_temp) : action === "color_temp_kelvin" ? numberValue(entity.attributes.max_color_temp_kelvin) : 100;
     if (numberValue(value) === undefined || min === undefined || max === undefined || (value as number) < min || (value as number) > max) throw new Error("Value is outside the supported range.");
     if (action === "brightness") { service = "turn_on"; data.brightness = Math.round((value as number) * 255 / 100); }
+    if (action === "white") { service = "turn_on"; data.white = Math.round((value as number) * 255 / 100); }
+    if (action === "color_temp_kelvin") { service = "turn_on"; data.color_temp_kelvin = Math.round(value as number); }
     if (action === "position") { service = "set_cover_position"; data.position = Math.round(value as number); }
     if (action === "temperature") { service = "set_temperature"; data.temperature = value; }
+  }
+  if (action === "rgb_color") {
+    const channel = z.number().int().min(0).max(255);
+    const parsed = z.tuple([channel, channel, channel]).safeParse(value);
+    if (!parsed.success) throw new Error("Choose a valid RGB color.");
+    service = "turn_on"; data.rgb_color = parsed.data;
+  }
+  if (action === "effect") {
+    if (typeof value !== "string" || !stringValues(entity.attributes.effect_list).includes(value)) throw new Error("Unsupported light effect.");
+    service = "turn_on"; data.effect = value;
   }
   if (action === "hvac_mode") {
     if (typeof value !== "string" || !stringValues(entity.attributes.hvac_modes).includes(value)) throw new Error("Unsupported climate mode.");

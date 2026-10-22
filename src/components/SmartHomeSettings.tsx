@@ -27,7 +27,7 @@ export function SmartHomeSettings() {
   const query = search.trim().toLocaleLowerCase(language);
   const entities = useMemo(() => smartHomeEntities(currentHome.entities), [currentHome.entities]);
   const visibleIds = new Set(smartHomeEntities(entities, smartHome).map(entity => entity.preferenceId));
-  const disabled = !shared?.state.loaded || !!shared.state.error;
+  const disabled = !shared?.state.loaded || !!shared.state.error || !smartHome.knownEntities;
   const matches = (value: string) => value.toLocaleLowerCase(language).includes(query);
   const groupFor = (entity: Entity, dimension: VisibilityDimension) => visibilityGroup(entity, dimension, currentHome.areas, language);
   const filtered = entities.filter(entity => {
@@ -64,7 +64,7 @@ export function SmartHomeSettings() {
           <ul className="border-l pl-2 sm:pl-3">{group.children.length ? groupRows(group.children, path) : group.entities.map(entity => <li key={entity.preferenceId}>{entityRow(entity)}</li>)}</ul>
         </details>
         <Switch className="absolute right-0 top-3" aria-label={wholeDevice ? t("Show device {name} on Smart home", { name: group.name }) : t("Show group {name} on Smart home", { name })}
-          checked={wholeDevice ? !smartHome.hiddenDevices.includes(wholeDevice) : visible > 0} disabled={disabled}
+          checked={wholeDevice ? !smartHome.hiddenDevices.includes(wholeDevice) && group.entities.some(entity => !smartHome.knownEntities || smartHome.knownEntities.includes(entity.preferenceId)) : visible > 0} disabled={disabled}
           onCheckedChange={value => setPending({ name, ids: group.entities.map(entity => entity.preferenceId), deviceId: wholeDevice, visible: value })} />
     </li>;
   });
@@ -72,7 +72,7 @@ export function SmartHomeSettings() {
   return <section className="glow-panel" id="smart-home-visibility" aria-label={t("Smart home visibility")}>
     <PanelHeading title={t("Smart home visibility")} to="/home" label={t("Smart home")} />
     <p className="page-note">{t("Choose which devices, entities and scenes appear on Smart home. Changes are saved automatically and shared across screens.")}</p>
-    <p className="page-note">{t("New devices and entities are shown by default. Hiding a device also hides its future entities. Other pages and Home Assistant are unchanged.")}</p>
+    <p className="page-note">{t("New devices and entities stay hidden until you enable them here. Other pages and Home Assistant are unchanged.")}</p>
     <fieldset className="mt-6 min-w-0" aria-describedby="visibility-filters-hint">
       <legend className="text-base font-semibold">{t("Filters")}</legend>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

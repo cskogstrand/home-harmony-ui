@@ -5,6 +5,7 @@ import type { Planner } from "../../shared/configuration";
 
 export function smartHomeEntities(entities: Entity[], settings?: Planner["smartHome"]) {
   return entities.filter(entity => !["person", "calendar", "todo", "zone"].includes(entity.domain)
+    && (!settings?.knownEntities || settings.knownEntities.includes(entity.preferenceId))
     && !settings?.hiddenEntities.includes(entity.preferenceId)
     && !(entity.device && settings?.hiddenDevices.includes(entity.device.id)));
 }

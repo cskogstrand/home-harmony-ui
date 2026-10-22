@@ -55,5 +55,7 @@ export function setEntitiesVisible(settings: Planner["smartHome"], entities: Ent
   for (const id of selected) {
     if (visible) hiddenEntities.delete(id); else hiddenEntities.add(id);
   }
-  return { hiddenDevices: settings.hiddenDevices.filter(id => !revealedDevices.has(id)), hiddenEntities: [...hiddenEntities] };
+  return { ...settings, hiddenDevices: settings.hiddenDevices.filter(id => !revealedDevices.has(id)), hiddenEntities: [...hiddenEntities],
+    ...(settings.knownEntities && { knownEntities: [...new Set([...settings.knownEntities, ...ids])] }),
+  };
 }

@@ -30,6 +30,34 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("keeps dimming above zero and leaves off to the toggle", () => {
+    const light = entity("light.living");
+    expect(entityCommand(light, "brightness", services, 1).data).toEqual({ brightness: 3 });
+    expect(entityCommand(light, "brightness", services, 100).data).toEqual({ brightness: 255 });
+    expect(entityCommand(light, "turn_off", services)).toMatchObject({ service: "turn_off", data: {} });
+    for (const value of [0, 0.5, -1, 101, NaN, Infinity, "1"]) expect(() => entityCommand(light, "brightness", services, value)).toThrow("range");
+    expect(entityCommand(entity("cover.blind"), "position", services, 0).data).toEqual({ position: 0 });
+  });
+  it("supports advertised color modes, temperature limits, white mode and effects", () => {
+    const light = { ...entity("light.living"), attributes: { supported_color_modes: ["rgb", "color_temp", "white"], min_color_temp_kelvin: 2200, max_color_temp_kelvin: 6500, supported_features: 4, effect_list: ["None", "Rainbow"] } };
+    for (const mode of ["rgb", "rgbw", "rgbww", "hs", "xy"]) {
+      expect(entityCommand({ ...light, attributes: { supported_color_modes: [mode] } }, "rgb_color", services, [20, 120, 255])).toMatchObject({ service: "turn_on", data: { rgb_color: [20, 120, 255] } });
+    }
+    for (const value of [2200, 6500]) expect(entityCommand(light, "color_temp_kelvin", services, value).data).toEqual({ color_temp_kelvin: value });
+    expect(entityCommand(light, "white", services, 1).data).toEqual({ white: 3 });
+    expect(entityCommand(light, "effect", services, "Rainbow").data).toEqual({ effect: "Rainbow" });
+    for (const value of [null, [0, 0], [0, 0, 0, 0], [-1, 0, 0], [256, 0, 0], [1.5, 0, 0], ["0", 0, 0], [NaN, 0, 0]]) expect(() => entityCommand(light, "rgb_color", services, value)).toThrow("valid RGB");
+    for (const value of [0, 2199, 6501, NaN, "3000"]) expect(() => entityCommand(light, "color_temp_kelvin", services, value)).toThrow("range");
+    expect(() => entityCommand(light, "white", services, 0)).toThrow("range");
+    expect(() => entityCommand(light, "effect", services, "Unsupported")).toThrow("effect");
+    for (const action of ["rgb_color", "color_temp_kelvin", "white", "effect"] as const) {
+      expect(supportsAction(entity("light.living"), action, services)).toBe(false);
+      expect(supportsAction(light, action, {})).toBe(false);
+      expect(() => entityCommand({ ...light, state: "unavailable" }, action, services)).toThrow("available");
+    }
+    expect(supportsAction({ ...light, attributes: { supported_color_modes: ["color_temp"] } }, "color_temp_kelvin", services)).toBe(false);
+    expect(supportsAction({ ...light, attributes: { ...light.attributes, min_color_temp_kelvin: 7000 } }, "color_temp_kelvin", services)).toBe(false);
+  });
   it("deletes calendars by event identity using deletion support independently of editing", () => {
     const calendar = mapHome({ "calendar.family": state("calendar.family", "off", { supported_features: 3 }) }, registries, "test").entities.find(e => e.entityId === "calendar.family")!;
     const value = { uid: "google-series", recurrence_id: "google-occurrence" };

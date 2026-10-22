@@ -66,6 +66,8 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 In **Home settings**, choose people visibility and order, calendar assignments, one task and daily-task list per person, and a shared shopping list. Hidden people keep their assignments and timetable files. Everyone remains first. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
 
+**Smart home visibility** keeps new devices and entities hidden until enabled. Existing selections are retained on the first complete Home Assistant sync after upgrading. Light cards offer brightness from 1–100%, plus color, color temperature, white mode and effects when supported; use the toggle to turn a light off.
+
 Settings use stable registry/entity references within this deployment, so changing the same HA instance's address does not create a new household. A different HA installation may require resetting or reassigning references. People use their `person.<name>` entity IDs; renaming that entity ID requires reassigning its timetable and preferences.
 
 Calendar integrations and to-do lists stay in HA. The app uses reported capabilities to enable creation, editing, deletion and controls. Recurring event edits/deletions require an occurrence ID. Failed writes keep the draft; physical commands are never automatically replayed. Daily task resets belong in an HA automation, which can run while the dashboard is closed.

@@ -26,19 +26,20 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
-it("defaults older backups to visible smart home entities and validates visibility settings", () => {
+it("keeps legacy visibility migratable and starts new configurations with no enabled entities", () => {
   const config = emptyConfiguration();
   const { smartHome, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [] });
   const read = (smartHome: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, smartHome } }));
-  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ ...smartHome, hiddenDevices: ["example-device"] });
-  for (const invalid of [{ hiddenDevices: "device" }, { hiddenEntities: [1] }, { hiddenEntities: [""] }, { unknown: [] }, null]) expect(() => read(invalid)).toThrow();
+  expect(smartHome.knownEntities).toEqual([]);
+  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ hiddenEntities: [], hiddenDevices: ["example-device"] });
+  for (const invalid of [{ hiddenDevices: "device" }, { hiddenEntities: [1] }, { knownEntities: [1] }, { knownEntities: [""] }, { knownEntities: "entity" }, { hiddenEntities: [""] }, { unknown: [] }, null]) expect(() => read(invalid)).toThrow();
 });
 
 it("shares smart home visibility across screens and restores it from backups", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  const smartHome = { hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"] };
+  const smartHome = { hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"], knownEntities: ["home|example-entity", "home|example-light"] };
   a.updateSettings(p => ({ ...p, smartHome }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();

@@ -321,6 +321,7 @@ test("persists a validated backup across restart and exposes it to a second devi
   const initial = await (await app.request()).json();
   const input = configuration();
   input.settings.language = "nb";
+  input.settings.smartHome.knownEntities = ["home|example-light"];
   const response = await app.request("PUT", input, initial.revision);
   assert.equal(response.status, 200);
   const saved = await response.json();

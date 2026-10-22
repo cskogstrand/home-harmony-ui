@@ -8,16 +8,24 @@ import { SharedConfigurationProvider } from "./SharedConfigurationProvider";
 import { plannerSettings, emptyPlanner, parseConfiguration, type Configuration } from "../../shared/configuration";
 import { memberPalette } from "@/lib/member-colors";
 import { setEntitiesVisible } from "@/lib/smart-home-visibility";
+import { smartHomeEntities } from "@/lib/device-model";
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
 }
 function FamilyStore({ children }: { children: ReactNode }) {
   const { t, message, language } = useI18n();
-  const { currentHome } = useApp();
+  const { currentHome, homeOnline, metadataWarnings = [] } = useApp();
   const shared = useSharedConfiguration();
   const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
   const connectedPlanner = true;
+  useEffect(() => {
+    if (!shared?.state.loaded || shared.state.error || !homeOnline || metadataWarnings.length || planner.smartHome.knownEntities) return;
+    // Snapshot legacy selections only after state and registry IDs have finished loading.
+    shared.store.updateSettings(settings => ({ ...settings, smartHome: { ...settings.smartHome,
+      knownEntities: smartHomeEntities(currentHome.entities).map(entity => entity.preferenceId),
+    } }));
+  }, [shared, homeOnline, metadataWarnings, currentHome.entities, planner.smartHome.knownEntities]);
   const availableMembers: FamilyMember[] = currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
     id: person.preferenceId, name: person.name,
     initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
@@ -81,8 +89,11 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setMemberVisible: (id, visible) => setPlanner(p => ({ ...p, hiddenMembers: [...p.hiddenMembers.filter(member => member !== id), ...(visible ? [] : [id])] })),
     setMemberColor: (id, color) => setPlanner(p => ({ ...p, memberColors: { ...p.memberColors, [id]: color } })),
     setHomeEntities: ids => setPlanner(p => ({ ...p, homeEntities: [...new Set(ids)] })),
-    setSmartHomeDeviceVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, hiddenDevices: [...p.smartHome.hiddenDevices.filter(device => device !== id), ...(visible ? [] : [id])] } })),
-    setSmartHomeEntityVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, hiddenEntities: [...p.smartHome.hiddenEntities.filter(entity => entity !== id), ...(visible ? [] : [id])] } })),
+    setSmartHomeDeviceVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome,
+      hiddenDevices: [...p.smartHome.hiddenDevices.filter(device => device !== id), ...(visible ? [] : [id])],
+      knownEntities: [...new Set([...(p.smartHome.knownEntities ?? []), ...smartHomeEntities(currentHome.entities).filter(entity => entity.device?.id === id).map(entity => entity.preferenceId)])],
+    } })),
+    setSmartHomeEntityVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: setEntitiesVisible(p.smartHome, currentHome.entities, [id], visible) })),
     setSmartHomeEntitiesVisible: (ids, visible) => setPlanner(p => ({ ...p, smartHome: setEntitiesVisible(p.smartHome, currentHome.entities, ids, visible) })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };
