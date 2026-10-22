@@ -126,12 +126,13 @@ jobs:
         with:
           ref: main
           path: release-main
+          fetch-depth: 0
       - name: Advertise the verified release
         run: |
           node scripts/release.mjs promote release-main
           if git -C release-main diff --quiet -- config.yaml; then exit 0; fi
           git -C release-main config user.name 'github-actions[bot]'
           git -C release-main config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git -C release-main add config.yaml
+          git -C release-main add config.yaml CHANGELOG.md
           git -C release-main commit -m "chore: release Home Assistant $VERSION"
           git -C release-main push origin HEAD:main

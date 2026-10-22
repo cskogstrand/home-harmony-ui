@@ -25,6 +25,10 @@ const registry = changes => {
   writeFileSync(env.TEST_DOCKER_LOG, "");
 };
 const calls = () => readFileSync(env.TEST_DOCKER_LOG, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
+// Home Assistant Core's hassio/update.py slices between plain version headings.
+const updateNotes = (changelog, installed, latest) => changelog.match(new RegExp(
+  `^#* ${latest.replaceAll(".", "\\.")}\n(?:^(?!#* ${installed.replaceAll(".", "\\.")}).*\n)*`, "m",
+))?.[0] ?? changelog;
 
 try {
   writeFileSync(join(directory, "VERSION"), "1.2.4\n");
@@ -97,8 +101,37 @@ if (args[0] === 'buildx') {
     if (changes.inspectionError || changes.exists) assert.ok(!calls().some(call => call.args[2] === "create"));
   }
 
+  // Real Git history distinguishes the built source from work added during publication.
   const main = join(directory, "release-main");
-  mkdirSync(main);
+  const remote = join(directory, "origin.git");
+  const writer = join(directory, "writer");
+  git(directory, "init", "--bare", "--initial-branch=main", remote);
+  git(directory, "clone", remote, writer);
+  writeFileSync(join(writer, "VERSION"), "1.2.3\n");
+  writeFileSync(join(writer, "config.yaml"), fixture);
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "feat: previous release");
+  const base = git(writer, "rev-parse", "HEAD").trim();
+  const changelog = `# Changelog\n\n## 1.2.3\n\n<!-- release-source: ${base} -->\n\n- Earlier changes.\n\n## 1.2.2\n\n- Older changes.\n`;
+  writeFileSync(join(writer, "CHANGELOG.md"), changelog);
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "chore: release Home Assistant 1.2.3");
+  git(writer, "checkout", "-b", "feature");
+  writeFileSync(join(writer, "state.txt"), "state\n");
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "fix: show [state] <safely>");
+  git(writer, "checkout", "main");
+  writeFileSync(join(writer, "controls.txt"), "controls\n");
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "feat: improve controls");
+  git(writer, "merge", "--no-ff", "feature", "-m", "Merge feature");
+  writeFileSync(join(writer, "VERSION"), "1.2.4\n");
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "chore: release 1.2.4");
+  env.GITHUB_SHA = git(writer, "rev-parse", "HEAD").trim();
+  const source = env.GITHUB_SHA;
+  git(writer, "push", "origin", "main");
+  git(directory, "clone", remote, main);
   for (const [wanted, published, changed, expectedStatus, expectedVersion] of [
     ["1.2.4", "1.2.3", false, 0, "1.2.4"],
     ["1.2.5", "1.2.3", false, 0, "1.2.3"],
@@ -108,38 +141,99 @@ if (args[0] === 'buildx') {
   ]) {
     writeFileSync(join(main, "VERSION"), wanted);
     writeFileSync(join(main, "config.yaml"), fixture.replace("1.2.3", published) + (changed ? "description: Changed during the build\n" : ""));
-    assert.equal(run("promote", main).status, expectedStatus);
+    writeFileSync(join(main, "CHANGELOG.md"), changelog);
+    const result = run("promote", main);
+    assert.equal(result.status, expectedStatus, result.stderr);
     assert.equal(load(readFileSync(join(main, "config.yaml"), "utf8")).version, expectedVersion);
+    const updated = readFileSync(join(main, "CHANGELOG.md"), "utf8");
+    if (published === expectedVersion) {
+      assert.equal(updated, changelog, "Stale, completed and invalid releases must not change the changelog");
+    } else {
+      assert.ok(updated.endsWith(changelog.slice("# Changelog\n\n".length)), "Preserve historical notes");
+      assert.match(updated, new RegExp(`^# Changelog\n\n## 1\\.2\\.4\n\n<!-- release-source: ${source} -->\n`));
+      assert.ok(updated.includes("- feat: improve controls\n"));
+      assert.ok(updated.includes("- fix: show \\[state\\] \\<safely\\>\n"), "Escape commit subjects as Markdown text");
+      assert.doesNotMatch(updated, /Merge feature|chore: release|feat: previous release/);
+      assert.ok(!updateNotes(updated, "1.2.3", "1.2.4").includes("Earlier changes."));
+      assert.ok(updateNotes(updated, "1.2.2", "1.2.4").includes("Earlier changes."));
+      assert.ok(!updateNotes(updated, "1.2.2", "1.2.4").includes("Older changes."));
+      succeeded(run("promote", main));
+      assert.equal(readFileSync(join(main, "CHANGELOG.md"), "utf8"), updated, "Retries must not duplicate notes");
+    }
   }
+
+  for (const invalid of [
+    changelog.replace(`<!-- release-source: ${base} -->`, ""),
+    changelog.replace(base, "a".repeat(40)),
+    changelog.replace("# Changelog\n\n", "# Changelog\n\n## 1.2.4\n\n- Handwritten notes.\n\n"),
+  ]) {
+    writeFileSync(join(main, "VERSION"), "1.2.4\n");
+    writeFileSync(join(main, "config.yaml"), fixture);
+    writeFileSync(join(main, "CHANGELOG.md"), invalid);
+    assert.notEqual(run("promote", main).status, 0, "Missing history or existing notes must stop promotion");
+    assert.equal(readFileSync(join(main, "config.yaml"), "utf8"), fixture);
+    assert.equal(readFileSync(join(main, "CHANGELOG.md"), "utf8"), invalid);
+  }
+  // A real but unrelated commit must not become a release boundary.
+  git(writer, "checkout", "--orphan", "unrelated");
+  git(writer, "commit", "-m", "test: unrelated history");
+  const unrelated = git(writer, "rev-parse", "HEAD").trim();
+  git(writer, "checkout", "main");
+  git(main, "fetch", writer, "unrelated");
+  writeFileSync(join(main, "CHANGELOG.md"), changelog.replace(base, unrelated));
+  assert.notEqual(run("promote", main).status, 0, "Reject a release boundary outside the built history");
+  assert.equal(readFileSync(join(main, "config.yaml"), "utf8"), fixture);
 
   // Use local Git repositories to prove promotion preserves concurrent work and never force-pushes.
   rmSync(main, { recursive: true });
-  const remote = join(directory, "origin.git");
-  const writer = join(directory, "writer");
-  git(directory, "init", "--bare", "--initial-branch=main", remote);
-  git(directory, "clone", remote, writer);
-  writeFileSync(join(writer, "VERSION"), "1.2.4\n");
-  writeFileSync(join(writer, "config.yaml"), fixture);
-  git(writer, "add", ".");
-  git(writer, "commit", "-m", "test: request release");
-  git(writer, "push", "origin", "main");
   git(directory, "clone", remote, main);
   mkdirSync(join(directory, "scripts"));
   symlinkSync(script, join(directory, "scripts", "release.mjs"));
   writeFileSync(join(writer, "unrelated.txt"), "concurrent work\n");
-  git(writer, "add", "unrelated.txt");
-  git(writer, "commit", "-m", "test: concurrent change");
+  const clarified = changelog.replace("Earlier changes.", "Earlier changes, clarified.");
+  writeFileSync(join(writer, "CHANGELOG.md"), clarified);
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "feat: concurrent change");
   git(writer, "push", "origin", "main");
   const promote = publish.steps.find(step => step.name === "Advertise the verified release").run;
   const advertise = () => spawnSync("bash", ["-e", "-o", "pipefail", "-c", promote], { cwd: directory, encoding: "utf8", env });
   assert.notEqual(advertise().status, 0, "A racing push must be rejected");
   assert.equal(git(remote, "show", "main:config.yaml"), fixture);
+  assert.equal(git(remote, "show", "main:CHANGELOG.md"), clarified, "A rejected push must not publish release notes");
   rmSync(main, { recursive: true });
   git(directory, "clone", remote, main);
   succeeded(advertise());
   assert.equal(git(remote, "show", "main:config.yaml"), fixture.replace("1.2.3", "1.2.4"));
   assert.equal(git(remote, "show", "main:unrelated.txt"), "concurrent work\n");
-  assert.equal(git(remote, "diff", "--name-only", "HEAD^", "HEAD").trim(), "config.yaml");
+  assert.equal(git(remote, "diff", "--name-only", "HEAD^", "HEAD").trim(), "CHANGELOG.md\nconfig.yaml");
+  const firstNotes = git(remote, "show", "main:CHANGELOG.md");
+  assert.ok(firstNotes.includes("Earlier changes, clarified."), "Preserve concurrent edits to historical notes");
+  assert.doesNotMatch(firstNotes, /feat: concurrent change/, "Do not describe code absent from the image");
+
+  git(writer, "pull", "--ff-only");
+  writeFileSync(join(writer, "VERSION"), "1.2.5\n");
+  git(writer, "add", ".");
+  git(writer, "commit", "-m", "chore: release 1.2.5");
+  env.GITHUB_SHA = git(writer, "rev-parse", "HEAD").trim();
+  env.VERSION = "1.2.5";
+  git(writer, "push", "origin", "main");
+  git(main, "pull", "--ff-only");
+  writeFileSync(join(directory, "VERSION"), "1.2.5\n");
+  writeFileSync(join(directory, "config.yaml"), fixture.replace("1.2.3", "1.2.4"));
+  succeeded(advertise());
+  const nextNotes = git(remote, "show", "main:CHANGELOG.md");
+  assert.ok(nextNotes.endsWith(firstNotes.slice("# Changelog\n\n".length)));
+  assert.ok(updateNotes(nextNotes, "1.2.4", "1.2.5").includes("- feat: concurrent change\n"), "Deferred commits belong to the next release");
+  assert.ok(!updateNotes(nextNotes, "1.2.4", "1.2.5").includes("feat: improve controls"));
+  const promoted = git(remote, "rev-parse", "HEAD");
+  succeeded(advertise());
+  assert.equal(git(remote, "rev-parse", "HEAD"), promoted, "A retried workflow must not make another commit");
+
+  const repositoryChangelog = readFileSync(new URL("../CHANGELOG.md", import.meta.url), "utf8");
+  assert.ok(updateNotes(repositoryChangelog, "0.9.9", "0.9.10").includes("bulk smart home visibility controls"));
+  assert.ok(!updateNotes(repositoryChangelog, "0.9.9", "0.9.10").includes("## 0.9.9"));
+  assert.ok(updateNotes(repositoryChangelog, "0.9.8", "0.9.10").includes("## 0.9.9"));
+  assert.ok(!updateNotes(repositoryChangelog, "0.9.8", "0.9.10").includes("## 0.9.8"));
 
   assert.deepEqual(workflow.on, { push: { branches: ["main"], paths: ["VERSION"] }, workflow_dispatch: null });
   assert.equal(workflow.concurrency["cancel-in-progress"], false);
@@ -170,7 +264,8 @@ if (args[0] === 'buildx') {
   const checkoutIndex = publish.steps.findIndex(step => step.with?.path === "release-main");
   assert.ok(verifyIndex >= 0 && checkoutIndex > verifyIndex && publish.steps.findIndex(step => step.run === promote) > checkoutIndex);
   assert.equal(publish.steps[checkoutIndex].with.ref, "main");
-  console.log("Release validation, public-image verification, retry, stale-run, Git race and free-usage checks passed.");
+  assert.equal(publish.steps[checkoutIndex].with["fetch-depth"], 0, "Changelog generation needs complete source history");
+  console.log("Release validation, public-image verification, changelog, Home Assistant version slicing, retry, stale-run, Git race and free-usage checks passed.");
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

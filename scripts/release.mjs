@@ -88,8 +88,29 @@ if (process.argv[2] === "prepare") {
     console.log("::notice::Release already advertised or superseded; leaving main unchanged.");
   } else {
     assert.deepEqual({ ...current, version }, { ...config, version }, "App configuration changed during the build; release a new VERSION with that configuration");
+    const revision = process.env.GITHUB_SHA;
+    assert.match(revision, /^[a-f0-9]{40}$/, "Require the source commit SHA");
+    const changelogPath = join(directory, "CHANGELOG.md");
+    const changelog = readFileSync(changelogPath, "utf8");
+    const heading = "# Changelog\n\n";
+    assert.ok(changelog.startsWith(heading), "Keep the # Changelog heading followed by a blank line");
+    const sections = changelog.split(/^## /m);
+    assert.ok(!sections.some(section => section.startsWith(`${version}\n`)), "The release already has a changelog entry; inspect it before promoting");
+    const previous = sections.find(section => section.startsWith(`${current.version}\n`));
+    const base = previous?.match(/^<!-- release-source: ([a-f0-9]{40}) -->$/m)?.[1];
+    assert.ok(base, `Missing release-source marker for published version ${current.version}`);
+    const git = (...args) => execFileSync("git", ["-C", directory, ...args], { encoding: "utf8" }).trim();
+    git("merge-base", "--is-ancestor", base, revision);
+    git("merge-base", "--is-ancestor", revision, "HEAD");
+    // Use the built commit, not promotion time: later commits belong to the next release.
+    const subjects = git("log", "--no-merges", "--format=%s", `${base}..${revision}`).split("\n")
+      .filter(subject => subject && !/^chore: release (?:Home Assistant )?\d+\.\d+\.\d+$/.test(subject));
+    const notes = subjects.length
+      ? subjects.map(subject => `- ${subject.replace(/[\\`*_[\]<>]/g, "\\$&")}`).join("\n")
+      : "- No changes beyond release metadata.";
+    writeFileSync(changelogPath, `${heading}## ${version}\n\n<!-- release-source: ${revision} -->\n\n${notes}\n\n${changelog.slice(heading.length)}`);
     writeFileSync(path, withVersion(currentText));
-    console.log(`Ready to advertise ${version} in config.yaml.`);
+    console.log(`Ready to advertise ${version} with its changelog.`);
   }
 } else {
   throw new Error("Use prepare, publish, or promote <main-checkout>");

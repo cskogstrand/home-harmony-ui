@@ -41,11 +41,11 @@ Server tests require Poppler and permission to open local test ports. The contai
 
 For compact output, use `npm run --silent test:silent` and `npm run --silent test:server:silent`. Passing tests show dots; failures retain their details. `deploy.sh` uses these commands automatically.
 
-`npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
+`npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, changelog generation and Home Assistant version slicing, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
 
 ## Deploying this repository
 
-Run from a clean `main` checkout after committing your code and changelog changes:
+Run from a clean `main` checkout after committing your code changes:
 
 ```sh
 ./deploy.sh
@@ -73,16 +73,20 @@ The script patch-bumps `VERSION`, leaving `config.yaml` for CI to promote. It ru
 
 `VERSION` is the requested release. `config.yaml` contains the version already available to Home Assistant. **Bump only `VERSION`**, leaving the published version for the workflow to update.
 
-1. Finish the release changes, add a changelog entry, and run the [verification commands](#verification).
+1. Finish the release changes, use descriptive commit messages, and run the [verification commands](#verification). The workflow generates the changelog.
 2. Increase the plain version in the root `VERSION` file, for example from `0.9.8` to `0.9.9`. Use three numbers without a `v` prefix or prerelease suffix. Commit and push the changes to `main`, or merge a pull request containing the bump. No release tag is needed.
 3. Watch **Publish Home Assistant image** in GitHub Actions. It builds and smoke-tests native AMD64 and ARM64 images from that commit. Inside the build checkout, it sets `config.yaml` to the requested version so the app displays the right version; the published repository configuration stays unchanged.
-4. After pushing the versioned manifest, the workflow downloads both images using an empty Docker configuration to verify anonymous access, architectures, versions and source commit. It then commits only the new `config.yaml` version to current `main`. Home Assistant can now offer the update. Pull the bot commit before your next local push.
+4. After pushing the versioned manifest, the workflow downloads both images using an empty Docker configuration to verify anonymous access, architectures, versions and source commit. It then commits the new `config.yaml` version and its `CHANGELOG.md` entry together to current `main`. Home Assistant can now offer the update with matching release notes. Pull the bot commit before your next local push.
+
+Changelog entries list commit subjects since the previous published source commit, excluding merge commits and the automated `chore: release …` version bumps. Changes committed during a build are included in the next release. Each generated section keeps a hidden `release-source` commit marker; preserve it when editing the notes. The workflow requires the previous published version's marker and stops if the new version already has an entry, rather than overwriting handwritten notes. Existing historical notes are preserved.
+
+Keep version headings exactly `## 0.9.10`, without a `v` prefix or date. [Home Assistant's update dialog](https://github.com/home-assistant/core/blob/2026.10.0/homeassistant/components/hassio/update.py#L142-L158) starts at the latest version's heading and stops before the installed version's heading, including intermediate releases when versions were skipped. If the latest heading is missing, it falls back to the entire changelog; if the installed heading is missing, it cannot stop before older entries. The missing `0.9.9` and `0.9.10` entries have been backfilled from their successful builds.
 
 If a build, push or public-image check fails, Home Assistant keeps the previous version. A newer `VERSION` request supersedes an older run. An older run never lowers the published version, and a concurrent push to `main` is preserved: the bot uses an ordinary push and fails rather than force-pushing. If other app configuration changed during the build, promotion stops; publish a new `VERSION` containing that configuration.
 
 **Retries:** use **Re-run failed jobs** on the original run after fixing a transient failure, package visibility or push permission. If the version image already exists, the workflow verifies and reuses it without overwriting it, and requires it to match the original source commit. If code changed, bump `VERSION` again. **Run workflow** on `main` can start a pending release manually; when `VERSION` already equals `config.yaml`, it skips building and publishing. The initial `VERSION` file matches the existing `0.9.8` release, so installing this workflow alone does not release anything.
 
-**GitHub setup:** the built-in `GITHUB_TOKEN` needs `packages: write` for GHCR and `contents: write` for the final bot commit; these permissions are declared in the workflow. Repository rules must allow that commit to `main`. If branch protection blocks it, promotion fails safely and the old version stays advertised. No personal access token or household configuration is needed. The bot commit changes only `config.yaml`, so it does not trigger another release.
+**GitHub setup:** the built-in `GITHUB_TOKEN` needs `packages: write` for GHCR and `contents: write` for the final bot commit; these permissions are declared in the workflow. Repository rules must allow that commit to `main`. If branch protection blocks it, promotion fails safely and the old version stays advertised. No personal access token or household configuration is needed. The bot commit changes only `config.yaml` and `CHANGELOG.md`, so it does not trigger another release.
 
 **Package visibility:** the existing GHCR package remains public. For a new installation or fork, open the repository owner's GitHub **Packages → home-harmony-ui → Package settings → Change visibility** after the first push and make it **Public**, then rerun the failed job. A public repository does not automatically make its container package public. An existing package created elsewhere must also grant this repository Actions access.
 

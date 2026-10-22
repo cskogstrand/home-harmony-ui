@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.10
+
+<!-- release-source: 6c323cfdfd7e7885c25ba1b905532b91c18d7b34 -->
+
+- feat: add bulk smart home visibility controls
+- feat: add smart home visibility filters and groups
+
+## 0.9.9
+
+<!-- release-source: 31c786744c2e5cf0ea54c387a242d40b7a10fc51 -->
+
+- fix: restore deploy checks and quiet test output
+- feat: add deploy script
+- feat: add tested deploy
+- ci: release from VERSION bumps on main
+- feat: configure smart home visibility
+- feat: add tomorrow plans and cleaner controls
+- docs: simplify readme and add screenshots
+
 ## 0.9.8
 
 - Download prebuilt app images on Home Assistant updates instead of installing build dependencies and compiling on the device.
