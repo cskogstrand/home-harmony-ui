@@ -1,6 +1,6 @@
 # Setup and everyday use
 
-[← Overview](README.md) · [Morning summaries](docs/morning-summary.md) · [Development](docs/development.md)
+[← Overview](https://github.com/cskogstrand/home-harmony-ui/blob/main/README.md) · [Morning summaries](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/morning-summary.md) · [Development](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/development.md)
 
 Install on [Home Assistant OS](#haos-app-installation) or with [Docker](#manual-docker-deployment), then choose your people, calendars and lists in **Home settings**.
 
