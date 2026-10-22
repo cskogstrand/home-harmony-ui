@@ -20,6 +20,8 @@ npm run build
 npm start
 ```
 
+Production builds publish `/version.json` from the same `config.yaml` version shown in the footer. Open screens check it every minute while visible, when waking or reconnecting, and after a page download fails. A different version shows a refresh notice; refreshing remains manual so edits are not interrupted. Page failures show a retry action while keeping navigation available. Development uses Vite's live updates instead.
+
 Node and Vite read `.env` automatically; already-set environment variables win. Required values are `HOME_ASSISTANT_URL`, `HOME_ASSISTANT_TOKEN` and `DASHBOARD_PASSWORD` (at least 12 characters). For a trusted local network, set `DASHBOARD_AUTH_DISABLED=true` to skip login and make `DASHBOARD_PASSWORD` optional; it defaults to `false` and accepts only `true` or `false`. This also works in Docker Compose. `HOME_ASSISTANT_URL` is an HTTP(S) origin without credentials, path, or trailing slash. `PORT` defaults to 8099 for the Node server; Vite uses its own `--port` option. `DATA_DIR` selects the persistent directory.
 
 PDF conversion requires Poppler (`pdfinfo` and `pdftoppm`): `brew install poppler` on macOS or `apt install poppler-utils` on Debian/Ubuntu. The Docker image includes Poppler and fonts.

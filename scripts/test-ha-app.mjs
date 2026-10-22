@@ -25,6 +25,15 @@ try {
   assert.match(html, /Afterglow/);
   assert.match(html, /Content-Security-Policy/);
 
+  const versionResponse = await fetch(`${base}/version.json`, { headers });
+  assert.equal(versionResponse.status, 200);
+  assert.match(versionResponse.headers.get("content-type"), /application\/json/);
+  assert.equal(versionResponse.headers.get("cache-control"), "no-cache");
+  const { version } = await versionResponse.json();
+  assert.match(version, /^\d+\.\d+\.\d+$/);
+  const imageVersion = JSON.parse(docker("inspect", "--format", "{{json .Config.Labels}}", container))?.["io.hass.version"];
+  if (imageVersion) assert.equal(version, imageVersion, "The update notice must advertise the version inside this image");
+
   for (const route of ["/settings?auth_callback=1&code=smoke-auth-code&state=fixture", "/devices/example", "/calendar"]) {
     const page = await fetch(`${base}${route}`, { headers });
     assert.equal(page.status, 200, `${route} must survive a reload`);

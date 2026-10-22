@@ -5,14 +5,16 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SmartHomeNav } from "@/components/layout/Navigation";
 
-const shared = vi.hoisted(() => ({ enabled: true, online: true, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
+const shared = vi.hoisted(() => ({ enabled: true, online: true, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home" }, metadataWarnings: [] }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma", appearance: { compactMode: false } }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
+vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
 
 beforeEach(() => {
   shared.enabled = true;
   shared.online = true;
+  shared.availableVersion = undefined;
   shared.state = { loaded: true, dirty: false, saving: false, error: "", timetableError: null };
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
@@ -35,6 +37,47 @@ it("keeps navigation visible during page loading and scrolls to the anchor after
   expect(screen.getByText("Page content")).toBeVisible();
   expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
   expect(scrollIntoView).toHaveBeenCalledOnce();
+});
+
+it("keeps navigation usable when a page download fails", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  const reload = vi.fn();
+  vi.spyOn(window, "location", "get").mockReturnValue({ ...window.location, reload });
+  let rejectPage: (error: Error) => void;
+  const LazyPage = lazy(() => new Promise<{ default: () => JSX.Element }>((_, reject) => { rejectPage = reject; }));
+  render(<MemoryRouter initialEntries={["/school"]}><Routes>
+    <Route element={<AppLayout />}>
+      <Route path="/school" element={<LazyPage />} />
+      <Route path="/lists" element={<p>Working page</p>} />
+    </Route>
+  </Routes></MemoryRouter>);
+
+  const error = new TypeError("Failed to fetch dynamically imported module");
+  const silenceExpectedError = (event: ErrorEvent) => { if (event.error === error) event.preventDefault(); };
+  window.addEventListener("error", silenceExpectedError);
+  try { await act(async () => rejectPage(error)); }
+  finally { window.removeEventListener("error", silenceExpectedError); }
+  expect(screen.getByRole("alert")).toHaveTextContent("This page could not be loaded.");
+  expect(screen.getByRole("banner")).toBeVisible();
+  expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  expect(reload).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("link", { name: "Lists" }));
+  expect(screen.getByText("Working page")).toBeVisible();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("offers an update without reloading until the user chooses to refresh", () => {
+  const reload = vi.fn();
+  vi.spyOn(window, "location", "get").mockReturnValue({ ...window.location, reload });
+  const view = render(layout());
+  expect(screen.queryByRole("button", { name: "Refresh app" })).not.toBeInTheDocument();
+  shared.availableVersion = "99.0.0";
+  view.rerender(layout());
+  expect(screen.getByText("Version 99.0.0 is available. Refresh the app to update.").closest("[role='status']")).toBeVisible();
+  expect(reload).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh app" }));
+  expect(reload).toHaveBeenCalledOnce();
 });
 
 it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device section on %s", path => {

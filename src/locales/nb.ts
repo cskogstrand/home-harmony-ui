@@ -1,4 +1,7 @@
 export const nb = {
+  "Version {version} is available. Refresh the app to update.": "Versjon {version} er tilgjengelig. Last appen på nytt for å oppdatere.",
+  "Refresh app": "Last appen på nytt",
+  "This page could not be loaded. Refresh the app and try again.": "Kunne ikke laste denne siden. Last appen på nytt og prøv igjen.",
   "{count} visible light on": "{count} synlig lys på",
   "{count} visible lights on": "{count} synlige lys på",
   "No visible alarm": "Ingen synlig alarm",

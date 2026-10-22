@@ -1,6 +1,7 @@
 import { defineConfig, normalizePath } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { readFileSync } from "node:fs";
 import { runtimeOptions } from "./server/runtime.mjs";
 import { dashboardAccess, attachHomeAssistantSocket } from "./server/home-assistant.mjs";
 import { createAppHandler } from "./server/app.mjs";
@@ -48,6 +49,13 @@ export default defineConfig({
     name: "persistent-configuration",
     configureServer: configurationMiddleware,
     configurePreviewServer: configurationMiddleware,
+  }, {
+    name: "app-version",
+    apply: "build",
+    generateBundle() {
+      const version = readFileSync(new URL("./config.yaml", import.meta.url), "utf8").match(/^version:\s*["']?([^"'\s]+)/m)![1];
+      this.emitFile({ type: "asset", fileName: "version.json", source: JSON.stringify({ version }) });
+    },
   }, {
     name: "production-script-policy",
     apply: "build",
