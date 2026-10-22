@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.11
+
+<!-- release-source: 39bafab5ff408562ac4c06da42dcc820ad359a79 -->
+
+- fix: remove redundant border class in FamilyDay component
+- fix: detect updates and contain page load failures
+- ci: generate changelogs on release
+- style: simplify daily calendar empty states
+
 ## 0.9.10
 
 <!-- release-source: 6c323cfdfd7e7885c25ba1b905532b91c18d7b34 -->
