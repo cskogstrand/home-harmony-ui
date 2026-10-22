@@ -367,8 +367,10 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   expect(day.queryByText("Next day example")).not.toBeInTheDocument();
   expect(within(day.getByRole("group", { name: "Everyone" })).getByRole("button", { name: /Shared example/ })).toHaveTextContent("All day");
   expect(day.getAllByText("Shared example")).toHaveLength(1);
-  expect(day.getByRole("group", { name: "Example B" })).toHaveTextContent("Example B: No plans today.");
-  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent("Example C: No calendars selected");
+  const emptyToday = day.getByRole("group", { name: "Example B" });
+  expect(within(emptyToday).getByRole("img", { name: "No plans today." })).toBeInTheDocument();
+  expect(emptyToday).toHaveTextContent(/^$/);
+  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent(/^No calendars selected$/);
   expect(app.watchCalendarEvents.mock.calls.map(([id]) => id).sort()).toEqual(["calendar.a", "calendar.b", "calendar.extra", "calendar.shared"]);
   const refresh = day.getByRole("button", { name: "Refresh calendars" });
   expect(refresh).toHaveAttribute("title", "Refresh calendars");
@@ -386,7 +388,9 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   await saved();
   expect(screen.getByRole("region", { name: "Everyone’s day" })).toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example B" })).toHaveTextContent("No plans tomorrow.");
+  const emptyTomorrow = within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example B" });
+  expect(within(emptyTomorrow).getByRole("img", { name: "No plans tomorrow." })).toBeInTheDocument();
+  expect(emptyTomorrow).toHaveTextContent(/^$/);
   expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars selected");
 });
 
@@ -465,6 +469,8 @@ it.each(["loading", "failed", "offline", "missing"])("does not claim daily plans
   for (const label of ["Today", "Tomorrow"]) {
     const person = within(day.getByRole("region", { name: label })).getByRole("group", { name: "Example person" });
     expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars unavailable while offline." : "Some calendars could not be loaded.");
+    expect(person).not.toHaveTextContent("Example person");
+    expect(within(person).queryByRole("img")).not.toBeInTheDocument();
   }
   expect(day.queryByText("No plans today.")).not.toBeInTheDocument();
   expect(day.queryByText("No plans tomorrow.")).not.toBeInTheDocument();

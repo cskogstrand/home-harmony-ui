@@ -1,3 +1,4 @@
+import { Armchair } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
@@ -36,7 +37,10 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
             : null;
           return <div className="family-lane" role="group" aria-label={person.name} key={person.id}>
             {personal.map(event => <EventButton key={event.id} event={event} showMember onClick={() => onEdit(event)} />)}
-            {!personal.length && <p className="empty-note">{person.name}: {unavailableMessage ?? t(date === today ? "No plans today." : "No plans tomorrow.")}</p>}
+            {!personal.length && (unavailableMessage ? <p className="empty-note">{unavailableMessage}</p> :
+              <div className="flex flex-1 items-center justify-center py-5 text-muted-foreground" role="img" aria-label={t(date === today ? "No plans today." : "No plans tomorrow.")}>
+                <Armchair className="size-10" strokeWidth={1.5} aria-hidden="true" />
+              </div>)}
             {!!personal.length && missing && <p className="empty-note">{person.name}: {t("Some calendars could not be loaded.")}</p>}
           </div>;
         })}</div>
