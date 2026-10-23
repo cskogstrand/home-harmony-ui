@@ -30,7 +30,18 @@
 .dg-filters button { min-height: 44px; border-radius: 999px; padding: .5rem 1rem; color: var(--dg-muted); font-size: .875rem; transition: background-color 160ms, color 160ms; }
 .dg-filters button:hover { background: hsl(var(--secondary)); color: var(--dg-ink); }
 .dg-filters button[aria-pressed="true"] { background: hsl(var(--foreground)); color: hsl(var(--background)); }
-.dg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.3rem; align-items: start; }
+.dg-comparison-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-bottom: 1rem; }
+.dg-comparison-toolbar > p { color: var(--dg-muted); font-size: .8rem; }
+.dg-view-picker { display: flex; gap: .5rem; }
+.dg-view-picker button { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--dg-line); border-radius: 14px; font-size: .875rem; }
+.dg-view-picker button[aria-pressed="true"] { background: var(--dg-ink); color: hsl(var(--background)); border-color: var(--dg-ink); }
+.dg-comparisons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.3rem; align-items: start; }
+.dg-pair { display: contents; }
+.dg-comparisons[data-view="Compare"] { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 960px; margin-inline: auto; gap: 2rem; }
+.dg-comparisons[data-view="Compare"] .dg-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; align-items: start; }
+.dg-comparisons .dg-pair[hidden], .dg-variant[hidden] { display: none; }
+.dg-variant { min-width: 0; }
+.dg-version-label { margin: 0 0 .6rem .25rem; color: var(--dg-muted); font-size: .8rem; font-weight: 600; }
 .dg-card {
   --dg-hue: 210;
   --dg-accent: hsl(var(--dg-hue) 62% 39%);
@@ -231,13 +242,16 @@
 }
 @keyframes dg-spin { to { transform: rotate(360deg); } }
 @media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
-  .dg-grid { gap: 1.2rem; }
+  .dg-comparisons { gap: 1.2rem; }
   .dg-card { padding: 1.2rem 1.2rem 0; }
   .dg-card .dg-action, .dg-toggle, .dg-choice select, .dg-more summary { min-height: 48px; }
 }
-@media (max-width: 1099px) { .dg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1099px) { .dg-comparisons { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 699px) {
-  .dg-grid { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .dg-comparisons { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+  .dg-comparisons[data-view="Compare"] .dg-pair { grid-template-columns: minmax(0, 1fr); gap: 1rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--dg-line); }
+  .dg-view-picker { width: 100%; }
+  .dg-view-picker button { flex: 1; padding-inline: .5rem; }
   .dg-card { padding: 1.3rem 1.3rem 0; }
   .dg-heading { position: relative; padding-right: 3.5rem; margin-bottom: .75rem; }
   .dg-heading h1 { font-size: 1.65rem; }
@@ -259,6 +273,79 @@
   .dg-light-well { padding: 1rem; }
   .dg-light-well > svg { width: 42px; }
 }
+
+.dg-card.dg-compact { padding: 1rem; border-radius: 22px; border: 1px solid var(--dg-line); box-shadow: inset 0 1px 0 var(--dg-rim), 0 6px 20px -14px hsl(218 35% 28% / .25); }
+.dg-compact .dg-card-header { margin-bottom: .75rem; gap: .75rem; }
+.dg-compact .dg-card-header h2 { font-size: 1rem; }
+.dg-compact .dg-card-icon { background: transparent; width: 28px; flex-basis: 28px; border-radius: 0; }
+.dg-compact .dg-card-body { gap: .75rem; }
+.dg-compact .dg-action { min-width: 44px; transition: transform 160ms ease-out, background-color 160ms, color 160ms; }
+.dg-compact .dg-action:active:not(:disabled) { transform: scale(.96); }
+.dg-compact .dg-action.dg-icon-action { padding: .5rem; }
+.dg-compact .dg-segments { gap: .5rem; padding: 0; background: transparent; }
+.dg-compact .dg-segments .dg-action { border: 1px solid var(--dg-line); border-radius: 12px; }
+.dg-compact .dg-segments .dg-action[aria-pressed="true"] { background: var(--dg-tint); color: var(--dg-accent); border-color: currentColor; box-shadow: none; }
+.dg-compact .dg-range > [data-orientation] { height: 44px; }
+.dg-compact .dg-range [role="slider"]::after { content: ""; position: absolute; inset: -13px; }
+.dg-compact .dg-inline-range { display: grid; grid-template-columns: 24px minmax(0, 1fr) max-content; align-items: center; gap: .75rem; }
+.dg-inline-range > span { display: flex; color: var(--dg-muted); }
+.dg-inline-range output { min-width: 4ch; text-align: right; font-size: .8rem; }
+.dg-compact .dg-more { margin-top: .25rem; }
+.dg-compact .dg-more summary { justify-content: start; gap: .5rem; padding: 0; }
+.dg-compact .dg-more summary svg:last-child { margin-left: auto; transition: transform 160ms ease-out; }
+.dg-compact .dg-more[open] summary svg:first-child { transform: none; }
+.dg-compact .dg-more > div { padding: .5rem 0; gap: .75rem; }
+.dg-compact .dg-readout { text-align: left; gap: .25rem; padding: .25rem 0; }
+.dg-compact .dg-readout strong { font-size: 2rem; }
+.dg-compact .dg-light-well { min-height: 88px; padding: .75rem 1rem; border-radius: 16px; }
+.dg-compact .dg-light-well > svg { width: 28px; height: 36px; }
+.dg-compact .dg-light-well strong { font-size: 1.8rem; }
+.dg-compact .dg-light-well .dg-action { background: #fff; color: #473b2e; }
+.dg-compact .dg-light-well .dg-action[aria-pressed="true"] { background: #473b2e; color: #fff; }
+.dg-compact .dg-colors { flex-wrap: wrap; justify-content: start; gap: .5rem; padding: .25rem; }
+.dg-compact .dg-colors > button, .dg-compact .dg-custom-color { min-width: 44px; }
+.dg-compact[data-demo-card="climate"] .dg-card-body { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; }
+.dg-compact .dg-thermostat { grid-column: 2; grid-row: 1; width: 152px; max-width: 100%; height: auto; aspect-ratio: 1; padding: 6px; }
+.dg-compact .dg-thermostat strong { font-size: 2.3rem; }
+.dg-compact .dg-thermostat span { font-size: .75rem; text-align: center; max-width: 14ch; }
+.dg-compact[data-demo-card="climate"] .dg-stepper { display: contents; }
+.dg-compact[data-demo-card="climate"] .dg-stepper > span { display: none; }
+.dg-compact[data-demo-card="climate"] .dg-stepper .dg-action { grid-row: 1; grid-column: 1; }
+.dg-compact[data-demo-card="climate"] .dg-stepper .dg-action:last-child { grid-column: 3; }
+.dg-compact[data-demo-card="climate"] :is(.dg-segments, .dg-more) { grid-column: 1 / -1; }
+.dg-compact .dg-window { width: 65%; height: 90px; margin-bottom: 0; }
+.dg-compact .dg-record { gap: 1rem; }
+.dg-compact .dg-vinyl { width: 70px; height: 70px; flex-shrink: 0; }
+.dg-compact .dg-transport { gap: .75rem; }
+.dg-compact .dg-status-row > span { display: flex; align-items: center; gap: .4rem; }
+.dg-compact :is(.dg-fan, .dg-droplet, .dg-voice) { min-height: 64px; }
+.dg-compact :is(.dg-fan, .dg-droplet, .dg-voice) > svg { width: 52px; height: 52px; }
+.dg-compact .dg-security-emblem { width: 64px; height: 64px; }
+.dg-compact .dg-security-emblem svg { width: 32px; height: 32px; }
+.dg-compact .dg-power-disc { margin: 0; }
+.dg-compact .dg-power-disc .dg-action { width: 64px; height: 64px; }
+.dg-compact .dg-power-disc .dg-action svg { width: 28px; height: 28px; }
+.dg-compact:is([data-demo-card="lock"], [data-demo-card="alarm_control_panel"], [data-demo-card="siren"], [data-demo-card="switch"], [data-demo-card="button"], [data-demo-card="humidifier"], [data-demo-card="voice"]) .dg-card-body { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; }
+.dg-compact:is([data-demo-card="lock"], [data-demo-card="alarm_control_panel"], [data-demo-card="siren"], [data-demo-card="switch"], [data-demo-card="button"], [data-demo-card="humidifier"], [data-demo-card="voice"]) .dg-card-body > :nth-child(n + 3) { grid-column: 1 / -1; }
+.dg-compact .dg-tank { height: 80px; }
+.dg-compact .dg-history { height: 52px; }
+.dg-compact .dg-presence { height: 80px; }
+.dg-compact .dg-presence i { width: 64px; height: 64px; }
+.dg-compact .dg-presence i:last-child { width: 80px; height: 80px; }
+.dg-compact .dg-presence > svg { width: 32px; }
+.dg-compact .dg-scene-orbs { height: 68px; }
+.dg-compact .dg-scene-orbs i { width: 48px; height: 48px; }
+.dg-compact .dg-scene-orbs i:nth-child(2) { width: 60px; height: 60px; }
+.dg-compact .dg-flow { gap: .25rem; margin: 0; align-items: start; }
+.dg-compact .dg-flow > svg { margin-left: .2rem; }
+.dg-compact .dg-flow > span { min-height: 32px; }
+.dg-compact .dg-event-list { min-height: 80px; padding: .5rem 0; gap: .75rem; }
+.dg-compact .dg-weather { justify-content: start; gap: 1rem; }
+.dg-compact .dg-weather > svg { width: 52px; }
+.dg-compact .dg-update { padding: 0; gap: .5rem; flex-direction: row; justify-content: space-between; }
+.dg-compact .dg-form { gap: .75rem; }
+.dg-compact .dg-form textarea { min-height: 88px; }
+.dg-variant[hidden] *, .dg-pair[hidden] * { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
   .device-gallery *, .device-gallery *::before, .device-gallery *::after { animation: none !important; transition: none !important; }
   .dg-action:active:not(:disabled) { transform: none; }
