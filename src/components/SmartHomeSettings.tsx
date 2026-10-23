@@ -73,6 +73,7 @@ export function SmartHomeSettings() {
     <PanelHeading title={t("Smart home visibility")} to="/home" label={t("Smart home")} />
     <p className="page-note">{t("Choose which devices, entities and scenes appear on Smart home. Changes are saved automatically and shared across screens.")}</p>
     <p className="page-note">{t("New devices and entities stay hidden until you enable them here. Other pages and Home Assistant are unchanged.")}</p>
+    <Button asChild variant="outline" className="mt-4"><Link to="/device-gallery">{message("Explore device card designs")}</Link></Button>
     <fieldset className="mt-6 min-w-0" aria-describedby="visibility-filters-hint">
       <legend className="text-base font-semibold">{t("Filters")}</legend>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

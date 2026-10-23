@@ -266,6 +266,12 @@ The sidecar records the three soft elevation tokens plus glass and header shadow
 
 **The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus, popovers and dialogs, with one local exception: calendar timetable frames reuse the shared panel glass on School, dashboard previews and the expanded view. Keep the regular calendar, lists, form fields and other recurring work panels opaque; saved image/PDF timetables retain their existing presentation.
 
+### Isolated device-card experiment
+
+The `/device-gallery` playground, linked from Smart home settings, is a scoped exception for Liquid Glass device cards covering physical devices, helpers and data entities. Its translucent fills, illuminated rims and device-specific tints apply only to this demo. Production device cards and other recurring work panels retain the rules above; the gallery introduces no global design tokens.
+
+All examples use fictional data and local React state. Entity-specific primary controls stay visible, with secondary capabilities behind progressive disclosure. Cards stack on phones, retain generous portrait controls and adapt to dark mode. Reduced motion removes animation; reduced transparency, increased contrast and missing backdrop-filter support retain solid card surfaces. Visuals use CSS geometry and library icons, with no shipping rasters. Reusable component extraction and Home Assistant integration are deferred. Sources: [gallery](src/pages/DeviceGallery.tsx), [styles](src/pages/device-gallery.css) and [surface brief](.impeccable/surfaces/src-pages-devicegallery-tsx.md).
+
 ## Shapes
 
 The system pairs rounded work panels with capsule controls. Work panels use the `panel` radius, planner fields the `field` radius, transient menus the `menu` radius and standard dialogs the `dialog` radius. Shared component radii derive from the CSS base radius (1rem); smaller variants subtract (2px) and (4px). Calendar events retain tighter corners for aligned rows.
