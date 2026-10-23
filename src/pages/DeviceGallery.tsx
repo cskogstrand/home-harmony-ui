@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Activity, Battery, Columns2, Flame, House, LayoutGrid, LocateFixed, Snowflake, Sun, Volume2, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Bell, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, CloudSun, Droplets, Fan, Gauge, Hash, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Music2, Pause, Play, Plug, Plus, Power, Radio, RotateCcw, Search, Send, Settings2, ShieldCheck, Siren, SkipBack, SkipForward, SlidersHorizontal, Sparkles, Square, Thermometer, ToggleLeft, Type, Unlock, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap, type LucideIcon } from "lucide-react";
+import { Activity, Battery, Columns2, Flame, House, LayoutGrid, LocateFixed, Snowflake, Sun, Volume2, X, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Bell, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, CloudSun, Droplets, Fan, Gauge, Hash, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Music2, Pause, Play, Plug, Plus, Power, Radio, RotateCcw, Search, Send, Settings2, ShieldCheck, Siren, SkipBack, SkipForward, SlidersHorizontal, Sparkles, Square, Thermometer, ToggleLeft, Type, Unlock, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,19 +8,22 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import "./device-gallery.css";
 
 type DemoStatus = "Ready" | "Unavailable" | "Waiting" | "Command failed";
 const DemoDisabled = createContext(false);
-const CompactCard = createContext(false);
-const views = ["Compare", "Compact", "Original"] as const;
+const variants = ["Original", "Compact", "Super compact"] as const;
+type Variant = typeof variants[number];
+const CardPresentation = createContext<{ variant: Variant; visible: boolean; title: string }>({ variant: "Original", visible: true, title: "" });
+const views = ["Compare", "Super compact", "Compact", "Original"] as const;
 const groups = ["All cards", "Comfort", "Security", "Media", "Appliances", "Insight", "Helpers"] as const;
 type Group = typeof groups[number];
 type Example = { id: string; title: string; subtitle: string; group: Group; domains: string[]; icon: LucideIcon; tint: string; content: () => ReactNode };
 
 function Action({ children, onClick, label, pressed, disabled, primary = false, compactIcon: Icon }: { children: ReactNode; onClick: () => void; label?: string; pressed?: boolean; disabled?: boolean; primary?: boolean; compactIcon?: LucideIcon }) {
   const blocked = useContext(DemoDisabled);
-  const compact = useContext(CompactCard);
+  const compact = useContext(CardPresentation).variant !== "Original";
   const { message: t } = useI18n();
   const button = <Button type="button" className={`dg-action${compact && Icon ? " dg-icon-action" : ""}`} variant={primary ? "default" : "outline"} disabled={blocked || disabled} aria-label={label && t(label)} aria-pressed={pressed} onClick={onClick}>{compact && Icon ? <Icon size={20} aria-hidden="true" /> : children}</Button>;
   return compact && label ? <Tooltip><TooltipTrigger asChild>{button}</TooltipTrigger><TooltipContent>{t(label)}</TooltipContent></Tooltip> : button;
@@ -29,7 +32,7 @@ function Action({ children, onClick, label, pressed, disabled, primary = false, 
 function Range({ label, value, set, min = 0, max = 100, step = 1, unit = "%", icon: Icon }: { label: string; value: number; set: (value: number) => void; min?: number; max?: number; step?: number; unit?: string; icon?: LucideIcon }) {
   const { message: t, number } = useI18n();
   const disabled = useContext(DemoDisabled);
-  const compact = useContext(CompactCard);
+  const compact = useContext(CardPresentation).variant !== "Original";
   if (compact && Icon) return <div className="dg-range dg-inline-range"><span title={t(label)}><Icon size={20} aria-hidden="true" /><span className="sr-only">{t(label)}</span></span><Slider min={min} max={max} step={step} value={[value]} disabled={disabled} onValueChange={([next]) => set(next)} aria-label={t(label)} aria-valuetext={`${number(value)}${unit}`} /><output>{number(value)}{unit}</output></div>;
   return <div className="dg-range"><div><span>{t(label)}</span><output>{number(value)}{unit}</output></div><Slider min={min} max={max} step={step} value={[value]} disabled={disabled} onValueChange={([next]) => set(next)} aria-label={t(label)} aria-valuetext={`${number(value)}${unit}`} /></div>;
 }
@@ -53,7 +56,17 @@ function Toggle({ label, on, set }: { label: string; on: boolean; set: (on: bool
 
 function More({ children, label = "More controls" }: { children: ReactNode; label?: string }) {
   const { message: t } = useI18n();
-  const compact = useContext(CompactCard);
+  const { variant, visible, title } = useContext(CardPresentation);
+  const compact = variant !== "Original";
+  const [open, setOpen] = useState(false);
+  useEffect(() => { if (!visible) setOpen(false); }, [visible]);
+  if (variant === "Super compact") return <Popover open={open && visible} onOpenChange={setOpen}>
+    <PopoverTrigger asChild><Button type="button" variant="ghost" className="dg-adjust-trigger" aria-label={t(label)} title={t(label)}><SlidersHorizontal size={18} aria-hidden="true" /></Button></PopoverTrigger>
+    <PopoverContent align="end" className="device-gallery dg-card dg-compact dg-control-popover" aria-label={t("{name} controls", { name: title })}>
+      <div className="dg-popover-heading"><strong>{title}</strong><Button type="button" variant="ghost" size="icon" aria-label={t("Close controls")} onClick={() => setOpen(false)}><X size={18} /></Button></div>
+      <div className="dg-popover-controls">{children}</div>
+    </PopoverContent>
+  </Popover>;
   return <details className="dg-more"><summary>{compact && <SlidersHorizontal size={16} aria-hidden="true" />}{t(compact && label === "More controls" ? "Adjust" : label)}<ChevronDown size={16} aria-hidden="true" /></summary><div>{children}</div></details>;
 }
 
@@ -70,7 +83,7 @@ function SafeAction({ label, onConfirm, children }: { label: string; onConfirm: 
 }
 
 function LightDemo() {
-  const compact = useContext(CompactCard);
+  const compact = useContext(CardPresentation).variant !== "Original";
   const { message: t } = useI18n();
   const [on, setOn] = useState(true), [brightness, setBrightness] = useState(72), [kelvin, setKelvin] = useState(2700), [color, setColor] = useState("#ffc978"), [mode, setMode] = useState("White"), [effect, setEffect] = useState("None");
   const disabled = useContext(DemoDisabled);
@@ -85,11 +98,13 @@ function LightDemo() {
 }
 
 function ClimateDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [temp, setTemp] = useState(22), [mode, setMode] = useState("Heat"), [fan, setFan] = useState("Auto"), [preset, setPreset] = useState("Comfort"), [swing, setSwing] = useState(false);
+  const modes = <Segments label="Climate mode" icons={{ Off: Power, Heat: Flame, Cool: Snowflake }} options={["Off", "Heat", "Cool", "Auto"]} value={mode} set={setMode} />;
   return <><div className="dg-thermostat" style={{ "--dial": `${(temp - 16) / 14 * 270}deg` } as CSSProperties}><div><span>{t("Target temperature")}</span><strong>{temp.toFixed(1)}<small>°</small></strong><span>{t(mode === "Off" ? "System off" : mode === "Cool" ? "Cooling · room 24°" : "Heating · room 20.5°")}</span></div></div>
     <div className="dg-stepper"><Action label="Decrease temperature" disabled={temp <= 16} onClick={() => setTemp(temp - .5)}><Minus /></Action><span>{t("Target")}</span><Action label="Increase temperature" disabled={temp >= 30} onClick={() => setTemp(temp + .5)}><Plus /></Action></div>
-    <Segments label="Climate mode" icons={{ Off: Power, Heat: Flame, Cool: Snowflake }} options={["Off", "Heat", "Cool", "Auto"]} value={mode} set={setMode} /><More><Choice label="Fan mode" options={["Auto", "Low", "Medium", "High"]} value={fan} set={setFan} /><Choice label="Preset" options={["Comfort", "Eco", "Away", "Sleep"]} value={preset} set={setPreset} /><Toggle label="Swing" on={swing} set={setSwing} /></More></>;
+    {!superCompact && modes}<More>{superCompact && modes}<Choice label="Fan mode" options={["Auto", "Low", "Medium", "High"]} value={fan} set={setFan} /><Choice label="Preset" options={["Comfort", "Eco", "Away", "Sleep"]} value={preset} set={setPreset} /><Toggle label="Swing" on={swing} set={setSwing} /></More></>;
 }
 
 function CoverDemo() {
@@ -102,16 +117,18 @@ function CoverDemo() {
 }
 
 function SwitchDemo() {
-  const compact = useContext(CompactCard);
+  const compact = useContext(CardPresentation).variant !== "Original";
   const { message: t } = useI18n();
   const [on, setOn] = useState(true), [restore, setRestore] = useState("Previous state");
   return <><div className={`dg-power-disc ${on ? "is-on" : ""}`}><Action label="Toggle demo outlet" pressed={on} onClick={() => setOn(!on)}><Power size={46} strokeWidth={1.3} /></Action></div><Readout value={on ? 86 : 0} unit=" W" caption={on ? "On · drawing power" : "Off · no power draw"} />{!compact && <Toggle label="Outlet power" on={on} set={setOn} />}<More><div className="dg-facts"><span>{t("Today")}<b>0.42 kWh</b></span><span>{t("Voltage")}<b>230 V</b></span></div><Choice label="After power loss" options={["Previous state", "Always off", "Always on"]} value={restore} set={setRestore} /></More></>;
 }
 
 function FanDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [speed, setSpeed] = useState(40), [on, setOn] = useState(true), [oscillate, setOscillate] = useState(true), [direction, setDirection] = useState("Forward"), [preset, setPreset] = useState("Normal");
-  return <><div className="dg-fan" data-running={on} style={{ "--fan-duration": `${5 - speed / 25}s` } as CSSProperties}><Fan size={98} strokeWidth={1} aria-hidden="true" /></div><Toggle label="Fan power" on={on} set={setOn} /><Range label="Fan speed" icon={Wind} value={speed} min={1} set={v => { setSpeed(v); setOn(true); }} /><Toggle label="Oscillate" on={oscillate} set={setOscillate} /><More><Choice label="Direction" options={["Forward", "Reverse"]} value={direction} set={setDirection} /><Choice label="Fan preset" options={["Normal", "Natural breeze", "Sleep"]} value={preset} set={setPreset} /><p>{t(oscillate ? "Air sweeps across the room." : "Air flows in one direction.")}</p></More></>;
+  const oscillation = <Toggle label="Oscillate" on={oscillate} set={setOscillate} />;
+  return <><div className="dg-fan" data-running={on} style={{ "--fan-duration": `${5 - speed / 25}s` } as CSSProperties}><Fan size={98} strokeWidth={1} aria-hidden="true" /></div><Toggle label="Fan power" on={on} set={setOn} /><Range label="Fan speed" icon={Wind} value={speed} min={1} set={v => { setSpeed(v); setOn(true); }} />{!superCompact && oscillation}<More>{superCompact && oscillation}<Choice label="Direction" options={["Forward", "Reverse"]} value={direction} set={setDirection} /><Choice label="Fan preset" options={["Normal", "Natural breeze", "Sleep"]} value={preset} set={setPreset} /><p>{t(oscillate ? "Air sweeps across the room." : "Air flows in one direction.")}</p></More></>;
 }
 
 function HumidityDemo() {
@@ -120,8 +137,11 @@ function HumidityDemo() {
 }
 
 function WaterHeaterDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
+  const { message: t } = useI18n();
   const [temp, setTemp] = useState(60), [mode, setMode] = useState("Eco"), [away, setAway] = useState(false);
-  return <><div className="dg-tank" aria-hidden="true"><div style={{ height: `${(temp - 40) / 40 * 100}%` }} /><Waves size={30} /></div><Readout value={temp} unit="°" caption="Hot water target" /><Range label="Water temperature" value={temp} min={40} max={80} unit="°C" set={setTemp} /><Segments label="Water heater mode" options={["Off", "Eco", "Performance"]} value={mode} set={setMode} /><More><Toggle label="Away mode" on={away} set={setAway} /></More></>;
+  const modes = <Segments label="Water heater mode" options={["Off", "Eco", "Performance"]} value={mode} set={setMode} />;
+  return <><div className="dg-tank" aria-hidden="true"><div style={{ height: `${(temp - 40) / 40 * 100}%` }} /><Waves size={30} /></div><Readout value={temp} unit="°" caption={superCompact ? t("Hot water target · {mode}", { mode: t(mode) }) : "Hot water target"} /><Range label="Water temperature" value={temp} min={40} max={80} unit="°C" set={setTemp} />{!superCompact && modes}<More>{superCompact && modes}<Toggle label="Away mode" on={away} set={setAway} /></More></>;
 }
 
 function LockDemo() {
@@ -137,8 +157,10 @@ function AlarmDemo() {
 }
 
 function SirenDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const [on, setOn] = useState(false), [volume, setVolume] = useState(60), [tone, setTone] = useState("Chime");
-  return <><div className="dg-security-emblem"><Siren size={64} strokeWidth={1.2} /></div><Readout value={on ? "Sounding" : "Silent"} caption="Silent visual simulation" /><Choice label="Tone" options={["Chime", "Alarm", "Warning"]} value={tone} set={setTone} /><Range label="Siren volume" icon={Volume2} value={volume} set={setVolume} /><SafeAction label={on ? "Stop demo siren" : "Test demo siren"} onConfirm={() => setOn(!on)} /></>;
+  const soundControls = <><Choice label="Tone" options={["Chime", "Alarm", "Warning"]} value={tone} set={setTone} /><Range label="Siren volume" icon={Volume2} value={volume} set={setVolume} /></>;
+  return <><div className="dg-security-emblem"><Siren size={64} strokeWidth={1.2} /></div><Readout value={on ? "Sounding" : "Silent"} caption="Silent visual simulation" />{superCompact ? <More>{soundControls}</More> : soundControls}<SafeAction label={on ? "Stop demo siren" : "Test demo siren"} onConfirm={() => setOn(!on)} /></>;
 }
 
 function ValveDemo() {
@@ -148,10 +170,12 @@ function ValveDemo() {
 }
 
 function MediaDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [playing, setPlaying] = useState(true), [track, setTrack] = useState(0), [volume, setVolume] = useState(35), [muted, setMuted] = useState(false), [source, setSource] = useState("Demo library"), [shuffle, setShuffle] = useState(false), [repeat, setRepeat] = useState("Off"), [seek, setSeek] = useState(74);
   const tracks = ["Soft focus", "A slower morning", "Blue hour"];
-  return <><div className="dg-record"><div className="dg-vinyl" data-playing={playing}><i /></div><div><strong>{t(tracks[track])}</strong><span>{t("Afterglow sessions")}</span><small>{t("Fictional track · no audio")}</small></div></div><Range label="Playback position" value={seek} max={240} unit=" s" set={setSeek} /><div className="dg-transport"><Action label="Previous track" onClick={() => { setTrack((track + 2) % 3); setSeek(0); }}><SkipBack size={21} /></Action><Action primary label={playing ? "Pause playback" : "Start playback"} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} /> : <Play size={24} />}</Action><Action label="Next track" onClick={() => { setTrack((track + 1) % 3); setSeek(0); }}><SkipForward size={21} /></Action></div><Range label="Volume" icon={Volume2} value={volume} set={setVolume} /><More><Toggle label="Mute" on={muted} set={setMuted} /><Choice label="Media source" options={["Demo library", "Radio", "HDMI"]} value={source} set={setSource} /><Toggle label="Shuffle" on={shuffle} set={setShuffle} /><Choice label="Repeat" options={["Off", "One", "All"]} value={repeat} set={setRepeat} /></More></>;
+  const playbackPosition = <Range label="Playback position" value={seek} max={240} unit=" s" set={setSeek} />;
+  return <><div className="dg-record"><div className="dg-vinyl" data-playing={playing}><i /></div><div><strong>{t(tracks[track])}</strong><span>{t("Afterglow sessions")}</span><small>{t("Fictional track · no audio")}</small></div></div>{!superCompact && playbackPosition}<div className="dg-transport"><Action label="Previous track" onClick={() => { setTrack((track + 2) % 3); setSeek(0); }}><SkipBack size={21} /></Action><Action primary label={playing ? "Pause playback" : "Start playback"} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} /> : <Play size={24} />}</Action><Action label="Next track" onClick={() => { setTrack((track + 1) % 3); setSeek(0); }}><SkipForward size={21} /></Action></div><Range label="Volume" icon={Volume2} value={volume} set={setVolume} /><More>{superCompact && playbackPosition}<Toggle label="Mute" on={muted} set={setMuted} /><Choice label="Media source" options={["Demo library", "Radio", "HDMI"]} value={source} set={setSource} /><Toggle label="Shuffle" on={shuffle} set={setShuffle} /><Choice label="Repeat" options={["Off", "One", "All"]} value={repeat} set={setRepeat} /></More></>;
 }
 
 function RemoteDemo() {
@@ -173,19 +197,24 @@ function ImageDemo() {
 }
 
 function RobotDemo({ mower = false }: { mower?: boolean } = {}) {
-  const compact = useContext(CompactCard);
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
+  const compact = useContext(CardPresentation).variant !== "Original";
   const { message: t } = useI18n();
   const [status, setStatus] = useState("Docked"), [room, setRoom] = useState(mower ? "Front lawn" : "Every room"), [mode, setMode] = useState("Balanced");
   const map = <div className={`dg-robot-map ${mower ? "dg-lawn" : ""}`}><div className="dg-cleaned" /><div className="dg-robot-path" /><div className="dg-robot" data-active={status === "Cleaning" || status === "Mowing"}>{mower ? <Leaf size={22} /> : <Vacuum size={22} />}</div><span>{t("Illustrative map")}</span></div>;
-  return <>{!compact && map}<div className="dg-status-row"><strong>{t(status)}</strong><span>{compact ? <Battery size={18} aria-label={t("Battery")} /> : t("Battery")} 84%</span></div><Choice label={mower ? "Mowing area" : "Cleaning area"} options={mower ? ["Front lawn", "Back lawn", "Every area"] : ["Every room", "Living room", "Kitchen"]} value={room} set={setRoom} /><div className="dg-actions"><Action primary label={status === "Cleaning" || status === "Mowing" ? "Pause" : "Start"} compactIcon={status === "Cleaning" || status === "Mowing" ? Pause : Play} onClick={() => setStatus(status === "Cleaning" || status === "Mowing" ? "Paused" : mower ? "Mowing" : "Cleaning")}>{status === "Cleaning" || status === "Mowing" ? <Pause size={16} /> : <Play size={16} />}{t(status === "Cleaning" || status === "Mowing" ? "Pause" : "Start")}</Action><Action label="Return to dock" compactIcon={House} onClick={() => setStatus("Docked")}>{t("Return to dock")}</Action></div><More>{compact && map}<Choice label={mower ? "Cutting mode" : "Suction"} options={["Quiet", "Balanced", "Turbo"]} value={mode} set={setMode} /><Action label="Locate device" compactIcon={LocateFixed} onClick={() => setStatus("Located")}>{t("Locate device")}</Action><p>{t(mower ? "Demo lawn · 120 m²" : "Last clean · 32 m² in 28 minutes")}</p></More></>;
+  const areaControl = <Choice label={mower ? "Mowing area" : "Cleaning area"} options={mower ? ["Front lawn", "Back lawn", "Every area"] : ["Every room", "Living room", "Kitchen"]} value={room} set={setRoom} />;
+  return <>{!compact && map}<div className="dg-status-row"><strong>{t(status)}</strong><span>{compact ? <Battery size={18} aria-label={t("Battery")} /> : t("Battery")} 84%</span></div>{superCompact ? <p className="dg-quick-context">{t(room)}</p> : areaControl}<div className="dg-actions"><Action primary label={status === "Cleaning" || status === "Mowing" ? "Pause" : "Start"} compactIcon={status === "Cleaning" || status === "Mowing" ? Pause : Play} onClick={() => setStatus(status === "Cleaning" || status === "Mowing" ? "Paused" : mower ? "Mowing" : "Cleaning")}>{status === "Cleaning" || status === "Mowing" ? <Pause size={16} /> : <Play size={16} />}{t(status === "Cleaning" || status === "Mowing" ? "Pause" : "Start")}</Action><Action label="Return to dock" compactIcon={House} onClick={() => setStatus("Docked")}>{t("Return to dock")}</Action></div><More>{superCompact && areaControl}{compact && map}<Choice label={mower ? "Cutting mode" : "Suction"} options={["Quiet", "Balanced", "Turbo"]} value={mode} set={setMode} /><Action label="Locate device" compactIcon={LocateFixed} onClick={() => setStatus("Located")}>{t("Locate device")}</Action><p>{t(mower ? "Demo lawn · 120 m²" : "Last clean · 32 m² in 28 minutes")}</p></More></>;
 }
 
 function SensorDemo({ air = false }: { air?: boolean } = {}) {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [metric, setMetric] = useState(air ? "CO₂" : "Temperature"), [period, setPeriod] = useState("24 h");
   const values: Record<string, [number, string]> = { Temperature: [21.4, "°C"], Humidity: [42, "%"], Power: [86, " W"], Energy: [3.2, " kWh"], Battery: [84, "%"], "CO₂": [620, " ppm"], "PM2.5": [4, " µg/m³"], VOC: [72, " ppb"] };
   const [value, unit] = values[metric];
-  return <><Choice label="Reading" options={air ? ["CO₂", "PM2.5", "VOC"] : ["Temperature", "Humidity", "Power", "Energy", "Battery"]} value={metric} set={setMetric} /><Readout value={value} unit={unit} caption={air ? "Air quality · good" : "Latest demo reading"} /><div className="dg-history" role="img" aria-label={t("Illustrative history, not live measurements")}>{(period === "24 h" ? [32, 40, 37, 52, 48, 64, 60, 52, 68, 80, 72, 66] : [45, 38, 65, 55, 70, 63, 42, 50, 72, 58, 78, 66]).map((height, i) => <i key={i} style={{ height: `${height}%` }} />)}</div><Segments label="History period" options={["24 h", "7 d"]} value={period} set={setPeriod} /><More label="Reading details"><p>{t("Read-only entity. Units and history depend on the sensor.")}</p></More></>;
+  const reading = <Choice label="Reading" options={air ? ["CO₂", "PM2.5", "VOC"] : ["Temperature", "Humidity", "Power", "Energy", "Battery"]} value={metric} set={setMetric} />;
+  const history = <><div className="dg-history" role="img" aria-label={t("Illustrative history, not live measurements")}>{(period === "24 h" ? [32, 40, 37, 52, 48, 64, 60, 52, 68, 80, 72, 66] : [45, 38, 65, 55, 70, 63, 42, 50, 72, 58, 78, 66]).map((height, i) => <i key={i} style={{ height: `${height}%` }} />)}</div><Segments label="History period" options={["24 h", "7 d"]} value={period} set={setPeriod} /></>;
+  return <>{!superCompact && reading}<Readout value={value} unit={unit} caption={superCompact ? metric : air ? "Air quality · good" : "Latest demo reading"} />{!superCompact && history}<More label="Reading details">{superCompact && <>{reading}{history}</>}<p>{t("Read-only entity. Units and history depend on the sensor.")}</p></More></>;
 }
 
 function BinaryDemo() {
@@ -196,9 +225,11 @@ function BinaryDemo() {
 }
 
 function WeatherDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [period, setPeriod] = useState("Hourly");
-  return <><div className="dg-weather"><CloudSun size={84} strokeWidth={1.2} /><Readout value={18} unit="°" caption="Partly cloudy" /></div><div className="dg-facts"><span><Wind size={16} /> 3 m/s</span><span><Droplets size={16} /> 48%</span></div><Segments label="Forecast" options={["Hourly", "Daily"]} value={period} set={setPeriod} /><div className="dg-forecast">{(period === "Hourly" ? ["12:00", "15:00", "18:00", "21:00"] : ["Mon", "Tue", "Wed", "Thu"]).map((label, i) => <div key={label}><span>{t(label)}</span><CloudSun size={23} /><strong>{18 - i}°</strong></div>)}</div><p>{t("Fictional forecast · no location used")}</p></>;
+  const forecast = <><Segments label="Forecast" options={["Hourly", "Daily"]} value={period} set={setPeriod} /><div className="dg-forecast">{(period === "Hourly" ? ["12:00", "15:00", "18:00", "21:00"] : ["Mon", "Tue", "Wed", "Thu"]).map((label, i) => <div key={label}><span>{t(label)}</span><CloudSun size={23} /><strong>{18 - i}°</strong></div>)}</div></>;
+  return <><div className="dg-weather"><CloudSun size={84} strokeWidth={1.2} /><Readout value={18} unit="°" caption="Partly cloudy" /></div><div className="dg-facts"><span><Wind size={16} /> 3 m/s</span><span><Droplets size={16} /> 48%</span></div>{superCompact ? <More label="Forecast">{forecast}</More> : forecast}<p>{t("Fictional forecast · no location used")}</p></>;
 }
 
 function EventDemo() {
@@ -208,9 +239,11 @@ function EventDemo() {
 }
 
 function PresenceDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [location, setLocation] = useState("Home");
-  return <><div className="dg-presence"><MapPin size={55} strokeWidth={1.1} /><i /><i /></div><Readout value={location} caption="Fictional tracker · no real location" /><Segments label="Simulate location" options={["Home", "Away", "Unknown"]} value={location} set={setLocation} /><More label="Location details"><p>{t("People, trackers, zones and geolocation share location context. Uncertain locations stay explicit.")}</p></More></>;
+  const locationControl = <Segments label="Simulate location" options={["Home", "Away", "Unknown"]} value={location} set={setLocation} />;
+  return <><div className="dg-presence"><MapPin size={55} strokeWidth={1.1} /><i /><i /></div><Readout value={location} caption="Fictional tracker · no real location" />{!superCompact && locationControl}<More label="Location details">{superCompact && locationControl}<p>{t("People, trackers, zones and geolocation share location context. Uncertain locations stay explicit.")}</p></More></>;
 }
 
 function SceneDemo() {
@@ -232,6 +265,7 @@ function ScriptDemo() {
 }
 
 function TimerDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const disabled = useContext(DemoDisabled);
   const [seconds, setSeconds] = useState(300), [running, setRunning] = useState(false), [duration, setDuration] = useState("5 min");
@@ -240,7 +274,8 @@ function TimerDemo() {
     const id = window.setInterval(() => setSeconds(s => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
   }, [running, disabled, seconds]);
-  return <><Readout value={`${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`} caption={seconds === 0 ? "Finished" : running ? "Counting down" : "Ready when you are"} /><Segments label="Timer duration" options={["1 min", "5 min", "15 min"]} value={duration} set={v => { setDuration(v); setSeconds(parseInt(v) * 60); setRunning(false); }} /><div className="dg-actions"><Action primary label={running && seconds ? "Pause" : "Start"} compactIcon={running && seconds ? Pause : Play} disabled={seconds === 0} onClick={() => setRunning(!running)}>{running && seconds ? <Pause size={17} /> : <Play size={17} />}{t(running && seconds ? "Pause" : "Start")}</Action><Action label="Reset" compactIcon={RotateCcw} onClick={() => { setRunning(false); setSeconds(parseInt(duration) * 60); }}><RotateCcw size={16} />{t("Reset")}</Action></div><More><Action onClick={() => { setSeconds(0); setRunning(false); }}>{t("Finish timer")}</Action></More></>;
+  const durationControl = <Segments label="Timer duration" options={["1 min", "5 min", "15 min"]} value={duration} set={v => { setDuration(v); setSeconds(parseInt(v) * 60); setRunning(false); }} />;
+  return <><Readout value={`${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`} caption={seconds === 0 ? "Finished" : running ? "Counting down" : "Ready when you are"} />{!superCompact && durationControl}<div className="dg-actions"><Action primary label={running && seconds ? "Pause" : "Start"} compactIcon={running && seconds ? Pause : Play} disabled={seconds === 0} onClick={() => setRunning(!running)}>{running && seconds ? <Pause size={17} /> : <Play size={17} />}{t(running && seconds ? "Pause" : "Start")}</Action><Action label="Reset" compactIcon={RotateCcw} onClick={() => { setRunning(false); setSeconds(parseInt(duration) * 60); }}><RotateCcw size={16} />{t("Reset")}</Action></div><More>{superCompact && durationControl}<Action onClick={() => { setSeconds(0); setRunning(false); }}>{t("Finish timer")}</Action></More></>;
 }
 
 function HelperDemo({ kind }: { kind: "number" | "select" | "text" | "counter" | "button" | "datetime" }) {
@@ -328,13 +363,14 @@ const examples: Example[] = [
   { id: "notify", title: "A gentle heads-up", subtitle: "Notification", group: "Helpers", domains: ["notify"], icon: Bell, tint: "amber", content: MessageDemo },
 ];
 
-function DemoCard({ example, compact, status, retry }: { example: Example; compact: boolean; status: DemoStatus; retry: () => void }) {
+function DemoCard({ example, variant, visible, status, retry }: { example: Example; variant: Variant; visible: boolean; status: DemoStatus; retry: () => void }) {
+  const compact = variant !== "Original";
   const { message: t } = useI18n();
   const id = useId(), Icon = example.icon, Content = example.content;
   const disabled = status !== "Ready";
-  return <article className={`dg-card dg-${example.tint}${compact ? " dg-compact" : ""}`} aria-labelledby={id} data-demo-card={example.id} data-variant={compact ? "Compact" : "Original"}>
+  return <article className={`dg-card dg-${example.tint}${compact ? " dg-compact" : ""}${variant === "Super compact" ? " dg-supercompact" : ""}`} aria-labelledby={id} data-demo-card={example.id} data-variant={variant}>
     <header className="dg-card-header"><div className="dg-card-icon"><Icon size={22} strokeWidth={1.7} aria-hidden="true" /></div><div><h2 id={id}>{t(compact ? example.subtitle : example.title)}</h2>{!compact && <p>{t(example.subtitle)}</p>}</div></header>
-    <CompactCard.Provider value={compact}><DemoDisabled.Provider value={disabled}><div className={`dg-card-body ${disabled ? "dg-disabled" : ""}`} aria-busy={status === "Waiting"}><Content /></div></DemoDisabled.Provider></CompactCard.Provider>
+    <CardPresentation.Provider value={{ variant, visible, title: t(example.subtitle) }}><DemoDisabled.Provider value={disabled}><div className={`dg-card-body ${disabled ? "dg-disabled" : ""}`} aria-busy={status === "Waiting"}><Content /></div></DemoDisabled.Provider></CardPresentation.Provider>
     {disabled && <div className="dg-state-message" role={status === "Command failed" ? "alert" : "status"}><strong>{t(status)}</strong><p>{t(status === "Unavailable" ? "Device unavailable. Controls keep their last known values." : status === "Waiting" ? "Waiting for the demo device to respond." : "The demo command failed. Your settings are unchanged.")}</p><Button variant="outline" onClick={retry}>{t(status === "Command failed" ? "Retry demo" : "Restore demo")}</Button></div>}
     {!compact && <footer className="dg-card-footer"><span>{example.domains.join(" · ")}</span></footer>}
   </article>;
@@ -351,10 +387,10 @@ export default function DeviceGallery() {
     <Link className="dg-back" to="/settings#smart-home-visibility"><ArrowLeft size={17} />{t("Smart home settings")}</Link>
     <div className="dg-heading"><div><h1>{t("Device playground")}</h1><p>{t("Device cards, reimagined. Touch, adjust and explore.")}</p></div><Button variant="outline" onClick={() => { setVersion(v => v + 1); setStatus("Ready"); }}><RotateCcw size={17} /><span>{t("Reset demo")}</span></Button></div>
     <div className="dg-demo-note"><Sparkles size={18} aria-hidden="true" /><p>{t("Fictional devices. Real interactions. Nothing controls your home.")}</p></div>
-    <div className="dg-comparison-toolbar"><div className="dg-view-picker" role="group" aria-label={t("Gallery view")}>{views.map(value => { const Icon = value === "Compare" ? Columns2 : LayoutGrid; return <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)}><Icon size={17} aria-hidden="true" />{t(value)}</button>; })}</div><p>{t("Try both. Each version keeps its own settings.")}</p></div>
+    <div className="dg-comparison-toolbar"><div className="dg-view-picker" role="group" aria-label={t("Gallery view")}>{views.map(value => { const Icon = value === "Compare" ? Columns2 : LayoutGrid; return <button key={value} type="button" aria-pressed={view === value} onClick={() => setView(value)}><Icon size={17} aria-hidden="true" />{t(value)}</button>; })}</div><p>{t("Try all three. Each version keeps its own settings.")}</p></div>
     <div className="dg-toolbar"><label className="dg-search"><Search size={19} aria-hidden="true" /><Input type="search" aria-label={t("Search device card designs")} placeholder={t("Find a device or entity type…")} value={search} onChange={e => setSearch(e.target.value)} /></label><label className="dg-state-picker"><Settings2 size={17} aria-hidden="true" /><span>{t("Demo state")}</span><select value={status} onChange={e => setStatus(e.target.value as DemoStatus)}>{(["Ready", "Unavailable", "Waiting", "Command failed"] as const).map(value => <option key={value} value={value}>{t(value)}</option>)}</select></label></div>
     <div className="dg-filter-row"><div className="dg-filters" role="group" aria-label={t("Device families")}>{groups.map(value => <button key={value} aria-pressed={group === value} onClick={() => setGroup(value)}>{t(value)}</button>)}</div><span role="status">{t(count === 1 ? "{count} design" : "{count} designs", { count })}</span></div>
-    <div className="dg-comparisons" data-view={view} key={version}>{examples.map(example => <section className="dg-pair" key={example.id} hidden={!visible(example)} aria-label={t("{name} comparison", { name: t(example.subtitle) })}>{(["Original", "Compact"] as const).map(variant => <div className="dg-variant" key={variant} hidden={view !== "Compare" && view !== variant}><p className="dg-version-label">{t(variant)}</p><DemoCard example={example} compact={variant === "Compact"} status={status} retry={() => setStatus("Ready")} /></div>)}</section>)}</div>
+    <div className="dg-comparisons" data-view={view} key={version}>{examples.map(example => <section className="dg-pair" key={example.id} hidden={!visible(example)} aria-label={t("{name} comparison", { name: t(example.subtitle) })}>{variants.map(variant => <div className="dg-variant" key={variant} hidden={view !== "Compare" && view !== variant}><p className="dg-version-label">{t(variant)}</p><DemoCard example={example} variant={variant} visible={visible(example) && (view === "Compare" || view === variant)} status={status} retry={() => setStatus("Ready")} /></div>)}</section>)}</div>
     {!count && <div className="dg-empty"><Search size={30} /><h2>{t("No matching designs")}</h2><p>{t("Try a device type such as light, timer or camera.")}</p><Button variant="outline" onClick={() => { setSearch(""); setGroup("All cards"); }}>{t("Clear filters")}</Button></div>}
     <div className="dg-endnote"><CircleHelp size={19} /><p>{t("These are capability-rich design examples. Actual controls will follow what each device supports when we integrate them.")}</p></div>
   </div></TooltipProvider>;
