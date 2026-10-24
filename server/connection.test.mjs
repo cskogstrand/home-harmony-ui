@@ -27,9 +27,10 @@ async function fixture(t, { legacy = false, imageResponse, ...options } = {}) {
   const requests = [];
   const ha = createServer((req, res) => {
     requests.push({ url: req.url, authorization: req.headers.authorization });
-    if (req.url.startsWith("/api/image/serve/")) {
-      res.writeHead(imageResponse?.status ?? 200, imageResponse?.headers ?? { "Content-Type": "image/png" });
-      res.end(photo);
+    if (req.url.startsWith("/api/image/serve/") || /^\/api\/(camera_proxy|image_proxy|media_player_proxy)/.test(req.url)) {
+      const streaming = req.url.startsWith("/api/camera_proxy_stream/");
+      res.writeHead(imageResponse?.status ?? 200, imageResponse?.headers ?? { "Content-Type": streaming ? "multipart/x-mixed-replace; boundary=frame" : "image/png" });
+      res.end(streaming ? Buffer.concat([Buffer.from("--frame\r\nContent-Type: image/png\r\n\r\n"), photo, Buffer.from("\r\n--frame--\r\n")]) : photo);
       return;
     }
     res.setHeader("Content-Type", "application/json");
@@ -183,4 +184,53 @@ test("rejects malformed socket messages without crashing the dashboard", { timeo
     assert.equal(code, 1008);
   }
   assert.equal((await fetch(`${app.url}/api/config`, { headers })).status, 200);
+});
+
+
+test("proxies only authenticated HA media routes without forwarding query credentials", async t => {
+  const app = await fixture(t);
+  for (const path of ["/api/camera_proxy/camera.example", "/api/camera_proxy_stream/camera.example", "/api/image_proxy/image.example", "/api/media_player_proxy/media_player.example"]) {
+    assert.equal((await fetch(`${app.url}${path}`)).status, 401);
+    const result = await fetch(`${app.url}${path}?token=caller-token&url=https://example.invalid`, { headers });
+    assert.equal(result.status, 200);
+    assert.equal(result.headers.get("cache-control"), "no-store");
+    assert.ok(Buffer.from(await result.arrayBuffer()).includes(photo));
+    assert.deepEqual(app.requests.at(-1), { url: path, authorization: `Bearer ${token}` });
+    assert.equal((await fetch(`${app.url}${path}`, { headers: { ...headers, Origin: "https://example.invalid" } })).status, 403);
+    assert.equal((await fetch(`${app.url}${path}`, { method: "POST", headers })).status, 404);
+  }
+  for (const path of ["/api/image_proxy/sensor.example", "/api/camera_proxy/http:example", "/api/camera_proxy/camera.example/extra"]) assert.equal((await fetch(`${app.url}${path}`, { headers })).status, 404);
+  assert.equal(app.requests.length, 4);
+});
+
+test("rejects media failures, redirects and active content", async t => {
+  for (const imageResponse of [{ status: 404 }, { status: 302, headers: { Location: "https://example.invalid" } }, { headers: { "Content-Type": "text/html" } }, { headers: { "Content-Type": "image/svg+xml" } }]) {
+    const app = await fixture(t, { imageResponse });
+    assert.equal((await fetch(`${app.url}/api/image_proxy/image.example`, { headers })).status, 502);
+    assert.equal(app.requests.length, 1);
+  }
+});
+
+
+test("streams multipart camera frames and closes upstream when the viewer disconnects", { timeout: 10000 }, async t => {
+  const directory = await mkdtemp(join(tmpdir(), "home-harmony-stream-"));
+  let closed;
+  const upstreamClosed = new Promise(resolve => { closed = resolve; });
+  const ha = createServer((_req, res) => {
+    res.writeHead(200, { "Content-Type": "multipart/x-mixed-replace; boundary=frame" });
+    res.write(Buffer.concat([Buffer.from("--frame\r\nContent-Type: image/png\r\n\r\n"), photo, Buffer.from("\r\n")]));
+    res.on("close", closed);
+  });
+  const homeAssistantUrl = await listen(ha);
+  const server = await createAppServer({ dataDir: directory, distDir: directory, homeAssistantUrl, homeAssistantToken: token, dashboardPassword: password });
+  const url = await listen(server);
+  t.after(async () => { server.closeAllConnections(); ha.closeAllConnections(); await close(server); await close(ha); await rm(directory, { recursive: true, force: true }); });
+  const controller = new AbortController();
+  const result = await fetch(`${url}/api/camera_proxy_stream/camera.example`, { headers, signal: controller.signal });
+  assert.match(result.headers.get("content-type"), /multipart\/x-mixed-replace; boundary=frame/);
+  const reader = result.body.getReader();
+  const frame = await reader.read();
+  assert.ok(Buffer.from(frame.value).includes(photo));
+  controller.abort();
+  await upstreamClosed;
 });

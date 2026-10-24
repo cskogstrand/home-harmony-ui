@@ -2029,3 +2029,38 @@ it("falls back to room grouping for an invalid bookmarked view", async () => {
   expect(screen.getByRole("button", { name: "Room" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("multi");
 });
+
+
+it("validates forecast messages and unsubscribes even when a subscription resolves after abort", async () => {
+  const client = await connectedClient();
+  let receive: (message: unknown) => void;
+  const subscribed = deferred<() => Promise<void>>(), unsubscribe = vi.fn(async () => {});
+  conn.subscribeMessage.mockImplementation((callback) => { receive = callback; return subscribed.promise; });
+  const controller = new AbortController(), listener = vi.fn();
+  client.watchForecast("weather.example", "daily", controller.signal, listener);
+  receive({ forecast: [{ datetime: "2030-01-01T00:00:00Z", temperature: 12 }] });
+  expect(listener).toHaveBeenLastCalledWith([{ datetime: "2030-01-01T00:00:00Z", temperature: 12 }]);
+  receive({ forecast: [{ datetime: "invalid", temperature: "bad" }] });
+  expect(listener).toHaveBeenLastCalledWith(null);
+  controller.abort();
+  subscribed.resolve(unsubscribe);
+  await waitFor(() => expect(unsubscribe).toHaveBeenCalledOnce());
+  listener.mockClear();
+  receive({ forecast: [] });
+  expect(listener).not.toHaveBeenCalled();
+});
+
+it("requests only one sensor's history, validates data and rejects responses after disconnect", async () => {
+  const client = await connectedClient();
+  conn.sendMessagePromise.mockResolvedValueOnce({ "sensor.example": [{ s: "12", lu: 1893456000 }] });
+  const controller = new AbortController();
+  expect(await client.entityHistory("sensor.example", 1, controller.signal)).toEqual([{ s: "12", lu: 1893456000 }]);
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith(expect.objectContaining({ type: "history/history_during_period", entity_ids: ["sensor.example"], minimal_response: true, no_attributes: true }));
+  await expect(client.entityHistory("camera.example", 1, controller.signal)).rejects.toThrow();
+  conn.sendMessagePromise.mockResolvedValueOnce({ "sensor.example": [{ s: "12", lu: "invalid" }] });
+  await expect(client.entityHistory("sensor.example", 1, controller.signal)).rejects.toThrow();
+  const result = deferred<unknown>(); conn.sendMessagePromise.mockReturnValueOnce(result.promise);
+  const pending = client.entityHistory("sensor.example", 7, controller.signal);
+  client.disconnect(); result.resolve({ "sensor.example": [] });
+  await expect(pending).rejects.toThrow("History request cancelled");
+});
