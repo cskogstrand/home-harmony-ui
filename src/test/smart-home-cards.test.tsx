@@ -10,7 +10,7 @@ import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { services, state } from "./ha-fixtures";
 import { cardEntity, cardServices, mediaEntity } from "./device-card-fixtures";
 
-const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn() }));
+const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
@@ -21,9 +21,10 @@ const climate = () => mapHome({ "climate.example": state("climate.example", "hea
 const open = (entity = climate()) => render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={entity} /></TooltipProvider></MemoryRouter>);
 
 beforeEach(() => {
+  mocks.card.mockReset(); mocks.forecast.mockReset(); mocks.history.mockReset().mockResolvedValue([]);
   mocks.command.mockReset().mockResolvedValue(undefined); mocks.density.mockReset(); mocks.visible.mockReset();
-  mocks.app = { homeOnline: true, services, commands: {}, command: mocks.command, currentHome: { entities: [climate()], areas: [], temperatureUnit: "°C" } };
-  mocks.family = { smartHome: { ...emptyPlanner().smartHome, knownEntities: [climate().preferenceId] }, setSmartHomeCardDensity: mocks.density, setSmartHomeEntityVisible: mocks.visible };
+  mocks.app = { watchForecast: mocks.forecast, entityHistory: mocks.history, homeOnline: true, services, commands: {}, command: mocks.command, currentHome: { entities: [climate()], areas: [], temperatureUnit: "°C" } };
+  mocks.family = { smartHome: { ...emptyPlanner().smartHome, knownEntities: [climate().preferenceId] }, setSmartHomeCard: mocks.card, setSmartHomeCardDensity: mocks.density, setSmartHomeEntityVisible: mocks.visible };
   mocks.shared = { state: { loaded: true, config: emptyConfiguration() } };
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
@@ -247,4 +248,106 @@ it("counts down timers from the reported finish time and stops when offline", ()
   expect(screen.queryByText("00:00:55")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
   expect(mocks.command).not.toHaveBeenCalled();
+});
+
+
+it("shows selected supporting readings and map once inside the device card", () => {
+  const robot = cardEntity("vacuum", "docked", { supported_features: 8192 });
+  const battery = { ...cardEntity("sensor", "84", { unit_of_measurement: "%" }), name: "Example battery" };
+  const map = { ...cardEntity("image", "2030-01-01"), name: "Example map" };
+  render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={robot} entities={[robot, battery, map]} /></TooltipProvider></MemoryRouter>);
+  expect(screen.getAllByRole("article")).toHaveLength(1);
+  expect(screen.getByText("Example battery")).toBeVisible();
+  expect(screen.getByText("84 %")).toBeVisible();
+  expect(screen.getByRole("img", { name: "Example map" })).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example"));
+});
+
+it("loads a camera stream, falls back to a snapshot and permits retry after an image failure", () => {
+  open(cardEntity("camera", "idle"));
+  const stream = screen.getByRole("img");
+  expect(stream).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy_stream/camera.example"));
+  fireEvent.error(stream);
+  const snapshot = screen.getByRole("img");
+  expect(snapshot).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy/camera.example"));
+  fireEvent.load(snapshot);
+  expect(screen.getByText("Snapshot · live stream unavailable")).toBeVisible();
+  fireEvent.error(snapshot);
+  expect(screen.getByText("Image unavailable")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(screen.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy_stream/"));
+});
+
+it("stops camera loading while offline and does not use entity-supplied URLs or tokens", () => {
+  mocks.app.homeOnline = false;
+  open(cardEntity("camera", "idle", { entity_picture: "https://example.invalid/private?token=fixture" }));
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  expect(screen.getByText("Offline")).toBeVisible();
+});
+
+it.each(["camera", "image"])("expands %s into an accessible wide viewer and restores the preview on close", async domain => {
+  const entity = cardEntity(domain, domain === "camera" ? "idle" : "2030-01-01T12:00:00Z");
+  open(entity);
+  const trigger = screen.getByRole("button", { name: `Expand ${entity.name}` });
+  trigger.focus(); fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: entity.name });
+  expect(dialog).toHaveClass("smart-media-dialog");
+  expect(within(dialog).getByRole("img")).toHaveAttribute("src", expect.stringContaining(domain === "camera" ? "/api/camera_proxy_stream/" : "/api/image_proxy/"));
+  expect(document.querySelectorAll("img")).toHaveLength(1);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(trigger).toHaveFocus();
+  expect(screen.getByRole("img")).toBeInTheDocument();
+});
+
+it("renders reported weather and forecast, switches supported periods and cleans up subscriptions", () => {
+  mocks.forecast.mockImplementation((_id, _type, _signal, receive) => receive([{ datetime: "2030-01-01T12:00:00Z", temperature: 18, templow: 10, condition: "cloudy", precipitation_probability: 30 }]));
+  const view = open(cardEntity("weather", "rainy", { temperature: 19, temperature_unit: "°C", wind_speed: 3, wind_speed_unit: "m/s", humidity: 48, supported_features: 3 }));
+  expect(screen.getByText("19")).toBeVisible();
+  expect(screen.getByText("48%")).toBeVisible();
+  expect(screen.getByText("18°C")).toBeVisible();
+  const signal = mocks.forecast.mock.calls[0][2];
+  fireEvent.change(screen.getByRole("combobox", { name: "Forecast" }), { target: { value: "daily" } });
+  expect(signal.aborted).toBe(true);
+  expect(mocks.forecast.mock.calls[1][1]).toBe("daily");
+  view.unmount();
+  expect(mocks.forecast.mock.calls[1][2].aborted).toBe(true);
+});
+
+it("reads numeric history only when opened and keeps failed history retryable", async () => {
+  mocks.history.mockRejectedValueOnce(new Error("Unavailable"));
+  open(cardEntity("sensor", "12", { unit_of_measurement: "W" }));
+  expect(mocks.history).not.toHaveBeenCalled();
+  const details = screen.getByText("History").closest("details");
+  details.open = true; fireEvent(details, new Event("toggle"));
+  await screen.findByText("History unavailable");
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  await screen.findByText("No numeric history available.");
+  expect(mocks.history).toHaveBeenCalledTimes(2);
+});
+
+it("shows firmware versions and protects password helper values", () => {
+  const view = open(cardEntity("update", "on", { installed_version: "1.0", latest_version: "1.1" }));
+  expect(screen.getByText("Update available")).toBeVisible();
+  fireEvent.click(screen.getByText("Details"));
+  expect(screen.getByText("1.0")).toBeVisible();
+  expect(screen.getByText("1.1")).toBeVisible();
+  view.unmount();
+  open(cardEntity("input_text", "fixture-secret-value", { mode: "password" }));
+  expect(screen.queryByText("fixture-secret-value")).not.toBeInTheDocument();
+});
+
+it("configures the main entity, group and linked reading without toggling sibling visibility", () => {
+  const main = climate(), reading = { ...cardEntity("sensor", "55"), name: "Example maintenance" };
+  mocks.app.currentHome.entities = [main, reading];
+  render(<MemoryRouter><SmartHomeSettings /></MemoryRouter>);
+  fireEvent.change(screen.getByRole("combobox", { name: "Main entity for Example thermostat" }), { target: { value: main.preferenceId } });
+  expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { mainEntity: main.preferenceId });
+  const group = screen.getByRole("combobox", { name: "Card group for Example thermostat" });
+  fireEvent.change(group, { target: { value: "Comfort" } }); fireEvent.blur(group);
+  expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { group: "Comfort" });
+  const panel = group.closest(".smart-card-settings");
+  fireEvent.click(within(panel as HTMLElement).getByText("Link entities from other devices"));
+  fireEvent.change(within(panel as HTMLElement).getByRole("combobox", { name: "Add linked entity" }), { target: { value: reading.preferenceId } });
+  expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { linkedEntities: [reading.preferenceId] });
+  expect(mocks.visible).not.toHaveBeenCalled();
 });

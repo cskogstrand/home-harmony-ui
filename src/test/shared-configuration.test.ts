@@ -29,17 +29,17 @@ const url = "http://ha.local:8123";
 it("keeps legacy visibility migratable and starts new configurations with no enabled entities", () => {
   const config = emptyConfiguration();
   const { smartHome, ...oldSettings } = config.settings;
-  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [], cardDensities: {} });
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [], cardDensities: {}, cards: {} });
   const read = (smartHome: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, smartHome } }));
   expect(smartHome.knownEntities).toEqual([]);
-  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ hiddenEntities: [], hiddenDevices: ["example-device"], cardDensities: {} });
+  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ hiddenEntities: [], hiddenDevices: ["example-device"], cardDensities: {}, cards: {} });
   for (const invalid of [{ hiddenDevices: "device" }, { hiddenEntities: [1] }, { knownEntities: [1] }, { knownEntities: [""] }, { knownEntities: "entity" }, { hiddenEntities: [""] }, { unknown: [] }, null]) expect(() => read(invalid)).toThrow();
 });
 
 it("shares smart home visibility across screens and restores it from backups", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  const smartHome = { cardDensities: {}, hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"], knownEntities: ["home|example-entity", "home|example-light"] };
+  const smartHome = { cardDensities: {}, cards: {}, hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"], knownEntities: ["home|example-entity", "home|example-light"] };
   a.updateSettings(p => ({ ...p, smartHome }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
@@ -337,4 +337,19 @@ it("shares language changes, keeps conflicting drafts, and restores the language
   await b.replace(backup);
   await a.refresh();
   expect(a.getSnapshot().config.settings.language).toBe("nb");
+});
+
+
+it("shares grouped device cards with linked entities and restores them from backups", async () => {
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  const cards = { "device:example": { mainEntity: "home|vacuum", linkedEntities: ["home|map", "home|maintenance"], group: "Cleaning" } };
+  a.updateSettings(p => ({ ...p, smartHome: { ...p.smartHome, cards } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.smartHome.cards).toEqual(cards);
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  b.updateSettings(p => ({ ...p, smartHome: { ...p.smartHome, cards: {} } }));
+  await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
+  await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings.smartHome.cards).toEqual(cards);
 });

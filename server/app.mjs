@@ -4,6 +4,8 @@ import { createServer } from "node:http";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { emptyConfiguration, instanceUrlSchema, MAX_CONFIG_BYTES, parseConfiguration } from "../shared/configuration.ts";
 import { timetableImagePath } from "../shared/timetables.ts";
 import { convertTimetable, darkTimetableImage } from "./timetables.mjs";
@@ -122,6 +124,26 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
+      if (/^\/api\/(camera_proxy(?:_stream)?\/camera|image_proxy\/image|media_player_proxy\/media_player)\.[a-z0-9_]+$/.test(pathname) && request.method === "GET") {
+        const controller = new AbortController();
+        const close = () => controller.abort();
+        response.once("close", close);
+        const timeout = setTimeout(close, 15000);
+        try {
+          // Only fixed HA media routes: never forward caller URLs, tokens or redirects.
+          const result = await fetch(`${homeAssistantUrl}${pathname}`, { headers: { Authorization: `Bearer ${homeAssistantToken}` }, redirect: "error", signal: controller.signal });
+          const contentType = result.headers.get("content-type") ?? "";
+          const streaming = pathname.startsWith("/api/camera_proxy_stream/");
+          if (!result.ok || !result.body || !(streaming ? /^multipart\/x-mixed-replace\s*;/i.test(contentType) : ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(contentType.split(";")[0].trim()))) throw new Error();
+          if (streaming) clearTimeout(timeout);
+          response.writeHead(200, { "Content-Type": contentType, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+          await pipeline(Readable.fromWeb(result.body), response);
+        } catch {
+          if (response.headersSent) response.destroy();
+          else if (!response.destroyed) throw failure(502, "Home Assistant media unavailable.");
+        } finally { clearTimeout(timeout); controller.abort(); response.off("close", close); }
+        return;
+      }
       if (/^\/api\/image\/serve\/[a-f0-9]{32}\/(original|256x256|512x512)$/.test(pathname) && request.method === "GET") {
         try {
           const result = await fetch(`${homeAssistantUrl}${pathname}`, { headers: { Authorization: `Bearer ${homeAssistantToken}` }, redirect: "error", signal: AbortSignal.timeout(15000) });

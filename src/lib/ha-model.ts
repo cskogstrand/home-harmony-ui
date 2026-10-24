@@ -27,9 +27,12 @@ const updatedCalendarEvent = calendarEventIdentity.extend({
   }).refine(event => event.dtstart.includes("T") === event.dtend.includes("T") && Date.parse(event.dtend) > Date.parse(event.dtstart)),
 });
 export function entityStateLabel(entity: Entity, language: Language = "en") {
+  if (["text", "input_text"].includes(entity.domain) && entity.attributes.mode === "password" && available(entity)) return "••••••";
+  if (entity.domain === "update" && available(entity)) return createI18n(language).message(entity.state === "on" ? "Update available" : "Up to date");
   const { message, number } = createI18n(language);
   if (!available(entity)) return message(entity.state === "unknown" ? "No reading" : "Unavailable");
   if (entity.domain === "scene") return message("Scene");
+  if (entity.domain === "weather") return message(humanizeState(entity.state === "partlycloudy" ? "partly_cloudy" : entity.state === "clear-night" ? "clear_night" : entity.state));
   if (entity.domain === "binary_sensor" && ["on", "off"].includes(entity.state)) {
     const labels: Record<string, [string, string]> = {
       door: ["Closed", "state.open"], window: ["Closed", "state.open"], opening: ["Closed", "state.open"], garage_door: ["Closed", "state.open"],

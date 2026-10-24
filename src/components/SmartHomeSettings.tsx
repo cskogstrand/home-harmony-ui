@@ -4,6 +4,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
+import { cardId, defaultMainEntity } from "@/lib/smart-home-cards";
 import { smartHomeEntities } from "@/lib/device-model";
 import { visibilityGroup, visibilityGroupings, visibilityTree, type VisibilityDimension, type VisibilityGroup, type VisibilityGrouping } from "@/lib/smart-home-visibility";
 import type { Entity } from "@/types/api";
@@ -14,14 +15,48 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { cardDensitySchema } from "../../shared/configuration";
 import { cardVariants } from "./devices/card-presentation";
+import "./devices/device-cards.css";
+
+function CardSettings({ members, name, disabled }: { members: Entity[]; name: string; disabled: boolean }) {
+  const { message: t } = useI18n();
+  const { currentHome } = useApp();
+  const { smartHome, setSmartHomeCard, setSmartHomeCardDensity } = useFamily();
+  const id = cardId(members[0]);
+  const config = smartHome.cards[id];
+  const selected = smartHomeEntities(members, smartHome);
+  const main = selected.find(entity => entity.preferenceId === config?.mainEntity) ?? defaultMainEntity(selected.length ? selected : members);
+  const linked = config?.linkedEntities ?? [];
+  const candidates = smartHomeEntities(currentHome.entities).filter(entity => entity.domain !== "scene" && !members.some(member => member.preferenceId === entity.preferenceId));
+  const groups = [...new Set(Object.values(smartHome.cards).map(card => card.group).filter(Boolean))];
+  return <div className="smart-card-settings planner-form">
+    <div className="smart-card-fields">
+      <label>{t("Main entity")}<select aria-label={t("Main entity for {name}", { name })} disabled={disabled} value={main.preferenceId} onChange={event => setSmartHomeCard(id, { mainEntity: event.target.value })}>
+        {members.map(entity => <option key={entity.preferenceId} value={entity.preferenceId}>{entity.name} · {entity.domain}</option>)}
+      </select></label>
+      <label>{t("Card size")}<select aria-label={t("Card size for {name}", { name })} disabled={disabled} value={smartHome.cardDensities[id] ?? smartHome.cardDensities[main.preferenceId] ?? "supercompact"} onChange={event => setSmartHomeCardDensity(id, cardDensitySchema.parse(event.target.value))}>
+        {cardDensitySchema.options.map(density => <option key={density} value={density}>{t(cardVariants[density])}</option>)}
+      </select></label>
+      <label>{t("Card group")}<Input key={config?.group ?? ""} aria-label={t("Card group for {name}", { name })} list={`groups-${id}`} maxLength={80} disabled={disabled} defaultValue={config?.group ?? ""} placeholder={t("Ungrouped")} onBlur={event => { const group = event.target.value.trim(); if (group !== (config?.group ?? "")) setSmartHomeCard(id, { group }); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+        <datalist id={`groups-${id}`}>{groups.map(group => <option key={group} value={group} />)}</datalist>
+      </label>
+    </div>
+    <details className="smart-linked-settings"><summary>{t("Link entities from other devices")}{linked.length > 0 && ` (${linked.length})`}</summary>
+      <p className="page-note">{t("Add a map, maintenance sensor or other reading to this card. Only selected entities are included.")}</p>
+      {linked.map(entityId => <div className="smart-linked-row" key={entityId}><span>{candidates.find(entity => entity.preferenceId === entityId)?.name ?? t("Entity unavailable")}</span><Button variant="ghost" disabled={disabled} aria-label={t("Remove linked entity {name}", { name: candidates.find(entity => entity.preferenceId === entityId)?.name ?? t("Entity unavailable") })} onClick={() => setSmartHomeCard(id, { linkedEntities: linked.filter(value => value !== entityId) })}>{t("Remove")}</Button></div>)}
+      <label>{t("Add linked entity")}<select value="" disabled={disabled} onChange={event => { if (event.target.value) setSmartHomeCard(id, { linkedEntities: [...linked, event.target.value] }); }}>
+        <option value="">{t("Choose an entity…")}</option>{candidates.filter(entity => !linked.includes(entity.preferenceId)).map(entity => <option key={entity.preferenceId} value={entity.preferenceId}>{entity.name} · {entity.entityId}</option>)}
+      </select></label>
+    </details>
+  </div>;
+}
 
 export function SmartHomeSettings() {
   const { t, message, language } = useI18n();
   const { currentHome, homeOnline } = useApp();
-  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible, setSmartHomeEntitiesVisible, setSmartHomeCardDensity } = useFamily();
+  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible, setSmartHomeEntitiesVisible } = useFamily();
   const shared = useSharedConfiguration();
   const [search, setSearch] = useState("");
-  const [grouping, setGrouping] = useState<VisibilityGrouping>("domain");
+  const [grouping, setGrouping] = useState<VisibilityGrouping>("device");
   const [filters, setFilters] = useState({ domain: "all", integration: "all", room: "all", visibility: "all", category: "all" });
   const [expansion, setExpansion] = useState<"default" | "all" | "none">("default");
   const [expansionVersion, setExpansionVersion] = useState(0);
@@ -46,16 +81,13 @@ export function SmartHomeSettings() {
   const visibleMatches = filtered.filter(entity => visibleIds.has(entity.preferenceId)).length;
   const entityRow = (entity: Entity) => {
     const deviceHidden = !!entity.device && smartHome.hiddenDevices.includes(entity.device.id);
-    return <div key={entity.preferenceId} className="flex min-h-12 flex-wrap items-center justify-between gap-3 py-3">
+    return <div key={entity.preferenceId}><div className="flex min-h-12 flex-wrap items-center justify-between gap-3 py-3">
       <span className="min-w-0"><span className="block break-words text-sm font-medium">{entity.name}</span><span className="block break-all text-xs text-muted-foreground">{entity.entityId}</span>{deviceHidden && <span className="block text-xs text-muted-foreground">{t("Hidden by device")}</span>}</span>
       <div className="flex flex-wrap items-center gap-3">
-      {entity.domain !== "scene" && <label className="planner-form text-xs text-muted-foreground">{t("Card size")}<select aria-label={t("Card size for {name}", { name: entity.name })} value={smartHome.cardDensities[entity.preferenceId] ?? "supercompact"} disabled={disabled} onChange={event => setSmartHomeCardDensity(entity.preferenceId, cardDensitySchema.parse(event.target.value))}>
-        {cardDensitySchema.options.map(density => <option key={density} value={density}>{message(cardVariants[density])}</option>)}
-      </select></label>}
       <Switch aria-label={t("Show entity {name} on Smart home", { name: entity.name })} checked={visibleIds.has(entity.preferenceId)} disabled={disabled || deviceHidden}
         onCheckedChange={visible => setSmartHomeEntityVisible(entity.preferenceId, visible)} />
       </div>
-    </div>;
+    </div>{!entity.device && entity.domain !== "scene" && <CardSettings members={[entity]} name={entity.name} disabled={disabled} />}</div>;
   };
   const groupRows = (items: VisibilityGroup[], parents: string[] = []): ReactNode => items.map(group => {
     const path = [...parents, group.name];
@@ -68,6 +100,7 @@ export function SmartHomeSettings() {
             <span className="break-words font-medium">{group.name}</span>
             <span className="block pl-4 text-xs text-muted-foreground">{t("{visible} of {total} visible", { visible, total: group.entities.length })}</span>
           </summary>
+          {wholeDevice && <CardSettings members={group.entities.filter(entity => entity.domain !== "scene").length ? group.entities.filter(entity => entity.domain !== "scene") : group.entities} name={group.name} disabled={disabled} />}
           <ul className="border-l pl-2 sm:pl-3">{group.children.length ? groupRows(group.children, path) : group.entities.map(entity => <li key={entity.preferenceId}>{entityRow(entity)}</li>)}</ul>
         </details>
         <Switch className="absolute right-0 top-3" aria-label={wholeDevice ? t("Show device {name} on Smart home", { name: group.name }) : t("Show group {name} on Smart home", { name })}
@@ -80,7 +113,8 @@ export function SmartHomeSettings() {
     <PanelHeading title={t("Smart home visibility")} to="/home" label={t("Smart home")} />
     <p className="page-note">{t("Choose which devices, entities and scenes appear on Smart home. Changes are saved automatically and shared across screens.")}</p>
     <p className="page-note">{t("New devices and entities stay hidden until you enable them here. Other pages and Home Assistant are unchanged.")}</p>
-    <p className="page-note">{t("Cards automatically match the entity type. Choose a size for each card; Super compact is the default.")}</p>
+    <p className="page-note">{message("Each device gets one card. Choose its main entity, then enable the controls and readings to include below.")}</p>
+    <p className="page-note">{message("Give cards the same group name to place them together. Clear the name to leave a card ungrouped.")}</p>
     <Button asChild variant="outline" className="mt-4"><Link to="/device-gallery">{message("Explore device card designs")}</Link></Button>
     <fieldset className="mt-6 min-w-0" aria-describedby="visibility-filters-hint">
       <legend className="text-base font-semibold">{t("Filters")}</legend>

@@ -31,6 +31,13 @@ const calendarEventsSchema = z.array(z.object({
 const todoItemsSchema = z.object({ items: z.array(z.object({
   uid: z.string().min(1), summary: z.string(), status: z.enum(["needs_action", "completed"]).nullable().default(null),
 })) });
+export const forecastSchema = z.array(z.object({
+  datetime: z.string().refine(value => Number.isFinite(Date.parse(value))),
+  condition: z.string().nullish(), temperature: z.number().finite().nullish(), templow: z.number().finite().nullish(),
+  precipitation_probability: z.number().finite().nullish(), precipitation: z.number().finite().nullish(),
+}));
+export type Forecast = z.infer<typeof forecastSchema>;
+const historySchema = z.record(z.array(z.object({ s: z.string(), lu: z.number().finite(), lc: z.number().finite().optional() })));
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
   : "Cannot connect to Home Assistant through the dashboard server. Check the dashboard server logs and its configured Home Assistant URL, port and network connection.";
@@ -212,6 +219,37 @@ export class HomeAssistantClient {
       throw new Error("To-do items could not be read. Check the connection, list integration and Home Assistant permissions.");
     }
   };
+  watchForecast = (entityId: string, type: "hourly" | "daily" | "twice_daily", signal: AbortSignal, receive: (forecast: Forecast | null) => void) => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
+    if (!current() || !/^weather\.[a-z0-9_]+$/.test(entityId)) { if (!signal.aborted) receive(null); return; }
+    let unsubscribe: (() => Promise<void>) | undefined;
+    const stop = () => {
+      void unsubscribe?.().catch(() => {});
+      signal.removeEventListener("abort", stop);
+      this.cleanup = this.cleanup.filter(cleanup => cleanup !== stop);
+    };
+    this.cleanup.push(stop);
+    signal.addEventListener("abort", stop, { once: true });
+    void conn.subscribeMessage<{ forecast: unknown }>(message => {
+      if (!current()) return;
+      const parsed = forecastSchema.safeParse(message?.forecast);
+      receive(parsed.success ? parsed.data : null);
+    }, { type: "weather/subscribe_forecast", entity_id: entityId, forecast_type: type }, { resubscribe: false }).then(unsub => {
+      if (current()) unsubscribe = unsub;
+      else void unsub().catch(() => {});
+    }).catch(() => { if (current()) receive(null); });
+  };
+
+  entityHistory = async (entityId: string, days: 1 | 7, signal: AbortSignal) => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    if (!conn?.connected || this.snapshot.status !== "connected" || !/^(sensor|air_quality)\.[a-z0-9_]+$/.test(entityId)) throw new Error("History unavailable");
+    const end = new Date(), start = new Date(end.getTime() - days * 86400000);
+    const result = await bounded(conn.sendMessagePromise({ type: "history/history_during_period", entity_ids: [entityId], start_time: start.toISOString(), end_time: end.toISOString(), minimal_response: true, no_attributes: true }));
+    if (signal.aborted || generation !== this.generation || epoch !== this.epoch) throw new Error("History request cancelled");
+    return historySchema.parse(result)[entityId] ?? [];
+  };
+
   watchCalendarEvents = (entityId: string, start: string, end: string, signal: AbortSignal, receive: (events: CalendarEvent[] | null) => void) => {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;
     const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
