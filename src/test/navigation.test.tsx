@@ -142,8 +142,8 @@ it("saves device and entity visibility, restores individual choices, and filters
   expect(screen.queryByText("Example scene")).not.toBeInTheDocument();
   expect(screen.getByText("Example switch")).toBeInTheDocument();
   expect(screen.getByText("0 visible lights on")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Example room" }));
-  expect(screen.getByText("No visible devices in this area.")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Example room" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Unassigned" })).toBeInTheDocument();
   first.unmount();
   render(<App />); await saved();
   expect(screen.queryByText("Example lamp")).not.toBeInTheDocument();
@@ -158,6 +158,44 @@ it("saves device and entity visibility, restores individual choices, and filters
   await navigate("Smart home");
   expect(screen.getByText("Example lamp")).toBeInTheDocument();
   expect(screen.queryByText("Example temperature")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Example room" })).toBeInTheDocument();
+});
+
+it("offers only rooms containing selected cards and clears a room filter when its last card disappears", async () => {
+  const home = mapHome({
+    "light.selected": state("light.selected", "off", { friendly_name: "Selected lamp" }),
+    "sensor.support": state("sensor.support", "20", { friendly_name: "Supporting sensor" }),
+    "light.hidden": state("light.hidden", "off"),
+    "light.new": state("light.new", "off"),
+    "scene.example": state("scene.example", "unknown"),
+    "switch.unassigned": state("switch.unassigned", "off", { friendly_name: "Unassigned switch" }),
+  }, {
+    areas: ["selected", "support", "hidden", "new", "scene", "empty"].map(id => ({ area_id: id, name: `Example ${id} room` })),
+    devices: [{ id: "example-device", name: "Example device", area_id: "selected" }],
+    entities: [
+      { id: "selected", entity_id: "light.selected", device_id: "example-device" },
+      { id: "support", entity_id: "sensor.support", device_id: "example-device", area_id: "support" },
+      ...["hidden", "new"].map(id => ({ id, entity_id: `light.${id}`, area_id: id })),
+      { id: "scene", entity_id: "scene.example", area_id: "scene" },
+    ],
+  }, "home");
+  app.currentHome = home;
+  settings.settings.smartHome.knownEntities = home.entities.map(entity => entity.preferenceId).filter(id => id !== "home|new");
+  settings.settings.smartHome.hiddenEntities = ["home|hidden"];
+  window.history.replaceState(null, "", "/home");
+  const view = render(<App />); await saved();
+  for (const room of ["support", "hidden", "new", "scene", "empty"]) expect(screen.queryByRole("button", { name: `Example ${room} room` })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Unassigned" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Example selected room" }));
+  expect(screen.getByRole("article", { name: "Selected lamp" })).toBeInTheDocument();
+  expect(screen.queryByRole("article", { name: "Unassigned switch" })).not.toBeInTheDocument();
+  app.currentHome = { ...home, entities: home.entities.filter(entity => !entity.device) };
+  view.rerender(<App />);
+  expect(screen.queryByRole("button", { name: "Example selected room" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "All areas" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("article", { name: "Unassigned switch" })).toBeInTheDocument();
+  app.currentHome = home; view.rerender(<App />);
+  expect(screen.getByRole("button", { name: "All areas" })).toHaveAttribute("aria-pressed", "true");
 });
 
 it.each(["entity", "device", "new"])("selects and saves a hidden main entity (%s) without enabling hidden siblings", async hiddenBy => {
@@ -210,6 +248,8 @@ it("labels summaries as visible selections when all lights, climate and alarms a
   expect(screen.getByRole("link", { name: "Security No visible alarm" })).toBeInTheDocument();
   expect(screen.queryByText("Armed away")).not.toBeInTheDocument();
   expect(screen.getByText("No devices visible on Smart home.")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Unassigned" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "All areas" })).toHaveAttribute("aria-pressed", "true");
 });
 
 it("configures card order across room filters, size and grouping on Smart home and saves after reload", async () => {
