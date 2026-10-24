@@ -6,7 +6,7 @@ import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityStates, Ho
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
 export const stringValues = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
-export const available = (entity: Entity) => !(["unavailable", "missing"].includes(entity.state) || (entity.state === "unknown" && entity.domain !== "scene"));
+export const available = (entity: Entity) => !(["unavailable", "missing"].includes(entity.state) || (entity.state === "unknown" && !["scene", "button", "input_button"].includes(entity.domain)));
 export const feature = (entity: Entity, flag: number) => ((numberValue(entity.attributes.supported_features) ?? 0) & flag) !== 0;
 export const humanizeState = (value: string) => value.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
 // HA interprets these wall-clock times in its configured timezone, not the browser's.
@@ -44,7 +44,7 @@ export function entityStateLabel(entity: Entity, language: Language = "en") {
   if (entity.state === "open") return message("state.open");
   if (entity.state.trim() && Number.isFinite(Number(entity.state))) return number(Number(entity.state));
   const known = ["on", "off", "open", "closed", "opening", "closing", "locked", "unlocked", "locking", "unlocking", "jammed", "home", "not_home", "heat", "cool", "heat_cool", "auto", "dry", "fan_only", "idle", "heating", "cooling", "armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass", "disarmed", "arming", "disarming", "pending", "triggered", "unknown", "unavailable"];
-  return known.includes(entity.state) ? message(humanizeState(entity.state)) : humanizeState(entity.state);
+  return [...known, "playing", "paused", "docked", "cleaning", "mowing", "returning"].includes(entity.state) ? message(humanizeState(entity.state)) : humanizeState(entity.state);
 }
 export const alarmModes: { action: AlarmAction; label: string; flag: number }[] = [
   { action: "alarm_arm_home", label: "Home", flag: 1 },
@@ -84,14 +84,49 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     temperatureUnit: config?.unit_system.temperature, entities, areas: [...areas.values()], devices: registries.devices };
 }
 
+const actionServices: Partial<Record<EntityAction, string>> = {
+  brightness: "turn_on", rgb_color: "turn_on", color_temp_kelvin: "turn_on", white: "turn_on", effect: "turn_on",
+  temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position", tilt_position: "set_cover_tilt_position",
+};
+// Home Assistant entity feature flags; service existence alone does not mean a device supports it.
+const deviceFeatures: Record<string, Partial<Record<EntityAction, number>>> = {
+  media_player: { media_pause: 1, media_seek: 2, volume_set: 4, volume_mute: 8, media_previous_track: 16, media_next_track: 32,
+    turn_on: 128, turn_off: 256, volume_up: 1024, volume_down: 1024, select_source: 2048, media_stop: 4096,
+    media_play: 16384, shuffle_set: 32768, select_sound_mode: 65536, repeat_set: 262144 },
+  climate: { set_humidity: 4, set_fan_mode: 8, set_preset_mode: 16, set_swing_mode: 32 },
+  fan: { set_percentage: 1, oscillate: 2, set_direction: 4, set_preset_mode: 8, turn_off: 16, turn_on: 32 },
+  humidifier: { set_mode: 1 },
+  water_heater: { temperature: 1, set_operation_mode: 2, set_away_mode: 4, turn_on: 8, turn_off: 8 },
+  vacuum: { pause: 4, stop: 8, return_to_base: 16, set_fan_speed: 32, locate: 512, start: 8192 },
+  lawn_mower: { start_mowing: 1, pause: 2, dock: 4, stop: 8 },
+  valve: { open_valve: 1, close_valve: 2, set_valve_position: 4, stop_valve: 8 },
+  siren: { turn_on: 1, turn_off: 2 },
+};
+const optionAttributes: Partial<Record<EntityAction, string>> = {
+  select_source: "source_list", select_sound_mode: "sound_mode_list", set_fan_mode: "fan_modes", set_preset_mode: "preset_modes",
+  set_swing_mode: "swing_modes", set_mode: "available_modes", set_operation_mode: "operation_list", set_fan_speed: "fan_speed_list", select_option: "options",
+};
 export function supportsAction(entity: Entity, action: EntityAction, services: HassServices) {
   const { domain, attributes: a } = entity;
   if (domain === "calendar" && action === "update_event") return feature(entity, 4);
   if (domain === "calendar" && action === "delete_event") return feature(entity, 2);
-  const service = ({ brightness: "turn_on", rgb_color: "turn_on", color_temp_kelvin: "turn_on", white: "turn_on", effect: "turn_on", temperature: "set_temperature", hvac_mode: "set_hvac_mode", position: "set_cover_position" } as Record<string, string>)[action] ?? action;
+  const service = actionServices[action] ?? action;
   if (!services[domain]?.[service]) return false;
-  if (["light", "switch", "automation"].includes(domain) && ["turn_on", "turn_off"].includes(action)) return true;
-  if (domain === "scene" || domain === "script") return action === "turn_on";
+  if (optionAttributes[action] && !stringValues(a[optionAttributes[action]]).length) return false;
+  if (action === "media_seek" && !(numberValue(a.media_duration) > 0)) return false;
+  if (action === "temperature" && !(numberValue(a.max_temp) > numberValue(a.min_temp))) return false;
+  if (action === "set_humidity" && !(numberValue(a.max_humidity) > numberValue(a.min_humidity))) return false;
+  const flag = deviceFeatures[domain]?.[action];
+  if (flag !== undefined) return feature(entity, flag);
+  if (["light", "switch", "input_boolean", "automation", "humidifier", "script"].includes(domain) && ["turn_on", "turn_off"].includes(action)) return true;
+  if (domain === "humidifier" && action === "set_humidity") return true;
+  if (domain === "scene") return action === "turn_on";
+  if (domain === "automation" && action === "trigger") return true;
+  if (["number", "input_number"].includes(domain) && action === "set_value") return numberValue(a.max) > numberValue(a.min);
+  if (["select", "input_select"].includes(domain) && action === "select_option") return true;
+  if (["button", "input_button"].includes(domain)) return action === "press";
+  if (domain === "counter") return ["increment", "decrement", "reset"].includes(action);
+  if (domain === "timer") return ["start", "pause", "cancel", "finish"].includes(action);
   if (domain === "light" && action === "brightness") return stringValues(a.supported_color_modes).some(m => !["onoff", "unknown"].includes(m));
   if (domain === "light" && action === "rgb_color") return stringValues(a.supported_color_modes).some(m => ["hs", "xy", "rgb", "rgbw", "rgbww"].includes(m));
   if (domain === "light" && action === "color_temp_kelvin") return stringValues(a.supported_color_modes).some(m => ["color_temp", "rgbww"].includes(m))
@@ -99,7 +134,7 @@ export function supportsAction(entity: Entity, action: EntityAction, services: H
   if (domain === "light" && action === "white") return stringValues(a.supported_color_modes).includes("white");
   if (domain === "light" && action === "effect") return feature(entity, 4) && stringValues(a.effect_list).length > 0;
   if (domain === "climate") return action === "temperature" ? feature(entity, 1) && numberValue(a.min_temp) !== undefined && numberValue(a.max_temp) !== undefined : action === "hvac_mode" && stringValues(a.hvac_modes).length > 0;
-  if (domain === "cover") return feature(entity, ({ open_cover: 1, close_cover: 2, position: 4, stop_cover: 8 } as Record<string, number>)[action] ?? 0);
+  if (domain === "cover") return feature(entity, ({ open_cover: 1, close_cover: 2, position: 4, stop_cover: 8, tilt_position: 128 } as Record<string, number>)[action] ?? 0);
   if (domain === "lock") return action === "lock" || action === "unlock";
   if (domain === "todo") return feature(entity, ({ add_item: 1, remove_item: 2, update_item: 4 } as Record<string, number>)[action] ?? 0);
   if (domain === "calendar") return action === "create_event" && feature(entity, 1);
@@ -110,8 +145,40 @@ export function supportsAction(entity: Entity, action: EntityAction, services: H
 export function entityCommand(entity: Entity, action: EntityAction, services: HassServices, value?: unknown, code?: string) {
   if (!available(entity)) throw new Error("This entity has no available state.");
   if (!supportsAction(entity, action, services)) throw new Error("This action is not supported by this entity.");
-  let service: string = action;
+  let service: string = actionServices[action] ?? action;
   const data: Record<string, unknown> = {};
+  const a = entity.attributes;
+  if (entity.domain === "siren" && action === "turn_on" && value !== undefined) {
+    const parsed = z.object({ tone: z.string().optional(), volume_level: z.number().min(0).max(1).optional() }).strict().safeParse(value);
+    if (!parsed.success) throw new Error("Choose valid siren settings.");
+    const tones = Array.isArray(a.available_tones) ? stringValues(a.available_tones) : a.available_tones && typeof a.available_tones === "object" ? Object.keys(a.available_tones) : [];
+    if (parsed.data.tone !== undefined && (!feature(entity, 4) || !tones.includes(parsed.data.tone))) throw new Error("Choose an option reported by this device.");
+    if (parsed.data.volume_level !== undefined && !feature(entity, 8)) throw new Error("This action is not supported by this entity.");
+    Object.assign(data, parsed.data);
+  }
+  const numericFields: Partial<Record<EntityAction, [string, number | undefined, number | undefined]>> = {
+    volume_set: ["volume_level", 0, 1], media_seek: ["seek_position", 0, numberValue(a.media_duration)],
+    set_percentage: ["percentage", 0, 100], set_humidity: ["humidity", numberValue(a.min_humidity), numberValue(a.max_humidity)],
+    tilt_position: ["tilt_position", 0, 100], set_valve_position: ["position", 0, 100], set_value: ["value", numberValue(a.min), numberValue(a.max)],
+  };
+  const numeric = numericFields[action];
+  if (numeric) {
+    const [field, min, max] = numeric;
+    if (numberValue(value) === undefined || min === undefined || max === undefined || (value as number) < min || (value as number) > max) throw new Error("Value is outside the supported range.");
+    data[field] = value;
+  }
+  const booleanField = ({ volume_mute: "is_volume_muted", shuffle_set: "shuffle", oscillate: "oscillating", set_away_mode: "away_mode" } as Partial<Record<EntityAction, string>>)[action];
+  if (booleanField) {
+    if (typeof value !== "boolean") throw new Error("Choose an on or off value.");
+    data[booleanField] = value;
+  }
+  const optionAttribute = optionAttributes[action];
+  if (optionAttribute || action === "repeat_set" || action === "set_direction") {
+    const options = action === "repeat_set" ? ["off", "one", "all"] : action === "set_direction" ? ["forward", "reverse"] : stringValues(a[optionAttribute]);
+    if (typeof value !== "string" || !options.includes(value)) throw new Error("Choose an option reported by this device.");
+    const field = ({ select_source: "source", select_sound_mode: "sound_mode", select_option: "option", repeat_set: "repeat" } as Partial<Record<EntityAction, string>>)[action] ?? action.replace(/^set_/, "");
+    data[field] = value;
+  }
   if (entity.domain === "calendar") {
     const parsed = (action === "delete_event" ? calendarEventIdentity : action === "update_event" ? updatedCalendarEvent : newCalendarEvent).safeParse(value);
     if (!parsed.success) throw new Error(action === "delete_event" ? "A valid event ID and, for recurring events, occurrence ID are required." : "Enter a title and valid dates and times, with the end after the start.");

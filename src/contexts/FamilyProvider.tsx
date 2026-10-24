@@ -95,6 +95,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     } })),
     setSmartHomeEntityVisible: (id, visible) => setPlanner(p => ({ ...p, smartHome: setEntitiesVisible(p.smartHome, currentHome.entities, [id], visible) })),
     setSmartHomeEntitiesVisible: (ids, visible) => setPlanner(p => ({ ...p, smartHome: setEntitiesVisible(p.smartHome, currentHome.entities, ids, visible) })),
+    setSmartHomeCardDensity: (id, density) => setPlanner(p => ({ ...p, smartHome: { ...p.smartHome, cardDensities: { ...p.smartHome.cardDensities, [id]: density } } })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };
       if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];

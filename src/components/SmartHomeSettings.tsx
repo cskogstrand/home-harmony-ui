@@ -12,11 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
+import { cardDensitySchema } from "../../shared/configuration";
+import { cardVariants } from "./devices/card-presentation";
 
 export function SmartHomeSettings() {
   const { t, message, language } = useI18n();
   const { currentHome, homeOnline } = useApp();
-  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible, setSmartHomeEntitiesVisible } = useFamily();
+  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible, setSmartHomeEntitiesVisible, setSmartHomeCardDensity } = useFamily();
   const shared = useSharedConfiguration();
   const [search, setSearch] = useState("");
   const [grouping, setGrouping] = useState<VisibilityGrouping>("domain");
@@ -44,11 +46,16 @@ export function SmartHomeSettings() {
   const visibleMatches = filtered.filter(entity => visibleIds.has(entity.preferenceId)).length;
   const entityRow = (entity: Entity) => {
     const deviceHidden = !!entity.device && smartHome.hiddenDevices.includes(entity.device.id);
-    return <label key={entity.preferenceId} className="flex min-h-12 cursor-pointer items-center justify-between gap-3 py-3">
+    return <div key={entity.preferenceId} className="flex min-h-12 flex-wrap items-center justify-between gap-3 py-3">
       <span className="min-w-0"><span className="block break-words text-sm font-medium">{entity.name}</span><span className="block break-all text-xs text-muted-foreground">{entity.entityId}</span>{deviceHidden && <span className="block text-xs text-muted-foreground">{t("Hidden by device")}</span>}</span>
+      <div className="flex flex-wrap items-center gap-3">
+      {entity.domain !== "scene" && <label className="planner-form text-xs text-muted-foreground">{t("Card size")}<select aria-label={t("Card size for {name}", { name: entity.name })} value={smartHome.cardDensities[entity.preferenceId] ?? "supercompact"} disabled={disabled} onChange={event => setSmartHomeCardDensity(entity.preferenceId, cardDensitySchema.parse(event.target.value))}>
+        {cardDensitySchema.options.map(density => <option key={density} value={density}>{message(cardVariants[density])}</option>)}
+      </select></label>}
       <Switch aria-label={t("Show entity {name} on Smart home", { name: entity.name })} checked={visibleIds.has(entity.preferenceId)} disabled={disabled || deviceHidden}
         onCheckedChange={visible => setSmartHomeEntityVisible(entity.preferenceId, visible)} />
-    </label>;
+      </div>
+    </div>;
   };
   const groupRows = (items: VisibilityGroup[], parents: string[] = []): ReactNode => items.map(group => {
     const path = [...parents, group.name];
@@ -73,6 +80,8 @@ export function SmartHomeSettings() {
     <PanelHeading title={t("Smart home visibility")} to="/home" label={t("Smart home")} />
     <p className="page-note">{t("Choose which devices, entities and scenes appear on Smart home. Changes are saved automatically and shared across screens.")}</p>
     <p className="page-note">{t("New devices and entities stay hidden until you enable them here. Other pages and Home Assistant are unchanged.")}</p>
+    <p className="page-note">{t("Cards automatically match the entity type. Choose a size for each card; Super compact is the default.")}</p>
+    <Button asChild variant="outline" className="mt-4"><Link to="/device-gallery">{message("Explore device card designs")}</Link></Button>
     <fieldset className="mt-6 min-w-0" aria-describedby="visibility-filters-hint">
       <legend className="text-base font-semibold">{t("Filters")}</legend>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

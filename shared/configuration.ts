@@ -52,6 +52,8 @@ export const timetableSettingsSchema = z.object({
   }),
 }).strict();
 export type TimetableSettings = z.infer<typeof timetableSettingsSchema>;
+export const cardDensitySchema = z.enum(["supercompact", "compact", "original"]);
+export type CardDensity = z.infer<typeof cardDensitySchema>;
 export const plannerSchema = z.object({
   language: z.enum(["en", "nb"]).default("en"),
   timetables: z.record(keySchema, z.array(imageUrl).max(100)),
@@ -74,6 +76,7 @@ export const plannerSchema = z.object({
     hiddenDevices: z.array(memberSchema).default([]),
     hiddenEntities: z.array(memberSchema).default([]),
     knownEntities: z.array(memberSchema).optional(),
+    cardDensities: z.record(keySchema, cardDensitySchema).default({}),
   }).strict().default({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: z.record(keySchema, memberColorSchema).default({}),

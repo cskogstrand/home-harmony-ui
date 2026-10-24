@@ -54,7 +54,16 @@ export interface Home {
 export type EntityStates = HassEntities;
 export type AlarmAction = "alarm_disarm" | "alarm_arm_home" | "alarm_arm_away" | "alarm_arm_night" | "alarm_arm_vacation" | "alarm_arm_custom_bypass" | "alarm_trigger";
 export type TodoAction = "add_item" | "update_item" | "remove_item";
-export type EntityAction = "turn_on" | "turn_off" | "brightness" | "rgb_color" | "color_temp_kelvin" | "white" | "effect" | "temperature" | "hvac_mode" | "open_cover" | "close_cover" | "stop_cover" | "position" | "lock" | "unlock" | "create_event" | "update_event" | "delete_event" | AlarmAction | TodoAction;
+export type EntityAction = "turn_on" | "turn_off" | "brightness" | "rgb_color" | "color_temp_kelvin" | "white" | "effect"
+  | "temperature" | "hvac_mode" | "set_fan_mode" | "set_preset_mode" | "set_swing_mode" | "set_humidity"
+  | "open_cover" | "close_cover" | "stop_cover" | "position" | "tilt_position"
+  | "media_play" | "media_pause" | "media_stop" | "media_previous_track" | "media_next_track" | "media_seek"
+  | "volume_set" | "volume_mute" | "volume_up" | "volume_down" | "select_source" | "select_sound_mode" | "shuffle_set" | "repeat_set"
+  | "set_percentage" | "oscillate" | "set_direction" | "set_mode" | "set_operation_mode" | "set_away_mode"
+  | "start" | "pause" | "stop" | "return_to_base" | "locate" | "set_fan_speed" | "start_mowing" | "dock"
+  | "open_valve" | "close_valve" | "stop_valve" | "set_valve_position"
+  | "set_value" | "select_option" | "increment" | "decrement" | "reset" | "cancel" | "finish" | "press" | "trigger"
+  | "lock" | "unlock" | "create_event" | "update_event" | "delete_event" | AlarmAction | TodoAction;
 export interface TodoItem { uid: string; summary: string; status: "needs_action" | "completed" | null }
 export interface CalendarEvent {
   summary: string;
