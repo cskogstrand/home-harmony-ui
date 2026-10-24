@@ -9,6 +9,7 @@ import { plannerSettings, emptyPlanner, parseConfiguration, type Configuration }
 import { memberPalette } from "@/lib/member-colors";
 import { setEntitiesVisible } from "@/lib/smart-home-visibility";
 import { smartHomeEntities } from "@/lib/device-model";
+import { moveSmartHomeCard } from "@/lib/smart-home-cards";
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
@@ -100,6 +101,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
       const smartHome = settings.mainEntity ? setEntitiesVisible(p.smartHome, currentHome.entities, [settings.mainEntity], true) : p.smartHome;
       return { ...p, smartHome: { ...smartHome, cards: { ...smartHome.cards, [id]: { linkedEntities: [], group: "", ...smartHome.cards[id], ...settings } } } };
     }),
+    moveSmartHomeCard: (id, group, beforeId) => setPlanner(p => ({ ...p, smartHome: moveSmartHomeCard(p.smartHome, currentHome.entities, id, group, beforeId) })),
     setCalendarMember: (calendar, member) => setPlanner(p => {
       const calendarMembers = { ...p.calendarMembers };
       if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];

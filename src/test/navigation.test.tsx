@@ -212,6 +212,48 @@ it("labels summaries as visible selections when all lights, climate and alarms a
   expect(screen.getByText("No devices visible on Smart home.")).toBeInTheDocument();
 });
 
+it("configures card order across room filters, size and grouping on Smart home and saves after reload", async () => {
+  app.currentHome = mapHome(Object.fromEntries(["alpha", "beta", "gamma"].map(name => [`light.${name}`, state(`light.${name}`, "off", { friendly_name: `Example ${name}` })])), {
+    areas: [{ area_id: "room-a", name: "Example room A" }, { area_id: "room-b", name: "Example room B" }], devices: [],
+    entities: ["alpha", "beta", "gamma"].map(name => ({ id: name, entity_id: `light.${name}`, area_id: name === "beta" ? "room-b" : "room-a" })),
+  }, "home");
+  settings.settings.smartHome.cards = Object.fromEntries(["alpha", "beta", "gamma"].map(name => [`home|${name}`, { group: "Comfort", linkedEntities: [] }]));
+  window.history.replaceState(null, "", "/home");
+  const view = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+  fireEvent.click(screen.getByRole("button", { name: "Example room A" }));
+  fireEvent.click(screen.getByRole("button", { name: "Move Example gamma earlier" })); await saved();
+  expect(settings.settings.smartHome.cards["home|gamma"].order).toBe(0);
+  expect(settings.settings.smartHome.cards["home|alpha"].order).toBe(1);
+  expect(settings.settings.smartHome.cards["home|beta"].order).toBe(2);
+  fireEvent.change(screen.getByRole("combobox", { name: "Card size for Example gamma" }), { target: { value: "original" } });
+  expect(document.querySelector<HTMLElement>('[data-smart-card="home|gamma"] .smart-card-preview').inert).toBe(true);
+  expect(document.querySelector('[data-smart-card="home|gamma"] .dg-card')).toHaveAttribute("data-variant", "Original");
+  fireEvent.change(screen.getByRole("textbox", { name: "New group name" }), { target: { value: "Reading" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add group" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Card group for Example gamma" }), { target: { value: "Reading" } }); await saved();
+  expect(settings.settings.smartHome.cards["home|gamma"].group).toBe("Reading");
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  expect(screen.queryByRole("combobox", { name: "Card size for Example gamma" })).not.toBeInTheDocument();
+  view.unmount(); render(<App />); await saved();
+  expect(within(screen.getByRole("region", { name: "Reading" })).getByRole("article", { name: "Example gamma" })).toHaveAttribute("data-variant", "Original");
+  expect(within(screen.getByRole("region", { name: "Comfort" })).getAllByRole("article").map(card => card.getAttribute("aria-label"))).toEqual(["Example alpha", "Example beta"]);
+});
+
+it("keeps layout edits visible on a save conflict and blocks further moves", async () => {
+  app.currentHome = mapHome({ "light.example": state("light.example", "off", { friendly_name: "Example lamp" }) }, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/home");
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+  app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  fireEvent.change(screen.getByRole("combobox", { name: "Card size for Example lamp" }), { target: { value: "original" } });
+  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Another screen changed the configuration"));
+  expect(screen.getByRole("combobox", { name: "Card size for Example lamp" })).toHaveValue("original");
+  expect(screen.getByRole("combobox", { name: "Card group for Example lamp" })).toBeDisabled();
+  expect(screen.getByRole("textbox", { name: "New group name" })).toBeDisabled();
+  expect(screen.getByRole("link", { name: "App preferences" })).toBeInTheDocument();
+});
+
 it("keeps smart home visibility drafts on save failure and disables further changes", async () => {
   app.currentHome = mapHome({ "switch.example": state("switch.example", "off", { friendly_name: "Example switch" }) }, emptyRegistries, "home");
   window.history.replaceState(null, "", "/settings");

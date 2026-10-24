@@ -23,11 +23,24 @@ export function smartHomeCards(entities: Entity[], settings: Planner["smartHome"
     const main = members.find(entity => entity.preferenceId === config?.mainEntity) ?? defaultMainEntity(members);
     const linked = (config?.linkedEntities ?? []).map(id => byId.get(id)).filter((entity): entity is Entity => !!entity);
     return { id, main, group: config?.group ?? "", entities: [...new Map([...members, ...linked].map(entity => [entity.preferenceId, entity])).values()] };
-  });
+  }).sort((a, b) => (settings.cards[a.id]?.order ?? Infinity) - (settings.cards[b.id]?.order ?? Infinity));
 }
 
-// Compare natural heights, never heights stretched by a previous measurement.
-export function groupedCardHeights(heights: number[]) {
-  const tallest = Math.max(0, ...heights);
-  return heights.map(height => height > tallest / 2 ? tallest : height);
+export function moveSmartHomeCard(settings: Planner["smartHome"], entities: Entity[], id: string, group: string, beforeId?: string) {
+  const cards = smartHomeCards(entities, settings);
+  if (!cards.some(card => card.id === id) || beforeId === id) return settings;
+  const destination = cards.filter(card => card.group === group && card.id !== id).map(card => card.id);
+  const index = beforeId === undefined ? destination.length : destination.indexOf(beforeId);
+  if (index < 0) return settings;
+  destination.splice(index, 0, id);
+  const next = { ...settings.cards };
+  destination.forEach((cardId, order) => { next[cardId] = { linkedEntities: [], ...next[cardId], group, order }; });
+  return { ...settings, cards: next };
+}
+
+// Compare natural heights within actual grid rows, never previously stretched heights.
+export function rowCardHeights(cards: { top: number; height: number }[]) {
+  const tallest = new Map<number, number>();
+  cards.forEach(({ top, height }) => tallest.set(top, Math.max(tallest.get(top) ?? 0, height)));
+  return cards.map(({ top, height }) => height > tallest.get(top)! / 2 ? tallest.get(top)! : height);
 }

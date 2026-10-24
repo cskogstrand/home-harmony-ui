@@ -284,6 +284,21 @@ it("stops camera loading while offline and does not use entity-supplied URLs or 
   expect(screen.getByText("Offline")).toBeVisible();
 });
 
+it.each(["camera", "image"])("expands %s into an accessible wide viewer and restores the preview on close", async domain => {
+  const entity = cardEntity(domain, domain === "camera" ? "idle" : "2030-01-01T12:00:00Z");
+  open(entity);
+  const trigger = screen.getByRole("button", { name: `Expand ${entity.name}` });
+  trigger.focus(); fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: entity.name });
+  expect(dialog).toHaveClass("smart-media-dialog");
+  expect(within(dialog).getByRole("img")).toHaveAttribute("src", expect.stringContaining(domain === "camera" ? "/api/camera_proxy_stream/" : "/api/image_proxy/"));
+  expect(document.querySelectorAll("img")).toHaveLength(1);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(trigger).toHaveFocus();
+  expect(screen.getByRole("img")).toBeInTheDocument();
+});
+
 it("renders reported weather and forecast, switches supported periods and cleans up subscriptions", () => {
   mocks.forecast.mockImplementation((_id, _type, _signal, receive) => receive([{ datetime: "2030-01-01T12:00:00Z", temperature: 18, templow: 10, condition: "cloudy", precipitation_probability: 30 }]));
   const view = open(cardEntity("weather", "rainy", { temperature: 19, temperature_unit: "°C", wind_speed: 3, wind_speed_unit: "m/s", humidity: 48, supported_features: 3 }));

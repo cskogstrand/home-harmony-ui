@@ -58,6 +58,7 @@ export const deviceCardSchema = z.object({
   mainEntity: memberSchema.optional(),
   linkedEntities: z.array(memberSchema).max(100).default([]),
   group: z.string().max(80).default(""),
+  order: z.number().int().min(0).max(100000).optional(),
 }).strict();
 export type DeviceCardSettings = z.infer<typeof deviceCardSchema>;
 export const plannerSchema = z.object({

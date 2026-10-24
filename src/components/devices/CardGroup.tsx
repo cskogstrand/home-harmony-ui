@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { groupedCardHeights } from "@/lib/smart-home-cards";
+import { rowCardHeights } from "@/lib/smart-home-cards";
 
 export function CardGroup({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -10,21 +10,23 @@ export function CardGroup({ children }: { children: ReactNode }) {
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const cards = [...grid.querySelectorAll<HTMLElement>(":scope > .dg-card")];
-        const heights = cards.map(card => {
+        const items = [...grid.querySelectorAll<HTMLElement>(":scope > .smart-card-item")];
+        const cards = items.map(item => item.querySelector<HTMLElement>(".dg-card")!);
+        const heights = cards.map((card, index) => {
           const style = getComputedStyle(card);
-          return [...card.children].reduce((height, child) => {
+          const height = [...card.children].reduce((height, child) => {
             const css = getComputedStyle(child);
             return height + child.getBoundingClientRect().height + parseFloat(css.marginTop) + parseFloat(css.marginBottom);
           }, parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth));
+          return { top: items[index].offsetTop, height };
         });
         const singleColumn = getComputedStyle(grid).gridTemplateColumns.split(" ").length === 1;
-        groupedCardHeights(heights).forEach((height, index) => { cards[index].style.minHeight = singleColumn ? "" : `${Math.ceil(height)}px`; });
+        rowCardHeights(heights).forEach((height, index) => { cards[index].style.minHeight = singleColumn ? "" : `${Math.ceil(height)}px`; });
       });
     };
     const observer = new ResizeObserver(measure);
     observer.observe(grid);
-    grid.querySelectorAll(":scope > .dg-card > *").forEach(child => observer.observe(child));
+    grid.querySelectorAll(".dg-card > *, :scope > .smart-card-item").forEach(child => observer.observe(child));
     measure();
     return () => { observer.disconnect(); cancelAnimationFrame(frame); };
   }, [children]);
