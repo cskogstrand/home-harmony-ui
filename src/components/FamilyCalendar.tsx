@@ -6,6 +6,7 @@ import { Columns3, Table2, Plus, RefreshCw } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 import { Button } from "./ui/button";
+import { SettingsPopover } from "./common/SettingsPopover";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
   const { t } = useI18n();
@@ -13,14 +14,16 @@ export function CalendarViewControls({ onChange }: { onChange?: (settings: Parti
   const change = (settings: Partial<CalendarSettings>) => { setCalendarSettings(settings); onChange?.(settings); };
   return <div className="calendar-view-controls">
     <span className="calendar-current-week">{t("Today · Week {value1}", { value1: weekNumber(today) })}</span>
-    <div className="calendar-segment" role="group" aria-label={t("Calendar layout")}>
-      <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />{t("Weekly grid")}</button>
-      <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />{t("By person")}</button>
-    </div>
-    <div className="calendar-start-control"><span>{t("Start")}</span><div className="calendar-segment" role="group" aria-label={t("Seven-day preview starts")}>
-      <button aria-pressed={calendar.startDay === "today"} onClick={() => change({ startDay: "today" })}>{t("Today")}</button>
-      <button aria-pressed={calendar.startDay === "monday"} onClick={() => change({ startDay: "monday" })}>{t("Monday")}</button>
-    </div></div>
+    <SettingsPopover label={t("Calendar settings")}>
+      <fieldset><legend className="mb-2 text-sm text-muted-foreground">{t("Calendar layout")}</legend><div className="calendar-segment">
+        <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />{t("Weekly grid")}</button>
+        <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />{t("By person")}</button>
+      </div></fieldset>
+      <fieldset><legend className="mb-2 text-sm text-muted-foreground">{t("Seven-day preview starts")}</legend><div className="calendar-segment">
+        <button aria-pressed={calendar.startDay === "today"} onClick={() => change({ startDay: "today" })}>{t("Today")}</button>
+        <button aria-pressed={calendar.startDay === "monday"} onClick={() => change({ startDay: "monday" })}>{t("Monday")}</button>
+      </div></fieldset>
+    </SettingsPopover>
   </div>;
 }
 

@@ -1,3 +1,4 @@
+import { SettingsPopover } from "@/components/common/SettingsPopover";
 import { useI18n } from "@/hooks/use-i18n";
 import { useEffect } from "react";
 import { useParams, Link, Navigate, useLocation } from "react-router-dom";
@@ -36,7 +37,7 @@ export default function DeviceDetail() {
     <section className="device-overview" aria-label={t("About this device")}>
       <div className="device-summary"><span className="muted">{t("Room: ")}{area ? <Link className="text-link" to={`/areas/${encodeURIComponent(area.id)}`}>{area.id === "unassigned" ? t("Unassigned") : area.name}</Link> : t("Unassigned")}</span>
         <span className="muted">{message(deviceReadingsLabel(entities, homeOnline))}</span>
-        {haUrl && <a className="text-link" href={`${haUrl}/config/devices/device/${encodeURIComponent(device.id)}`} target="_blank" rel="noreferrer">{t("Manage device in Home Assistant")}</a>}
+        {haUrl && <SettingsPopover label={t("Device settings")}><a className="text-link min-h-11" href={`${haUrl}/config/devices/device/${encodeURIComponent(device.id)}`} target="_blank" rel="noreferrer">{t("Manage device in Home Assistant")}</a></SettingsPopover>}
       </div>
       {!!metadataWarnings.length && <p className="page-note" role="status">{t("Device information may be incomplete. {value1}", { value1: metadataWarnings.map(warning => message(warning)).join(" ") })}</p>}
     </section>

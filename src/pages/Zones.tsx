@@ -1,3 +1,4 @@
+import { SettingsPopover } from "@/components/common/SettingsPopover";
 import { useI18n } from "@/hooks/use-i18n";
 import { entityDetailPath } from "@/lib/device-model";
 import { Link } from "react-router-dom";
@@ -11,8 +12,7 @@ export default function Zones() {
   const { currentHome, homeOnline, haUrl } = useApp();
   const zones = currentHome.entities.filter(entity => entity.domain === "zone");
   return <div className="planner-page">
-    <PageHeading title={t("Zones")} />
-    {haUrl && <a className="text-link" href={`${haUrl}/config/zone`} target="_blank" rel="noreferrer">{t("Manage zones in Home Assistant")}<ArrowUpRight size={17} /></a>}
+    <PageHeading title={t("Zones")}>{haUrl && <SettingsPopover label={t("Zone settings")}><a className="text-link min-h-11" href={`${haUrl}/config/zone`} target="_blank" rel="noreferrer">{t("Manage zones in Home Assistant")}<ArrowUpRight size={17} /></a></SettingsPopover>}</PageHeading>
     {!homeOnline && !!zones.length && <p className="page-note" role="status">{t("Cached zone readings are stale while Home Assistant is offline.")}</p>}
     <div className="home-device-grid">{zones.map(zone => {
       const radius = numberValue(zone.attributes.radius);

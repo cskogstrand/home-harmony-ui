@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { EntityCard } from "@/components/devices/EntityCard";
 import { DeviceCard } from "@/components/devices/DeviceCard";
 import { deviceGroups, deviceName, deviceSections, deviceType, type DeviceGrouping } from "@/lib/device-model";
+import { SettingsPopover } from "@/components/common/SettingsPopover";
 export default function Devices() {
   const { t, message, language } = useI18n();
   const { currentHome, haUrl, connectionStatus, metadataWarnings } = useApp();
@@ -26,11 +27,13 @@ export default function Devices() {
   return <div className="planner-page"><PageHeading title={t("Devices")} />
     <div className="device-toolbar">
       <Input aria-label={t("Search devices")} placeholder={t("Search devices, rooms or types…")} value={search} onChange={e => setView(grouping, e.target.value)} />
-      <fieldset className="device-grouping"><legend>{t("Group by")}</legend><div className="filter-row">
-        {([ ["room", t("Room")], ["type", t("Device type")], ["none", t("None")] ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={grouping === value} onClick={() => setView(value, search)}>{label}</button>)}
-      </div></fieldset>
+      <SettingsPopover label={t("Device settings")}>
+        <fieldset className="device-grouping"><legend>{t("Group by")}</legend><div className="filter-row">
+          {([ ["room", t("Room")], ["type", t("Device type")], ["none", t("None")] ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={grouping === value} onClick={() => setView(value, search)}>{label}</button>)}
+        </div></fieldset>
+        {haUrl && <a className="text-link min-h-11" href={`${haUrl}/config/devices/dashboard`} target="_blank" rel="noreferrer">{t("Manage devices in Home Assistant")}</a>}
+      </SettingsPopover>
     </div>
-    {haUrl && <a className="text-link" href={`${haUrl}/config/devices/dashboard`} target="_blank" rel="noreferrer">{t("Manage devices in Home Assistant")}</a>}
     {!!metadataWarnings.length && <p className="page-note" role="status">{t("Device information may be incomplete. {value1}", { value1: metadataWarnings.map(warning => message(warning)).join(" ") })}</p>}
     {sections.map(section => <section key={section.id} className="device-group" aria-label={section.name}>
       <div className="panel-heading"><h2>{section.name}</h2><span>{t(section.devices.length === 1 ? "{count} device" : "{count} devices", { count: section.devices.length })}</span></div>

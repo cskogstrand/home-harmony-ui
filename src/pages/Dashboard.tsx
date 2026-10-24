@@ -40,7 +40,7 @@ export default function Dashboard() {
       <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}<DashboardSettings /></div></div>
       <time className="ambient-clock">{time}</time>
     </header>
-    {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use Customize Today to show them again.")}</p>}
+    {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
     {dashboard.morningSummary && <MorningSummary />}
     {dashboard.nextPlan && <section className="next-chapter" aria-label={t("Next family plan")}>
       {next ? <><button className="next-event" onClick={() => openEvent(next)}><h2>{next.title}</h2><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :

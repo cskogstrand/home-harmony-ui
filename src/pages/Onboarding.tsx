@@ -53,7 +53,7 @@ export default function Onboarding() {
     </ol>
     <section className="glow-panel space-y-3">
       <h2>{t("Make it yours")}</h2>
-      <p className="page-note">{t("Use Customize on Today to pick favorite devices and scenes. App preferences holds appearance settings, dark timetables and backups. Settings are shared across your household’s screens.")}</p>
+      <p className="page-note">{t("Use the settings cog beside Home favorites on Today to pick favorite devices and scenes. App preferences holds appearance settings, dark timetables and backups. Settings are shared across your household’s screens.")}</p>
       <Link className="text-link" to="/user-settings">{t("App preferences")}</Link>
     </section>
     <div className="flex flex-wrap items-center gap-4">

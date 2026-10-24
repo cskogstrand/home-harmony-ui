@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from "lucide-react";
+import { Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -23,7 +23,7 @@ export function DashboardSettings() {
   const { dashboard, setDashboard } = useFamily();
   const shared = useSharedConfiguration();
   return <Dialog>
-    <DialogTrigger asChild><Button variant="outline" size="sm"><SlidersHorizontal size={16} aria-hidden="true" />{t("Customize Today")}</Button></DialogTrigger>
+    <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label={t("Customize Today")} title={t("Customize Today")}><Settings aria-hidden="true" /></Button></DialogTrigger>
     <DialogContent className="max-h-[calc(100dvh-24px)] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>{t("Customize Today")}</DialogTitle>

@@ -148,7 +148,8 @@ it("saves device and entity visibility, restores individual choices, and filters
   render(<App />); await saved();
   expect(screen.queryByText("Example lamp")).not.toBeInTheDocument();
   expect(screen.getByText("Example switch")).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("link", { name: "Choose visible devices" }));
+  fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Smart home settings" })).getByRole("link", { name: "Choose visible devices" }));
   await screen.findByRole("heading", { level: 1, name: "Home settings" });
   expect(window.location.hash).toBe("#smart-home-visibility");
   fireEvent.change(screen.getByRole("combobox", { name: "Group by" }), { target: { value: "device" } });
@@ -260,7 +261,10 @@ it("configures card order across room filters, size and grouping on Smart home a
   settings.settings.smartHome.cards = Object.fromEntries(["alpha", "beta", "gamma"].map(name => [`home|${name}`, { group: "Comfort", linkedEntities: [] }]));
   window.history.replaceState(null, "", "/home");
   const view = render(<App />); await saved();
+  expect(screen.queryByRole("button", { name: "Configure" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
   fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+  expect(screen.queryByRole("dialog", { name: "Smart home settings" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Example room A" }));
   fireEvent.click(screen.getByRole("button", { name: "Move Example gamma earlier" })); await saved();
   expect(settings.settings.smartHome.cards["home|gamma"].order).toBe(0);
@@ -284,7 +288,10 @@ it("keeps layout edits visible on a save conflict and blocks further moves", asy
   app.currentHome = mapHome({ "light.example": state("light.example", "off", { friendly_name: "Example lamp" }) }, emptyRegistries, "home");
   window.history.replaceState(null, "", "/home");
   render(<App />); await saved();
+  expect(screen.queryByRole("button", { name: "Configure" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
   fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+  expect(screen.queryByRole("dialog", { name: "Smart home settings" })).not.toBeInTheDocument();
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
   fireEvent.change(screen.getByRole("combobox", { name: "Card size for Example lamp" }), { target: { value: "original" } });
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Another screen changed the configuration"));
@@ -461,7 +468,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   for (const name of headings) expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Next family plan" })).not.toBeInTheDocument();
-  expect(screen.getByText("All sections are hidden. Use Customize Today to show them again.")).toBeInTheDocument();
+  expect(screen.getByText("All sections are hidden. Use the settings cog to show them again.")).toBeInTheDocument();
   expect(settings.settings.dashboard.showTomorrow).toBe(true);
   expect(Object.entries(settings.settings.dashboard).filter(([key]) => key !== "showTomorrow").every(([, value]) => !value)).toBe(true);
   expect(settings.settings.timetables).toEqual(originalTimetables);
@@ -826,7 +833,13 @@ it.each(["/", "/calendar"])("marks Monday week changes and keeps today's week vi
   expect(screen.getByText("Week 1").closest("th")).toHaveTextContent("Mon4 Jan");
   expect(screen.getAllByText(/^Week \d+$/)).toHaveLength(2);
 
+  expect(screen.queryByRole("button", { name: "By person" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Monday" })).not.toBeInTheDocument();
+  const calendarSettings = screen.getByRole("button", { name: "Calendar settings" });
+  fireEvent.click(calendarSettings);
   fireEvent.click(screen.getByRole("button", { name: "By person" }));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Calendar settings" }), { key: "Escape" });
+  await waitFor(() => expect(calendarSettings).toHaveFocus());
   expect(screen.getByText("Week 53").closest("a, button")).toHaveTextContent("Fri01");
   expect(screen.getByText("Week 1").closest("a, button")).toHaveTextContent("Mon04");
   expect(screen.getAllByText(/^Week \d+$/)).toHaveLength(2);
@@ -837,8 +850,14 @@ it.each(["/", "/calendar"])("marks Monday week changes and keeps today's week vi
     expect(screen.getByText("Week 2").closest("button")).toHaveTextContent("Mon11");
   }
 
+  fireEvent.click(calendarSettings);
+  expect(screen.getByRole("button", { name: "By person", pressed: true })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Weekly grid" }));
   fireEvent.click(screen.getByRole("button", { name: "Monday" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Calendar settings" })).getByRole("button", { name: "Close" }));
+  await saved();
+  expect(settings.settings.calendar).toEqual({ view: "week", startDay: "monday" });
+  expect(screen.queryByRole("button", { name: "Monday" })).not.toBeInTheDocument();
   expect(screen.getAllByText(/^Week \d+$/)).toHaveLength(1);
   expect(screen.getByText("Week 53").closest("th")).toHaveTextContent("Mon28 Dec");
   expect(screen.getByText("Today · Week 53")).toBeInTheDocument();
@@ -1144,4 +1163,39 @@ it("distinguishes offline plans and security from successful empty reads", async
   expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();
   view.unmount();
   app.connectionStatus = "connected";
+});
+
+
+it.each([
+  ["/devices", "Device settings", "Manage devices in Home Assistant", "/config/devices/dashboard"],
+  ["/areas", "Area settings", "Manage areas in Home Assistant", "/config/areas/dashboard"],
+  ["/zones", "Zone settings", "Manage zones in Home Assistant", "/config/zone"],
+  ["/automations", "Automation settings", "Edit automations in Home Assistant", "/config/automation/dashboard"],
+])("discloses management links in the settings cog on %s", async (path, label, link, target) => {
+  window.history.replaceState(null, "", path);
+  render(<App />); await saved();
+  expect(screen.queryByRole("link", { name: link })).not.toBeInTheDocument();
+  const trigger = screen.getByRole("button", { name: label });
+  fireEvent.click(trigger);
+  const settings = screen.getByRole("dialog", { name: label });
+  expect(within(settings).getByRole("link", { name: link })).toHaveAttribute("href", app.haUrl + target);
+  fireEvent.keyDown(settings, { key: "Escape" });
+  await waitFor(() => expect(trigger).toHaveFocus());
+  expect(screen.queryByRole("link", { name: link })).not.toBeInTheDocument();
+});
+
+it("translates calendar settings and restores the selected layout after closing", async () => {
+  settings.settings.language = "nb";
+  window.history.replaceState(null, "", "/calendar?date=2026-10-26");
+  render(<App />); await waitFor(() => expect(screen.getByRole("status", { name: "Lagring av innstillinger" })).toHaveTextContent("Fellesinnstillingene er lagret."));
+  expect(screen.queryByRole("button", { name: "Uketabell" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Kalenderinnstillinger" }));
+  fireEvent.click(screen.getByRole("button", { name: "Etter person" }));
+  fireEvent.click(screen.getByRole("button", { name: "Mandag" }));
+  expect(window.location.search).toBe("");
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Kalenderinnstillinger" })).getByRole("button", { name: "Lukk" }));
+  await waitFor(() => expect(screen.getByRole("status", { name: "Lagring av innstillinger" })).toHaveTextContent("Fellesinnstillingene er lagret."));
+  fireEvent.click(screen.getByRole("button", { name: "Kalenderinnstillinger" }));
+  expect(screen.getByRole("button", { name: "Etter person", pressed: true })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Mandag", pressed: true })).toBeInTheDocument();
 });

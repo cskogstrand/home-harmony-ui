@@ -12,6 +12,12 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 const open = () => render(<MemoryRouter><DeviceGallery /></MemoryRouter>);
+const settingsName = () => language.value === "nb" ? "Demoinnstillinger" : "Playground settings";
+const openSettings = () => fireEvent.click(screen.getByRole("button", { name: settingsName() }));
+const closeSettings = () => fireEvent.click(within(screen.getByRole("dialog", { name: settingsName() })).getByRole("button", { name: language.value === "nb" ? "Lukk" : "Close" }));
+const chooseView = (name: string) => { openSettings(); fireEvent.click(screen.getByRole("button", { name })); closeSettings(); };
+const demoState = (value: string) => { openSettings(); fireEvent.change(screen.getByRole("combobox", { name: language.value === "nb" ? "Demotilstand" : "Demo state" }), { target: { value } }); closeSettings(); };
+const resetDemo = () => { openSettings(); fireEvent.click(screen.getByRole("button", { name: "Reset demo" })); closeSettings(); };
 const card = (id: string, variant = "Original") => within(document.querySelector(`[data-demo-card="${id}"][data-variant="${variant}"]`) as HTMLElement);
 
 it("covers the entity families, searches helper aliases and keeps changed values when filtered", () => {
@@ -27,17 +33,17 @@ it("covers the entity families, searches helper aliases and keeps changed values
   expect(screen.queryByRole("heading", { name: "A softer glow" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "light" } });
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "100");
-  fireEvent.click(screen.getByRole("button", { name: "Reset demo" }));
+  resetDemo();
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "72");
 });
 
 it("keeps unavailable controls disabled, restores them and retains values on a failed command", () => {
   open();
-  fireEvent.change(screen.getByRole("combobox", { name: "Demo state" }), { target: { value: "Unavailable" } });
+  demoState("Unavailable");
   expect(card("light").getByRole("button", { name: "Toggle demo light" })).toBeDisabled();
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("data-disabled");
   fireEvent.click(card("light").getByRole("button", { name: "Restore demo" }));
-  fireEvent.change(screen.getByRole("combobox", { name: "Demo state" }), { target: { value: "Command failed" } });
+  demoState("Command failed");
   expect(card("light").getByRole("alert")).toHaveTextContent("Your settings are unchanged");
   fireEvent.click(card("light").getByRole("button", { name: "Retry demo" }));
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "72");
@@ -75,20 +81,24 @@ it("uses stable option values in Norwegian and provides search recovery", () => 
 
 it("keeps all three versions independent through view changes, filters and reset", () => {
   open();
+  expect(screen.queryByRole("button", { name: "Compare" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("combobox", { name: "Demo state" })).not.toBeInTheDocument();
+  openSettings();
   expect(screen.getByRole("button", { name: "Compare", pressed: true })).toBeVisible();
+  closeSettings();
   fireEvent.keyDown(card("light", "Compact").getByRole("slider", { name: "Brightness" }), { key: "End" });
   fireEvent.keyDown(card("light", "Super compact").getByRole("slider", { name: "Brightness" }), { key: "Home" });
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "72");
-  fireEvent.click(screen.getByRole("button", { name: "Super compact" }));
+  chooseView("Super compact");
   expect(card("light").queryByRole("slider", { name: "Brightness" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "vacuum" } });
   expect(card("light", "Super compact").queryByRole("slider", { name: "Brightness" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "light" } });
-  fireEvent.click(screen.getByRole("button", { name: "Compare" }));
+  chooseView("Compare");
   expect(card("light", "Compact").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "100");
   expect(card("light", "Super compact").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "1");
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "72");
-  fireEvent.click(screen.getByRole("button", { name: "Reset demo" }));
+  resetDemo();
   expect(card("light", "Compact").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "72");
   expect(card("light", "Super compact").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "72");
 });
@@ -119,7 +129,7 @@ it("preserves compact advanced controls, translations and unavailable recovery",
   fireEvent.click(card("light", "Compact").getByText("Farge og effekter"));
   fireEvent.click(card("light", "Compact").getByRole("button", { name: "Farge" }));
   expect(card("light", "Compact").getByLabelText("Egendefinert farge")).toBeVisible();
-  fireEvent.change(screen.getByRole("combobox", { name: "Demotilstand" }), { target: { value: "Unavailable" } });
+  demoState("Unavailable");
   expect(card("light", "Compact").getByRole("slider", { name: "Lysstyrke" })).toHaveAttribute("data-disabled");
   expect(card("cover", "Compact").getByRole("button", { name: "Lukk" })).toBeDisabled();
   fireEvent.click(card("light", "Compact").getByRole("button", { name: "Gjenopprett demo" }));
@@ -137,9 +147,9 @@ it("retains popover changes, restores keyboard focus and closes controls when th
   await waitFor(() => expect(trigger).toHaveFocus());
   fireEvent.click(trigger);
   expect(within(screen.getByRole("dialog", { name: "Light controls" })).getByRole("combobox", { name: "Light effect" })).toHaveValue("Candle");
-  fireEvent.click(screen.getByRole("button", { name: "Original" }));
+  chooseView("Original");
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Super compact" }));
+  chooseView("Super compact");
   fireEvent.click(trigger);
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "vacuum" } });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -152,14 +162,14 @@ it("retains popover changes, restores keyboard focus and closes controls when th
 it("keeps super compact readings clear and translated popup controls disabled while unavailable", () => {
   language.value = "nb";
   open();
-  fireEvent.click(screen.getByRole("button", { name: "Superkompakt" }));
+  chooseView("Superkompakt");
   fireEvent.click(card("sensor", "Super compact").getByRole("button", { name: "Måledetaljer" }));
   const reading = screen.getByRole("combobox", { name: "Måling" });
   fireEvent.change(reading, { target: { value: "Humidity" } });
   fireEvent.click(screen.getByRole("button", { name: "Lukk kontroller" }));
   expect(card("sensor", "Super compact").getByText("Luftfuktighet")).toBeVisible();
+  demoState("Unavailable");
   fireEvent.click(card("light", "Super compact").getByRole("button", { name: "Farge og effekter" }));
-  fireEvent.change(screen.getByRole("combobox", { name: "Demotilstand" }), { target: { value: "Unavailable" } });
   expect(screen.getByRole("combobox", { name: "Lyseffekt" })).toBeDisabled();
   expect(screen.getByRole("slider", { name: "Lysvarme" })).toHaveAttribute("data-disabled");
   fireEvent.click(screen.getByRole("button", { name: "Lukk kontroller" }));

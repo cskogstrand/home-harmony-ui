@@ -21,20 +21,12 @@
 .dg-search { position: relative; width: min(100%, 28rem); }
 .dg-search svg { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--dg-muted); pointer-events: none; }
 .dg-search input { padding-left: 2.75rem; border-radius: 999px; background: var(--dg-surface); height: 48px; }
-.dg-state-picker { display: flex; align-items: center; gap: .5rem; font-size: .875rem; min-width: 0; }
-.dg-state-picker > svg { color: var(--dg-muted); }
-.dg-state-picker select { background: var(--dg-surface); border: 1px solid var(--dg-line); border-radius: 999px; padding: .65rem 2rem .65rem .8rem; min-height: 44px; max-width: 100%; }
 .dg-filter-row { display: flex; gap: 1rem; align-items: center; justify-content: space-between; margin: 1.2rem 0 1.6rem; }
 .dg-filter-row > span { color: var(--dg-muted); font-size: .8rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dg-filters { display: flex; flex-wrap: wrap; gap: .4rem; }
 .dg-filters button { min-height: 44px; border-radius: 999px; padding: .5rem 1rem; color: var(--dg-muted); font-size: .875rem; transition: background-color 160ms, color 160ms; }
 .dg-filters button:hover { background: hsl(var(--secondary)); color: var(--dg-ink); }
 .dg-filters button[aria-pressed="true"] { background: hsl(var(--foreground)); color: hsl(var(--background)); }
-.dg-comparison-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-bottom: 1rem; }
-.dg-comparison-toolbar > p { color: var(--dg-muted); font-size: .8rem; }
-.dg-view-picker { display: flex; flex-wrap: wrap; gap: .5rem; }
-.dg-view-picker button { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem .85rem; border: 1px solid var(--dg-line); border-radius: 14px; font-size: .875rem; }
-.dg-view-picker button[aria-pressed="true"] { background: var(--dg-ink); color: hsl(var(--background)); border-color: var(--dg-ink); }
 .dg-comparisons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.3rem; align-items: start; }
 .dg-pair { display: contents; }
 .dg-comparisons[data-view="Compare"] { grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 1440px; margin-inline: auto; gap: 2rem; }

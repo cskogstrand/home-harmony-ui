@@ -544,16 +544,13 @@
 /* Shared family calendar preferences and the seven-day, person-by-person grid. */
 .calendar-panel-heading { flex-wrap: wrap; margin-bottom: 1rem; }
 .calendar-panel-heading > h2 { flex: 1; }
-.calendar-view-controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.calendar-view-controls { display: flex; align-items: center; gap: .5rem; }
 .calendar-current-week { color: hsl(var(--primary)); font-size: 0.875rem; font-weight: 500; white-space: nowrap; }
 .calendar-week-number { display: block; min-height: 18px; color: hsl(var(--primary)); font-size: 0.75rem; font-weight: 600; line-height: 18px; white-space: nowrap; }
 .calendar-segment { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid hsl(var(--border)); background: hsl(var(--secondary) / .7); border-radius: 999px; }
 .calendar-segment button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; padding: 7px 12px; border-radius: 999px; font-size: 0.875rem; color: hsl(var(--muted-foreground)); white-space: nowrap; }
 .calendar-segment button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); }
 .calendar-segment button:hover { background: hsl(var(--secondary)); }
-.calendar-start-control { display: flex; align-items: center; gap: 9px; }
-.calendar-start-control > span { font-size: 0.8125rem; color: hsl(var(--muted-foreground)); }
-.calendar-toolbar > .calendar-view-controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .weekly-panel { padding: 12px; }
 .weekly-scroll { overflow-x: auto; scrollbar-width: thin; border-radius: 13px; min-width: 0; }
 .family-week-table { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
@@ -640,7 +637,7 @@
 .device-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px; }
 .device-page { gap: 16px; }
 .device-toolbar { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: flex-end; }
-.device-toolbar > input { flex: 1 1 280px; min-width: 0; height: 44px; }
+.device-toolbar > input { flex: 1 1 12rem; min-width: 0; height: 44px; }
 .device-grouping legend { margin-bottom: 8px; font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
 .device-grouping .filter-row > button { min-height: 48px; }
 .device-group .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
@@ -681,11 +678,11 @@
 .page-heading > div, .panel-heading > h2 { min-width: 0; overflow-wrap: anywhere; }
 .page-heading p { max-width: 65ch; }
 .text-link { font-size: .875rem; }
-.calendar-panel-heading > .calendar-view-controls { order: 3; flex-basis: 100%; }
+.calendar-panel-heading > .calendar-view-controls { margin-left: auto; }
 .calendar-panel-heading > .text-link { margin-left: auto; }
 .calendar-current-week { margin-right: auto; }
 .calendar-pagination { margin-bottom: 1rem; }
-.calendar-toolbar > .calendar-view-controls { margin-bottom: 1rem; }
+.calendar-pagination > .calendar-view-controls { margin-left: auto; }
 .family-week > .page-note { margin: 0 0 .75rem; }
 .family-week-table { font-size: .875rem; min-width: 840px; }
 .week-member-column { width: 120px; }
@@ -745,7 +742,6 @@
   .family-week-table .event-time, .family-week-table thead time > span, .week-add-plan { font-size: .9rem; }
   .family-week-table .event-button { min-height: 64px; }
   .calendar-segment button, .calendar-current-week, .calendar-week-number { font-size: .9rem; }
-  .calendar-start-control > span { font-size: .85rem; }
   .check-row, .check-row :is(label, .edit-item) { min-height: 64px; font-size: 1.1rem; }
   .check-mark { width: 26px; height: 26px; }
   .member-avatar.small { width: 36px; height: 36px; font-size: .75rem; }
@@ -811,9 +807,7 @@
   .calendar-pagination { gap: .35rem; flex-wrap: wrap; }
   .calendar-pagination h2 { font-size: 1rem; }
   .calendar-view-controls { gap: .75rem; }
-  .calendar-current-week { width: 100%; }
   .week-ribbon .calendar-week-number { min-height: 2.2em; font-size: .625rem; line-height: 1.1; white-space: normal; }
-  .calendar-start-control { flex-wrap: wrap; }
   .calendar-segment button { font-size: .8125rem; padding-inline: .5rem; }
   .calendar-segment button > svg { display: none; }
   .filter-row { gap: .4rem; }
@@ -836,3 +830,8 @@
   .compact-mode { --panel-space: .75rem; }
   .compact-mode .ambient-clock { font-size: 3rem; }
 }
+
+.settings-popover { display: grid; gap: 1rem; width: 22rem; max-width: calc(100vw - 2rem); max-height: var(--radix-popover-content-available-height); overflow-y: auto; }
+.settings-popover .calendar-segment { display: flex; flex-wrap: wrap; }
+.settings-popover .calendar-segment button { flex: 1; white-space: normal; }
+.settings-popover .filter-row { margin: 0; }

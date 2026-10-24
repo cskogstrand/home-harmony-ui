@@ -682,7 +682,9 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
     fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
     await grid.findByRole("button", { name: /Night train/ });
   }
+  fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
   fireEvent.click(screen.getByRole("button", { name: "By person" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Calendar settings" })).getByRole("button", { name: "Close" }));
   const week = path === "/" ? within(screen.getByRole("region", { name: "Everyone’s week" })) : screen;
   expect(week.getAllByRole("button", { name: /Family trip/ })).toHaveLength(1);
   expect(week.getByText("Tue 6 Oct – Thu 15 Oct")).toBeVisible();
@@ -993,6 +995,8 @@ it("shows HA zones with live presence, passive metadata and honest missing or st
   expect(home.getByText("100 m")).toBeInTheDocument();
   expect(home.getAllByText("0")).toHaveLength(2);
   expect(home.getByText("Active")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: "Manage zones in Home Assistant" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Zone settings" }));
   expect(screen.getByRole("link", { name: "Manage zones in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/zone");
   expect(within(screen.getByRole("article", { name: "School zone" })).getByText("Passive · automations only")).toBeInTheDocument();
   const work = within(screen.getByRole("article", { name: "Work zone" }));
@@ -1028,7 +1032,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   await screen.findByRole("switch", { name: "Toggle Living Room Light" });
-  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
   fireEvent.change(screen.getByRole("textbox", { name: "Search favorites" }), { target: { value: "Living Room" } });
@@ -1042,7 +1046,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   expect(favorites().getByRole("button", { name: "Activate Evening" })).toBeInTheDocument();
   const saved = JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!);
   expect(saved.homeEntities).toEqual(["home|stable-light", "home|stable-sensor", "home|scene.evening"]);
-  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -1055,7 +1059,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   await screen.findByRole("switch", { name: "Toggle Sofa light" });
   expect(favorites().getAllByRole("article")).toHaveLength(2);
   expect(favorites().queryByRole("switch", { name: "Toggle Charger power" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
   fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
@@ -1170,7 +1174,9 @@ it.each([["Example person", "home|person.example"], ["Everyone", "everyone"]])("
   const event = await screen.findByRole("button", { name: /Example event/ });
   expect(event.style.getPropertyValue("--member")).toBe("#112233");
   expect(event.closest("tbody")?.style.getPropertyValue("--member")).toBe("#112233");
+  fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "By person" })));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Calendar settings" })).getByRole("button", { name: "Close" }));
   expect(screen.getByRole("button", { name: /Example event/ }).style.getPropertyValue("--member")).toBe("#112233");
   expect(screen.getByRole("button", { name: /Example event/ }).closest<HTMLElement>(".calendar-lane")?.style.getPropertyValue("--member")).toBe("#112233");
   nav("Lists");
@@ -1216,7 +1222,9 @@ it("assigns HA calendars to real people in both views, persists setup, without l
   fireEvent.change(assignment, { target: { value: "home|calendar.morgan" } });
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
   expect(await screen.findByRole("button", { name: /Dentist appointment.*15:00 – 16:00/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
   expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Calendar settings" })).getByRole("button", { name: "Close" }));
   const row = (name: string) => within(screen.getByRole("rowheader", { name }).closest("tr")!);
   expect(row("Morgan").getByRole("button", { name: /Dentist appointment/ })).toBeInTheDocument();
   expect(row("Riley").queryByRole("button", { name: /Dentist appointment/ })).not.toBeInTheDocument();
@@ -1859,7 +1867,7 @@ it("keeps favorites intact when individual or bulk removal is canceled", async (
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   await screen.findByRole("switch", { name: "Toggle Living Room Light" });
-  fireEvent.click(screen.getByRole("button", { name: "Customize" }));
+  fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   const checkbox = screen.getByRole("checkbox", { name: "Living Room Light" });
   fireEvent.click(checkbox);
   expect(checkbox).toBeChecked();
@@ -1993,23 +2001,27 @@ it("switches room and type grouping while retaining search through detail naviga
   const hall = await screen.findByRole("region", { name: "Hall" });
   expect(within(hall).getByText("1 device")).toBeInTheDocument();
   expect(within(hall).getByRole("link", { name: "Multi sensor details" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
   expect(screen.getByRole("button", { name: "Room" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("region", { name: "Unassigned" })).toHaveTextContent("Bedroom sensor");
   fireEvent.click(screen.getByRole("button", { name: "Device type" }));
   expect(screen.getByRole("region", { name: "Lights" })).toHaveTextContent("Multi sensor");
   expect(screen.getByRole("region", { name: "Other" })).toHaveTextContent("Bedroom sensor");
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Device settings" })).getByRole("button", { name: "Close" }));
   fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "lights" } });
   expect(screen.queryByRole("region", { name: "Other" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Multi sensor details" }));
   expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Back to devices" })).toHaveAttribute("href", "/devices?group=type&q=lights");
   fireEvent.click(screen.getByRole("link", { name: "Back to devices" }));
+  fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
   expect(screen.getByRole("button", { name: "Device type" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("lights");
   view.unmount();
   conn.connected = true;
   render(<App />);
   expect(await screen.findByRole("link", { name: "Multi sensor details" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
   expect(screen.getByRole("button", { name: "Device type" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("lights");
   fireEvent.click(screen.getByRole("button", { name: "None" }));
@@ -2026,6 +2038,7 @@ it("falls back to room grouping for an invalid bookmarked view", async () => {
   window.history.replaceState(null, "", "/devices?group=invalid&q=multi");
   render(<App />);
   expect(await screen.findByRole("region", { name: "Hall" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
   expect(screen.getByRole("button", { name: "Room" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("multi");
 });

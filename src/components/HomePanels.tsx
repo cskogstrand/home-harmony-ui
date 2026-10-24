@@ -2,7 +2,7 @@ import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CarFront, Sparkles, ArrowUpRight, SlidersHorizontal, Search, Volume2 } from "lucide-react";
+import { CarFront, Sparkles, ArrowUpRight, Settings, Search, Volume2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { available, humanizeState, supportsAction } from "@/lib/ha-model";
@@ -61,7 +61,7 @@ export function HomeFavorites() {
   const scenes = entities.filter(e => e.domain === "scene");
   const missing = selected.length - entities.length;
   return <section className="glow-panel home-favorites" aria-label={t("Home favorites")}>
-    <div className="panel-heading"><h2>{t("Just right at home")}</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><button className="text-link" disabled={!haUrl}><SlidersHorizontal size={16} />{t("Customize")}</button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t("Make home yours")}</DialogTitle><DialogDescription>{t("Choose your dashboard favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
+    <div className="panel-heading"><h2>{t("Just right at home")}</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="ghost" size="icon" disabled={!haUrl} aria-label={t("Customize home favorites")} title={t("Customize home favorites")}><Settings aria-hidden="true" /></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t("Make home yours")}</DialogTitle><DialogDescription>{t("Choose your dashboard favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
     {!!entities.length && <div className="favorite-devices">{entities.filter(e => e.domain !== "scene").map(entity => <EntityCard key={entity.entityId} entity={entity} />)}</div>}
     {!!scenes.length && <SceneButtons entities={scenes} />}
     {!selected.length && haUrl && <p className="empty-note">{t("No favorites selected.")}</p>}
