@@ -266,11 +266,15 @@ The sidecar records the three soft elevation tokens plus glass and header shadow
 
 **The Glass Control Layer Rule.** Reserve glass for the main dock, header controls and transient menus, popovers and dialogs, with one local exception: calendar timetable frames reuse the shared panel glass on School, dashboard previews and the expanded view. Keep the regular calendar, lists, form fields and other recurring work panels opaque; saved image/PDF timetables retain their existing presentation.
 
-### Isolated device-card experiment
+### Reusable device cards
 
-The `/device-gallery` playground, linked from Smart home settings, is a scoped exception for Liquid Glass device cards covering physical devices, helpers and data entities. Its translucent fills, illuminated rims and device-specific tints apply only to this demo. Production device cards and other recurring work panels retain the rules above; the gallery introduces no global design tokens.
+Smart home and `/device-gallery` share the device card library in `src/components/devices/`. `CardFrame` provides the glass surface, type icon, title, room, and three densities. `CardLayouts` contains light, climate, cover, power, security, and media layouts; `CardControls` supplies accessible actions, readings, ranges, choices and secondary-control disclosure. `card-designs.ts` maps Home Assistant domains and helper aliases to the library families. Unrecognized domains retain a named card and their reported state.
 
-All examples use fictional data and local React state. Entity-specific primary controls stay visible, with secondary capabilities behind progressive disclosure. Cards stack on phones, retain generous portrait controls and adapt to dark mode. Reduced motion removes animation; reduced transparency, increased contrast and missing backdrop-filter support retain solid card surfaces. Visuals use CSS geometry and library icons, with no shipping rasters. Reusable component extraction and Home Assistant integration are deferred. Sources: [gallery](src/pages/DeviceGallery.tsx), [styles](src/pages/device-gallery.css) and [surface brief](.impeccable/surfaces/src-pages-devicegallery-tsx.md).
+`SmartHomeCard` selects the design automatically and connects it to the existing capability-aware `DeviceControl`. Climate uses the thermostat layout with Home Assistant's temperature range and step. Live controls preserve command feedback, unavailable/offline behavior and confirmation for sensitive actions. Domains without supported commands remain read-only; gallery-only forecasts, histories, maps and simulated capabilities are never presented as live data.
+
+Choose **Super compact** (default), **Compact**, or **Original** for each entity in Smart home visibility settings. The server stores `smartHome.cardDensities` by stable entity preference ID, independently of visibility and global compact mode. Choices follow shared-save/conflict handling and configuration backups. Super compact keeps primary controls visible and opens secondary controls in a named popover; other densities use inline controls or disclosure. Settings and controls support English and Norwegian Bokmål.
+
+This is a scoped glass exception for Smart home cards and the gallery. Other recurring work panels retain the rules above. Cards stack on phones and adapt to dark mode; reduced motion, reduced transparency, increased contrast and forced colors retain accessible controls and solid surfaces. The gallery keeps fictional state while demonstrating these same components. Sources: [card layouts](src/components/devices/CardLayouts.tsx), [live card](src/components/devices/SmartHomeCard.tsx), [shared styles](src/components/devices/device-cards.css), [gallery](src/pages/DeviceGallery.tsx).
 
 ## Shapes
 
@@ -354,6 +358,6 @@ Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode
 
 - **Don't** shrink or hide task content to force a tall screen into one viewport.
 - **Don't** encode a person, device state or selected route through color alone.
-- **Don't** spread glass beyond the documented control layers and calendar timetable frame exception, or add decorative gradients or elevation to other recurring work panels.
+- **Don't** spread glass beyond the documented control layers and calendar timetable and Smart home card exceptions, or add decorative gradients or elevation to other recurring work panels.
 - **Don't** turn a timetable preview into a cropped substitute for the full, pageable view.
 - **Don't** describe CSS blur and specular edges as native optical refraction.

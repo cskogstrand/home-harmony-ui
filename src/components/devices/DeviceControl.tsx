@@ -1,6 +1,10 @@
+import { Action, More, Readout } from "./CardControls";
+import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard } from "./CardLayouts";
+import { CardDisabled, CardPresentation } from "./card-presentation";
+import { cardDesignFor } from "./card-designs";
 import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Entity, EntityAction } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
@@ -10,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { PinPadModal } from "./PinPadModal";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles, MapPin, ArrowUp, ArrowDown, Square, Unlock, Droplets, Battery, Zap, DoorOpen, Activity, Play, Fan, Loader2 } from "lucide-react";
+import { Lock, Lightbulb, Thermometer, Plug, Radio, Blinds, Shield, Sparkles, MapPin, ArrowUp, ArrowDown, Square, Unlock, Droplets, Battery, Zap, DoorOpen, Activity, Play, Fan, Loader2, Power } from "lucide-react";
 
 export function DeviceIcon({ type, deviceClass, className }: { type: string; deviceClass?: unknown; className?: string }) {
   const Icon = ({ temperature: Thermometer, humidity: Droplets, moisture: Droplets, battery: Battery, power: Zap, energy: Zap, door: DoorOpen, motion: Activity, smoke: Shield })[String(deviceClass)]
@@ -46,9 +50,10 @@ function LightColorControl({ entity, disabled, commit }: { entity: Entity; disab
     <Button type="submit" variant="outline" disabled={disabled}>{t("Apply color")}</Button>
   </form>;
 }
-export function DeviceControl({ entity }: { entity: Entity }) {
+export function DeviceControl({ entity, card = false }: { entity: Entity; card?: boolean }) {
   const { t, message, language, number } = useI18n();
   const { homeOnline, command, commands, services, currentHome } = useApp();
+  const { variant } = useContext(CardPresentation);
   const [lockAction, setLockAction] = useState<"lock" | "unlock">();
   const [confirmation, setConfirmation] = useState<{ action: EntityAction; value?: unknown; title: Message; description: Message }>();
   const disabled = !homeOnline || !available(entity) || !!commands[entity.entityId]?.pending;
@@ -76,11 +81,8 @@ export function DeviceControl({ entity }: { entity: Entity }) {
   const toggle = ["light", "switch", "automation"].includes(entity.domain) && supports(entity.state === "on" ? "turn_off" : "turn_on");
   const status = !homeOnline ? t("Offline") : entityStateLabel(entity, language);
   const showState = !homeOnline || !available(entity) || (entity.domain !== "scene" && !(entity.domain === "cover" && supports("position") && position !== undefined && ["open", "closed"].includes(entity.state)));
-  return <div className="control-stack command-controller" aria-busy={!!commands[entity.entityId]?.pending}>
-    {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={t("Toggle {value1}", { value1: entity.name })} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
-      : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{currentHome.temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
-      : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}
-    {supports("brightness") && <RangeControl label={t("Brightness")} name={entity.name} value={brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255))} min={1} max={100} unit="%" disabled={disabled} commit={v => send("brightness", v)} />}
+  const dimmer = supports("brightness") && <RangeControl label={t("Brightness")} name={entity.name} value={brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255))} min={1} max={100} unit="%" disabled={disabled} commit={v => send("brightness", v)} />;
+  const colorControls = <>
     {supports("color_temp_kelvin") && <RangeControl label={t("Color temperature")} name={entity.name} value={numberValue(entity.attributes.color_temp_kelvin)} min={numberValue(entity.attributes.min_color_temp_kelvin)} max={numberValue(entity.attributes.max_color_temp_kelvin)} unit=" K" disabled={disabled} commit={v => send("color_temp_kelvin", v)} />}
     {supports("rgb_color") && <LightColorControl entity={entity} disabled={disabled} commit={v => send("rgb_color", v)} />}
     {supports("white") && <Button variant="outline" disabled={disabled} onClick={() => send("white", brightness === undefined ? 100 : Math.max(1, Math.round(brightness * 100 / 255)))}>{t("White light")}</Button>}
@@ -88,14 +90,42 @@ export function DeviceControl({ entity }: { entity: Entity }) {
       {!stringValues(entity.attributes.effect_list).includes(String(entity.attributes.effect)) && <option value={typeof entity.attributes.effect === "string" ? entity.attributes.effect : ""} disabled>{t("Choose effect")}</option>}
       {stringValues(entity.attributes.effect_list).map(effect => <option key={effect} value={effect}>{effect}</option>)}
     </select></label>}
-    {entity.domain === "climate" && <>
-      {supports("temperature") && <RangeControl label={t("Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={currentHome.temperatureUnit ?? ""} disabled={disabled} commit={v => send("temperature", v)} />}
-      {supports("hvac_mode") && <label className="device-mode"><span>{t("Mode")}</span><select aria-label={t("{name} mode", { name: entity.name })} value={entity.state} disabled={disabled} onChange={e => send("hvac_mode", e.target.value)}>{!stringValues(entity.attributes.hvac_modes).includes(entity.state) && <option value={entity.state}>{message(humanizeState(entity.state))}</option>}{stringValues(entity.attributes.hvac_modes).map(mode => <option key={mode} value={mode}>{message(humanizeState(mode))}</option>)}</select></label>}
-    </>}
-    {entity.domain === "cover" && <>
+</>;
+  const hasColorControls = ["color_temp_kelvin", "rgb_color", "white", "effect"].some(action => supports(action as EntityAction));
+  const climateMode = supports("hvac_mode") && <label className="device-mode"><span>{t("Mode")}</span><select aria-label={t("{name} mode", { name: entity.name })} value={entity.state} disabled={disabled} onChange={e => send("hvac_mode", e.target.value)}>{!stringValues(entity.attributes.hvac_modes).includes(entity.state) && <option value={entity.state}>{message(humanizeState(entity.state))}</option>}{stringValues(entity.attributes.hvac_modes).map(mode => <option key={mode} value={mode}>{message(humanizeState(mode))}</option>)}</select></label>;
+  const coverControls = <>
       {supports("position") && <RangeControl key={confirmation?.action === "position" ? "confirming" : "reported"} label={t("Open")} name={entity.name} value={position} min={0} max={100} unit="%" disabled={disabled} commit={v => send("position", v)} />}
       <div className="device-actions">{([{ action: "open_cover", label: t("Open"), Icon: ArrowUp }, { action: "stop_cover", label: t("Stop"), Icon: Square }, { action: "close_cover", label: t("Close"), Icon: ArrowDown }] as const).filter(({ action }) => supports(action)).map(({ action, label, Icon }) => <Button key={action} disabled={disabled} variant="outline" aria-label={`${label} ${entity.name}`} onClick={() => send(action)}><Icon size={16} aria-hidden="true" /><span>{label}</span></Button>)}</div>
-    </>}
+</>;
+  const reported = homeOnline && available(entity);
+  const power = toggle ? <Action label={t("Toggle {value1}", { value1: entity.name })} pressed={entity.state === "on"} onClick={() => send(entity.state === "on" ? "turn_off" : "turn_on")}><Power size={20} /></Action> : undefined;
+  const design = cardDesignFor(entity.domain);
+  const Icon = design?.icon;
+  const on = reported && entity.state === "on";
+  const percent = brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255));
+  const primary = !card ? <>
+    {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={t("Toggle {value1}", { value1: entity.name })} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
+      : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{currentHome.temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
+      : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}
+
+    {dimmer}{colorControls}
+    {entity.domain === "climate" && <>{supports("temperature") && <RangeControl label={t("Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={currentHome.temperatureUnit ?? ""} disabled={disabled} commit={v => send("temperature", v)} />}{climateMode}</>}
+    {entity.domain === "cover" && coverControls}
+  </> : entity.domain === "light" ? <LightCard value={on && percent !== undefined ? `${percent}%` : status} caption={on && percent !== undefined ? status : ""} strength={on ? (percent ?? 100) / 100 : 0} power={power} brightness={dimmer}>
+    {hasColorControls && (variant === "Original" ? colorControls : <More label="Color & effects">{colorControls}</More>)}
+  </LightCard> : entity.domain === "climate" ? <ClimateCard name={entity.name} value={reported ? temperature : undefined} unit={currentHome.temperatureUnit ?? ""}
+    min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? .1}
+    set={supports("temperature") ? value => send("temperature", value) : undefined}
+    caption={reported && currentTemperature !== undefined ? `${status} · ${t("Inside")} ${number(currentTemperature)}${currentHome.temperatureUnit ?? ""}` : status}>
+    {climateMode && (variant === "Super compact" ? <More>{climateMode}</More> : climateMode)}
+  </ClimateCard> : entity.domain === "cover" ? <CoverCard position={reported ? position : undefined}>
+    {showState && <Readout value={status} caption="" />}{coverControls}
+  </CoverCard> : power ? <PowerCard on={on} power={power} value={status} caption="" />
+    : Icon && ["lock", "alarm_control_panel", "siren", "binary_sensor"].includes(entity.domain) ? <SecurityCard icon={entity.domain === "lock" && entity.state === "unlocked" ? Unlock : Icon} value={status} caption="" secure={reported && entity.state === "locked"} />
+    : entity.domain === "media_player" ? <MediaCard title={reported && typeof entity.attributes.media_title === "string" ? entity.attributes.media_title : status} subtitle={reported && typeof entity.attributes.media_artist === "string" ? entity.attributes.media_artist : undefined} caption={status} />
+    : <Readout value={status} unit={reported ? unit : ""} caption="" />;
+  return <CardDisabled.Provider value={disabled}><div className={card ? "dg-card-body command-controller" : "control-stack command-controller"} aria-busy={!!commands[entity.entityId]?.pending}>
+    {primary}
     {entity.domain === "lock" && <>
       <div className="device-actions">{(["lock", "unlock"] as const).filter(action => supports(action) && !(entity.state === "locked" && action === "lock") && !(entity.state === "unlocked" && action === "unlock")).map(action => <Button key={action} variant="outline" disabled={disabled || ["locking", "unlocking", "opening"].includes(entity.state)} aria-label={`${message(humanizeState(action))} ${entity.name}`} onClick={() => setLockAction(action)}>{action === "lock" ? <Lock size={16} /> : <Unlock size={16} />}{message(humanizeState(action))}</Button>)}</div>
       {lockAction && <PinPadModal open disabled={disabled || !supports(lockAction)} onOpenChange={open => { if (!open) setLockAction(undefined); }} title={`${message(humanizeState(lockAction))} ${entity.name}`} description={needsCode(entity, lockAction) ? t("Enter your code to continue.") : t("Confirm to continue.")} codeRequired={needsCode(entity, lockAction)} numeric={entity.attributes.code_format === "number"} onSubmit={code => command(entity.entityId, lockAction, undefined, code)} />}
@@ -104,5 +134,5 @@ export function DeviceControl({ entity }: { entity: Entity }) {
     {entity.domain === "alarm_control_panel" && <Link className="text-link" to="/alarm">{t("Manage alarm")}</Link>}
     <CommandFeedback entityId={entity.entityId} />
     {confirmation && <ConfirmDialog open onOpenChange={open => { if (!open) setConfirmation(undefined); }} title={confirmation.title} description={confirmation.description} destructive={entity.domain === "automation" || entity.domain === "climate"} disabled={disabled || !supports(confirmation.action)} onConfirm={() => command(entity.entityId, confirmation.action, confirmation.value)} />}
-  </div>;
+  </div></CardDisabled.Provider>;
 }

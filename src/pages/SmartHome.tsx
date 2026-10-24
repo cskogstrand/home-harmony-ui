@@ -8,7 +8,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { SceneButtons } from "@/components/HomePanels";
-import { EntityCard } from "@/components/devices/EntityCard";
+import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 export default function SmartHome() {
   const { t, language } = useI18n();
   const { currentHome, homeOnline } = useApp();
@@ -29,7 +29,7 @@ export default function SmartHome() {
     {!!scenes.length && <section className="glow-panel"><PanelHeading title={t("Set the mood")} to="/moods" label={t("Scenes")} /><SceneButtons entities={scenes} /></section>}
     <section><div className="section-heading"><div><h2>{t("Your devices")}</h2></div><div className="flex flex-wrap gap-4"><Link to="/settings#smart-home-visibility" className="text-link">{t("Choose visible devices")}<ArrowUpRight size={17} /></Link><Link to="/areas" className="text-link">{t("View areas")}<ArrowUpRight size={17} /></Link></div></div>
       <div className="filter-row"><button aria-pressed={area === "all"} onClick={() => setArea("all")}>{t("All areas")}</button>{currentHome.areas.map(r => <button key={r.id} aria-pressed={area === r.id} onClick={() => setArea(r.id)}>{r.id === "unassigned" ? t("Unassigned") : r.name}</button>)}</div>
-      <div className="home-device-grid">{visibleDevices.map(entity => <EntityCard key={entity.entityId} entity={entity} />)}</div>
+      <div className="smart-device-grid">{visibleDevices.map(entity => <SmartHomeCard key={entity.entityId} entity={entity} />)}</div>
       {!visibleDevices.length && <div className="glow-panel empty-note"><PlugZap size={32} /><p>{t(!hasDevices ? "No devices available." : area === "all" ? "No devices visible on Smart home." : "No visible devices in this area.")}</p><Link className="text-link" to={hasDevices ? "/settings#smart-home-visibility" : "/settings#connection"}>{t(hasDevices ? "Choose visible devices" : "Configure Home Assistant")}<ArrowUpRight size={17} /></Link></div>}
     </section>
     <div><section className="glow-panel"><PanelHeading title={t("Home settings")} /><div className="home-shortcuts"><Link to="/automations">{t("Automations")}<ArrowUpRight size={18} /></Link><Link to="/history">{t("Home activity")}<ArrowUpRight size={18} /></Link><Link to="/integrations">{t("Integrations")}<ArrowUpRight size={18} /></Link><Link to="/settings">{t("Connection & settings")}<ArrowUpRight size={18} /></Link></div></section></div>

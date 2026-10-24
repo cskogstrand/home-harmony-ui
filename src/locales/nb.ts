@@ -1362,4 +1362,10 @@ export const nb = {
   "Color & effects": "Farge og effekter",
   "Fictional devices. Real interactions. Nothing controls your home.": "Fiktive enheter. Ekte interaksjoner. Ingenting styrer hjemmet ditt.",
   "{count} design": "{count} design",
+  "Card size": "Kortstørrelse",
+  "Card size for {name}": "Kortstørrelse for {name}",
+  "Cards automatically match the entity type. Choose a size for each card; Super compact is the default.": "Kortene tilpasses automatisk til entitetstypen. Velg størrelse for hvert kort; superkompakt er standard.",
+  "Decrease temperature for {name}": "Senk temperaturen for {name}",
+  "Increase temperature for {name}": "Øk temperaturen for {name}",
+  "These reusable designs also power Smart home. Live cards only show controls supported by the device.": "Disse gjenbrukbare designene brukes også i Smarthjem. Kortene viser bare kontroller som enheten støtter.",
 } as const;

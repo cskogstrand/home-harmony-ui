@@ -1,79 +1,23 @@
-import { createContext, useContext, useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
+import { useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Activity, Battery, Columns2, Flame, House, LayoutGrid, LocateFixed, Snowflake, Sun, Volume2, X, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Bell, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, Clock3, CloudSun, Droplets, Fan, Gauge, Hash, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Music2, Pause, Play, Plug, Plus, Power, Radio, RotateCcw, Search, Send, Settings2, ShieldCheck, Siren, SkipBack, SkipForward, SlidersHorizontal, Sparkles, Square, Thermometer, ToggleLeft, Type, Unlock, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap, type LucideIcon } from "lucide-react";
+import { Activity, Battery, Columns2, Flame, House, LayoutGrid, LocateFixed, Snowflake, Sun, Volume2, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CloudSun, Droplets, Fan, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Pause, Play, Plus, Power, Radio, RotateCcw, Search, Send, Settings2, ShieldCheck, Siren, SkipBack, SkipForward, Sparkles, Square, Unlock, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import "./device-gallery.css";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Action, Range, Segments, Choice, Toggle, More, Readout } from "@/components/devices/CardControls";
+import { CardDisabled as DemoDisabled, CardPresentation, cardVariants, type CardVariant as Variant } from "@/components/devices/card-presentation";
+import { CardFrame } from "@/components/devices/CardFrame";
+import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard } from "@/components/devices/CardLayouts";
+import { cardDesigns, type CardDesign } from "@/components/devices/card-designs";
 
 type DemoStatus = "Ready" | "Unavailable" | "Waiting" | "Command failed";
-const DemoDisabled = createContext(false);
-const variants = ["Original", "Compact", "Super compact"] as const;
-type Variant = typeof variants[number];
-const CardPresentation = createContext<{ variant: Variant; visible: boolean; title: string }>({ variant: "Original", visible: true, title: "" });
+const variants = Object.values(cardVariants);
 const views = ["Compare", "Super compact", "Compact", "Original"] as const;
 const groups = ["All cards", "Comfort", "Security", "Media", "Appliances", "Insight", "Helpers"] as const;
 type Group = typeof groups[number];
-type Example = { id: string; title: string; subtitle: string; group: Group; domains: string[]; icon: LucideIcon; tint: string; content: () => ReactNode };
-
-function Action({ children, onClick, label, pressed, disabled, primary = false, compactIcon: Icon }: { children: ReactNode; onClick: () => void; label?: string; pressed?: boolean; disabled?: boolean; primary?: boolean; compactIcon?: LucideIcon }) {
-  const blocked = useContext(DemoDisabled);
-  const compact = useContext(CardPresentation).variant !== "Original";
-  const { message: t } = useI18n();
-  const button = <Button type="button" className={`dg-action${compact && Icon ? " dg-icon-action" : ""}`} variant={primary ? "default" : "outline"} disabled={blocked || disabled} aria-label={label && t(label)} aria-pressed={pressed} onClick={onClick}>{compact && Icon ? <Icon size={20} aria-hidden="true" /> : children}</Button>;
-  return compact && label ? <Tooltip><TooltipTrigger asChild>{button}</TooltipTrigger><TooltipContent>{t(label)}</TooltipContent></Tooltip> : button;
-}
-
-function Range({ label, value, set, min = 0, max = 100, step = 1, unit = "%", icon: Icon }: { label: string; value: number; set: (value: number) => void; min?: number; max?: number; step?: number; unit?: string; icon?: LucideIcon }) {
-  const { message: t, number } = useI18n();
-  const disabled = useContext(DemoDisabled);
-  const compact = useContext(CardPresentation).variant !== "Original";
-  if (compact && Icon) return <div className="dg-range dg-inline-range"><span title={t(label)}><Icon size={20} aria-hidden="true" /><span className="sr-only">{t(label)}</span></span><Slider min={min} max={max} step={step} value={[value]} disabled={disabled} onValueChange={([next]) => set(next)} aria-label={t(label)} aria-valuetext={`${number(value)}${unit}`} /><output>{number(value)}{unit}</output></div>;
-  return <div className="dg-range"><div><span>{t(label)}</span><output>{number(value)}{unit}</output></div><Slider min={min} max={max} step={step} value={[value]} disabled={disabled} onValueChange={([next]) => set(next)} aria-label={t(label)} aria-valuetext={`${number(value)}${unit}`} /></div>;
-}
-
-function Segments({ label, options, value, set, icons }: { label: string; options: string[]; value: string; set: (value: string) => void; icons?: Record<string, LucideIcon> }) {
-  const { message: t } = useI18n();
-  return <div className="dg-segments" role="group" aria-label={t(label)}>{options.map(option => <Action key={option} label={icons?.[option] ? option : undefined} compactIcon={icons?.[option]} pressed={value === option} onClick={() => set(option)}>{t(option)}</Action>)}</div>;
-}
-
-function Choice({ label, options, value, set }: { label: string; options: string[]; value: string; set: (value: string) => void }) {
-  const { message: t } = useI18n();
-  const disabled = useContext(DemoDisabled);
-  return <label className="dg-choice"><span>{t(label)}</span><select disabled={disabled} value={value} onChange={e => set(e.target.value)}>{options.map(option => <option key={option} value={option}>{t(option)}</option>)}</select></label>;
-}
-
-function Toggle({ label, on, set }: { label: string; on: boolean; set: (on: boolean) => void }) {
-  const { message: t } = useI18n();
-  const disabled = useContext(DemoDisabled);
-  return <label className="dg-toggle"><span>{t(label)}</span><Switch aria-label={t(label)} checked={on} disabled={disabled} onCheckedChange={set} /></label>;
-}
-
-function More({ children, label = "More controls" }: { children: ReactNode; label?: string }) {
-  const { message: t } = useI18n();
-  const { variant, visible, title } = useContext(CardPresentation);
-  const compact = variant !== "Original";
-  const [open, setOpen] = useState(false);
-  useEffect(() => { if (!visible) setOpen(false); }, [visible]);
-  if (variant === "Super compact") return <Popover open={open && visible} onOpenChange={setOpen}>
-    <PopoverTrigger asChild><Button type="button" variant="ghost" className="dg-adjust-trigger" aria-label={t(label)} title={t(label)}><SlidersHorizontal size={18} aria-hidden="true" /></Button></PopoverTrigger>
-    <PopoverContent align="end" className="device-gallery dg-card dg-compact dg-control-popover" aria-label={t("{name} controls", { name: title })}>
-      <div className="dg-popover-heading"><strong>{title}</strong><Button type="button" variant="ghost" size="icon" aria-label={t("Close controls")} onClick={() => setOpen(false)}><X size={18} /></Button></div>
-      <div className="dg-popover-controls">{children}</div>
-    </PopoverContent>
-  </Popover>;
-  return <details className="dg-more"><summary>{compact && <SlidersHorizontal size={16} aria-hidden="true" />}{t(compact && label === "More controls" ? "Adjust" : label)}<ChevronDown size={16} aria-hidden="true" /></summary><div>{children}</div></details>;
-}
-
-function Readout({ value, unit, caption }: { value: string | number; unit?: string; caption: string }) {
-  const { message: t, number } = useI18n();
-  return <div className="dg-readout"><strong>{typeof value === "number" ? number(value) : t(value)}<small>{unit}</small></strong><span>{t(caption)}</span></div>;
-}
+type Example = CardDesign & { content: () => ReactNode };
 
 function SafeAction({ label, onConfirm, children }: { label: string; onConfirm: () => void; children?: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -89,12 +33,11 @@ function LightDemo() {
   const disabled = useContext(DemoDisabled);
   const colorControls = <><Segments label="Light color mode" options={["White", "Color"]} value={mode} set={setMode} />
     {mode === "White" ? <Range label="Warmth" value={kelvin} set={setKelvin} min={2200} max={6500} step={100} unit=" K" /> : <div className="dg-colors">{["#ffc978", "#ff9b9b", "#c2abff", "#8cbfff", "#90dccc"].map(c => <button key={c} disabled={disabled} style={{ background: c }} aria-label={`${t("Set color")} ${c}`} aria-pressed={color === c} onClick={() => setColor(c)}>{color === c && <Check size={20} />}</button>)}<label className="dg-custom-color"><span className="sr-only">{t("Custom color")}</span><input type="color" disabled={disabled} value={color} onChange={e => setColor(e.target.value)} /></label></div>}</>;
-  return <><div className="dg-light-well" style={{ "--lamp-color": mode === "White" ? `hsl(${35 + (kelvin - 2200) / 90} 85% ${70 + (kelvin - 2200) / 180}%)` : color, "--lamp-strength": on ? brightness / 100 : 0 } as CSSProperties}>
-    <Lightbulb size={54} strokeWidth={1.1} aria-hidden="true" /><div><strong>{on ? `${brightness}%` : t("Off")}</strong><span>{t(compact ? (on ? "On" : "Off") : mode === "White" ? "A little warmth goes a long way." : "A color for every mood.")}</span></div>
-    <Action label="Toggle demo light" pressed={on} onClick={() => setOn(!on)}><Power size={20} /></Action>
-  </div><Range label="Brightness" icon={Sun} value={brightness} min={1} set={v => { setBrightness(v); setOn(true); }} />
-    {!compact && colorControls}
-    <More label={compact ? "Color & effects" : "More controls"}>{compact && colorControls}<Choice label="Light effect" options={["None", "Candle", "Color loop"]} value={effect} set={setEffect} /><p>{t("Dimmable, tunable white and color lights share this card.")}</p></More></>;
+  return <LightCard value={on ? `${brightness}%` : t("Off")} caption={t(compact ? (on ? "On" : "Off") : mode === "White" ? "A little warmth goes a long way." : "A color for every mood.")} color={mode === "White" ? `hsl(${35 + (kelvin - 2200) / 90} 85% ${70 + (kelvin - 2200) / 180}%)` : color} strength={on ? brightness / 100 : 0}
+    power={<Action label="Toggle demo light" pressed={on} onClick={() => setOn(!on)}><Power size={20} /></Action>}
+    brightness={<Range label="Brightness" icon={Sun} value={brightness} min={1} set={v => { setBrightness(v); setOn(true); }} />}>
+    {!compact && colorControls}<More label={compact ? "Color & effects" : "More controls"}>{compact && colorControls}<Choice label="Light effect" options={["None", "Candle", "Color loop"]} value={effect} set={setEffect} /><p>{t("Dimmable, tunable white and color lights share this card.")}</p></More>
+  </LightCard>;
 }
 
 function ClimateDemo() {
@@ -102,25 +45,25 @@ function ClimateDemo() {
   const { message: t } = useI18n();
   const [temp, setTemp] = useState(22), [mode, setMode] = useState("Heat"), [fan, setFan] = useState("Auto"), [preset, setPreset] = useState("Comfort"), [swing, setSwing] = useState(false);
   const modes = <Segments label="Climate mode" icons={{ Off: Power, Heat: Flame, Cool: Snowflake }} options={["Off", "Heat", "Cool", "Auto"]} value={mode} set={setMode} />;
-  return <><div className="dg-thermostat" style={{ "--dial": `${(temp - 16) / 14 * 270}deg` } as CSSProperties}><div><span>{t("Target temperature")}</span><strong>{temp.toFixed(1)}<small>°</small></strong><span>{t(mode === "Off" ? "System off" : mode === "Cool" ? "Cooling · room 24°" : "Heating · room 20.5°")}</span></div></div>
-    <div className="dg-stepper"><Action label="Decrease temperature" disabled={temp <= 16} onClick={() => setTemp(temp - .5)}><Minus /></Action><span>{t("Target")}</span><Action label="Increase temperature" disabled={temp >= 30} onClick={() => setTemp(temp + .5)}><Plus /></Action></div>
-    {!superCompact && modes}<More>{superCompact && modes}<Choice label="Fan mode" options={["Auto", "Low", "Medium", "High"]} value={fan} set={setFan} /><Choice label="Preset" options={["Comfort", "Eco", "Away", "Sleep"]} value={preset} set={setPreset} /><Toggle label="Swing" on={swing} set={setSwing} /></More></>;
+  return <ClimateCard value={temp} unit="°" min={16} max={30} step={.5} caption={t(mode === "Off" ? "System off" : mode === "Cool" ? "Cooling · room 24°" : "Heating · room 20.5°")} set={setTemp}>
+    {!superCompact && modes}<More>{superCompact && modes}<Choice label="Fan mode" options={["Auto", "Low", "Medium", "High"]} value={fan} set={setFan} /><Choice label="Preset" options={["Comfort", "Eco", "Away", "Sleep"]} value={preset} set={setPreset} /><Toggle label="Swing" on={swing} set={setSwing} /></More>
+  </ClimateCard>;
 }
 
 function CoverDemo() {
   const { message: t } = useI18n();
   const [position, setPosition] = useState(65), [tilt, setTilt] = useState(0), [stopped, setStopped] = useState(false), [kind, setKind] = useState("Blinds");
   const set = (value: number) => { setPosition(value); setStopped(false); };
-  return <><div className="dg-window" aria-hidden="true"><div className="dg-window-light" /><div className="dg-slats" style={{ height: `${100 - position}%`, "--tilt": `${tilt / 12}px` } as CSSProperties}>{Array.from({ length: 10 }, (_, i) => <i key={i} />)}</div></div>
+  return <CoverCard position={position} tilt={tilt}>
     <Range label="Open position" value={position} set={set} /><div className="dg-actions"><Action label="Close" compactIcon={ArrowDown} onClick={() => set(0)}><ArrowDown size={17} />{t("Close")}</Action><Action label={stopped ? "Stopped" : "Stop"} compactIcon={Square} pressed={stopped} onClick={() => setStopped(true)}><Square size={14} />{t(stopped ? "Stopped" : "Stop")}</Action><Action label="Open" compactIcon={ArrowUp} onClick={() => set(100)}><ArrowUp size={17} />{t("Open")}</Action></div>
-    <More><Range label="Slat tilt" value={tilt} set={setTilt} /><Choice label="Cover type" options={["Blinds", "Curtains", "Garage door", "Awning"]} value={kind} set={setKind} /><p>{t("Garage doors and gates would ask for confirmation before moving.")}</p></More></>;
+    <More><Range label="Slat tilt" value={tilt} set={setTilt} /><Choice label="Cover type" options={["Blinds", "Curtains", "Garage door", "Awning"]} value={kind} set={setKind} /><p>{t("Garage doors and gates would ask for confirmation before moving.")}</p></More></CoverCard>;
 }
 
 function SwitchDemo() {
   const compact = useContext(CardPresentation).variant !== "Original";
   const { message: t } = useI18n();
   const [on, setOn] = useState(true), [restore, setRestore] = useState("Previous state");
-  return <><div className={`dg-power-disc ${on ? "is-on" : ""}`}><Action label="Toggle demo outlet" pressed={on} onClick={() => setOn(!on)}><Power size={46} strokeWidth={1.3} /></Action></div><Readout value={on ? 86 : 0} unit=" W" caption={on ? "On · drawing power" : "Off · no power draw"} />{!compact && <Toggle label="Outlet power" on={on} set={setOn} />}<More><div className="dg-facts"><span>{t("Today")}<b>0.42 kWh</b></span><span>{t("Voltage")}<b>230 V</b></span></div><Choice label="After power loss" options={["Previous state", "Always off", "Always on"]} value={restore} set={setRestore} /></More></>;
+  return <PowerCard on={on} power={<Action label="Toggle demo outlet" pressed={on} onClick={() => setOn(!on)}><Power size={46} strokeWidth={1.3} /></Action>} value={on ? 86 : 0} unit=" W" caption={on ? "On · drawing power" : "Off · no power draw"}>{!compact && <Toggle label="Outlet power" on={on} set={setOn} />}<More><div className="dg-facts"><span>{t("Today")}<b>0.42 kWh</b></span><span>{t("Voltage")}<b>230 V</b></span></div><Choice label="After power loss" options={["Previous state", "Always off", "Always on"]} value={restore} set={setRestore} /></More></PowerCard>;
 }
 
 function FanDemo() {
@@ -147,20 +90,20 @@ function WaterHeaterDemo() {
 function LockDemo() {
   const { message: t } = useI18n();
   const [locked, setLocked] = useState(true), [auto, setAuto] = useState(true);
-  return <><div className={`dg-security-emblem ${locked ? "is-secure" : ""}`}>{locked ? <Lock size={60} strokeWidth={1.2} /> : <Unlock size={60} strokeWidth={1.2} />}</div><Readout value={locked ? "Locked" : "Unlocked"} caption="Example front door" /><SafeAction label={locked ? "Unlock demo door" : "Lock demo door"} onConfirm={() => setLocked(!locked)} /><More><Toggle label="Auto-lock" on={auto} set={setAuto} /><p>{t("Door closed · battery 86%")}</p></More></>;
+  return <SecurityCard icon={locked ? Lock : Unlock} secure={locked} value={locked ? "Locked" : "Unlocked"} caption="Example front door"><SafeAction label={locked ? "Unlock demo door" : "Lock demo door"} onConfirm={() => setLocked(!locked)} /><More><Toggle label="Auto-lock" on={auto} set={setAuto} /><p>{t("Door closed · battery 86%")}</p></More></SecurityCard>;
 }
 
 function AlarmDemo() {
   const { message: t } = useI18n();
   const [mode, setMode] = useState("Disarmed"), [next, setNext] = useState("Home");
-  return <><div className="dg-security-emblem is-secure"><ShieldCheck size={65} strokeWidth={1.1} /></div><Readout value={mode} caption="All demo sensors are clear" /><Segments label="Arm mode" options={["Home", "Away", "Night"]} value={next} set={setNext} /><SafeAction label={mode === "Disarmed" ? "Arm demo alarm" : "Disarm demo alarm"} onConfirm={() => setMode(mode === "Disarmed" ? next : "Disarmed")} /><More><p>{t("Entry delay: 30 seconds. A real alarm may require a PIN.")}</p><div className="dg-facts"><span>{t("Doors")}<b>4 / 4</b></span><span>{t("Windows")}<b>6 / 6</b></span></div></More></>;
+  return <SecurityCard icon={ShieldCheck} secure value={mode} caption="All demo sensors are clear"><Segments label="Arm mode" options={["Home", "Away", "Night"]} value={next} set={setNext} /><SafeAction label={mode === "Disarmed" ? "Arm demo alarm" : "Disarm demo alarm"} onConfirm={() => setMode(mode === "Disarmed" ? next : "Disarmed")} /><More><p>{t("Entry delay: 30 seconds. A real alarm may require a PIN.")}</p><div className="dg-facts"><span>{t("Doors")}<b>4 / 4</b></span><span>{t("Windows")}<b>6 / 6</b></span></div></More></SecurityCard>;
 }
 
 function SirenDemo() {
   const superCompact = useContext(CardPresentation).variant === "Super compact";
   const [on, setOn] = useState(false), [volume, setVolume] = useState(60), [tone, setTone] = useState("Chime");
   const soundControls = <><Choice label="Tone" options={["Chime", "Alarm", "Warning"]} value={tone} set={setTone} /><Range label="Siren volume" icon={Volume2} value={volume} set={setVolume} /></>;
-  return <><div className="dg-security-emblem"><Siren size={64} strokeWidth={1.2} /></div><Readout value={on ? "Sounding" : "Silent"} caption="Silent visual simulation" />{superCompact ? <More>{soundControls}</More> : soundControls}<SafeAction label={on ? "Stop demo siren" : "Test demo siren"} onConfirm={() => setOn(!on)} /></>;
+  return <SecurityCard icon={Siren} value={on ? "Sounding" : "Silent"} caption="Silent visual simulation">{superCompact ? <More>{soundControls}</More> : soundControls}<SafeAction label={on ? "Stop demo siren" : "Test demo siren"} onConfirm={() => setOn(!on)} /></SecurityCard>;
 }
 
 function ValveDemo() {
@@ -175,7 +118,7 @@ function MediaDemo() {
   const [playing, setPlaying] = useState(true), [track, setTrack] = useState(0), [volume, setVolume] = useState(35), [muted, setMuted] = useState(false), [source, setSource] = useState("Demo library"), [shuffle, setShuffle] = useState(false), [repeat, setRepeat] = useState("Off"), [seek, setSeek] = useState(74);
   const tracks = ["Soft focus", "A slower morning", "Blue hour"];
   const playbackPosition = <Range label="Playback position" value={seek} max={240} unit=" s" set={setSeek} />;
-  return <><div className="dg-record"><div className="dg-vinyl" data-playing={playing}><i /></div><div><strong>{t(tracks[track])}</strong><span>{t("Afterglow sessions")}</span><small>{t("Fictional track · no audio")}</small></div></div>{!superCompact && playbackPosition}<div className="dg-transport"><Action label="Previous track" onClick={() => { setTrack((track + 2) % 3); setSeek(0); }}><SkipBack size={21} /></Action><Action primary label={playing ? "Pause playback" : "Start playback"} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} /> : <Play size={24} />}</Action><Action label="Next track" onClick={() => { setTrack((track + 1) % 3); setSeek(0); }}><SkipForward size={21} /></Action></div><Range label="Volume" icon={Volume2} value={volume} set={setVolume} /><More>{superCompact && playbackPosition}<Toggle label="Mute" on={muted} set={setMuted} /><Choice label="Media source" options={["Demo library", "Radio", "HDMI"]} value={source} set={setSource} /><Toggle label="Shuffle" on={shuffle} set={setShuffle} /><Choice label="Repeat" options={["Off", "One", "All"]} value={repeat} set={setRepeat} /></More></>;
+  return <MediaCard title={t(tracks[track])} subtitle={t("Afterglow sessions")} caption={t("Fictional track · no audio")}>{!superCompact && playbackPosition}<div className="dg-transport"><Action label="Previous track" onClick={() => { setTrack((track + 2) % 3); setSeek(0); }}><SkipBack size={21} /></Action><Action primary label={playing ? "Pause playback" : "Start playback"} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} /> : <Play size={24} />}</Action><Action label="Next track" onClick={() => { setTrack((track + 1) % 3); setSeek(0); }}><SkipForward size={21} /></Action></div><Range label="Volume" icon={Volume2} value={volume} set={setVolume} /><More>{superCompact && playbackPosition}<Toggle label="Mute" on={muted} set={setMuted} /><Choice label="Media source" options={["Demo library", "Radio", "HDMI"]} value={source} set={setSource} /><Toggle label="Shuffle" on={shuffle} set={setShuffle} /><Choice label="Repeat" options={["Off", "One", "All"]} value={repeat} set={setRepeat} /></More></MediaCard>;
 }
 
 function RemoteDemo() {
@@ -321,59 +264,58 @@ function MessageDemo({ ai = false }: { ai?: boolean } = {}) {
   return <><form className="dg-form" onSubmit={e => { e.preventDefault(); setResult(true); }}><label>{t(ai ? "Demo prompt" : "Demo notification")}<textarea disabled={disabled} required maxLength={240} value={draft} onChange={e => { setDraft(e.target.value); setResult(false); }} /></label><Button disabled={disabled} type="submit">{ai ? <Wand2 size={17} /> : <Send size={17} />}{t(ai ? "Preview demo result" : "Preview notification")}</Button></form>{result && <p className="dg-message-result" role="status">{ai ? t("Example response: the demo home is comfortable, the doors are locked and the air is clear.") : draft}</p>}<p>{t(ai ? "Canned example only. No AI service is called." : "Preview only. Nothing is sent to anyone.")}</p></>;
 }
 
-const examples: Example[] = [
-  { id: "light", title: "A softer glow", subtitle: "Light", group: "Comfort", domains: ["light"], icon: Lightbulb, tint: "amber", content: LightDemo },
-  { id: "climate", title: "Just right", subtitle: "Climate", group: "Comfort", domains: ["climate"], icon: Thermometer, tint: "coral", content: ClimateDemo },
-  { id: "cover", title: "Let the day in", subtitle: "Cover", group: "Comfort", domains: ["cover"], icon: Blinds, tint: "blue", content: CoverDemo },
-  { id: "media_player", title: "Your kind of quiet", subtitle: "Media player", group: "Media", domains: ["media_player"], icon: Music2, tint: "violet", content: MediaDemo },
-  { id: "lock", title: "Peace of mind", subtitle: "Lock", group: "Security", domains: ["lock"], icon: Lock, tint: "mint", content: LockDemo },
-  { id: "vacuum", title: "A little less to do", subtitle: "Vacuum", group: "Appliances", domains: ["vacuum"], icon: Vacuum, tint: "blue", content: RobotDemo },
-  { id: "switch", title: "Power, on your terms", subtitle: "Switch & toggle", group: "Comfort", domains: ["switch", "input_boolean"], icon: Plug, tint: "amber", content: SwitchDemo },
-  { id: "fan", title: "Room to breathe", subtitle: "Fan", group: "Comfort", domains: ["fan"], icon: Fan, tint: "mint", content: FanDemo },
-  { id: "humidifier", title: "A better balance", subtitle: "Humidifier", group: "Comfort", domains: ["humidifier"], icon: Droplets, tint: "blue", content: HumidityDemo },
-  { id: "water_heater", title: "Warm water, ready", subtitle: "Water heater", group: "Comfort", domains: ["water_heater"], icon: Waves, tint: "coral", content: WaterHeaterDemo },
-  { id: "alarm_control_panel", title: "Looking after home", subtitle: "Alarm", group: "Security", domains: ["alarm_control_panel"], icon: ShieldCheck, tint: "mint", content: AlarmDemo },
-  { id: "siren", title: "Make yourself heard", subtitle: "Siren", group: "Security", domains: ["siren"], icon: Siren, tint: "coral", content: SirenDemo },
-  { id: "valve", title: "Go with the flow", subtitle: "Valve", group: "Security", domains: ["valve"], icon: Droplets, tint: "blue", content: ValveDemo },
-  { id: "camera", title: "A glance outside", subtitle: "Camera", group: "Media", domains: ["camera"], icon: Camera, tint: "blue", content: CameraDemo },
-  { id: "remote", title: "One less remote", subtitle: "Remote & signals", group: "Media", domains: ["remote", "infrared", "radio_frequency"], icon: Radio, tint: "violet", content: RemoteDemo },
-  { id: "image", title: "The bigger picture", subtitle: "Image", group: "Media", domains: ["image"], icon: Image, tint: "mint", content: ImageDemo },
-  { id: "lawn_mower", title: "Weekends, reclaimed", subtitle: "Lawn mower", group: "Appliances", domains: ["lawn_mower"], icon: Leaf, tint: "mint", content: () => <RobotDemo mower /> },
-  { id: "sensor", title: "The little details", subtitle: "Sensor", group: "Insight", domains: ["sensor"], icon: Activity, tint: "blue", content: SensorDemo },
-  { id: "air_quality", title: "A breath of fresh air", subtitle: "Air quality", group: "Insight", domains: ["air_quality"], icon: Wind, tint: "mint", content: () => <SensorDemo air /> },
-  { id: "binary_sensor", title: "Good to know", subtitle: "Binary sensor", group: "Insight", domains: ["binary_sensor"], icon: ShieldCheck, tint: "mint", content: BinaryDemo },
-  { id: "weather", title: "Whatever the weather", subtitle: "Weather", group: "Insight", domains: ["weather"], icon: CloudSun, tint: "amber", content: WeatherDemo },
-  { id: "event", title: "In the moment", subtitle: "Event", group: "Insight", domains: ["event"], icon: Zap, tint: "violet", content: EventDemo },
-  { id: "presence", title: "Here, there, home", subtitle: "Presence & location", group: "Insight", domains: ["person", "device_tracker", "zone", "geo_location"], icon: MapPin, tint: "blue", content: PresenceDemo },
-  { id: "scene", title: "Set the feeling", subtitle: "Scene", group: "Helpers", domains: ["scene"], icon: Sparkles, tint: "violet", content: SceneDemo },
-  { id: "script", title: "A few steps ahead", subtitle: "Script", group: "Helpers", domains: ["script"], icon: Wand2, tint: "violet", content: ScriptDemo },
-  { id: "automation", title: "One thing, then another", subtitle: "Automation", group: "Helpers", domains: ["automation"], icon: Wand2, tint: "amber", content: AutomationDemo },
-  { id: "timer", title: "Take your time", subtitle: "Timer", group: "Helpers", domains: ["timer"], icon: Clock3, tint: "blue", content: TimerDemo },
-  { id: "counter", title: "Make it count", subtitle: "Counter", group: "Helpers", domains: ["counter"], icon: Hash, tint: "violet", content: () => <HelperDemo kind="counter" /> },
-  { id: "number", title: "Fine-tune it", subtitle: "Number", group: "Helpers", domains: ["number", "input_number"], icon: Gauge, tint: "coral", content: () => <HelperDemo kind="number" /> },
-  { id: "select", title: "A choice that fits", subtitle: "Select", group: "Helpers", domains: ["select", "input_select"], icon: SlidersHorizontal, tint: "mint", content: () => <HelperDemo kind="select" /> },
-  { id: "text", title: "In your own words", subtitle: "Text", group: "Helpers", domains: ["text", "input_text"], icon: Type, tint: "blue", content: () => <HelperDemo kind="text" /> },
-  { id: "datetime", title: "Right on time", subtitle: "Date & time", group: "Helpers", domains: ["date", "time", "datetime", "input_datetime"], icon: CalendarDays, tint: "violet", content: () => <HelperDemo kind="datetime" /> },
-  { id: "button", title: "One small action", subtitle: "Button", group: "Helpers", domains: ["button", "input_button"], icon: ToggleLeft, tint: "amber", content: () => <HelperDemo kind="button" /> },
-  { id: "calendar", title: "Something to look forward to", subtitle: "Calendar", group: "Helpers", domains: ["calendar"], icon: CalendarDays, tint: "blue", content: CalendarDemo },
-  { id: "todo", title: "Off your mind", subtitle: "To-do list", group: "Helpers", domains: ["todo"], icon: Check, tint: "mint", content: TodoDemo },
-  { id: "update", title: "A fresh start", subtitle: "Update", group: "Helpers", domains: ["update"], icon: Upload, tint: "blue", content: UpdateDemo },
-  { id: "voice", title: "Just say the word", subtitle: "Voice & Assist", group: "Helpers", domains: ["assist_satellite", "conversation", "stt", "tts", "wake_word"], icon: Mic, tint: "violet", content: VoiceDemo },
-  { id: "ai_task", title: "A little assistance", subtitle: "AI task", group: "Helpers", domains: ["ai_task"], icon: Wand2, tint: "violet", content: () => <MessageDemo ai /> },
-  { id: "notify", title: "A gentle heads-up", subtitle: "Notification", group: "Helpers", domains: ["notify"], icon: Bell, tint: "amber", content: MessageDemo },
-];
+const demoContents: Record<string, () => ReactNode> = {
+  light: LightDemo,
+  climate: ClimateDemo,
+  cover: CoverDemo,
+  media_player: MediaDemo,
+  lock: LockDemo,
+  vacuum: RobotDemo,
+  switch: SwitchDemo,
+  fan: FanDemo,
+  humidifier: HumidityDemo,
+  water_heater: WaterHeaterDemo,
+  alarm_control_panel: AlarmDemo,
+  siren: SirenDemo,
+  valve: ValveDemo,
+  camera: CameraDemo,
+  remote: RemoteDemo,
+  image: ImageDemo,
+  lawn_mower: () => <RobotDemo mower />,
+  sensor: SensorDemo,
+  air_quality: () => <SensorDemo air />,
+  binary_sensor: BinaryDemo,
+  weather: WeatherDemo,
+  event: EventDemo,
+  presence: PresenceDemo,
+  scene: SceneDemo,
+  script: ScriptDemo,
+  automation: AutomationDemo,
+  timer: TimerDemo,
+  counter: () => <HelperDemo kind="counter" />,
+  number: () => <HelperDemo kind="number" />,
+  select: () => <HelperDemo kind="select" />,
+  text: () => <HelperDemo kind="text" />,
+  datetime: () => <HelperDemo kind="datetime" />,
+  button: () => <HelperDemo kind="button" />,
+  calendar: CalendarDemo,
+  todo: TodoDemo,
+  update: UpdateDemo,
+  voice: VoiceDemo,
+  ai_task: () => <MessageDemo ai />,
+  notify: MessageDemo,
+};
+const examples: Example[] = cardDesigns.map(design => ({ ...design, content: demoContents[design.id] }));
 
 function DemoCard({ example, variant, visible, status, retry }: { example: Example; variant: Variant; visible: boolean; status: DemoStatus; retry: () => void }) {
   const compact = variant !== "Original";
   const { message: t } = useI18n();
-  const id = useId(), Icon = example.icon, Content = example.content;
+  const Content = example.content;
   const disabled = status !== "Ready";
-  return <article className={`dg-card dg-${example.tint}${compact ? " dg-compact" : ""}${variant === "Super compact" ? " dg-supercompact" : ""}`} aria-labelledby={id} data-demo-card={example.id} data-variant={variant}>
-    <header className="dg-card-header"><div className="dg-card-icon"><Icon size={22} strokeWidth={1.7} aria-hidden="true" /></div><div><h2 id={id}>{t(compact ? example.subtitle : example.title)}</h2>{!compact && <p>{t(example.subtitle)}</p>}</div></header>
-    <CardPresentation.Provider value={{ variant, visible, title: t(example.subtitle) }}><DemoDisabled.Provider value={disabled}><div className={`dg-card-body ${disabled ? "dg-disabled" : ""}`} aria-busy={status === "Waiting"}><Content /></div></DemoDisabled.Provider></CardPresentation.Provider>
+  return <CardFrame design={example} title={t(compact ? example.subtitle : example.title)} subtitle={!compact ? t(example.subtitle) : undefined} variant={variant} visible={visible} disabled={disabled} demo footer={!compact ? example.domains.join(" · ") : undefined}>
+    <div className={`dg-card-body ${disabled ? "dg-disabled" : ""}`} aria-busy={status === "Waiting"}><Content /></div>
     {disabled && <div className="dg-state-message" role={status === "Command failed" ? "alert" : "status"}><strong>{t(status)}</strong><p>{t(status === "Unavailable" ? "Device unavailable. Controls keep their last known values." : status === "Waiting" ? "Waiting for the demo device to respond." : "The demo command failed. Your settings are unchanged.")}</p><Button variant="outline" onClick={retry}>{t(status === "Command failed" ? "Retry demo" : "Restore demo")}</Button></div>}
-    {!compact && <footer className="dg-card-footer"><span>{example.domains.join(" · ")}</span></footer>}
-  </article>;
+  </CardFrame>;
 }
 
 export default function DeviceGallery() {
@@ -392,6 +334,6 @@ export default function DeviceGallery() {
     <div className="dg-filter-row"><div className="dg-filters" role="group" aria-label={t("Device families")}>{groups.map(value => <button key={value} aria-pressed={group === value} onClick={() => setGroup(value)}>{t(value)}</button>)}</div><span role="status">{t(count === 1 ? "{count} design" : "{count} designs", { count })}</span></div>
     <div className="dg-comparisons" data-view={view} key={version}>{examples.map(example => <section className="dg-pair" key={example.id} hidden={!visible(example)} aria-label={t("{name} comparison", { name: t(example.subtitle) })}>{variants.map(variant => <div className="dg-variant" key={variant} hidden={view !== "Compare" && view !== variant}><p className="dg-version-label">{t(variant)}</p><DemoCard example={example} variant={variant} visible={visible(example) && (view === "Compare" || view === variant)} status={status} retry={() => setStatus("Ready")} /></div>)}</section>)}</div>
     {!count && <div className="dg-empty"><Search size={30} /><h2>{t("No matching designs")}</h2><p>{t("Try a device type such as light, timer or camera.")}</p><Button variant="outline" onClick={() => { setSearch(""); setGroup("All cards"); }}>{t("Clear filters")}</Button></div>}
-    <div className="dg-endnote"><CircleHelp size={19} /><p>{t("These are capability-rich design examples. Actual controls will follow what each device supports when we integrate them.")}</p></div>
+    <div className="dg-endnote"><CircleHelp size={19} /><p>{t("These reusable designs also power Smart home. Live cards only show controls supported by the device.")}</p></div>
   </div></TooltipProvider>;
 }

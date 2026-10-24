@@ -29,17 +29,17 @@ const url = "http://ha.local:8123";
 it("keeps legacy visibility migratable and starts new configurations with no enabled entities", () => {
   const config = emptyConfiguration();
   const { smartHome, ...oldSettings } = config.settings;
-  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [] });
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [], cardDensities: {} });
   const read = (smartHome: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, smartHome } }));
   expect(smartHome.knownEntities).toEqual([]);
-  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ hiddenEntities: [], hiddenDevices: ["example-device"] });
+  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ hiddenEntities: [], hiddenDevices: ["example-device"], cardDensities: {} });
   for (const invalid of [{ hiddenDevices: "device" }, { hiddenEntities: [1] }, { knownEntities: [1] }, { knownEntities: [""] }, { knownEntities: "entity" }, { hiddenEntities: [""] }, { unknown: [] }, null]) expect(() => read(invalid)).toThrow();
 });
 
 it("shares smart home visibility across screens and restores it from backups", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  const smartHome = { hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"], knownEntities: ["home|example-entity", "home|example-light"] };
+  const smartHome = { cardDensities: {}, hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"], knownEntities: ["home|example-entity", "home|example-light"] };
   a.updateSettings(p => ({ ...p, smartHome }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
@@ -50,6 +50,26 @@ it("shares smart home visibility across screens and restores it from backups", a
   await b.replace(backup);
   await a.refresh();
   expect(a.getSnapshot().config.settings.smartHome).toEqual(smartHome);
+});
+
+it("validates per-card density and shares it across screens and backups without changing visibility", async () => {
+  const config = emptyConfiguration();
+  const read = (cardDensities: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, smartHome: { ...config.settings.smartHome, cardDensities } } }));
+  expect(config.settings.smartHome.cardDensities).toEqual({});
+  expect(read({ "home|example": "supercompact" }).settings.smartHome.cardDensities).toEqual({ "home|example": "supercompact" });
+  for (const invalid of [{ "home|example": "large" }, { "home|example": true }, { "": "compact" }, { constructor: "compact" }, [], null]) expect(() => read(invalid)).toThrow();
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, smartHome: { ...p.smartHome, cardDensities: { "home|example": "compact", "home|other": "original" } } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.smartHome.cardDensities).toEqual({ "home|example": "compact", "home|other": "original" });
+  expect(backup.settings.smartHome.knownEntities).toEqual([]);
+  await b.replace(config);
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.smartHome).toEqual(backup.settings.smartHome);
 });
 
 it("preserves the current dashboard for older backups and validates section choices", () => {

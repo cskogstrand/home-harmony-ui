@@ -3,7 +3,7 @@ import { createContext, useContext } from "react";
 import { z } from "zod";
 import { getISOWeek } from "date-fns";
 import type { CalendarEvent } from "@/types/api";
-import { calendarSettingsSchema, eventSchema, itemSchema, memberSchema, type Configuration, type Planner, type TimetableSettings } from "../../shared/configuration";
+import { calendarSettingsSchema, eventSchema, itemSchema, memberSchema, type CardDensity, type Configuration, type Planner, type TimetableSettings } from "../../shared/configuration";
 export { isPlannerDate } from "../../shared/configuration";
 
 export interface FamilyMember { id: string; name: string; initials: string; color: string; picture?: string }
@@ -58,6 +58,7 @@ interface FamilyContextValue extends FamilyState {
   setSmartHomeDeviceVisible: (id: string, visible: boolean) => boolean;
   setSmartHomeEntityVisible: (id: string, visible: boolean) => boolean;
   setSmartHomeEntitiesVisible: (ids: string[], visible: boolean) => boolean;
+  setSmartHomeCardDensity: (id: string, density: CardDensity) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
   saveEvent: (event: FamilyEvent) => boolean;

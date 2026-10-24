@@ -1,4 +1,4 @@
-.device-gallery {
+.device-gallery, .device-card-designs {
   --dg-ink: hsl(var(--foreground));
   --dg-muted: hsl(var(--muted-foreground));
   --dg-surface: hsl(var(--card));
@@ -6,9 +6,9 @@
   color: var(--dg-ink);
   gap: 0;
 }
-.device-gallery ::selection { background: hsl(var(--primary) / .22); }
-.device-gallery :is(button, input, select, textarea, summary, a):focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 4px; }
-.device-gallery :is(input, select, textarea) { caret-color: hsl(var(--primary)); }
+:is(.device-gallery, .device-card-designs) ::selection { background: hsl(var(--primary) / .22); }
+:is(.device-gallery, .device-card-designs) :is(button, input, select, textarea, summary, a):focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 4px; }
+:is(.device-gallery, .device-card-designs) :is(input, select, textarea) { caret-color: hsl(var(--primary)); }
 .dg-back { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; width: fit-content; color: var(--dg-muted); font-size: .875rem; text-underline-offset: 4px; }
 .dg-back:hover { color: var(--dg-ink); text-decoration: underline; }
 .dg-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin: .5rem 0 1rem; }
@@ -309,15 +309,15 @@
 .dg-compact .dg-light-well .dg-action[aria-pressed="true"] { background: #473b2e; color: #fff; }
 .dg-compact .dg-colors { flex-wrap: wrap; justify-content: start; gap: .5rem; padding: .25rem; }
 .dg-compact .dg-colors > button, .dg-compact .dg-custom-color { min-width: 44px; }
-.dg-compact[data-demo-card="climate"] .dg-card-body { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; }
+.dg-compact[data-card-kind="climate"] .dg-card-body { display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; align-items: center; }
 .dg-compact .dg-thermostat { grid-column: 2; grid-row: 1; width: 152px; max-width: 100%; height: auto; aspect-ratio: 1; padding: 6px; }
 .dg-compact .dg-thermostat strong { font-size: 2.3rem; }
 .dg-compact .dg-thermostat span { font-size: .75rem; text-align: center; max-width: 14ch; }
-.dg-compact[data-demo-card="climate"] .dg-stepper { display: contents; }
-.dg-compact[data-demo-card="climate"] .dg-stepper > span { display: none; }
-.dg-compact[data-demo-card="climate"] .dg-stepper .dg-action { grid-row: 1; grid-column: 1; }
-.dg-compact[data-demo-card="climate"] .dg-stepper .dg-action:last-child { grid-column: 3; }
-.dg-compact[data-demo-card="climate"] :is(.dg-segments, .dg-more) { grid-column: 1 / -1; }
+.dg-compact[data-card-kind="climate"] .dg-stepper { display: contents; }
+.dg-compact[data-card-kind="climate"] .dg-stepper > span { display: none; }
+.dg-compact[data-card-kind="climate"] .dg-stepper .dg-action { grid-row: 1; grid-column: 1; }
+.dg-compact[data-card-kind="climate"] .dg-stepper .dg-action:last-child { grid-column: 3; }
+.dg-compact[data-card-kind="climate"] :is(.dg-segments, .dg-more) { grid-column: 1 / -1; }
 .dg-compact .dg-window { width: 65%; height: 90px; margin-bottom: 0; }
 .dg-compact .dg-record { gap: 1rem; }
 .dg-compact .dg-vinyl { width: 70px; height: 70px; flex-shrink: 0; }
@@ -330,8 +330,8 @@
 .dg-compact .dg-power-disc { margin: 0; }
 .dg-compact .dg-power-disc .dg-action { width: 64px; height: 64px; }
 .dg-compact .dg-power-disc .dg-action svg { width: 28px; height: 28px; }
-.dg-compact:is([data-demo-card="lock"], [data-demo-card="alarm_control_panel"], [data-demo-card="siren"], [data-demo-card="switch"], [data-demo-card="button"], [data-demo-card="humidifier"], [data-demo-card="voice"]) .dg-card-body { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; }
-.dg-compact:is([data-demo-card="lock"], [data-demo-card="alarm_control_panel"], [data-demo-card="siren"], [data-demo-card="switch"], [data-demo-card="button"], [data-demo-card="humidifier"], [data-demo-card="voice"]) .dg-card-body > :nth-child(n + 3) { grid-column: 1 / -1; }
+.dg-compact:is([data-card-kind="lock"], [data-card-kind="alarm_control_panel"], [data-card-kind="siren"], [data-card-kind="switch"], [data-card-kind="button"], [data-card-kind="humidifier"], [data-card-kind="voice"]) .dg-card-body { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; }
+.dg-compact:is([data-card-kind="lock"], [data-card-kind="alarm_control_panel"], [data-card-kind="siren"], [data-card-kind="switch"], [data-card-kind="button"], [data-card-kind="humidifier"], [data-card-kind="voice"]) .dg-card-body > :nth-child(n + 3) { grid-column: 1 / -1; }
 .dg-compact .dg-tank { height: 80px; }
 .dg-compact .dg-history { height: 52px; }
 .dg-compact .dg-presence { height: 80px; }
@@ -353,7 +353,7 @@
 .dg-card.dg-supercompact { padding: .75rem; border-radius: 16px; }
 .dg-supercompact .dg-card-header { min-height: 44px; margin-bottom: .25rem; gap: .5rem; }
 .dg-supercompact:has(.dg-adjust-trigger) .dg-card-header { padding-right: 48px; }
-.dg-supercompact[data-demo-card] .dg-card-body { display: flex; align-items: stretch; gap: .5rem; }
+.dg-supercompact[data-card-kind] .dg-card-body { display: flex; align-items: stretch; gap: .5rem; }
 .dg-supercompact .dg-readout strong { font-size: 1.6rem; letter-spacing: -.02em; }
 .dg-supercompact .dg-readout > span { font-size: .75rem; }
 .dg-supercompact .dg-stepper { gap: .5rem; }
@@ -363,12 +363,12 @@
 .dg-supercompact .dg-light-well::before, .dg-supercompact .dg-light-well > svg { display: none; }
 .dg-supercompact .dg-light-well > div { flex-direction: row; align-items: baseline; gap: .5rem; color: var(--dg-ink); }
 .dg-supercompact .dg-light-well strong { font-size: 1.6rem; }
-.dg-supercompact[data-demo-card="climate"] .dg-card-body { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; }
+.dg-supercompact[data-card-kind="climate"] .dg-card-body { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; }
 .dg-supercompact .dg-thermostat { width: auto; max-width: none; aspect-ratio: auto; padding: 0; background: none; }
 .dg-supercompact .dg-thermostat > div { border-radius: 0; background: none; box-shadow: none; }
 .dg-supercompact .dg-thermostat strong { font-size: 2rem; }
 .dg-supercompact .dg-thermostat span { max-width: none; }
-.dg-supercompact[data-demo-card="switch"] .dg-card-body, .dg-supercompact[data-demo-card="button"] .dg-card-body { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; }
+.dg-supercompact[data-card-kind="switch"] .dg-card-body, .dg-supercompact[data-card-kind="button"] .dg-card-body { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; }
 .dg-supercompact .dg-power-disc .dg-action { width: 44px; height: 44px; }
 .dg-supercompact .dg-power-disc .dg-action svg { width: 22px; height: 22px; }
 .dg-supercompact .dg-record { min-height: 0; }
@@ -398,16 +398,35 @@
 }
 .dg-variant[hidden] *, .dg-pair[hidden] * { animation-play-state: paused !important; }
 @media (prefers-reduced-motion: reduce) {
-  .dg-control-popover, .device-gallery *, .device-gallery *::before, .device-gallery *::after { animation: none !important; transition: none !important; }
+  .dg-control-popover, :is(.device-gallery, .device-card-designs) *, :is(.device-gallery, .device-card-designs) *::before, :is(.device-gallery, .device-card-designs) *::after { animation: none !important; transition: none !important; }
   .dg-action:active:not(:disabled) { transform: none; }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .device-gallery .dg-card { background: var(--dg-surface); backdrop-filter: none; box-shadow: none; border: 1px solid hsl(var(--border)); }
+  .dg-card { background: var(--dg-surface); backdrop-filter: none; box-shadow: none; border: 1px solid hsl(var(--border)); }
   .dg-segments .dg-action[aria-pressed="true"] { outline: 2px solid var(--dg-ink); outline-offset: -2px; }
 }
 @media (forced-colors: active) {
-  .device-gallery .dg-card { background: Canvas; color: CanvasText; box-shadow: none; backdrop-filter: none; border: 1px solid CanvasText; }
-  .device-gallery [aria-pressed="true"] { outline: 2px solid Highlight; }
+  .dg-card { background: Canvas; color: CanvasText; box-shadow: none; backdrop-filter: none; border: 1px solid CanvasText; }
+  :is(.device-gallery, .device-card-designs) [aria-pressed="true"] { outline: 2px solid Highlight; }
   .dg-light-well::before { display: none; }
   .dg-card-icon, .dg-light-well > div, .dg-light-well > svg, .dg-readout > span { color: CanvasText; }
 }
+
+.smart-device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 1rem; align-items: start; }
+.smart-device-grid .dg-card { padding-bottom: 1.5rem; }
+.smart-device-grid .dg-compact { padding-bottom: 1rem; }
+.smart-device-grid .dg-supercompact { padding-bottom: .75rem; }
+.dg-card > .command-controller { position: static; }
+.smart-page .section-heading { flex-wrap: wrap; }
+.smart-page .section-heading > div:first-child { flex-shrink: 0; }
+.dg-card-header a { display: block; text-underline-offset: 4px; }
+.dg-card-header a:hover { text-decoration: underline; }
+.dg-card .device-range { width: 100%; }
+.dg-card .device-range > span { font-size: .8rem; }
+.dg-card .device-mode { display: flex; align-items: center; justify-content: space-between; gap: .75rem; min-width: 0; font-size: .8rem; }
+.dg-card .device-mode select { max-width: 65%; min-width: 0; min-height: 44px; background: var(--dg-surface); color: var(--dg-ink); border: 1px solid var(--dg-line); border-radius: 12px; padding: .5rem .75rem; }
+.dg-card .device-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.dg-card .device-actions > button { flex: 1; min-height: 44px; }
+.dg-card .command-controller > :is(.device-mode, [role="alert"], [role="status"]) { grid-column: 1 / -1; }
+.dg-card .dg-readout > span:empty { display: none; }
+@media (max-width: 699px) { .dg-card .device-mode select { font-size: 1rem; } }
