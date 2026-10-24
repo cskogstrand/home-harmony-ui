@@ -464,7 +464,7 @@
 .filter-row { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .filter-row > button { display: flex; align-items: center; gap: 7px; border: 1px solid hsl(var(--border)); border-radius: 50px; padding: 6px 17px; color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .filter-row > button[aria-pressed="true"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
-.filter-row > .calendar-member-filter { flex-direction: column; gap: .5rem; max-width: 100%; padding: .75rem 1rem; border-radius: 14px; text-align: center; overflow-wrap: anywhere; }
+.filter-row > .calendar-member-filter { flex-direction: column; gap: .5rem; max-width: 100%; padding: .75rem 1rem; border-radius: 14px; text-align: center; overflow-wrap: anywhere; border: none; }
 .calendar-member-filter > span:last-child { max-width: 12ch; }
 .calendar-member-filter .member-avatar, .calendar-lane > header .member-avatar, .lane-heading .member-avatar, .week-person .member-avatar { width: 4rem; height: 4rem; font-size: 1.25rem; }
 .calendar-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 18px; }
