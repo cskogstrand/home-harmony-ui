@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.13
+
+<!-- release-source: f348140f716e542dfc5965ae7377ffb65bb485d1 -->
+
+- fix: restore shared device card controls
+- fix: restore shared device card controls
+- feat: reuse device cards with per-card density
+- feat: add super compact device cards
+- feat: add compact device card comparisons
+- feat: add interactive device card gallery
+
 ## 0.9.12
 
 <!-- release-source: b492af22784b691e40e5f65b1341afb1dbce8351 -->
