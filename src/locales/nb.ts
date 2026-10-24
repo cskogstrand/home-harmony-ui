@@ -1431,6 +1431,8 @@ export const nb = {
   "Give cards the same group name to place them together. Clear the name to leave a card ungrouped.": "Gi kort samme gruppenavn for å samle dem. Tøm navnet for å la et kort stå uten gruppe.",
   "Supporting entities": "Tilkoblede entiteter",
   "Loading image…": "Laster bilde…",
+  "Loading video…": "Laster video…",
+  "Camera preview · video unavailable": "Kameraforhåndsvisning · video er utilgjengelig",
   "Image unavailable": "Bildet er utilgjengelig",
   "Snapshot · live stream unavailable": "Stillbilde · direktestrøm er utilgjengelig",
   "Live camera": "Direkte fra kamera",

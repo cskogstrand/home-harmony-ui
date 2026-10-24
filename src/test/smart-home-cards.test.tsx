@@ -10,7 +10,7 @@ import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { services, state } from "./ha-fixtures";
 import { cardEntity, cardServices, mediaEntity } from "./device-card-fixtures";
 
-const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn() }));
+const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn(), camera: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
@@ -22,8 +22,9 @@ const open = (entity = climate()) => render(<MemoryRouter><TooltipProvider><Smar
 
 beforeEach(() => {
   mocks.card.mockReset(); mocks.forecast.mockReset(); mocks.history.mockReset().mockResolvedValue([]);
+  mocks.camera.mockReset().mockImplementation((_id, _video, _signal, onError) => onError());
   mocks.command.mockReset().mockResolvedValue(undefined); mocks.density.mockReset(); mocks.visible.mockReset();
-  mocks.app = { watchForecast: mocks.forecast, entityHistory: mocks.history, homeOnline: true, services, commands: {}, command: mocks.command, currentHome: { entities: [climate()], areas: [], temperatureUnit: "°C" } };
+  mocks.app = { watchCameraStream: mocks.camera, watchForecast: mocks.forecast, entityHistory: mocks.history, homeOnline: true, services, commands: {}, command: mocks.command, currentHome: { entities: [climate()], areas: [], temperatureUnit: "°C" } };
   mocks.family = { smartHome: { ...emptyPlanner().smartHome, knownEntities: [climate().preferenceId] }, setSmartHomeCard: mocks.card, setSmartHomeCardDensity: mocks.density, setSmartHomeEntityVisible: mocks.visible };
   mocks.shared = { state: { loaded: true, config: emptyConfiguration() } };
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
@@ -262,7 +263,7 @@ it("shows selected supporting readings and map once inside the device card", () 
   expect(screen.getByRole("img", { name: "Example map" })).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example"));
 });
 
-it("loads a camera stream, falls back to a snapshot and permits retry after an image failure", () => {
+it("falls back from camera video to MJPEG and snapshots and permits retry after an image failure", () => {
   open(cardEntity("camera", "idle"));
   const stream = screen.getByRole("img");
   expect(stream).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy_stream/camera.example"));
@@ -274,7 +275,55 @@ it("loads a camera stream, falls back to a snapshot and permits retry after an i
   fireEvent.error(snapshot);
   expect(screen.getByText("Image unavailable")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+  expect(mocks.camera).toHaveBeenCalledTimes(2);
   expect(screen.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy_stream/"));
+});
+
+it("plays camera video without restarting on state updates and releases the preview when expanded", async () => {
+  mocks.camera.mockImplementation(() => {});
+  const entity = cardEntity("camera", "idle", { entity_picture: "https://example.invalid/private?token=fixture" });
+  const view = open(entity);
+  const video = screen.getByLabelText(entity.name, { selector: "video" });
+  expect(video.tagName).toBe("VIDEO");
+  expect(video).toHaveAttribute("autoplay"); expect(video).toHaveAttribute("playsinline");
+  expect((video as HTMLVideoElement).muted).toBe(true);
+  expect(video).toHaveAttribute("poster", "/api/camera_proxy/camera.example");
+  fireEvent.playing(video); expect(screen.getByText("Live camera")).toBeVisible();
+  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={{ ...entity, state: "streaming" }} /></TooltipProvider></MemoryRouter>);
+  expect(mocks.camera).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: `Expand ${entity.name}` }));
+  expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
+  expect(document.querySelectorAll("video")).toHaveLength(1);
+  expect(within(screen.getByRole("dialog")).getByLabelText(entity.name)).toHaveAttribute("controls");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(mocks.camera).toHaveBeenCalledTimes(3));
+  expect(mocks.camera.mock.calls[1][2].aborted).toBe(true);
+  view.unmount(); expect(mocks.camera.mock.calls[2][2].aborted).toBe(true);
+});
+
+it("suspends camera video while the page is hidden and restarts it when visible", () => {
+  mocks.camera.mockImplementation(() => {});
+  open(cardEntity("camera", "idle"));
+  const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  fireEvent(document, new Event("visibilitychange"));
+  expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
+  expect(document.querySelector("video")).toBeNull();
+  hidden.mockReturnValue(false); fireEvent(document, new Event("visibilitychange"));
+  expect(mocks.camera).toHaveBeenCalledTimes(2);
+  hidden.mockRestore();
+});
+
+it("starts camera video only near the viewport and stops it when scrolled away", () => {
+  const observers: IntersectionObserverCallback[] = [];
+  vi.stubGlobal("IntersectionObserver", class { constructor(callback: IntersectionObserverCallback) { observers.push(callback); } observe() {} disconnect() {} });
+  mocks.camera.mockImplementation(() => {});
+  open(cardEntity("camera", "idle"));
+  expect(mocks.camera).not.toHaveBeenCalled();
+  act(() => observers[0]([{ isIntersecting: true }] as IntersectionObserverEntry[], null));
+  expect(mocks.camera).toHaveBeenCalledOnce();
+  act(() => observers[0]([{ isIntersecting: false }] as IntersectionObserverEntry[], null));
+  expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
+  expect(document.querySelector("video")).toBeNull();
 });
 
 it("stops camera loading while offline and does not use entity-supplied URLs or tokens", () => {

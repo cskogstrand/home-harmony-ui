@@ -7,6 +7,7 @@ import {
 } from "home-assistant-js-websocket";
 import type { CalendarEvent, EntityAction, EntityStates, Registries, TodoItem } from "@/types/api";
 import { available, emptyRegistries, entityCommand, mapHome } from "./ha-model";
+import { playCameraStream } from "./camera-stream";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 interface Snapshot {
@@ -218,6 +219,17 @@ export class HomeAssistantClient {
     } catch {
       throw new Error("To-do items could not be read. Check the connection, list integration and Home Assistant permissions.");
     }
+  };
+  watchCameraStream = (entityId: string, video: HTMLVideoElement, signal: AbortSignal, onError: () => void) => {
+    if (signal.aborted) return;
+    const conn = this.connection;
+    if (!conn?.connected || this.snapshot.status !== "connected" || !/^camera\.[a-z0-9_]+$/.test(entityId)) { onError(); return; }
+    const controller = new AbortController();
+    const stop = () => controller.abort();
+    this.requests.add(controller);
+    signal.addEventListener("abort", stop, { once: true });
+    controller.signal.addEventListener("abort", () => { this.requests.delete(controller); signal.removeEventListener("abort", stop); }, { once: true });
+    playCameraStream(conn, entityId, video, controller.signal, () => { stop(); onError(); });
   };
   watchForecast = (entityId: string, type: "hourly" | "daily" | "twice_daily", signal: AbortSignal, receive: (forecast: Forecast | null) => void) => {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;

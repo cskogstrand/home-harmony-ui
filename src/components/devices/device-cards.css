@@ -424,10 +424,10 @@
 .smart-card-group-title { display: flex; align-items: baseline; gap: .65rem; margin-bottom: .8rem; font-size: 1.1rem; font-weight: 600; }
 .smart-card-group-title > span { color: hsl(var(--muted-foreground)); font-size: .85rem; font-weight: 400; }
 .smart-entity-media { position: relative; min-height: 10rem; margin-bottom: .75rem; background: hsl(var(--muted)); border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
-.smart-entity-media img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
+.smart-entity-media :is(img, video) { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
 .smart-entity-media.is-map img { aspect-ratio: 4 / 3; }
 .smart-entity-media > p { padding: 1rem; font-size: .85rem; text-align: center; }
-.smart-entity-media:has(img) > p { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.smart-entity-media:has(img, video) > p { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .smart-entity-media > button { margin: .5rem; }
 .smart-media-caption { display: block; padding: .4rem .7rem; font-size: .75rem; background: hsl(var(--card)); width: 100%; }
 .smart-supporting-media { margin-top: .5rem; }
@@ -491,7 +491,7 @@
 .smart-media-preview .smart-entity-media > button { z-index: 1; }
 .smart-media-dialog { width: calc(100% - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; }
 .smart-media-dialog .smart-entity-media { margin: 0; min-height: 10rem; }
-.smart-media-dialog .smart-entity-media:has(img) { min-height: 0; }
-.smart-media-dialog .smart-entity-media img { width: 100%; height: auto; max-height: calc(100dvh - 12rem); aspect-ratio: auto; object-fit: contain; }
+.smart-media-dialog .smart-entity-media:has(img, video) { min-height: 0; }
+.smart-media-dialog .smart-entity-media :is(img, video) { width: 100%; height: auto; max-height: calc(100dvh - 12rem); aspect-ratio: auto; object-fit: contain; }
 .smart-media-dialog > button { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
 @media (max-width: 699px) { .smart-card-edit-fields select, .smart-new-group input { font-size: 1rem; } }

@@ -10,7 +10,7 @@ export function useHomeAssistant() {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
     connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
-    command: client.command, watchForecast: client.watchForecast, entityHistory: client.entityHistory, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
+    command: client.command, watchCameraStream: client.watchCameraStream, watchForecast: client.watchForecast, entityHistory: client.entityHistory, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
 }
 export const AppContext = createContext<ReturnType<typeof useHomeAssistant> | null>(null);
 export function useApp() {

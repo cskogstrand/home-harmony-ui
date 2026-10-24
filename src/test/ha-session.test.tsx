@@ -2044,6 +2044,30 @@ it("falls back to room grouping for an invalid bookmarked view", async () => {
 });
 
 
+it("closes camera playback immediately when HA disconnects and rejects offline or invalid camera requests", async () => {
+  const client = await connectedClient();
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+  vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+  vi.spyOn(HTMLMediaElement.prototype, "canPlayType").mockReturnValue("probably");
+  const url = "/api/hls/0123456789abcdef/master_playlist.m3u8";
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => type === "camera/capabilities" ? { frontend_stream_types: ["hls"] } : { url });
+  const video = document.createElement("video"), controller = new AbortController(), failed = vi.fn();
+  client.watchCameraStream("camera.example", video, controller.signal, failed);
+  await waitFor(() => expect(video).toHaveAttribute("src", url));
+  conn.emit("disconnected");
+  expect(video).not.toHaveAttribute("src"); expect(failed).not.toHaveBeenCalled();
+  conn.sendMessagePromise.mockClear();
+  client.watchCameraStream("camera.example", video, controller.signal, failed);
+  expect(failed).toHaveBeenCalledOnce(); expect(conn.sendMessagePromise).not.toHaveBeenCalled();
+  conn.close.mockImplementation(() => {}); conn.connected = true;
+  await client.connect(); await waitFor(() => expect(client.getSnapshot().status).toBe("connected"));
+  conn.sendMessagePromise.mockClear();
+  client.watchCameraStream("light.example", video, controller.signal, failed);
+  expect(failed).toHaveBeenCalledTimes(2); expect(conn.sendMessagePromise).not.toHaveBeenCalled();
+  controller.abort();
+});
+
 it("validates forecast messages and unsubscribes even when a subscription resolves after abort", async () => {
   const client = await connectedClient();
   let receive: (message: unknown) => void;

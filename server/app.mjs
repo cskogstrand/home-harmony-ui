@@ -124,17 +124,20 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
-      if (/^\/api\/(camera_proxy(?:_stream)?\/camera|image_proxy\/image|media_player_proxy\/media_player)\.[a-z0-9_]+$/.test(pathname) && request.method === "GET") {
+      const hls = /^\/api\/hls\/[a-f0-9]+\/(?:(?:master_)?playlist\.m3u8|init\.mp4|segment\/\d+(?:\.\d+)?\.m4s)$/.test(pathname);
+      if ((hls || /^\/api\/(camera_proxy(?:_stream)?\/camera|image_proxy\/image|media_player_proxy\/media_player)\.[a-z0-9_]+$/.test(pathname)) && request.method === "GET") {
+        if (hls && [...url.searchParams].some(([key, value]) => !(["_HLS_msn", "_HLS_part"].includes(key) ? /^\d+$/.test(value) : key === "_HLS_skip" && /^(YES|v2)$/.test(value)))) throw failure(400, "Invalid stream parameters.");
         const controller = new AbortController();
         const close = () => controller.abort();
         response.once("close", close);
-        const timeout = setTimeout(close, 15000);
+        const timeout = setTimeout(close, hls ? 45000 : 15000);
         try {
           // Only fixed HA media routes: never forward caller URLs, tokens or redirects.
-          const result = await fetch(`${homeAssistantUrl}${pathname}`, { headers: { Authorization: `Bearer ${homeAssistantToken}` }, redirect: "error", signal: controller.signal });
+          const result = await fetch(`${homeAssistantUrl}${pathname}${hls ? url.search : ""}`, { headers: { Authorization: `Bearer ${homeAssistantToken}` }, redirect: "error", signal: controller.signal });
           const contentType = result.headers.get("content-type") ?? "";
           const streaming = pathname.startsWith("/api/camera_proxy_stream/");
-          if (!result.ok || !result.body || !(streaming ? /^multipart\/x-mixed-replace\s*;/i.test(contentType) : ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(contentType.split(";")[0].trim()))) throw new Error();
+          const allowedTypes = hls ? pathname.endsWith(".m3u8") ? ["application/vnd.apple.mpegurl", "application/x-mpegurl"] : ["video/mp4", "video/iso.segment"] : ["image/jpeg", "image/png", "image/gif", "image/webp"];
+          if (!result.ok || !result.body || !(streaming ? /^multipart\/x-mixed-replace\s*;/i.test(contentType) : allowedTypes.includes(contentType.split(";")[0].trim().toLowerCase()))) throw new Error();
           if (streaming) clearTimeout(timeout);
           response.writeHead(200, { "Content-Type": contentType, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
           await pipeline(Readable.fromWeb(result.body), response);

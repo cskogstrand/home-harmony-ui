@@ -19,7 +19,7 @@ const close = server => new Promise(resolve => server.close(resolve));
 const photoPath = "/api/image/serve/0123456789abcdef0123456789abcdef/original";
 const photo = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=", "base64");
 
-async function fixture(t, { legacy = false, imageResponse, ...options } = {}) {
+async function fixture(t, { legacy = false, imageResponse, hlsResponse, ...options } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "home-harmony-proxy-"));
   const distDir = join(directory, "dist"), dataDir = join(directory, "data");
   await mkdir(distDir); await mkdir(dataDir);
@@ -27,6 +27,12 @@ async function fixture(t, { legacy = false, imageResponse, ...options } = {}) {
   const requests = [];
   const ha = createServer((req, res) => {
     requests.push({ url: req.url, authorization: req.headers.authorization });
+    if (req.url.startsWith("/api/hls/")) {
+      const playlist = req.url.includes(".m3u8");
+      res.writeHead(hlsResponse?.status ?? 200, hlsResponse?.headers ?? { "Content-Type": playlist ? "application/vnd.apple.mpegurl" : req.url.endsWith(".mp4") ? "video/mp4" : "video/iso.segment" });
+      res.end(playlist ? '#EXTM3U\n#EXT-X-MAP:URI="init.mp4"\nsegment/1.m4s\n' : Buffer.from("fixture-video"));
+      return;
+    }
     if (req.url.startsWith("/api/image/serve/") || /^\/api\/(camera_proxy|image_proxy|media_player_proxy)/.test(req.url)) {
       const streaming = req.url.startsWith("/api/camera_proxy_stream/");
       res.writeHead(imageResponse?.status ?? 200, imageResponse?.headers ?? { "Content-Type": streaming ? "multipart/x-mixed-replace; boundary=frame" : "image/png" });
@@ -211,13 +217,47 @@ test("rejects media failures, redirects and active content", async t => {
   }
 });
 
+test("proxies authenticated HLS playlists and segments, preserving low-latency query parameters", async t => {
+  const app = await fixture(t);
+  const base = "/api/hls/0123456789abcdef/";
+  for (const file of ["master_playlist.m3u8", "playlist.m3u8?_HLS_msn=7&_HLS_part=2&_HLS_skip=YES", "init.mp4", "segment/7.m4s", "segment/7.2.m4s"]) {
+    const path = base + file;
+    assert.equal((await fetch(`${app.url}${path}`)).status, 401);
+    assert.equal((await fetch(`${app.url}${path}`, { headers: { ...headers, Origin: "https://example.invalid" } })).status, 403);
+    const result = await fetch(`${app.url}${path}`, { headers });
+    assert.equal(result.status, 200);
+    assert.equal(result.headers.get("cache-control"), "no-store");
+    assert.equal(result.headers.get("x-content-type-options"), "nosniff");
+    const body = await result.text();
+    assert.match(body, file.includes(".m3u8") ? /init\.mp4.*\nsegment\/1\.m4s/ : /fixture-video/);
+    assert.ok(!body.includes(token));
+    assert.deepEqual(app.requests.at(-1), { url: path, authorization: `Bearer ${token}` });
+    assert.equal((await fetch(`${app.url}${path}`, { method: "POST", headers })).status, 404);
+  }
+  for (const file of ["playlist.m3u8?token=caller", "playlist.m3u8?_HLS_msn=-1", "playlist.m3u8?_HLS_part=abc", "playlist.m3u8?_HLS_skip=bad", "playlist.m3u8?url=https://example.invalid"]) {
+    assert.equal((await fetch(`${app.url}${base}${file}`, { headers })).status, 400);
+  }
+  for (const path of ["/api/hls/invalid/master_playlist.m3u8", `${base}extra/path.m3u8`, `${base}init.svg`, `${base}segment/-1.m4s`]) {
+    assert.equal((await fetch(`${app.url}${path}`, { headers })).status, 404);
+  }
+  assert.equal(app.requests.length, 5);
+});
 
-test("streams multipart camera frames and closes upstream when the viewer disconnects", { timeout: 10000 }, async t => {
+test("rejects redirected, failed and non-video HLS responses", async t => {
+  for (const hlsResponse of [{ status: 404 }, { status: 302, headers: { Location: "https://example.invalid" } }, { headers: { "Content-Type": "text/html" } }, { headers: { "Content-Type": "image/svg+xml" } }]) {
+    const app = await fixture(t, { hlsResponse });
+    const result = await fetch(`${app.url}/api/hls/0123456789abcdef/master_playlist.m3u8`, { headers });
+    assert.equal(result.status, 502);
+    assert.equal(app.requests.length, 1);
+  }
+});
+
+for (const [path, contentType] of [["/api/camera_proxy_stream/camera.example", "multipart/x-mixed-replace; boundary=frame"], ["/api/hls/0123456789abcdef/segment/1.m4s", "video/iso.segment"]]) test(`streams ${contentType} without buffering and closes upstream when the viewer disconnects`, { timeout: 10000 }, async t => {
   const directory = await mkdtemp(join(tmpdir(), "home-harmony-stream-"));
   let closed;
   const upstreamClosed = new Promise(resolve => { closed = resolve; });
   const ha = createServer((_req, res) => {
-    res.writeHead(200, { "Content-Type": "multipart/x-mixed-replace; boundary=frame" });
+    res.writeHead(200, { "Content-Type": contentType });
     res.write(Buffer.concat([Buffer.from("--frame\r\nContent-Type: image/png\r\n\r\n"), photo, Buffer.from("\r\n")]));
     res.on("close", closed);
   });
@@ -226,8 +266,8 @@ test("streams multipart camera frames and closes upstream when the viewer discon
   const url = await listen(server);
   t.after(async () => { server.closeAllConnections(); ha.closeAllConnections(); await close(server); await close(ha); await rm(directory, { recursive: true, force: true }); });
   const controller = new AbortController();
-  const result = await fetch(`${url}/api/camera_proxy_stream/camera.example`, { headers, signal: controller.signal });
-  assert.match(result.headers.get("content-type"), /multipart\/x-mixed-replace; boundary=frame/);
+  const result = await fetch(`${url}${path}`, { headers, signal: controller.signal });
+  assert.equal(result.headers.get("content-type"), contentType);
   const reader = result.body.getReader();
   const frame = await reader.read();
   assert.ok(Buffer.from(frame.value).includes(photo));
