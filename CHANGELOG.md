@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.14
+
+<!-- release-source: 395b054c1db29a983547eba6c91a6c80f54c1c95 -->
+
+- feat: add interactive smart home card editing
+- feat: group device cards and show live details
+
 ## 0.9.13
 
 <!-- release-source: f348140f716e542dfc5965ae7377ffb65bb485d1 -->
