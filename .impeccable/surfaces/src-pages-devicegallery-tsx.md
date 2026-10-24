@@ -2,7 +2,7 @@
 version: 1
 slug: "src-pages-devicegallery-tsx"
 primary_target: "src/pages/DeviceGallery.tsx"
-related_targets: ["src/components/devices/device-cards.css","src/components/devices/CardFrame.tsx","src/components/devices/CardLayouts.tsx","src/components/devices/CardControls.tsx","src/components/devices/SmartHomeCard.tsx","src/pages/SmartHome.tsx","src/components/SmartHomeSettings.tsx"]
+related_targets: ["src/components/devices/device-cards.css","src/components/devices/CardFrame.tsx","src/components/devices/CardLayouts.tsx","src/components/devices/CardControls.tsx","src/components/devices/SmartHomeCard.tsx","src/components/devices/DeviceControl.tsx","src/components/devices/DomainCardContent.tsx","src/components/devices/AlarmCardControls.tsx","src/pages/SmartHome.tsx","src/components/SmartHomeSettings.tsx"]
 ---
 
 # Device card gallery

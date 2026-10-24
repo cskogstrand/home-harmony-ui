@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Activity, Battery, Columns2, Flame, House, LayoutGrid, LocateFixed, Snowflake, Sun, Volume2, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CloudSun, Droplets, Fan, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Pause, Play, Plus, Power, Radio, RotateCcw, Search, Send, Settings2, ShieldCheck, Siren, SkipBack, SkipForward, Sparkles, Square, Unlock, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap } from "lucide-react";
+import { Activity, Columns2, Flame, House, LayoutGrid, LocateFixed, Snowflake, Sun, Volume2, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CloudSun, Droplets, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Pause, Play, Plus, Power, Radio, RotateCcw, Search, Send, Settings2, ShieldCheck, Siren, Sparkles, Square, Unlock, Upload, CircleDot as Vacuum, Wand2, Wind, Zap } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Action, Range, Segments, Choice, Toggle, More, Readout } from "@/components/devices/CardControls";
 import { CardDisabled as DemoDisabled, CardPresentation, cardVariants, type CardVariant as Variant } from "@/components/devices/card-presentation";
 import { CardFrame } from "@/components/devices/CardFrame";
-import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard } from "@/components/devices/CardLayouts";
+import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard, FanCard, HumidityCard, WaterHeaterCard, RobotCard, ValveCard } from "@/components/devices/CardLayouts";
 import { cardDesigns, type CardDesign } from "@/components/devices/card-designs";
 
 type DemoStatus = "Ready" | "Unavailable" | "Waiting" | "Command failed";
@@ -71,12 +71,12 @@ function FanDemo() {
   const { message: t } = useI18n();
   const [speed, setSpeed] = useState(40), [on, setOn] = useState(true), [oscillate, setOscillate] = useState(true), [direction, setDirection] = useState("Forward"), [preset, setPreset] = useState("Normal");
   const oscillation = <Toggle label="Oscillate" on={oscillate} set={setOscillate} />;
-  return <><div className="dg-fan" data-running={on} style={{ "--fan-duration": `${5 - speed / 25}s` } as CSSProperties}><Fan size={98} strokeWidth={1} aria-hidden="true" /></div><Toggle label="Fan power" on={on} set={setOn} /><Range label="Fan speed" icon={Wind} value={speed} min={1} set={v => { setSpeed(v); setOn(true); }} />{!superCompact && oscillation}<More>{superCompact && oscillation}<Choice label="Direction" options={["Forward", "Reverse"]} value={direction} set={setDirection} /><Choice label="Fan preset" options={["Normal", "Natural breeze", "Sleep"]} value={preset} set={setPreset} /><p>{t(oscillate ? "Air sweeps across the room." : "Air flows in one direction.")}</p></More></>;
+  return <FanCard on={on} speed={speed}><Toggle label="Fan power" on={on} set={setOn} /><Range label="Fan speed" icon={Wind} value={speed} min={1} set={v => { setSpeed(v); setOn(true); }} />{!superCompact && oscillation}<More>{superCompact && oscillation}<Choice label="Direction" options={["Forward", "Reverse"]} value={direction} set={setDirection} /><Choice label="Fan preset" options={["Normal", "Natural breeze", "Sleep"]} value={preset} set={setPreset} /><p>{t(oscillate ? "Air sweeps across the room." : "Air flows in one direction.")}</p></More></FanCard>;
 }
 
 function HumidityDemo() {
   const [on, setOn] = useState(true), [humidity, setHumidity] = useState(50), [mode, setMode] = useState("Auto");
-  return <><div className="dg-droplet"><Droplets size={74} strokeWidth={1.1} aria-hidden="true" /></div><Readout value={on ? 42 : "Off"} unit={on ? "%" : ""} caption="Current humidity" /><Range label="Target humidity" value={humidity} min={30} max={80} set={setHumidity} /><Toggle label="Humidifier power" on={on} set={setOn} /><More><Choice label="Humidity mode" options={["Auto", "Humidify", "Dehumidify", "Sleep"]} value={mode} set={setMode} /></More></>;
+  return <HumidityCard value={on ? 42 : "Off"} unit={on ? "%" : ""} caption="Current humidity"><Range label="Target humidity" value={humidity} min={30} max={80} set={setHumidity} /><Toggle label="Humidifier power" on={on} set={setOn} /><More><Choice label="Humidity mode" options={["Auto", "Humidify", "Dehumidify", "Sleep"]} value={mode} set={setMode} /></More></HumidityCard>;
 }
 
 function WaterHeaterDemo() {
@@ -84,7 +84,7 @@ function WaterHeaterDemo() {
   const { message: t } = useI18n();
   const [temp, setTemp] = useState(60), [mode, setMode] = useState("Eco"), [away, setAway] = useState(false);
   const modes = <Segments label="Water heater mode" options={["Off", "Eco", "Performance"]} value={mode} set={setMode} />;
-  return <><div className="dg-tank" aria-hidden="true"><div style={{ height: `${(temp - 40) / 40 * 100}%` }} /><Waves size={30} /></div><Readout value={temp} unit="°" caption={superCompact ? t("Hot water target · {mode}", { mode: t(mode) }) : "Hot water target"} /><Range label="Water temperature" value={temp} min={40} max={80} unit="°C" set={setTemp} />{!superCompact && modes}<More>{superCompact && modes}<Toggle label="Away mode" on={away} set={setAway} /></More></>;
+  return <WaterHeaterCard value={temp} unit="°" level={(temp - 40) / 40 * 100} caption={superCompact ? t("Hot water target · {mode}", { mode: t(mode) }) : "Hot water target"}><Range label="Water temperature" value={temp} min={40} max={80} unit="°C" set={setTemp} />{!superCompact && modes}<More>{superCompact && modes}<Toggle label="Away mode" on={away} set={setAway} /></More></WaterHeaterCard>;
 }
 
 function LockDemo() {
@@ -109,16 +109,18 @@ function SirenDemo() {
 function ValveDemo() {
   const { message: t } = useI18n();
   const [position, setPosition] = useState(0), [stopped, setStopped] = useState(false);
-  return <><div className="dg-valve" style={{ transform: `rotate(${position * .9}deg)` }}><Plus size={80} strokeWidth={1.3} aria-hidden="true" /></div><Readout value={position === 0 ? "Closed" : "Open"} caption={stopped ? "Movement stopped" : "Example water supply"} /><Range label="Valve opening" value={position} set={v => { setPosition(v); setStopped(false); }} /><div className="dg-actions"><Action onClick={() => { setPosition(0); setStopped(false); }}>{t("Close")}</Action><Action onClick={() => setStopped(true)}>{t("Stop")}</Action><SafeAction label="Open valve" onConfirm={() => { setPosition(100); setStopped(false); }} /></div></>;
+  return <ValveCard position={position} value={position === 0 ? "Closed" : "Open"} caption={stopped ? "Movement stopped" : "Example water supply"}><Range label="Valve opening" value={position} set={v => { setPosition(v); setStopped(false); }} /><div className="dg-actions"><Action onClick={() => { setPosition(0); setStopped(false); }}>{t("Close")}</Action><Action onClick={() => setStopped(true)}>{t("Stop")}</Action><SafeAction label="Open valve" onConfirm={() => { setPosition(100); setStopped(false); }} /></div></ValveCard>;
 }
 
 function MediaDemo() {
-  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const { message: t } = useI18n();
   const [playing, setPlaying] = useState(true), [track, setTrack] = useState(0), [volume, setVolume] = useState(35), [muted, setMuted] = useState(false), [source, setSource] = useState("Demo library"), [shuffle, setShuffle] = useState(false), [repeat, setRepeat] = useState("Off"), [seek, setSeek] = useState(74);
   const tracks = ["Soft focus", "A slower morning", "Blue hour"];
-  const playbackPosition = <Range label="Playback position" value={seek} max={240} unit=" s" set={setSeek} />;
-  return <MediaCard title={t(tracks[track])} subtitle={t("Afterglow sessions")} caption={t("Fictional track · no audio")}>{!superCompact && playbackPosition}<div className="dg-transport"><Action label="Previous track" onClick={() => { setTrack((track + 2) % 3); setSeek(0); }}><SkipBack size={21} /></Action><Action primary label={playing ? "Pause playback" : "Start playback"} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} /> : <Play size={24} />}</Action><Action label="Next track" onClick={() => { setTrack((track + 1) % 3); setSeek(0); }}><SkipForward size={21} /></Action></div><Range label="Volume" icon={Volume2} value={volume} set={setVolume} /><More>{superCompact && playbackPosition}<Toggle label="Mute" on={muted} set={setMuted} /><Choice label="Media source" options={["Demo library", "Radio", "HDMI"]} value={source} set={setSource} /><Toggle label="Shuffle" on={shuffle} set={setShuffle} /><Choice label="Repeat" options={["Off", "One", "All"]} value={repeat} set={setRepeat} /></More></MediaCard>;
+  return <MediaCard title={t(tracks[track])} subtitle={t("Afterglow sessions")} caption={t("Fictional track · no audio")} playing={playing}
+    previous={() => { setTrack((track + 2) % 3); setSeek(0); }} playPause={() => setPlaying(!playing)} next={() => { setTrack((track + 1) % 3); setSeek(0); }}
+    seek={<Range label="Playback position" value={seek} max={240} unit=" s" set={setSeek} />}
+    volume={<Range label="Volume" icon={Volume2} value={volume} set={setVolume} />}
+    more={<><Toggle label="Mute" on={muted} set={setMuted} /><Choice label="Media source" options={["Demo library", "Radio", "HDMI"]} value={source} set={setSource} /><Toggle label="Shuffle" on={shuffle} set={setShuffle} /><Choice label="Repeat" options={["Off", "One", "All"]} value={repeat} set={setRepeat} /></>} />;
 }
 
 function RemoteDemo() {
@@ -141,12 +143,12 @@ function ImageDemo() {
 
 function RobotDemo({ mower = false }: { mower?: boolean } = {}) {
   const superCompact = useContext(CardPresentation).variant === "Super compact";
-  const compact = useContext(CardPresentation).variant !== "Original";
   const { message: t } = useI18n();
   const [status, setStatus] = useState("Docked"), [room, setRoom] = useState(mower ? "Front lawn" : "Every room"), [mode, setMode] = useState("Balanced");
   const map = <div className={`dg-robot-map ${mower ? "dg-lawn" : ""}`}><div className="dg-cleaned" /><div className="dg-robot-path" /><div className="dg-robot" data-active={status === "Cleaning" || status === "Mowing"}>{mower ? <Leaf size={22} /> : <Vacuum size={22} />}</div><span>{t("Illustrative map")}</span></div>;
   const areaControl = <Choice label={mower ? "Mowing area" : "Cleaning area"} options={mower ? ["Front lawn", "Back lawn", "Every area"] : ["Every room", "Living room", "Kitchen"]} value={room} set={setRoom} />;
-  return <>{!compact && map}<div className="dg-status-row"><strong>{t(status)}</strong><span>{compact ? <Battery size={18} aria-label={t("Battery")} /> : t("Battery")} 84%</span></div>{superCompact ? <p className="dg-quick-context">{t(room)}</p> : areaControl}<div className="dg-actions"><Action primary label={status === "Cleaning" || status === "Mowing" ? "Pause" : "Start"} compactIcon={status === "Cleaning" || status === "Mowing" ? Pause : Play} onClick={() => setStatus(status === "Cleaning" || status === "Mowing" ? "Paused" : mower ? "Mowing" : "Cleaning")}>{status === "Cleaning" || status === "Mowing" ? <Pause size={16} /> : <Play size={16} />}{t(status === "Cleaning" || status === "Mowing" ? "Pause" : "Start")}</Action><Action label="Return to dock" compactIcon={House} onClick={() => setStatus("Docked")}>{t("Return to dock")}</Action></div><More>{superCompact && areaControl}{compact && map}<Choice label={mower ? "Cutting mode" : "Suction"} options={["Quiet", "Balanced", "Turbo"]} value={mode} set={setMode} /><Action label="Locate device" compactIcon={LocateFixed} onClick={() => setStatus("Located")}>{t("Locate device")}</Action><p>{t(mower ? "Demo lawn · 120 m²" : "Last clean · 32 m² in 28 minutes")}</p></More></>;
+  return <RobotCard status={t(status)} battery={84} map={map} context={superCompact ? <p className="dg-quick-context">{t(room)}</p> : areaControl}
+    actions={<div className="dg-actions"><Action primary label={status === "Cleaning" || status === "Mowing" ? "Pause" : "Start"} compactIcon={status === "Cleaning" || status === "Mowing" ? Pause : Play} onClick={() => setStatus(status === "Cleaning" || status === "Mowing" ? "Paused" : mower ? "Mowing" : "Cleaning")}>{status === "Cleaning" || status === "Mowing" ? <Pause size={16} /> : <Play size={16} />}{t(status === "Cleaning" || status === "Mowing" ? "Pause" : "Start")}</Action><Action label="Return to dock" compactIcon={House} onClick={() => setStatus("Docked")}>{t("Return to dock")}</Action></div>} more={<>{superCompact && areaControl}<Choice label={mower ? "Cutting mode" : "Suction"} options={["Quiet", "Balanced", "Turbo"]} value={mode} set={setMode} /><Action label="Locate device" compactIcon={LocateFixed} onClick={() => setStatus("Located")}>{t("Locate device")}</Action><p>{t(mower ? "Demo lawn · 120 m²" : "Last clean · 32 m² in 28 minutes")}</p></>} />;
 }
 
 function SensorDemo({ air = false }: { air?: boolean } = {}) {
