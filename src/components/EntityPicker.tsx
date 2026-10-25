@@ -19,6 +19,7 @@ type EntityPickerProps = {
   hideLabel?: boolean;
   describedBy?: string;
   className?: string;
+  groupByDevice?: boolean;
   getLabel?: (entity: Entity) => string;
   getDescription?: (entity: Entity) => string;
   disabledReason?: (entity: Entity) => string;
@@ -52,7 +53,7 @@ export function EntityPicker(props: EntityPickerProps) {
   const matching = sorted.filter(entity => (device === undefined || device === "all" || (device === "none" ? !entity.device : entity.device?.id === device))
     && matches([getLabel(entity), entity.name, entity.entityId, entity.domain, entity.device && deviceName(entity), areaName(entity), entity.integration].filter(Boolean).join(" ")));
   const missing = selected.filter(value => !entities.some(entity => entity.preferenceId === value) && matches(missingLabel(value)));
-  const browsingDevices = device === undefined && devices.size > 0;
+  const browsingDevices = props.groupByDevice !== false && device === undefined && devices.size > 0;
   const matchingIds = new Set(matching.map(entity => entity.preferenceId));
   const deviceChoices = [...devices.entries()].filter(([, members]) => members.some(entity => matchingIds.has(entity.preferenceId)))
     .sort(([, a], [, b]) => deviceName(a[0]).localeCompare(deviceName(b[0]), language));
@@ -94,7 +95,7 @@ export function EntityPicker(props: EntityPickerProps) {
       </Button></PopoverTrigger>
       <PopoverContent align="start" collisionPadding={12} className="entity-picker-popover" aria-label={ariaLabel} onOpenAutoFocus={event => { event.preventDefault(); input.current?.focus(); }}>
         <div className="entity-picker-search"><Search size={18} aria-hidden="true" /><Input ref={input} type="search" aria-label={t("Search devices and entities")} placeholder={t("Search names, IDs, rooms or integrations…")} value={search} onChange={event => { setSearch(event.target.value); if (list.current) list.current.scrollTop = 0; }} onKeyDown={moveFocus} /></div>
-        <div className="entity-picker-heading">{!browsingDevices && devices.size > 0 && <Button type="button" variant="ghost" size="icon" aria-label={t("Back to devices")} onClick={() => pickDevice(undefined)}><ArrowLeft size={18} aria-hidden="true" /></Button>}
+        <div className="entity-picker-heading">{props.groupByDevice !== false && !browsingDevices && devices.size > 0 && <Button type="button" variant="ghost" size="icon" aria-label={t("Back to devices")} onClick={() => pickDevice(undefined)}><ArrowLeft size={18} aria-hidden="true" /></Button>}
           <strong>{browsingDevices ? t("Choose a device") : device === "none" ? t("Without a device") : device && devices.has(device) ? deviceName(devices.get(device)[0]) : t("All entities")}</strong>
         </div>
         <ul ref={list} className="entity-picker-options" onKeyDown={moveFocus}>

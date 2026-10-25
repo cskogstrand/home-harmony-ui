@@ -971,6 +971,8 @@ it("builds a card type first, previews its chosen sources, saves once and keeps 
   fireEvent.click(screen.getByRole("button", { name: "Light 1 available" }));
   expect(screen.getByRole("article", { name: "Light" })).toHaveAttribute("data-card-kind", "light");
   expect(screen.getAllByRole("button", { name: "Add card" })[0]).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Main entity" })).toBeDisabled();
+  fireEvent.change(screen.getByRole("combobox", { name: "Device" }), { target: { value: "none" } });
   chooseEntity("Main entity", "light.example");
   fireEvent.click(screen.getByRole("button", { name: "Supporting entities" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Example battery" }));
@@ -996,7 +998,8 @@ it("preserves missing selections and lets an unavailable card be repaired or rem
   window.history.replaceState(null, "", "/settings/smart-home?card=example-card");
   render(<App />); await saved();
   expect(screen.getByRole("button", { name: "Main entity" })).toHaveTextContent("Entity unavailable");
-  expect(screen.getByRole("button", { name: "Supporting entities" })).toHaveTextContent("missing-reading");
+  expect(screen.getByRole("button", { name: "Entities from other devices" })).toHaveTextContent("missing-reading");
+  fireEvent.change(screen.getByRole("combobox", { name: "Device" }), { target: { value: "none" } });
   chooseEntity("Main entity", "light.example");
   fireEvent.click(screen.getAllByRole("button", { name: "Save changes" })[0]); await saved();
   expect(settings.settings.smartHome.layout[0].linkedEntities).toEqual(["home|missing-reading"]);
@@ -1064,4 +1067,62 @@ it("does not save abandoned drafts and keeps saved cards while changing type", a
   fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
   await pageReady();
   expect(settings.settings.smartHome.layout[0].type).toBe("light");
+});
+
+it("scopes card sources to the chosen device and preserves explicit links from other devices across save and device changes", async () => {
+  app.currentHome = mapHome({
+    "light.desk": state("light.desk", "on", { friendly_name: "Desk light" }),
+    "sensor.battery": state("sensor.battery", "74", { friendly_name: "Desk battery" }),
+    "light.hall": state("light.hall", "off", { friendly_name: "Hall light" }),
+    "sensor.temperature": state("sensor.temperature", "21", { friendly_name: "Hall temperature" }),
+    "sensor.helper": state("sensor.helper", "3", { friendly_name: "Standalone reading" }),
+  }, {
+    areas: [], devices: [{ id: "desk-device", name: "Desk device" }, { id: "hall-device", name: "Hall device" }],
+    entities: [
+      { id: "desk-light", entity_id: "light.desk", device_id: "desk-device" },
+      { id: "desk-battery", entity_id: "sensor.battery", device_id: "desk-device" },
+      { id: "hall-light", entity_id: "light.hall", device_id: "hall-device" },
+      { id: "hall-temperature", entity_id: "sensor.temperature", device_id: "hall-device" },
+    ],
+  }, "home");
+  window.history.replaceState(null, "", "/settings/smart-home?card=new");
+  const view = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Light 2 available" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Device" }), { target: { value: "desk-device" } });
+  fireEvent.click(screen.getByRole("button", { name: "Main entity" }));
+  expect(screen.queryByRole("button", { name: /Choose device/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /Hall light ·/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Desk light · light.desk" }));
+  fireEvent.click(screen.getByRole("button", { name: "Supporting entities" }));
+  expect(screen.queryByRole("checkbox", { name: "Hall temperature" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("checkbox", { name: "Standalone reading" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("checkbox", { name: "Desk light" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Desk battery" }));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Supporting entities" }), { key: "Escape" });
+  fireEvent.click(screen.getByText("Add entities from other devices"));
+  fireEvent.click(screen.getByRole("button", { name: "Entities from other devices" }));
+  fireEvent.click(screen.getByRole("button", { name: /All entities/ }));
+  expect(screen.queryByRole("checkbox", { name: "Desk battery" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Hall temperature" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Standalone reading" }));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Entities from other devices" }), { key: "Escape" });
+  fireEvent.click(screen.getAllByRole("button", { name: "Add card" })[0]); await saved();
+  expect(settings.settings.smartHome.layout[0]).toMatchObject({ mainEntity: "home|desk-light", linkedEntities: ["home|desk-battery", "home|hall-temperature", "home|sensor.helper"] });
+  const id = settings.settings.smartHome.layout[0].id;
+  view.unmount();
+  window.history.replaceState(null, "", `/settings/smart-home?card=${id}`);
+  render(<App />); await saved();
+  expect(screen.getByRole("combobox", { name: "Device" })).toHaveValue("desk-device");
+  expect(screen.getByRole("button", { name: "Supporting entities" })).toHaveTextContent("Desk battery");
+  expect(screen.getByRole("button", { name: "Entities from other devices" })).toHaveTextContent("Hall temperature, Standalone reading");
+  fireEvent.change(screen.getByRole("combobox", { name: "Device" }), { target: { value: "hall-device" } });
+  expect(screen.getAllByRole("button", { name: "Save changes" })[0]).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Supporting entities" })).toHaveTextContent("Hall temperature");
+  expect(screen.getByRole("button", { name: "Entities from other devices" })).toHaveTextContent("Desk battery, Standalone reading");
+  chooseEntity("Main entity", "light.hall");
+  fireEvent.click(screen.getByRole("button", { name: "Supporting entities" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Hall temperature" }));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Supporting entities" }), { key: "Escape" });
+  fireEvent.click(screen.getAllByRole("button", { name: "Save changes" })[0]); await saved();
+  expect(settings.settings.smartHome.layout[0]).toMatchObject({ mainEntity: "home|hall-light", linkedEntities: ["home|desk-battery", "home|sensor.helper"] });
 });
