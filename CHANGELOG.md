@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.15
+
+<!-- release-source: 2b97ce847a52246fa0051985934abec3deeea8fd -->
+
+- test: stabilize gallery tests under load
+- test: narrow device gallery settings queries
+- feat: add searchable entity pickers
+- feat: add configurable home notifications
+- fix: use WebRTC and HLS for camera playback
+- fix: remove border from calendar-member-filter for cleaner styling
+- feat: tuck view options behind settings cogs
+- fix: show only populated smart home filters
+
 ## 0.9.14
 
 <!-- release-source: 395b054c1db29a983547eba6c91a6c80f54c1c95 -->
