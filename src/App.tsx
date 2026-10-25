@@ -7,6 +7,7 @@ import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FamilyProvider } from "@/contexts/FamilyProvider";
+import { NotificationProvider } from "@/contexts/NotificationProvider";
 import NotFound from "./pages/NotFound";
 
 const Calendar = lazy(() => import("./pages/Calendar"));
@@ -43,7 +44,7 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
             <Routes>
-              <Route element={<AppLayout />}>
+              <Route element={<NotificationProvider><AppLayout /></NotificationProvider>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/calendar" element={<Calendar />} />

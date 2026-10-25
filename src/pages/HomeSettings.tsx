@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberColorPicker } from "@/components/MemberColorPicker";
 import { TimetableAdministration } from "@/components/TimetableAdministration";
 import { SmartHomeSettings } from "@/components/SmartHomeSettings";
+import { NotificationSettings } from "@/components/NotificationSettings";
 export default function HomeSettings() {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
@@ -61,6 +62,7 @@ export default function HomeSettings() {
       {connectionError && <p role="alert" className="text-destructive">{message(connectionError)}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{message(warning)}</p>)}
     </section>
+    <NotificationSettings />
     <SmartHomeSettings />
     <section className="glow-panel" id="people-order"><PanelHeading title={t("People, colors and timetables")} />
       <p className="page-note">{t("Person colors appear in calendars, lists and timetables on every screen.")}</p>

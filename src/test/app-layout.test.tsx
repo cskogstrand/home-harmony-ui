@@ -4,10 +4,12 @@ import { lazy } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SmartHomeNav } from "@/components/layout/Navigation";
+import { NotificationContext } from "@/contexts/NotificationContext";
+import { notificationRuleSchema } from "../../shared/notifications";
 
-const shared = vi.hoisted(() => ({ enabled: true, online: true, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home" }, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma", appearance: { compactMode: false } }) }));
+const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home", entities: [] }, metadataWarnings: [] }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma", appearance: { compactMode: false }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
 
@@ -15,11 +17,30 @@ beforeEach(() => {
   shared.enabled = true;
   shared.online = true;
   shared.availableVersion = undefined;
+  shared.notifications = { presentation: "section", pages: "main" };
   shared.state = { loaded: true, dirty: false, saving: false, error: "", timetableError: null };
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
+
+it.each(["banner", "section"])("places the notification %s only on the chosen main pages and preserves the header bell", presentation => {
+  const rule = notificationRuleSchema.parse({ id: "fictional", title: "Example task", kind: "ongoing", trigger: { type: "state", entity: "home|sensor.example", operator: "eq", value: "running" } });
+  const value = { notifications: [{ id: rule.id, rule, startedAt: 0, popup: false }], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const content = (path: string) => <MemoryRouter key={path} initialEntries={[path]}><NotificationContext.Provider value={value}><AppLayout /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content("/"));
+  for (const pages of ["main", "today"]) {
+    shared.notifications = { presentation, pages };
+    for (const path of ["/", "/calendar", "/lists", "/school", "/home", "/settings", "/notifications", "/devices/example", "/user-settings"]) {
+      view.rerender(content(path));
+      const region = screen.queryByRole("region", { name: "Active notifications" });
+      const visible = path === "/" || pages === "main" && ["/calendar", "/lists", "/school", "/home"].includes(path);
+      expect(!!region, `${pages}: ${path}`).toBe(visible);
+      if (visible) expect(region.classList.contains("glow-panel")).toBe(presentation === "section");
+      expect(screen.getByRole("link", { name: "Notifications: 1 active" })).toBeVisible();
+    }
+  }
+});
 
 it("keeps navigation visible during page loading and scrolls to the anchor after it loads", async () => {
   const scrollIntoView = vi.fn();

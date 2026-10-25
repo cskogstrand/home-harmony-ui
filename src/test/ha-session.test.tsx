@@ -51,6 +51,25 @@ const connectedClient = async () => {
 const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
 
+it("subscribes to selected notification events, rejects stale callbacks and cleans up late subscriptions", async () => {
+  const client = await connectedClient(), controller = new AbortController(), receive = vi.fn();
+  const pending = deferred<() => Promise<void>>(), unsubscribe = vi.fn(async () => {});
+  conn.subscribeMessage.mockImplementationOnce(() => pending.promise);
+  client.watchEvents("example_event", controller.signal, receive);
+  const call = conn.subscribeMessage.mock.calls[conn.subscribeMessage.mock.calls.length - 1];
+  expect(call[1]).toEqual({ type: "subscribe_events", event_type: "example_event" });
+  expect(call[2]).toEqual({ resubscribe: false });
+  const callback = call[0] as unknown as (event: unknown) => void;
+  callback({ event_type: "example_event", data: { action: "pressed" } });
+  expect(receive).toHaveBeenCalledOnce();
+  conn.emit("disconnected");
+  callback({ event_type: "example_event", data: { action: "pressed" } });
+  expect(receive).toHaveBeenCalledOnce();
+  controller.abort();
+  pending.resolve(unsubscribe);
+  await waitFor(() => expect(unsubscribe).toHaveBeenCalledOnce());
+});
+
 it("starts without browser storage and keeps shared settings usable after HA disconnects", async () => {
   vi.spyOn(localStorage, "getItem").mockImplementation(() => { throw new Error("Browser storage disabled"); });
   vi.spyOn(localStorage, "setItem").mockImplementation(() => { throw new Error("Browser storage disabled"); });

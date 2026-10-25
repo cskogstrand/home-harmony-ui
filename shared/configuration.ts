@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { notificationSettingsSchema } from "./notifications.ts";
 
 export const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 export function isPlannerDate(value: string | null): value is string {
@@ -62,6 +63,7 @@ export const deviceCardSchema = z.object({
 }).strict();
 export type DeviceCardSettings = z.infer<typeof deviceCardSchema>;
 export const plannerSchema = z.object({
+  notifications: notificationSettingsSchema.default({}),
   language: z.enum(["en", "nb"]).default("en"),
   timetables: z.record(keySchema, z.array(imageUrl).max(100)),
   timetableEnabled: z.record(keySchema, z.boolean()).default({}),

@@ -29,7 +29,7 @@ function CameraVideo({ entity, expanded, onError }: { entity: Entity; expanded: 
     {playing ? <span className="smart-media-caption">{t("Live camera")}</span> : <p role="status">{t("Loading video…")}</p>}</>;
 }
 
-function MediaSurface({ entity, suspended = false, expanded = false }: { entity: Entity; suspended?: boolean; expanded?: boolean }) {
+export function MediaSurface({ entity, suspended = false, expanded = false }: { entity: Entity; suspended?: boolean; expanded?: boolean }) {
   const { homeOnline } = useApp();
   const { message: t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);

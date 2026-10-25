@@ -8,6 +8,7 @@ import {
 import type { CalendarEvent, EntityAction, EntityStates, Registries, TodoItem } from "@/types/api";
 import { available, emptyRegistries, entityCommand, mapHome } from "./ha-model";
 import { playCameraStream } from "./camera-stream";
+import type { NotificationEvent } from "./notifications";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 interface Snapshot {
@@ -248,6 +249,26 @@ export class HomeAssistantClient {
       const parsed = forecastSchema.safeParse(message?.forecast);
       receive(parsed.success ? parsed.data : null);
     }, { type: "weather/subscribe_forecast", entity_id: entityId, forecast_type: type }, { resubscribe: false }).then(unsub => {
+      if (current()) unsubscribe = unsub;
+      else void unsub().catch(() => {});
+    }).catch(() => { if (current()) receive(null); });
+  };
+
+  watchEvents = (eventType: string, signal: AbortSignal, receive: (event: NotificationEvent | null) => void) => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
+    if (!current() || !/^[a-zA-Z0-9_]{1,100}$/.test(eventType)) { if (!signal.aborted) receive(null); return; }
+    let unsubscribe: (() => Promise<void>) | undefined;
+    const stop = () => {
+      void unsubscribe?.().catch(() => {});
+      signal.removeEventListener("abort", stop);
+      this.cleanup = this.cleanup.filter(cleanup => cleanup !== stop);
+    };
+    this.cleanup.push(stop);
+    signal.addEventListener("abort", stop, { once: true });
+    void conn.subscribeMessage<NotificationEvent>(event => {
+      if (current() && event?.event_type === eventType && event.data && typeof event.data === "object" && !Array.isArray(event.data)) receive(event);
+    }, { type: "subscribe_events", event_type: eventType }, { resubscribe: false }).then(unsub => {
       if (current()) unsubscribe = unsub;
       else void unsub().catch(() => {});
     }).catch(() => { if (current()) receive(null); });

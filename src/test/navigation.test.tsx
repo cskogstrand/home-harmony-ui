@@ -675,7 +675,7 @@ it("configures calendars in settings, shows today's agenda on School and keeps t
   expect(screen.getAllByRole("button", { name: /^School day view ·/ })).toHaveLength(5);
   expect(within(screen.getByRole("tabpanel")).getAllByText("No calendars selected")).toHaveLength(3);
   expect(app.watchCalendarEvents).not.toHaveBeenCalled();
-  expect(screen.queryByText(/popup/i)).not.toBeInTheDocument();
+  expect(within(screen.getByRole("tabpanel")).queryByText(/popup/i)).not.toBeInTheDocument();
   expect(screen.queryByText("Dashboard week view")).not.toBeInTheDocument();
   for (const [category, names] of [["School day view · Activities", ["Activities", "Invitations"]], ["School day view · Meetings", ["Invitations"]], ["School day view · Messages (Pedagogy)", ["Pedagogy"]], ["School day view · Closure days", ["Closures"]], ["School day view · Opening hours", ["Hours"]]] as const) {
     fireEvent.click(screen.getByRole("button", { name: `${category} calendars for Example child` }));

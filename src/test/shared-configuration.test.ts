@@ -26,6 +26,20 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("shares notification rules across screens and restores them with the existing backup flow", async () => {
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, notifications: { enabled: true, presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntity: "", durationSeconds: 60, cooldownSeconds: 10 }] } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.notifications.rules[0].title).toBe("Example task");
+  expect(backup.settings.notifications).toMatchObject({ presentation: "banner", pages: "today" });
+  await b.replace(emptyConfiguration());
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.notifications).toEqual(backup.settings.notifications);
+});
+
 it("keeps legacy visibility migratable and starts new configurations with no enabled entities", () => {
   const config = emptyConfiguration();
   const { smartHome, ...oldSettings } = config.settings;
