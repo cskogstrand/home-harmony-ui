@@ -52,6 +52,10 @@ const connectedClient = async () => {
   return client;
 };
 const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
+const navigate = async (name: string) => {
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
+  await screen.findByRole("heading", { level: 1, name: name === "Today" ? "Good to be home." : name === "Our week" ? "Our week." : name });
+};
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
 
 it("subscribes to selected notification events, rejects stale callbacks and cleans up late subscriptions", async () => {
@@ -1195,8 +1199,7 @@ it.each([["Example person", "home|person.example"], ["Everyone", "home|person.ev
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Move Other person up" })));
   const avatar = () => screen.getByLabelText(name, { selector: ".member-avatar" });
   expect(avatar()).toHaveStyle({ background: "#112233", color: "#ffffff", borderColor: "#112233" });
-  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  nav("Our week");
+  await navigate("Our week");
   const event = await screen.findByRole("button", { name: /Example event/ });
   expect(event.style.getPropertyValue("--member")).toBe("#112233");
   expect(event.closest("tbody")?.style.getPropertyValue("--member")).toBe("#112233");
@@ -1205,7 +1208,7 @@ it.each([["Example person", "home|person.example"], ["Everyone", "home|person.ev
   fireEvent.click(within(screen.getByRole("dialog", { name: "Calendar settings" })).getByRole("button", { name: "Close" }));
   expect(screen.getByRole("button", { name: /Example event/ }).style.getPropertyValue("--member")).toBe("#112233");
   expect(screen.getByRole("button", { name: /Example event/ }).closest<HTMLElement>(".calendar-lane")?.style.getPropertyValue("--member")).toBe("#112233");
-  nav("Lists");
+  await navigate("Lists");
   fireEvent.click(await screen.findByRole("button", { name: /Family tasks/ }));
   expect(avatar()).toHaveStyle({ background: "#112233" });
   view.unmount();
@@ -1473,13 +1476,12 @@ it("uses saved people order for connected lists and retains missing people acros
   fireEvent.click(await screen.findByRole("button", { name: "Move Riley up" }));
   const order = () => JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).memberOrder;
   expect(order()).toEqual([personId("everyone"), personId("riley"), personId("morgan")]);
-  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   const listOrder = (kind: string) => screen.getAllByRole("group", { name: new RegExp(` ${kind}$`) }).map(group => group.getAttribute("aria-label"));
-  nav("Today");
+  await navigate("Today");
   await screen.findByRole("heading", { level: 1, name: "Good to be home." });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["EEveryone", "RRiley", "MMorgan"]);
   expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
-  nav("Lists");
+  await navigate("Lists");
   fireEvent.click(await screen.findByRole("button", { name: /Daily rhythm/ }));
   expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
   fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
@@ -1488,7 +1490,7 @@ it("uses saved people order for connected lists and retains missing people acros
   expect(listOrder("tasks")).toEqual(["Everyone tasks", "Person unavailable tasks", "Morgan tasks"]);
   const newPerson = { "person.alex": state("person.alex", "home", { friendly_name: "Alex" }) };
   act(() => conn.entityCallback?.({ ...newPerson, ...household }));
-  nav("Our week");
+  await navigate("Our week");
   await screen.findByRole("heading", { level: 1, name: "Our week." });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["EEveryone", "RRiley", "MMorgan", "AAlex"]);
   expect(order()).toEqual([personId("everyone"), personId("riley"), personId("morgan")]);
@@ -1525,8 +1527,7 @@ it("hides connected people and their plans and lists without losing assignments"
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
   expect(screen.getByRole("button", { name: "Remove Morgan calendar from Morgan" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Daily tasks for Morgan" })).toHaveTextContent("Entity unavailable · todo.morgan");
-  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  nav("Today");
+  await navigate("Today");
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["EEveryone"]);
   expect(screen.queryByText("Morgan remote plan")).not.toBeInTheDocument();
   expect(screen.queryByText("Morgan local plan")).not.toBeInTheDocument();
@@ -1536,7 +1537,7 @@ it("hides connected people and their plans and lists without losing assignments"
   act(() => conn.entityCallback?.(states));
   expect(screen.queryByRole("rowheader", { name: "Person unavailable" })).not.toBeInTheDocument();
   act(() => conn.entityCallback?.(household));
-  nav("Lists");
+  await navigate("Lists");
   fireEvent.click(screen.getByRole("button", { name: /Daily rhythm/ }));
   expect(screen.queryByRole("group", { name: "Morgan daily tasks" })).not.toBeInTheDocument();
   view.unmount();
@@ -1547,10 +1548,10 @@ it("hides connected people and their plans and lists without losing assignments"
   expect(await screen.findByRole("switch", { name: "Show Morgan in family planner" })).not.toBeChecked();
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!)).toMatchObject({ ...planner, hiddenMembers: [morgan] });
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
-  nav("Our week");
+  await navigate("Our week");
   expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
   expect(screen.queryByText("Morgan local plan")).not.toBeInTheDocument();
-  nav("Lists");
+  await navigate("Lists");
   fireEvent.click(screen.getByRole("button", { name: /Daily rhythm/ }));
   expect(screen.getByRole("group", { name: "Morgan daily tasks" })).toBeInTheDocument();
   restored.unmount();
@@ -1580,11 +1581,10 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   expect(screen.getByRole("switch", { name: "Timetable for Morgan" })).not.toBeChecked();
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Riley" }));
   if (screen.queryByRole("alertdialog")) await confirmAction("Hide timetable");
-  const nav = (name: string) => fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  nav("School");
+  await navigate("School");
   expect(screen.getByText(/No timetables enabled/)).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: /’s school week/ })).not.toBeInTheDocument();
-  nav("Today");
+  await navigate("Today");
   expect(screen.queryByRole("button", { name: /Enlarge .* timetable/ })).not.toBeInTheDocument();
   expect(screen.getByRole("rowheader", { name: "Riley" })).toBeInTheDocument();
   view.unmount();
@@ -1598,12 +1598,12 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   if (screen.queryByRole("alertdialog")) await confirmAction("Hide timetable");
   fireEvent.click(screen.getByRole("switch", { name: "Timetable for Morgan" }));
   fireEvent.click(screen.getByRole("button", { name: "Move Riley up" }));
-  nav("School");
+  await navigate("School");
   expect(screen.getAllByRole("heading", { level: 2 }).map(heading => heading.textContent)).toEqual(["Riley’s school week", "Morgan’s school week"]);
   expect(screen.getByRole("img", { name: "Riley’s school timetable" })).toHaveAttribute("src", timetables[riley][0]);
   expect(screen.getByText("No timetable yet.")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Add timetable images" })).not.toBeInTheDocument();
-  nav("Today");
+  await navigate("Today");
   expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable", "Enlarge Morgan’s timetable"]);
   await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
   restored.unmount();
