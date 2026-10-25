@@ -329,7 +329,7 @@ export default function DeviceGallery() {
   const visible = (example: Example) => (group === "All cards" || example.group === group) && [t(example.title), t(example.subtitle), ...example.domains].join(" ").toLocaleLowerCase().includes(query);
   const count = examples.filter(visible).length;
   return <TooltipProvider delayDuration={300}><div className="device-gallery planner-page">
-    <Link className="dg-back" to="/settings#smart-home-visibility"><ArrowLeft size={17} />{t("Smart home settings")}</Link>
+    <Link className="dg-back" to="/settings/smart-home"><ArrowLeft size={17} />{t("Smart home settings")}</Link>
     <div className="dg-heading"><div><h1>{t("Device playground")}</h1><p>{t("Device cards, reimagined. Touch, adjust and explore.")}</p></div><SettingsPopover label={t("Playground settings")}>
       <fieldset><legend className="mb-2 text-sm text-muted-foreground">{t("Gallery view")}</legend><div className="grid grid-cols-2 gap-2">{views.map(value => <Button key={value} variant={view === value ? "secondary" : "ghost"} aria-pressed={view === value} onClick={() => setView(value)}>{t(value)}</Button>)}</div></fieldset>
       <label className="grid gap-2 text-sm">{t("Demo state")}<select className="min-h-11 rounded-md border border-input bg-background px-3 text-base" value={status} onChange={e => setStatus(e.target.value as DemoStatus)}>{(["Ready", "Unavailable", "Waiting", "Command failed"] as const).map(value => <option key={value} value={value}>{t(value)}</option>)}</select></label>

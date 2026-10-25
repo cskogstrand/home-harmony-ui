@@ -179,6 +179,6 @@ export function SmartHomeSettings() {
       confirmLabel={pending?.allMatches ? pending.visible ? "Show all matches" : "Hide all matches" : pending?.visible ? "Show group" : "Hide group"}
       onConfirm={() => pending ? (pending.deviceId ? setSmartHomeDeviceVisible(pending.deviceId, pending.visible) : setSmartHomeEntitiesVisible(pending.ids, pending.visible)) : false} />
     <p role="status" className="page-note">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
-    {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><Link to="/user-settings" className="text-link">{t("App preferences")}</Link></div>}
+    {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><Link to="/settings/backups" className="text-link">{t("Storage and backups")}</Link></div>}
   </section>;
 }

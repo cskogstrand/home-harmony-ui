@@ -15,14 +15,14 @@ export default function Onboarding() {
         <p className="page-note">{t("Set your Home Assistant address and token in the HAOS app’s Configuration tab, or the dashboard server’s .env file. The token stays on the server.")}</p>
         <p className="page-note">{t("Every screen uses that account’s permissions. Unless dashboard login is disabled, sign in as “dashboard” with your shared password.")}</p>
         <p role="status">{homeOnline ? t("Home Assistant connected") : t("Home Assistant not connected")}</p>
-        <Link className="text-link" to="/settings#connection">{t("Connection settings")}</Link>
+        <Link className="text-link" to="/settings/connection">{t("Connection settings")}</Link>
       </li>
       <li className="glow-panel space-y-3" id="people">
         <h2>{t("2. Add your people")}</h2>
         <p className="page-note">{t("Create people in Home Assistant, then choose their order and visibility in Home settings. Hiding someone keeps their saved settings.")}</p>
         <div className="flex flex-wrap gap-4">
           {haUrl && <a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">{t("Add people in Home Assistant")}</a>}
-          <Link className="text-link" to="/settings#people-order">{t("Choose people")}</Link>
+          <Link className="text-link" to="/settings/people">{t("Choose people")}</Link>
         </div>
       </li>
       <li className="glow-panel space-y-3" id="calendars">
@@ -30,7 +30,7 @@ export default function Onboarding() {
         <p className="page-note">{t("Add a calendar integration in Home Assistant and assign calendars to your Home Assistant people. Plans and edits are saved to the source calendar when it supports them.")}</p>
         <div className="flex flex-wrap gap-4">
           {haUrl && <a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Add a calendar integration")}</a>}
-          <Link className="text-link" to="/settings#family-calendar">{t("Choose calendars")}</Link>
+          <Link className="text-link" to="/settings/calendars">{t("Choose calendars")}</Link>
         </div>
       </li>
       <li className="glow-panel space-y-3" id="lists">
@@ -39,14 +39,14 @@ export default function Onboarding() {
         <p className="page-note">{t("Daily lists need a Home Assistant automation to reset them each morning.")}</p>
         <div className="flex flex-wrap gap-4">
           {haUrl && <a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Add a to-do integration")}</a>}
-          <Link className="text-link" to="/settings#family-lists">{t("Choose lists")}</Link>
+          <Link className="text-link" to="/settings/lists">{t("Choose lists")}</Link>
         </div>
       </li>
       <li className="glow-panel space-y-3" id="timetables">
         <h2>{t("5. Add school timetables ")}<span className="text-sm text-muted-foreground">{t("Optional")}</span></h2>
         <p className="page-note">{t("Enable Timetable for the people who need it, then choose PDF / images or Calendars in Settings → Timetables. Read the result on School or the dashboard.")}</p>
         <div className="flex flex-wrap gap-4">
-          <Link className="text-link" to="/settings#timetables">{t("Configure timetables")}</Link>
+          <Link className="text-link" to="/settings/timetables">{t("Configure timetables")}</Link>
           <Link className="text-link" to="/school">{t("Open School board")}</Link>
         </div>
       </li>
@@ -54,7 +54,7 @@ export default function Onboarding() {
     <section className="glow-panel space-y-3">
       <h2>{t("Make it yours")}</h2>
       <p className="page-note">{t("Use the settings cog beside Home favorites on Today to pick favorite devices and scenes. App preferences holds appearance settings, dark timetables and backups. Settings are shared across your household’s screens.")}</p>
-      <Link className="text-link" to="/user-settings">{t("App preferences")}</Link>
+      <Link className="text-link" to="/settings/appearance">{t("App preferences")}</Link>
     </section>
     <div className="flex flex-wrap items-center gap-4">
       <Button asChild><Link to="/">{t("Go to Today")}</Link></Button>

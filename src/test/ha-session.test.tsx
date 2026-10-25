@@ -130,7 +130,7 @@ it("confirms PDF uploads, preserves failed drafts, refreshes private previews an
     queueMicrotask(() => callback({ ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }) }));
     return conn.unsubscribeEntities;
   });
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/timetables");
   const view = render(<App />);
   const picker = await screen.findByLabelText("Upload Morgan timetable PDF");
   await waitFor(() => expect(picker).toBeEnabled());
@@ -1177,7 +1177,7 @@ it.each([["Example person", "home|person.example"], ["Everyone", "home|person.ev
   });
   setHaFetch(vi.fn().mockResolvedValue({ ok: true, json: async () => [{ summary: "Example event", start: "2026-10-07", end: "2026-10-08" }] }));
   seedSettings({ calendarMembers: { "home|calendar.example": member }, todoLists: { "home|todo.example": { kind: "tasks", member } } });
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/people");
   const view = render(<App />);
   const trigger = await screen.findByRole("button", { name: `Color for ${name}` });
   await waitFor(() => expect(trigger).toBeEnabled());
@@ -1214,7 +1214,7 @@ it.each([["Example person", "home|person.example"], ["Everyone", "home|person.ev
   view.unmount();
   conn = new FakeConnection();
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/people");
   render(<App />);
   await waitFor(() => expect(screen.getByRole("button", { name: `Color for ${name}` })).toBeEnabled());
   expect(avatar()).toHaveStyle({ background: "#112233" });
@@ -1242,7 +1242,7 @@ it("assigns HA calendars to real people in both views, persists setup, without l
   const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [event] });
   setHaFetch(fetchMock);
   seedSettings({ events: [{ id: "legacy", title: "Local library visit", date: "2026-10-08", time: "16:00", member: "home|person.riley", location: "", note: "" }], items: [], timetables: {} });
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  window.history.replaceState(null, "", "/settings/calendars?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   const assignment = within(await screen.findByRole("group", { name: "Morgan" })).getByRole("button", { name: "Add calendar for Morgan" });
   await waitFor(() => expect(assignment).not.toBeDisabled());
@@ -1285,7 +1285,7 @@ it("selects multiple calendars per person, moves and clears assignments, and res
   seedSettings({ events: [], items: [], timetables: {}, calendarMembers: {
     [`home|calendar.personal`]: `home|person.morgan`, [`home|calendar.shared`]: "home|person.everyone",
   } });
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  window.history.replaceState(null, "", "/settings/calendars?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   await screen.findByRole("group", { name: "Morgan" });
   const selected = (person: string, calendar: string) => within(screen.getByRole("group", { name: person })).getByRole("button", { name: `Remove ${calendar} from ${person}` });
@@ -1397,7 +1397,7 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
     queueMicrotask(() => callback(household));
     return conn.unsubscribeEntities;
   });
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  window.history.replaceState(null, "", "/settings/lists?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   const select = (name: string) => screen.getByRole("button", { name });
   await waitFor(() => expect(select("Tasks for Morgan")).toBeEnabled());
@@ -1471,7 +1471,7 @@ it("uses saved people order for connected lists and retains missing people acros
     `home|todo.${name}_${kind}`, { kind, member: personId(name) },
   ])));
   seedSettings({ events: [], items: [], timetables: {}, todoLists });
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  window.history.replaceState(null, "", "/settings/people?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: "Move Riley up" }));
   const order = () => JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).memberOrder;
@@ -1523,9 +1523,12 @@ it("hides connected people and their plans and lists without losing assignments"
   const view = render(<App />);
   expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
   fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
-  fireEvent.click(screen.getByRole("menuitem", { name: "Home settings" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "All settings" }));
+  fireEvent.click(await screen.findByRole("link", { name: /People Visibility/ }));
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "Calendars" }));
   expect(screen.getByRole("button", { name: "Remove Morgan calendar from Morgan" })).toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "To-do lists" }));
   expect(screen.getByRole("button", { name: "Daily tasks for Morgan" })).toHaveTextContent("Entity unavailable · todo.morgan");
   await navigate("Today");
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["EEveryone"]);
@@ -1543,7 +1546,7 @@ it("hides connected people and their plans and lists without losing assignments"
   view.unmount();
   conn = new FakeConnection();
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/people");
   const restored = render(<App />);
   expect(await screen.findByRole("switch", { name: "Show Morgan in family planner" })).not.toBeChecked();
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!)).toMatchObject({ ...planner, hiddenMembers: [morgan] });
@@ -1575,7 +1578,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   const timetables = { [riley]: ["https://school.example/riley.png"] };
   const migratedTimetables = timetables;
   seedSettings({ events: [], items: [], timetables });
-  window.history.replaceState(null, "", "/settings?auth_callback=1&code=fixture&state=fixture");
+  window.history.replaceState(null, "", "/settings/people?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).toBeChecked();
   expect(screen.getByRole("switch", { name: "Timetable for Morgan" })).not.toBeChecked();
@@ -1590,7 +1593,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   view.unmount();
   conn = new FakeConnection();
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/people");
   const restored = render(<App />);
   expect(await screen.findByRole("switch", { name: "Timetable for Riley" })).not.toBeChecked();
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).timetables).toEqual(migratedTimetables);

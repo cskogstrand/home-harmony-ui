@@ -139,7 +139,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
       </Popover>}
     </div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>
       <div className="planner-form dialog-form-body">
-      {remote && !homeOnline && <p className="form-notice" role="status">{t("Connect to Home Assistant to save this plan.")} <Link className="text-link" to="/settings#connection">{t("Connection settings")}</Link></p>}
+      {remote && !homeOnline && <p className="form-notice" role="status">{t("Connect to Home Assistant to save this plan.")} <Link className="text-link" to="/settings/connection">{t("Connection settings")}</Link></p>}
       {source?.recurrence_id && <p>{t("Only this occurrence will be changed.")}</p>}
       {draft.allDay && <p>{t("All-day event. End date is the last day included.")}</p>}
       <label>{t("What’s happening?")}<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder={t("Dinner with grandparents")} onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
@@ -149,7 +149,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
       <label>{t("Who’s going?")}<select required disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
       {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p></>}
       {remote && !editingRemote && <><EntityPicker label={t("Calendar")} placeholder={t("Choose a calendar")} entities={calendars} value={calendar?.preferenceId ?? ""} disabled={busy} disabledReason={entity => !writable.includes(entity) ? t("Read-only or unavailable") : ""} onChange={value => { setCalendarId(value); setError(""); }} />
-        {homeOnline && !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings#family-calendar">{t("Home settings")}</Link>.</p>}</>}
+        {homeOnline && !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings/calendars">{t("Home settings")}</Link>.</p>}</>}
       <details className="optional-fields"><summary>{t("Location and notes")}</summary><div className="planner-form"><label>{t("Where?")}<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder={t("Add a place")} onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
       <label>{t("A little reminder")}<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder={t("Who’s driving? What should we bring?")} onChange={e => setDraft({ ...draft, note: e.target.value })} /></label></div></details>
       </div>

@@ -12,7 +12,7 @@ export default function Notifications() {
   const { currentHome, homeOnline } = useApp();
   const { notifications } = useFamily();
   const unavailable = currentHome.entities.filter(e => !available(e));
-  return <div className="planner-page"><PageHeading title={t("Notifications")} description={message("Running tasks, current events and camera alerts")}><Button variant="outline" asChild><Link to="/settings#notifications">{message("Notification settings")}</Link></Button></PageHeading>
+  return <div className="planner-page"><PageHeading title={t("Notifications")} description={message("Running tasks, current events and camera alerts")}><Button variant="outline" asChild><Link to="/settings/notifications">{message("Notification settings")}</Link></Button></PageHeading>
     {!homeOnline && <p role="status" className="page-note">{message("Notifications are paused until Home Assistant reconnects.")}</p>}
     {!notifications.enabled && <p role="status" className="page-note">{message("Notifications are turned off in settings.")}</p>}
     {!notifications.rules.length && <p className="page-note">{message("No rules yet. Add an ongoing task for an appliance, a current alert for a state or calendar, or a camera popup for your doorbell.")}</p>}

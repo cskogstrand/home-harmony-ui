@@ -126,7 +126,7 @@ it("shows upload errors above the page and allows dismissing each new failure", 
   expect(screen.getByRole("banner").nextElementSibling).toBe(alert);
   expect(alert).toHaveTextContent("Emma’s timetable upload failed.");
   expect(alert).toHaveTextContent(shared.state.timetableError.message);
-  expect(screen.getByRole("link", { name: "Timetable settings" })).toHaveAttribute("href", "/settings#timetables");
+  expect(screen.getByRole("link", { name: "Timetable settings" })).toHaveAttribute("href", "/settings/timetables");
   fireEvent.click(screen.getByRole("button", { name: "Dismiss timetable error" }));
   view.rerender(layout());
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -171,5 +171,5 @@ it.each([
   const settings = screen.getByRole("button", { name: "Open app settings" });
   expect(settings).toHaveAttribute("title", message);
   fireEvent.keyDown(settings, { key: "Enter" });
-  expect(screen.getByRole("menuitem", { name: "Storage and backups" })).toHaveAttribute("href", "/user-settings");
+  expect(screen.getByRole("menuitem", { name: "Storage and backups" })).toHaveAttribute("href", "/settings/backups");
 });

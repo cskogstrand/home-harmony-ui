@@ -138,7 +138,7 @@ it.each([
   ["Sage", "sage"], ["Mist", "mist"], ["Rose", "rose"], ["Olive", "olive"],
   ["Clay", "clay"], ["Lavender", "lavender"], ["Seafoam", "seafoam"], ["Honey", "honey"], ["Slate", "slate"],
 ])("applies %s globally, keeps dark mode independent, and restores the choice after reload", async (name, colorPalette) => {
-  const view = render(<FamilyProvider><UserSettings /></FamilyProvider>);
+  const view = render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
   expect(screen.getByRole("radio", { name: "Pearl" })).toBeChecked();
   fireEvent.click(screen.getByRole("radio", { name }));
@@ -150,7 +150,7 @@ it.each([
   expect(document.documentElement).not.toHaveClass("dark");
   expect(screen.getByRole("radio", { name })).toBeChecked();
   view.unmount();
-  render(<FamilyProvider><UserSettings /></FamilyProvider>);
+  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
   expect(screen.getByRole("radio", { name })).toBeChecked();
   expect(document.documentElement).toHaveAttribute("data-color-palette", colorPalette);
@@ -158,7 +158,7 @@ it.each([
 });
 
 it("keeps a failed palette save as an unsaved draft and blocks further choices until recovery", async () => {
-  render(<FamilyProvider><UserSettings /></FamilyProvider>);
+  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
   fireEvent.click(screen.getByRole("radio", { name: "Sand" }));

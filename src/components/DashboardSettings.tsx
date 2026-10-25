@@ -43,7 +43,7 @@ export function DashboardSettings() {
       </div>
       <p className="text-sm text-muted-foreground">{t("Morning summary appears when available. School appears when timetables are configured.")}</p>
       <p role="status" className="text-sm text-muted-foreground">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
-      {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><DialogClose asChild><Link to="/user-settings" className="text-link">{t("App preferences")}</Link></DialogClose></div>}
+      {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><DialogClose asChild><Link to="/settings/backups" className="text-link">{t("Storage and backups")}</Link></DialogClose></div>}
       <DialogFooter><DialogClose asChild><Button>{t("Close")}</Button></DialogClose></DialogFooter>
     </DialogContent>
   </Dialog>;

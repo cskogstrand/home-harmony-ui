@@ -5,16 +5,14 @@ import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, type ListKind } from "@/contexts/FamilyContext";
-import { MemberAvatar, PageHeading, PanelHeading } from "@/components/FamilyPlanner";
+import { MemberAvatar, PanelHeading } from "@/components/FamilyPlanner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberColorPicker } from "@/components/MemberColorPicker";
 import { TimetableAdministration } from "@/components/TimetableAdministration";
-import { SmartHomeSettings } from "@/components/SmartHomeSettings";
-import { NotificationSettings } from "@/components/NotificationSettings";
 import { EntityPicker } from "@/components/EntityPicker";
-export default function HomeSettings() {
+export default function HomeSettings({ section }: { section: "connection" | "people" | "timetables" | "calendars" | "lists" }) {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
   const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
@@ -48,17 +46,15 @@ export default function HomeSettings() {
       entities={lists} value={selected} disabled={!homeOnline} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
       getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberMessage(assigned.member, assigned.kind), value2: msg(listLabels[assigned.kind]) }) : ""; }} />;
   };
-  return <div className="planner-page"><PageHeading title={t("Home settings")}><Button variant="outline" asChild><Link to="/onboarding">{t("Get started")}</Link></Button></PageHeading>
-    <section className="glow-panel" id="connection"><PanelHeading title={t("Home Assistant connection")} />
-      <p>{t("Home Assistant: {value1}", { value1: haUrl || t("Loading server configuration…") })}</p>
+  return <>
+    {section === "connection" && <section className="glow-panel" id="connection"><PanelHeading title={t("Home Assistant connection")} />
+      <p className="break-all">{t("Home Assistant: {value1}", { value1: haUrl || t("Loading server configuration…") })}</p>
       <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? t("Connecting…") : t("Reconnect")}</Button><Button variant="outline" onClick={() => setConfirmation({ title: msg("Disconnect Home Assistant?"), description: msg("Pause live controls in this tab until you reconnect or reload? Shared settings remain available."), confirmLabel: msg("Disconnect"), onConfirm: disconnect })}>{t("Disconnect")}</Button></div>
       <p role="status" className="page-note">{t("Connection: {value1}", { value1: message(connectionStatus) })}</p>
       {connectionError && <p role="alert" className="text-destructive">{message(connectionError)}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{message(warning)}</p>)}
-    </section>
-    <NotificationSettings />
-    <SmartHomeSettings />
-    <section className="glow-panel" id="people-order"><PanelHeading title={t("People, colors and timetables")} />
+    </section>}
+    {section === "people" && <section className="glow-panel" id="people-order"><PanelHeading title={t("People, colors and timetables")} />
       <p className="page-note">{t("Person colors appear in calendars, lists and timetables on every screen.")}</p>
       {!members.length && <p className="empty-note">{t("No people available.")}</p>}
       <ol aria-label={t("People order")}>{members.map((person, index) => <li key={person.id} className="flex flex-wrap items-center gap-3 border-b py-3 last:border-0">
@@ -71,13 +67,13 @@ export default function HomeSettings() {
           <MemberColorPicker person={person} />
         </div>
       </li>)}</ol>
-    </section>
-    <section className="glow-panel" id="timetables"><PanelHeading title={t("Timetables")} />
+    </section>}
+    {section === "timetables" && <section className="glow-panel" id="timetables"><PanelHeading title={t("Timetables")} />
       <p className="page-note">{t("Choose timetable types and sources here. School and the dashboard display the result.")}</p>
-      {!members.some(person => hasTimetable(person.id)) && <p className="empty-note">{t("Enable Timetable for a person above to configure it here.")}</p>}
+      {!members.some(person => hasTimetable(person.id)) && <p className="empty-note">{t("Enable Timetable in People to configure it here.")} <Link to="/settings/people" className="text-link">{t("Choose people")}</Link></p>}
       {members.filter(person => hasTimetable(person.id)).map(person => <TimetableAdministration key={person.id} child={person.id} />)}
-    </section>
-    <section className="glow-panel" id="family-calendar"><PanelHeading title={t("People and calendars")} />
+    </section>}
+    {section === "calendars" && <section className="glow-panel" id="family-calendar"><PanelHeading title={t("People and calendars")} />
       {!homeOnline && <p role="status">{t("Calendars unavailable while offline.")}</p>}
       {homeOnline && !calendars.length && <p className="empty-note">{t("No calendars available.")}</p>}
       {!!calendars.length && <div className="mt-3">{members.map(person => {
@@ -96,8 +92,8 @@ export default function HomeSettings() {
             getDescription={calendar => calendarMembers[calendar.preferenceId] ? t(" — move from {value1}", { value1: memberName(calendarMembers[calendar.preferenceId]) }) : ""} />
         </div>;
       })}</div>}
-    </section>
-    <section className="glow-panel" id="family-lists"><PanelHeading title={t("People and to-do lists")} />
+    </section>}
+    {section === "lists" && <section className="glow-panel" id="family-lists"><PanelHeading title={t("People and to-do lists")} />
       {!homeOnline && <p role="status">{t("Lists unavailable while offline.")}</p>}
       {homeOnline && !lists.length && <p className="empty-note">{t("No to-do lists available.")}</p>}
       {listPeople.map(person => <div key={person.id} role="group" aria-label={t("To-do lists for {value1}", { value1: person.name })} className="flex flex-wrap items-center gap-3 border-b py-3">
@@ -105,8 +101,8 @@ export default function HomeSettings() {
         <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}</div>
       </div>)}
       <div className="mt-3 max-w-md">{listSelector("shopping", { id: "everyone", name: t("Household") })}</div>
-    </section>
-    <section className="glow-panel"><PanelHeading title={t("Your instance")} /><dl className="device-readings"><div><dt>{t("Name")}</dt><dd>{currentHome.name}</dd></div><div><dt>{t("Signed in as")}</dt><dd>{currentUser?.name ?? t("Not signed in")}</dd></div><div><dt>{t("HA access")}</dt><dd>{currentUser ? currentUser.is_owner ? t("Owner") : currentUser.is_admin ? t("Administrator") : t("User") : "—"}</dd></div><div><dt>{t("Physical devices")}</dt><dd>{currentHome.devices.length}</dd></div><div><dt>{t("Entities")}</dt><dd>{currentHome.entities.length}</dd></div></dl>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">{t("Open Home Assistant settings")}</a>}</section>
+    </section>}
+    {section === "connection" && <section className="glow-panel"><PanelHeading title={t("Your instance")} /><dl className="device-readings"><div><dt>{t("Name")}</dt><dd>{currentHome.name}</dd></div><div><dt>{t("Signed in as")}</dt><dd>{currentUser?.name ?? t("Not signed in")}</dd></div><div><dt>{t("HA access")}</dt><dd>{currentUser ? currentUser.is_owner ? t("Owner") : currentUser.is_admin ? t("Administrator") : t("User") : "—"}</dd></div><div><dt>{t("Physical devices")}</dt><dd>{currentHome.devices.length}</dd></div><div><dt>{t("Entities")}</dt><dd>{currentHome.entities.length}</dd></div></dl>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">{t("Open Home Assistant settings")}</a>}</section>}
     {confirmation && <ConfirmDialog open onOpenChange={open => { if (!open) setConfirmation(undefined); }} {...confirmation} destructive disabled={confirmation.requiresConnection && !homeOnline} />}
-  </div>;
+  </>;
 }

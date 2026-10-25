@@ -26,11 +26,10 @@ const Automations = lazy(() => import("./pages/Automations"));
 const EnergySaver = lazy(() => import("./pages/EnergySaver"));
 const History = lazy(() => import("./pages/History"));
 const Notifications = lazy(() => import("./pages/Notifications"));
-const HomeSettings = lazy(() => import("./pages/HomeSettings"));
+const Settings = lazy(() => import("./pages/Settings"));
 const Support = lazy(() => import("./pages/Support"));
 const Alarm = lazy(() => import("./pages/Alarm"));
 const Integrations = lazy(() => import("./pages/Integrations"));
-const UserSettings = lazy(() => import("./pages/UserSettings"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient();
@@ -69,9 +68,10 @@ const App = () => (
                 <Route path="/services" element={<Navigate to="/integrations" replace />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/notifications" element={<Notifications />} />
-                <Route path="/settings" element={<HomeSettings />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/:section" element={<Settings />} />
                 <Route path="/support" element={<Support />} />
-                <Route path="/user-settings" element={<UserSettings />} />
+                <Route path="/user-settings" element={<Navigate to="/settings/appearance" replace />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

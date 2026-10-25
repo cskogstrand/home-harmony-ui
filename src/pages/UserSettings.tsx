@@ -1,11 +1,9 @@
 import { useI18n } from "@/hooks/use-i18n";
-import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
-import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
+import { PanelHeading } from "@/components/FamilyPlanner";
 import { Switch } from "@/components/ui/switch";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import type { Language } from "@/lib/i18n";
-import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const palettes = [
@@ -23,17 +21,19 @@ const palettes = [
   { value: "slate", name: "Slate" },
 ] as const;
 
-export default function UserSettings() {
+export default function UserSettings({ section = "appearance" }: { section?: "appearance" | "language" }) {
   const { t } = useI18n();
-  const { currentUser } = useApp();
   const { appearance, setAppearance, language, setLanguage } = useFamily();
   const shared = useSharedConfiguration();
-  return <div className="planner-page">
-    <PageHeading title={t("Settings")} />
-    <section className="glow-panel"><PanelHeading title={t("Home Assistant account")} /><p>{currentUser?.name ?? t("Not signed in")}</p></section>
-    <section className="glow-panel space-y-4">
-      <PanelHeading title={t("Appearance")} />
-      <label className="flex items-center justify-between gap-3">{t("Dark mode")}<Switch checked={appearance.theme === "dark"} onCheckedChange={v => setAppearance({ theme: v ? "dark" : "light" })} aria-label={t("Toggle dark mode")} /></label>
+  const disabled = !shared?.state.loaded || !!shared.state.error;
+  return <>
+    {section === "appearance" && <section className="glow-panel settings-preferences">
+      <PanelHeading title={t("Display")} />
+      <label className="settings-control-row">{t("Dark mode")}<Switch disabled={disabled} checked={appearance.theme === "dark"} onCheckedChange={v => setAppearance({ theme: v ? "dark" : "light" })} aria-label={t("Toggle dark mode")} /></label>
+      <label className="settings-control-row"><span>{t("Dark timetables")}<span id="dark-timetables-description" className="page-note block">{t("Dark backgrounds for PDF timetables. Linked images keep their colors.")}</span></span><Switch disabled={disabled} checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label={t("Toggle dark timetables")} aria-describedby="dark-timetables-description" /></label>
+      <label className="settings-control-row">{t("Compact mode")}<Switch disabled={disabled} checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label={t("Toggle compact mode")} /></label>
+    </section>}
+    {section === "appearance" && <section className="glow-panel">
       <fieldset className="palette-fieldset">
         <legend id="color-palette-label">{t("Color palette")}</legend>
         <p id="color-palette-description" className="page-note">{t("Colors for the whole app, in light and dark mode. Shared across connected screens.")}</p>
@@ -46,19 +46,15 @@ export default function UserSettings() {
           </label>)}
         </RadioGroup>
       </fieldset>
-      <label className="flex items-center justify-between gap-3">{t("Dark timetables")}<Switch checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label={t("Toggle dark timetables")} aria-describedby="dark-timetables-description" /></label>
-      <p id="dark-timetables-description" className="page-note">{t("Dark backgrounds for PDF timetables. Linked images keep their colors.")}</p>
-      <label className="flex items-center justify-between gap-3">{t("Compact mode")}<Switch checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label={t("Toggle compact mode")} /></label>
-    </section>
-    <section className="glow-panel space-y-4"><PanelHeading title={t("Language")} />
+    </section>}
+    {section === "language" && <section className="glow-panel space-y-4" aria-label={t("Language")}>
       <label className="flex flex-wrap items-center justify-between gap-3">{t("Language")}
-        <select className="h-10 rounded-lg border bg-background px-3" aria-describedby="language-description" value={language}
+        <select className="min-h-11 max-w-full rounded-lg border bg-background px-3" aria-describedby="language-description" value={language}
           disabled={!shared?.state.loaded || !!shared.state.error} onChange={event => setLanguage(event.target.value as Language)}>
           <option value="en" lang="en">English</option><option value="nb" lang="nb">Norsk bokmål</option>
         </select>
       </label>
       <p id="language-description" className="page-note">{t("Applies to every screen connected to this server.")}</p>
-    </section>
-    <ConfigurationBackup />
-  </div>;
+    </section>}
+  </>;
 }

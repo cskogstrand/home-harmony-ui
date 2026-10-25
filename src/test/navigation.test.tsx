@@ -58,7 +58,7 @@ it("uses only Home Assistant people and lets old shared assignments move to a re
     "home|todo.shared": { kind: "tasks", member: "everyone" },
     "home|todo.shopping": { kind: "shopping", member: "everyone" },
   };
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/lists");
   render(<App />); await saved();
   expect(screen.queryByRole("button", { name: "Color for Everyone" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Add calendar for Everyone" })).not.toBeInTheDocument();
@@ -74,11 +74,15 @@ it("uses only Home Assistant people and lets old shared assignments move to a re
   expect(screen.queryByRole("option", { name: "Everyone" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
-  fireEvent.click(screen.getByRole("menuitem", { name: "Home settings" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "All settings" }));
+  await pageReady();
+  fireEvent.click(screen.getByRole("link", { name: /Calendars Connect calendars/ }));
   await pageReady();
   chooseEntity(screen.getByRole("button", { name: "Add calendar for Example person" }), "calendar.shared");
   fireEvent.click(screen.getByRole("button", { name: "Move calendar" }));
   await saved();
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "To-do lists" }));
+  await pageReady();
   chooseEntity(screen.getByRole("button", { name: "Tasks for Example person" }), "todo.shared");
   fireEvent.click(screen.getByRole("button", { name: "Change list" }));
   await saved();
@@ -105,7 +109,7 @@ it("migrates existing choices once after a complete sync and keeps later discove
   }, "home");
   app.currentHome = initial;
   app.metadataWarnings = ["Registry unavailable"];
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   const view = render(<App />); await saved();
   expect(settings.settings.smartHome.knownEntities).toBeUndefined();
   app.metadataWarnings = [];
@@ -135,7 +139,7 @@ it("starts fresh devices disabled and enables only their current entities with c
     areas: [], devices: [{ id: "example-device", name: "Example hub" }],
     entities: [{ id: "example-light", entity_id: "light.example", device_id: "example-device" }],
   }, "home");
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
   const device = screen.getByRole("switch", { name: "Show device Example hub on Smart home" });
@@ -163,7 +167,7 @@ it("saves device and entity visibility, restores individual choices, and filters
   }, "home");
   settings.settings.smartHome.hiddenEntities = ["home|unavailable-example"];
   settings.settings.homeEntities = ["home|example-light"];
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   const first = render(<App />); await saved();
   const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
   fireEvent.change(region.getByRole("combobox", { name: "Group by" }), { target: { value: "device" } });
@@ -203,8 +207,9 @@ it("saves device and entity visibility, restores individual choices, and filters
   expect(screen.getByText("Example switch")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Smart home settings" })).getByRole("link", { name: "Choose visible devices" }));
-  await screen.findByRole("heading", { level: 1, name: "Home settings" });
-  expect(window.location.hash).toBe("#smart-home-visibility");
+  await screen.findByRole("heading", { level: 1, name: "Smart home" });
+  expect(window.location.pathname).toBe("/settings/smart-home");
+  expect(window.location.hash).toBe("");
   fireEvent.change(screen.getByRole("combobox", { name: "Group by" }), { target: { value: "device" } });
   fireEvent.click(screen.getByRole("switch", { name: "Show device Example hub on Smart home" }));
   await confirmVisibility("Show group");
@@ -269,7 +274,7 @@ it.each(["entity", "device", "new"])("selects and saves a hidden main entity (%s
   settings.settings.smartHome.knownEntities = app.currentHome.entities.map(entity => entity.preferenceId).filter(id => hiddenBy !== "new" || id !== main);
   settings.settings.smartHome.hiddenEntities = ["home|example-humidity", ...(hiddenBy === "entity" ? [main] : [])];
   settings.settings.smartHome.hiddenDevices = hiddenBy === "device" ? ["example-device"] : [];
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   const view = render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
   const picker = () => screen.getByRole("button", { name: "Main entity for Example hub" });
@@ -351,12 +356,12 @@ it("keeps layout edits visible on a save conflict and blocks further moves", asy
   expect(screen.getByRole("combobox", { name: "Card size for Example lamp" })).toHaveValue("original");
   expect(screen.getByRole("combobox", { name: "Card group for Example lamp" })).toBeDisabled();
   expect(screen.getByRole("textbox", { name: "New group name" })).toBeDisabled();
-  expect(screen.getByRole("link", { name: "App preferences" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Storage and backups" })).toBeInTheDocument();
 });
 
 it("keeps smart home visibility drafts on save failure and disables further changes", async () => {
   app.currentHome = mapHome({ "switch.example": state("switch.example", "off", { friendly_name: "Example switch" }) }, emptyRegistries, "home");
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   render(<App />); await saved();
   const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
   fireEvent.click(region.getByRole("button", { name: "Expand all" }));
@@ -369,7 +374,7 @@ it("keeps smart home visibility drafts on save failure and disables further chan
   expect(region.getByRole("switch", { name: "Show all matching entities" })).toBeDisabled();
   expect(region.getByText("Unsaved changes on this screen.")).toBeInTheDocument();
   expect(settings.settings.smartHome.hiddenEntities).toEqual([]);
-  expect(region.getByRole("link", { name: "App preferences" })).toBeInTheDocument();
+  expect(region.getByRole("link", { name: "Storage and backups" })).toBeInTheDocument();
 });
 
 it("groups visibility by domain, integration and device, and confirms only the filtered branch", async () => {
@@ -382,7 +387,7 @@ it("groups visibility by domain, integration and device, and confirms only the f
     { id: "example-reading", entity_id: "sensor.example", device_id: "example-device", platform: "mqtt", entity_category: "diagnostic" },
     { id: "other-light", entity_id: "light.other", platform: "hue" },
   ] }, "home");
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   render(<App />); await saved();
   const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
   expect(region.getByRole("combobox", { name: "Group by" })).toHaveValue("device");
@@ -435,7 +440,7 @@ it("toggles all filtered entities with confirmation independently of grouping", 
     { id: "other-light", entity_id: "light.other", platform: "hue" },
   ] }, "home");
   settings.settings.smartHome.hiddenDevices = ["example-device"];
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   render(<App />); await saved();
   const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
   const filters = within(region.getByRole("group", { name: "Filters" }));
@@ -481,7 +486,7 @@ it("confirms single-child device groups and disables confirmation if shared sett
     areas: [], devices: [{ id: "example-device", name: "Example device" }],
     entities: [{ id: "example-light", entity_id: "light.example", device_id: "example-device" }],
   }, "home");
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/smart-home");
   render(<App />); await saved();
   const region = within(screen.getByRole("region", { name: "Smart home visibility" }));
   fireEvent.click(region.getByRole("button", { name: "Expand all" }));
@@ -557,7 +562,7 @@ it("translates Today settings and keeps a failed save visible and recoverable", 
   for (const toggle of within(dialog).getAllByRole("switch")) expect(toggle).toBeDisabled();
   expect(within(dialog).getByRole("status")).toHaveTextContent("Ulagrede endringer");
   expect(settings.settings.dashboard.shopping).toBe(true);
-  fireEvent.click(within(dialog).getByRole("link", { name: "Appinnstillinger" }));
+  fireEvent.click(within(dialog).getByRole("link", { name: "Lagring og sikkerhetskopier" }));
   expect(await screen.findByRole("button", { name: "Last felles versjon" })).toBeInTheDocument();
 });
 
@@ -932,13 +937,14 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
   expect(screen.getByRole("link", { name: "Add people in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/person");
   expect(screen.getByText(/Daily lists need a Home Assistant automation/)).toBeInTheDocument();
-  for (const [label, anchor] of [["Connection settings", "connection"], ["Choose people", "people-order"], ["Choose calendars", "family-calendar"], ["Choose lists", "family-lists"], ["Configure timetables", "timetables"]]) {
+  for (const [label, section, anchor] of [["Connection settings", "connection", "connection"], ["Choose people", "people", "people-order"], ["Choose calendars", "calendars", "family-calendar"], ["Choose lists", "lists", "family-lists"], ["Configure timetables", "timetables", "timetables"]]) {
     fireEvent.click(screen.getByRole("link", { name: label }));
-    expect(window.location.pathname).toBe("/settings");
-    expect(window.location.hash).toBe(`#${anchor}`);
-    await screen.findByRole("heading", { level: 1, name: "Home settings" });
+    expect(window.location.pathname).toBe(`/settings/${section}`);
+    expect(window.location.hash).toBe("");
+    await pageReady();
     await waitFor(() => expect(document.getElementById(anchor)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("link", { name: "Get started" }));
+    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    fireEvent.click(await screen.findByRole("link", { name: "Get started" }));
     await screen.findByRole("heading", { level: 1, name: "Get started" });
   }
   fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
@@ -976,7 +982,7 @@ it("keeps onboarding available without a Home Assistant connection", async () =>
   render(<App />); await saved();
   expect(screen.getByText("Home Assistant not connected")).toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Add people in Home Assistant" })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Choose calendars" })).toHaveAttribute("href", "/settings#family-calendar");
+  expect(screen.getByRole("link", { name: "Choose calendars" })).toHaveAttribute("href", "/settings/calendars");
   expect(screen.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
 });
 
@@ -989,6 +995,7 @@ it("navigates with empty HA data and shows the server-managed connection", async
   fireEvent.click(screen.getByRole("link", { name: /Configure Home Assistant/ }));
   expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
+  await navigate("Smart home");
   for (const [link, heading] of [["Devices", "Devices"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
     const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
     const direct = nav.queryByRole("link", { name: link });
@@ -1002,7 +1009,7 @@ it("navigates with empty HA data and shows the server-managed connection", async
 });
 
 it("shares people visibility, order and timetable preferences with another screen", async () => {
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/people");
   const phone = render(<App />); await saved();
   fireEvent.click(screen.getByRole("switch", { name: "Show Emma in family planner" })); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Move Leo up" })); await saved();
@@ -1046,7 +1053,7 @@ it("offers the signed iOS shortcut and copies each person's upload destination",
   vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: { writeText } } }));
   const success = vi.spyOn(toast, "success").mockImplementation(() => "copied");
   settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/timetables");
   render(<App />); await saved();
   for (const name of ["Emma", "Leo"]) {
     const card = within(screen.getByRole("heading", { name: name }).closest("article")!);
@@ -1071,7 +1078,7 @@ it.each([
   const error = vi.spyOn(toast, "error").mockImplementation(() => "copy-failed");
   const success = vi.spyOn(toast, "success").mockImplementation(() => "copied");
   settings.settings.timetableEnabled = { "home|person.emma": true };
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/timetables");
   render(<App />); await saved();
   fireEvent.click(screen.getByText("Share from iPhone"));
   const input = screen.getByLabelText("Emma upload URL") as HTMLInputElement;
@@ -1142,13 +1149,14 @@ it.each([".png", "-dark.svg"])("colors the original PNG for saved %s timetables 
 it("keeps timetable pages when replacing or hiding them is cancelled", async () => {
   settings.settings.timetables = { "home|person.emma": ["/first.svg"] };
   settings.settings.timetableEnabled = { "home|person.emma": true };
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/timetables");
   render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Change timetable images" }));
   fireEvent.change(screen.getByLabelText("Emma timetable image URLs"), { target: { value: "https://school.example/replacement.png" } });
   fireEvent.click(screen.getByRole("button", { name: "Save image URLs" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetables["home|person.emma"]).toEqual(["/first.svg"]);
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "People" }));
   fireEvent.click(await screen.findByRole("switch", { name: "Timetable for Emma" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetableEnabled["home|person.emma"]).toBe(true);
@@ -1163,13 +1171,15 @@ it("uses home time and real calendar dates across month and year boundaries", ()
 });
 
 it("saves the server language, updates navigation and labels, and restores it on reload", async () => {
-  window.history.replaceState(null, "", "/user-settings");
+  window.history.replaceState(null, "", "/settings/language");
   const first = render(<App />); await saved();
   fireEvent.change(screen.getByRole("combobox", { name: "Language" }), { target: { value: "nb" } });
   await waitFor(() => expect(settings.settings.language).toBe("nb"));
-  expect(screen.getByRole("heading", { level: 1, name: "Innstillinger" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 1, name: "Språk" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "I dag" })).toBeInTheDocument();
-  expect(screen.getByRole("switch", { name: "Slå mørk modus av eller på" })).toBeInTheDocument();
+  for (const name of ["Utseende", "Språk", "Varsler", "Personer", "Kalendere", "Gjøremålslister", "Timeplaner", "Smarthjem", "Tilkobling og konto", "Lagring og sikkerhetskopier"]) {
+    expect(within(screen.getByRole("navigation", { name: "Innstillingsmeny" })).getByRole("link", { name })).toBeInTheDocument();
+  }
   expect(document.documentElement.lang).toBe("nb");
   expect(document.title).toBe("Afterglow · Familien hjemme");
   first.unmount();
@@ -1183,7 +1193,7 @@ it("saves the server language, updates navigation and labels, and restores it on
 
 it("refreshes language from another screen while a confirmation stays open", async () => {
   settings.settings.language = "nb";
-  window.history.replaceState(null, "", "/settings");
+  window.history.replaceState(null, "", "/settings/connection");
   render(<App />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Koble fra" })).toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Koble fra" }));
@@ -1253,4 +1263,46 @@ it("translates calendar settings and restores the selected layout after closing"
   fireEvent.click(screen.getByRole("button", { name: "Kalenderinnstillinger" }));
   expect(screen.getByRole("button", { name: "Etter person", pressed: true })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Mandag", pressed: true })).toBeInTheDocument();
+});
+
+it("groups all settings, opens each focused subpage, and returns to the hub", async () => {
+  window.history.replaceState(null, "", "/settings");
+  render(<App />); await saved();
+  const destinations = [
+    ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"],
+    ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
+    ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
+  ];
+  for (const [title, path] of destinations) {
+    const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));
+    expect(menu.getAllByRole("link")).toHaveLength(10);
+    expect(menu.getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Preferences", "Household", "System"]);
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    fireEvent.click(menu.getByRole("link", { name: new RegExp(`^${title} `) }));
+    expect(await screen.findByRole("heading", { name: title, level: 1 })).toHaveFocus();
+    expect(window.location.pathname).toBe(`/settings/${path}`);
+    expect(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: title })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
+    if (path === "appearance") expect(screen.getAllByRole("radio")).toHaveLength(12);
+    if (path === "backups") expect(screen.getByRole("button", { name: "Import configuration" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    expect(await screen.findByRole("heading", { name: "Settings", level: 1 })).toHaveFocus();
+  }
+});
+
+it.each([
+  ["/user-settings", "appearance", "Appearance"],
+  ["/settings#connection", "connection", "Connection & account"],
+  ["/settings#notifications", "notifications", "Notifications"],
+  ["/settings#smart-home-visibility", "smart-home", "Smart home"],
+  ["/settings#people-order", "people", "People"],
+  ["/settings#family-calendar", "calendars", "Calendars"],
+  ["/settings#family-lists", "lists", "To-do lists"],
+  ["/settings#timetables", "timetables", "Timetables"],
+])("preserves the old settings bookmark %s", async (legacy, path, title) => {
+  window.history.replaceState(null, "", legacy);
+  render(<App />); await saved();
+  expect(await screen.findByRole("heading", { name: title, level: 1 })).toBeInTheDocument();
+  expect(window.location.pathname).toBe(`/settings/${path}`);
+  expect(window.location.hash).toBe("");
 });

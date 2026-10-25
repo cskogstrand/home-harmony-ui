@@ -46,7 +46,7 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
         <Button type="submit" variant="outline" disabled={disabled || !newGroup.trim()}><Plus size={17} />{t("Add group")}</Button>
       </form>
       <p role="status">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : t("Shared configuration saved.")}</p>
-      {shared?.state.error && <div role="alert"><p>{t(shared.state.error)}</p><Link className="text-link" to="/user-settings">{t("App preferences")}</Link></div>}
+      {shared?.state.error && <div role="alert"><p>{t(shared.state.error)}</p><Link className="text-link" to="/settings/backups">{t("Storage and backups")}</Link></div>}
     </div>}
     <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
     <div className={`smart-card-groups${editing ? " is-editing" : ""}`}>{groups.map(group => {
