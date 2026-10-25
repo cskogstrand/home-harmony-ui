@@ -377,11 +377,26 @@ it("shows firmware versions and protects password helper values", () => {
   expect(screen.queryByText("fixture-secret-value")).not.toBeInTheDocument();
 });
 
-it("does not start camera streams or fetch history while configuring a card", () => {
+it.each(["camera", "vacuum"])("shows live main and supporting media while configuring a %s card", domain => {
+  mocks.camera.mockImplementation(() => {});
   const camera = cardEntity("camera", "idle", { supported_features: 2 });
-  const sensor = cardEntity("sensor", "55");
-  render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={camera} entities={[sensor]} preview /></TooltipProvider></MemoryRouter>);
-  expect(screen.getByText("Media is paused in the editor.")).toBeVisible();
-  expect(mocks.camera).not.toHaveBeenCalled();
+  const image = cardEntity("image", "2030-01-01");
+  const main = domain === "camera" ? camera : cardEntity(domain, "docked");
+  const view = render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={main} entities={[camera, image]} preview /></TooltipProvider></MemoryRouter>);
+  expect(mocks.camera).toHaveBeenCalledExactlyOnceWith(camera.entityId, screen.getByLabelText(camera.name, { selector: "video" }), expect.any(AbortSignal), expect.any(Function));
+  expect(screen.getByRole("img", { name: image.name })).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example"));
+  view.unmount();
+  expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
+  expect(mocks.command).not.toHaveBeenCalled();
   expect(mocks.history).not.toHaveBeenCalled();
+});
+
+it.each(["image", "media_player"])("refreshes %s images with live entity updates in the editor preview", domain => {
+  const entity = cardEntity(domain, "idle", { entity_picture: "/api/fixture-image" });
+  const view = render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={entity} preview /></TooltipProvider></MemoryRouter>);
+  const initialSrc = screen.getByRole("img", { name: entity.name }).getAttribute("src");
+  expect(initialSrc).toContain(`/api/${domain}_proxy/${entity.entityId}`);
+  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={{ ...entity, lastUpdated: "2030-01-02T12:00:00Z" }} preview /></TooltipProvider></MemoryRouter>);
+  expect(screen.getByRole("img", { name: entity.name })).not.toHaveAttribute("src", initialSrc);
+  expect(mocks.command).not.toHaveBeenCalled();
 });

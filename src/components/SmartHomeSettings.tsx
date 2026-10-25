@@ -120,7 +120,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
         </form>
         </div>
         <aside className="smart-compose-preview" aria-label={t("Card preview")}>
-          <h3>{t("Card preview")}</h3><p className="page-note">{t("Your Smart home card, with the selected name, size and entities. Controls and media are paused.")}</p>
+          <h3>{t("Card preview")}</h3><p className="page-note">{t("Your Smart home card, with live data and media. Device controls are disabled.")}</p>
           <SmartHomeCard entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
             entities={supporting.filter(entity => draft.linkedEntities.includes(entity.preferenceId))} />
         </aside>
