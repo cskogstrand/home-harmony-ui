@@ -58,10 +58,10 @@ function FamilyStore({ children }: { children: ReactNode }) {
   const exportConfiguration = (): Configuration => shared.state.config;
   const importConfiguration = async (input: Configuration) => { await shared.store.replace(parseConfiguration(JSON.stringify(input))); };
   const memberIds = [...new Set([...planner.memberOrder, ...availableMembers.map(member => member.id)])].filter(id => id !== "everyone");
-  const memberRanks = new Map(["everyone", ...memberIds].map((id, index) => [id, index]));
+  const memberRanks = new Map(memberIds.map((id, index) => [id, index]));
   const compareMembers = (a: MemberId, b: MemberId) => (memberRanks.get(a) ?? memberRanks.size) - (memberRanks.get(b) ?? memberRanks.size);
   const allMembers = availableMembers.sort((a, b) => compareMembers(a.id, b.id));
-  const isMemberVisible = (id: MemberId) => id === "everyone" || !planner.hiddenMembers.includes(id);
+  const isMemberVisible = (id: MemberId) => id !== "everyone" && !planner.hiddenMembers.includes(id);
   const members = allMembers.filter(member => isMemberVisible(member.id));
   const saved = shared.state.loaded && !shared.state.dirty;
   useEffect(() => {
@@ -69,7 +69,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     return () => window.clearInterval(timer);
   }, []);
   return <FamilyContext.Provider value={{ ...planner, members, allMembers, connectedPlanner, compareMembers, isMemberVisible,
-    memberName: id => id === "everyone" ? t("Everyone") : allMembers.find(m => m.id === id)?.name ?? t("Person unavailable"),
+    memberName: id => allMembers.find(m => m.id === id)?.name ?? t("Person unavailable"),
     memberColor: id => planner.memberColors[id] ?? allMembers.find(member => member.id === id)?.color ?? "#c4d5a3",
     now, today, time, saved, exportConfiguration, importConfiguration,
     setLanguage: language => setPlanner(p => ({ ...p, language })),
@@ -109,6 +109,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
       return { ...p, calendarMembers };
     }),
     setTodoList: (kind, member, list) => setPlanner(p => {
+      // Shopping keeps its shared storage key; it has no person assignment.
       const owner = kind === "shopping" ? "everyone" : member;
       const todoLists = Object.fromEntries(Object.entries(p.todoLists).filter(([id, assigned]) => id !== list && !(assigned.kind === kind && assigned.member === owner)));
       if (list) todoLists[list] = { kind, member: owner };

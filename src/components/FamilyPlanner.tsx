@@ -21,19 +21,18 @@ export function PageHeading({ context, title, description, children }: { context
   return <header className="page-heading"><div><h1>{title}</h1>{context && <p className="page-context">{context}</p>}{description && <p>{description}</p>}</div>{children}</header>;
 }
 export function MemberAvatar({ member, small = false }: { member: MemberId; small?: boolean }) {
-  const { t } = useI18n();
   const { allMembers: members, memberName, memberColor } = useFamily();
   const person = members.find(m => m.id === member);
   const color = memberColor(member);
   return <Avatar className={`member-avatar ${small ? "small" : ""}`} style={{ background: color, color: memberColorForeground(color), border: `2px solid ${color}` }} aria-label={memberName(member)}>
     <AvatarImage src={person?.picture} alt="" className="object-cover" />
-    <AvatarFallback className="bg-transparent">{person?.initials ?? (member === "everyone" ? t("All") : "?")}</AvatarFallback>
+    <AvatarFallback className="bg-transparent">{person?.initials ?? "?"}</AvatarFallback>
   </Avatar>;
 }
 export function MemberOptions() {
   const { t } = useI18n();
   const { members } = useFamily();
-  return <><option value="everyone">{t("Everyone")}</option>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</>;
+  return <><option value="" disabled>{t(members.length ? "Choose a person" : "No people available.")}</option>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</>;
 }
 export function PanelHeading({ title, to, label = "View all" }: { title: string; to?: string; label?: string }) {
   const { message } = useI18n();
@@ -51,9 +50,10 @@ export function EventButton({ event, onClick, showDate = false, showMember = fal
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}
   </button>;
 }
-export function EventEditor({ open, onOpenChange, onSaved, event, date, member = "everyone" }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void; event?: FamilyEvent; date?: string; member?: MemberId }) {
+export function EventEditor({ open, onOpenChange, onSaved, event, date, member }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void; event?: FamilyEvent; date?: string; member?: MemberId }) {
   const { t, message, dateLabel, eventTimeLabel } = useI18n();
   const { today, saveEvent, deleteEvent, memberName, members, calendarMembers, connectedPlanner } = useFamily();
+  const defaultMember = member ?? members[0]?.id ?? "";
   const { haUrl, currentHome, homeOnline, services, command, commands } = useApp();
   const [draft, setDraft] = useState<FamilyEvent | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -71,11 +71,11 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
     if (open && !wasOpen.current) {
       const start = source && calendarTimeInput(source.start, currentHome.timeZone);
       const end = source && calendarTimeInput(source.end, currentHome.timeZone);
-      setDraft(event ? { ...event, ...(start && { date: start.slice(0, 10), time: start.slice(11) || "00:00" }) } : { id: newPlannerId(), title: "", date: date ?? today, time: "16:00", member, location: "", note: "" });
+      setDraft(event ? { ...event, ...(start && { date: start.slice(0, 10), time: start.slice(11) || "00:00" }) } : { id: newPlannerId(), title: "", date: date ?? today, time: "16:00", member: defaultMember, location: "", note: "" });
       setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : date ?? today); setEndTime(end?.slice(11) || event?.endTime || (!event && haUrl ? "17:00" : "")); setError("");
     }
     wasOpen.current = open;
-  }, [open, event, source, date, today, member, currentHome.timeZone, haUrl]);
+  }, [open, event, source, date, today, defaultMember, currentHome.timeZone, haUrl]);
   const remote = editingRemote || connectedPlanner && !event;
   const calendars = currentHome.entities.filter(e => e.domain === "calendar" && calendarMembers[e.preferenceId] === draft?.member);
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
@@ -91,7 +91,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
   const readOnly = !!readOnlyReason;
   const deletable = !!event && (!editingRemote || !!calendar && supportsAction(calendar, "delete_event", services) && !!source?.uid && (!source.rrule || !!source.recurrence_id));
   const canDelete = deletable && !busy && (!editingRemote || homeOnline && available(calendar) && !commands[calendar.entityId]?.pending);
-  const canSave = !busy && !confirmDelete && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
+  const canSave = !!draft?.member && !busy && !confirmDelete && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
   const save = async () => {
     if (!draft?.title.trim() || !canSave) return;
     setError("");
@@ -146,7 +146,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member =
       <div className="form-row"><label>{t("Date")}<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => { if (endDate === draft.date) setEndDate(e.target.value); setDraft({ ...draft, date: e.target.value }); }} /></label>
         {!draft.allDay && <label>{t("Time")}<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
       <div className="form-row">{remote && <label>{t("End date")}<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>{t("End time{value1}", { value1: remote ? "" : t(" (optional)") })}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
-      <label>{t("Who’s going?")}<select disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member !== "everyone" && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
+      <label>{t("Who’s going?")}<select required disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
       {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p></>}
       {remote && !editingRemote && <><EntityPicker label={t("Calendar")} placeholder={t("Choose a calendar")} entities={calendars} value={calendar?.preferenceId ?? ""} disabled={busy} disabledReason={entity => !writable.includes(entity) ? t("Read-only or unavailable") : ""} onChange={value => { setCalendarId(value); setError(""); }} />
         {homeOnline && !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings#family-calendar">{t("Home settings")}</Link>.</p>}</>}

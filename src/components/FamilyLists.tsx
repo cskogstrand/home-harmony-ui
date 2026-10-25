@@ -107,7 +107,7 @@ export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline } = useApp();
   if (!connectedPlanner) return <LayoutGroup><LocalListPanel kind={kind} limit={limit} /></LayoutGroup>;
-  const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && isMemberVisible(assigned.member))
+  const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && (kind === "shopping" || isMemberVisible(assigned.member)))
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
     <ListPanelSurface />
@@ -184,10 +184,10 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     pending={pendingToggle?.id === item.uid} disabled={!can("update_item")} removeDisabled={!can("remove_item")}
     onToggle={() => void toggle(item)}
     onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
-  return <section role="group" aria-label={t(kind === "daily" ? "{name} daily tasks" : kind === "shopping" ? "{name} shopping" : "{name} tasks", { name: memberName(member) })} className="household-list" aria-busy={loading || !!status?.pending}>
+  return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className="household-list" aria-busy={loading || !!status?.pending}>
     <div className="list-composer">
       <div className="list-action-bar flex-wrap">
-        <div className="list-identity flex-1 basis-32"><MemberAvatar member={member} small /><div><h3>{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span>{entity?.name ?? t("List unavailable")}</span></div></div>
+        <div className="list-identity flex-1 basis-32">{kind !== "shopping" && <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span>{entity?.name ?? t("List unavailable")}</span></div></div>
         <div className="ml-auto flex items-center gap-1">
           <Button className="list-add-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</Button>
           {online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} title={t("Refresh list")} aria-busy={loading}
@@ -222,23 +222,23 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
 
 function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const { t, message } = useI18n();
-  const { items, today, toggleItem, addItem, renameItem, deleteItem, compareMembers, isMemberVisible } = useFamily();
+  const { items, today, toggleItem, addItem, renameItem, deleteItem, compareMembers, isMemberVisible, members } = useFamily();
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ListItem>();
   const [removing, setRemoving] = useState<ListItem>();
   const [text, setText] = useState("");
-  const [member, setMember] = useState<MemberId>("everyone");
+  const [member, setMember] = useState<MemberId>(members[0]?.id ?? "");
   const formId = useId();
   const suggestionsId = `${formId}-suggestions`;
   const feedback = useListItemFeedback(items.map(item => ({ id: item.id, text: item.text, complete: itemIsDone(item, today) })));
-  const list = items.filter(i => i.kind === kind && isMemberVisible(i.member));
+  const list = items.filter(i => i.kind === kind && (kind === "shopping" || isMemberVisible(i.member)));
   if (kind !== "shopping") list.sort((a, b) => compareMembers(a.member, b.member));
   const completed = list.filter(i => itemIsDone(i, today));
   const presence: ListPresence = { itemIds: items.map(item => item.id), completedIds: completed.map(item => item.id) };
   const pending = list.filter(i => !itemIsDone(i, today));
   const shown = limit ? pending.slice(0, limit) : pending;
   const add = (name = text) => {
-    if (!name.trim()) return;
+    if (!name.trim() || kind !== "shopping" && !member) return;
     const matches = list.filter(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(name));
     const existing = matches.find(item => !itemIsDone(item, today)) ?? matches[0];
     if (!existing) { if (!addItem(name, kind, member)) return; }
@@ -256,7 +256,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
       {adding && <form id={formId} className="quick-add" onSubmit={e => { e.preventDefault(); add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={kind === "shopping" ? t("New shopping item") : t(kind === "daily" ? "New daily task" : "New task")} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         {kind !== "shopping" && <select aria-label={t("Assign task")} value={member} onChange={e => setMember(e.target.value as MemberId)}><MemberOptions /></select>}
-        <Button type="submit" disabled={!text.trim()} aria-label={t(kind === "shopping" ? "Save shopping item" : kind === "daily" ? "Save daily item" : "Save tasks item")}>{t("Add")}</Button>
+        <Button type="submit" disabled={!text.trim() || kind !== "shopping" && !member} aria-label={t(kind === "shopping" ? "Save shopping item" : kind === "daily" ? "Save daily item" : "Save tasks item")}>{t("Add")}</Button>
         <ItemSuggestions id={suggestionsId} names={list.filter(item => kind === "shopping" || item.member === member).map(item => item.text)} text={text} select={add} isDisabled={name => pending.some(item => (kind === "shopping" || item.member === member) && itemName(item.text) === itemName(name))} />
       </form>}
     </div>

@@ -64,7 +64,9 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 ## Household preferences
 
-In **Home settings**, choose people visibility and order, calendar assignments, one task and daily-task list per person, and a shared shopping list. Hidden people keep their assignments and timetable files. Everyone remains first. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
+In **Home settings**, choose people visibility and order, calendar assignments, one task and daily-task list per person, and a shared shopping list. Hidden people keep their assignments and timetable files. All people come from Home Assistant; add a person there for shared plans and tasks, then assign its calendars and lists in Home settings. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
+
+Reassign calendars and task lists previously linked to the built-in Everyone person in **Home settings**. Their events and items stay in Home Assistant.
 
 **Smart home visibility** keeps new devices and entities hidden until enabled. Existing selections are retained on the first complete Home Assistant sync after upgrading. Light cards offer brightness from 1–100%, plus color, color temperature, white mode and effects when supported; use the toggle to turn a light off.
 

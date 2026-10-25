@@ -46,6 +46,58 @@ const confirmVisibility = async (name: "Show group" | "Hide group" | "Show all m
   await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
 };
 
+it("uses only Home Assistant people and lets old shared assignments move to a real person", async () => {
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "calendar.shared": state("calendar.shared", "off"),
+    "todo.shared": state("todo.shared", "0"),
+    "todo.shopping": state("todo.shopping", "0"),
+  }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.shared": "everyone" };
+  settings.settings.todoLists = {
+    "home|todo.shared": { kind: "tasks", member: "everyone" },
+    "home|todo.shopping": { kind: "shopping", member: "everyone" },
+  };
+  window.history.replaceState(null, "", "/settings");
+  render(<App />); await saved();
+  expect(screen.queryByRole("button", { name: "Color for Everyone" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Add calendar for Everyone" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Tasks for Everyone" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "To-do lists for Person unavailable" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Shared shopping list" })).toHaveTextContent("Shopping");
+  await navigate("Our week");
+  expect(screen.getAllByRole("rowheader")).toHaveLength(1);
+  expect(screen.getByRole("rowheader", { name: "Example person" })).toBeInTheDocument();
+  expect(app.watchCalendarEvents).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Add a plan" }));
+  expect(screen.getByLabelText("Who’s going?")).toHaveValue("home|person.example");
+  expect(screen.queryByRole("option", { name: "Everyone" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
+  fireEvent.click(screen.getByRole("menuitem", { name: "Home settings" }));
+  await pageReady();
+  chooseEntity(screen.getByRole("button", { name: "Add calendar for Example person" }), "calendar.shared");
+  fireEvent.click(screen.getByRole("button", { name: "Move calendar" }));
+  await saved();
+  chooseEntity(screen.getByRole("button", { name: "Tasks for Example person" }), "todo.shared");
+  fireEvent.click(screen.getByRole("button", { name: "Change list" }));
+  await saved();
+  expect(settings.settings.calendarMembers["home|calendar.shared"]).toBe("home|person.example");
+  expect(settings.settings.todoLists["home|todo.shared"]).toEqual({ kind: "tasks", member: "home|person.example" });
+  expect(settings.settings.todoLists["home|todo.shopping"]).toEqual({ kind: "shopping", member: "everyone" });
+});
+
+it("does not invent a person or allow saving a plan when Home Assistant has no people", async () => {
+  app.currentHome = mapHome({}, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/calendar");
+  render(<App />); await saved();
+  expect(screen.queryByRole("rowheader")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Add a plan" }));
+  expect(screen.getByLabelText("Who’s going?")).toHaveValue("");
+  expect(screen.getByRole("option", { name: "No people available." })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Save plan" })).toBeDisabled();
+});
+
 it("migrates existing choices once after a complete sync and keeps later discoveries hidden after reload", async () => {
   const initial = mapHome({ "light.example": state("light.example", "on", { friendly_name: "Example lamp" }) }, {
     areas: [], devices: [{ id: "example-device", name: "Example hub" }],
@@ -513,14 +565,15 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-20T22:30:00Z"));
   app.currentHome = mapHome(Object.fromEntries([
+    ["person.everyone", state("person.everyone", "home", { friendly_name: "Everyone" })],
     ...["a", "b", "c", "hidden"].map(id => [`person.${id}`, state(`person.${id}`, "home", { friendly_name: `Example ${id.toUpperCase()}` })]),
     ...["a", "extra", "b", "shared", "hidden", "unselected"].map(id => [`calendar.${id}`, state(`calendar.${id}`, "off")]),
   ]), emptyRegistries, "home");
   app.currentHome.timeZone = "Europe/Oslo";
   settings.settings.calendar.startDay = startDay;
-  settings.settings.calendarMembers = { "home|calendar.a": "home|person.a", "home|calendar.extra": "home|person.a", "home|calendar.b": "home|person.b", "home|calendar.shared": "everyone", "home|calendar.hidden": "home|person.hidden" };
+  settings.settings.calendarMembers = { "home|calendar.a": "home|person.a", "home|calendar.extra": "home|person.a", "home|calendar.b": "home|person.b", "home|calendar.shared": "home|person.everyone", "home|calendar.hidden": "home|person.hidden" };
   settings.settings.hiddenMembers = ["home|person.hidden"];
-  settings.settings.memberOrder = ["home|person.b", "home|person.a", "home|person.c"];
+  settings.settings.memberOrder = ["home|person.everyone", "home|person.b", "home|person.a", "home|person.c"];
   const events = {
     "calendar.a": [
       { summary: "Later example", start: "2026-10-21T14:00:00Z", end: "2026-10-21T15:00:00Z", description: "Example preparation details", location: "Example hall" },
@@ -580,13 +633,14 @@ it.each([
   vi.setSystemTime(new Date(`${today}T12:00:00Z`));
   const tomorrow = addDays(today, 1), afterTomorrow = addDays(today, 2);
   app.currentHome = mapHome({
+    "person.everyone": state("person.everyone", "home", { friendly_name: "Everyone" }),
     "person.example": state("person.example", "home", { friendly_name: "Example person" }),
     "calendar.example": state("calendar.example", "off"), "calendar.shared": state("calendar.shared", "off"),
   }, emptyRegistries, "home");
   app.currentHome.timeZone = "Europe/Oslo";
   settings.settings.calendar.startDay = startDay;
   settings.settings.dashboard.week = false;
-  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example", "home|calendar.shared": "everyone" };
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example", "home|calendar.shared": "home|person.everyone" };
   app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive(id === "calendar.example" ? [
     { summary: "Tomorrow later", start: `${tomorrow}T14:00:00Z`, end: `${tomorrow}T15:00:00Z`, description: "Example preparation" },
     { summary: "Tomorrow early", start: `${tomorrow}T08:00:00Z`, end: `${tomorrow}T09:00:00Z` },

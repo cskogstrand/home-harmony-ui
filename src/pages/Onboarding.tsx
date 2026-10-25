@@ -19,7 +19,7 @@ export default function Onboarding() {
       </li>
       <li className="glow-panel space-y-3" id="people">
         <h2>{t("2. Add your people")}</h2>
-        <p className="page-note">{t("Create people in Home Assistant, then choose their order and visibility in Home settings. Hiding someone keeps their saved settings. Everyone is the shared household row.")}</p>
+        <p className="page-note">{t("Create people in Home Assistant, then choose their order and visibility in Home settings. Hiding someone keeps their saved settings.")}</p>
         <div className="flex flex-wrap gap-4">
           {haUrl && <a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">{t("Add people in Home Assistant")}</a>}
           <Link className="text-link" to="/settings#people-order">{t("Choose people")}</Link>
@@ -27,7 +27,7 @@ export default function Onboarding() {
       </li>
       <li className="glow-panel space-y-3" id="calendars">
         <h2>{t("3. Choose calendars")}</h2>
-        <p className="page-note">{t("Add a calendar integration in Home Assistant. Assign calendars to each person, or to Everyone for shared plans. Plans and edits are saved to the source calendar when it supports them.")}</p>
+        <p className="page-note">{t("Add a calendar integration in Home Assistant and assign calendars to your Home Assistant people. Plans and edits are saved to the source calendar when it supports them.")}</p>
         <div className="flex flex-wrap gap-4">
           {haUrl && <a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Add a calendar integration")}</a>}
           <Link className="text-link" to="/settings#family-calendar">{t("Choose calendars")}</Link>
