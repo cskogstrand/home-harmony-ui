@@ -76,6 +76,7 @@ export const nb = {
   "Live camera alert": "Direkte kameravarsel",
   "Camera unavailable. Check the selected camera in notification settings.": "Kameraet er utilgjengelig. Kontroller valgt kamera i varselinnstillingene.",
   "Closes automatically when this alert expires.": "Lukkes automatisk når varselet utløper.",
+  "Closes in {time}": "Lukkes om {time}",
   "Close camera": "Lukk kamera",
   "Running tasks, current events and camera alerts": "Pågående oppgaver, aktuelle hendelser og kameravarsler",
   "Notification settings": "Varselinnstillinger",

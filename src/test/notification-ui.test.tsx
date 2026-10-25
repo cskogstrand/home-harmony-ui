@@ -173,3 +173,52 @@ it("cleans up event subscriptions and alerts when notifications are switched off
   act(() => receive({ event_type: type, data: { action: "pressed" } }));
   expect(screen.queryByText("Example doorbell")).not.toBeInTheDocument();
 });
+
+it("shows the active-state message in the camera header, then counts down to the original expiry", () => {
+  vi.useFakeTimers();
+  Object.assign(mocks.shared.state, { config: { settings: { language: "nb" } } });
+  mocks.family.notifications = { enabled: true, rules: [cameraRule()] };
+  const content = () => <NotificationProvider><NotificationCamera /></NotificationProvider>;
+  const view = render(content());
+  mocks.app.currentHome = home("on");
+  view.rerender(content());
+  const heading = screen.getByRole("heading", { name: "Example doorbell" });
+  expect(heading.parentElement).toHaveTextContent("Lukkes automatisk når varselet utløper.");
+  expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+  act(() => { vi.advanceTimersByTime(3000); });
+  expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+  mocks.app.currentHome = home("off");
+  view.rerender(content());
+  expect(within(heading.parentElement).getByRole("timer")).toHaveTextContent("Lukkes om 0:07");
+  act(() => { vi.advanceTimersByTime(2000); });
+  expect(screen.getByRole("timer")).toHaveTextContent("Lukkes om 0:05");
+  mocks.app.currentHome = home("on");
+  view.rerender(content());
+  expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+  expect(heading.parentElement).toHaveTextContent("Lukkes automatisk når varselet utløper.");
+  expect(watchCameraStream).toHaveBeenCalledOnce();
+  const signal = watchCameraStream.mock.calls[0][2] as AbortSignal;
+  act(() => { vi.advanceTimersByTime(5000); });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(signal.aborted).toBe(true);
+});
+
+it("counts down event camera alerts every second and keeps the original deadline after reopening", () => {
+  vi.useFakeTimers();
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), durationSeconds: 65, trigger: { type: "ha-event", eventType: "example_event", filters: {} } });
+  mocks.family.notifications = { enabled: true, rules: [rule] };
+  render(<MemoryRouter><NotificationProvider><NotificationList /><NotificationCamera /></NotificationProvider></MemoryRouter>);
+  const [type, , receive] = watchEvents.mock.calls[0];
+  act(() => receive({ event_type: type, data: {} }));
+  expect(screen.getByRole("timer")).toHaveTextContent("Closes in 1:05");
+  expect(screen.getByRole("timer")).toHaveAttribute("aria-live", "off");
+  act(() => { vi.advanceTimersByTime(6000); });
+  expect(screen.getByRole("timer")).toHaveTextContent("Closes in 0:59");
+  expect(watchCameraStream).toHaveBeenCalledOnce();
+  fireEvent.click(screen.getByRole("button", { name: "Close camera" }));
+  act(() => { vi.advanceTimersByTime(3000); });
+  fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
+  expect(screen.getByRole("timer")).toHaveTextContent("Closes in 0:56");
+  act(() => { vi.advanceTimersByTime(56000); });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});

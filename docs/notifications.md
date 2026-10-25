@@ -23,6 +23,8 @@ Entity fields use the shared [entity picker](entity-picker.md). Choose a device 
 
 Momentary events and camera popups have a duration and cooldown. Repeated triggers during cooldown are ignored; later triggers replace the same rule's active alert and restart its duration. Different camera alerts queue until closed or expired. Closing a camera keeps its alert available through **Show camera** until expiry; dismissing the alert hides it entirely.
 
+The camera popup header counts down to its expiry in minutes and seconds. While a state trigger still matches, it shows “Closes automatically when this alert expires.” instead. The configured expiry still applies; clearing the trigger does not restart the countdown.
+
 An optional **Additional reading** displays another entity's reported value, such as an appliance's remaining minutes or completion percentage. It does not estimate progress.
 
 ## Typical setup

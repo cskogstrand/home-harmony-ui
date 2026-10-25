@@ -5,7 +5,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
-import { notificationEntity, type HomeNotification } from "@/lib/notifications";
+import { matchesState, notificationEntity, type HomeNotification } from "@/lib/notifications";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MediaSurface } from "./devices/EntityMedia";
@@ -68,6 +68,9 @@ export function NotificationCamera() {
   const { notifications, camera } = useNotifications();
   const item = notifications.find(item => item.popup && item.rule.kind === "camera");
   const entity = item && notificationEntity(currentHome.entities, item.rule.cameraEntity);
+  const source = item && "entity" in item.rule.trigger ? notificationEntity(currentHome.entities, item.rule.trigger.entity) : undefined;
+  const seconds = item?.expiresAt === undefined ? undefined : Math.max(0, Math.ceil((item.expiresAt - Date.now()) / 1000));
+  const countdown = seconds !== undefined && !matchesState(item.rule, source);
   const returnFocus = useRef<HTMLElement | null>(null);
   return <Dialog open={!!item} onOpenChange={open => { if (!open && item) camera(item.id, false); }}>
     <DialogContent className="smart-media-dialog" onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }} onCloseAutoFocus={event => {
@@ -75,9 +78,11 @@ export function NotificationCamera() {
       if (returnFocus.current?.isConnected) returnFocus.current.focus();
       else document.querySelector<HTMLElement>("#main-content")?.focus();
     }}>
-      <DialogHeader><DialogTitle>{item?.rule.title}</DialogTitle><DialogDescription>{item?.rule.message || t("Live camera alert")}</DialogDescription></DialogHeader>
+      <DialogHeader><div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1"><DialogTitle>{item?.rule.title}</DialogTitle>
+        <p role={countdown ? "timer" : undefined} aria-live="off" className="text-sm tabular-nums text-muted-foreground">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t("Closes automatically when this alert expires.")}</p>
+      </div><DialogDescription>{item?.rule.message || t("Live camera alert")}</DialogDescription></DialogHeader>
       {entity?.domain === "camera" ? <MediaSurface key={entity.entityId} entity={entity} expanded /> : <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>}
-      <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm text-muted-foreground">{t("Closes automatically when this alert expires.")}</p><Button variant="outline" onClick={() => { if (item) camera(item.id, false); }}>{t("Close camera")}</Button></div>
+      <div className="flex justify-end"><Button variant="outline" onClick={() => { if (item) camera(item.id, false); }}>{t("Close camera")}</Button></div>
     </DialogContent>
   </Dialog>;
 }
