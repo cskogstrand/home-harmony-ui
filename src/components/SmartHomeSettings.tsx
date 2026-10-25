@@ -6,6 +6,7 @@ import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { smartHomeCards } from "@/lib/smart-home-cards";
+import { recommendedMainEntity, recommendedSupportingEntities } from "@/lib/smart-home-recommendations";
 import { deviceName, smartHomeEntities } from "@/lib/device-model";
 import type { Entity } from "@/types/api";
 import { EntityPicker } from "./EntityPicker";
@@ -32,6 +33,8 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   const [showAll, setShowAll] = useState(!entities.length);
   const [confirm, setConfirm] = useState<"discard" | "remove">();
   const heading = useRef<HTMLHeadingElement>(null);
+  const mainSources = useRef<HTMLDivElement>(null);
+  const supportingSources = useRef<HTMLDivElement>(null);
   const design = cardDesigns.find(design => design.id === draft?.type);
   const main = entities.find(entity => entity.preferenceId === draft?.mainEntity && design?.domains.includes(entity.domain));
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(card);
@@ -55,6 +58,9 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   // Keep cross-device and missing selections editable when the main device changes.
   const otherLinks = draft?.linkedEntities.filter(id => !deviceSupportingIds.has(id)) ?? [];
   const [otherOpen, setOtherOpen] = useState(otherLinks.length > 0);
+  const suggestedMain = !draft?.mainEntity && homeOnline ? recommendedMainEntity(deviceCandidates) : undefined;
+  const suggestions = draft && homeOnline ? recommendedSupportingEntities(draft.type, main, entities, draft.linkedEntities) : [];
+  const selectMain = (mainEntity: string) => change({ mainEntity, linkedEntities: draft?.linkedEntities.filter(id => id !== mainEntity) ?? [] });
   const types = cardDesigns.filter(design => (showAll || entities.some(entity => design.domains.includes(entity.domain)))
     && `${t(design.subtitle)} ${t(design.group)} ${design.domains.join(" ")}`.toLocaleLowerCase(language).includes(search.trim().toLocaleLowerCase(language)));
   const title = card ? t("Edit card") : design ? t("New {type} card", { type: t(design.subtitle).toLocaleLowerCase(language) }) : t("Choose a card type");
@@ -73,31 +79,30 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
       {!types.length && <p className="empty-note">{t("No matching card types. Change your search or show all types.")}</p>}
       <Link className="text-link smart-catalog-link" to="/device-gallery">{t("Explore device card designs")}<ArrowUpRight size={16} aria-hidden="true" /></Link>
     </> : <div>
-      <p className="page-note smart-builder-help">{t("Attach entities directly to the card. Device controls are paused in this preview.")}</p>
+      <p className="page-note smart-builder-help">{t("Choose your sources and see the resulting card. Suggestions are added only when you choose them.")}</p>
       <div className="smart-compose">
-        <div className="smart-compose-preview">
-          <SmartHomeCard entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
-            entities={supporting.filter(entity => draft.linkedEntities.includes(entity.preferenceId))}
-            sourceControls={{
-              main: <div className="smart-source-slot planner-form">
+        <div className="smart-compose-fields">
+              <div ref={mainSources} className="smart-source-slot planner-form">
                 <label className="smart-card-device">{t("Device")}<select value={selectedDevice ?? ""} disabled={disabled} onChange={event => { setDevice(event.target.value); if (draft.linkedEntities.length) setOtherOpen(true); change({ mainEntity: "" }); }}>
                   <option value="" disabled>{t("Choose a device")}</option>
                   {devices.map(device => <option key={device.id} value={device.id}>{deviceName(device, language)}</option>)}
                   {candidates.some(entity => !entity.device) && <option value="none">{t("Without a device")}</option>}
                 </select></label>
-                <EntityPicker label={t("Main entity")} ariaLabel={t("Main entity")} groupByDevice={false} entities={deviceCandidates} value={draft.mainEntity} disabled={disabled || selectedDevice === undefined} onChange={mainEntity => change({ mainEntity, linkedEntities: draft.linkedEntities.filter(id => id !== mainEntity) })} />
+                <EntityPicker label={t("Main entity")} ariaLabel={t("Main entity")} groupByDevice={false} entities={deviceCandidates} value={draft.mainEntity} disabled={disabled || selectedDevice === undefined} onChange={selectMain} />
                 <p>{t("This entity supplies the card’s main controls and state.")}</p>
+                {suggestedMain && <div className="smart-suggestions"><h3>{t("Recommended main entity")}</h3><Button type="button" variant="outline" disabled={disabled} onClick={() => { selectMain(suggestedMain.preferenceId); mainSources.current?.querySelector("button")?.focus(); }}>{t("Use {name}", { name: suggestedMain.name })}</Button></div>}
                 {!candidates.length && <p role="status">{t(homeOnline ? "No matching entities. Choose another card type or check Home Assistant." : "Connect to Home Assistant to choose an entity.")}</p>}
-              </div>,
-              supporting: <div className="smart-source-slot smart-source-supporting planner-form"><EntityPicker multiple label={t("Supporting entities")} ariaLabel={t("Supporting entities")} groupByDevice={false} placeholder={t("Add readings, controls or images")} entities={deviceSupporting} value={localLinks} disabled={disabled || selectedDevice === undefined} onChange={linkedEntities => change({ linkedEntities: [...linkedEntities, ...otherLinks] })} />
+              </div>
+              <div ref={supportingSources} className="smart-source-slot smart-source-supporting planner-form"><EntityPicker multiple label={t("Supporting entities")} ariaLabel={t("Supporting entities")} groupByDevice={false} placeholder={t("Add readings, controls or images")} entities={deviceSupporting} value={localLinks} disabled={disabled || selectedDevice === undefined} onChange={linkedEntities => change({ linkedEntities: [...linkedEntities, ...otherLinks] })} />
                 <p>{t("Only entities from the selected device are shown.")}</p>
+                {!!suggestions.length && <section className="smart-suggestions" aria-label={t("Suggested for this card")}><h3>{t("Suggested for this card")}</h3><p>{t("Based on the card type and this device’s reported entities.")}</p>
+                  {suggestions.map(({ entity, reason }) => <button type="button" key={entity.preferenceId} className="smart-suggestion" disabled={disabled} aria-label={t("Add {name}", { name: entity.name })} onClick={() => { change({ linkedEntities: [...draft.linkedEntities, entity.preferenceId] }); supportingSources.current?.querySelector("button")?.focus(); }}><span><strong>{entity.name}</strong><small>{t(reason)}</small></span><Plus size={18} aria-hidden="true" /></button>)}
+                </section>}
                 <details className="smart-other-entities" open={otherOpen} onToggle={event => setOtherOpen(event.currentTarget.open)}><summary>{t("Add entities from other devices")}</summary>
                   <EntityPicker multiple label={t("Entities from other devices")} placeholder={t("Add readings, controls or images")} entities={supporting.filter(entity => !onDevice(entity))} value={otherLinks} disabled={disabled || selectedDevice === undefined} onChange={linkedEntities => change({ linkedEntities: [...localLinks, ...linkedEntities] })} />
                   <p>{t("Include extra readings, controls or standalone entities on this card.")}</p>
                 </details>
-              </div>,
-            }} />
-        </div>
+              </div>
         <form id="smart-card-form" className="smart-compose-options planner-form" onSubmit={event => {
             event.preventDefault();
             if (!disabled && draft.mainEntity && saveSmartHomeCard({ ...draft, title: draft.title.trim(), group: draft.group.trim() })) onClose();
@@ -113,6 +118,12 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
           <p className="page-note">{t("Use the same group name to keep related cards together.")}</p>
           {card && <Button type="button" variant="ghost" className="smart-remove-card" disabled={disabled} onClick={() => setConfirm("remove")}><Trash2 size={17} aria-hidden="true" />{t("Remove card")}</Button>}
         </form>
+        </div>
+        <aside className="smart-compose-preview" aria-label={t("Card preview")}>
+          <h3>{t("Card preview")}</h3><p className="page-note">{t("Your Smart home card, with the selected name, size and entities. Controls and media are paused.")}</p>
+          <SmartHomeCard entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
+            entities={supporting.filter(entity => draft.linkedEntities.includes(entity.preferenceId))} />
+        </aside>
       </div>
       <div className="smart-builder-actions"><span>{t("Changes appear on every screen after you save.")}</span><Button type="button" variant="outline" onClick={() => dirty ? setConfirm("discard") : onClose()}>{t("Cancel")}</Button><Button form="smart-card-form" type="submit" disabled={disabled || !draft.mainEntity || !dirty}>{t(card ? "Save changes" : "Add card")}</Button></div>
     </div>}

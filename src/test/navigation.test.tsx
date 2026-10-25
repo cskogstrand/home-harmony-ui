@@ -1126,3 +1126,40 @@ it("scopes card sources to the chosen device and preserves explicit links from o
   fireEvent.click(screen.getAllByRole("button", { name: "Save changes" })[0]); await saved();
   expect(settings.settings.smartHome.layout[0]).toMatchObject({ mainEntity: "home|hall-light", linkedEntities: ["home|desk-battery", "home|sensor.helper"] });
 });
+
+it("offers opt-in source recommendations and renders a clean production card preview for new and saved cards", async () => {
+  app.currentHome = mapHome({
+    "light.example": state("light.example", "on", { friendly_name: "Example lamp" }),
+    "sensor.battery": state("sensor.battery", "82", { friendly_name: "Example battery", device_class: "battery", unit_of_measurement: "%" }),
+    "sensor.temperature": state("sensor.temperature", "20", { friendly_name: "Unrelated reading", device_class: "temperature" }),
+  }, { areas: [], devices: [{ id: "example-device", name: "Example device" }], entities: [
+    { id: "lamp", entity_id: "light.example", device_id: "example-device" },
+    { id: "battery", entity_id: "sensor.battery", device_id: "example-device", entity_category: "diagnostic" },
+    { id: "temperature", entity_id: "sensor.temperature", device_id: "example-device" },
+  ] }, "home");
+  window.history.replaceState(null, "", "/settings/smart-home?card=new");
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Light 1 available" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Device" }), { target: { value: "example-device" } });
+  expect(screen.getAllByRole("button", { name: "Add card" })[0]).toBeDisabled();
+  const preview = within(screen.getByRole("complementary", { name: "Card preview" }));
+  expect(preview.queryByRole("combobox", { name: "Device" })).not.toBeInTheDocument();
+  expect(preview.queryByRole("button", { name: "Main entity" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Use Example lamp" }));
+  expect(screen.getByRole("button", { name: "Main entity" })).toHaveFocus();
+  expect(preview.getByRole("article", { name: "Example lamp" })).toHaveAttribute("data-card-kind", "light");
+  expect(preview.queryByText("Example battery")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Add Unrelated reading" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Add Example battery" }));
+  expect(screen.getByRole("button", { name: "Supporting entities" })).toHaveFocus();
+  expect(preview.getByText("82 %")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Add Example battery" })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByRole("textbox", { name: "Card name" }), { target: { value: "Preview lamp" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Card size" }), { target: { value: "original" } });
+  expect(preview.getByRole("article", { name: "Preview lamp" })).toHaveAttribute("data-variant", "Original");
+  expect(settings.settings.smartHome.layout).toEqual([]);
+  fireEvent.click(screen.getAllByRole("button", { name: "Add card" })[0]); await saved();
+  expect(settings.settings.smartHome.layout[0]).toMatchObject({ mainEntity: "home|lamp", linkedEntities: ["home|battery"], title: "Preview lamp", density: "original" });
+  fireEvent.click(screen.getByRole("button", { name: /Preview lamp Light/ }));
+  expect(within(screen.getByRole("complementary", { name: "Card preview" })).getByRole("article", { name: "Preview lamp" })).toHaveAttribute("data-variant", "Original");
+});

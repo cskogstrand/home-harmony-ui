@@ -46,9 +46,12 @@
 .smart-type-choice strong { display: block; font-size: .9375rem; font-weight: 550; overflow-wrap: anywhere; }
 .smart-type-choice small { display: block; font-size: .875rem; margin-top: .25rem; color: hsl(var(--muted-foreground)); }
 .smart-type-choice:disabled { opacity: .5; cursor: not-allowed; }
-.smart-compose { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(11rem, 1fr); align-items: start; gap: 2rem; margin-top: 1.75rem; }
-.smart-compose-preview { min-width: 0; }
-.smart-compose-options { display: grid; gap: 1.1rem; }
+.smart-compose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 2rem; margin-top: 1.75rem; }
+.smart-compose-fields, .smart-compose-preview { min-width: 0; }
+.smart-compose-preview { position: sticky; top: 1.5rem; }
+.smart-compose-preview > h3, .smart-suggestions h3 { font-size: .9375rem; font-weight: 600; }
+.smart-compose-preview > .page-note { margin: .5rem 0 1rem; font-size: .875rem; line-height: 1.5; }
+.smart-compose-options { display: grid; gap: 1.1rem; border-top: 1px solid hsl(var(--border)); padding-top: 1.5rem; margin-top: 1.5rem; }
 .smart-compose-options > label { min-width: 0; }
 .smart-compose-options .page-note { margin: -.4rem 0 0; font-size: .875rem; line-height: 1.6; }
 .smart-source-slot { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid hsl(var(--border)); }
@@ -56,12 +59,21 @@
 .smart-card-device { display: block; margin-bottom: 1rem; }
 .smart-other-entities { margin-top: 1rem; }
 .smart-other-entities > summary { cursor: pointer; min-height: 44px; padding: .65rem 0; color: hsl(var(--primary)); font-size: .875rem; }
-.smart-source-supporting { border-top: 1px solid hsl(var(--border)); padding-top: 1rem; margin-top: 1rem; margin-bottom: 0; border-bottom: 0; }
+.smart-source-supporting { margin-bottom: 0; border-bottom: 0; }
+.smart-suggestions { margin-top: 1rem; }
+.smart-suggestions > button { margin-top: .5rem; }
+.smart-suggestion { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 44px; padding: .65rem .75rem; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 4px); text-align: left; }
+.smart-suggestion:hover { background: hsl(var(--muted)); }
+.smart-suggestion:disabled { opacity: .5; cursor: not-allowed; }
+.smart-suggestion strong, .smart-suggestion small { display: block; overflow-wrap: anywhere; }
+.smart-suggestion strong { font-size: .875rem; font-weight: 550; }
+.smart-suggestion small { margin-top: .2rem; font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.smart-suggestion svg { flex-shrink: 0; color: hsl(var(--primary)); }
 .smart-builder-actions { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; border-top: 1px solid hsl(var(--border)); margin-top: 2rem; padding-top: 1.25rem; }
 .smart-builder-actions > span { flex: 1; font-size: .875rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
 .smart-settings :is(input, select) { caret-color: hsl(var(--primary)); }
 .smart-settings :is(button, a, input, select, summary):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
-@media (max-width: 1100px) { .smart-compose { grid-template-columns: 1fr; } .smart-compose-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .smart-compose { grid-template-columns: 1fr; } .smart-compose-preview { grid-row: 1; position: static; } .smart-compose-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   .smart-type-grid { grid-template-columns: 1fr; }
   .smart-danger > div { align-items: flex-start; flex-direction: column; gap: 1rem; }

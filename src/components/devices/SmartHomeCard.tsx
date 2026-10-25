@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import type { CardDensity } from "../../../shared/configuration";
 import { Link } from "react-router-dom";
 import { Radio } from "lucide-react";
@@ -16,9 +15,8 @@ import { CardPresentation, cardVariants } from "./card-presentation";
 import { CardFrame } from "./CardFrame";
 import { DeviceControl } from "./DeviceControl";
 
-export function SmartHomeCard({ entity, entities = entity ? [entity] : [], design: chosenDesign, title, density = "supercompact", preview = false, editTo, sourceControls }: {
+export function SmartHomeCard({ entity, entities = entity ? [entity] : [], design: chosenDesign, title, density = "supercompact", preview = false, editTo }: {
   entity?: Entity; entities?: Entity[]; design?: CardDesign; title?: string; density?: CardDensity; preview?: boolean; editTo?: string;
-  sourceControls?: { main: ReactNode; supporting: ReactNode };
 }) {
   const { currentHome, homeOnline } = useApp();
   const { message: t, language } = useI18n();
@@ -28,14 +26,12 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
   const media = supporting.filter(item => ["image", "camera"].includes(item.domain));
   const readings = supporting.filter(item => !["image", "camera"].includes(item.domain));
   return <CardFrame design={design} title={title || entity?.name || t(design.subtitle)} subtitle={area?.name} to={!preview && entity ? entityDetailPath(entity) : undefined} variant={cardVariants[density]} disabled={preview}>
-    {sourceControls?.main}
     {!entity ? <div className="smart-card-unassigned"><design.icon size={32} aria-hidden="true" /><p>{t(preview ? "Choose a main entity to preview this card." : "The main entity is unavailable.")}</p>{editTo && <Link className="text-link" to={editTo}>{t("Edit card")}</Link>}</div> : <>
     {entity.domain === "weather" ? <WeatherCard entity={entity} /> : ["camera", "image"].includes(entity.domain) ? preview ? <p className="page-note">{t("Media is paused in the editor.")}</p> : <EntityMedia key={entity.entityId} entity={entity} /> : <>
       {!preview && entity.domain === "media_player" && typeof entity.attributes.entity_picture === "string" && <EntityMedia entity={entity} />}
       <DeviceControl entity={entity} card />
     </>}
     </>}
-    {sourceControls?.supporting}
     {media.map(item => <div className="smart-supporting-media" key={item.preferenceId}><h3>{item.name}</h3>{preview ? <p className="page-note">{t("Media is paused in the editor.")}</p> : <EntityMedia entity={item} />}</div>)}
     {!!readings.length && <div className="smart-card-readings" aria-label={t("Supporting entities")}>
       {readings.map(item => ["sensor", "binary_sensor", "device_tracker", "event"].includes(item.domain) ? <div className="smart-reading" key={item.preferenceId}><span>{item.name}</span><strong>{homeOnline ? entityStateLabel(item, language) : t("Offline")}{homeOnline && available(item) && typeof item.attributes.unit_of_measurement === "string" ? ` ${item.attributes.unit_of_measurement}` : ""}</strong></div>
