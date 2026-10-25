@@ -4,10 +4,9 @@ import { available } from "./ha-model";
 import type { Planner } from "../../shared/configuration";
 
 export function smartHomeEntities(entities: Entity[], settings?: Planner["smartHome"]) {
-  return entities.filter(entity => !["person", "calendar", "todo", "zone"].includes(entity.domain)
-    && (!settings?.knownEntities || settings.knownEntities.includes(entity.preferenceId))
-    && !settings?.hiddenEntities.includes(entity.preferenceId)
-    && !(entity.device && settings?.hiddenDevices.includes(entity.device.id)));
+  const selected = settings && new Set(settings.layout.flatMap(card => [card.mainEntity, ...card.linkedEntities]));
+  return entities.filter(entity => !(entity.attributes.mode === "password" && ["text", "input_text"].includes(entity.domain))
+    && (!selected || selected.has(entity.preferenceId)));
 }
 
 export const deviceName = (device: PhysicalDevice, language: Language = "en") => device.name_by_user || device.name || device.model || createI18n(language).t("Unnamed device");

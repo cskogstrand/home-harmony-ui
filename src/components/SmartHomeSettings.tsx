@@ -1,184 +1,133 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useBeforeUnload, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily } from "@/contexts/FamilyContext";
+import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { cardId, defaultMainEntity } from "@/lib/smart-home-cards";
+import { smartHomeCards } from "@/lib/smart-home-cards";
 import { smartHomeEntities } from "@/lib/device-model";
-import { visibilityGroup, visibilityGroupings, visibilityTree, type VisibilityDimension, type VisibilityGroup, type VisibilityGrouping } from "@/lib/smart-home-visibility";
-import type { Entity } from "@/types/api";
-import { PanelHeading } from "@/components/FamilyPlanner";
 import { EntityPicker } from "./EntityPicker";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { cardDensitySchema } from "../../shared/configuration";
+import { cardDensitySchema, type DeviceCardSettings } from "../../shared/configuration";
+import { cardDesigns, type CardDesign } from "./devices/card-designs";
 import { cardVariants } from "./devices/card-presentation";
+import { SmartHomeCard } from "./devices/SmartHomeCard";
 import "./devices/device-cards.css";
+import "./smart-home-settings.css";
 
-function CardSettings({ members, name, disabled }: { members: Entity[]; name: string; disabled: boolean }) {
-  const { message: t } = useI18n();
-  const { currentHome } = useApp();
-  const { smartHome, setSmartHomeCard, setSmartHomeCardDensity } = useFamily();
-  const id = cardId(members[0]);
-  const config = smartHome.cards[id];
-  const selected = smartHomeEntities(members, smartHome);
-  const main = selected.find(entity => entity.preferenceId === config?.mainEntity) ?? defaultMainEntity(selected.length ? selected : members);
-  const linked = config?.linkedEntities ?? [];
-  const candidates = smartHomeEntities(currentHome.entities).filter(entity => entity.domain !== "scene" && !members.some(member => member.preferenceId === entity.preferenceId));
-  const groups = [...new Set(Object.values(smartHome.cards).map(card => card.group).filter(Boolean))];
-  return <div className="smart-card-settings planner-form">
-    <div className="smart-card-fields">
-      <EntityPicker label={t("Main entity")} ariaLabel={t("Main entity for {name}", { name })} entities={members} disabled={disabled} value={main.preferenceId} onChange={mainEntity => setSmartHomeCard(id, { mainEntity })} />
-      <label>{t("Card size")}<select aria-label={t("Card size for {name}", { name })} disabled={disabled} value={smartHome.cardDensities[id] ?? smartHome.cardDensities[main.preferenceId] ?? "supercompact"} onChange={event => setSmartHomeCardDensity(id, cardDensitySchema.parse(event.target.value))}>
-        {cardDensitySchema.options.map(density => <option key={density} value={density}>{t(cardVariants[density])}</option>)}
-      </select></label>
-      <label>{t("Card group")}<Input key={config?.group ?? ""} aria-label={t("Card group for {name}", { name })} list={`groups-${id}`} maxLength={80} disabled={disabled} defaultValue={config?.group ?? ""} placeholder={t("Ungrouped")} onBlur={event => { const group = event.target.value.trim(); if (group !== (config?.group ?? "")) setSmartHomeCard(id, { group }); }} onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
-        <datalist id={`groups-${id}`}>{groups.map(group => <option key={group} value={group} />)}</datalist>
-      </label>
-    </div>
-    <details className="smart-linked-settings"><summary>{t("Link entities from other devices")}{linked.length > 0 && ` (${linked.length})`}</summary>
-      <p className="page-note">{t("Add a map, maintenance sensor or other reading to this card. Only selected entities are included.")}</p>
-      {linked.map(entityId => <div className="smart-linked-row" key={entityId}><span>{candidates.find(entity => entity.preferenceId === entityId)?.name ?? t("Entity unavailable")}</span><Button variant="ghost" disabled={disabled} aria-label={t("Remove linked entity {name}", { name: candidates.find(entity => entity.preferenceId === entityId)?.name ?? t("Entity unavailable") })} onClick={() => setSmartHomeCard(id, { linkedEntities: linked.filter(value => value !== entityId) })}>{t("Remove")}</Button></div>)}
-      <EntityPicker label={t("Add linked entity")} entities={candidates.filter(entity => !linked.includes(entity.preferenceId))} value="" disabled={disabled} onChange={value => setSmartHomeCard(id, { linkedEntities: [...linked, value] })} />
-    </details>
-  </div>;
+type Draft = DeviceCardSettings;
+
+function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boolean; onClose: () => void }) {
+  const { message: t, language } = useI18n();
+  const { currentHome, homeOnline } = useApp();
+  const { smartHome, saveSmartHomeCard, removeSmartHomeCard } = useFamily();
+  const [draft, setDraft] = useState<Draft | undefined>(card);
+  const [search, setSearch] = useState("");
+  const entities = smartHomeEntities(currentHome.entities);
+  const [showAll, setShowAll] = useState(!entities.length);
+  const [confirm, setConfirm] = useState<"discard" | "remove">();
+  const heading = useRef<HTMLHeadingElement>(null);
+  const design = cardDesigns.find(design => design.id === draft?.type);
+  const main = entities.find(entity => entity.preferenceId === draft?.mainEntity && design?.domains.includes(entity.domain));
+  const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(card);
+  useBeforeUnload(event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
+  useEffect(() => { heading.current?.focus(); }, [design?.id]);
+  const chooseType = (design: CardDesign) => setDraft({
+    id: card?.id ?? newPlannerId(), type: design.id as Draft["type"], title: "", mainEntity: "", linkedEntities: [], group: "", density: "supercompact",
+  });
+  const change = (fields: Partial<Draft>) => setDraft(current => current ? { ...current, ...fields } : current);
+  const groups = [...new Set(smartHome.layout.map(card => card.group).filter(Boolean))];
+  const candidates = entities.filter(entity => design?.domains.includes(entity.domain));
+  const supporting = entities.filter(entity => entity.preferenceId !== draft?.mainEntity);
+  const types = cardDesigns.filter(design => (showAll || entities.some(entity => design.domains.includes(entity.domain)))
+    && `${t(design.subtitle)} ${t(design.group)} ${design.domains.join(" ")}`.toLocaleLowerCase(language).includes(search.trim().toLocaleLowerCase(language)));
+  const title = card ? t("Edit card") : design ? t("New {type} card", { type: t(design.subtitle).toLocaleLowerCase(language) }) : t("Choose a card type");
+  return <section className="smart-builder" aria-label={t("Card editor")}>
+    <Button variant="ghost" className="smart-builder-back" onClick={() => dirty ? setConfirm("discard") : onClose()}><ArrowLeft size={17} aria-hidden="true" />{t("Your cards")}</Button>
+    <div className="smart-builder-heading"><h2 ref={heading} tabIndex={-1}>{title}</h2>{draft && <Button form="smart-card-form" type="submit" disabled={disabled || !draft.mainEntity || !dirty}>{t(card ? "Save changes" : "Add card")}</Button>}</div>
+    {!design || !draft ? <>
+      <p className="page-note">{t("Start with what you want to control or see. Attach its entities next.")}</p>
+      <div className="smart-type-tools"><label className="smart-type-search"><Search size={18} aria-hidden="true" /><Input aria-label={t("Search card types")} type="search" placeholder={t("Search card types")} value={search} onChange={event => setSearch(event.target.value)} /></label>
+        <label className="smart-type-all"><input type="checkbox" checked={showAll} onChange={event => setShowAll(event.target.checked)} />{t("Show all types")}</label>
+      </div>
+      <div className="smart-type-catalog">{[...new Set(types.map(type => type.group))].map(group => <section key={group}><h3>{t(group)}</h3><div className="smart-type-grid">{types.filter(design => design.group === group).map(design => {
+        const count = entities.filter(entity => design.domains.includes(entity.domain)).length;
+        return <button className="smart-type-choice" key={design.id} disabled={disabled} onClick={() => chooseType(design)}><design.icon size={23} strokeWidth={1.7} aria-hidden="true" /><span><strong>{t(design.subtitle)}</strong><small>{count ? t("{count} available", { count }) : t("No matching entities")}</small></span><ChevronRight size={16} aria-hidden="true" /></button>;
+      })}</div></section>)}</div>
+      {!types.length && <p className="empty-note">{t("No matching card types. Change your search or show all types.")}</p>}
+      <Link className="text-link smart-catalog-link" to="/device-gallery">{t("Explore device card designs")}<ArrowUpRight size={16} aria-hidden="true" /></Link>
+    </> : <div>
+      <p className="page-note smart-builder-help">{t("Attach entities directly to the card. Device controls are paused in this preview.")}</p>
+      <div className="smart-compose">
+        <div className="smart-compose-preview">
+          <SmartHomeCard entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
+            entities={supporting.filter(entity => draft.linkedEntities.includes(entity.preferenceId))}
+            sourceControls={{
+              main: <div className="smart-source-slot planner-form"><EntityPicker label={t("Main entity")} ariaLabel={t("Main entity")} entities={candidates} value={draft.mainEntity} disabled={disabled} onChange={mainEntity => change({ mainEntity, linkedEntities: draft.linkedEntities.filter(id => id !== mainEntity) })} />
+                <p>{t("This entity supplies the card’s main controls and state.")}</p>
+                {!candidates.length && <p role="status">{t(homeOnline ? "No matching entities. Choose another card type or check Home Assistant." : "Connect to Home Assistant to choose an entity.")}</p>}
+              </div>,
+              supporting: <div className="smart-source-slot smart-source-supporting planner-form"><EntityPicker multiple label={t("Supporting entities")} ariaLabel={t("Supporting entities")} placeholder={t("Add readings, controls or images")} entities={supporting} value={draft.linkedEntities} disabled={disabled} onChange={linkedEntities => change({ linkedEntities })} />
+                <p>{t("Optional. Add entities from any device; only your selections appear.")}</p>
+              </div>,
+            }} />
+        </div>
+        <form id="smart-card-form" className="smart-compose-options planner-form" onSubmit={event => {
+            event.preventDefault();
+            if (!disabled && draft.mainEntity && saveSmartHomeCard({ ...draft, title: draft.title.trim(), group: draft.group.trim() })) onClose();
+          }}>
+          <label>{t("Card name")}<Input value={draft.title} maxLength={100} placeholder={main?.name || t(design.subtitle)} disabled={disabled} onChange={event => change({ title: event.target.value })} /></label>
+          <label>{t("Card type")}<select value={draft.type} disabled={disabled} onChange={event => {
+            const type = cardDesigns.find(design => design.id === event.target.value)!;
+            change({ type: type.id as Draft["type"], mainEntity: "" });
+          }}>{cardDesigns.map(type => <option key={type.id} value={type.id}>{t(type.subtitle)}</option>)}</select></label>
+          <label>{t("Card size")}<select value={draft.density} disabled={disabled} onChange={event => change({ density: cardDensitySchema.parse(event.target.value) })}>{cardDensitySchema.options.map(size => <option key={size} value={size}>{t(cardVariants[size])}</option>)}</select></label>
+          <label>{t("Card group")}<Input list="smart-card-groups" maxLength={80} value={draft.group} disabled={disabled} placeholder={t("Ungrouped")} onChange={event => change({ group: event.target.value })} /><datalist id="smart-card-groups">{groups.map(group => <option key={group} value={group} />)}</datalist></label>
+          <p className="page-note">{t("Use the same group name to keep related cards together.")}</p>
+          {card && <Button type="button" variant="ghost" className="smart-remove-card" disabled={disabled} onClick={() => setConfirm("remove")}><Trash2 size={17} aria-hidden="true" />{t("Remove card")}</Button>}
+        </form>
+      </div>
+      <div className="smart-builder-actions"><span>{t("Changes appear on every screen after you save.")}</span><Button type="button" variant="outline" onClick={() => dirty ? setConfirm("discard") : onClose()}>{t("Cancel")}</Button><Button form="smart-card-form" type="submit" disabled={disabled || !draft.mainEntity || !dirty}>{t(card ? "Save changes" : "Add card")}</Button></div>
+    </div>}
+    <ConfirmDialog open={!!confirm} onOpenChange={open => { if (!open) setConfirm(undefined); }} title={confirm === "remove" ? "Remove this card?" : "Discard card changes?"}
+      description={confirm === "remove" ? "The card will be removed from every screen. Its Home Assistant entities will be kept." : "Your unsaved changes to this card will be lost."}
+      confirmLabel={confirm === "remove" ? "Remove card" : "Discard changes"} destructive disabled={disabled && confirm === "remove"}
+      onConfirm={() => { if (confirm === "remove" && (!card || !removeSmartHomeCard(card.id))) return false; onClose(); }} />
+  </section>;
 }
 
 export function SmartHomeSettings() {
-  const { t, message, language } = useI18n();
+  const { message: t } = useI18n();
   const { currentHome, homeOnline } = useApp();
-  const { smartHome, setSmartHomeDeviceVisible, setSmartHomeEntityVisible, setSmartHomeEntitiesVisible } = useFamily();
+  const { smartHome, clearSmartHome } = useFamily();
   const shared = useSharedConfiguration();
-  const [search, setSearch] = useState("");
-  const [grouping, setGrouping] = useState<VisibilityGrouping>("device");
-  const [filters, setFilters] = useState({ domain: "all", integration: "all", room: "all", visibility: "all", category: "all" });
-  const [expansion, setExpansion] = useState<"default" | "all" | "none">("default");
-  const [expansionVersion, setExpansionVersion] = useState(0);
-  const [pending, setPending] = useState<{ name: string; ids: string[]; deviceId?: string; visible: boolean; allMatches?: boolean } | null>(null);
-  const query = search.trim().toLocaleLowerCase(language);
-  const entities = useMemo(() => smartHomeEntities(currentHome.entities), [currentHome.entities]);
-  const visibleIds = new Set(smartHomeEntities(entities, smartHome).map(entity => entity.preferenceId));
-  const disabled = !shared?.state.loaded || !!shared.state.error || !smartHome.knownEntities;
-  const matches = (value: string) => value.toLocaleLowerCase(language).includes(query);
-  const groupFor = (entity: Entity, dimension: VisibilityDimension) => visibilityGroup(entity, dimension, currentHome.areas, language);
-  const filtered = entities.filter(entity => {
-    const groups = (["domain", "integration", "room"] as const).map(dimension => ({ dimension, ...groupFor(entity, dimension) }));
-    return groups.every(group => filters[group.dimension] === "all" || filters[group.dimension] === group.id)
-      && (filters.visibility === "all" || visibleIds.has(entity.preferenceId) === (filters.visibility === "visible"))
-      && (filters.category === "all" || (entity.category || "main") === filters.category)
-      && matches([entity.name, entity.entityId, groupFor(entity, "device").name, ...groups.flatMap(group => [group.id, group.name])].join(" "));
-  }).sort((a, b) => a.name.localeCompare(b.name, language));
-  const groups = visibilityTree(filtered, visibilityGroupings[grouping], currentHome.areas, language);
-  const deviceCounts = new Map<string, number>();
-  for (const entity of entities) if (entity.device) deviceCounts.set(entity.device.id, (deviceCounts.get(entity.device.id) ?? 0) + 1);
-  const hasFilters = !!query || Object.values(filters).some(value => value !== "all");
-  const visibleMatches = filtered.filter(entity => visibleIds.has(entity.preferenceId)).length;
-  const entityRow = (entity: Entity) => {
-    const deviceHidden = !!entity.device && smartHome.hiddenDevices.includes(entity.device.id);
-    return <div key={entity.preferenceId}><div className="flex min-h-12 flex-wrap items-center justify-between gap-3 py-3">
-      <span className="min-w-0"><span className="block break-words text-sm font-medium">{entity.name}</span><span className="block break-all text-xs text-muted-foreground">{entity.entityId}</span>{deviceHidden && <span className="block text-xs text-muted-foreground">{t("Hidden by device")}</span>}</span>
-      <div className="flex flex-wrap items-center gap-3">
-      <Switch aria-label={t("Show entity {name} on Smart home", { name: entity.name })} checked={visibleIds.has(entity.preferenceId)} disabled={disabled || deviceHidden}
-        onCheckedChange={visible => setSmartHomeEntityVisible(entity.preferenceId, visible)} />
-      </div>
-    </div>{!entity.device && entity.domain !== "scene" && <CardSettings members={[entity]} name={entity.name} disabled={disabled} />}</div>;
-  };
-  const groupRows = (items: VisibilityGroup[], parents: string[] = []): ReactNode => items.map(group => {
-    const path = [...parents, group.name];
-    const name = path.join(" / ");
-    const visible = group.entities.filter(entity => visibleIds.has(entity.preferenceId)).length;
-    const wholeDevice = group.deviceId && deviceCounts.get(group.deviceId) === group.entities.length ? group.deviceId : undefined;
-    return <li key={group.id} className="relative border-b last:border-0">
-        <details className="min-w-0" open={expansion === "all" || (expansion === "default" && (!!query || !parents.length))}>
-          <summary className="min-h-12 cursor-pointer rounded-sm py-3 pr-14 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
-            <span className="break-words font-medium">{group.name}</span>
-            <span className="block pl-4 text-xs text-muted-foreground">{t("{visible} of {total} visible", { visible, total: group.entities.length })}</span>
-          </summary>
-          {wholeDevice && <CardSettings members={group.entities.filter(entity => entity.domain !== "scene").length ? group.entities.filter(entity => entity.domain !== "scene") : group.entities} name={group.name} disabled={disabled} />}
-          <ul className="border-l pl-2 sm:pl-3">{group.children.length ? groupRows(group.children, path) : group.entities.map(entity => <li key={entity.preferenceId}>{entityRow(entity)}</li>)}</ul>
-        </details>
-        <Switch className="absolute right-0 top-3" aria-label={wholeDevice ? t("Show device {name} on Smart home", { name: group.name }) : t("Show group {name} on Smart home", { name })}
-          checked={wholeDevice ? !smartHome.hiddenDevices.includes(wholeDevice) && group.entities.some(entity => !smartHome.knownEntities || smartHome.knownEntities.includes(entity.preferenceId)) : visible > 0} disabled={disabled}
-          onCheckedChange={value => setPending({ name, ids: group.entities.map(entity => entity.preferenceId), deviceId: wholeDevice, visible: value })} />
-    </li>;
-  });
-
-  return <section className="glow-panel" id="smart-home-visibility" aria-label={t("Smart home visibility")}>
-    <PanelHeading title={t("Smart home visibility")} to="/home" label={t("Smart home")} />
-    <p className="page-note">{t("Choose which devices, entities and scenes appear on Smart home. Changes are saved automatically and shared across screens.")}</p>
-    <p className="page-note">{t("New devices and entities stay hidden until you enable them here. Other pages and Home Assistant are unchanged.")}</p>
-    <p className="page-note">{message("Each device gets one card. Choose its main entity, then enable the controls and readings to include below.")}</p>
-    <p className="page-note">{message("Give cards the same group name to place them together. Clear the name to leave a card ungrouped.")}</p>
-    <Button asChild variant="outline" className="mt-4"><Link to="/device-gallery">{message("Explore device card designs")}</Link></Button>
-    <fieldset className="mt-6 min-w-0" aria-describedby="visibility-filters-hint">
-      <legend className="text-base font-semibold">{t("Filters")}</legend>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p id="visibility-filters-hint" className="text-sm text-muted-foreground">{t("Choose which entities to manage.")}</p>
-        {hasFilters && <Button variant="ghost" onClick={() => { setSearch(""); setFilters({ domain: "all", integration: "all", room: "all", visibility: "all", category: "all" }); }}>{t("Clear filters")}</Button>}
-      </div>
-      <div className="planner-form"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <label className="min-w-0 text-sm font-medium sm:col-span-2 xl:col-span-3">{t("Search devices and entities")}
-        <Input type="search" value={search} onChange={event => { setSearch(event.target.value); setExpansion("default"); }} placeholder={t("Search names, IDs, rooms or integrations…")} />
-      </label>
-      {([ ["domain", t("Domain")], ["integration", t("Integration")], ["room", t("Room")] ] as const).map(([dimension, label]) => {
-        const options = [...new Map(entities.map(entity => { const group = groupFor(entity, dimension); return [group.id, group]; })).values()].sort((a, b) => a.name.localeCompare(b.name, language));
-        return <label key={dimension} className="min-w-0 text-sm font-medium">{label}<select value={filters[dimension]} onChange={event => setFilters({ ...filters, [dimension]: event.target.value })}>
-          <option value="all">{t("All")}</option>{options.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
-        </select></label>;
-      })}
-      <label className="min-w-0 text-sm font-medium">{t("Visibility")}<select value={filters.visibility} onChange={event => setFilters({ ...filters, visibility: event.target.value })}>
-        <option value="all">{t("All")}</option><option value="visible">{t("Visible")}</option><option value="hidden">{t("Hidden")}</option>
-      </select></label>
-      <label className="min-w-0 text-sm font-medium">{t("Entity category")}<select value={filters.category} onChange={event => setFilters({ ...filters, category: event.target.value })}>
-        <option value="all">{t("All")}</option><option value="main">{t("Primary entities")}</option><option value="config">{t("Configuration")}</option><option value="diagnostic">{t("Diagnostic")}</option>
-      </select></label>
-      </div></div>
-    </fieldset>
-    <fieldset className="mt-6 min-w-0 border-t pt-4" aria-describedby="visibility-grouping-hint">
-      <legend className="pr-3 text-base font-semibold">{t("Grouping")}</legend>
-      <p id="visibility-grouping-hint" className="mb-3 text-sm text-muted-foreground">{t("Arrange the results without changing which entities match.")}</p>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="planner-form min-w-0 w-full sm:max-w-md">
-          <label className="min-w-0 text-sm font-medium">{t("Group by")}
-            <select value={grouping} onChange={event => { setGrouping(event.target.value as VisibilityGrouping); setExpansion("default"); }}>
-              <option value="domain">{t("Domain → integration → device")}</option>
-              <option value="integration">{t("Integration → domain → device")}</option>
-              <option value="room">{t("Room → domain → integration → device")}</option>
-              <option value="device">{t("Device → entity")}</option>
-              <option value="none">{t("Entities without grouping")}</option>
-            </select>
-          </label>
-        </div>
-        {grouping !== "none" && <div className="flex flex-wrap gap-1"><Button variant="ghost" onClick={() => { setExpansion("all"); setExpansionVersion(version => version + 1); }}>{t("Expand all")}</Button><Button variant="ghost" onClick={() => { setExpansion("none"); setExpansionVersion(version => version + 1); }}>{t("Collapse all")}</Button></div>}
-      </div>
-    </fieldset>
-    <label className="mt-6 flex min-h-12 cursor-pointer items-center justify-between gap-3 border-y py-4">
-      <span className="min-w-0">
-        <span className="block font-semibold">{t("Show all matching entities")}</span>
-        <span role="status" className="block text-sm text-muted-foreground"><span>{t("{count} of {total} entities", { count: filtered.length, total: entities.length })}</span> · <span>{t("{visible} of {total} visible", { visible: visibleMatches, total: filtered.length })}</span></span>
-      </span>
-      <Switch aria-label={t("Show all matching entities")} checked={filtered.length > 0 && visibleMatches === filtered.length} disabled={disabled || !filtered.length}
-        onCheckedChange={visible => setPending({ name: "", ids: filtered.map(entity => entity.preferenceId), visible, allMatches: true })} />
-    </label>
-    <p className="page-note">{t("Group changes affect matching entities only. Whole-device toggles keep individual choices and also hide future entities.")}</p>
-    {!homeOnline && <p role="status" className="page-note">{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
-    <div className="mt-3 max-h-[32rem] overflow-y-auto pr-2">
-      <ul key={JSON.stringify([grouping, search, filters, expansion, expansionVersion])} aria-label={t("Visibility groups")}>{grouping === "none" ? filtered.map(entity => <li key={entity.preferenceId}>{entityRow(entity)}</li>) : groupRows(groups)}</ul>
-      {!filtered.length && <p className="empty-note">{entities.length ? t("No matching entities. Change or clear the filters.") : t("No devices available.")}</p>}
+  const [params, setParams] = useSearchParams();
+  const [reset, setReset] = useState(false);
+  const selectedId = params.get("card");
+  const selected = smartHome.layout.find(card => card.id === selectedId);
+  const disabled = !shared?.state.loaded || !!shared.state.error;
+  const cards = smartHomeCards(currentHome.entities, smartHome);
+  const open = (id?: string) => setParams(id ? { card: id } : {});
+  return <div className="smart-settings">
+    {selectedId === "new" || selected ? <CardEditor key={selectedId} card={selected} disabled={disabled} onClose={() => open()} /> : <>
+      <section className="smart-collection" aria-label={t("Your cards")}>
+        <div className="smart-builder-heading"><div><h2>{t("Your cards")}</h2><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" />{t("Add card")}</Button></div>
+        {!!selectedId && <p role="status">{t("This card no longer exists. Choose another or add a new one.")}</p>}
+        {cards.length ? <ul className="smart-card-list">{cards.map(card => <li key={card.id}><button onClick={() => open(card.id)} className="smart-card-row"><span className="smart-card-row-icon glass-surface"><card.design.icon size={22} strokeWidth={1.7} aria-hidden="true" /></span><span className="smart-card-row-copy"><strong>{card.title || card.main?.name || t(card.design.subtitle)}</strong><small>{[t(card.design.subtitle), card.group, t(card.linkedEntities.length ? "{count} entities" : "1 entity", { count: card.linkedEntities.length + 1 })].filter(Boolean).join(" · ")}</small>{!card.main && <small className="smart-card-missing">{t("Main entity unavailable · choose a replacement")}</small>}</span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
+          : <div className="smart-collection-empty"><Layers3 size={38} strokeWidth={1.4} aria-hidden="true" /><h3>{t("A place for the things you use")}</h3><p>{t("Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.")}</p></div>}
+        <div className="smart-collection-links"><Link className="text-link" to="/home">{t("Open Smart home")}<ArrowUpRight size={16} aria-hidden="true" /></Link>{!!cards.length && <span>{t("Reorder cards and groups from Configure on Smart home.")}</span>}</div>
+      </section>
+      <section className="smart-danger" aria-labelledby="smart-danger-title"><h2 id="smart-danger-title">{t("Danger zone")}</h2><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
+    </>}
+    <div className="smart-settings-status"><p role="status">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
+      {!homeOnline && <p>{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
+      {shared?.state.error && <div role="alert"><p>{t(shared.state.error)}</p><Link className="text-link" to="/settings/backups">{t("Storage and backups")}</Link></div>}
     </div>
-    <ConfirmDialog open={!!pending} onOpenChange={open => { if (!open) setPending(null); }} title="Are you sure?" disabled={disabled}
-      description={pending ? { key: pending.allMatches
-        ? pending.visible ? "Show all entities matching the filters ({count})? Other entities stay unchanged." : "Hide all entities matching the filters ({count})? Other entities stay unchanged."
-        : pending.deviceId
-        ? pending.visible ? "Show {name} and its {count} entities again? Individual visibility choices will be kept." : "Hide {name} and its {count} entities? Future entities on this device will also be hidden."
-        : pending.visible ? "Show the {count} matching entities in {name}? Other entities stay unchanged." : "Hide the {count} matching entities in {name}? Other entities stay unchanged.",
-      values: { name: pending.name, count: pending.ids.length } } : ""}
-      confirmLabel={pending?.allMatches ? pending.visible ? "Show all matches" : "Hide all matches" : pending?.visible ? "Show group" : "Hide group"}
-      onConfirm={() => pending ? (pending.deviceId ? setSmartHomeDeviceVisible(pending.deviceId, pending.visible) : setSmartHomeEntitiesVisible(pending.ids, pending.visible)) : false} />
-    <p role="status" className="page-note">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
-    {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><Link to="/settings/backups" className="text-link">{t("Storage and backups")}</Link></div>}
-  </section>;
+    <ConfirmDialog open={reset} onOpenChange={setReset} title="Clear Smart home?" destructive disabled={disabled} confirmLabel="Clear Smart home"
+      description="All Smart home cards, groups and scene cards will be removed from every screen. Today’s favourites, other settings and Home Assistant devices will be kept. Restore a settings backup if you need this layout again."
+      onConfirm={clearSmartHome} />
+  </div>;
 }

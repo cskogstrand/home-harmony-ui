@@ -1,3 +1,4 @@
+import { configuredCard } from "./device-card-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { SharedConfiguration } from "@/lib/shared-configuration";
@@ -40,50 +41,31 @@ it("shares notification rules across screens and restores them with the existing
   expect(a.getSnapshot().config.settings.notifications).toEqual(backup.settings.notifications);
 });
 
-it("keeps legacy visibility migratable and starts new configurations with no enabled entities", () => {
+it("starts with no cards and discards retired visibility fields without changing other settings", () => {
   const config = emptyConfiguration();
-  const { smartHome, ...oldSettings } = config.settings;
-  expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.smartHome).toEqual({ hiddenDevices: [], hiddenEntities: [], cardDensities: {}, cards: {} });
-  const read = (smartHome: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, smartHome } }));
-  expect(smartHome.knownEntities).toEqual([]);
-  expect(read({ hiddenDevices: ["example-device"] }).settings.smartHome).toEqual({ hiddenEntities: [], hiddenDevices: ["example-device"], cardDensities: {}, cards: {} });
-  for (const invalid of [{ hiddenDevices: "device" }, { hiddenEntities: [1] }, { knownEntities: [1] }, { knownEntities: [""] }, { knownEntities: "entity" }, { hiddenEntities: [""] }, { unknown: [] }, null]) expect(() => read(invalid)).toThrow();
+  const read = (smartHome: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, language: "nb", smartHome } }));
+  expect(config.settings.smartHome).toEqual({ layout: [] });
+  const old = read({ hiddenDevices: ["example-device"], hiddenEntities: [], knownEntities: ["example"], cards: { example: { mainEntity: "example" } } });
+  expect(old.settings.smartHome).toEqual({ layout: [] });
+  expect(old.settings.language).toBe("nb");
+  const card = configuredCard("home|example");
+  for (const layout of [null, {}, [{ ...card, type: "invalid" }], [{ ...card, density: "large" }], [{ ...card, mainEntity: "" }], [{ ...card, group: "a".repeat(81) }], [{ ...card, streamUrl: "https://example.invalid" }], [{ ...card, linkedEntities: [card.mainEntity] }], [card, card]]) {
+    expect(() => read({ layout })).toThrow();
+  }
 });
 
-it("shares smart home visibility across screens and restores it from backups", async () => {
-  const backend = server();
-  const a = await backend.start(), b = await backend.start();
-  const smartHome = { cardDensities: {}, cards: {}, hiddenDevices: ["example-device"], hiddenEntities: ["home|example-entity"], knownEntities: ["home|example-entity", "home|example-light"] };
+it("shares explicit cards across screens and restores their composition, order and sizes from backup", async () => {
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  const smartHome = { layout: [configuredCard("home|example", "vacuum", { linkedEntities: ["home|map"], title: "Example robot", group: "Cleaning", density: "original" }), configuredCard("home|other", "light")] };
   a.updateSettings(p => ({ ...p, smartHome }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
   expect(b.getSnapshot().config.settings.smartHome).toEqual(smartHome);
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
-  b.updateSettings(p => ({ ...p, smartHome: { hiddenDevices: [], hiddenEntities: [] } }));
+  b.updateSettings(p => ({ ...p, smartHome: { layout: [] } }));
   await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
-  await b.replace(backup);
-  await a.refresh();
+  await b.replace(backup); await a.refresh();
   expect(a.getSnapshot().config.settings.smartHome).toEqual(smartHome);
-});
-
-it("validates per-card density and shares it across screens and backups without changing visibility", async () => {
-  const config = emptyConfiguration();
-  const read = (cardDensities: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, smartHome: { ...config.settings.smartHome, cardDensities } } }));
-  expect(config.settings.smartHome.cardDensities).toEqual({});
-  expect(read({ "home|example": "supercompact" }).settings.smartHome.cardDensities).toEqual({ "home|example": "supercompact" });
-  for (const invalid of [{ "home|example": "large" }, { "home|example": true }, { "": "compact" }, { constructor: "compact" }, [], null]) expect(() => read(invalid)).toThrow();
-  const backend = server();
-  const a = await backend.start(), b = await backend.start();
-  a.updateSettings(p => ({ ...p, smartHome: { ...p.smartHome, cardDensities: { "home|example": "compact", "home|other": "original" } } }));
-  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
-  await b.refresh();
-  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
-  expect(backup.settings.smartHome.cardDensities).toEqual({ "home|example": "compact", "home|other": "original" });
-  expect(backup.settings.smartHome.knownEntities).toEqual([]);
-  await b.replace(config);
-  await b.replace(backup);
-  await a.refresh();
-  expect(a.getSnapshot().config.settings.smartHome).toEqual(backup.settings.smartHome);
 });
 
 it("preserves the current dashboard for older backups and validates section choices", () => {
@@ -351,19 +333,4 @@ it("shares language changes, keeps conflicting drafts, and restores the language
   await b.replace(backup);
   await a.refresh();
   expect(a.getSnapshot().config.settings.language).toBe("nb");
-});
-
-
-it("shares grouped device cards with linked entities and restores them from backups", async () => {
-  const backend = server(), a = await backend.start(), b = await backend.start();
-  const cards = { "device:example": { mainEntity: "home|vacuum", linkedEntities: ["home|map", "home|maintenance"], group: "Cleaning" } };
-  a.updateSettings(p => ({ ...p, smartHome: { ...p.smartHome, cards } }));
-  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
-  await b.refresh();
-  expect(b.getSnapshot().config.settings.smartHome.cards).toEqual(cards);
-  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
-  b.updateSettings(p => ({ ...p, smartHome: { ...p.smartHome, cards: {} } }));
-  await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
-  await b.replace(backup); await a.refresh();
-  expect(a.getSnapshot().config.settings.smartHome.cards).toEqual(cards);
 });

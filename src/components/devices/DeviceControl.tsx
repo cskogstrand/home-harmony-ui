@@ -54,7 +54,8 @@ export function DeviceControl({ entity, card = false }: { entity: Entity; card?:
   const { variant } = useContext(CardPresentation);
   const [lockAction, setLockAction] = useState<"lock" | "unlock">();
   const [confirmation, setConfirmation] = useState<{ action: EntityAction; value?: unknown; title: Message; description: Message }>();
-  const disabled = !homeOnline || !available(entity) || !!commands[entity.entityId]?.pending;
+  const previewDisabled = useContext(CardDisabled);
+  const disabled = previewDisabled || !homeOnline || !available(entity) || !!commands[entity.entityId]?.pending;
   const supports = (action: EntityAction) => supportsAction(entity, action, services);
   const send = (action: EntityAction, value?: unknown) => {
     if (disabled || !supports(action)) return;

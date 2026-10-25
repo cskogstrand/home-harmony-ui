@@ -1,22 +1,18 @@
+import { configuredCard } from "./device-card-fixtures";
 import { expect, it } from "vitest";
 import { deviceGroups, deviceName, deviceReadingsLabel, entityDetailPath, deviceSections, deviceType, smartHomeEntities } from "@/lib/device-model";
 import { mapHome } from "@/lib/ha-model";
 import { registries, states } from "./ha-fixtures";
 
-it("filters smart home visibility by stable entity IDs and hides future entities on hidden devices", () => {
+it("selects only explicit card sources by stable ID and excludes password entities", () => {
   const home = mapHome(states, registries, "test");
   const light = home.entities.find(entity => entity.domain === "light")!;
   const renamed = { ...light, entityId: "light.renamed", name: "Renamed example lamp" };
   const future = { ...light, entityId: "sensor.future", preferenceId: "test|future", domain: "sensor" };
-  const entities = [renamed, future, ...home.entities.filter(entity => entity !== light)];
-  const selected = smartHomeEntities(entities, { hiddenDevices: [], hiddenEntities: [light.preferenceId] });
-  expect(selected).not.toContain(renamed);
-  expect(selected).toContain(future);
-  expect(smartHomeEntities(entities, { hiddenDevices: [light.device!.id], hiddenEntities: [] }).every(entity => !entity.device)).toBe(true);
-  expect(smartHomeEntities(entities)).toContain(renamed);
-  expect(smartHomeEntities(entities)).toContain(future);
-  expect(smartHomeEntities(entities).some(entity => entity.domain === "scene")).toBe(true);
-  for (const domain of ["person", "calendar", "todo", "zone"]) expect(smartHomeEntities([{ ...light, domain }])).toEqual([]);
+  expect(smartHomeEntities([renamed, future], { layout: [configuredCard(light.preferenceId)] })).toEqual([renamed]);
+  expect(smartHomeEntities([renamed, future], { layout: [] })).toEqual([]);
+  expect(smartHomeEntities([renamed, future])).toHaveLength(2);
+  expect(smartHomeEntities([{ ...light, domain: "text", attributes: { mode: "password" } }])).toEqual([]);
 });
 
 it("groups visible entities once by registry device, retaining empty devices and room overrides", () => {

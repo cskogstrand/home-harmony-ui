@@ -56,11 +56,10 @@ interface FamilyContextValue extends FamilyState {
   setMemberVisible: (id: MemberId, visible: boolean) => void;
   setMemberColor: (id: MemberId, color: string) => boolean;
   setHomeEntities: (ids: string[]) => boolean;
-  setSmartHomeDeviceVisible: (id: string, visible: boolean) => boolean;
-  setSmartHomeEntityVisible: (id: string, visible: boolean) => boolean;
-  setSmartHomeEntitiesVisible: (ids: string[], visible: boolean) => boolean;
+  saveSmartHomeCard: (card: DeviceCardSettings) => boolean;
+  removeSmartHomeCard: (id: string) => boolean;
+  clearSmartHome: () => boolean;
   setSmartHomeCardDensity: (id: string, density: CardDensity) => boolean;
-  setSmartHomeCard: (id: string, settings: Partial<DeviceCardSettings>) => boolean;
   moveSmartHomeCard: (id: string, group: string, beforeId?: string) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: ListKind, member: MemberId, list: string) => void;

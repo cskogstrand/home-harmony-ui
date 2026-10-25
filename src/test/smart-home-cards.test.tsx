@@ -1,9 +1,7 @@
-import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
-import { SmartHomeSettings } from "@/components/SmartHomeSettings";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cardDesigns, cardDesignFor } from "@/components/devices/card-designs";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
@@ -19,14 +17,14 @@ const climate = () => mapHome({ "climate.example": state("climate.example", "hea
   friendly_name: "Example thermostat", supported_features: 1, min_temp: 7, max_temp: 30, temperature: 21.5,
   current_temperature: 20, target_temp_step: .5, hvac_modes: ["heat", "off"],
 }) }, emptyRegistries, "example").entities[0];
-const open = (entity = climate()) => render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={entity} /></TooltipProvider></MemoryRouter>);
+const open = (entity = climate(), density: "supercompact" | "compact" | "original" = "supercompact") => render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={entity} density={density} /></TooltipProvider></MemoryRouter>);
 
 beforeEach(() => {
   mocks.card.mockReset(); mocks.forecast.mockReset(); mocks.history.mockReset().mockResolvedValue([]);
   mocks.camera.mockReset().mockImplementation((_id, _video, _signal, onError) => onError());
   mocks.command.mockReset().mockResolvedValue(undefined); mocks.density.mockReset(); mocks.visible.mockReset();
   mocks.app = { watchCameraStream: mocks.camera, watchForecast: mocks.forecast, entityHistory: mocks.history, homeOnline: true, services, commands: {}, command: mocks.command, currentHome: { entities: [climate()], areas: [], temperatureUnit: "°C" } };
-  mocks.family = { smartHome: { ...emptyPlanner().smartHome, knownEntities: [climate().preferenceId] }, setSmartHomeCard: mocks.card, setSmartHomeCardDensity: mocks.density, setSmartHomeEntityVisible: mocks.visible };
+  mocks.family = { smartHome: emptyPlanner().smartHome, setSmartHomeCard: mocks.card, setSmartHomeCardDensity: mocks.density, setSmartHomeEntityVisible: mocks.visible };
   mocks.shared = { state: { loaded: true, config: emptyConfiguration() } };
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
@@ -69,22 +67,16 @@ it("keeps bounds, unsupported capabilities, offline state and failed commands ho
   expect(mocks.command).not.toHaveBeenCalled();
 });
 
-it("uses each entity's stable preference ID for independent sizes and keeps hidden cards configurable", () => {
-  mocks.family.smartHome.cardDensities = { [climate().preferenceId]: "compact" };
-  const view = open();
-  expect(screen.getByRole("article")).toHaveAttribute("data-variant", "Compact");
-  mocks.family.smartHome.cardDensities[climate().preferenceId] = "original";
-  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={climate()} /></TooltipProvider></MemoryRouter>);
+it("applies explicit card sizes and disables all device commands in the editor preview", () => {
+  const view = render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={climate()} density="original" preview /></TooltipProvider></MemoryRouter>);
   expect(screen.getByRole("article")).toHaveAttribute("data-variant", "Original");
-  view.unmount();
-  mocks.family.smartHome.hiddenEntities = [climate().preferenceId];
-  render(<MemoryRouter><SmartHomeSettings /></MemoryRouter>);
-  fireEvent.change(screen.getByRole("combobox", { name: "Group by" }), { target: { value: "none" } });
-  const size = screen.getByRole("combobox", { name: "Card size for Example thermostat" });
-  expect(size).toHaveValue("original");
-  fireEvent.change(size, { target: { value: "supercompact" } });
-  expect(mocks.density).toHaveBeenCalledExactlyOnceWith(climate().preferenceId, "supercompact");
-  expect(mocks.visible).not.toHaveBeenCalled();
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  const increase = screen.getByRole("button", { name: "Increase temperature for Example thermostat" });
+  expect(increase).toBeDisabled();
+  fireEvent.click(increase);
+  expect(mocks.command).not.toHaveBeenCalled();
+  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={climate()} density="compact" /></TooltipProvider></MemoryRouter>);
+  expect(screen.getByRole("article")).toHaveAttribute("data-variant", "Compact");
 });
 
 it("maps library aliases consistently and keeps unknown domains usable", () => {
@@ -101,8 +93,7 @@ it("renders the shared media transport, committed volume and extra controls in e
   mocks.app.services = cardServices;
   const media = mediaEntity();
   for (const density of ["supercompact", "compact", "original"] as const) {
-    mocks.family.smartHome.cardDensities = { [media.preferenceId]: density };
-    const view = open(media);
+    const view = open(media, density);
     expect(screen.getByRole("article")).toHaveAttribute("data-card-kind", "media_player");
     fireEvent.click(screen.getByRole("button", { name: "Start playback" }));
     expect(mocks.command).toHaveBeenLastCalledWith(media.entityId, "media_play", undefined);
@@ -386,18 +377,11 @@ it("shows firmware versions and protects password helper values", () => {
   expect(screen.queryByText("fixture-secret-value")).not.toBeInTheDocument();
 });
 
-it("configures the main entity, group and linked reading without toggling sibling visibility", () => {
-  const main = climate(), reading = { ...cardEntity("sensor", "55"), name: "Example maintenance" };
-  mocks.app.currentHome.entities = [main, reading];
-  render(<MemoryRouter><SmartHomeSettings /></MemoryRouter>);
-  chooseEntity("Main entity for Example thermostat", main.entityId);
-  expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { mainEntity: main.preferenceId });
-  const group = screen.getByRole("combobox", { name: "Card group for Example thermostat" });
-  fireEvent.change(group, { target: { value: "Comfort" } }); fireEvent.blur(group);
-  expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { group: "Comfort" });
-  const panel = group.closest(".smart-card-settings");
-  fireEvent.click(within(panel as HTMLElement).getByText("Link entities from other devices"));
-  chooseEntity(within(panel as HTMLElement).getByRole("button", { name: "Add linked entity" }), reading.entityId);
-  expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { linkedEntities: [reading.preferenceId] });
-  expect(mocks.visible).not.toHaveBeenCalled();
+it("does not start camera streams or fetch history while configuring a card", () => {
+  const camera = cardEntity("camera", "idle", { supported_features: 2 });
+  const sensor = cardEntity("sensor", "55");
+  render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={camera} entities={[sensor]} preview /></TooltipProvider></MemoryRouter>);
+  expect(screen.getByText("Media is paused in the editor.")).toBeVisible();
+  expect(mocks.camera).not.toHaveBeenCalled();
+  expect(mocks.history).not.toHaveBeenCalled();
 });

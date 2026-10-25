@@ -25,7 +25,7 @@ const groups = [
     { id: "timetables", title: "Timetables", description: "School calendars, PDF uploads and images", icon: BookOpen, content: <HomeSettings section="timetables" /> },
   ] },
   { title: "System", items: [
-    { id: "smart-home", title: "Smart home", description: "Visible devices, entities and card layouts", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
+    { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
     { id: "connection", title: "Connection & account", description: "Home Assistant connection and instance details", icon: Wifi, content: <HomeSettings section="connection" /> },
     { id: "backups", title: "Storage and backups", description: "Export, restore and recover shared settings", icon: Database, content: <ConfigurationBackup /> },
   ] },

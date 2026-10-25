@@ -1,50 +1,37 @@
 import { expect, it } from "vitest";
 import { emptyPlanner, plannerSchema } from "../../shared/configuration";
-import { cardId, moveSmartHomeCard, rowCardHeights, smartHomeCards } from "@/lib/smart-home-cards";
-import { mapHome } from "@/lib/ha-model";
+import { moveSmartHomeCard, rowCardHeights, smartHomeCards } from "@/lib/smart-home-cards";
+import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
+import { configuredCard } from "./device-card-fixtures";
 
 const home = mapHome({
   "vacuum.example": state("vacuum.example", "docked"),
-  "sensor.example": state("sensor.example", "80", { device_class: "battery" }),
+  "sensor.battery": state("sensor.battery", "80", { device_class: "battery" }),
   "sensor.new": state("sensor.new", "10"),
   "image.map": state("image.map", "2030-01-01T00:00:00Z"),
-}, { areas: [], devices: [{ id: "robot", name: "Example robot" }], entities: [
-  { id: "robot-main", entity_id: "vacuum.example", device_id: "robot" },
-  { id: "robot-battery", entity_id: "sensor.example", device_id: "robot", entity_category: "diagnostic" },
-  { id: "robot-new", entity_id: "sensor.new", device_id: "robot" },
-] }, "home");
+}, emptyRegistries, "home");
 const ids = home.entities.map(entity => entity.preferenceId);
 
-it("makes one card per selected device, prioritizes the main control, and leaves new entities hidden", () => {
-  const settings = { ...emptyPlanner().smartHome, knownEntities: ids.filter(id => !id.endsWith("robot-new")) };
+it("renders only explicitly composed cards, including multiple cards from the same device", () => {
+  const settings = { layout: [configuredCard(ids[0], "vacuum", { linkedEntities: [ids[1], ids[3]], group: "Cleaning" }), configuredCard(ids[1], "sensor")] };
   const cards = smartHomeCards(home.entities, settings);
   expect(cards).toHaveLength(2);
   expect(cards[0].main.domain).toBe("vacuum");
-  expect(cards[0].entities.map(entity => entity.domain)).toEqual(["vacuum", "sensor"]);
-  expect(smartHomeCards(home.entities, { ...settings, hiddenDevices: ["robot"] })).toHaveLength(1);
+  expect(cards[0].entities.map(entity => entity.domain)).toEqual(["vacuum", "sensor", "image"]);
+  expect(cards[1].main.domain).toBe("sensor");
+  expect(smartHomeCards(home.entities, { layout: [] })).toEqual([]);
 });
 
-it("resolves selected primary and linked readings by stable ID without enabling other entities", () => {
-  const settings = { ...emptyPlanner().smartHome, knownEntities: [ids[0], ids[1]], cards: {
-    "device:robot": { mainEntity: ids[1], linkedEntities: [ids[3], ids[3], "missing"], group: "Cleaning" },
-  } };
-  const [card] = smartHomeCards(home.entities, settings);
-  expect(card.id).toBe(cardId(home.entities[0]));
-  expect(card.main.domain).toBe("sensor");
-  expect(card.group).toBe("Cleaning");
-  expect(card.entities).toHaveLength(3);
-  expect(settings.knownEntities).toEqual([ids[0], ids[1]]);
-  const [fallback] = smartHomeCards(home.entities, { ...settings, hiddenEntities: [ids[1]] });
-  expect(fallback.main.domain).toBe("vacuum");
-});
-
-it("round-trips card configuration and rejects unbounded or unexpected settings", () => {
-  const planner = emptyPlanner();
-  planner.smartHome.cards["device:robot"] = { mainEntity: ids[0], linkedEntities: [ids[3]], group: "Cleaning" };
-  expect(plannerSchema.parse(JSON.parse(JSON.stringify(planner)))).toEqual(planner);
-  expect(plannerSchema.safeParse({ ...planner, smartHome: { ...planner.smartHome, cards: { x: { group: "a".repeat(81) } } } }).success).toBe(false);
-  expect(plannerSchema.safeParse({ ...planner, smartHome: { ...planner.smartHome, cards: { x: { streamUrl: "https://example.invalid" } } } }).success).toBe(false);
+it("keeps missing or incompatible sources editable and resolves renamed entities by stable ID", () => {
+  const settings = { layout: [configuredCard(ids[0], "vacuum", { linkedEntities: ["missing", ids[1]] }), configuredCard(ids[1], "light")] };
+  const renamed = home.entities.map(entity => entity.preferenceId === ids[0] ? { ...entity, entityId: "vacuum.renamed" } : entity);
+  expect(smartHomeCards(renamed, settings)[0].main.entityId).toBe("vacuum.renamed");
+  const cards = smartHomeCards([], settings);
+  expect(cards).toHaveLength(2);
+  expect(cards[0].main).toBeUndefined();
+  expect(cards[0].linkedEntities).toEqual(["missing", ids[1]]);
+  expect(smartHomeCards(home.entities, settings)[1].main).toBeUndefined();
 });
 
 it("equalizes strictly above half the tallest natural height in each row, never across rows", () => {
@@ -55,26 +42,18 @@ it("equalizes strictly above half the tallest natural height in each row, never 
   expect(rowCardHeights([])).toEqual([]);
 });
 
-it("reorders and regroups atomically without changing entities, visibility, or card details", () => {
-  const entities = home.entities.map(entity => ({ ...entity, device: undefined }));
-  const settings = { ...emptyPlanner().smartHome, knownEntities: ids, cards: {
-    [ids[0]]: { group: "Cleaning", linkedEntities: [ids[3]], mainEntity: ids[0] },
-    [ids[1]]: { group: "Cleaning", linkedEntities: [] },
-    [ids[2]]: { group: "Cleaning", linkedEntities: [] },
-    [ids[3]]: { group: "Images", linkedEntities: [] },
-  } };
-  const reordered = moveSmartHomeCard(settings, entities, ids[2], "Cleaning", ids[0]);
-  expect(smartHomeCards(entities, reordered).filter(card => card.group === "Cleaning").map(card => card.id)).toEqual([ids[2], ids[0], ids[1]]);
-  const moved = moveSmartHomeCard(reordered, entities, ids[0], "Images", ids[3]);
-  expect(smartHomeCards(entities, moved).filter(card => card.group === "Images").map(card => card.id)).toEqual([ids[0], ids[3]]);
-  expect(moved.cards[ids[0]]).toMatchObject({ mainEntity: ids[0], linkedEntities: [ids[3]], group: "Images", order: 0 });
-  expect(moved.knownEntities).toEqual(settings.knownEntities);
-  expect(settings.cards[ids[0]].group).toBe("Cleaning");
-  expect(moveSmartHomeCard(moved, entities, "missing", "Images")).toBe(moved);
-  expect(moveSmartHomeCard(moved, entities, ids[0], "Images", "missing")).toBe(moved);
-  expect(moveSmartHomeCard(moved, entities, ids[0], "Images", ids[0])).toBe(moved);
+it("reorders and regroups without changing filtered-out cards or card details", () => {
+  const settings = { layout: ids.map((id, index) => configuredCard(id, index === 0 ? "vacuum" : index === 3 ? "image" : "sensor", { group: index === 3 ? "Images" : "Cleaning", linkedEntities: index === 0 ? [ids[3]] : [] })) };
+  const reordered = moveSmartHomeCard(settings, ids[2], "Cleaning", ids[0]);
+  expect(reordered.layout.map(card => card.id)).toEqual([ids[2], ids[0], ids[1], ids[3]]);
+  const moved = moveSmartHomeCard(reordered, ids[0], "Images", ids[3]);
+  expect(moved.layout.filter(card => card.group === "Images").map(card => card.id)).toEqual([ids[0], ids[3]]);
+  expect(moved.layout.find(card => card.id === ids[0])).toMatchObject({ linkedEntities: [ids[3]], group: "Images" });
+  expect(settings.layout[0].group).toBe("Cleaning");
+  expect(moveSmartHomeCard(moved, "missing", "Images")).toBe(moved);
+  expect(moveSmartHomeCard(moved, ids[0], "Images", "missing")).toBe(moved);
+  expect(moveSmartHomeCard(moved, ids[0], "Images", ids[0])).toBe(moved);
+  expect(moveSmartHomeCard(moved, ids[0], "Cleaning", ids[3])).toBe(moved);
   const planner = { ...emptyPlanner(), smartHome: moved };
   expect(plannerSchema.parse(JSON.parse(JSON.stringify(planner)))).toEqual(planner);
-  expect(plannerSchema.safeParse({ ...planner, smartHome: { ...moved, cards: { invalid: { order: -1 } } } }).success).toBe(false);
-  expect(plannerSchema.safeParse({ ...planner, smartHome: { ...moved, cards: { invalid: { order: 1.5 } } } }).success).toBe(false);
 });

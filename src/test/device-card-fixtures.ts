@@ -1,3 +1,4 @@
+import { deviceCardSchema, type DeviceCardSettings } from "../../shared/configuration";
 import type { HassServices } from "home-assistant-js-websocket";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { services, state } from "./ha-fixtures";
@@ -24,3 +25,5 @@ export const mediaEntity = () => cardEntity("media_player", "paused", {
   volume_level: .35, is_volume_muted: false, source: "Demo library", source_list: ["Demo library", "Radio"],
   sound_mode: "Stereo", sound_mode_list: ["Stereo", "Movie"], shuffle: false, repeat: "off",
 });
+
+export const configuredCard = (mainEntity: string, type: DeviceCardSettings["type"] = "light", settings: Partial<DeviceCardSettings> = {}) => deviceCardSchema.parse({ id: mainEntity, mainEntity, type, ...settings });

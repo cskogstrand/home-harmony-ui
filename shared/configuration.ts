@@ -56,12 +56,20 @@ export type TimetableSettings = z.infer<typeof timetableSettingsSchema>;
 export const cardDensitySchema = z.enum(["supercompact", "compact", "original"]);
 export type CardDensity = z.infer<typeof cardDensitySchema>;
 export const deviceCardSchema = z.object({
-  mainEntity: memberSchema.optional(),
+  id: memberSchema,
+  type: z.enum(["light", "climate", "cover", "media_player", "lock", "vacuum", "switch", "fan", "humidifier", "water_heater", "alarm_control_panel", "siren", "valve", "camera", "remote", "image", "lawn_mower", "sensor", "air_quality", "binary_sensor", "weather", "event", "presence", "scene", "script", "automation", "timer", "counter", "number", "select", "text", "datetime", "button", "calendar", "todo", "update", "voice", "ai_task", "notify"]),
+  title: z.string().trim().max(100).default(""),
+  mainEntity: memberSchema,
   linkedEntities: z.array(memberSchema).max(100).default([]),
-  group: z.string().max(80).default(""),
-  order: z.number().int().min(0).max(100000).optional(),
-}).strict();
+  group: z.string().trim().max(80).default(""),
+  density: cardDensitySchema.default("supercompact"),
+}).strict().refine(card => new Set([card.mainEntity, ...card.linkedEntities]).size === card.linkedEntities.length + 1, "Choose each entity only once per card.");
 export type DeviceCardSettings = z.infer<typeof deviceCardSchema>;
+export const smartHomeSchema = z.object({
+  layout: z.array(deviceCardSchema).max(500).default([])
+    .refine(cards => new Set(cards.map(card => card.id)).size === cards.length, "Card IDs must be unique."),
+// Retired visibility fields are discarded; no old layout is inferred from discovery.
+}).strip();
 export const plannerSchema = z.object({
   notifications: notificationSettingsSchema.default({}),
   language: z.enum(["en", "nb"]).default("en"),
@@ -81,13 +89,7 @@ export const plannerSchema = z.object({
     home: z.boolean().default(true),
   }).strict().default({}),
   homeEntities: z.array(memberSchema).optional(),
-  smartHome: z.object({
-    hiddenDevices: z.array(memberSchema).default([]),
-    hiddenEntities: z.array(memberSchema).default([]),
-    knownEntities: z.array(memberSchema).optional(),
-    cardDensities: z.record(keySchema, cardDensitySchema).default({}),
-    cards: z.record(keySchema, deviceCardSchema).default({}),
-  }).strict().default({}),
+  smartHome: smartHomeSchema.default({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: z.record(keySchema, memberColorSchema).default({}),
   hiddenMembers: z.array(memberSchema).default([]),
@@ -113,7 +115,7 @@ export const configurationSchema = z.object({
   format: z.literal("home-harmony-config"), version: z.literal(3), settings: plannerSchema,
 }).strict();
 export type Configuration = z.infer<typeof configurationSchema>;
-export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {}, smartHome: { knownEntities: [] } });
+export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {}, smartHome: { layout: [] } });
 export const emptyConfiguration = (): Configuration => ({ format: "home-harmony-config", version: 3, settings: emptyPlanner() });
 export const plannerSettings = (planner: unknown): Planner => plannerSchema.strip().parse(planner);
 export function parseConfiguration(text: string): Configuration {

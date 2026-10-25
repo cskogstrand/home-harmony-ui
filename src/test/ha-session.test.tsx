@@ -1,3 +1,4 @@
+import { configuredCard } from "./device-card-fixtures";
 import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -1104,7 +1105,7 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
 });
 
 it("offers temperature, mode and blind controls without duplicating raw state labels", async () => {
-  serverConfig.settings.smartHome.knownEntities = ["home|climate.living", "home|cover.blind", "home|lock.front"];
+  serverConfig.settings.smartHome.layout = [configuredCard("home|climate.living", "climate"), configuredCard("home|cover.blind", "cover"), configuredCard("home|lock.front", "lock")];
   window.history.replaceState(null, "", "/home?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   const target = await screen.findByRole("button", { name: "Increase temperature for Living" });
@@ -1870,7 +1871,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
 });
 
 it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
-  serverConfig.settings.smartHome.knownEntities = ["home|automation.sunset"];
+  serverConfig.settings.smartHome.layout = [configuredCard("home|automation.sunset", "automation")];
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   if (path === "/devices") fireEvent.click(await screen.findByText(/^Other controls/));
