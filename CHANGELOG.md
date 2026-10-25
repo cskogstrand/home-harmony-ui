@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.16
+
+<!-- release-source: 0fd6fb3d210ebfcbdec874169da2ba3d89131bbe -->
+
+- test: stabilize lazy route integration checks
+- fix: remove built-in Everyone person
+- feat: show camera alert countdown
+
 ## 0.9.15
 
 <!-- release-source: 2b97ce847a52246fa0051985934abec3deeea8fd -->
