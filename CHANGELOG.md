@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.18
+
+<!-- release-source: 2af1520054ff3c63df113da3e5234e0aab799273 -->
+
+- fix: show live media in card previews
+- feat: suggest entities and preview cards
+
 ## 0.9.17
 
 <!-- release-source: 796d2b589f1e2a11cc3746e735bc8836e6975df6 -->
