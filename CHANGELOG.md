@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.17
+
+<!-- release-source: 796d2b589f1e2a11cc3746e735bc8836e6975df6 -->
+
+- feat: filter card entities by device
+- style: add spacing above add card button
+- feat!: rebuild smart home card setup
+- feat: organize settings into focused subpages
+
 ## 0.9.16
 
 <!-- release-source: 0fd6fb3d210ebfcbdec874169da2ba3d89131bbe -->
