@@ -13,11 +13,15 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 const open = () => render(<MemoryRouter><DeviceGallery /></MemoryRouter>);
 const settingsName = () => language.value === "nb" ? "Demoinnstillinger" : "Playground settings";
-const openSettings = () => fireEvent.click(screen.getByRole("button", { name: settingsName() }));
+const openSettings = () => {
+  fireEvent.click(screen.getByLabelText(settingsName(), { selector: "button" }));
+  // Scope settings queries to the popover; the gallery mounts 117 cards.
+  return within(screen.getByRole("dialog", { name: settingsName() }));
+};
 const closeSettings = () => fireEvent.click(within(screen.getByRole("dialog", { name: settingsName() })).getByRole("button", { name: language.value === "nb" ? "Lukk" : "Close" }));
-const chooseView = (name: string) => { openSettings(); fireEvent.click(screen.getByRole("button", { name })); closeSettings(); };
-const demoState = (value: string) => { openSettings(); fireEvent.change(screen.getByRole("combobox", { name: language.value === "nb" ? "Demotilstand" : "Demo state" }), { target: { value } }); closeSettings(); };
-const resetDemo = () => { openSettings(); fireEvent.click(screen.getByRole("button", { name: "Reset demo" })); closeSettings(); };
+const chooseView = (name: string) => { const settings = openSettings(); fireEvent.click(settings.getByRole("button", { name })); closeSettings(); };
+const demoState = (value: string) => { const settings = openSettings(); fireEvent.change(settings.getByRole("combobox", { name: language.value === "nb" ? "Demotilstand" : "Demo state" }), { target: { value } }); closeSettings(); };
+const resetDemo = () => { const settings = openSettings(); fireEvent.click(settings.getByRole("button", { name: "Reset demo" })); closeSettings(); };
 const card = (id: string, variant = "Original") => within(document.querySelector(`[data-demo-card="${id}"][data-variant="${variant}"]`) as HTMLElement);
 
 it("covers the entity families, searches helper aliases and keeps changed values when filtered", () => {
