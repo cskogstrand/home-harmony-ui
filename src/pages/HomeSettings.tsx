@@ -13,6 +13,7 @@ import { MemberColorPicker } from "@/components/MemberColorPicker";
 import { TimetableAdministration } from "@/components/TimetableAdministration";
 import { SmartHomeSettings } from "@/components/SmartHomeSettings";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { EntityPicker } from "@/components/EntityPicker";
 export default function HomeSettings() {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
@@ -43,16 +44,9 @@ export default function HomeSettings() {
   };
   const listSelector = (kind: ListKind, person: { id: string; name: string }) => {
     const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
-    return <label className="flex min-w-0 flex-1 flex-col gap-1 text-sm"><span>{t(listLabels[kind])}</span>
-      <select aria-label={t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name })} className="h-10 w-full min-w-0 rounded-lg border bg-background px-3 text-sm disabled:opacity-60" value={selected} disabled={!homeOnline} onChange={event => changeList(kind, person, event.target.value, selected)}>
-        <option value="">{t("No list selected")}</option>
-        {selected && !lists.some(list => list.preferenceId === selected) && <option value={selected}>{t("List unavailable")}</option>}
-        {lists.map(list => {
-          const assigned = todoLists[list.preferenceId];
-          return <option key={list.preferenceId} value={list.preferenceId}>{list.name}{assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberName(assigned.member), value2: msg(listLabels[assigned.kind]) }) : ""}</option>;
-        })}
-      </select>
-    </label>;
+    return <EntityPicker className="flex-1" label={t(listLabels[kind])} ariaLabel={t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name })}
+      entities={lists} value={selected} disabled={!homeOnline} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
+      getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberName(assigned.member), value2: msg(listLabels[assigned.kind]) }) : ""; }} />;
   };
   return <div className="planner-page"><PageHeading title={t("Home settings")}><Button variant="outline" asChild><Link to="/onboarding">{t("Get started")}</Link></Button></PageHeading>
     <section className="glow-panel" id="connection"><PanelHeading title={t("Home Assistant connection")} />
@@ -102,10 +96,8 @@ export default function HomeSettings() {
             </span>)}
             {!selected.length && <span className="text-sm text-muted-foreground">{t("No calendars selected")}</span>}
           </div>
-          <select aria-label={t("Add calendar for {value1}", { value1: person.name })} className="h-10 w-full rounded-lg border bg-background px-3 text-sm disabled:opacity-60 sm:w-56" value="" disabled={!homeOnline || !available.length} onChange={e => { if (e.target.value) changeCalendar(e.target.value, person.id); }}>
-            <option value="" disabled>{available.length ? t("Add calendar…") : t("All calendars selected")}</option>
-            {available.map(calendar => <option key={calendar.preferenceId} value={calendar.preferenceId}>{calendar.name}{calendarMembers[calendar.preferenceId] ? t(" — move from {value1}", { value1: memberName(calendarMembers[calendar.preferenceId]) }) : ""}</option>)}
-          </select>
+          <EntityPicker label={t("Add calendar for {value1}", { value1: person.name })} hideLabel className="sm:w-56" entities={available} value="" disabled={!homeOnline || !available.length} placeholder={available.length ? t("Add calendar…") : t("All calendars selected")} onChange={value => changeCalendar(value, person.id)}
+            getDescription={calendar => calendarMembers[calendar.preferenceId] ? t(" — move from {value1}", { value1: memberName(calendarMembers[calendar.preferenceId]) }) : ""} />
         </div>;
       })}</div>}
     </section>

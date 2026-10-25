@@ -2,10 +2,7 @@ import { useId } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronDown } from "lucide-react";
+import { EntityPicker } from "./EntityPicker";
 import { CalendarTimetable } from "@/components/CalendarTimetable";
 import type { TimetableSettings as Settings } from "../../shared/configuration";
 import type { MessageKey } from "@/lib/i18n";
@@ -17,31 +14,20 @@ export function TimetableSettings({ child }: { child: string }) {
   const { t, calendarName } = useI18n();
   const settings = timetableSettings[child] ?? { type: "images", education: "school", calendars: {} };
   const calendars = currentHome.entities.filter(entity => entity.domain === "calendar");
-  const missing = Object.keys(settings.calendars).filter(id => !calendars.some(entity => entity.preferenceId === id));
-  const sources = [
-    ...calendars.map(calendar => ({ id: calendar.preferenceId, name: calendarName(calendar.name), missing: false })),
-    ...missing.map(id => ({ id, name: t("Unavailable calendar: {calendar}", { calendar: id }), missing: true })),
-  ];
-  const setRole = (id: string, role: Settings["calendars"][string][number], checked: boolean) => {
+  const setRole = (ids: string[], role: Settings["calendars"][string][number]) => {
     const selected = Object.fromEntries(Object.entries(settings.calendars).map(([source, roles]) => [source, roles.filter(role => role.startsWith("popup"))]));
-    const roles = (selected[id] ?? []).filter(value => value !== role);
-    if (checked) roles.push(role);
-    if (roles.length) selected[id] = roles; else delete selected[id];
+    for (const id of new Set([...Object.keys(selected), ...ids])) {
+      const roles = (selected[id] ?? []).filter(value => value !== role);
+      if (ids.includes(id)) roles.push(role);
+      if (roles.length) selected[id] = roles; else delete selected[id];
+    }
     setTimetableSettings(child, { calendars: selected });
   };
   const categoryPicker = ([role, label]: readonly [Settings["calendars"][string][number], MessageKey], help: MessageKey) => {
-    const selected = sources.filter(source => settings.calendars[source.id]?.includes(role));
-    const choices = sources.filter(source => !source.missing || settings.calendars[source.id]?.includes(role));
     return <fieldset className="timetable-category" key={role}><legend>{t(label)}</legend>
-      <Popover><PopoverTrigger asChild><Button variant="outline" className="timetable-calendar-picker" aria-describedby={`${helpId}-${role}`} aria-label={t("{category} calendars for {name}", { category: `${t("School day view")} · ${t(label)}`, name: memberName(child) })}>
-        <span>{selected.length ? selected.map(source => source.name).join(", ") : t("Choose calendars")}</span><ChevronDown size={16} aria-hidden="true" />
-      </Button></PopoverTrigger><PopoverContent className="timetable-calendar-options" aria-label={t(label)}>
-        {choices.map(source => <label className="timetable-calendar-option" key={source.id}>
-          <Checkbox checked={settings.calendars[source.id]?.includes(role) ?? false} disabled={!source.missing && !homeOnline} onCheckedChange={checked => setRole(source.id, role, checked === true)} />
-          <span>{source.name}</span>
-        </label>)}
-        {!choices.length && <p className="muted">{t("No calendars available.")}</p>}
-      </PopoverContent></Popover>
+      <EntityPicker multiple hideLabel label={t("{category} calendars for {name}", { category: `${t("School day view")} · ${t(label)}`, name: memberName(child) })}
+        describedBy={`${helpId}-${role}`} placeholder={t("Choose calendars")} entities={calendars} value={Object.keys(settings.calendars).filter(id => settings.calendars[id].includes(role))}
+        getLabel={entity => calendarName(entity.name)} missingLabel={id => t("Unavailable calendar: {calendar}", { calendar: id })} disabledReason={() => homeOnline ? "" : t("Offline")} onChange={ids => setRole(ids, role)} />
       <p id={`${helpId}-${role}`} className="muted timetable-source-help">{t(help)}</p>
     </fieldset>;
   };

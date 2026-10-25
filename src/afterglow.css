@@ -327,14 +327,6 @@
 .timetable-settings fieldset > p { margin-block: .75rem; }
 .timetable-category { margin-block: 1rem; }
 .timetable-category legend { padding-bottom: .5rem; }
-.timetable-calendar-picker { width: 100%; justify-content: space-between; min-height: 48px; }
-.timetable-calendar-picker > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.timetable-calendar-picker > svg { flex-shrink: 0; }
-.timetable-calendar-options { width: min(400px, calc(100vw - 24px)); max-height: min(360px, var(--radix-popover-content-available-height)); overflow-y: auto; overscroll-behavior: contain; padding: .5rem; }
-.timetable-calendar-option { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem; cursor: pointer; }
-.timetable-calendar-option [role="checkbox"] { width: 22px; height: 22px; min-height: 0; border-radius: 7px; }
-.timetable-calendar-option span { min-width: 0; overflow-wrap: anywhere; }
-.timetable-calendar-option:has(:disabled) { opacity: .6; cursor: not-allowed; }
 .timetable-view-settings { border-top: 1px solid hsl(var(--border)); padding-top: 1rem; }
 .timetable-view-settings > legend { padding-right: .75rem; }
 .timetable-settings-preview { padding: 1rem; border-radius: 24px; }
@@ -596,17 +588,6 @@
 .home-favorites > .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .home-favorites .scene-buttons { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 16px; }
 .home-favorites .scene-buttons button { flex-direction: row; font-size: 0.9375rem; padding: 12px; }
-.favorite-search { position: relative; }
-.favorite-search > svg { position: absolute; top: 14px; left: 13px; color: hsl(var(--muted-foreground)); }
-.favorite-search input { padding-left: 39px; min-height: 48px; }
-.favorite-picker { max-height: 48dvh; overflow-y: auto; }
-.favorite-option { display: flex; align-items: center; gap: 14px; padding: 12px; min-height: 64px; border-radius: 12px; cursor: pointer; }
-.favorite-option:hover, .favorite-option:has(input:checked) { background: hsl(var(--secondary)); }
-.favorite-option > svg { flex-shrink: 0; color: hsl(var(--primary)); }
-.favorite-option > span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-.favorite-option strong { display: block; font-size: 0.875rem; font-weight: 500; }
-.favorite-option small { display: block; color: hsl(var(--muted-foreground)); font-size: 0.875rem; margin-top: 3px; }
-.favorite-option input { width: 20px; height: 20px; flex-shrink: 0; accent-color: hsl(var(--primary)); }
 .favorite-picker-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .favorite-picker-footer > span { margin-right: auto; color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .device-details summary { cursor: pointer; min-height: 48px; padding-block: 10px; }

@@ -9,6 +9,7 @@ import { smartHomeEntities } from "@/lib/device-model";
 import { visibilityGroup, visibilityGroupings, visibilityTree, type VisibilityDimension, type VisibilityGroup, type VisibilityGrouping } from "@/lib/smart-home-visibility";
 import type { Entity } from "@/types/api";
 import { PanelHeading } from "@/components/FamilyPlanner";
+import { EntityPicker } from "./EntityPicker";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -30,9 +31,7 @@ function CardSettings({ members, name, disabled }: { members: Entity[]; name: st
   const groups = [...new Set(Object.values(smartHome.cards).map(card => card.group).filter(Boolean))];
   return <div className="smart-card-settings planner-form">
     <div className="smart-card-fields">
-      <label>{t("Main entity")}<select aria-label={t("Main entity for {name}", { name })} disabled={disabled} value={main.preferenceId} onChange={event => setSmartHomeCard(id, { mainEntity: event.target.value })}>
-        {members.map(entity => <option key={entity.preferenceId} value={entity.preferenceId}>{entity.name} · {entity.domain}</option>)}
-      </select></label>
+      <EntityPicker label={t("Main entity")} ariaLabel={t("Main entity for {name}", { name })} entities={members} disabled={disabled} value={main.preferenceId} onChange={mainEntity => setSmartHomeCard(id, { mainEntity })} />
       <label>{t("Card size")}<select aria-label={t("Card size for {name}", { name })} disabled={disabled} value={smartHome.cardDensities[id] ?? smartHome.cardDensities[main.preferenceId] ?? "supercompact"} onChange={event => setSmartHomeCardDensity(id, cardDensitySchema.parse(event.target.value))}>
         {cardDensitySchema.options.map(density => <option key={density} value={density}>{t(cardVariants[density])}</option>)}
       </select></label>
@@ -43,9 +42,7 @@ function CardSettings({ members, name, disabled }: { members: Entity[]; name: st
     <details className="smart-linked-settings"><summary>{t("Link entities from other devices")}{linked.length > 0 && ` (${linked.length})`}</summary>
       <p className="page-note">{t("Add a map, maintenance sensor or other reading to this card. Only selected entities are included.")}</p>
       {linked.map(entityId => <div className="smart-linked-row" key={entityId}><span>{candidates.find(entity => entity.preferenceId === entityId)?.name ?? t("Entity unavailable")}</span><Button variant="ghost" disabled={disabled} aria-label={t("Remove linked entity {name}", { name: candidates.find(entity => entity.preferenceId === entityId)?.name ?? t("Entity unavailable") })} onClick={() => setSmartHomeCard(id, { linkedEntities: linked.filter(value => value !== entityId) })}>{t("Remove")}</Button></div>)}
-      <label>{t("Add linked entity")}<select value="" disabled={disabled} onChange={event => { if (event.target.value) setSmartHomeCard(id, { linkedEntities: [...linked, event.target.value] }); }}>
-        <option value="">{t("Choose an entity…")}</option>{candidates.filter(entity => !linked.includes(entity.preferenceId)).map(entity => <option key={entity.preferenceId} value={entity.preferenceId}>{entity.name} · {entity.entityId}</option>)}
-      </select></label>
+      <EntityPicker label={t("Add linked entity")} entities={candidates.filter(entity => !linked.includes(entity.preferenceId))} value="" disabled={disabled} onChange={value => setSmartHomeCard(id, { linkedEntities: [...linked, value] })} />
     </details>
   </div>;
 }

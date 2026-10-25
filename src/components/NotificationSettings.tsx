@@ -11,6 +11,7 @@ import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { ConfirmDialog } from "./common/ConfirmDialog";
+import { EntityPicker } from "./EntityPicker";
 
 const kinds = { ongoing: "Ongoing tasks", current: "Current alerts", camera: "Camera popup" } as const;
 const icons = { ongoing: ListChecks, current: Bell, camera: Camera };
@@ -32,18 +33,14 @@ export function NotificationSettings() {
   const [filters, setFilters] = useState("{}");
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<NotificationRule>();
-  const entities = [...currentHome.entities].sort((a, b) => a.name.localeCompare(b.name));
+  const entities = currentHome.entities;
   const begin = (rule: NotificationRule, existing = false) => {
     setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
   };
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string, optional = false) => {
     const choices = entities.filter(entity => (!domain || entity.domain === domain) && !(entity.domain === "input_text" && entity.attributes.mode === "password"));
-    return <label>{t(label)}<select value={value} onChange={event => update(event.target.value)} required={!optional}>
-      <option value="">{t(optional ? "None" : "Choose an entity")}</option>
-      {value && !choices.some(entity => entity.preferenceId === value) && <option value={value}>{t("Entity unavailable")}</option>}
-      {choices.map(entity => <option key={entity.preferenceId} value={entity.preferenceId}>{entity.name} · {entity.entityId}</option>)}
-    </select></label>;
+    return <EntityPicker label={t(label)} entities={choices} value={value} onChange={update} disabled={disabled} clearLabel={optional ? t("None") : undefined} />;
   };
   const save = () => {
     const current = notifications.rules.find(rule => rule.id === draft.id);

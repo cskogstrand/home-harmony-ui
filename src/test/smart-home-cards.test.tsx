@@ -1,3 +1,4 @@
+import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -389,14 +390,14 @@ it("configures the main entity, group and linked reading without toggling siblin
   const main = climate(), reading = { ...cardEntity("sensor", "55"), name: "Example maintenance" };
   mocks.app.currentHome.entities = [main, reading];
   render(<MemoryRouter><SmartHomeSettings /></MemoryRouter>);
-  fireEvent.change(screen.getByRole("combobox", { name: "Main entity for Example thermostat" }), { target: { value: main.preferenceId } });
+  chooseEntity("Main entity for Example thermostat", main.entityId);
   expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { mainEntity: main.preferenceId });
   const group = screen.getByRole("combobox", { name: "Card group for Example thermostat" });
   fireEvent.change(group, { target: { value: "Comfort" } }); fireEvent.blur(group);
   expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { group: "Comfort" });
   const panel = group.closest(".smart-card-settings");
   fireEvent.click(within(panel as HTMLElement).getByText("Link entities from other devices"));
-  fireEvent.change(within(panel as HTMLElement).getByRole("combobox", { name: "Add linked entity" }), { target: { value: reading.preferenceId } });
+  chooseEntity(within(panel as HTMLElement).getByRole("button", { name: "Add linked entity" }), reading.entityId);
   expect(mocks.card).toHaveBeenLastCalledWith(main.preferenceId, { linkedEntities: [reading.preferenceId] });
   expect(mocks.visible).not.toHaveBeenCalled();
 });

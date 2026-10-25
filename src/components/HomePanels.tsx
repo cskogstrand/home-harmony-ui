@@ -2,16 +2,16 @@ import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CarFront, Sparkles, ArrowUpRight, Settings, Search, Volume2 } from "lucide-react";
+import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
-import { available, humanizeState, supportsAction } from "@/lib/ha-model";
+import { available, supportsAction } from "@/lib/ha-model";
 import type { Entity } from "@/types/api";
-import { DeviceIcon, CommandFeedback } from "@/components/devices/DeviceControl";
+import { CommandFeedback } from "@/components/devices/DeviceControl";
 import { EntityCard } from "@/components/devices/EntityCard";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { EntityPicker } from "./EntityPicker";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PanelHeading } from "./FamilyPlanner";
 export function MorningSummary() {
@@ -69,20 +69,18 @@ export function HomeFavorites() {
   </section>;
 }
 function FavoritePicker({ selected, onSave, onCancel }: { selected: string[]; onSave: (ids: string[]) => void; onCancel: () => void }) {
-  const { t, message } = useI18n();
+  const { t } = useI18n();
   const { currentHome } = useApp();
   const [draft, setDraft] = useState(selected);
-  const [search, setSearch] = useState("");
   const [removal, setRemoval] = useState<{ ids: string[]; description: Message }>();
-  const areaName = (entity: Entity) => currentHome.areas.find(a => a.id === entity.areaId && a.id !== "unassigned")?.name ?? "";
-  const matches = currentHome.entities.filter(e => `${e.name} ${areaName(e)} ${e.entityId}`.toLowerCase().includes(search.toLowerCase()));
-  const missing = draft.filter(id => !currentHome.entities.some(e => e.preferenceId === id));
   return <>
-    <div className="favorite-search"><Search size={17} aria-hidden="true" /><Input aria-label={t("Search favorites")} placeholder={t("Search devices, rooms or scenes…")} value={search} onChange={e => setSearch(e.target.value)} /></div>
-    <div className="favorite-picker" aria-label={t("Available favorites")}>{matches.map(entity => <label className="favorite-option" key={entity.preferenceId}><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-5 w-5" /><span><strong>{entity.name}</strong><small>{[areaName(entity), ({ binary_sensor: t("Sensor"), alarm_control_panel: t("Alarm"), cover: t("Blinds"), climate: t("Thermostat") })[entity.domain] ?? message(humanizeState(entity.domain))].filter(Boolean).join(" · ")}</small></span><input type="checkbox" aria-label={entity.name} checked={draft.includes(entity.preferenceId)} onChange={e => e.target.checked ? setDraft(ids => [...ids, entity.preferenceId]) : setRemoval({ ids: draft.filter(id => id !== entity.preferenceId), description: msg("Remove “{name}” from your favorites selection? Save favorites to apply this change.", { name: entity.name }) })} /></label>)}
-      {!matches.length && <p className="empty-note">{currentHome.entities.length ? t("No matches. Try another name or room.") : t("Connect your home to load devices.")}</p>}
-      {missing.map(id => <label className="favorite-option" key={id}><span><strong>{t("Unavailable favorite")}</strong><small>{id.slice(id.indexOf("|") + 1)}</small></span><input type="checkbox" aria-label={t("Remove unavailable favorite {value1}", { value1: id })} checked onChange={() => setRemoval({ ids: draft.filter(value => value !== id), description: msg("Remove unavailable favorite “{name}” from your selection? Save favorites to apply this change.", { name: id.slice(id.indexOf("|") + 1) }) })} /></label>)}
-    </div>
+    <EntityPicker multiple label={t("Available favorites")} placeholder={t("Choose your dashboard favorites.")} entities={currentHome.entities} value={draft}
+      missingLabel={id => t("Remove unavailable favorite {value1}", { value1: id })} onChange={ids => {
+        const removed = draft.find(id => !ids.includes(id));
+        if (!removed) { setDraft(ids); return; }
+        const entity = currentHome.entities.find(entity => entity.preferenceId === removed);
+        setRemoval({ ids, description: msg(entity ? "Remove “{name}” from your favorites selection? Save favorites to apply this change." : "Remove unavailable favorite “{name}” from your selection? Save favorites to apply this change.", { name: entity?.name ?? removed.slice(removed.indexOf("|") + 1) }) });
+      }} />
     <div className="favorite-picker-footer"><span>{t("{count} selected", { count: draft.length })}</span><Button variant="ghost" disabled={!draft.length} onClick={() => setRemoval({ ids: [], description: msg("Clear all favorites from your selection? Save favorites to apply this change to the dashboard.") })}>{t("Clear all")}</Button><Button variant="ghost" onClick={onCancel}>{t("Cancel")}</Button><Button onClick={() => onSave(draft)}>{t("Save favorites")}</Button></div>
     {removal && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoval(undefined); }} title={t("Remove favorites?")} description={removal.description} confirmLabel={t("Remove favorites")} destructive onConfirm={() => setDraft(removal.ids)} />}
   </>;

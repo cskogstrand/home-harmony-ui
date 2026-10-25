@@ -1,3 +1,4 @@
+import { chooseEntity } from "./entity-picker-helpers";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
@@ -219,17 +220,17 @@ it.each(["entity", "device", "new"])("selects and saves a hidden main entity (%s
   window.history.replaceState(null, "", "/settings");
   const view = render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
-  const picker = () => screen.getByRole("combobox", { name: "Main entity for Example hub" });
+  const picker = () => screen.getByRole("button", { name: "Main entity for Example hub" });
   expect(screen.getByRole("switch", { name: "Show entity Example temperature on Smart home" })).not.toBeChecked();
-  fireEvent.change(picker(), { target: { value: main } }); await saved();
-  expect(picker()).toHaveValue(main);
+  chooseEntity(picker(), "sensor.example"); await saved();
+  expect(picker()).toHaveTextContent("Example temperature");
   expect(screen.getByRole("switch", { name: "Show entity Example temperature on Smart home" })).toBeChecked();
   expect(screen.getByRole("switch", { name: "Show entity Example humidity on Smart home" })).not.toBeChecked();
   expect(settings.settings.smartHome.cards["device:example-device"].mainEntity).toBe(main);
   expect(settings.settings.smartHome.knownEntities).toContain(main);
   view.unmount(); render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
-  expect(picker()).toHaveValue(main);
+  expect(picker()).toHaveTextContent("Example temperature");
   await navigate("Smart home");
   expect(screen.getByRole("link", { name: "Example temperature details" }).closest(".dg-card")).toHaveAttribute("data-card-kind", "sensor");
   expect(screen.queryByText("Example humidity")).not.toBeInTheDocument();
@@ -679,7 +680,7 @@ it("configures calendars in settings, shows today's agenda on School and keeps t
   expect(screen.queryByText("Dashboard week view")).not.toBeInTheDocument();
   for (const [category, names] of [["School day view · Activities", ["Activities", "Invitations"]], ["School day view · Meetings", ["Invitations"]], ["School day view · Messages (Pedagogy)", ["Pedagogy"]], ["School day view · Closure days", ["Closures"]], ["School day view · Opening hours", ["Hours"]]] as const) {
     fireEvent.click(screen.getByRole("button", { name: `${category} calendars for Example child` }));
-    const picker = screen.getByRole("dialog", { name: category.split(" · ")[1] });
+    const picker = screen.getByRole("dialog", { name: `${category} calendars for Example child` });
     for (const name of names) fireEvent.click(within(picker).getByRole("checkbox", { name }));
     fireEvent.keyDown(picker, { key: "Escape" });
   }
@@ -692,7 +693,7 @@ it("configures calendars in settings, shows today's agenda on School and keeps t
   expect(within(within(preview).getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Shared focus")).toBeVisible();
   expect(app.watchCalendarEvents.mock.calls.every(([, , to]) => homeDate(new Date(to), app.currentHome.timeZone) === "2026-10-31")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "School day view · Activities calendars for Example child" }));
-  const popupPicker = screen.getByRole("dialog", { name: "Activities" });
+  const popupPicker = screen.getByRole("dialog", { name: "School day view · Activities calendars for Example child" });
   fireEvent.click(within(popupPicker).getByRole("checkbox", { name: "Activities" }));
   fireEvent.click(within(popupPicker).getByRole("checkbox", { name: "Invitations" }));
   fireEvent.keyDown(popupPicker, { key: "Escape" });
@@ -756,7 +757,7 @@ it("keeps unavailable source selections editable and suppresses hours when closu
   render(<App />); await saved();
   expect(screen.getAllByRole("button", { name: /^School day view ·/ })).toHaveLength(5);
   fireEvent.click(screen.getByRole("button", { name: "School day view · Messages (Pedagogy) calendars for Emma" }));
-  const picker = screen.getByRole("dialog", { name: "Messages (Pedagogy)" });
+  const picker = screen.getByRole("dialog", { name: "School day view · Messages (Pedagogy) calendars for Emma" });
   fireEvent.click(within(picker).getByRole("checkbox", { name: "Unavailable calendar: home|calendar.removed" }));
   fireEvent.keyDown(picker, { key: "Escape" });
   await saved();

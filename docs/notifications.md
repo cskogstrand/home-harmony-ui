@@ -14,6 +14,8 @@ Rules, titles, messages and selected entities are saved in shared settings and i
 
 ## Choose a trigger
 
+Entity fields use the shared [entity picker](entity-picker.md). Choose a device to narrow the list, choose **All entities** or **Without a device**, or search directly by name, entity ID, room or integration. Camera and calendar fields show the entities supported by that field. Unavailable saved selections stay visible until you replace or remove them.
+
 - **Entity state:** choose an entity, an optional attribute, and Equals, Does not equal, Above or Below. Use the raw Home Assistant value shown in the editor, such as `on`, `running`, or a numeric power threshold. Missing/unknown readings do not satisfy ordinary conditions; an explicit Equals `unavailable` or `unknown` condition can report those states.
 - **Calendar event:** choose a calendar and how many minutes before its start to show the alert, from 0 to 1,440. Each overlapping event gets its own alert, including all-day events in the home's timezone. The calendar does not need to be assigned to a person in the planner.
 - **Event entity:** choose a Home Assistant `event` entity. Each new timestamp triggers once; optionally match its reported `event_type`. This is commonly used for doorbells. [Home Assistant event documentation](https://www.home-assistant.io/integrations/event/).

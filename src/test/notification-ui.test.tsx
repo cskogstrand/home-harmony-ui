@@ -1,3 +1,4 @@
+import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -51,10 +52,26 @@ it("configures ongoing tasks with a stable entity reference", () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Ongoing tasks" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example wash" } });
-  fireEvent.change(screen.getByLabelText("Source entity"), { target: { value: "home|binary_sensor.example" } });
+  chooseEntity("Source entity", "binary_sensor.example");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example wash", kind: "ongoing", trigger: expect.objectContaining({ entity: "home|binary_sensor.example", value: "on" }) })] });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("restricts the camera picker to cameras and allows clearing the optional reading", () => {
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Camera popup" }));
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example camera alert" } });
+  chooseEntity("Source entity", "binary_sensor.example");
+  fireEvent.click(screen.getByRole("button", { name: "Camera" }));
+  const picker = within(screen.getByRole("dialog", { name: "Camera" }));
+  expect(picker.queryByRole("button", { name: /Example detector/ })).not.toBeInTheDocument();
+  fireEvent.click(picker.getByRole("button", { name: "Example camera · camera.example" }));
+  chooseEntity("Additional reading (optional)", "binary_sensor.example");
+  fireEvent.click(screen.getByRole("button", { name: "Additional reading (optional)" }));
+  fireEvent.click(screen.getByRole("button", { name: "None" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ kind: "camera", cameraEntity: "home|camera.example", detailEntity: "" })] });
 });
 
 it("saves display and page choices through shared settings and disables them when storage is unavailable", () => {
