@@ -3,6 +3,9 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import DeviceGallery from "@/pages/DeviceGallery";
 
+// Each case mounts 117 real cards; allow headroom when test workers compete for CPU.
+vi.setConfig({ testTimeout: 15_000 });
+
 const language = vi.hoisted(() => ({ value: "en" }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => ({ state: { config: { settings: { language: language.value } } } }) }));
 
@@ -33,8 +36,8 @@ it("covers the entity families, searches helper aliases and keeps changed values
   fireEvent.keyDown(card("light").getByRole("slider", { name: "Brightness" }), { key: "End" });
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "input_number" } });
   expect(screen.getByText("1 design")).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Fine-tune it" })).toBeVisible();
-  expect(screen.queryByRole("heading", { name: "A softer glow" })).not.toBeInTheDocument();
+  expect(card("number").getByRole("heading", { name: "Fine-tune it" })).toBeVisible();
+  expect(card("light").queryByRole("heading", { name: "A softer glow" })).not.toBeInTheDocument();
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "light" } });
   expect(card("light").getByRole("slider", { name: "Brightness" })).toHaveAttribute("aria-valuenow", "100");
   resetDemo();
@@ -168,18 +171,20 @@ it("keeps super compact readings clear and translated popup controls disabled wh
   open();
   chooseView("Superkompakt");
   fireEvent.click(card("sensor", "Super compact").getByRole("button", { name: "Måledetaljer" }));
-  const reading = screen.getByRole("combobox", { name: "Måling" });
+  const sensorControls = within(screen.getByRole("dialog", { name: "Kontroller for Sensor" }));
+  const reading = sensorControls.getByRole("combobox", { name: "Måling" });
   fireEvent.change(reading, { target: { value: "Humidity" } });
-  fireEvent.click(screen.getByRole("button", { name: "Lukk kontroller" }));
+  fireEvent.click(sensorControls.getByRole("button", { name: "Lukk kontroller" }));
   expect(card("sensor", "Super compact").getByText("Luftfuktighet")).toBeVisible();
   demoState("Unavailable");
   fireEvent.click(card("light", "Super compact").getByRole("button", { name: "Farge og effekter" }));
-  expect(screen.getByRole("combobox", { name: "Lyseffekt" })).toBeDisabled();
-  expect(screen.getByRole("slider", { name: "Lysvarme" })).toHaveAttribute("data-disabled");
-  fireEvent.click(screen.getByRole("button", { name: "Lukk kontroller" }));
+  const lightControls = within(screen.getByRole("dialog", { name: "Kontroller for Lys" }));
+  expect(lightControls.getByRole("combobox", { name: "Lyseffekt" })).toBeDisabled();
+  expect(lightControls.getByRole("slider", { name: "Lysvarme" })).toHaveAttribute("data-disabled");
+  fireEvent.click(lightControls.getByRole("button", { name: "Lukk kontroller" }));
   fireEvent.click(card("light", "Super compact").getByRole("button", { name: "Gjenopprett demo" }));
   fireEvent.click(card("light", "Super compact").getByRole("button", { name: "Farge og effekter" }));
-  expect(screen.getByRole("combobox", { name: "Lyseffekt" })).toBeEnabled();
+  expect(within(screen.getByRole("dialog", { name: "Kontroller for Lys" })).getByRole("combobox", { name: "Lyseffekt" })).toBeEnabled();
 });
 
 it("shows the water heater mode after its controls close", () => {
