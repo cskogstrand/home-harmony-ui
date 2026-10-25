@@ -39,7 +39,7 @@ export default function SmartHome() {
     <section><div className="section-heading"><div><h2>{message("Your cards")}</h2></div><Link to="/areas" className="text-link">{t("View areas")}<ArrowUpRight size={17} /></Link></div>
       {!!devices.length && <div className="filter-row"><button aria-pressed={area === "all"} onClick={() => setArea("all")}>{t("All areas")}</button>{areas.map(r => <button key={r.id} aria-pressed={area === r.id} onClick={() => setArea(r.id)}>{r.id === "unassigned" ? t("Unassigned") : r.name}</button>)}</div>}
       <SmartHomeCards key={area} cards={devices} area={area} editing={editing} />
-      {!visibleDevices.length && <div className="glow-panel empty-note"><PlugZap size={32} aria-hidden="true" /><h3>{message(area === "all" ? "Make room for your home" : "No cards in this area")}</h3><p>{message("Choose a card type, then attach the entities you want to see.")}</p><Button asChild><Link to="/settings/smart-home?card=new">{message("Add card")}</Link></Button></div>}
+      {!visibleDevices.length && <div className="glow-panel empty-note"><PlugZap size={32} aria-hidden="true" /><h3>{message(area === "all" ? "Make room for your home" : "No cards in this area")}</h3><p>{message("Choose a card type, then attach the entities you want to see.")}</p><Button asChild className="mt-4"><Link to="/settings/smart-home?card=new">{message("Add card")}</Link></Button></div>}
     </section>
   </div>;
 }
