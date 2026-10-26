@@ -5,7 +5,6 @@ import { Component, Suspense, useEffect, useState, type ReactNode } from "react"
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
 import { isHomeSection, isMainPage } from "@/lib/navigation";
-import { HomeSwitcher } from "./HomeSwitcher";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { StateWrapper } from "@/components/common/StateWrapper";
@@ -32,7 +31,7 @@ export function AppLayout() {
   const { pathname } = useLocation();
   return <div className={`afterglow-app${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
-      <div className="header-home glass-surface"><HomeSwitcher /></div><WeatherWidget placement="header" /><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
+      <WeatherWidget placement="header" /><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
         <NotificationBell />
         <div className="relative">
           <DropdownMenu><DropdownMenuTrigger className="icon-button glass-surface" aria-label={t("Open app settings")} title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? t("Household dashboard")}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/settings">{t("All settings")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/appearance">{t("Appearance")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/onboarding">{t("Get started")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/backups">{t("Storage and backups")}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>

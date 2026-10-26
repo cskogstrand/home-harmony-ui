@@ -36,7 +36,7 @@
   border: 1px solid hsl(var(--nav-border) / .45);
   box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), inset 0 -1px 0 hsl(var(--glass-shade)), 0 8px 32px hsl(var(--glass-shade));
 }
-.header-home.glass-surface, .header-actions .glass-surface { border-radius: 999px; box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), 0 3px 12px hsl(var(--glass-shade)); }
+.header-actions .glass-surface { border-radius: 999px; box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), 0 3px 12px hsl(var(--glass-shade)); }
 .motion-menu.glass-surface, .glass-surface[role="dialog"], .glass-surface[role="alertdialog"] { --glass-opacity: var(--glass-panel-opacity); }
 .motion-menu.glass-surface { border-radius: 22px; padding: .5rem; color: hsl(var(--foreground)); max-height: min(var(--radix-dropdown-menu-content-available-height), calc(100dvh - 1rem)); max-width: calc(100vw - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 .motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: 14px; min-height: 48px; overflow-wrap: anywhere; }
@@ -51,7 +51,7 @@
   }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .glass-surface, .header-home.glass-surface, .header-actions .glass-surface {
+  .glass-surface, .header-actions .glass-surface {
     background: hsl(var(--nav-background));
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -61,7 +61,7 @@
   .afterglow-app { background: hsl(var(--background)); }
 }
 @media (forced-colors: active) {
-  .glass-surface, .header-home.glass-surface, .header-actions .glass-surface { background: Canvas; border: 1px solid ButtonText; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+  .glass-surface, .header-actions .glass-surface { background: Canvas; border: 1px solid ButtonText; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
   .family-dock a[aria-current="page"], .calendar-segment button[aria-pressed="true"], .list-tabs button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -3px; }
 }
 
@@ -107,11 +107,9 @@
   }
 }
 .app-header { max-width: 1600px; margin-inline: auto; padding: 1.5rem var(--space); display: flex; align-items: center; gap: 1.5rem; min-height: 88px; }
-.brand { display: flex; align-items: center; gap: .65rem; min-height: 48px; font-size: 1.5rem; font-weight: 600; letter-spacing: -.025em; }
+.brand { display: flex; align-items: center; gap: .65rem; margin-right: auto; min-height: 48px; font-size: 1.5rem; font-weight: 600; letter-spacing: -.025em; }
 .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; color: hsl(var(--primary)); }
 .brand small { display: block; font-size: 0.75rem; font-weight: 500; color: hsl(var(--muted-foreground)); letter-spacing: 2.1px; margin-top: 7px; }
-.header-home { margin-left: auto; max-width: 260px; }
-.header-home a { min-height: 48px; padding-inline: 1rem; border-radius: inherit; }
 .header-actions { display: flex; align-items: center; gap: 14px; }
 .header-weather { min-height: 48px; height: auto; max-width: 16rem; padding: .45rem .9rem; gap: .65rem; }
 .weather-symbol { display: flex; flex-shrink: 0; color: hsl(var(--primary)); }
@@ -673,8 +671,6 @@
 
 /* Shared reading order and density, from the portrait board to a phone. */
 .greeting > p { color: hsl(var(--muted-foreground)); font-size: 1rem; }
-.header-home { min-width: 0; }
-.header-home a { overflow-wrap: anywhere; }
 .family-dock a:focus-visible { outline: 2px solid hsl(var(--nav-active)); outline-offset: -3px; }
 .school-strip > div:first-child { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .school-preview .timetable-image { max-height: 280px; object-fit: contain; }
@@ -784,13 +780,10 @@
   .app-header { padding-block: .75rem; gap: .5rem; min-height: 72px; }
   .brand { font-size: 1.25rem; gap: .3rem; }
   .brand-mark { width: 28px; }
-  .header-home { max-width: 40%; }
-  .header-home a { font-size: .8125rem; gap: .4rem; padding-inline: .7rem; }
-  .header-home svg, .header-actions .hub-state { display: none; }
+  .header-actions .hub-state { display: none; }
   .header-actions { gap: 0; }
   .app-header:has(.header-weather) { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .app-header:has(.header-weather) .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
-  .app-header:has(.header-weather) .header-home { grid-column: 1; grid-row: 2; margin-left: 0; max-width: 100%; justify-self: start; }
   .header-weather { grid-column: 2; grid-row: 2; justify-self: end; max-width: 10rem; }
   .header-weather .weather-copy > span { display: none; }
   .app-main { padding-top: 1rem; }
@@ -853,7 +846,6 @@
 @media (max-width: 379px) {
   .app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
-  .header-home { grid-column: 1; grid-row: 2; margin-left: 0; max-width: 100%; justify-self: start; }
 }
 
 .settings-popover { display: grid; gap: 1rem; width: 22rem; max-width: calc(100vw - 2rem); max-height: var(--radix-popover-content-available-height); overflow-y: auto; }
