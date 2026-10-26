@@ -476,9 +476,9 @@ it("uses reported state throughout navigation and disables stale controls in the
   expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
   expect(window.location.hash).toBe("#light.living");
   expect(screen.getByRole("article", { name: "Living Room Light" })).toHaveFocus();
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
+  expect(screen.getByRole("button", { name: "Toggle Living Room Light" })).toHaveAttribute("aria-pressed", "false");
   act(() => conn.emit("disconnected"));
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Toggle Living Room Light" })).toBeDisabled();
   expect(screen.getAllByText("Offline").length).toBeGreaterThan(0);
 });
 it("does not clear the pending guard when a duplicate action is rejected", async () => {
@@ -1992,7 +1992,7 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   expect(within(light).getByText("Entity ID")).not.toBeVisible();
   fireEvent.click(within(light).getByText("Technical details"));
   expect(within(light).getByText("Entity ID")).toBeVisible();
-  fireEvent.click(screen.getByRole("switch", { name: "Toggle Living Room Light" }));
+  fireEvent.click(screen.getByRole("button", { name: "Toggle Living Room Light" }));
   await waitFor(() => expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "light", "turn_off", {}, { entity_id: "light.living" }));
 });
 
@@ -2008,7 +2008,7 @@ it.each(["/devices/light.living", "/entities/light.living", "/devices/physical-1
   expect(window.location.hash).toBe("#light.living");
   expect(screen.getByRole("article", { name: "Living Room Light" })).toHaveFocus();
   act(() => conn.emit("disconnected"));
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Toggle Living Room Light" })).toBeDisabled();
   expect(screen.getByText("Home Assistant offline")).toBeInTheDocument();
 });
 
@@ -2030,8 +2030,8 @@ it("retains empty devices, custom names, models and unassigned rooms", async () 
   expect(screen.getByRole("heading", { level: 1, name: "Bedroom thermostat" })).toBeInTheDocument();
   expect(screen.getByText(/This device has no visible controls/)).toBeInTheDocument();
   expect(screen.queryByRole("article")).not.toBeInTheDocument();
-  expect(screen.getByText("1.0")).not.toBeVisible();
-  fireEvent.click(screen.getByText("Device technical details"));
+  expect(screen.queryByText("1.0")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
   expect(screen.getByText("1.0")).toBeVisible();
 });
 

@@ -3,8 +3,9 @@ import type { Entity } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
+import { ChartNoAxesCombined } from "lucide-react";
 
-export function EntityHistory({ entity }: { entity: Entity }) {
+export function EntityHistory({ entity, icon = false }: { entity: Entity; icon?: boolean }) {
   const { entityHistory, homeOnline, currentHome } = useApp();
   const { message: t, number, locale } = useI18n();
   const [open, setOpen] = useState(false), [days, setDays] = useState<1 | 7>(1), [retry, setRetry] = useState(0);
@@ -27,7 +28,8 @@ export function EntityHistory({ entity }: { entity: Entity }) {
     return `${command}${end > start ? (point.time - start) / (end - start) * 300 : 150},${max > min ? 90 - (point.value - min) / (max - min) * 80 : 50}`;
   }).join(" ");
   const time = (value: number) => new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(value);
-  return <details className="smart-reading-details" onToggle={event => setOpen(event.currentTarget.open)}><summary>{t("History")}</summary>{open && <>
+  const label = t("History for {name}", { name: entity.name });
+  return <details className={`smart-reading-details${icon ? " entity-history-icon" : ""}`} onToggle={event => setOpen(event.currentTarget.open)}><summary aria-label={icon ? label : undefined} title={icon ? label : undefined}>{icon ? <ChartNoAxesCombined size={17} aria-hidden="true" /> : t("History")}</summary>{open && <>
     <label className="dg-choice"><span>{t("History period")}</span><select value={days} onChange={event => setDays(Number(event.target.value) as 1 | 7)}><option value={1}>{t("24 h")}</option><option value={7}>{t("7 d")}</option></select></label>
     {!homeOnline || !history || !values.length ? <p role="status">{t(!homeOnline ? "Offline" : history === undefined ? "Loading history…" : history === null ? "History unavailable" : "No numeric history available.")}</p> : <>
       <svg className="smart-history" viewBox="0 0 300 100" role="img" aria-label={t("Recorded history for {name}", { name: entity.name })}><title>{`${time(start)} – ${time(end)} · ${number(min)}–${number(max)} ${String(entity.attributes.unit_of_measurement ?? "")}`}</title><path d={path} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" /></svg>

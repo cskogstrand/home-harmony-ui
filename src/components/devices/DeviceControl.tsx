@@ -48,7 +48,7 @@ function LightColorControl({ entity, disabled, commit }: { entity: Entity; disab
     <Button type="submit" variant="outline" disabled={disabled}>{t("Apply color")}</Button>
   </form>;
 }
-export function DeviceControl({ entity, card = false }: { entity: Entity; card?: boolean }) {
+export function DeviceControl({ entity, card = false, setting = false }: { entity: Entity; card?: boolean; setting?: boolean }) {
   const { t, message, language, number } = useI18n();
   const { homeOnline, command, commands, services, currentHome } = useApp();
   const { variant } = useContext(CardPresentation);
@@ -116,7 +116,7 @@ export function DeviceControl({ entity, card = false }: { entity: Entity; card?:
   const on = reported && entity.state === "on";
   const percent = brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255));
   const domainContent = ["media_player", "fan", "humidifier", "water_heater", "vacuum", "lawn_mower", "valve", "siren", "number", "input_number", "select", "input_select", "counter", "timer", "button", "input_button", "script"].includes(entity.domain);
-  const primary = domainContent ? <DomainCardContent entity={entity} status={status} reported={reported} temperatureUnit={currentHome.temperatureUnit ?? ""} supports={supports} send={send} /> : !card ? <>
+  const primary = domainContent ? <DomainCardContent entity={entity} status={status} reported={reported} temperatureUnit={currentHome.temperatureUnit ?? ""} supports={supports} send={send} setting={setting} /> : !card ? <>
     {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={t("Toggle {value1}", { value1: entity.name })} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
       : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{currentHome.temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
       : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}

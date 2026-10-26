@@ -1,6 +1,6 @@
 import { configuredCard } from "./device-card-fixtures";
 import { expect, it } from "vitest";
-import { deviceGroups, deviceName, deviceReadingsLabel, entityDetailPath, deviceSections, deviceType, smartHomeEntities } from "@/lib/device-model";
+import { deviceDetailSections, deviceGroups, deviceName, deviceReadingsLabel, entityDetailPath, deviceSections, deviceType, smartHomeEntities } from "@/lib/device-model";
 import { mapHome } from "@/lib/ha-model";
 import { registries, states } from "./ha-fixtures";
 
@@ -74,6 +74,37 @@ it("preserves HA entity categories for type classification", () => {
   const group = deviceGroups(home)[0];
   expect(group.entities.every(entity => entity.category === "diagnostic")).toBe(true);
   expect(deviceType(group.entities)).toBe("Other");
+});
+
+it("separates primary functions, useful readings and maintenance without dropping unknown entities", () => {
+  const base = mapHome(states, registries, "test").entities[0];
+  const entities = [
+    { ...base, entityId: "climate.example", domain: "climate" },
+    { ...base, entityId: "sensor.room", domain: "sensor" },
+    { ...base, entityId: "sensor.battery", domain: "sensor", category: "diagnostic", attributes: { device_class: "battery" } },
+    { ...base, entityId: "binary_sensor.problem", domain: "binary_sensor", category: "diagnostic", attributes: { device_class: "problem" } },
+    { ...base, entityId: "sensor.signal", domain: "sensor", category: "diagnostic" },
+    { ...base, entityId: "switch.config", domain: "switch", category: "config" },
+    { ...base, entityId: "future.example", domain: "future" },
+    { ...base, entityId: "image.map", domain: "image" },
+  ];
+  const sections = deviceDetailSections(entities);
+  expect(sections.primary.map(entity => entity.domain)).toEqual(["climate", "image"]);
+  expect(sections.readings.map(entity => entity.entityId)).toEqual(["sensor.room", "sensor.battery", "binary_sensor.problem"]);
+  expect(sections.configuration).toEqual([entities[5]]);
+  expect(sections.diagnostics).toEqual([entities[4]]);
+  expect(sections.controls).toEqual([entities[6]]);
+  expect(Object.values(sections).flat()).toHaveLength(entities.length);
+  expect(Object.values(deviceDetailSections([])).flat()).toEqual([]);
+});
+
+it("keeps auxiliary switches secondary but gives switch-only devices their power controls", () => {
+  const base = mapHome(states, registries, "test").entities[0];
+  const vacuum = { ...base, domain: "vacuum" };
+  const toggle = { ...base, domain: "switch" };
+  expect(deviceDetailSections([toggle, vacuum]).primary).toEqual([vacuum]);
+  expect(deviceDetailSections([toggle, vacuum]).controls).toEqual([toggle]);
+  expect(deviceDetailSections([toggle]).primary).toEqual([toggle]);
 });
 
 it("groups each device once by its own room or type, with fallback groups last", () => {

@@ -40,9 +40,9 @@ function TimerReading({ entity, status, reported }: { entity: Entity; status: st
 }
 
 // Both card and entity-detail views use the same supported controls and command boundary.
-export function DomainCardContent({ entity, status, reported, temperatureUnit, supports, send }: {
+export function DomainCardContent({ entity, status, reported, temperatureUnit, supports, send, setting = false }: {
   entity: Entity; status: string; reported: boolean; temperatureUnit: string;
-  supports: (action: EntityAction) => boolean; send: (action: EntityAction, value?: unknown) => void;
+  supports: (action: EntityAction) => boolean; send: (action: EntityAction, value?: unknown) => void; setting?: boolean;
 }) {
   const { message: t } = useI18n();
   const superCompact = useContext(CardPresentation).variant === "Super compact";
@@ -109,11 +109,11 @@ export function DomainCardContent({ entity, status, reported, temperatureUnit, s
     {range("set_valve_position", "Valve opening", "current_position", 0, 100)}<div className="dg-actions">{action("close_valve", "Close", Minus)}{action("stop_valve", "Stop", Square)}{action("open_valve", "Open valve", Plus)}</div>
   </ValveCard>;
   if (entity.domain === "siren") return <SecurityCard icon={Siren} value={status} alert={reported && entity.state === "on"} caption=""><SirenSettings entity={entity} supports={supports} send={send} /></SecurityCard>;
-  if (["number", "input_number"].includes(entity.domain)) return <><Readout value={status} unit={text("unit_of_measurement")} caption="" />{supports("set_value") && <Range label="Value" value={entity.state.trim() ? numberValue(Number(entity.state)) : undefined} min={numeric("min")} max={numeric("max")} step={numeric("step") || 1} unit={text("unit_of_measurement")} commitOnly set={value => send("set_value", value)} />}</>;
-  if (["select", "input_select"].includes(entity.domain)) return <><Readout value={status} caption="" />{supports("select_option") && <Choice label="Option" value={entity.state} options={stringValues(a.options)} literalOptions set={value => send("select_option", value)} />}</>;
+  if (["number", "input_number"].includes(entity.domain)) return <>{(!setting || !reported || !supports("set_value")) && <Readout value={status} unit={reported ? text("unit_of_measurement") : ""} caption="" />}{supports("set_value") && <Range label="Value" ariaLabel={setting ? entity.name : undefined} value={entity.state.trim() ? numberValue(Number(entity.state)) : undefined} min={numeric("min")} max={numeric("max")} step={numeric("step") || 1} unit={text("unit_of_measurement")} commitOnly set={value => send("set_value", value)} />}</>;
+  if (["select", "input_select"].includes(entity.domain)) return <>{(!setting || !reported || !supports("select_option")) && <Readout value={status} caption="" />}{supports("select_option") && <Choice label="Option" ariaLabel={setting ? entity.name : undefined} value={entity.state} options={stringValues(a.options)} literalOptions set={value => send("select_option", value)} />}</>;
   if (entity.domain === "counter") return <><Readout value={status} caption="" /><div className="dg-stepper">{action("decrement", "Decrease counter", Minus, false, Number(entity.state) <= numeric("minimum"))}{action("reset", "Reset", RotateCcw)}{action("increment", "Increase counter", Plus, false, Number(entity.state) >= numeric("maximum"))}</div></>;
   if (entity.domain === "timer") return <><TimerReading entity={entity} status={status} reported={reported} /><div className="dg-actions">{action(entity.state === "active" ? "pause" : "start", entity.state === "active" ? "Pause" : "Start", entity.state === "active" ? Pause : Play, true)}{action("cancel", "Cancel", RotateCcw)}</div>{more(action("finish", "Finish timer", Square, false, entity.state === "idle"))}</>;
-  if (["button", "input_button"].includes(entity.domain)) return <><div className="dg-power-disc">{action("press", "Press button", Zap, true)}</div><Readout value={status} caption="" /></>;
+  if (["button", "input_button"].includes(entity.domain)) return setting ? <>{action("press", entity.name, Zap)}{!reported && <Readout value={status} caption="" />}</> : <><div className="dg-power-disc">{action("press", "Press button", Zap, true)}</div><Readout value={status} caption="" /></>;
   if (entity.domain === "script") return <><Readout value={status} caption="" />{action(entity.state === "on" ? "turn_off" : "turn_on", entity.state === "on" ? "Stop script" : "Run script", entity.state === "on" ? Square : Play, true)}</>;
   return <Readout value={status} unit={reported ? text("unit_of_measurement") : ""} caption="" />;
 }

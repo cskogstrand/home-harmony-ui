@@ -40,6 +40,25 @@ export function deviceType(entities: Entity[]) {
   return primary.some(entity => ["sensor", "binary_sensor"].includes(entity.domain)) ? "Sensors" : "Other";
 }
 
+export function deviceDetailSections(entities: Entity[]) {
+  const hasMainControl = entities.some(entity => !entity.category && deviceTypes.has(entity.domain) && entity.domain !== "switch");
+  const sections: Record<"primary" | "readings" | "controls" | "configuration" | "diagnostics", Entity[]> = {
+    primary: [], readings: [], controls: [], configuration: [], diagnostics: [],
+  };
+  for (const entity of entities) {
+    const reading = ["sensor", "binary_sensor", "event", "device_tracker"].includes(entity.domain);
+    const usefulDiagnostic = reading && ["battery", "problem", "tamper", "safety"].includes(String(entity.attributes.device_class));
+    const section = entity.category === "config" ? "configuration"
+      : entity.category === "diagnostic" && !usefulDiagnostic ? "diagnostics"
+      : reading ? "readings"
+      : entity.domain === "switch" && hasMainControl ? "controls"
+      : deviceTypes.has(entity.domain) || ["lawn_mower", "siren", "image", "weather", "air_quality"].includes(entity.domain) ? "primary"
+      : "controls";
+    sections[section].push(entity);
+  }
+  return sections;
+}
+
 export type DeviceGrouping = "room" | "type" | "none";
 
 export function deviceSections(devices: ReturnType<typeof deviceGroups>, areas: Home["areas"], grouping: DeviceGrouping, language: Language = "en") {
