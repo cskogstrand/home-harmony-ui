@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Bell, BookOpen, CalendarDays, ChevronRight, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Bell, BookOpen, CalendarDays, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -17,6 +17,7 @@ const groups = [
     { id: "appearance", title: "Appearance", description: "Theme, colors and display density", icon: Palette, content: <UserSettings section="appearance" /> },
     { id: "language", title: "Language", description: "Language for every connected screen", icon: Globe, content: <UserSettings section="language" /> },
     { id: "notifications", title: "Notifications", description: "Alerts, ongoing tasks and camera popups", icon: Bell, content: <NotificationSettings /> },
+    { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },
   ] },
   { title: "Household", items: [
     { id: "people", title: "People", description: "Visibility, order, colors and timetable access", icon: Users, content: <HomeSettings section="people" /> },

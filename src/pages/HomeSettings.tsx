@@ -12,10 +12,12 @@ import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberColorPicker } from "@/components/MemberColorPicker";
 import { TimetableAdministration } from "@/components/TimetableAdministration";
 import { EntityPicker } from "@/components/EntityPicker";
-export default function HomeSettings({ section }: { section: "connection" | "people" | "timetables" | "calendars" | "lists" }) {
+import { Checkbox } from "@/components/ui/checkbox";
+import { isTemperatureEntity } from "@/lib/ha-model";
+export default function HomeSettings({ section }: { section: "connection" | "people" | "timetables" | "calendars" | "lists" | "weather" }) {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
-  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList } = useFamily();
+  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList, weatherEntity, setWeatherEntity, weatherTemperatureEntity, setWeatherTemperatureEntity, weatherPlacement, setWeatherPlacement } = useFamily();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [...members, ...[...new Set(Object.values(todoLists).filter(assigned => assigned.kind !== "shopping").map(assigned => assigned.member))]
@@ -47,6 +49,20 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
       getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberMessage(assigned.member, assigned.kind), value2: msg(listLabels[assigned.kind]) }) : ""; }} />;
   };
   return <>
+    {section === "weather" && <section className="glow-panel"><PanelHeading title={t("Weather source")} />
+      <p className="page-note" id="weather-source-help">{t("Choose a Home Assistant weather entity for current conditions and forecasts.")}</p>
+      <EntityPicker label={t("Weather entity")} entities={currentHome.entities.filter(entity => entity.domain === "weather")} value={weatherEntity} onChange={setWeatherEntity} groupByDevice={false} placeholder={t("No weather selected")} clearLabel={t("Hide weather widget")} describedBy="weather-source-help" />
+      <div className="mt-6">
+        <EntityPicker label={t("Temperature entity (optional)")} entities={currentHome.entities.filter(isTemperatureEntity)} value={weatherTemperatureEntity} onChange={setWeatherTemperatureEntity} placeholder={t("Use weather entity")} clearLabel={t("Use weather entity")} describedBy="weather-temperature-help" />
+        <p id="weather-temperature-help" className="mt-2 text-sm text-muted-foreground">{t("Use a separate sensor for the current temperature. Leave empty to use the weather entity.")}</p>
+      </div>
+      <fieldset className="weather-placement"><legend>{t("Show weather")}</legend>
+        <label><Checkbox checked={weatherPlacement.today} onCheckedChange={checked => setWeatherPlacement({ today: checked === true })} aria-label={t("Beside the clock on Today")} /><span><strong>{t("Beside the clock on Today")}</strong><small>{t("A larger weather display on your daily overview.")}</small></span></label>
+        <label><Checkbox checked={weatherPlacement.header} onCheckedChange={checked => setWeatherPlacement({ header: checked === true })} aria-label={t("In the header")} /><span><strong>{t("In the header")}</strong><small>{t("A compact widget on every page.")}</small></span></label>
+      </fieldset>
+      {!weatherPlacement.today && !weatherPlacement.header && <p role="status" className="page-note">{t("Weather is hidden. Your selected source is kept.")}</p>}
+      {!homeOnline && <p role="status" className="page-note">{t("Weather updates resume when Home Assistant reconnects.")}</p>}
+    </section>}
     {section === "connection" && <section className="glow-panel" id="connection"><PanelHeading title={t("Home Assistant connection")} />
       <p className="break-all">{t("Home Assistant: {value1}", { value1: haUrl || t("Loading server configuration…") })}</p>
       <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? t("Connecting…") : t("Reconnect")}</Button><Button variant="outline" onClick={() => setConfirmation({ title: msg("Disconnect Home Assistant?"), description: msg("Pause live controls in this tab until you reconnect or reload? Shared settings remain available."), confirmLabel: msg("Disconnect"), onConfirm: disconnect })}>{t("Disconnect")}</Button></div>

@@ -100,6 +100,9 @@ export const plannerSchema = z.object({
     darkTimetables: z.boolean().default(false),
   }).strict().default({ theme: "dark", colorPalette: "pearl", compactMode: false, darkTimetables: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),
+  weatherEntity: z.union([memberSchema, z.literal("")]).default(""),
+  weatherTemperatureEntity: z.union([memberSchema, z.literal("")]).default(""),
+  weatherPlacement: z.object({ today: z.boolean().default(true), header: z.boolean().default(false) }).strict().default({}),
   calendarMembers: z.record(keySchema, memberSchema).default({}),
   todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema }).strict()).default({}),
 }).strict();

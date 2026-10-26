@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CloudSun, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, Moon, Droplets, Wind } from "lucide-react";
+import { Droplets, Wind } from "lucide-react";
 import type { Entity } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -7,9 +7,9 @@ import { available, entityStateLabel, feature, numberValue } from "@/lib/ha-mode
 import type { Forecast } from "@/lib/home-assistant";
 import { Button } from "@/components/ui/button";
 import { Readout } from "./CardControls";
+import { WeatherIcon } from "./WeatherIcon";
 
-const conditionIcons = { sunny: Sun, "clear-night": Moon, cloudy: Cloud, partlycloudy: CloudSun, rainy: CloudRain, pouring: CloudRain, snowy: CloudSnow, "snowy-rainy": CloudSnow, lightning: CloudLightning, "lightning-rainy": CloudLightning, windy: Wind };
-export function WeatherCard({ entity }: { entity: Entity }) {
+export function WeatherCard({ entity, currentTemperature }: { entity: Entity; currentTemperature?: { value: number | undefined; unit: string } }) {
   const { homeOnline, currentHome, watchForecast } = useApp();
   const { message: t, language, locale, number } = useI18n();
   const [period, setPeriod] = useState<"hourly" | "daily" | "twice_daily">("hourly");
@@ -25,12 +25,12 @@ export function WeatherCard({ entity }: { entity: Entity }) {
     watchForecast(entity.entityId, type, controller.signal, data => { clearTimeout(timeout); if (!controller.signal.aborted) setForecast(data); });
     return () => { clearTimeout(timeout); controller.abort(); };
   }, [entity.entityId, reported, type, retry, watchForecast]);
-  const Icon = conditionIcons[entity.state as keyof typeof conditionIcons] ?? CloudSun;
   const a = entity.attributes;
-  const temperature = numberValue(a.temperature), wind = numberValue(a.wind_speed), humidity = numberValue(a.humidity);
+  const temperature = currentTemperature ? currentTemperature.value : numberValue(a.temperature), wind = numberValue(a.wind_speed), humidity = numberValue(a.humidity);
   const unit = typeof a.temperature_unit === "string" ? a.temperature_unit : currentHome.temperatureUnit ?? "";
+  const showTemperature = homeOnline && temperature !== undefined && (reported || !!currentTemperature);
   return <div className="dg-card-body smart-weather">
-    <div className="dg-weather"><Icon size={48} aria-hidden="true" /><Readout value={!reported ? t(homeOnline ? "Unavailable" : "Offline") : temperature ?? "—"} unit={reported && temperature !== undefined ? unit : ""} caption={reported ? entityStateLabel(entity, language) : ""} /></div>
+    <div className="dg-weather"><WeatherIcon condition={entity.state} size={48} /><Readout value={showTemperature ? temperature : reported ? "—" : t(homeOnline ? "Unavailable" : "Offline")} unit={showTemperature ? currentTemperature?.unit ?? unit : ""} caption={reported ? entityStateLabel(entity, language) : ""} /></div>
     {reported && <><div className="dg-facts">{wind !== undefined && <span><Wind size={16} aria-hidden="true" />{number(wind)} {String(a.wind_speed_unit ?? "")}<span className="sr-only">{t("Wind speed")}</span></span>}{humidity !== undefined && <span><Droplets size={16} aria-hidden="true" />{number(humidity)}%<span className="sr-only">{t("Humidity")}</span></span>}</div>
       {!!types.length && <div className="smart-forecast">
         <label className="dg-choice"><span>{t("Forecast")}</span><select value={type} onChange={event => setPeriod(event.target.value as typeof period)}>{types.map(type => <option value={type} key={type}>{t(type === "hourly" ? "Hourly" : type === "daily" ? "Daily" : "Twice daily")}</option>)}</select></label>

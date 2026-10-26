@@ -49,6 +49,9 @@ interface FamilyContextValue extends FamilyState {
   setDashboard: (settings: Partial<Planner["dashboard"]>) => boolean;
   setNotifications: (settings: Partial<Planner["notifications"]>) => boolean;
   setSelectedAlarm: (id: string) => boolean;
+  setWeatherEntity: (id: string) => boolean;
+  setWeatherTemperatureEntity: (id: string) => boolean;
+  setWeatherPlacement: (settings: Partial<Planner["weatherPlacement"]>) => boolean;
   setCalendarSettings: (settings: Partial<CalendarSettings>) => void;
   compareMembers: (a: MemberId, b: MemberId) => number;
   moveMember: (id: MemberId, direction: -1 | 1) => void;

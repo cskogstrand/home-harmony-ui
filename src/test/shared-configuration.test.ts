@@ -27,6 +27,37 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("defaults weather to Today and shares and restores the source and placements", async () => {
+  const config = emptyConfiguration();
+  delete config.settings.weatherEntity;
+  delete config.settings.weatherTemperatureEntity;
+  delete config.settings.weatherPlacement;
+  expect(parseConfiguration(JSON.stringify(config)).settings.weatherEntity).toBe("");
+  expect(parseConfiguration(JSON.stringify(config)).settings.weatherTemperatureEntity).toBe("");
+  expect(parseConfiguration(JSON.stringify(config)).settings.weatherPlacement).toEqual({ today: true, header: false });
+  for (const weatherPlacement of [null, [], { today: "true" }, { header: 1 }, { unknown: true }]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, weatherPlacement } }))).toThrow();
+  }
+  for (const weatherEntity of [null, [], 42, "x".repeat(513)]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, weatherEntity } }))).toThrow();
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, weatherTemperatureEntity: weatherEntity } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, weatherEntity: "home|stable-weather", weatherTemperatureEntity: "home|stable-temperature", weatherPlacement: { today: false, header: true } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.weatherEntity).toBe("home|stable-weather");
+  expect(b.getSnapshot().config.settings.weatherTemperatureEntity).toBe("home|stable-temperature");
+  expect(b.getSnapshot().config.settings.weatherPlacement).toEqual({ today: false, header: true });
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  await b.replace(emptyConfiguration());
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.weatherEntity).toBe("home|stable-weather");
+  expect(a.getSnapshot().config.settings.weatherTemperatureEntity).toBe("home|stable-temperature");
+  expect(a.getSnapshot().config.settings.weatherPlacement).toEqual({ today: false, header: true });
+});
+
 it("shares notification rules across screens and restores them with the existing backup flow", async () => {
   const backend = server(), a = await backend.start(), b = await backend.start();
   a.updateSettings(p => ({ ...p, notifications: { enabled: true, presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntity: "", durationSeconds: 60, cooldownSeconds: 10 }] } }));

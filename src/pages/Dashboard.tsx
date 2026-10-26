@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
 import { DashboardSettings } from "@/components/DashboardSettings";
 import { FamilyDay } from "@/components/FamilyDay";
+import { WeatherWidget } from "@/components/WeatherWidget";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
@@ -38,7 +39,7 @@ export default function Dashboard() {
   return <div className="portrait-board">
     <header className="ambient-heading">
       <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}<DashboardSettings /></div></div>
-      <time className="ambient-clock">{time}</time>
+      <div className="ambient-glance"><time className="ambient-clock">{time}</time><WeatherWidget placement="today" /></div>
     </header>
     {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
     {dashboard.morningSummary && <MorningSummary />}

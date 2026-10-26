@@ -42,6 +42,76 @@ const saved = async () => {
   await pageReady();
 };
 
+it("selects weather entities, saves both placement checkboxes across reloads and can hide the widget", async () => {
+  app.currentHome = mapHome({
+    "weather.example": state("weather.example", "sunny", { friendly_name: "Example forecast", temperature: 18, temperature_unit: "°C" }),
+    "sensor.example": state("sensor.example", "21", { friendly_name: "Example sensor" }),
+    "sensor.temperature": state("sensor.temperature", "21", { friendly_name: "Example temperature", device_class: "temperature", unit_of_measurement: "°F" }),
+    "input_number.temperature": state("input_number.temperature", "280", { friendly_name: "Example temperature helper", unit_of_measurement: "K" }),
+    "sensor.humidity": state("sensor.humidity", "60", { device_class: "humidity", unit_of_measurement: "%" }),
+  }, { ...emptyRegistries, entities: [{ id: "stable-weather", entity_id: "weather.example" }, { id: "stable-temperature", entity_id: "sensor.temperature" }] }, "home");
+  window.history.replaceState(null, "", "/settings/weather");
+  const view = render(<App />); await saved();
+  expect(screen.queryByRole("button", { name: /^Weather:/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Weather entity" }));
+  expect(screen.queryByRole("button", { name: /sensor.example/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Example forecast · weather.example" }));
+  await saved();
+  expect(settings.settings.weatherEntity).toBe("home|stable-weather");
+  expect(screen.getByRole("checkbox", { name: "Beside the clock on Today" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "In the header" })).not.toBeChecked();
+  expect(screen.queryByRole("button", { name: /^Weather:/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("checkbox", { name: "In the header" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Beside the clock on Today" }));
+  await saved();
+  expect(settings.settings.weatherPlacement).toEqual({ today: false, header: true });
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18°C");
+  fireEvent.click(screen.getByRole("button", { name: "Temperature entity (optional)" }));
+  expect(screen.queryByRole("button", { name: /sensor.example/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /sensor.humidity/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /weather.example/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /input_number.temperature/ })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Example temperature · sensor.temperature" }));
+  await saved();
+  expect(settings.settings.weatherTemperatureEntity).toBe("home|stable-temperature");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21°F");
+  view.unmount();
+  render(<App />); await saved();
+  expect(screen.getByRole("button", { name: "Weather entity" })).toHaveTextContent("Example forecast");
+  expect(screen.getByRole("checkbox", { name: "Beside the clock on Today" })).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "In the header" })).toBeChecked();
+  expect(screen.getByRole("button", { name: "Temperature entity (optional)" })).toHaveTextContent("Example temperature");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21°F");
+  fireEvent.click(screen.getByRole("button", { name: "Temperature entity (optional)" }));
+  fireEvent.click(screen.getByRole("button", { name: "Use weather entity" }));
+  await saved();
+  expect(settings.settings.weatherTemperatureEntity).toBe("");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18°C");
+  fireEvent.click(screen.getByRole("checkbox", { name: "In the header" }));
+  await saved();
+  expect(screen.getByText("Weather is hidden. Your selected source is kept.")).toBeVisible();
+  expect(settings.settings.weatherEntity).toBe("home|stable-weather");
+  expect(screen.queryByRole("button", { name: /^Weather:/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Weather entity" }));
+  fireEvent.click(screen.getByRole("button", { name: "Hide weather widget" }));
+  await saved();
+  expect(settings.settings.weatherEntity).toBe("");
+  expect(screen.queryByRole("button", { name: /^Weather:/ })).not.toBeInTheDocument();
+});
+
+it.each([
+  { today: true, header: false }, { today: false, header: true }, { today: true, header: true }, { today: false, header: false },
+])("places weather beside the clock and/or in the header: %s", async weatherPlacement => {
+  app.currentHome = mapHome({ "weather.example": state("weather.example", "sunny", { temperature: 18, temperature_unit: "°C" }) }, emptyRegistries, "home");
+  settings.settings.weatherEntity = "home|weather.example";
+  settings.settings.weatherPlacement = weatherPlacement;
+  const view = render(<App />); await saved();
+  expect(within(view.container.querySelector<HTMLElement>(".app-header")).queryByRole("button", { name: /^Weather:/ }) !== null).toBe(weatherPlacement.header);
+  const glance = view.container.querySelector(".ambient-glance");
+  expect(glance.querySelector("time")).toHaveClass("ambient-clock");
+  expect(within(glance as HTMLElement).queryByRole("button", { name: /^Weather:/ }) !== null).toBe(weatherPlacement.today);
+});
+
 it("uses only Home Assistant people and lets old shared assignments move to a real person", async () => {
   app.currentHome = mapHome({
     "person.example": state("person.example", "home", { friendly_name: "Example person" }),
@@ -916,13 +986,13 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
   window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
   const destinations = [
-    ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"],
+    ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"], ["Weather", "weather"],
     ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
     ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
   ];
   for (const [title, path] of destinations) {
     const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));
-    expect(menu.getAllByRole("link")).toHaveLength(10);
+    expect(menu.getAllByRole("link")).toHaveLength(destinations.length);
     expect(menu.getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Preferences", "Household", "System"]);
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     fireEvent.click(menu.getByRole("link", { name: new RegExp(`^${title} `) }));

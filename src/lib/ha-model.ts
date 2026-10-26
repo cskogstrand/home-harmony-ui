@@ -7,6 +7,8 @@ export const emptyRegistries: Registries = { areas: [], devices: [], entities: [
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
 export const stringValues = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
 export const available = (entity: Entity) => !(["unavailable", "missing"].includes(entity.state) || (entity.state === "unknown" && !["scene", "button", "input_button"].includes(entity.domain)));
+export const isTemperatureEntity = (entity: Entity) => ["sensor", "number", "input_number"].includes(entity.domain)
+  && (entity.attributes.device_class === "temperature" || ["°C", "°F", "K"].includes(String(entity.attributes.unit_of_measurement)));
 export const feature = (entity: Entity, flag: number) => ((numberValue(entity.attributes.supported_features) ?? 0) & flag) !== 0;
 export const humanizeState = (value: string) => value.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
 // HA interprets these wall-clock times in its configured timezone, not the browser's.
