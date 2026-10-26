@@ -359,7 +359,6 @@ export const nb = {
   "Up next · {name}": "Neste · {name}",
   "More controls": "Flere kontroller",
   "{temperature} {unit} inside": "{temperature} {unit} inne",
-  " · Home Assistant": " · Home Assistant",
   " · Read-only or unavailable": " · Skrivebeskyttet eller utilgjengelig",
   " — move from {value1}": " — flytt fra {value1}",
   " — move from {value1} ({value2})": " — flytt fra {value1} ({value2})",

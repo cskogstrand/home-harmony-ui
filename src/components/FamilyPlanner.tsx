@@ -46,7 +46,7 @@ export function EventButton({ event, onClick, showDate = false, showMember = fal
   return <button type="button" className={`event-button press-feedback${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} style={{ "--member": memberColor(event.member) } as React.CSSProperties} onClick={onClick}>
     <strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>
     <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
-    <small>{event.location && showMember && `${memberName(event.member)} · `}{event.location || memberName(event.member)}{event.calendarId && t(" · Home Assistant")}</small>
+    <small>{event.location && showMember && `${memberName(event.member)} · `}{event.location || memberName(event.member)}</small>
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}
   </button>;
 }
