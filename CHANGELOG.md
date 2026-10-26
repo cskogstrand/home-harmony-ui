@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.19
+
+<!-- release-source: 3a180a53bb12a561d894b2c84a378059d3aaa825 -->
+
+- refactor: remove redundant header home button
+- feat: add configurable header weather widget
+- feat: polish device detail page
+- fix: remove calendar item source labels
+
 ## 0.9.18
 
 <!-- release-source: 2af1520054ff3c63df113da3e5234e0aab799273 -->
