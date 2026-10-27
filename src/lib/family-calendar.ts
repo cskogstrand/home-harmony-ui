@@ -1,6 +1,23 @@
-import { addDays, homeDate, isPlannerDate, sortEvents, type FamilyEvent } from "@/contexts/FamilyContext";
+import { addMonths, format, parseISO } from "date-fns";
+import { addDays, homeDate, isPlannerDate, sortEvents, weekStart, type FamilyEvent } from "@/contexts/FamilyContext";
 import { calendarBoundary, calendarDateValue, calendarTimeInput } from "./ha-model";
 import type { CalendarEvent } from "@/types/api";
+
+export type CalendarView = "month" | "week" | "day";
+
+export function moveCalendarDate(date: string, view: CalendarView, direction: -1 | 1) {
+  return view === "month" ? format(addMonths(parseISO(date), direction), "yyyy-MM-dd") : addDays(date, direction * (view === "week" ? 7 : 1));
+}
+
+export function calendarRange(date: string, view: CalendarView, startDay: "today" | "monday") {
+  if (view === "month") {
+    const first = `${date.slice(0, 7)}-01`;
+    const last = addDays(moveCalendarDate(first, "month", 1), -1);
+    return { start: weekStart(first), end: addDays(weekStart(last), 7) };
+  }
+  const start = view === "week" && startDay === "monday" ? weekStart(date) : date;
+  return { start, end: addDays(start, view === "week" ? 7 : 1) };
+}
 
 export function uniqueCalendarPlans(events: FamilyEvent[]) {
   const seen = new Set<string>();

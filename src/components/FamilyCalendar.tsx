@@ -34,9 +34,10 @@ interface FamilyWeekGridProps {
   compact?: boolean;
   onEdit: (event: FamilyEvent) => void;
   onAdd: (date: string, member: MemberId) => void;
+  onDay?: (date: string) => void;
 }
 
-export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd }: FamilyWeekGridProps) {
+export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd, onDay }: FamilyWeekGridProps) {
   const { t, dateLabel } = useI18n();
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -46,7 +47,8 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
         <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
         <thead><tr><th scope="col">{t("Family")}</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
           <small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small>
-          <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>
+          {onDay ? <button className="calendar-week-day" onClick={() => onDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}><time dateTime={day} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time></button> :
+            <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>}
         </th>)}</tr></thead>
         {(members ?? familyMembers).map(person => {
           const personal = events.filter(event => event.member === person.id);

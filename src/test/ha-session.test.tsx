@@ -55,7 +55,7 @@ const connectedClient = async () => {
 const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  await screen.findByRole("heading", { level: 1, name: name === "Today" ? "Good to be home." : name === "Our week" ? "Our week." : name });
+  await screen.findByRole("heading", { level: 1, name: name === "Today" ? "Good to be home." : name });
 };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
 
@@ -717,7 +717,7 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
   expect(week.getByText("Tue 6 Oct – Thu 15 Oct")).toBeVisible();
   expect(week.getByText(/^3 plans/)).toBeInTheDocument();
   if (path === "/calendar") {
-    fireEvent.click(screen.getByRole("button", { name: "Fri 09" }));
+    fireEvent.click(screen.getByRole("button", { name: "Friday 9 October" }));
     expect(await screen.findByRole("button", { name: /Family trip/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Night train/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Midnight finish/ })).not.toBeInTheDocument();
@@ -1200,7 +1200,7 @@ it.each([["Example person", "home|person.example"], ["Everyone", "home|person.ev
   await act(async () => fireEvent.click(screen.getByRole("button", { name: "Move Other person up" })));
   const avatar = () => screen.getByLabelText(name, { selector: ".member-avatar" });
   expect(avatar()).toHaveStyle({ background: "#112233", color: "#ffffff", borderColor: "#112233" });
-  await navigate("Our week");
+  await navigate("Calendar");
   const event = await screen.findByRole("button", { name: /Example event/ });
   expect(event.style.getPropertyValue("--member")).toBe("#112233");
   expect(event.closest("tbody")?.style.getPropertyValue("--member")).toBe("#112233");
@@ -1250,7 +1250,7 @@ it("assigns HA calendars to real people in both views, persists setup, without l
   expect(assignment).toHaveTextContent("Add calendar…");
   expect(fetchMock).not.toHaveBeenCalled();
   chooseEntity(assignment, "calendar.morgan");
-  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Our week" }));
+  fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Calendar" }));
   expect(await screen.findByRole("button", { name: /Dentist appointment.*15:00 – 16:00/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
   expect(screen.getByRole("button", { name: "Weekly grid" })).toHaveAttribute("aria-pressed", "true");
@@ -1491,8 +1491,8 @@ it("uses saved people order for connected lists and retains missing people acros
   expect(listOrder("tasks")).toEqual(["Everyone tasks", "Person unavailable tasks", "Morgan tasks"]);
   const newPerson = { "person.alex": state("person.alex", "home", { friendly_name: "Alex" }) };
   act(() => conn.entityCallback?.({ ...newPerson, ...household }));
-  await navigate("Our week");
-  await screen.findByRole("heading", { level: 1, name: "Our week." });
+  await navigate("Calendar");
+  await screen.findByRole("heading", { level: 1, name: "Calendar" });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["EEveryone", "RRiley", "MMorgan", "AAlex"]);
   expect(order()).toEqual([personId("everyone"), personId("riley"), personId("morgan")]);
   view.unmount();
@@ -1552,7 +1552,7 @@ it("hides connected people and their plans and lists without losing assignments"
   expect(await screen.findByRole("switch", { name: "Show Morgan in family planner" })).not.toBeChecked();
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!)).toMatchObject({ ...planner, hiddenMembers: [morgan] });
   fireEvent.click(screen.getByRole("switch", { name: "Show Morgan in family planner" }));
-  await navigate("Our week");
+  await navigate("Calendar");
   expect(await screen.findByText("Morgan remote plan")).toBeInTheDocument();
   expect(screen.queryByText("Morgan local plan")).not.toBeInTheDocument();
   await navigate("Lists");

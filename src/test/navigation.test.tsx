@@ -35,12 +35,85 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstub
 const pageReady = () => waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  await screen.findByRole("heading", { level: 1, name: name === "Our week" ? "Our week." : name });
+  await screen.findByRole("heading", { level: 1, name });
 };
 const saved = async () => {
   await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
   await pageReady();
 };
+
+it("switches calendar periods, loads the whole month, filters people and drills into a multi-day event", async () => {
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "person.other": state("person.other", "home", { friendly_name: "Other example" }),
+    "calendar.example": state("calendar.example", "off"),
+    "calendar.other": state("calendar.other", "off"),
+  }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example", "home|calendar.other": "home|person.other" };
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive(id === "calendar.example" ? [
+    { uid: "example-trip", summary: "Example trip", start: "2026-10-30", end: "2026-11-03" },
+    { uid: "example-meeting", summary: "Example meeting", start: "2026-11-01T14:00:00Z", end: "2026-11-01T15:00:00Z" },
+  ] : [{ uid: "other", summary: "Other plan", start: "2026-11-01", end: "2026-11-02" }]));
+  window.history.replaceState(null, "", "/calendar?view=month&date=2026-10-31");
+  const rendered = render(<App />); await saved();
+  expect(screen.getByRole("heading", { level: 1, name: "Calendar" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Month", pressed: true })).toBeVisible();
+  expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", "2026-09-27T22:00:00.000Z", "2026-11-01T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
+  expect(screen.getAllByRole("button", { name: /^Example trip,/ })).toHaveLength(3);
+  fireEvent.click(screen.getByRole("button", { name: "Example person" }));
+  expect(screen.queryByRole("button", { name: /^Other plan,/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Sunday, 1 November 2026, 2 plans/ }));
+  expect(screen.getByRole("button", { name: "Day", pressed: true })).toBeVisible();
+  expect(screen.getByRole("region", { name: "All day" })).toHaveTextContent("Example trip");
+  expect(screen.getByRole("region", { name: "Schedule" })).toHaveTextContent("Example meeting");
+  expect(screen.queryByRole("button", { name: /^Other plan/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Example trip/ }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("Example trip");
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  fireEvent.click(screen.getByRole("button", { name: "Add a plan" }));
+  expect(screen.getByLabelText("Date")).toHaveValue("2026-11-01");
+  expect(screen.getByLabelText("Who’s going?")).toHaveValue("home|person.example");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  rendered.unmount();
+  render(<App />); await saved();
+  expect(screen.getByRole("button", { name: "Day", pressed: true })).toBeVisible();
+  expect(window.location.search).toContain("date=2026-11-01");
+});
+
+it("jumps to a date, pages months and returns to today without changing dashboard settings", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-26T10:00:00Z"));
+  window.history.replaceState(null, "", "/calendar");
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Month" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Jump to date:/ }));
+  fireEvent.change(screen.getByLabelText("Jump to date", { selector: "input" }), { target: { value: "2024-01-31" } });
+  fireEvent.click(screen.getByRole("button", { name: "Go to date" }));
+  expect(screen.getByRole("heading", { name: "January 2024" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+  expect(window.location.search).toContain("date=2024-02-29");
+  fireEvent.click(screen.getByRole("button", { name: "Today" }));
+  expect(screen.getByRole("heading", { name: "October 2026" })).toBeVisible();
+  expect(settings.settings.calendar).toEqual({ view: "week", startDay: "today" });
+  fireEvent.click(screen.getByRole("button", { name: "Week" }));
+  fireEvent.click(screen.getByRole("button", { name: "Monday, 26 October 2026" }));
+  expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("No calendars selected");
+  expect(screen.queryByText("No plans for this day.")).not.toBeInTheDocument();
+});
+
+it("opens old date links as a day agenda and distinguishes failed data from an empty day", async () => {
+  app.currentHome = mapHome({ "person.example": state("person.example", "home"), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive(null));
+  window.history.replaceState(null, "", "/calendar?date=2026-10-26");
+  render(<App />); await saved();
+  expect(screen.getByRole("button", { name: "Day", pressed: true })).toBeVisible();
+  expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("Some calendars could not be loaded.");
+  expect(screen.queryByText("No plans for this day.")).not.toBeInTheDocument();
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([]));
+  fireEvent.click(screen.getByRole("button", { name: "Next day" }));
+  expect(await screen.findByText("No plans for this day.")).toBeVisible();
+});
 
 it("selects weather entities, saves both placement checkboxes across reloads and can hide the widget", async () => {
   app.currentHome = mapHome({
@@ -131,7 +204,7 @@ it("uses only Home Assistant people and lets old shared assignments move to a re
   expect(screen.queryByRole("button", { name: "Tasks for Everyone" })).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "To-do lists for Person unavailable" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Shared shopping list" })).toHaveTextContent("Shopping");
-  await navigate("Our week");
+  await navigate("Calendar");
   expect(screen.getAllByRole("rowheader")).toHaveLength(1);
   expect(screen.getByRole("rowheader", { name: "Example person" })).toBeInTheDocument();
   expect(app.watchCalendarEvents).not.toHaveBeenCalled();
@@ -231,7 +304,8 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   expect(screen.getByRole("region", { name: "Next family plan" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
-  const toggles = within(dialog).getAllByRole("switch").filter(toggle => toggle.getAttribute("aria-label") !== "Show tomorrow’s plans");
+  expect(within(dialog).getByRole("switch", { name: "Waste collection" })).not.toBeChecked();
+  const toggles = within(dialog).getAllByRole("switch").filter(toggle => !["Show tomorrow’s plans", "Waste collection"].includes(toggle.getAttribute("aria-label")));
   expect(toggles).toHaveLength(8);
   for (const toggle of toggles) { expect(toggle).toBeChecked(); fireEvent.click(toggle); }
   expect(within(dialog).getByRole("switch", { name: "Show tomorrow’s plans" })).toBeDisabled();
@@ -258,7 +332,39 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ morningSummary: false, nextPlan: false, day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ morningSummary: false, wasteCollection: false, nextPlan: false, day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+});
+
+it("configures and preserves the waste calendar when its Today section is hidden", async () => {
+  app.currentHome = mapHome({ "calendar.example": state("calendar.example", "off", { friendly_name: "Example waste calendar" }) },
+    { ...emptyRegistries, entities: [{ id: "stable-waste", entity_id: "calendar.example" }] }, "home");
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([]));
+  const first = render(<App />); await saved();
+  expect(screen.queryByRole("region", { name: "Waste collection" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Waste collection" }));
+  const daysInput = screen.getByRole("spinbutton", { name: "Show up to (days ahead)" });
+  expect(daysInput).toHaveValue(7);
+  fireEvent.change(daysInput, { target: { value: "3" } });
+  fireEvent.blur(daysInput);
+  chooseEntity("Waste collection calendar", "calendar.example");
+  await waitFor(() => expect(settings.settings.wasteCalendarEntity).toBe("home|stable-waste"));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Customize Today" }), { key: "Escape" });
+  expect(screen.queryByRole("region", { name: "Waste collection" })).not.toBeInTheDocument();
+  expect(settings.settings.wasteCollectionDays).toBe(3);
+  const signal = app.watchCalendarEvents.mock.calls[app.watchCalendarEvents.mock.calls.length - 1][3];
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Waste collection" }));
+  await waitFor(() => expect(settings.settings.dashboard.wasteCollection).toBe(false));
+  expect(settings.settings.wasteCalendarEntity).toBe("home|stable-waste");
+  expect(signal.aborted).toBe(true);
+  first.unmount();
+  render(<App />); await saved();
+  expect(screen.queryByRole("region", { name: "Waste collection" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Waste collection" }));
+  expect(screen.getByRole("button", { name: "Waste collection calendar" })).toHaveTextContent("Example waste calendar");
+  expect(screen.getByRole("spinbutton", { name: "Show up to (days ahead)" })).toHaveValue(3);
 });
 
 it("translates Today settings and keeps a failed save visible and recoverable", async () => {
@@ -664,7 +770,7 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   }
   fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
   expect(window.location.pathname).toBe("/");
-  await navigate("Our week");
+  await navigate("Calendar");
   expect(screen.queryByText(/Set up calendars in this app/)).not.toBeInTheDocument();
   expect(screen.queryByRole("link", { name: "Set up people and calendars" })).not.toBeInTheDocument();
   await navigate("Lists");
@@ -968,7 +1074,7 @@ it.each([
 
 it("translates calendar settings and restores the selected layout after closing", async () => {
   settings.settings.language = "nb";
-  window.history.replaceState(null, "", "/calendar?date=2026-10-26");
+  window.history.replaceState(null, "", "/calendar?view=week&date=2026-10-26");
   render(<App />); await waitFor(() => expect(screen.getByRole("status", { name: "Lagring av innstillinger" })).toHaveTextContent("Fellesinnstillingene er lagret."));
   expect(screen.queryByRole("button", { name: "Uketabell" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Kalenderinnstillinger" }));

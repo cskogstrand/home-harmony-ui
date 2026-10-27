@@ -103,14 +103,43 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { showTomorrow, ...sections } = dashboard;
+  const { showTomorrow, wasteCollection, ...sections } = dashboard;
   expect(showTomorrow).toBe(false);
+  expect(wasteCollection).toBe(false);
   expect(Object.values(sections).every(Boolean)).toBe(true);
   const read = (dashboard: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, dashboard } }));
   expect(read({ shopping: false }).settings.dashboard).toEqual({ ...dashboard, shopping: false });
   const { day: _day, ...oldDashboard } = sections;
   expect(read({ ...oldDashboard, week: false }).settings.dashboard).toEqual({ ...dashboard, week: false });
   for (const invalid of [{ shopping: "false" }, { showTomorrow: "true" }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
+});
+
+it("validates, shares and restores the waste calendar without storing its events", async () => {
+  const config = emptyConfiguration();
+  delete config.settings.wasteCalendarEntity;
+  delete config.settings.wasteCollectionDays;
+  expect(parseConfiguration(JSON.stringify(config)).settings.wasteCalendarEntity).toBe("");
+  expect(parseConfiguration(JSON.stringify(config)).settings.wasteCollectionDays).toBe(7);
+  for (const wasteCalendarEntity of [null, [], 42, "x".repeat(513)]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, wasteCalendarEntity } }))).toThrow();
+  }
+  for (const wasteCollectionDays of [null, "3", -1, 91, 1.5]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, wasteCollectionDays } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, wasteCalendarEntity: "home|example-waste-calendar", wasteCollectionDays: 3, dashboard: { ...p.dashboard, wasteCollection: true } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.wasteCalendarEntity).toBe("home|example-waste-calendar");
+  expect(b.getSnapshot().config.settings.wasteCollectionDays).toBe(3);
+  expect(b.getSnapshot().config.settings.dashboard.wasteCollection).toBe(true);
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  await b.replace(emptyConfiguration());
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.wasteCalendarEntity).toBe(backup.settings.wasteCalendarEntity);
+  expect(a.getSnapshot().config.settings.wasteCollectionDays).toBe(3);
+  expect(a.getSnapshot().config.settings.dashboard.wasteCollection).toBe(true);
 });
 
 it("shares dashboard sections across screens and restores them from backups", async () => {

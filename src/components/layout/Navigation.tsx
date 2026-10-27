@@ -6,7 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 const mainItems = [
   { path: "/", label: "Today", icon: House },
-  { path: "/calendar", label: "Our week", icon: CalendarDays },
+  { path: "/calendar", label: "Calendar", icon: CalendarDays },
   { path: "/lists", label: "Lists", icon: ListChecks },
   { path: "/school", label: "School", icon: BookOpen },
   { path: "/home", label: "Smart home", icon: SlidersHorizontal },

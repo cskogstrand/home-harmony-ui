@@ -1,0 +1,36 @@
+.waste-collection { container-type: inline-size; }
+.waste-collection-list { display: grid; gap: 1rem; }
+.waste-collection-item { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.waste-collection-item + .waste-collection-item { padding-top: 1rem; border-top: 1px solid hsl(var(--border) / .6); }
+.waste-collection-date {
+  display: flex;
+  flex: 0 0 4rem;
+  min-height: 4.5rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 4px);
+  background: hsl(var(--secondary));
+  color: hsl(var(--foreground));
+  line-height: 1.1;
+}
+.waste-collection-date > span { font-size: .875rem; font-weight: 500; margin-bottom: .25rem; }
+.waste-collection-date > strong { font-size: 2rem; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.waste-collection-copy { min-width: 0; overflow-wrap: anywhere; }
+.waste-collection-copy h3 { display: flex; align-items: flex-start; gap: .5rem; font-size: 1.1rem; font-weight: 600; line-height: 1.35; }
+.waste-collection-icons { display: flex; flex-shrink: 0; gap: .25rem; margin-top: .1rem; }
+.waste-collection-countdown { display: flex; align-items: center; gap: .35rem; margin-top: .3rem; font-weight: 500; color: hsl(var(--muted-foreground)); }
+.waste-collection-countdown svg { flex-shrink: 0; }
+.waste-collection-time { font-size: .875rem; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+.waste-collection-item[data-state="today"] .waste-collection-date { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.waste-collection-item[data-state="tomorrow"] .waste-collection-date { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.waste-collection-item:is([data-state="today"], [data-state="tomorrow"]) .waste-collection-countdown { color: hsl(var(--primary)); }
+.waste-collection-item[data-state="collected"] .waste-collection-countdown { color: hsl(var(--success)); }
+@container (min-width: 700px) {
+  .waste-collection-list { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .waste-collection-item { align-items: flex-start; }
+  .waste-collection-item + .waste-collection-item { padding-top: 0; border-top: 0; padding-left: 1.5rem; border-left: 1px solid hsl(var(--border) / .6); }
+}
+@media (forced-colors: active) {
+  .waste-collection-date { outline: 1px solid CanvasText; }
+}

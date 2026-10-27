@@ -68,7 +68,7 @@ export function NotificationSettings() {
       <label>{t("Show on")}<select value={notifications.pages} disabled={disabled} onChange={event => setNotifications({ pages: event.target.value as typeof notifications.pages })}>
         <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
       </select></label>
-    </div><p className="page-note">{t("Main pages: Today, Our week, Lists, School and Smart home.")}</p>
+    </div><p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
     </div>
     {!homeOnline && <p role="status" className="page-note">{t("Notifications are paused until Home Assistant reconnects.")}</p>}
     <div className="flex flex-wrap gap-2">{(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {

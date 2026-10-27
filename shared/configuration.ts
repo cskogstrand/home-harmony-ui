@@ -79,6 +79,7 @@ export const plannerSchema = z.object({
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
   dashboard: z.object({
     morningSummary: z.boolean().default(true),
+    wasteCollection: z.boolean().default(false),
     nextPlan: z.boolean().default(true),
     day: z.boolean().default(true),
     showTomorrow: z.boolean().default(false),
@@ -101,6 +102,8 @@ export const plannerSchema = z.object({
   }).strict().default({ theme: "dark", colorPalette: "pearl", compactMode: false, darkTimetables: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),
   weatherEntity: z.union([memberSchema, z.literal("")]).default(""),
+  wasteCalendarEntity: z.union([memberSchema, z.literal("")]).default(""),
+  wasteCollectionDays: z.number().int().min(0).max(90).default(7),
   weatherTemperatureEntity: z.union([memberSchema, z.literal("")]).default(""),
   weatherPlacement: z.object({ today: z.boolean().default(true), header: z.boolean().default(false) }).strict().default({}),
   calendarMembers: z.record(keySchema, memberSchema).default({}),

@@ -1,7 +1,24 @@
 import { expect, it } from "vitest";
-import { calendarPlans, uniqueCalendarPlans, weekEventRows } from "@/lib/family-calendar";
+import { calendarPlans, calendarRange, moveCalendarDate, uniqueCalendarPlans, weekEventRows } from "@/lib/family-calendar";
 import { addDays, eventTimeLabel, weekNumber } from "@/contexts/FamilyContext";
 import type { CalendarEvent } from "@/types/api";
+
+it("covers complete Monday-first month grids, including leap days and year boundaries", () => {
+  expect(calendarRange("2026-10-31", "month", "today")).toEqual({ start: "2026-09-28", end: "2026-11-02" });
+  expect(calendarRange("2024-02-29", "month", "monday")).toEqual({ start: "2024-01-29", end: "2024-03-04" });
+  expect(calendarRange("2027-01-01", "month", "monday")).toEqual({ start: "2026-12-28", end: "2027-02-01" });
+  expect(calendarRange("2026-10-31", "week", "monday")).toEqual({ start: "2026-10-26", end: "2026-11-02" });
+  expect(calendarRange("2026-10-31", "week", "today")).toEqual({ start: "2026-10-31", end: "2026-11-07" });
+  expect(calendarRange("2026-10-25", "day", "monday")).toEqual({ start: "2026-10-25", end: "2026-10-26" });
+});
+
+it("moves the chosen period without overflowing short months or DST days", () => {
+  expect(moveCalendarDate("2024-01-31", "month", 1)).toBe("2024-02-29");
+  expect(moveCalendarDate("2026-03-31", "month", -1)).toBe("2026-02-28");
+  expect(moveCalendarDate("2026-12-31", "month", 1)).toBe("2027-01-31");
+  expect(moveCalendarDate("2026-10-25", "day", 1)).toBe("2026-10-26");
+  expect(moveCalendarDate("2026-03-29", "week", -1)).toBe("2026-03-22");
+});
 
 it.each([
   ["2026-10-18", 42], ["2026-10-19", 43],

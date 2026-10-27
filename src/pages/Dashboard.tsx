@@ -15,6 +15,7 @@ import { useApp } from "@/contexts/AppContext";
 import { DashboardSettings } from "@/components/DashboardSettings";
 import { FamilyDay } from "@/components/FamilyDay";
 import { WeatherWidget } from "@/components/WeatherWidget";
+import { WasteCollection } from "@/components/WasteCollection";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
@@ -43,6 +44,7 @@ export default function Dashboard() {
     </header>
     {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
     {dashboard.morningSummary && <MorningSummary />}
+    {dashboard.wasteCollection && <WasteCollection />}
     {dashboard.nextPlan && <section className="next-chapter" aria-label={t("Next family plan")}>
       {next ? <><button className="next-event" onClick={() => openEvent(next)}><h2>{next.title}</h2><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
         <div className="next-event"><h2>{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : t("No upcoming plans to display.")}</h2></div>}
