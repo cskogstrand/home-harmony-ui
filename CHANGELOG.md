@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.20
+
+<!-- release-source: e3c106140743223443dfddd875bd78a3c3307465 -->
+
+- feat: add calendar waste collection reminders
+
 ## 0.9.19
 
 <!-- release-source: 3a180a53bb12a561d894b2c84a378059d3aaa825 -->
