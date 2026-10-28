@@ -251,6 +251,8 @@
 .check-row input[aria-busy="true"] + .check-mark .check-icon { opacity: 0; transition: none; }
 .complete .check-text { text-decoration: line-through; color: hsl(var(--muted-foreground)); }
 .check-text { flex: 1; overflow-wrap: anywhere; }
+.check-content { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: .25rem; padding: .5rem 0; }
+.check-description { color: hsl(var(--muted-foreground)); font-size: .875em; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .check-row span.edit-item { cursor: default; }
 .todo-due { flex-shrink: 0; max-width: 35%; font-size: .8125rem; color: hsl(var(--muted-foreground)); text-align: right; overflow-wrap: anywhere; }
 .todo-due[data-state="overdue"] { color: hsl(var(--warning)); font-weight: 600; text-decoration: underline dotted; text-underline-offset: .2em; }

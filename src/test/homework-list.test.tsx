@@ -50,7 +50,8 @@ it("shares checkbox updates and pending feedback, and keeps completed homework c
   const view = show();
   const checkbox = await screen.findByRole("checkbox", { name: "Read a chapter" });
   expect(checkbox).toHaveAccessibleDescription("Example reading notes");
-  expect(screen.getByText("Read a chapter").parentElement).toHaveAttribute("title", "Example reading notes");
+  expect(screen.getByText("Example reading notes")).toBeVisible();
+  expect(screen.getByText("Example reading notes")).not.toHaveClass("sr-only");
   expect(screen.queryByRole("button", { name: /Edit|Add|Remove/ })).not.toBeInTheDocument();
   fireEvent.click(checkbox);
   expect(checkbox).toHaveAttribute("aria-busy", "true");
@@ -112,7 +113,11 @@ it.each(["daily", "tasks", "shopping", "homework"] as const)("adds and edits due
   mocks.family.todoLists["home|todo.homework"].kind = kind;
   mocks.app.todoItems.mockResolvedValue([{ ...item("Example task", "2026-10-29"), description: "Original notes" }]);
   render(<MemoryRouter><ListPanel kind={kind} /></MemoryRouter>);
-  fireEvent.click(await screen.findByRole("button", { name: "Edit Example task" }));
+  const editButton = await screen.findByRole("button", { name: "Edit Example task" });
+  expect(within(editButton).getByText("Original notes")).toBeVisible();
+  expect(within(editButton).getByText("Original notes")).not.toHaveClass("sr-only");
+  expect(editButton).toHaveAccessibleDescription("Original notes");
+  fireEvent.click(editButton);
   const editor = within(screen.getByRole("dialog"));
   expect(editor.getByLabelText("Due date")).toHaveValue("2026-10-29");
   expect(editor.getByLabelText("Description")).toHaveValue("Original notes");

@@ -39,6 +39,7 @@ const CheckRow = forwardRef<HTMLDivElement, {
   const exiting = completing || deleting;
   const entering = feedback === "added" || feedback === "reopened";
   const busy = !!pending && present;
+  const content = <span className="check-content"><span className="check-text">{text}</span>{description && <span id={descriptionId} className="check-description">{description}</span>}</span>;
   return <motion.div ref={ref} className="check-row-shell" aria-hidden={!present || undefined}
     initial={entering && !reduceMotion ? { opacity: 0, transform: "translateX(24px) scale(.97)" } : false}
     layout={reduceMotion ? false : "position"} animate={{ opacity: 1, transform: "translateX(0px) scale(1)" }}
@@ -49,9 +50,8 @@ const CheckRow = forwardRef<HTMLDivElement, {
       initial={false} animate={{ transform: feedback === "edited" && !reduceMotion ? "translateX(12px)" : "translateX(0px)" }}
       transition={reduceMotion ? { duration: 0 } : rowTransition}>
       <label><input type="checkbox" aria-label={text} aria-describedby={description ? descriptionId : undefined} aria-busy={busy} checked={complete || completing} disabled={disabled || busy || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} className="check-icon" />{busy && <LoaderCircle size={16} className="motion-safe:animate-spin" />}</span></label>
-      {onEdit ? <button className="edit-item" aria-label={t("Edit {value1}", { value1: text })} aria-describedby={description ? descriptionId : undefined} title={description || undefined} disabled={disabled || !present} onClick={onEdit}><span className="check-text">{text}</span>{member && <MemberAvatar member={member} small />}</button>
-        : <span className="edit-item" title={description || undefined} aria-describedby={description ? descriptionId : undefined}><span className="check-text">{text}</span></span>}
-      {description && <span id={descriptionId} className="sr-only">{description}</span>}
+      {onEdit ? <button className="edit-item" aria-label={t("Edit {value1}", { value1: text })} aria-describedby={description ? descriptionId : undefined} disabled={disabled || !present} onClick={onEdit}>{content}{member && <MemberAvatar member={member} small />}</button>
+        : <span className="edit-item">{content}</span>}
       {due && <TodoDueLabel due={due} complete={complete || !!completing} />}
       {onRemove && <button className="icon-button delete-item" disabled={removeDisabled || !present} aria-label={t("Remove {value1}", { value1: text })} onClick={onRemove}><X size={16} /></button>}
     </motion.div>
