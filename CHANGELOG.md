@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.24
+
+<!-- release-source: 7fa78660a5a85f22743a18b4aabc8fa7b409198c -->
+
+- feat: add collapsed completed todo option
+- fix: refine list display and planner lookahead
+
 ## 0.9.23
 
 <!-- release-source: 596c283fddd1d84ee4e2bb69b2d34e4dbbd44f39 -->
