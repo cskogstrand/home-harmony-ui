@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.23
+
+<!-- release-source: 596c283fddd1d84ee4e2bb69b2d34e4dbbd44f39 -->
+
+- feat: customize todos and plan look-ahead
+
 ## 0.9.22
 
 <!-- release-source: 3051dbba402918b1717d1127c5b8ec028cf2137e -->
