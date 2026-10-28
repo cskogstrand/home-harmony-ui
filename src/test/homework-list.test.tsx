@@ -8,9 +8,10 @@ import { createI18n } from "@/lib/i18n";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import type { TodoItem } from "@/types/api";
 import type { TodoListKind } from "@/contexts/FamilyContext";
+import { defaultTodoDisplay, type TodoDisplay } from "../../shared/configuration";
 import { state } from "./ha-fixtures";
 
-const mocks = vi.hoisted(() => ({ language: "en" as "en" | "nb", app: { haUrl: "http://ha.local:8123", homeOnline: true, currentHome: null, commands: {}, services: { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }, family: { today: "2026-10-28", todoLists: {} as Record<string, { kind: TodoListKind; member: string }>, connectedPlanner: true, compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Alex", memberColor: () => "#c4d5a3", members: [{ id: "home|person.example", name: "Alex" }], allMembers: [], hasTimetable: () => true, timetableSettings: {} } }));
+const mocks = vi.hoisted(() => ({ language: "en" as "en" | "nb", app: { haUrl: "http://ha.local:8123", homeOnline: true, currentHome: null, commands: {}, services: { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }, family: { today: "2026-10-28", todoLists: {} as Record<string, { kind: TodoListKind; member: string; display?: TodoDisplay }>, connectedPlanner: true, compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Alex", memberColor: () => "#c4d5a3", members: [{ id: "home|person.example", name: "Alex" }], allMembers: [], hasTimetable: () => true, timetableSettings: {} } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => mocks.family }));
 vi.mock("@/hooks/use-i18n", () => ({ useI18n: () => createI18n(mocks.language) }));
@@ -31,6 +32,7 @@ afterEach(cleanup);
 
 it.each(["en", "nb"] as const)("sorts homework and labels due dates in %s, using the home time zone", async language => {
   mocks.language = language;
+  mocks.family.todoLists["home|todo.homework"].display = { ...defaultTodoDisplay, sort: "due-date" };
   mocks.app.todoItems.mockResolvedValue([item("Undated Z"), item("Later", "2026-11-12"), item("Weekday", "2026-10-30"), item("Tomorrow task", "2026-10-28T23:30:00Z"), item("Today task", "2026-10-28"), item("Overdue task", "2026-10-27"), item("Undated A", null)]);
   const view = show();
   await screen.findByRole("checkbox", { name: "Today task" });
@@ -42,7 +44,7 @@ it.each(["en", "nb"] as const)("sorts homework and labels due dates in %s, using
   expect(view.container.querySelector('[data-state="overdue"]')).toHaveAttribute("aria-label", expect.stringContaining(language === "nb" ? "Forfalt" : "Overdue"));
 });
 
-it("shares checkbox updates and pending feedback, and keeps completed homework collapsed", async () => {
+it("shares checkbox updates and pending feedback, and shows completed homework underneath", async () => {
   let completed = false;
   mocks.app.todoItems.mockImplementation(async () => [{ ...item("Read a chapter", "2026-10-29", completed ? "completed" : "needs_action"), description: "Example reading notes" }]);
   let finish: () => void;
@@ -58,9 +60,8 @@ it("shares checkbox updates and pending feedback, and keeps completed homework c
   expect(mocks.app.command).toHaveBeenCalledExactlyOnceWith("todo.homework", "update_item", { item: "Read a chapter", status: "completed" });
   await act(async () => finish());
   const completedGroup = screen.getByText("Completed (1)").closest("details");
-  expect(completedGroup).not.toHaveAttribute("open");
+  expect(completedGroup).toHaveAttribute("open");
   expect(completedGroup.querySelector(".check-row")).toHaveClass("complete");
-  fireEvent.click(screen.getByText("Completed (1)"));
   const reopened = within(completedGroup).getByRole("checkbox", { name: "Read a chapter" });
   fireEvent.click(reopened);
   expect(mocks.app.command).toHaveBeenLastCalledWith("todo.homework", "update_item", { item: "Read a chapter", status: "needs_action" });
@@ -68,10 +69,18 @@ it("shares checkbox updates and pending feedback, and keeps completed homework c
 });
 
 it("orders repeated-hour deadlines by their instant, after date-only items and before undated ones", async () => {
+  mocks.family.todoLists["home|todo.homework"].display = { ...defaultTodoDisplay, sort: "due-date" };
   mocks.app.todoItems.mockResolvedValue([item("Undated"), item("Later instant", "2026-10-25T02:15:00+01:00"), item("Earlier instant", "2026-10-25T02:30:00+02:00"), item("Date only", "2026-10-25")]);
   show();
   await screen.findByRole("checkbox", { name: "Undated" });
   expect(screen.getAllByRole("checkbox").map(row => row.getAttribute("aria-label"))).toEqual(["Date only", "Earlier instant", "Later instant", "Undated"]);
+});
+
+it("keeps Home Assistant order for homework unless sorting is selected", async () => {
+  mocks.app.todoItems.mockResolvedValue([item("Z task"), item("A task", "2026-10-25")]);
+  show();
+  await screen.findByRole("checkbox", { name: "Z task" });
+  expect(screen.getAllByRole("checkbox").map(row => row.getAttribute("aria-label"))).toEqual(["Z task", "A task"]);
 });
 
 it("shows the empty state, read-only rows, unavailable state and recoverable errors", async () => {

@@ -39,8 +39,8 @@ export default function Dashboard() {
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
   const next = upcoming.find(e => !e.allDay);
   const quietDays = !data.loading && !data.errors.length && (!connectedPlanner || homeOnline)
-    && !events.some(e => e.date >= today && e.date < planEnd
-      && (e.date > today || e.allDay || e.continues || (e.endTime ?? e.time) >= time));
+    && !events.some(e => !e.allDay && e.date >= today && e.date < planEnd
+      && (e.date > today || e.continues || (e.endTime ?? e.time) >= time));
   const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
   const quietSummary = t(planDays === 0 ? "No more plans today." : planDays === 1 ? "No plans today or tomorrow." : "No plans in the next {days} days.", { days: planDays });
   return <div className="portrait-board">

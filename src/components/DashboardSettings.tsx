@@ -53,10 +53,13 @@ export function DashboardSettings() {
               </select>
             </label>
             {dashboard.nextPlanDays !== "auto" && <label className="flex items-center justify-between gap-4 text-sm"><span>{t("Days ahead")}</span>
-              <Input type="number" min={0} max={90} step={1} required className="w-20" value={planDays} onChange={event => setPlanDays(event.currentTarget.value)}
-                onBlur={event => { if (event.currentTarget.reportValidity()) setDashboard({ nextPlanDays: event.currentTarget.valueAsNumber }); }} />
+              <Input type="number" min={0} max={90} step={1} required className="w-20" value={planDays} onChange={event => {
+                setPlanDays(event.currentTarget.value);
+                if (event.currentTarget.validity.valid) setDashboard({ nextPlanDays: event.currentTarget.valueAsNumber });
+              }} onBlur={event => event.currentTarget.reportValidity()} />
             </label>}
             <p className="text-sm text-muted-foreground">{t(dashboard.nextPlanDays === "auto" ? "Checks today, plus tomorrow when Show tomorrow’s plans is enabled." : "0–90 days ahead, including today. Use 0 for today only.")}</p>
+            <p className="text-sm text-muted-foreground">{t("Only timed plans count. This controls the “No plans” message; the next plan can still be shown beyond this window.")}</p>
           </fieldset>}
           {key === "wasteCollection" && dashboard.wasteCollection && <div className="pb-4">
             <EntityPicker label={t("Waste collection calendar")} entities={currentHome.entities.filter(entity => entity.domain === "calendar")}

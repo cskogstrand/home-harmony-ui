@@ -285,7 +285,7 @@
 .todo-display-settings { margin-top: 8px; }
 .todo-display-settings > summary { cursor: pointer; color: hsl(var(--muted-foreground)); font-size: .875rem; padding-block: 8px; }
 .todo-celebration { position: fixed; z-index: 100; pointer-events: none; }
-.todo-celebration i { position: absolute; width: 4px; height: 7px; border-radius: 1px; background: hsl(var(--primary)); }
+.todo-celebration i { position: absolute; width: 8px; height: 12px; border-radius: 2px; background: hsl(var(--primary)); }
 .todo-celebration i:nth-child(3n + 2) { background: hsl(var(--success)); }
 .todo-celebration i:nth-child(3n) { background: hsl(var(--warning)); }
 .todo-celebration-reduced i { width: 28px; height: 28px; margin: -14px; border: 2px solid hsl(var(--primary)); border-radius: 9px; background: transparent; }

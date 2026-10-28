@@ -36,7 +36,7 @@ const CheckRow = forwardRef<HTMLDivElement, {
   const present = useIsPresent();
   const presence: ListPresence | undefined = usePresenceData();
   const reduceMotion = useReducedMotion();
-  const completing = !present && !complete && presence?.completedIds.includes(id);
+  const completing = !present && presence?.completedIds.includes(id);
   const deleting = !present && presence && !presence.itemIds.includes(id);
   const exiting = completing || deleting;
   const entering = feedback === "added" || feedback === "reopened";
@@ -71,7 +71,7 @@ const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence:
   const exitPresence: ListPresence | undefined = usePresenceData();
   const reduceMotion = useReducedMotion();
   const present = useIsPresent();
-  return <motion.details ref={ref} className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
+  return <motion.details ref={ref} open className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
     <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={present ? presence : exitPresence} propagate>{children}</AnimatePresence></div>
   </motion.details>;
 });
@@ -140,9 +140,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const online = homeOnline && !!entity && available(entity);
   const [refresh, setRefresh] = useState(0);
   const [pendingToggle, setPendingToggle] = useState<{ id: string; refresh: number }>();
+  const [heldCompletion, setHeldCompletion] = useState<{ id: string; index: number }>();
   const completionTarget = useRef<{ id: string; refresh: number; checkbox: HTMLInputElement; x: number; y: number }>();
   const [celebration, setCelebration] = useState<{ x: number; y: number }>();
-  const endCelebration = useCallback(() => setCelebration(undefined), []);
+  const endCelebration = useCallback(() => { setCelebration(undefined); setHeldCompletion(undefined); }, []);
   const [result, setResult] = useState<{ key: string; entityId?: string; items: TodoItem[]; error?: string }>({ key: "", items: [] });
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<TodoItem>();
@@ -154,7 +155,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const suggestionsId = `${formId}-suggestions`;
   const requestKey = `${haUrl}|${entityId}|${entity?.lastUpdated}|${entity?.state}|${refresh}`;
   useEffect(() => {
-    if (!online) { setResult({ key: "", items: [] }); setPendingToggle(undefined); completionTarget.current = undefined; setCelebration(undefined); return; }
+    if (!online) { setResult({ key: "", items: [] }); setPendingToggle(undefined); completionTarget.current = undefined; endCelebration(); return; }
     let active = true;
     void todoItems(entityId).then(items => {
       if (active) {
@@ -164,7 +165,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
           if (display.celebrate && items.some(item => item.uid === target.id && item.status === "completed")) {
             const rect = target.checkbox.isConnected ? target.checkbox.nextElementSibling.getBoundingClientRect() : undefined;
             setCelebration(rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : { x: target.x, y: target.y });
-          }
+          } else setHeldCompletion(undefined);
         }
         setResult({ key: requestKey, entityId, items });
       }
@@ -173,10 +174,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     }).finally(() => {
       // Only the refresh after this command can finish its checkbox feedback.
       if (active) setPendingToggle(pending => pending?.refresh === refresh ? undefined : pending);
-      if (active && completionTarget.current?.refresh === refresh) completionTarget.current = undefined;
+      if (active && completionTarget.current?.refresh === refresh) { completionTarget.current = undefined; setHeldCompletion(undefined); }
     });
     return () => { active = false; };
-  }, [online, entityId, requestKey, refresh, todoItems, display.celebrate]);
+  }, [online, entityId, requestKey, refresh, todoItems, display.celebrate, endCelebration]);
   const loading = online && result.key !== requestKey;
   // Keep the last rows mounted during refresh so confirmed changes can animate out.
   const hasResult = result.entityId === entityId && !!result.key;
@@ -184,7 +185,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const feedback = useListItemFeedback(online && hasResult && !result.error
     ? items.map(item => ({ id: item.uid, text: item.summary, complete: item.status === "completed" })) : null);
   const status = commands[entityId];
-  const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && !pendingToggle && supportsAction(entity, action, services);
+  const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && !pendingToggle && !heldCompletion && supportsAction(entity, action, services);
   const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }) => {
     try {
       await command(entityId, action, value);
@@ -198,9 +199,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     if (display.celebrate && item.status !== "completed" && document.documentElement.dataset.motionInput !== "keyboard") {
       const rect = checkbox.nextElementSibling.getBoundingClientRect();
       completionTarget.current = { id: item.uid, refresh: refresh + 1, checkbox, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      setHeldCompletion({ id: item.uid, index: shown.findIndex(row => row.uid === item.uid) });
     }
     setPendingToggle({ id: item.uid, refresh: refresh + 1 });
-    if (!await change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })) { setPendingToggle(undefined); completionTarget.current = undefined; }
+    if (!await change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })) { setPendingToggle(undefined); completionTarget.current = undefined; setHeldCompletion(undefined); }
   };
   const add = async (name = text) => {
     if (!can("add_item") || !name.trim()) return;
@@ -220,11 +222,17 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     }
     setText(""); setDetails({ due: "", description: "" }); setAdding(false);
   };
-  const completed = items.filter(item => item.status === "completed");
+  const sorted = [...items];
+  if (display.sort === "alphabetical") sorted.sort((a, b) => a.summary.localeCompare(b.summary, locale));
+  if (display.sort === "due-date") sorted.sort((a, b) => todoDueTimestamp(a.due, currentHome.timeZone) - todoDueTimestamp(b.due, currentHome.timeZone) || a.summary.localeCompare(b.summary, locale));
+  const completed = sorted.filter(item => item.status === "completed");
+  const completedBelow = completed.filter(item => item.uid !== heldCompletion?.id);
   const presence: ListPresence = { itemIds: items.map(item => item.uid), completedIds: completed.map(item => item.uid) };
-  const pending = items.filter(item => item.status !== "completed");
-  if (kind === "homework") pending.sort((a, b) => todoDueTimestamp(a.due, currentHome.timeZone) - todoDueTimestamp(b.due, currentHome.timeZone) || a.summary.localeCompare(b.summary, locale));
-  const ordered = display.completed === "inline" ? items : pending;
+  const pending = sorted.filter(item => item.status !== "completed");
+  const ordered = (display.completed === "inline" ? sorted : pending).filter(item => item.uid !== heldCompletion?.id);
+  const heldItem = items.find(item => item.uid === heldCompletion?.id);
+  // Keep the clicked row in place even if Home Assistant moves completed items first.
+  if (heldItem) ordered.splice(heldCompletion.index, 0, heldItem);
   const shown = limit ? ordered.slice(0, limit) : ordered;
   const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
     pending={pendingToggle?.id === item.uid} disabled={!can("update_item")} removeDisabled={!can("remove_item")}
@@ -254,8 +262,8 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
       {hasResult && (result.error ? <p role="alert">{message(result.error)}</p> : <>
         {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
-        <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
-        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{display.completed === "under" && !!completed.length && <CompletedItems key="completed" count={completed.length} presence={presence}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletion && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{display.completed === "under" && !!completedBelow.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence}>{completedBelow.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}

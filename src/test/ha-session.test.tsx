@@ -551,7 +551,7 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   const calendar = within(screen.getByRole("region", { name: "Family weekly calendar" }));
   expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(1);
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
-  expect(next.getByRole("heading", { name: date ? "Next appointment" : "No upcoming plans to display." })).toBeInTheDocument();
+  expect(next.getByRole("heading", { name: date ? "Next appointment" : "No more plans today." })).toBeInTheDocument();
   if (date) expect(next.getByText("15:00 – 16:00")).toBeInTheDocument();
 });
 const setupWritableCalendars = (features = 1) => {
@@ -1706,8 +1706,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   const shopping = within(screen.getByRole("group", { name: "Shared shopping list" }));
   await shopping.findByText("Completed (1)");
-  expect(shopping.getByRole("checkbox", { name: "Milk" })).not.toBeVisible();
-  fireEvent.click(shopping.getByText("Completed (1)"));
+  expect(shopping.getByRole("checkbox", { name: "Milk" })).toBeVisible();
   expect(shopping.getByRole("checkbox", { name: "Milk" })).toBeChecked();
   expect(ha.callService).toHaveBeenCalledWith(conn, "todo", "update_item", { item: "milk", status: "completed" }, { entity_id: "todo.shopping" });
   fireEvent.click(shopping.getByRole("button", { name: "Add item" }));

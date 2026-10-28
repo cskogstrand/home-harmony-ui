@@ -61,6 +61,11 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
               <option value="inline">{t("Show finished inline")}</option><option value="under">{t("Show finished underneath")}</option><option value="hide">{t("Hide finished")}</option>
             </select>
           </label>
+          <label className="grid gap-2 text-sm">{t("Sort order")}
+            <select className="w-full rounded-lg border border-input bg-background p-2" value={display.sort} onChange={event => setTodoListDisplay(selected, { sort: event.target.value as TodoDisplay["sort"] })}>
+              <option value="home-assistant">{t("Home Assistant order")}</option><option value="alphabetical">{t("Alphabetical")}</option><option value="due-date">{t("Due date")}</option>
+            </select>
+          </label>
           {([["showDetails", "Show details"], ["showDueDate", "Show due date"], ["celebrate", "Celebrate completion"]] as const).map(([key, title]) =>
             <label key={key} className="flex min-h-11 items-center justify-between gap-3 text-sm"><span>{t(title)}</span><Switch checked={display[key]} onCheckedChange={value => setTodoListDisplay(selected, { [key]: value })} /></label>)}
         </fieldset>

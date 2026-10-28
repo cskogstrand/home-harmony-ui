@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ListPanel } from "@/components/FamilyLists";
 import type { ListItem } from "@/contexts/FamilyContext";
@@ -66,7 +66,6 @@ describe.each([true, false])("list change feedback (Home Assistant: %s)", connec
     family.items.push({ id: "milk", text: "Milk", kind: "shopping", member: "everyone", done: complete });
     if (section === "completed") family.items.push({ id: "rice", text: "Rice", kind: "shopping", member: "everyone", done: true });
     const update = await openList();
-    if (complete) fireEvent.click(screen.getByText(`Completed (${section === "completed" ? 2 : 1})`));
     const milk = screen.getByRole("checkbox", { name: "Milk" });
     family.items = family.items.filter(item => item.id !== "milk");
     await act(async () => update());

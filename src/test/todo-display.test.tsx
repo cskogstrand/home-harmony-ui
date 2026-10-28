@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ListPanel, HomeAssistantList } from "@/components/FamilyLists";
+import { TodoCelebration } from "@/components/TodoCelebration";
 import { defaultTodoDisplay, type TodoDisplay } from "../../shared/configuration";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
@@ -30,7 +31,7 @@ it.each(["inline", "under", "hide"] as const)("renders completed items %s while 
   expect(await screen.findByRole("checkbox", { name: "Example task" })).not.toBeChecked();
   expect(screen.getByText("Example details")).toBeVisible();
   expect(view.container.querySelector(".todo-due")).toBeVisible();
-  if (completed === "under") { expect(screen.getByText("Completed (1)")).toBeVisible(); fireEvent.click(screen.getByText("Completed (1)")); }
+  if (completed === "under") expect(screen.getByText("Completed (1)").closest("details")).toHaveAttribute("open");
   else expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument();
   if (completed === "hide") expect(screen.queryByRole("checkbox", { name: "Finished example" })).not.toBeInTheDocument();
   else expect(screen.getByRole("checkbox", { name: "Finished example" })).toBeChecked();
@@ -51,9 +52,34 @@ it.each([false, true])("hides details and due dates without removing source data
   }
 });
 
+it.each(["inline", "under", "hide"] as const)("sorts open and completed items without changing Home Assistant data (%s)", async completed => {
+  family.todoLists["home|todo.example"].display.completed = completed;
+  const items = [
+    { uid: "z", summary: "Z task", status: "needs_action", due: "2026-10-28" },
+    { uid: "b", summary: "B task", status: "needs_action", due: "2026-10-30" },
+    { uid: "a", summary: "A task", status: "needs_action" },
+    { uid: "d", summary: "D finished", status: "completed", due: "2026-10-29" },
+    { uid: "c", summary: "C finished", status: "completed", due: "2026-10-31" },
+  ];
+  app.todoItems.mockResolvedValue(items);
+  const view = renderList();
+  await screen.findByRole("checkbox", { name: "Z task" });
+  const order = () => screen.getAllByRole("checkbox").map(input => input.getAttribute("aria-label"));
+  expect(order()).toEqual(completed === "hide" ? ["Z task", "B task", "A task"] : items.map(item => item.summary));
+  family.todoLists["home|todo.example"].display.sort = "alphabetical";
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  expect(order()).toEqual(completed === "hide" ? ["A task", "B task", "Z task"] : completed === "inline" ? ["A task", "B task", "C finished", "D finished", "Z task"] : ["A task", "B task", "Z task", "C finished", "D finished"]);
+  family.todoLists["home|todo.example"].display.sort = "due-date";
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  expect(order()).toEqual(completed === "hide" ? ["Z task", "B task", "A task"] : completed === "inline" ? ["Z task", "D finished", "B task", "C finished", "A task"] : ["Z task", "B task", "A task", "D finished", "C finished"]);
+  expect(items.map(item => item.uid)).toEqual(["z", "b", "a", "d", "c"]);
+  expect(app.command).not.toHaveBeenCalled();
+});
+
 it.each(["inline", "under", "hide"] as const)("celebrates only after the clicked item is confirmed complete (%s)", async completed => {
   family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed, celebrate: true };
-  app.todoItems.mockResolvedValue([pendingItem]);
+  const otherItem = { ...pendingItem, uid: "two", summary: "Another task" };
+  app.todoItems.mockResolvedValue([otherItem, pendingItem]);
   let finishCommand: () => void;
   app.command.mockImplementation(() => new Promise<void>(resolve => { finishCommand = resolve; }));
   renderList();
@@ -64,9 +90,21 @@ it.each(["inline", "under", "hide"] as const)("celebrates only after the clicked
   app.todoItems.mockImplementationOnce(() => new Promise(resolve => { finishRefresh = resolve; }));
   await act(async () => finishCommand());
   expect(document.querySelector(".todo-celebration")).toBeNull();
-  await act(async () => finishRefresh([{ ...pendingItem, status: "completed" }]));
-  expect(document.querySelectorAll(".todo-celebration i")).toHaveLength(12);
+  // A source reorder must not move the clicked row during its celebration.
+  await act(async () => finishRefresh([{ ...pendingItem, status: "completed" }, otherItem]));
+  expect(document.querySelectorAll(".todo-celebration i")).toHaveLength(32);
+  expect(checkbox).toBeChecked();
+  expect(checkbox.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
+  expect(screen.getAllByRole("checkbox").map(input => input.getAttribute("aria-label"))).toEqual(["Another task", "Example task"]);
+  expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument();
+  await act(async () => { await new Promise(resolve => window.setTimeout(resolve, 1200)); });
+  expect(document.querySelector(".todo-celebration")).not.toBeNull();
+  expect(checkbox.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
   await waitFor(() => expect(document.querySelector(".todo-celebration")).toBeNull());
+  if (completed === "inline") expect(checkbox.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
+  else expect(checkbox.closest(".check-row-shell")).toHaveAttribute("aria-hidden", "true");
+  if (completed === "under") expect(screen.getByText("Completed (1)")).toBeInTheDocument();
+  expect(screen.getByRole("checkbox", { name: "Another task" })).toBeEnabled();
 });
 
 it.each(["disabled", "keyboard", "failed command", "failed refresh", "unconfirmed"])("does not celebrate %s", async mode => {
@@ -81,9 +119,15 @@ it.each(["disabled", "keyboard", "failed command", "failed refresh", "unconfirme
   fireEvent.click(await screen.findByRole("checkbox", { name: "Example task" }));
   await act(async () => {});
   expect(document.querySelector(".todo-celebration")).toBeNull();
+  if (mode === "failed command" || mode === "unconfirmed") expect(screen.getByRole("checkbox", { name: "Example task" })).toBeEnabled();
+  if (mode === "failed refresh") {
+    app.todoItems.mockResolvedValue([pendingItem]);
+    fireEvent.click(screen.getByRole("button", { name: "Refresh list" }));
+    expect(await screen.findByRole("checkbox", { name: "Example task" })).toBeEnabled();
+  }
 });
 
-it("keeps the completion origin when a live update removes the row before the command returns", async () => {
+it("holds the row when a live update confirms completion before the command returns", async () => {
   motion.reduced = true;
   family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "hide", celebrate: true };
   app.todoItems.mockResolvedValue([pendingItem]);
@@ -95,10 +139,12 @@ it("keeps the completion origin when a live update removes the row before the co
   app.todoItems.mockResolvedValue([{ ...pendingItem, status: "completed" }]);
   app.currentHome.entities[0].lastUpdated = "confirmed-update";
   view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
-  await waitFor(() => expect(checkbox).not.toBeInTheDocument());
+  await waitFor(() => expect(checkbox).toBeChecked());
+  expect(checkbox.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
   expect(document.querySelector(".todo-celebration")).toBeNull();
   await act(async () => finishCommand());
   expect(document.querySelectorAll(".todo-celebration-reduced i")).toHaveLength(1);
+  await waitFor(() => expect(checkbox).not.toBeInTheDocument());
 });
 
 it("uses a stationary fade with reduced motion and does not replay it when reopening", async () => {
@@ -117,4 +163,21 @@ it("uses a stationary fade with reduced motion and does not replay it when reope
   expect(document.querySelector(".todo-celebration")).toBeNull();
   view.unmount();
   expect(document.querySelector(".todo-celebration")).toBeNull();
+});
+
+it("waits for every browser animation to finish and cancels particles on unmount", async () => {
+  const animate = Element.prototype.animate;
+  const finishes: (() => void)[] = [];
+  const cancel = vi.fn();
+  Element.prototype.animate = vi.fn(() => ({ finished: new Promise<void>(resolve => finishes.push(resolve)), cancel })) as unknown as typeof animate;
+  try {
+    const onComplete = vi.fn();
+    const view = render(<TodoCelebration origin={{ x: 100, y: 100 }} onComplete={onComplete} />);
+    await act(async () => finishes.slice(1).forEach(finish => finish()));
+    expect(onComplete).not.toHaveBeenCalled();
+    await act(async () => finishes[0]());
+    expect(onComplete).toHaveBeenCalledOnce();
+    view.unmount();
+    expect(cancel).toHaveBeenCalledTimes(finishes.length);
+  } finally { Element.prototype.animate = animate; }
 });

@@ -72,6 +72,7 @@ export const smartHomeSchema = z.object({
 }).strip();
 export const todoDisplaySchema = z.object({
   completed: z.enum(["inline", "under", "hide"]).default("under"),
+  sort: z.enum(["home-assistant", "alphabetical", "due-date"]).default("home-assistant"),
   showDetails: z.boolean().default(true),
   showDueDate: z.boolean().default(true),
   celebrate: z.boolean().default(false),
