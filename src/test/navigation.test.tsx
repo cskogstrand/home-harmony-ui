@@ -43,14 +43,17 @@ const saved = async () => {
 };
 
 it.each([
-  ["en", "2026-10-28", "auto", false, null],
-  ["en", "2026-10-29", "auto", true, null],
-  ["en", "2026-10-29", "auto", false, "No more plans today. Next up is Thursday."],
-  ["en", "2026-10-30", "auto", true, "No plans today or tomorrow. Next up is Friday."],
-  ["nb", "2026-10-30", "auto", true, "Ingen planer i dag eller i morgen. Neste er fredag."],
-  ["en", "2026-10-30", 3, false, null],
-  ["en", "2026-11-01", 3, false, "No plans in the next 3 days. Next up is Sunday."],
-] as const)("explains the next family plan in %s on %s (%s, tomorrow %s)", async (language, date, days, showTomorrow, summary) => {
+  ["en", "2026-10-28", "auto", false, "Today"],
+  ["en", "2026-10-29", "auto", true, "Tomorrow"],
+  ["en", "2026-10-29", "auto", false, "Tomorrow"],
+  ["en", "2026-10-30", "auto", true, "In 2 days"],
+  ["nb", "2026-10-31", "auto", true, "Om 3 dager"],
+  ["nb", "2026-10-28", "auto", true, "I dag"],
+  ["nb", "2026-10-29", "auto", true, "I morgen"],
+  ["nb", "2026-10-29", "auto", false, "I morgen"],
+  ["en", "2026-10-30", 3, false, "In 2 days"],
+  ["en", "2026-11-01", 3, false, "In 4 days"],
+] as const)("explains the next family plan in %s on %s (%s, tomorrow %s)", async (language, date, days, showTomorrow, countdown) => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
   settings.settings.language = language;
@@ -65,7 +68,9 @@ it.each([
   const next = screen.getByRole("region", { name: language === "nb" ? "Neste familieplan" : "Next family plan" });
   expect(within(next).getByRole("heading", { level: 2, name: language === "nb" ? "Neste familieplan" : "Next family plan" })).toBeVisible();
   expect(await within(next).findByRole("heading", { level: 3, name: "Example activity" })).toBeVisible();
-  expect(next.querySelector(".next-plan-summary")?.textContent ?? null).toBe(summary);
+  expect(within(next).queryByText(/^(No (more )?plans|Ingen (flere )?planer)/)).not.toBeInTheDocument();
+  expect(next.querySelector(".next-plan-countdown")?.textContent ?? null).toBe(countdown);
+  expect(within(next).getAllByRole("button")).toHaveLength(1);
   fireEvent.click(within(next).getByRole("button", { name: /Example activity/ }));
   expect(screen.getByRole("dialog", { name: "Example activity" })).toBeVisible();
 });
@@ -85,7 +90,7 @@ it.each(["ongoing", "loading", "failed", "offline"])("does not claim quiet days 
   render(<App />); await saved();
   const next = screen.getByRole("region", { name: "Next family plan" });
   if (mode !== "offline") expect(await within(next).findByRole("heading", { name: "Example activity" })).toBeVisible();
-  expect(next.querySelector(".next-plan-summary")).not.toBeInTheDocument();
+  expect(within(next).queryByText(/^No (more )?plans/)).not.toBeInTheDocument();
 });
 
 it.each(["2026-10-28", "2026-10-26"])("ignores all-day plans starting %s in the next family plan empty state", async start => {
@@ -105,7 +110,7 @@ it.each(["2026-10-28", "2026-10-26"])("ignores all-day plans starting %s in the 
   expect(within(screen.getByRole("region", { name: "Everyone’s day" })).getByText("Example all-day plan")).toBeVisible();
 });
 
-it("changes the next-plan summary immediately across a timed plan while ignoring all-day events", async () => {
+it("keeps the next-plan countdown when changing the look-ahead window while ignoring all-day events", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
   settings.settings.dashboard.showTomorrow = true;
@@ -118,16 +123,17 @@ it("changes the next-plan summary immediately across a timed plan while ignoring
   ]));
   render(<App />); await saved();
   const next = screen.getByRole("region", { name: "Next family plan" });
-  expect(next.querySelector(".next-plan-summary")).toHaveTextContent("No plans today or tomorrow. Next up is Friday.");
+  expect(next.querySelector(".next-plan-countdown")).toHaveTextContent("In 2 days");
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   fireEvent.change(screen.getByRole("combobox", { name: "Look ahead" }), { target: { value: "custom" } });
   const days = screen.getByRole("spinbutton", { name: "Days ahead" });
   fireEvent.change(days, { target: { value: "2" } });
   await waitFor(() => expect(settings.settings.dashboard.nextPlanDays).toBe(2));
-  expect(next.querySelector(".next-plan-summary")).not.toBeInTheDocument();
+  expect(next.querySelector(".next-plan-countdown")).toHaveTextContent("In 2 days");
   fireEvent.change(days, { target: { value: "0" } });
   await waitFor(() => expect(settings.settings.dashboard.nextPlanDays).toBe(0));
-  expect(next.querySelector(".next-plan-summary")).toHaveTextContent("No more plans today. Next up is Friday.");
+  expect(next.querySelector(".next-plan-countdown")).toHaveTextContent("In 2 days");
+  expect(within(next).queryByText(/^No (more )?plans/)).not.toBeInTheDocument();
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   expect(within(next).getByRole("heading", { name: "Example timed plan" })).toBeVisible();
 });
@@ -144,7 +150,8 @@ it("looks ahead beyond a Monday-based week for the next family plan", async () =
   render(<App />); await saved();
   expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", "2026-10-25T23:00:00.000Z", "2026-11-07T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
-  expect(await next.findByText("No more plans today. Next up is Tuesday.")).toBeVisible();
+  expect(await next.findByText("In 2 days")).toBeVisible();
+  expect(next.queryByText("No more plans today.")).not.toBeInTheDocument();
 });
 
 it("switches calendar periods, loads the whole month, filters people and drills into a multi-day event", async () => {
@@ -1229,7 +1236,7 @@ it("distinguishes offline plans and security from successful empty reads", async
   app.connectionStatus = "disconnected";
   const view = render(<App />); await saved();
   expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars unavailable while offline.");
-  expect(screen.getByRole("button", { name: "Add a family plan" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   await navigate("Smart home");
   expect(screen.queryByText("No visible alarm")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();

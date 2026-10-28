@@ -696,7 +696,8 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
   expect(train.closest("tr")).not.toBe(trip.closest("tr"));
   expect(grid.getByRole("button", { name: /Midnight finish/ }).closest("td")).toHaveAttribute("colspan", "1");
   expect(grid.queryAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(path === "/calendar" ? 7 : 0);
-  expect(screen.getByRole("button", { name: path === "/" ? "Add a family plan" : "Add a plan" })).toBeEnabled();
+  if (path === "/calendar") expect(screen.getByRole("button", { name: "Add a plan" })).toBeEnabled();
+  else expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   fireEvent.click(train);
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-07");
   expect(screen.getByLabelText("Time")).toHaveValue("22:00:00");
@@ -838,13 +839,14 @@ it("retains failed update drafts and prevents writes offline or to unavailable c
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
 
-it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar without a local duplicate", async path => {
+it.each(["/", "/calendar"])("saves new plans through Calendar starting from %s without a local duplicate", async path => {
   setupWritableCalendars();
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   await waitFor(() => expect(haFetch).toHaveBeenCalled());
   await waitFor(() => expect(screen.queryByText("Loading calendar events…")).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: path === "/" ? "Add a family plan" : "Add a plan" }));
+  if (path === "/") fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Calendar" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add a plan" }));
   fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Evening walk" } });
   const select = screen.getByRole("button", { name: "Calendar" });
   expect(select).toHaveTextContent("Choose a calendar");

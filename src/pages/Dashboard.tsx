@@ -3,8 +3,9 @@ import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Plus, CalendarDays, CalendarClock, BookOpen } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CalendarClock, BookOpen } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
@@ -12,6 +13,7 @@ import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/c
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useApp } from "@/contexts/AppContext";
 import { DashboardSettings } from "@/components/DashboardSettings";
 import { FamilyDay } from "@/components/FamilyDay";
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const addPlan = (date: string, member: MemberId) => { setEditing(undefined); setNewPlan({ date, member }); setEditorOpen(true); };
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
   const next = upcoming.find(e => !e.allDay);
+  const daysAway = next ? differenceInCalendarDays(parseISO(next.date), parseISO(today)) : 0;
   const quietDays = !data.loading && !data.errors.length && (!connectedPlanner || homeOnline)
     && !events.some(e => !e.allDay && e.date >= today && e.date < planEnd
       && (e.date > today || e.continues || (e.endTime ?? e.time) >= time));
@@ -53,9 +56,8 @@ export default function Dashboard() {
     {dashboard.morningSummary && <MorningSummary />}
     {dashboard.wasteCollection && <WasteCollection />}
     {dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
-      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle><Button className="add-plan mobile-icon-button" onClick={() => openEvent()} aria-label={t("Add a family plan")} disabled={connectedPlanner && !homeOnline}><Plus size={20} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add a plan")}</span></Button></div>
+      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle>{next && <Badge variant="secondary" className="next-plan-countdown px-3 py-1 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge>}</div>
       <div className="next-plan-content">
-      {next && quietDays && <p className="next-plan-summary">{quietSummary} {t("Next up is {day}.", { day: dateLabel(next.date, next.date < addDays(today, 7) ? { weekday: "long" } : { weekday: "long", day: "numeric", month: "long" }) })}</p>}
       {next ? <><button className="next-event" onClick={() => openEvent(next)}><h3>{next.title}</h3><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} aria-hidden="true" /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
         <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
       </div>
