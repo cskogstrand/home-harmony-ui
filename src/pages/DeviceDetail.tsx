@@ -1,6 +1,6 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useEffect } from "react";
-import { ArrowLeft, CheckCircle2, CircleAlert, MapPin } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CircleAlert, MapPin, Activity, SlidersHorizontal } from "lucide-react";
 import { useParams, Link, Navigate, useLocation } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { PhysicalDeviceIcon } from "@/components/devices/DeviceCard";
@@ -69,11 +69,11 @@ export default function DeviceDetail() {
         {sections.primary.map(entity => <SmartHomeCard key={entity.entityId} entity={entity} density="original" detail />)}
       </section>}
       {!!sections.readings.length && <section className="device-detail-readings" aria-label={t("Readings and status")}>
-        <PanelHeading title={t("Readings and status")} />
+        <PanelHeading icon={Activity} title={t("Readings and status")} />
         <div className="device-reading-grid">{sections.readings.map(entity => <DeviceReading key={entity.entityId} entity={entity} />)}</div>
       </section>}
     </div>}
-    {!!sections.controls.length && <section aria-label={t("Additional controls")}><PanelHeading title={t("Additional controls")} />{controls(sections.controls)}</section>}
+    {!!sections.controls.length && <section aria-label={t("Additional controls")}><PanelHeading icon={SlidersHorizontal} title={t("Additional controls")} />{controls(sections.controls)}</section>}
     {!entities.length && <p className="glow-panel empty-note">{metadataWarnings.length ? t("Controls could not be fully loaded. Check your Home Assistant connection and permissions.") : t("This device has no visible controls or readings. Hidden and disabled entities are managed in Home Assistant.")}</p>}
   </div>;
 }

@@ -1,6 +1,7 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useRef, useState } from "react";
 import { Link, useBeforeUnload, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2, Eye, TriangleAlert, SlidersHorizontal } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -66,7 +67,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   const title = card ? t("Edit card") : design ? t("New {type} card", { type: t(design.subtitle).toLocaleLowerCase(language) }) : t("Choose a card type");
   return <section className="smart-builder" aria-label={t("Card editor")}>
     <Button variant="ghost" className="smart-builder-back" onClick={() => dirty ? setConfirm("discard") : onClose()}><ArrowLeft size={17} aria-hidden="true" />{t("Your cards")}</Button>
-    <div className="smart-builder-heading"><h2 ref={heading} tabIndex={-1}>{title}</h2>{draft && <Button form="smart-card-form" type="submit" disabled={disabled || !draft.mainEntity || !dirty}>{t(card ? "Save changes" : "Add card")}</Button>}</div>
+    <div className="smart-builder-heading"><PanelTitle ref={heading} tabIndex={-1} icon={SlidersHorizontal}>{title}</PanelTitle>{draft && <Button form="smart-card-form" type="submit" disabled={disabled || !draft.mainEntity || !dirty}>{t(card ? "Save changes" : "Add card")}</Button>}</div>
     {!design || !draft ? <>
       <p className="page-note">{t("Start with what you want to control or see. Attach its entities next.")}</p>
       <div className="smart-type-tools"><label className="smart-type-search"><Search size={18} aria-hidden="true" /><Input aria-label={t("Search card types")} type="search" placeholder={t("Search card types")} value={search} onChange={event => setSearch(event.target.value)} /></label>
@@ -120,7 +121,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
         </form>
         </div>
         <aside className="smart-compose-preview" aria-label={t("Card preview")}>
-          <h3>{t("Card preview")}</h3><p className="page-note">{t("Your Smart home card, with live data and media. Device controls are disabled.")}</p>
+          <PanelTitle as="h3" icon={Eye}>{t("Card preview")}</PanelTitle><p className="page-note">{t("Your Smart home card, with live data and media. Device controls are disabled.")}</p>
           <SmartHomeCard entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
             entities={supporting.filter(entity => draft.linkedEntities.includes(entity.preferenceId))} />
         </aside>
@@ -149,13 +150,13 @@ export function SmartHomeSettings() {
   return <div className="smart-settings">
     {selectedId === "new" || selected ? <CardEditor key={selectedId} card={selected} disabled={disabled} onClose={() => open()} /> : <>
       <section className="smart-collection" aria-label={t("Your cards")}>
-        <div className="smart-builder-heading"><div><h2>{t("Your cards")}</h2><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" />{t("Add card")}</Button></div>
+        <div className="smart-builder-heading"><div><PanelTitle icon={Layers3}>{t("Your cards")}</PanelTitle><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button className="mobile-icon-button" disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add card")}</span></Button></div>
         {!!selectedId && <p role="status">{t("This card no longer exists. Choose another or add a new one.")}</p>}
         {cards.length ? <ul className="smart-card-list">{cards.map(card => <li key={card.id}><button onClick={() => open(card.id)} className="smart-card-row"><span className="smart-card-row-icon glass-surface"><card.design.icon size={22} strokeWidth={1.7} aria-hidden="true" /></span><span className="smart-card-row-copy"><strong>{card.title || card.main?.name || t(card.design.subtitle)}</strong><small>{[t(card.design.subtitle), card.group, t(card.linkedEntities.length ? "{count} entities" : "1 entity", { count: card.linkedEntities.length + 1 })].filter(Boolean).join(" · ")}</small>{!card.main && <small className="smart-card-missing">{t("Main entity unavailable · choose a replacement")}</small>}</span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
           : <div className="smart-collection-empty"><Layers3 size={38} strokeWidth={1.4} aria-hidden="true" /><h3>{t("A place for the things you use")}</h3><p>{t("Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.")}</p></div>}
         <div className="smart-collection-links"><Link className="text-link" to="/home">{t("Open Smart home")}<ArrowUpRight size={16} aria-hidden="true" /></Link>{!!cards.length && <span>{t("Reorder cards and groups from Configure on Smart home.")}</span>}</div>
       </section>
-      <section className="smart-danger" aria-labelledby="smart-danger-title"><h2 id="smart-danger-title">{t("Danger zone")}</h2><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
+      <section className="smart-danger" aria-labelledby="smart-danger-title"><PanelTitle id="smart-danger-title" icon={TriangleAlert}>{t("Danger zone")}</PanelTitle><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
     </>}
     <div className="smart-settings-status"><p role="status">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
       {!homeOnline && <p>{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}

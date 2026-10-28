@@ -1,3 +1,4 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { CalendarDays } from "lucide-react";
 import { useFamily, addDays, type FamilyEvent } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -39,7 +40,7 @@ export function CalendarDay({ date, events, unavailable, onEdit }: {
   const { t, dateLabel } = useI18n();
   const plans = uniqueCalendarPlans(events);
   return <section className="glow-panel calendar-agenda" aria-label={t("Day view")}>
-    <h2>{dateLabel(date, { weekday: "long", day: "numeric", month: "long" })}</h2>
+    <PanelTitle icon={CalendarDays}>{dateLabel(date, { weekday: "long", day: "numeric", month: "long" })}</PanelTitle>
     {!plans.length ? <div className="calendar-agenda-empty"><CalendarDays size={32} strokeWidth={1.5} aria-hidden="true" /><p>{unavailable || t("No plans for this day.")}</p></div> :
       ([true, false] as const).map(allDay => {
         const group = plans.filter(event => !!event.allDay === allDay);

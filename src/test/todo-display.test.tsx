@@ -44,18 +44,20 @@ it.each(["inline", "under", "collapsed", "hide"] as const)("renders completed it
   if (completed === "inline") expect(screen.getAllByRole("checkbox").map(input => input.getAttribute("aria-label"))).toEqual(["Finished example", "Example task"]);
 });
 
-it.each([false, true])("hides details and due dates without removing source data (School: %s)", async school => {
+it.each(["shopping", "homework", "school"] as const)("hides details and due dates without removing source data (%s)", async surface => {
   family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, showDetails: false, showDueDate: false };
   app.todoItems.mockResolvedValue([pendingItem]);
-  const view = render(<MemoryRouter><HomeAssistantList preferenceId="home|todo.example" member="everyone" kind="homework" school={school} /></MemoryRouter>);
+  const view = render(<MemoryRouter><HomeAssistantList preferenceId="home|todo.example" member="everyone" kind={surface === "shopping" ? "shopping" : "homework"} school={surface === "school"} /></MemoryRouter>);
   await screen.findByRole("checkbox", { name: "Example task" });
   expect(screen.queryByText("Example details")).not.toBeInTheDocument();
   expect(view.container.querySelector(".todo-due")).not.toBeInTheDocument();
-  if (!school) {
+  if (surface === "shopping") {
     fireEvent.click(screen.getByRole("button", { name: "Edit Example task" }));
     expect(screen.getByLabelText("Description")).toHaveValue("Example details");
     expect(screen.getByLabelText("Due date")).toHaveValue("2026-10-29");
   }
+  expect(pendingItem.description).toBe("Example details");
+  expect(pendingItem.due).toBe("2026-10-29");
 });
 
 it.each(["inline", "under", "collapsed", "hide"] as const)("sorts open and completed items without changing Home Assistant data (%s)", async completed => {

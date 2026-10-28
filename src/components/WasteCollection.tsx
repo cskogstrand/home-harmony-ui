@@ -1,3 +1,4 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useState } from "react";
 import { Apple, Check, Cylinder, Leaf, Milk, Newspaper, PlugZap, RefreshCw, Shirt, Trash2, TriangleAlert, Wine, type LucideIcon } from "lucide-react";
 import { differenceInCalendarDays, parseISO } from "date-fns";
@@ -59,7 +60,7 @@ export function WasteCollection() {
   if (!status && !collections.length) return null;
   return <section className="glow-panel col-span-full waste-collection" aria-label={t("Waste collection")} aria-busy={loading}>
     <div className="panel-heading">
-      <h2 className="flex items-center gap-2"><Trash2 size={22} className="shrink-0" aria-hidden="true" />{t("Waste collection")}</h2>
+      <PanelTitle icon={Trash2}>{t("Waste collection")}</PanelTitle>
       {wasteCalendarEntity && <Button variant="ghost" size="icon" aria-label={t("Refresh waste collections")} title={t("Refresh waste collections")} disabled={!ready || loading} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={18} aria-hidden="true" /></Button>}
     </div>
     {status ? <p role={events === null ? "alert" : "status"} className="text-muted-foreground">{status}</p> : <ul className="waste-collection-list">

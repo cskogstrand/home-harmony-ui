@@ -1,4 +1,5 @@
-import { Armchair } from "lucide-react";
+import { PanelTitle } from "@/components/PanelTitle";
+import { Armchair, CalendarCheck } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
@@ -13,7 +14,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   const { today, calendarMembers, dashboard } = useFamily();
   const days = dashboard.showTomorrow ? [today, addDays(today, 1)] : [today];
   return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
-    <div className="panel-heading"><h2>{t("Everyone’s day")}</h2><CalendarRefreshButton data={data} /></div>
+    <div className="panel-heading"><PanelTitle icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle><CalendarRefreshButton data={data} /></div>
     <HomeAssistantCalendar data={data} />
     <div className="family-day-board relative mt-4">
     <div className="family-lanes family-day-column-lines" aria-hidden="true">{data.people.map(person => <span key={person.id} />)}</div>

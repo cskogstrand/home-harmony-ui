@@ -65,7 +65,7 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
               })}
             </tr>)}
             {!compact && <tr className="week-add-row">{days.map(day => <td key={day}>
-              <button className="week-add-plan" aria-label={t("Add a plan for {value1} on {value2}", { value1: person.name, value2: dateLabel(day) })} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span>{personal.some(event => event.date === day) ? t("Add") : t("Add plan")}</span></button>
+              <button className="week-add-plan" aria-label={t("Add a plan for {value1} on {value2}", { value1: person.name, value2: dateLabel(day) })} onClick={() => onAdd(day, person.id)}><Plus size={15} aria-hidden="true" /><span className="max-[700px]:sr-only">{personal.some(event => event.date === day) ? t("Add") : t("Add plan")}</span></button>
             </td>)}</tr>}
           </tbody>;
         })}

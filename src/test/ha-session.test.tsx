@@ -551,8 +551,11 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   const calendar = within(screen.getByRole("region", { name: "Family weekly calendar" }));
   expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(1);
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
-  expect(next.getByRole("heading", { name: date ? "Next appointment" : "No more plans today." })).toBeInTheDocument();
-  if (date) expect(next.getByText("15:00 – 16:00")).toBeInTheDocument();
+  expect(next.getByRole("heading", { level: 2, name: "Next family plan" })).toBeInTheDocument();
+  if (date) {
+    expect(next.getByRole("heading", { level: 3, name: "Next appointment" })).toBeInTheDocument();
+    expect(next.getByText("15:00 – 16:00")).toBeInTheDocument();
+  } else expect(next.getByText("No more plans today.")).toBeInTheDocument();
 });
 const setupWritableCalendars = (features = 1) => {
   vi.useFakeTimers({ toFake: ["Date"] });

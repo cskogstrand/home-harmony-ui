@@ -59,7 +59,7 @@ export function NotificationSettings() {
   };
   const source = draft && "entity" in draft.trigger ? notificationEntity(entities, draft.trigger.entity) : undefined;
   return <section className="glow-panel" id="notifications">
-    <PanelHeading title={t("Notifications")} to="/notifications" label={t("View notifications")} />
+    <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Home Harmony is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
     <div className="planner-form mb-4"><div className="grid gap-4 sm:grid-cols-2">

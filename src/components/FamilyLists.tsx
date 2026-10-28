@@ -1,8 +1,9 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { useI18n } from "@/hooks/use-i18n";
 import { useListItemFeedback, type ItemFeedback } from "@/hooks/use-list-item-feedback";
 import { forwardRef, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
-import { Check, LoaderCircle, Plus, RefreshCw, X } from "lucide-react";
+import { Check, LoaderCircle, Plus, RefreshCw, X, ClipboardList, ShoppingBasket, ListChecks, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
@@ -17,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { defaultTodoDisplay } from "../../shared/configuration";
 import { TodoCelebration } from "./TodoCelebration";
 
+const listIcons = { daily: ListChecks, shopping: ShoppingBasket, tasks: ClipboardList, homework: BookOpen };
 const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks", homework: "Homework" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
@@ -124,7 +126,7 @@ export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number 
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
     <ListPanelSurface />
-    <PanelHeading title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
+    <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
     {!lists.length && <p className="empty-note">{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p>}
     {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} />)}
   </article></LayoutGroup>;
@@ -138,6 +140,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const entity = currentHome.entities.find(e => e.domain === "todo" && e.preferenceId === preferenceId);
   const entityId = entity?.entityId;
   const online = homeOnline && !!entity && available(entity);
+  const editable = kind !== "homework" && !school;
   const [refresh, setRefresh] = useState(0);
   const [pendingToggle, setPendingToggle] = useState<{ id: string; refresh: number }>();
   const [heldCompletion, setHeldCompletion] = useState<{ id: string; index: number }>();
@@ -185,7 +188,8 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const feedback = useListItemFeedback(online && hasResult && !result.error
     ? items.map(item => ({ id: item.uid, text: item.summary, complete: item.status === "completed" })) : null);
   const status = commands[entityId];
-  const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && !pendingToggle && !heldCompletion && supportsAction(entity, action, services);
+  const busy = loading || !!status?.pending;
+  const can = (action: TodoAction) => (editable || action === "update_item") && online && !loading && !result.error && !status?.pending && !pendingToggle && !heldCompletion && supportsAction(entity, action, services);
   const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }) => {
     try {
       await command(entityId, action, value);
@@ -237,19 +241,19 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
     pending={pendingToggle?.id === item.uid} disabled={!can("update_item")} removeDisabled={!can("remove_item")}
     onToggle={checkbox => void toggle(item, checkbox)}
-    onEdit={!school ? () => setEditing(item) : undefined} onRemove={!limit && !school ? () => setRemoving(item) : undefined} />;
-  return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={loading || !!status?.pending}>
+    onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
+  return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
     {celebration && <TodoCelebration origin={celebration} onComplete={endCelebration} />}
-    {school ? <div className="panel-heading"><h3>{t("Homework")}</h3>{online && hasResult && !result.error && <span className="list-progress" aria-label={t("{count} open items", { count: pending.length })}>{pending.length}</span>}{online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} disabled={loading || status?.pending || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw size={18} aria-hidden="true" /></Button>}</div> : <div className="list-composer">
+    {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle>{online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} aria-busy={busy} disabled={busy || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw size={18} aria-hidden="true" className={busy ? "motion-safe:animate-spin" : undefined} /></Button>}</div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
-        <div className="list-identity flex-1 basis-32">{kind !== "shopping" && <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span>{entity?.name ?? t("List unavailable")}</span></div></div>
+        <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div>{kind !== "shopping" && <h3>{memberName(member)}</h3>}<span>{entity?.name ?? t("List unavailable")}</span></div></div>
         <div className="ml-auto flex items-center gap-1">
-          <Button className="list-add-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</Button>
-          {online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} title={t("Refresh list")} aria-busy={loading}
-            disabled={loading || status?.pending || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw aria-hidden="true" className={loading ? "motion-safe:animate-spin" : undefined} /></Button>}
+          {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[700px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
+          {online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} title={t("Refresh list")} aria-busy={busy}
+            disabled={busy || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw aria-hidden="true" className={busy ? "motion-safe:animate-spin" : undefined} /></Button>}
         </div>
       </div>
-      {adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
+      {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{status?.pending ? t("Saving…") : t("Add")}</Button>
         <details className="todo-add-details"><summary>{t("Due date and description")}</summary>{entity && <TodoItemFields entity={entity} value={details} onChange={setDetails} disabled={!can("add_item")} />}</details>
@@ -267,10 +271,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}
-      <span role="status" className="page-note">{status?.pending ? t("Updating list…") : loading && hasResult ? t("Refreshing list…") : ""}</span>
+      <span role="status" className="sr-only">{status?.pending ? t("Updating list…") : loading && hasResult ? t("Refreshing list…") : ""}</span>
     </>}
-    {editing && <ItemEditor text={editing.summary} kind={kind} description={t("Saved to {value1} in Home Assistant.", { value1: entity?.name ?? t("your list") })} disabled={!can("update_item")} error={status?.error} item={editing} entity={entity} timeZone={currentHome.timeZone} onSave={(text, details) => can("update_item") ? change("update_item", { item: editing.uid, rename: text, ...todoDetailChanges(editing, details, entity, currentHome.timeZone) }) : false} onClose={() => setEditing(undefined)} />}
-    {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from {value2} in Home Assistant? This cannot be undone.", { value1: removing.summary, value2: entity?.name ?? t("this list") })} confirmLabel={t("Remove item")} pendingLabel={t("Removing…")} destructive disabled={!can("remove_item") || !items.some(item => item.uid === removing.uid)} onConfirm={async () => {
+    {editable && editing && <ItemEditor text={editing.summary} kind={kind} description={t("Saved to {value1} in Home Assistant.", { value1: entity?.name ?? t("your list") })} disabled={!can("update_item")} error={status?.error} item={editing} entity={entity} timeZone={currentHome.timeZone} onSave={(text, details) => can("update_item") ? change("update_item", { item: editing.uid, rename: text, ...todoDetailChanges(editing, details, entity, currentHome.timeZone) }) : false} onClose={() => setEditing(undefined)} />}
+    {editable && removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from {value2} in Home Assistant? This cannot be undone.", { value1: removing.summary, value2: entity?.name ?? t("this list") })} confirmLabel={t("Remove item")} pendingLabel={t("Removing…")} destructive disabled={!can("remove_item") || !items.some(item => item.uid === removing.uid)} onConfirm={async () => {
       await command(entityId, "remove_item", { item: removing.uid });
       setRefresh(n => n + 1);
     }} />}
@@ -308,8 +312,8 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   return <article className={`glow-panel list-panel list-${kind}`}>
     <ListPanelSurface />
     <div className="list-composer">
-      <PanelHeading title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
-      <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</Button></div>
+      <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
+      <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[700px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button></div>
       {adding && <form id={formId} className="quick-add" onSubmit={e => { e.preventDefault(); add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={kind === "shopping" ? t("New shopping item") : t(kind === "daily" ? "New daily task" : "New task")} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         {kind !== "shopping" && <select aria-label={t("Assign task")} value={member} onChange={e => setMember(e.target.value as MemberId)}><MemberOptions /></select>}

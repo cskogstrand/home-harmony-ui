@@ -43,7 +43,7 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
       <div><strong>{t("Configure cards")}</strong><p>{t("Drag cards to reorder or move between groups. You can also use the move buttons and group menu.")}</p></div>
       <form className="smart-new-group" onSubmit={event => { event.preventDefault(); const name = newGroup.trim(); if (name && !disabled) { setEmptyGroups(current => [...new Set([...current, name])]); setNewGroup(""); setAnnouncement(t("Group ready. Move a card into {group} to save it.", { group: name })); } }}>
         <Input aria-label={t("New group name")} placeholder={t("New group name")} value={newGroup} maxLength={80} disabled={disabled} onChange={event => setNewGroup(event.target.value)} />
-        <Button type="submit" variant="outline" disabled={disabled || !newGroup.trim()}><Plus size={17} />{t("Add group")}</Button>
+        <Button className="mobile-icon-button" type="submit" variant="outline" disabled={disabled || !newGroup.trim()}><Plus size={17} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add group")}</span></Button>
       </form>
       <p role="status">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : t("Shared configuration saved.")}</p>
       {shared?.state.error && <div role="alert"><p>{t(shared.state.error)}</p><Link className="text-link" to="/settings/backups">{t("Storage and backups")}</Link></div>}

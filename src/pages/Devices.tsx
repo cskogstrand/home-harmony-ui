@@ -1,3 +1,5 @@
+import { PanelTitle } from "@/components/PanelTitle";
+import { DoorOpen, Layers3 } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useSearchParams } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
@@ -36,7 +38,7 @@ export default function Devices() {
     </div>
     {!!metadataWarnings.length && <p className="page-note" role="status">{t("Device information may be incomplete. {value1}", { value1: metadataWarnings.map(warning => message(warning)).join(" ") })}</p>}
     {sections.map(section => <section key={section.id} className="device-group" aria-label={section.name}>
-      <div className="panel-heading"><h2>{section.name}</h2><span>{t(section.devices.length === 1 ? "{count} device" : "{count} devices", { count: section.devices.length })}</span></div>
+      <div className="panel-heading"><PanelTitle icon={grouping === "room" ? DoorOpen : Layers3}>{section.name}</PanelTitle><span>{t(section.devices.length === 1 ? "{count} device" : "{count} devices", { count: section.devices.length })}</span></div>
       <div className="device-list">{section.devices.map(({ device, entities }) => <DeviceCard key={device.id} device={device} entities={entities} listSearch={listSearch} />)}</div>
     </section>)}
     {!devices.length && <p className="glow-panel empty-note">{loading ? t("Loading devices…") : query ? t("No devices match your search.") : metadataWarnings.length ? t("Device information is unavailable. Check your Home Assistant connection and permissions.") : haUrl ? t("No registered devices found in this home.") : t("Connect your home in Settings to see your devices.")}</p>}

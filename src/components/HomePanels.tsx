@@ -1,8 +1,9 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2 } from "lucide-react";
+import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2, Sunrise, Heart } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
@@ -26,7 +27,7 @@ export function MorningSummary() {
   if (summary?.state !== today || typeof message !== "string" || !message.trim()) return null;
   return <section className="glow-panel col-span-full" aria-label={t("Morning summary")}>
     <div className="panel-heading">
-      <h2>{t("Morning summary")}</h2>
+      <PanelTitle icon={Sunrise}>{t("Morning summary")}</PanelTitle>
       <div className="command-controller shrink-0" aria-busy={running}>
         <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !script || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on").catch(() => {}); }}>
           <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? t("Preparing summary…") : t("Play summary")}</span>
@@ -61,7 +62,7 @@ export function HomeFavorites() {
   const scenes = entities.filter(e => e.domain === "scene");
   const missing = selected.length - entities.length;
   return <section className="glow-panel home-favorites" aria-label={t("Home favorites")}>
-    <div className="panel-heading"><h2>{t("Just right at home")}</h2><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="ghost" size="icon" disabled={!haUrl} aria-label={t("Customize home favorites")} title={t("Customize home favorites")}><Settings aria-hidden="true" /></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t("Make home yours")}</DialogTitle><DialogDescription>{t("Choose your dashboard favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
+    <div className="panel-heading"><PanelTitle icon={Heart}>{t("Just right at home")}</PanelTitle><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="ghost" size="icon" disabled={!haUrl} aria-label={t("Customize home favorites")} title={t("Customize home favorites")}><Settings aria-hidden="true" /></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t("Make home yours")}</DialogTitle><DialogDescription>{t("Choose your dashboard favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
     {!!entities.length && <div className="favorite-devices">{entities.filter(e => e.domain !== "scene").map(entity => <EntityCard key={entity.entityId} entity={entity} />)}</div>}
     {!!scenes.length && <SceneButtons entities={scenes} />}
     {!selected.length && haUrl && <p className="empty-note">{t("No favorites selected.")}</p>}
@@ -87,5 +88,5 @@ function FavoritePicker({ selected, onSave, onCancel }: { selected: string[]; on
 }
 export function VehicleCard() {
   const { t } = useI18n();
-  return <article className="glow-panel vehicle-panel"><PanelHeading title={t("Ready for the road")} /><CarFront size={32} /><Link className="text-link" to="/devices">{t("Browse devices")}<ArrowUpRight size={17} /></Link></article>;
+  return <article className="glow-panel vehicle-panel"><PanelHeading icon={CarFront} title={t("Ready for the road")} /><Link className="text-link" to="/devices">{t("Browse devices")}<ArrowUpRight size={17} /></Link></article>;
 }

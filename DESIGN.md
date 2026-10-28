@@ -312,6 +312,8 @@ Person and device filters use outlined pills; selected filters switch to the pri
 
 Work panels use the opaque card fill, a border at reduced opacity and panel spacing from the shared shell. Panel headings align titles with actions and wrap when needed. Repeated favorite devices use dividers within a shared panel rather than another nested card around each control.
 
+Section titles use `PanelTitle`: a fitting Lucide outline icon at 1.1em and stroke weight 1.8, followed by the existing heading text with a .6em gap. Icons inherit the palette's primary color without a badge, shadow or extra glass layer. They are decorative to assistive technology; the text retains the accessible name and heading level. `PanelHeading` requires an explicit icon and keeps its actions separate, wrapping when space is tight. Device type icons and person avatars remain the identity for their own cards. Dates, item titles, form labels and navigation group labels retain their quieter hierarchy.
+
 ### Navigation and transient menus
 
 The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue, semibold text and an opaque secondary fill. The large portrait layout emphasizes generous horizontal links. Phone and compact tablet layouts align icons above captions inside an inset floating dock. Focus uses an inset outline in the navigation selection color. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu.
@@ -326,7 +328,7 @@ The weekly grid aligns people and dates, marks the current day, and supports con
 
 Calendar timetables place dense day surfaces using the card fill at (65% opacity) inside the shared glass frame. Today uses the accent fill and a primary date capsule with primary foreground, reinforced by `aria-current="date"`. Lesson text, details, messages and controls retain their existing hierarchy and behavior. Reduced transparency and increased contrast make day surfaces opaque; forced colors outline today with system Highlight. The frame inherits the shared glass accessibility fallbacks.
 
-Each list has a filled, labeled plus button with a 56px minimum touch target. Its header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
+Editable lists have a filled plus button with a 56px minimum touch target. Generated homework permits completion and refresh, with no add, edit or delete controls on School or Lists. The School homework header omits an item count. Below 700px, list, plan, card and group add actions show only their icon, retaining their accessible label; list cancellation shows an X. Larger screens keep visible action labels. The list header and inline entry form stay visible while scrolling within that list, keeping the destination clear on boards with several lists. Fields have persistent labels; failed saves and cancellation preserve the draft. The Lists page opens Shopping by default, while direct links retain their selected tab.
 
 Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms. Keyboard control and overlay transitions stay immediate. List-change feedback follows the rules below. Reduced-motion settings replace overlay movement with a 160ms fade. Do not add motion to imply a device command succeeded before the state confirms it.
 
@@ -345,6 +347,8 @@ List changes use deliberately slower, flowing motion so people can follow what c
 | Check | Fade in and scale from 90% to full size. | 450ms opacity, 600ms scale, shared `--ease-out` |
 
 Compare previous and new items by stable ID to identify additions, edits and completion changes. Initial loads, reconnects, unchanged refreshes and reordering do not highlight rows. New changes extend the active feedback window so overlapping updates remain legible.
+
+List refresh and update progress spin the refresh icon, keeping the existing rows and card height stable while fetching. Status announcements remain available to screen readers without taking up layout space. Reduced motion keeps the icon stationary, with `aria-busy` exposing progress.
 
 Deletion starts only after the item disappears from confirmed data. Keep its row mounted for the exit, with controls disabled and the row hidden from assistive technology. Cancelled or failed deletion keeps the item in place; filtering or a dashboard limit must not be mistaken for deletion. Pass current item IDs through nested presence boundaries so deleting the last completed item also animates.
 

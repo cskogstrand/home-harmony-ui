@@ -1,3 +1,4 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Camera, ListChecks, X } from "lucide-react";
@@ -47,7 +48,7 @@ export function NotificationList({ compact = false, presentation = "section" }: 
   const { notifications, errors, retry } = useNotifications();
   if (compact && !notifications.length && !errors.length) return null;
   const banner = compact && presentation === "banner";
-  const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><h2 className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</h2><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: notifications.length })}</Link></div>;
+  const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: notifications.length })}</Link></div>;
   return <section className={banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : "glow-panel mb-5"} aria-label={t("Active notifications")}>
     {!banner && heading}
     {!!errors.length && <div role="status" className="mb-3 w-full"><p>{t("Some notification sources could not be loaded. Check the Home Assistant connection and permissions.")}</p><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>}
@@ -55,7 +56,7 @@ export function NotificationList({ compact = false, presentation = "section" }: 
     {banner ? <ul className="flex min-w-0 flex-1 basis-72 flex-wrap gap-x-5 gap-y-2">{notifications.slice(0, 3).map(item => <NotificationRow key={item.id} item={item} condensed />)}</ul> : <div className={notifications.some(item => item.rule.kind === "ongoing") && notifications.some(item => item.rule.kind !== "ongoing") ? "grid gap-5 lg:grid-cols-2" : ""}>
       {(["ongoing", "current"] as const).map(kind => {
         const items = notifications.filter(item => (item.rule.kind === "ongoing") === (kind === "ongoing"));
-        return items.length > 0 && <div key={kind} className="min-w-0"><h3 className="text-sm font-semibold text-muted-foreground">{t(kind === "ongoing" ? "Ongoing tasks" : "Current alerts")}</h3><ul>{(compact ? items.slice(0, 3) : items).map(item => <NotificationRow key={item.id} item={item} />)}</ul></div>;
+        return items.length > 0 && <div key={kind} className="min-w-0"><PanelTitle as="h3" icon={kind === "ongoing" ? ListChecks : Bell} className="text-sm font-semibold text-muted-foreground">{t(kind === "ongoing" ? "Ongoing tasks" : "Current alerts")}</PanelTitle><ul>{(compact ? items.slice(0, 3) : items).map(item => <NotificationRow key={item.id} item={item} />)}</ul></div>;
       })}
     </div>}
     {banner && heading}

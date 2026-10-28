@@ -1,3 +1,4 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { useCallback, useRef, type ReactNode } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
@@ -7,7 +8,7 @@ import { timetableDays, timetableEventIsCurrent, timetableMessages, timetableWee
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronRight, Clock3, UsersRound } from "lucide-react";
+import { ChevronRight, Clock3, UsersRound, BookOpen, MessageSquare } from "lucide-react";
 import type { TimetableSettings } from "../../shared/configuration";
 
 export function CalendarTimetable({ child, settings, dayView = false, sourceControls }: { child: string; settings: TimetableSettings; dayView?: boolean; sourceControls?: Record<"hours" | "activities" | "meetings" | "messages", ReactNode> }) {
@@ -75,7 +76,7 @@ export function CalendarTimetable({ child, settings, dayView = false, sourceCont
     </section>}
   </div>;
   const renderDayGroups = (day: typeof days[number]) => displayedPopupGroups.length ? <div className="timetable-popup-grid">{displayedPopupGroups.map(([key, label]) => <section className={`timetable-popup-section timetable-popup-${key}`} aria-label={t(label)} key={key}>
-    {sourceControls?.[key] ?? <h3>{t(label)}</h3>}
+    {sourceControls?.[key] ?? <PanelTitle as="h3" icon={key === "activities" ? BookOpen : key === "meetings" ? UsersRound : MessageSquare}>{t(label)}</PanelTitle>}
     {sourceControls && !selectedPopupGroups.some(([selected]) => selected === key) ? <p className="muted">{t("No calendars selected")}</p> : renderAgenda(day.popup[key], key === "messages" ? "messages" : "popup")}
   </section>)}</div> : !hasPopupHours && <p className="muted">{t("Choose calendars for School day view in Settings → Timetables.")}</p>;
   const weekLabel = t("Week of {date}", { date: dateLabel(start, { day: "numeric", month: "long" }) });
@@ -122,7 +123,7 @@ export function CalendarTimetable({ child, settings, dayView = false, sourceCont
       </DialogContent>
     </Dialog>)}</div>}
     {messages.map(source => <section className="timetable-message" key={source.id}>
-      <h3>{calendarName(source.name)}</h3>
+      <PanelTitle as="h3" icon={MessageSquare}>{calendarName(source.name)}</PanelTitle>
       {source.date && <p className="muted">{source.date === today ? t("Today") : t("Next message · {date}", { date: dateLabel(source.date) })}</p>}
       {source.messages.map(event => <div key={event.id}><h4>{calendarTitle(event.title)}</h4>{event.note && event.note.trim() !== event.title.trim() && <p>{event.note}</p>}</div>)}
       {!source.messages.length && <p className="muted">{t("No message today or in the next year.")}</p>}

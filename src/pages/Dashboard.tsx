@@ -1,9 +1,10 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { ArrowUpRight, Plus, CalendarDays, CalendarClock, BookOpen } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
@@ -51,15 +52,17 @@ export default function Dashboard() {
     {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible === true) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
     {dashboard.morningSummary && <MorningSummary />}
     {dashboard.wasteCollection && <WasteCollection />}
-    {dashboard.nextPlan && <section className="next-chapter" aria-label={t("Next family plan")}>
+    {dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
+      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle><Button className="add-plan mobile-icon-button" onClick={() => openEvent()} aria-label={t("Add a family plan")} disabled={connectedPlanner && !homeOnline}><Plus size={20} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add a plan")}</span></Button></div>
+      <div className="next-plan-content">
       {next && quietDays && <p className="next-plan-summary">{quietSummary} {t("Next up is {day}.", { day: dateLabel(next.date, next.date < addDays(today, 7) ? { weekday: "long" } : { weekday: "long", day: "numeric", month: "long" }) })}</p>}
-      {next ? <><button className="next-event" onClick={() => openEvent(next)}><h2>{next.title}</h2><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
-        <div className="next-event"><h2>{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</h2></div>}
-      <Button className="add-plan" onClick={() => openEvent()} aria-label={t("Add a family plan")} disabled={connectedPlanner && !homeOnline}><Plus size={20} /><span>{t("Add a plan")}</span></Button>
+      {next ? <><button className="next-event" onClick={() => openEvent(next)}><h3>{next.title}</h3><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} aria-hidden="true" /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
+        <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
+      </div>
     </section>}
     {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
     {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
-      <div className="panel-heading calendar-panel-heading"><h2>{t("Everyone’s week")}</h2><CalendarViewControls /><CalendarRefreshButton data={data} /></div>
+      <div className="panel-heading calendar-panel-heading"><PanelTitle icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><div className="calendar-heading-actions"><CalendarViewControls /><CalendarRefreshButton data={data} /></div></div>
       <HomeAssistantCalendar data={data} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
       <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={t("View {value1}, week {value2}", { value1: dateLabel(day), value2: weekNumber(day) })} aria-current={day === today ? "date" : undefined}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>
@@ -76,7 +79,7 @@ export default function Dashboard() {
     </section>}
     {dashboard.daily && <ListPanel kind="daily" limit={3} />}
     {dashboard.shopping && <ListPanel kind="shopping" limit={3} />}
-    {dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><h2>{t("School")}</h2><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>}
+    {dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>}
     {dashboard.home && <HomeFavorites />}
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;

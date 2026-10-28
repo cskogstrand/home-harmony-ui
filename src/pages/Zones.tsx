@@ -1,3 +1,4 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { SettingsPopover } from "@/components/common/SettingsPopover";
 import { useI18n } from "@/hooks/use-i18n";
 import { entityDetailPath } from "@/lib/device-model";
@@ -21,7 +22,7 @@ export default function Zones() {
       const passive = zone.attributes.passive === true;
       const presence = /^\d+$/.test(zone.state) ? t(Number(zone.state) === 1 ? "{count} person" : "{count} people", { count: zone.state }) : zone.state;
       return <article key={zone.entityId} className="glow-panel space-y-4" aria-label={zone.name}>
-        <div className="panel-heading"><h2 className="flex items-center gap-2"><MapPin size={20} />{zone.name}</h2><Link className="text-link" to={entityDetailPath(zone)} aria-label={t("View {value1} zone details", { value1: zone.name })}><ArrowUpRight size={18} /></Link></div>
+        <div className="panel-heading"><PanelTitle icon={MapPin}>{zone.name}</PanelTitle><Link className="text-link" to={entityDetailPath(zone)} aria-label={t("View {value1} zone details", { value1: zone.name })}><ArrowUpRight size={18} /></Link></div>
         <p className="sensor-state">{!homeOnline && t("Stale · ")}{presence}</p>
         <details className="device-details"><summary>{t("Location details")}</summary><dl className="device-readings">
           <div><dt>{t("Radius")}</dt><dd>{radius !== undefined && radius >= 0 ? `${number(radius)} m` : t("Not reported")}</dd></div>

@@ -1,3 +1,4 @@
+import { Database } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -31,7 +32,7 @@ export function ConfigurationBackup() {
     } catch { setError("Could not export the configuration. Try again before closing this screen."); }
   };
   return <section className="glow-panel space-y-4">
-    <PanelHeading title={t("Storage and backups")} />
+    <PanelHeading icon={Database} title={t("Storage and backups")} />
     <p className="page-note">{t("Backups include shared app settings and timetable links. They exclude uploaded files, Home Assistant data, passwords and alarm codes.")}</p>
       <p role="status">{shared.state.saving ? t("Saving shared configuration…") : shared.state.dirty ? t("Unsaved changes on this screen.") : shared.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
       {shared.state.error && <p role="alert" className="text-destructive">{message(shared.state.error)}</p>}

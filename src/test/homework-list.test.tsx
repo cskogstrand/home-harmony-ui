@@ -44,17 +44,18 @@ it.each(["en", "nb"] as const)("sorts homework and labels due dates in %s, using
   expect(view.container.querySelector('[data-state="overdue"]')).toHaveAttribute("aria-label", expect.stringContaining(language === "nb" ? "Forfalt" : "Overdue"));
 });
 
-it("shares checkbox updates and pending feedback, and collapses completed homework by default", async () => {
+it.each(["school", "lists"])("keeps generated homework completion-only in %s, with pending feedback", async surface => {
   let completed = false;
   mocks.app.todoItems.mockImplementation(async () => [{ ...item("Read a chapter", "2026-10-29", completed ? "completed" : "needs_action"), description: "Example reading notes" }]);
   let finish: () => void;
   mocks.app.command.mockImplementation(() => new Promise<void>(resolve => { finish = () => { completed = true; resolve(); }; }));
-  const view = show();
+  const view = surface === "school" ? show() : render(<MemoryRouter><ListPanel kind="homework" /></MemoryRouter>);
   const checkbox = await screen.findByRole("checkbox", { name: "Read a chapter" });
   expect(checkbox).toHaveAccessibleDescription("Example reading notes");
   expect(screen.getByText("Example reading notes")).toBeVisible();
   expect(screen.getByText("Example reading notes")).not.toHaveClass("sr-only");
   expect(screen.queryByRole("button", { name: /Edit|Add|Remove/ })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText(/open items/)).not.toBeInTheDocument();
   fireEvent.click(checkbox);
   expect(checkbox).toHaveAttribute("aria-busy", "true");
   expect(mocks.app.command).toHaveBeenCalledExactlyOnceWith("todo.homework", "update_item", { item: "Read a chapter", status: "completed" });
@@ -67,6 +68,29 @@ it("shares checkbox updates and pending feedback, and collapses completed homewo
   fireEvent.click(reopened);
   expect(mocks.app.command).toHaveBeenLastCalledWith("todo.homework", "update_item", { item: "Read a chapter", status: "needs_action" });
   expect(view.container.querySelector(".todo-description-field")).not.toBeInTheDocument();
+});
+
+it.each(["school", "lists", "shopping"])("refreshes %s through the icon while retaining rows and announcing status without layout space", async surface => {
+  if (surface === "shopping") mocks.family.todoLists["home|todo.homework"].kind = "shopping";
+  mocks.app.todoItems.mockResolvedValue([item("Example task")]);
+  if (surface === "school") show();
+  else render(<MemoryRouter><ListPanel kind={surface === "shopping" ? "shopping" : "homework"} /></MemoryRouter>);
+  const checkbox = await screen.findByRole("checkbox", { name: "Example task" });
+  const refresh = screen.getByRole("button", { name: "Refresh list" });
+  let finish: (items: TodoItem[]) => void;
+  mocks.app.todoItems.mockImplementationOnce(() => new Promise<TodoItem[]>(resolve => { finish = resolve; }));
+  fireEvent.click(refresh);
+  expect(refresh).toBeDisabled();
+  expect(refresh).toHaveAttribute("aria-busy", "true");
+  expect(refresh.querySelector("svg")).toHaveClass("motion-safe:animate-spin");
+  expect(checkbox).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveClass("sr-only");
+  expect(screen.getByRole("status")).toHaveTextContent("Refreshing list…");
+  expect(screen.queryByText("Loading to-do items…")).not.toBeInTheDocument();
+  await act(async () => finish([item("Example task")]));
+  expect(refresh).toBeEnabled();
+  expect(refresh).toHaveAttribute("aria-busy", "false");
+  expect(refresh.querySelector("svg")).not.toHaveClass("motion-safe:animate-spin");
 });
 
 it("orders repeated-hour deadlines by their instant, after date-only items and before undated ones", async () => {
@@ -119,7 +143,7 @@ it("only adds homework to a School card when configured and excludes it from oth
   expect(mocks.app.todoItems).not.toHaveBeenCalled();
 });
 
-it.each(["daily", "tasks", "shopping", "homework"] as const)("adds and edits due dates and descriptions on %s lists", async kind => {
+it.each(["daily", "tasks", "shopping"] as const)("adds and edits due dates and descriptions on %s lists", async kind => {
   mocks.family.todoLists["home|todo.homework"].kind = kind;
   mocks.app.todoItems.mockResolvedValue([{ ...item("Example task", "2026-10-29"), description: "Original notes" }]);
   render(<MemoryRouter><ListPanel kind={kind} /></MemoryRouter>);
@@ -146,8 +170,9 @@ it.each(["daily", "tasks", "shopping", "homework"] as const)("adds and edits due
 });
 
 it("preserves timed deadlines on rename, clears details explicitly and retains failed drafts", async () => {
+  mocks.family.todoLists["home|todo.homework"].kind = "tasks";
   mocks.app.todoItems.mockResolvedValue([{ ...item("Example task", "2026-10-28T23:30:00+00:00"), description: "Original notes" }]);
-  render(<MemoryRouter><ListPanel kind="homework" /></MemoryRouter>);
+  render(<MemoryRouter><ListPanel kind="tasks" /></MemoryRouter>);
   fireEvent.click(await screen.findByRole("button", { name: "Edit Example task" }));
   let editor = within(screen.getByRole("dialog"));
   expect(editor.getByLabelText("Due date")).toHaveValue("2026-10-29");
@@ -169,9 +194,10 @@ it("preserves timed deadlines on rename, clears details explicitly and retains f
 });
 
 it("disables unsupported details without breaking ordinary rename", async () => {
+  mocks.family.todoLists["home|todo.homework"].kind = "tasks";
   mocks.app.currentHome.entities[0].attributes.supported_features = 7;
   mocks.app.todoItems.mockResolvedValue([item("Example task")]);
-  render(<MemoryRouter><ListPanel kind="homework" /></MemoryRouter>);
+  render(<MemoryRouter><ListPanel kind="tasks" /></MemoryRouter>);
   fireEvent.click(await screen.findByRole("button", { name: "Edit Example task" }));
   const editor = within(screen.getByRole("dialog"));
   expect(editor.getByLabelText(/Due date/)).toBeDisabled();
