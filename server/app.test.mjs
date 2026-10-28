@@ -321,6 +321,7 @@ test("persists a validated backup across restart and exposes it to a second devi
   const initial = await (await app.request()).json();
   const input = configuration();
   input.settings.language = "nb";
+  input.settings.todoLists = { "home|todo.homework": { kind: "homework", member: "home|person.one" } };
   input.settings.smartHome.layout = [{ id: "example-card", type: "light", mainEntity: "home|example-light", title: "", linkedEntities: [], group: "", density: "compact" }];
   const response = await app.request("PUT", input, initial.revision);
   assert.equal(response.status, 200);

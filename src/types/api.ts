@@ -64,7 +64,7 @@ export type EntityAction = "turn_on" | "turn_off" | "brightness" | "rgb_color" |
   | "open_valve" | "close_valve" | "stop_valve" | "set_valve_position"
   | "set_value" | "select_option" | "increment" | "decrement" | "reset" | "cancel" | "finish" | "press" | "trigger"
   | "lock" | "unlock" | "create_event" | "update_event" | "delete_event" | AlarmAction | TodoAction;
-export interface TodoItem { uid: string; summary: string; status: "needs_action" | "completed" | null }
+export interface TodoItem { uid: string; summary: string; status: "needs_action" | "completed" | null; due?: string | null; description?: string | null }
 export interface CalendarEvent {
   summary: string;
   start: string | { date: string } | { dateTime: string };

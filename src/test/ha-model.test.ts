@@ -30,6 +30,20 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("validates to-do details, respects field capabilities and clears due dates explicitly", () => {
+    const todo = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 127 }) }, registries, "test").entities.find(e => e.domain === "todo")!;
+    const services = { todo: { add_item: { fields: {} }, update_item: { fields: {} } } };
+    for (const details of [{ due_date: "2026-10-29", description: "Example notes" }, { due_datetime: "2026-10-29T12:00:00+01:00" }, { due_date: null }, { due_datetime: null, description: "" }]) {
+      expect(entityCommand(todo, "update_item", services, { item: "example", ...details }).data).toEqual({ item: "example", ...details });
+    }
+    expect(entityCommand(todo, "add_item", services, { item: "Example", due_date: "2026-10-29", description: "Notes" }).data).toEqual({ item: "Example", due_date: "2026-10-29", description: "Notes" });
+    for (const details of [{ due_date: "2026-02-30" }, { due_date: 42 }, { due_datetime: "invalid" }, { due_datetime: "2026-10-29T09:00:00" }, { description: 42 }, { due_date: "2026-10-29", due_datetime: null }]) {
+      expect(() => entityCommand(todo, "update_item", services, { item: "example", ...details })).toThrow("valid due date");
+    }
+    for (const details of [{ due_date: "2026-10-29" }, { due_datetime: null }, { description: "Notes" }]) {
+      expect(() => entityCommand({ ...todo, attributes: { supported_features: 7 } }, "update_item", services, { item: "example", ...details })).toThrow("does not support");
+    }
+  });
   it("keeps dimming above zero and leaves off to the toggle", () => {
     const light = entity("light.living");
     expect(entityCommand(light, "brightness", services, 1).data).toEqual({ brightness: 3 });

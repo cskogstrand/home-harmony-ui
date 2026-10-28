@@ -107,7 +107,7 @@ export const plannerSchema = z.object({
   weatherTemperatureEntity: z.union([memberSchema, z.literal("")]).default(""),
   weatherPlacement: z.object({ today: z.boolean().default(true), header: z.boolean().default(false) }).strict().default({}),
   calendarMembers: z.record(keySchema, memberSchema).default({}),
-  todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks"]), member: memberSchema }).strict()).default({}),
+  todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks", "homework"]), member: memberSchema }).strict()).default({}),
 }).strict();
 export type Planner = z.infer<typeof plannerSchema>;
 export const instanceUrlSchema = z.string().max(2048).refine(value => {

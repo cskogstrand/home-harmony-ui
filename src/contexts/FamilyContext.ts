@@ -17,6 +17,7 @@ export type FamilyEvent = z.infer<typeof eventSchema> & {
 export type ListItem = z.infer<typeof itemSchema>;
 export type MemberId = z.infer<typeof memberSchema>;
 export type ListKind = ListItem["kind"];
+export type TodoListKind = Planner["todoLists"][string]["kind"];
 
 export function homeDate(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
@@ -67,7 +68,7 @@ interface FamilyContextValue extends FamilyState {
   setSmartHomeCardDensity: (id: string, density: CardDensity) => boolean;
   moveSmartHomeCard: (id: string, group: string, beforeId?: string) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
-  setTodoList: (kind: ListKind, member: MemberId, list: string) => void;
+  setTodoList: (kind: TodoListKind, member: MemberId, list: string) => void;
   saveEvent: (event: FamilyEvent) => boolean;
   deleteEvent: (id: string) => boolean;
   addItem: (text: string, kind: ListKind, member: MemberId) => boolean;

@@ -32,6 +32,7 @@ const calendarEventsSchema = z.array(z.object({
 }));
 const todoItemsSchema = z.object({ items: z.array(z.object({
   uid: z.string().min(1), summary: z.string(), status: z.enum(["needs_action", "completed"]).nullable().default(null),
+  due: z.string().nullish(), description: z.string().nullish(),
 })) });
 export const forecastSchema = z.array(z.object({
   datetime: z.string().refine(value => Number.isFinite(Date.parse(value))),

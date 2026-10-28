@@ -31,7 +31,7 @@ async function openSuggestions() {
   const view = render(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
   await screen.findByRole("checkbox", { name: "Milk" });
   fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-  const input = screen.getByRole("textbox");
+  const input = screen.getByRole("textbox", { name: /New / });
   fireEvent.change(input, { target: { value: " MIL " } });
   return { ...view, input };
 }
@@ -62,7 +62,7 @@ describe.each([true, false])("shopping suggestions (Home Assistant: %s)", connec
     expect(family.addItem).not.toHaveBeenCalled();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-    expect(screen.getByRole("textbox")).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: /New / })).toHaveValue("");
   });
 
   it("keeps the draft and composer when reopening fails", async () => {

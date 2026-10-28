@@ -194,7 +194,7 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
     data.item = action === "add_item" ? value.item.trim() : value.item;
     if (action === "add_item" && value.item.trim().length > 120) throw new Error("Keep to-do items within 120 characters.");
     if (action === "update_item") {
-      if (!("status" in value) && !("rename" in value)) throw new Error("Enter a to-do name or status to update.");
+      if (!["status", "rename", "due_date", "due_datetime", "description"].some(field => field in value)) throw new Error("Enter a to-do name or status to update.");
       if ("status" in value) {
         if (value.status !== "needs_action" && value.status !== "completed") throw new Error("Unsupported to-do status.");
         data.status = value.status;
@@ -202,6 +202,17 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
       if ("rename" in value) {
         if (typeof value.rename !== "string" || !value.rename.trim() || value.rename.trim().length > 120) throw new Error("Enter a to-do name within 120 characters.");
         data.rename = value.rename.trim();
+      }
+    }
+    if (action === "add_item" || action === "update_item") {
+      const details = z.object({
+        due_date: z.string().date().nullish(), due_datetime: z.string().datetime({ offset: true }).nullish(), description: z.string().nullish(),
+      }).safeParse(value);
+      if (!details.success || "due_date" in value && "due_datetime" in value) throw new MessageError("Enter a valid due date or date and time, and a text description.");
+      for (const [field, flag] of [["due_date", 16], ["due_datetime", 32], ["description", 64]] as const) {
+        if (!(field in details.data)) continue;
+        if (!feature(entity, flag)) throw new MessageError("This list does not support that item detail.");
+        data[field] = details.data[field];
       }
     }
   }

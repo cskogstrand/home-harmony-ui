@@ -230,6 +230,26 @@ it("uses only Home Assistant people and lets old shared assignments move to a re
   expect(settings.settings.todoLists["home|todo.shopping"]).toEqual({ kind: "shopping", member: "everyone" });
 });
 
+it("assigns and replaces one homework list per person in shared settings", async () => {
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "todo.homework": state("todo.homework", "0"),
+    "todo.replacement": state("todo.replacement", "0"),
+  }, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/settings/lists");
+  const view = render(<App />); await saved();
+  chooseEntity(screen.getByRole("button", { name: "Homework for Example person" }), "todo.homework");
+  await saved();
+  expect(settings.settings.todoLists).toEqual({ "home|todo.homework": { kind: "homework", member: "home|person.example" } });
+  chooseEntity(screen.getByRole("button", { name: "Homework for Example person" }), "todo.replacement");
+  fireEvent.click(screen.getByRole("button", { name: "Change list" }));
+  await saved();
+  expect(settings.settings.todoLists).toEqual({ "home|todo.replacement": { kind: "homework", member: "home|person.example" } });
+  view.unmount();
+  render(<App />); await saved();
+  expect(screen.getByRole("button", { name: "Homework for Example person" })).toHaveTextContent("Replacement");
+});
+
 it("does not invent a person or allow saving a plan when Home Assistant has no people", async () => {
   app.currentHome = mapHome({}, emptyRegistries, "home");
   window.history.replaceState(null, "", "/calendar");

@@ -2,16 +2,16 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useSearchParams } from "react-router-dom";
 import { PageHeading } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
-import { useFamily, itemIsDone, type ListKind } from "@/contexts/FamilyContext";
+import { useFamily, itemIsDone, type TodoListKind } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { available } from "@/lib/ha-model";
-const tabs: { id: ListKind; name: string }[] = [{ id: "daily", name: "Daily rhythm" }, { id: "shopping", name: "Shopping" }, { id: "tasks", name: "Family tasks" }];
+const tabs: { id: TodoListKind; name: string }[] = [{ id: "daily", name: "Daily rhythm" }, { id: "shopping", name: "Shopping" }, { id: "tasks", name: "Family tasks" }, { id: "homework", name: "Homework" }];
 export default function Lists() {
   const { t, message } = useI18n();
   const [params, setParams] = useSearchParams();
   const { items, today, connectedPlanner, todoLists, isMemberVisible } = useFamily();
   const { currentHome, homeOnline } = useApp();
-  const count = (kind: ListKind) => {
+  const count = (kind: TodoListKind) => {
     if (!connectedPlanner) return items.filter(i => i.kind === kind && (kind === "shopping" || isMemberVisible(i.member)) && !itemIsDone(i, today)).length;
     const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && (kind === "shopping" || isMemberVisible(assigned.member))).map(([id]) => currentHome.entities.find(e => e.domain === "todo" && e.preferenceId === id));
     return homeOnline && lists.length && lists.every(e => e && available(e) && /^\d+$/.test(e.state)) ? lists.reduce((sum, e) => sum + Number(e.state), 0) : "—";

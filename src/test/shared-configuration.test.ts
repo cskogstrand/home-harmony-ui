@@ -27,6 +27,23 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("defaults old list settings and shares and restores homework assignments", async () => {
+  const old = emptyConfiguration();
+  delete old.settings.todoLists;
+  expect(parseConfiguration(JSON.stringify(old)).settings.todoLists).toEqual({});
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  const todoLists = { "home|todo.homework": { kind: "homework" as const, member: "home|person.example" } };
+  a.updateSettings(p => ({ ...p, todoLists }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.todoLists).toEqual(todoLists);
+  await b.replace(emptyConfiguration());
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.todoLists).toEqual(todoLists);
+});
+
 it("defaults weather to Today and shares and restores the source and placements", async () => {
   const config = emptyConfiguration();
   delete config.settings.weatherEntity;

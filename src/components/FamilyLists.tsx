@@ -5,15 +5,17 @@ import { AnimatePresence, LayoutGroup, motion, useIsPresent, usePresenceData, us
 import { Check, LoaderCircle, Plus, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem } from "@/contexts/FamilyContext";
+import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
-import type { TodoAction, TodoItem } from "@/types/api";
+import type { Entity, TodoAction, TodoItem } from "@/types/api";
+import { todoDetailChanges, todoDueInput, todoDueTimestamp, type TodoDetails } from "@/lib/todo-items";
+import { TodoDueLabel, TodoItemFields } from "./TodoItemDetails";
 import { MemberAvatar, MemberOptions, PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
-const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks" };
+const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks", homework: "Homework" };
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
 type ListPresence = { itemIds: string[]; completedIds: string[] };
@@ -24,10 +26,11 @@ function ListPanelSurface() {
 }
 const CheckRow = forwardRef<HTMLDivElement, {
   id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
-  feedback?: ItemFeedback; pending?: boolean;
-  onToggle: () => void; onEdit: () => void; onRemove?: () => void;
-}>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, onToggle, onEdit, onRemove }, ref) {
+  feedback?: ItemFeedback; pending?: boolean; due?: TodoItem["due"]; description?: TodoItem["description"];
+  onToggle: () => void; onEdit?: () => void; onRemove?: () => void;
+}>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, due, description, onToggle, onEdit, onRemove }, ref) {
   const { t } = useI18n();
+  const descriptionId = useId();
   const present = useIsPresent();
   const presence: ListPresence | undefined = usePresenceData();
   const reduceMotion = useReducedMotion();
@@ -45,8 +48,11 @@ const CheckRow = forwardRef<HTMLDivElement, {
     <motion.div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`} data-feedback={feedback}
       initial={false} animate={{ transform: feedback === "edited" && !reduceMotion ? "translateX(12px)" : "translateX(0px)" }}
       transition={reduceMotion ? { duration: 0 } : rowTransition}>
-      <label><input type="checkbox" aria-label={text} aria-busy={busy} checked={complete || completing} disabled={disabled || busy || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} className="check-icon" />{busy && <LoaderCircle size={16} className="motion-safe:animate-spin" />}</span></label>
-      <button className="edit-item" aria-label={t("Edit {value1}", { value1: text })} disabled={disabled || !present} onClick={onEdit}><span className="check-text">{text}</span>{member && <MemberAvatar member={member} small />}</button>
+      <label><input type="checkbox" aria-label={text} aria-describedby={description ? descriptionId : undefined} aria-busy={busy} checked={complete || completing} disabled={disabled || busy || !present} onChange={onToggle} /><span className="check-mark" aria-hidden="true"><Check size={16} className="check-icon" />{busy && <LoaderCircle size={16} className="motion-safe:animate-spin" />}</span></label>
+      {onEdit ? <button className="edit-item" aria-label={t("Edit {value1}", { value1: text })} aria-describedby={description ? descriptionId : undefined} title={description || undefined} disabled={disabled || !present} onClick={onEdit}><span className="check-text">{text}</span>{member && <MemberAvatar member={member} small />}</button>
+        : <span className="edit-item" title={description || undefined} aria-describedby={description ? descriptionId : undefined}><span className="check-text">{text}</span></span>}
+      {description && <span id={descriptionId} className="sr-only">{description}</span>}
+      {due && <TodoDueLabel due={due} complete={complete || !!completing} />}
       {onRemove && <button className="icon-button delete-item" disabled={removeDisabled || !present} aria-label={t("Remove {value1}", { value1: text })} onClick={onRemove}><X size={16} /></button>}
     </motion.div>
   </motion.div>;
@@ -67,24 +73,29 @@ const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence:
     <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={present ? presence : exitPresence} propagate>{children}</AnimatePresence></div>
   </motion.details>;
 });
-function ItemEditor({ text, kind, description, disabled, error, onSave, onClose }: {
-  text: string; kind: ListKind; description: string; disabled?: boolean; error?: string;
-  onSave: (text: string) => boolean | Promise<boolean>; onClose: () => void;
+function ItemEditor({ text, kind, description, disabled, error, onSave, onClose, item, entity, timeZone }: {
+  text: string; kind: TodoListKind; description: string; disabled?: boolean; error?: string;
+  item?: TodoItem; entity?: Entity; timeZone?: string;
+  onSave: (text: string, details: TodoDetails) => boolean | Promise<boolean>; onClose: () => void;
 }) {
   const { t, message } = useI18n();
   const [draft, setDraft] = useState(text);
+  const [details, setDetails] = useState({ due: todoDueInput(item?.due, timeZone), description: item?.description ?? "" });
+  const [saveError, setSaveError] = useState("");
   const [saving, setSaving] = useState(false);
   const save = async () => {
     if (disabled || saving || !draft.trim()) return;
     setSaving(true);
-    try { if (await onSave(draft.trim())) onClose(); }
+    try { setSaveError(""); if (await onSave(draft.trim(), details)) onClose(); }
+    catch (error) { setSaveError(error instanceof Error ? error.message : t("Configuration could not be saved.")); }
     finally { setSaving(false); }
   };
   return <Dialog open onOpenChange={open => { if (!open && !saving) onClose(); }}><DialogContent>
     <DialogHeader><DialogTitle>{kind === "shopping" ? t("Edit item") : t("Edit task")}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
     <form onSubmit={event => { event.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={saving} aria-busy={saving}>
       <div className="planner-form dialog-form-body"><label>{kind === "shopping" ? t("Item") : t("Task")}<input autoFocus required maxLength={120} value={draft} onChange={event => setDraft(event.target.value)} /></label>
-      {error && <p role="alert">{message(error)}</p>}
+      {entity && <TodoItemFields entity={entity} value={details} onChange={setDetails} disabled={disabled} />}
+      {(saveError || error) && <p role="alert">{message(saveError || error)}</p>}
       </div>
       <div className="form-actions"><Button type="button" variant="ghost" onClick={onClose}>{t("Cancel")}</Button><Button type="submit" disabled={disabled || !draft.trim()}>{saving ? t("Saving…") : t("Save changes")}</Button></div>
     </fieldset></form>
@@ -102,11 +113,11 @@ function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; 
     }}><span className={selected === name ? "opacity-0" : undefined}>{name}</span>{selected === name && <LoaderCircle size={16} className="suggestion-spinner motion-safe:animate-spin" aria-hidden="true" />}</button>)}
   </div>;
 }
-export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
+export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number }) {
   const { t, message } = useI18n();
   const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline } = useApp();
-  if (!connectedPlanner) return <LayoutGroup><LocalListPanel kind={kind} limit={limit} /></LayoutGroup>;
+  if (!connectedPlanner && kind !== "homework") return <LayoutGroup><LocalListPanel kind={kind} limit={limit} /></LayoutGroup>;
   const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && (kind === "shopping" || isMemberVisible(assigned.member)))
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
@@ -117,8 +128,8 @@ export function ListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   </article></LayoutGroup>;
 }
 
-function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId: string; member: MemberId; kind: ListKind; limit?: number }) {
-  const { t, message } = useI18n();
+export function HomeAssistantList({ preferenceId, member, kind, limit, school = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; school?: boolean }) {
+  const { t, message, locale } = useI18n();
   const { currentHome, haUrl, homeOnline, todoItems, command, commands, services } = useApp();
   const { memberName } = useFamily();
   const entity = currentHome.entities.find(e => e.domain === "todo" && e.preferenceId === preferenceId);
@@ -131,6 +142,8 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
   const [editing, setEditing] = useState<TodoItem>();
   const [removing, setRemoving] = useState<TodoItem>();
   const [text, setText] = useState("");
+  const [details, setDetails] = useState<TodoDetails>({ due: "", description: "" });
+  const [addError, setAddError] = useState("");
   const formId = useId();
   const suggestionsId = `${formId}-suggestions`;
   const requestKey = `${haUrl}|${entityId}|${entity?.lastUpdated}|${entity?.state}|${refresh}`;
@@ -155,7 +168,7 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     ? items.map(item => ({ id: item.uid, text: item.summary, complete: item.status === "completed" })) : null);
   const status = commands[entityId];
   const can = (action: TodoAction) => online && !loading && !result.error && !status?.pending && !pendingToggle && supportsAction(entity, action, services);
-  const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string }) => {
+  const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }) => {
     try {
       await command(entityId, action, value);
       setRefresh(n => n + 1);
@@ -173,19 +186,29 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
     const existing = matches.find(item => item.status !== "completed") ?? matches[0];
     if (existing?.status === "completed" && !can("update_item")) { toast.error(t("This list cannot reopen completed items.")); return; }
     if (existing && existing.status !== "completed") toast.info(t("This item is already on the list."));
-    else if (!await change(existing ? "update_item" : "add_item", existing ? { item: existing.uid, status: "needs_action" } : { item: name })) return;
-    setText(""); setAdding(false);
+    else {
+      setAddError("");
+      try {
+        const changes = todoDetailChanges(existing ?? {}, details, entity, currentHome.timeZone);
+        // Reopening a suggestion keeps its existing details unless the draft supplies replacements.
+        if (existing && !details.due) { delete changes.due_date; delete changes.due_datetime; }
+        if (existing && !details.description) delete changes.description;
+        if (!await change(existing ? "update_item" : "add_item", { item: existing?.uid ?? name, ...(existing ? { status: "needs_action" } : {}), ...changes })) return;
+      } catch (error) { setAddError(error instanceof Error ? error.message : t("Configuration could not be saved.")); return; }
+    }
+    setText(""); setDetails({ due: "", description: "" }); setAdding(false);
   };
   const completed = items.filter(item => item.status === "completed");
   const presence: ListPresence = { itemIds: items.map(item => item.uid), completedIds: completed.map(item => item.uid) };
   const pending = items.filter(item => item.status !== "completed");
+  if (kind === "homework") pending.sort((a, b) => todoDueTimestamp(a.due, currentHome.timeZone) - todoDueTimestamp(b.due, currentHome.timeZone) || a.summary.localeCompare(b.summary, locale));
   const shown = limit ? pending.slice(0, limit) : pending;
-  const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
+  const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={item.due} description={item.description} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
     pending={pendingToggle?.id === item.uid} disabled={!can("update_item")} removeDisabled={!can("remove_item")}
     onToggle={() => void toggle(item)}
-    onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
-  return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className="household-list" aria-busy={loading || !!status?.pending}>
-    <div className="list-composer">
+    onEdit={!school ? () => setEditing(item) : undefined} onRemove={!limit && !school ? () => setRemoving(item) : undefined} />;
+  return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={loading || !!status?.pending}>
+    {school ? <div className="panel-heading"><h3>{t("Homework")}</h3>{online && hasResult && !result.error && <span className="list-progress" aria-label={t("{count} open items", { count: pending.length })}>{pending.length}</span>}{online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} disabled={loading || status?.pending || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw size={18} aria-hidden="true" /></Button>}</div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
         <div className="list-identity flex-1 basis-32">{kind !== "shopping" && <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? t("Shared shopping list") : memberName(member)}</h3><span>{entity?.name ?? t("List unavailable")}</span></div></div>
         <div className="ml-auto flex items-center gap-1">
@@ -197,22 +220,24 @@ function HomeAssistantList({ preferenceId, member, kind, limit }: { preferenceId
       {adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{status?.pending ? t("Saving…") : t("Add")}</Button>
+        <details className="todo-add-details"><summary>{t("Due date and description")}</summary>{entity && <TodoItemFields entity={entity} value={details} onChange={setDetails} disabled={!can("add_item")} />}</details>
+        {addError && <p role="alert">{message(addError)}</p>}
         <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={add} isDisabled={name => !can("add_item") || !can("update_item") || pending.some(item => itemName(item.summary) === itemName(name))} />
       </form>}
-    </div>
+    </div>}
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
       {hasResult && (result.error ? <p role="alert">{message(result.error)}</p> : <>
-        <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>
+        {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
-        <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout">{!pending.length && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
         <AnimatePresence initial={false} mode="popLayout" custom={presence}>{!!completed.length && <CompletedItems key="completed" count={completed.length} presence={presence}>{completed.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}
       <span role="status" className="page-note">{status?.pending ? t("Updating list…") : loading && hasResult ? t("Refreshing list…") : ""}</span>
     </>}
-    {editing && <ItemEditor text={editing.summary} kind={kind} description={t("Saved to {value1} in Home Assistant.", { value1: entity?.name ?? t("your list") })} disabled={!can("update_item")} error={status?.error} onSave={text => can("update_item") ? change("update_item", { item: editing.uid, rename: text }) : false} onClose={() => setEditing(undefined)} />}
+    {editing && <ItemEditor text={editing.summary} kind={kind} description={t("Saved to {value1} in Home Assistant.", { value1: entity?.name ?? t("your list") })} disabled={!can("update_item")} error={status?.error} item={editing} entity={entity} timeZone={currentHome.timeZone} onSave={(text, details) => can("update_item") ? change("update_item", { item: editing.uid, rename: text, ...todoDetailChanges(editing, details, entity, currentHome.timeZone) }) : false} onClose={() => setEditing(undefined)} />}
     {removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from {value2} in Home Assistant? This cannot be undone.", { value1: removing.summary, value2: entity?.name ?? t("this list") })} confirmLabel={t("Remove item")} pendingLabel={t("Removing…")} destructive disabled={!can("remove_item") || !items.some(item => item.uid === removing.uid)} onConfirm={async () => {
       await command(entityId, "remove_item", { item: removing.uid });
       setRefresh(n => n + 1);

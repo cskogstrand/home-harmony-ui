@@ -1659,12 +1659,12 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(await screen.findByRole("checkbox", { name: "Milk" })).not.toBeChecked();
   expect(ha.callService).not.toHaveBeenCalled(); // Viewing a daily list never resets HA completion.
   fireEvent.click(daily.getByRole("button", { name: "Edit Pack bag" }));
-  expect(within(screen.getByRole("dialog")).getByRole("textbox")).toHaveValue("Pack bag");
+  expect(within(screen.getByRole("dialog")).getByRole("textbox", { name: "Task" })).toHaveValue("Pack bag");
   expect(ha.callService).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(ha.callService).not.toHaveBeenCalled();
   fireEvent.click(daily.getByRole("button", { name: "Edit Pack bag" }));
-  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: "Pack lunch" } });
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox", { name: "Task" }), { target: { value: "Pack lunch" } });
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   fireEvent.click(await daily.findByText("Completed (1)"));
@@ -1742,7 +1742,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(screen.getAllByRole("group").filter(group => /^(Everyone|Morgan) tasks$/.test(group.getAttribute("aria-label") ?? "")).map(group => group.getAttribute("aria-label"))).toEqual(["Everyone tasks", "Morgan tasks"]);
   const shared = within(screen.getByRole("group", { name: "Everyone tasks" }));
   fireEvent.click(shared.getByRole("button", { name: "Edit Book holiday" }));
-  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox"), { target: { value: "Plan holiday" } });
+  fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox", { name: "Task" }), { target: { value: "Plan holiday" } });
   const saving = deferred<unknown>();
   vi.mocked(ha.callService).mockReturnValueOnce(saving.promise);
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
@@ -1750,7 +1750,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
   await act(async () => saving.reject(new Error("Permission denied")));
   expect(within(screen.getByRole("dialog")).getByRole("alert")).toHaveTextContent("Home Assistant rejected");
-  expect(within(screen.getByRole("dialog")).getByRole("textbox")).toHaveValue("Plan holiday");
+  expect(within(screen.getByRole("dialog")).getByRole("textbox", { name: "Task" })).toHaveValue("Plan holiday");
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(await shared.findByRole("checkbox", { name: "Plan holiday" })).not.toBeChecked();
@@ -1813,6 +1813,21 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
   expect(screen.getAllByText(/To-do lists are unavailable while offline/)).toHaveLength(2);
   expect(screen.queryByText(/Set the table|Oat milk/)).not.toBeInTheDocument();
+});
+
+it("keeps optional and nullable due dates and descriptions from Home Assistant", async () => {
+  const client = await connectedClient();
+  act(() => conn.entityCallback?.({ ...states, "todo.list": state("todo.list", "3", { supported_features: 127 }) }));
+  const items = [
+    { uid: "plain", summary: "Example task", status: "needs_action" },
+    { uid: "dated", summary: "Example dated task", status: "needs_action", due: "2026-10-29", description: "Example notes" },
+    { uid: "timed", summary: "Example timed task", status: "completed", due: "2026-10-29T09:00:00+01:00", description: null },
+    { uid: "empty", summary: "Example without details", status: null, due: null, description: null },
+  ];
+  conn.sendMessagePromise.mockResolvedValueOnce({ items });
+  await expect(client.todoItems("todo.list")).resolves.toEqual(items);
+  conn.sendMessagePromise.mockResolvedValueOnce({ items: [{ ...items[0], due: 123 }] });
+  await expect(client.todoItems("todo.list")).rejects.toThrow("could not be read");
 });
 
 it("rejects malformed or stale to-do reads and blocks unsupported and offline writes", async () => {

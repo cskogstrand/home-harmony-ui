@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, type ListKind } from "@/contexts/FamilyContext";
+import { useFamily, type TodoListKind } from "@/contexts/FamilyContext";
 import { MemberAvatar, PanelHeading } from "@/components/FamilyPlanner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -24,9 +24,9 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: t("Person unavailable") }))].sort((a, b) => compareMembers(a.id, b.id));
   const [confirmation, setConfirmation] = useState<{ title: Message; description: Message; confirmLabel: Message; onConfirm: () => void | Promise<void>; requiresConnection?: boolean }>();
   const busy = ["connecting", "syncing"].includes(connectionStatus);
-  const listLabels = { tasks: "Tasks", daily: "Daily tasks", shopping: "Shared shopping list" } as const;
-  const memberMessage = (id: string, kind?: ListKind) => kind === "shopping" ? msg("Household") : members.find(person => person.id === id)?.name ?? msg("Person unavailable");
-  const changeList = (kind: ListKind, person: { id: string; name: string }, list: string, selected: string) => {
+  const listLabels = { tasks: "Tasks", daily: "Daily tasks", shopping: "Shared shopping list", homework: "Homework" } as const;
+  const memberMessage = (id: string, kind?: TodoListKind) => kind === "shopping" ? msg("Household") : members.find(person => person.id === id)?.name ?? msg("Person unavailable");
+  const changeList = (kind: TodoListKind, person: { id: string; name: string }, list: string, selected: string) => {
     if (list === selected) return;
     const assigned = todoLists[list];
     const onConfirm = () => setTodoList(kind, person.id, list);
@@ -42,9 +42,9 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     setConfirmation({ title: member ? msg("Move calendar?") : msg("Unlink calendar?"), confirmLabel: member ? msg("Move calendar") : msg("Unlink calendar"), requiresConnection: true,
       description: msg("{value1} “{value2}” from {value3}{value4}? Events stay in the source calendar.", { value1: member ? msg("Move") : msg("Unlink"), value2: name, value3: memberMessage(previous), value4: member ? msg(" to {name}", { name: memberMessage(member) }) : "" }), onConfirm: () => setCalendarMember(id, member) });
   };
-  const listSelector = (kind: ListKind, person: { id: string; name: string }) => {
+  const listSelector = (kind: TodoListKind, person: { id: string; name: string }) => {
     const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
-    return <EntityPicker className="flex-1" label={t(listLabels[kind])} ariaLabel={kind === "shopping" ? t("Shared shopping list") : t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name })}
+    return <EntityPicker className="min-w-0 flex-[1_1_12rem]" label={t(listLabels[kind])} ariaLabel={kind === "shopping" ? t("Shared shopping list") : t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name })}
       entities={lists} value={selected} disabled={!homeOnline} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
       getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberMessage(assigned.member, assigned.kind), value2: msg(listLabels[assigned.kind]) }) : ""; }} />;
   };
@@ -114,7 +114,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
       {homeOnline && !lists.length && <p className="empty-note">{t("No to-do lists available.")}</p>}
       {listPeople.map(person => <div key={person.id} role="group" aria-label={t("To-do lists for {value1}", { value1: person.name })} className="flex flex-wrap items-center gap-3 border-b py-3">
         <span className="w-28 shrink-0 break-words font-medium">{person.name}</span>
-        <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}</div>
+        <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}{listSelector("homework", person)}</div>
       </div>)}
       <div className="mt-3 max-w-md">{listSelector("shopping", { id: "everyone", name: t("Household") })}</div>
     </section>}

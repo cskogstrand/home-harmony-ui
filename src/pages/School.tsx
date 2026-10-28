@@ -1,3 +1,4 @@
+import { HomeworkList } from "@/components/HomeworkList";
 import { BookOpen } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useFamily } from "@/contexts/FamilyContext";
@@ -12,6 +13,7 @@ export default function School() {
     <div className="school-cards">{people.map(person => <article key={person.id} className={`glow-panel school-card${timetableSettings[person.id]?.type === "calendar" ? " glass-surface" : ""}`}>
       <div className="panel-heading"><div className="school-child"><MemberAvatar member={person.id} /><h2>{timetableSettings[person.id]?.type === "calendar" ? t("Activities for {name}", { name: person.name }) : t(timetableSettings[person.id]?.education === "kindergarten" ? "{value1}’s kindergarten week" : "{value1}’s school week", { value1: person.name })}</h2></div><BookOpen size={24} aria-hidden="true" /></div>
       <SchoolPreview child={person.id} dayView />
+      <HomeworkList member={person.id} />
     </article>)}</div>
   </div>;
 }
