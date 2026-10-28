@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.22
+
+<!-- release-source: 3051dbba402918b1717d1127c5b8ec028cf2137e -->
+
+- fix: clarify upcoming family plans
+- fix: show descriptions in todos and homework
+
 ## 0.9.21
 
 <!-- release-source: ea5fde0ca57e883875c6dfb026cfd170b2c683e0 -->
