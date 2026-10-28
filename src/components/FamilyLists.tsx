@@ -65,7 +65,7 @@ const ListEmptyNote = forwardRef<HTMLDivElement, { text: string }>(function List
     <p className="empty-note">{text}</p>
   </motion.div>;
 });
-const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence: ListPresence; expanded?: boolean; children: ReactNode }>(function CompletedItems({ count, presence, expanded = true, children }, ref) {
+const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence: ListPresence; expanded?: boolean; children: ReactNode }>(function CompletedItems({ count, presence, expanded = false, children }, ref) {
   const { t } = useI18n();
   // Presence data updates on exit; live sections need current IDs from props.
   const exitPresence: ListPresence | undefined = usePresenceData();

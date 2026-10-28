@@ -1667,7 +1667,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   fireEvent.change(within(screen.getByRole("dialog")).getByRole("textbox", { name: "Task" }), { target: { value: "Pack lunch" } });
   fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-  fireEvent.click(await daily.findByText("Completed (1)"));
+  expect(daily.getByRole("checkbox", { name: "Pack lunch" })).toBeVisible();
   expect(daily.getByRole("checkbox", { name: "Pack lunch" })).toBeChecked();
   expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "update_item", { item: "daily", rename: "Pack lunch" }, { entity_id: "todo.daily" });
   const milk = screen.getByRole("checkbox", { name: "Milk" });
@@ -1706,6 +1706,8 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   const shopping = within(screen.getByRole("group", { name: "Shared shopping list" }));
   await shopping.findByText("Completed (1)");
+  expect(shopping.getByText("Completed (1)").closest("details")).not.toHaveAttribute("open");
+  fireEvent.click(shopping.getByText("Completed (1)"));
   expect(shopping.getByRole("checkbox", { name: "Milk" })).toBeVisible();
   expect(shopping.getByRole("checkbox", { name: "Milk" })).toBeChecked();
   expect(ha.callService).toHaveBeenCalledWith(conn, "todo", "update_item", { item: "milk", status: "completed" }, { entity_id: "todo.shopping" });

@@ -493,6 +493,7 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   const disclosure = screen.getByLabelText("Display settings for Tasks for Example person");
   fireEvent.click(disclosure);
   const options = within(disclosure.parentElement);
+  expect(options.getByRole("combobox", { name: "Completed items" })).toHaveValue("collapsed");
   expect(options.getByRole("combobox", { name: "Sort order" })).toHaveValue("home-assistant");
   fireEvent.change(options.getByRole("combobox", { name: "Sort order" }), { target: { value: "due-date" } });
   expect(options.getByRole("option", { name: "Hide finished underneath" })).toHaveValue("collapsed");

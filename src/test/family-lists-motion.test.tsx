@@ -24,6 +24,7 @@ it.each(["pointer", "keyboard"])("completes HA list items without the animation 
   const checkbox = await screen.findByRole("checkbox", { name: "Set the table" });
   await act(async () => fireEvent.click(checkbox));
   expect(screen.getByText("Completed (1)")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Completed (1)"));
   expect(screen.getByRole("checkbox", { name: "Set the table" })).toBeChecked();
 });
 
@@ -34,6 +35,7 @@ it.each([false, true])("keeps only the clicked checkbox busy through command and
   app.command.mockImplementation(() => new Promise<void>(resolve => { finishCommand = resolve; }));
   const view = render(<MemoryRouter><ListPanel kind="daily" /></MemoryRouter>);
   await screen.findByRole("checkbox", { name: "Water plants" });
+  if (completed) fireEvent.click(screen.getByText("Completed (1)"));
   const checkbox = screen.getByRole("checkbox", { name: "Set the table" });
   fireEvent.click(checkbox);
   expect(checkbox).toHaveAttribute("aria-busy", "true");

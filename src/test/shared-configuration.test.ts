@@ -31,6 +31,8 @@ it("validates, shares and restores per-list display and next-plan range settings
   const config = emptyConfiguration();
   const read = (display: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, todoLists: { "home|todo.example": { kind: "daily", member: "home|person.example", display } } } }));
   expect(read({}).settings.todoLists["home|todo.example"].display).toEqual(defaultTodoDisplay);
+  expect(read({}).settings.todoLists["home|todo.example"].display.completed).toBe("collapsed");
+  expect(read({ completed: "under" }).settings.todoLists["home|todo.example"].display.completed).toBe("under");
   expect(read({ completed: "hide", celebrate: true }).settings.todoLists["home|todo.example"].display.sort).toBe("home-assistant");
   for (const display of [null, { completed: "other" }, { sort: "other" }, { showDetails: "true" }, { showDueDate: 1 }, { celebrate: "false" }, { unknown: true }]) expect(() => read(display)).toThrow();
   for (const nextPlanDays of [-1, 91, 1.5, "2", null]) expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, nextPlanDays } } }))).toThrow();

@@ -44,7 +44,7 @@ it.each(["en", "nb"] as const)("sorts homework and labels due dates in %s, using
   expect(view.container.querySelector('[data-state="overdue"]')).toHaveAttribute("aria-label", expect.stringContaining(language === "nb" ? "Forfalt" : "Overdue"));
 });
 
-it("shares checkbox updates and pending feedback, and shows completed homework underneath", async () => {
+it("shares checkbox updates and pending feedback, and collapses completed homework by default", async () => {
   let completed = false;
   mocks.app.todoItems.mockImplementation(async () => [{ ...item("Read a chapter", "2026-10-29", completed ? "completed" : "needs_action"), description: "Example reading notes" }]);
   let finish: () => void;
@@ -60,8 +60,9 @@ it("shares checkbox updates and pending feedback, and shows completed homework u
   expect(mocks.app.command).toHaveBeenCalledExactlyOnceWith("todo.homework", "update_item", { item: "Read a chapter", status: "completed" });
   await act(async () => finish());
   const completedGroup = screen.getByText("Completed (1)").closest("details");
-  expect(completedGroup).toHaveAttribute("open");
+  expect(completedGroup).not.toHaveAttribute("open");
   expect(completedGroup.querySelector(".check-row")).toHaveClass("complete");
+  fireEvent.click(screen.getByText("Completed (1)"));
   const reopened = within(completedGroup).getByRole("checkbox", { name: "Read a chapter" });
   fireEvent.click(reopened);
   expect(mocks.app.command).toHaveBeenLastCalledWith("todo.homework", "update_item", { item: "Read a chapter", status: "needs_action" });
