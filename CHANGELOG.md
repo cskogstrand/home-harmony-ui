@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.25
+
+<!-- release-source: b8aeb97404827d59dbba4bce2ef98fc58be8c222 -->
+
+- fix: collapse completed todos by default
+
 ## 0.9.24
 
 <!-- release-source: 7fa78660a5a85f22743a18b4aabc8fa7b409198c -->
