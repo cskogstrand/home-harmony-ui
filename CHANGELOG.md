@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.26
+
+<!-- release-source: 246e807f716b581ebc3064d23a6961ae5b71c0a9 -->
+
+- feat: simplify next plan presentation
+- feat: simplify next plan card
+- fix: replace refresh buttons with error retries
+- fix: unify card headings and list controls
+
 ## 0.9.25
 
 <!-- release-source: b8aeb97404827d59dbba4bce2ef98fc58be8c222 -->
