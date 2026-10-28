@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.21
+
+<!-- release-source: ea5fde0ca57e883875c6dfb026cfd170b2c683e0 -->
+
+- feat: add homework and to-do details
+
 ## 0.9.20
 
 <!-- release-source: e3c106140743223443dfddd875bd78a3c3307465 -->
