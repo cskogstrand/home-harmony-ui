@@ -24,7 +24,7 @@ afterEach(() => { cleanup(); delete document.documentElement.dataset.motionInput
 const renderList = () => render(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
 const pendingItem = { uid: "one", summary: "Example task", status: "needs_action", description: "Example details", due: "2026-10-29" };
 
-it.each(["inline", "under", "hide"] as const)("renders completed items %s while keeping open items editable", async completed => {
+it.each(["inline", "under", "collapsed", "hide"] as const)("renders completed items %s while keeping open items editable", async completed => {
   family.todoLists["home|todo.example"].display.completed = completed;
   app.todoItems.mockResolvedValue([{ uid: "done", summary: "Finished example", status: "completed" }, pendingItem]);
   const view = renderList();
@@ -32,6 +32,12 @@ it.each(["inline", "under", "hide"] as const)("renders completed items %s while 
   expect(screen.getByText("Example details")).toBeVisible();
   expect(view.container.querySelector(".todo-due")).toBeVisible();
   if (completed === "under") expect(screen.getByText("Completed (1)").closest("details")).toHaveAttribute("open");
+  else if (completed === "collapsed") {
+    expect(screen.getByText("Completed (1)").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByRole("checkbox", { name: "Finished example", hidden: true })).not.toBeVisible();
+    fireEvent.click(screen.getByText("Completed (1)"));
+    expect(screen.getByRole("checkbox", { name: "Finished example" })).toBeVisible();
+  }
   else expect(screen.queryByText("Completed (1)")).not.toBeInTheDocument();
   if (completed === "hide") expect(screen.queryByRole("checkbox", { name: "Finished example" })).not.toBeInTheDocument();
   else expect(screen.getByRole("checkbox", { name: "Finished example" })).toBeChecked();
@@ -52,7 +58,7 @@ it.each([false, true])("hides details and due dates without removing source data
   }
 });
 
-it.each(["inline", "under", "hide"] as const)("sorts open and completed items without changing Home Assistant data (%s)", async completed => {
+it.each(["inline", "under", "collapsed", "hide"] as const)("sorts open and completed items without changing Home Assistant data (%s)", async completed => {
   family.todoLists["home|todo.example"].display.completed = completed;
   const items = [
     { uid: "z", summary: "Z task", status: "needs_action", due: "2026-10-28" },
@@ -64,6 +70,7 @@ it.each(["inline", "under", "hide"] as const)("sorts open and completed items wi
   app.todoItems.mockResolvedValue(items);
   const view = renderList();
   await screen.findByRole("checkbox", { name: "Z task" });
+  if (completed === "collapsed") fireEvent.click(screen.getByText("Completed (2)"));
   const order = () => screen.getAllByRole("checkbox").map(input => input.getAttribute("aria-label"));
   expect(order()).toEqual(completed === "hide" ? ["Z task", "B task", "A task"] : items.map(item => item.summary));
   family.todoLists["home|todo.example"].display.sort = "alphabetical";
@@ -76,7 +83,7 @@ it.each(["inline", "under", "hide"] as const)("sorts open and completed items wi
   expect(app.command).not.toHaveBeenCalled();
 });
 
-it.each(["inline", "under", "hide"] as const)("celebrates only after the clicked item is confirmed complete (%s)", async completed => {
+it.each(["inline", "under", "collapsed", "hide"] as const)("celebrates only after the clicked item is confirmed complete (%s)", async completed => {
   family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed, celebrate: true };
   const otherItem = { ...pendingItem, uid: "two", summary: "Another task" };
   app.todoItems.mockResolvedValue([otherItem, pendingItem]);
@@ -104,6 +111,7 @@ it.each(["inline", "under", "hide"] as const)("celebrates only after the clicked
   if (completed === "inline") expect(checkbox.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
   else expect(checkbox.closest(".check-row-shell")).toHaveAttribute("aria-hidden", "true");
   if (completed === "under") expect(screen.getByText("Completed (1)")).toBeInTheDocument();
+  if (completed === "collapsed") expect(screen.getByText("Completed (1)").closest("details")).not.toHaveAttribute("open");
   expect(screen.getByRole("checkbox", { name: "Another task" })).toBeEnabled();
 });
 

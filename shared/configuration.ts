@@ -71,7 +71,7 @@ export const smartHomeSchema = z.object({
 // Retired visibility fields are discarded; no old layout is inferred from discovery.
 }).strip();
 export const todoDisplaySchema = z.object({
-  completed: z.enum(["inline", "under", "hide"]).default("under"),
+  completed: z.enum(["inline", "under", "collapsed", "hide"]).default("under"),
   sort: z.enum(["home-assistant", "alphabetical", "due-date"]).default("home-assistant"),
   showDetails: z.boolean().default(true),
   showDueDate: z.boolean().default(true),

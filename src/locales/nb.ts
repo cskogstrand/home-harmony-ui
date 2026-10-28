@@ -724,6 +724,7 @@ export const nb = {
   "Alphabetical": "Alfabetisk",
   "Show finished inline": "Vis fullførte i listen",
   "Show finished underneath": "Vis fullførte under listen",
+  "Hide finished underneath": "Skjul fullførte under listen",
   "Hide finished": "Skjul fullførte",
   "Show details": "Vis detaljer",
   "Show due date": "Vis forfallsdato",

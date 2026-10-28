@@ -65,13 +65,13 @@ const ListEmptyNote = forwardRef<HTMLDivElement, { text: string }>(function List
     <p className="empty-note">{text}</p>
   </motion.div>;
 });
-const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence: ListPresence; children: ReactNode }>(function CompletedItems({ count, presence, children }, ref) {
+const CompletedItems = forwardRef<HTMLDetailsElement, { count: number; presence: ListPresence; expanded?: boolean; children: ReactNode }>(function CompletedItems({ count, presence, expanded = true, children }, ref) {
   const { t } = useI18n();
   // Presence data updates on exit; live sections need current IDs from props.
   const exitPresence: ListPresence | undefined = usePresenceData();
   const reduceMotion = useReducedMotion();
   const present = useIsPresent();
-  return <motion.details ref={ref} open className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
+  return <motion.details ref={ref} open={expanded} className="completed-items" aria-hidden={!present || undefined} layout={reduceMotion ? false : "position"} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={reduceMotion ? { duration: 0 } : rowTransition}>
     <summary tabIndex={present ? undefined : -1}>{t("Completed ({value1})", { value1: count })}</summary><div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={present ? presence : exitPresence} propagate>{children}</AnimatePresence></div>
   </motion.details>;
 });
@@ -263,7 +263,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
         {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
         <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletion && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
-        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{display.completed === "under" && !!completedBelow.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence}>{completedBelow.map(row)}</CompletedItems>}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(display.completed === "under" || display.completed === "collapsed") && !!completedBelow.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={display.completed === "under"}>{completedBelow.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}

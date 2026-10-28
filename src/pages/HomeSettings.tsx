@@ -58,7 +58,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
         <fieldset disabled={!shared?.state.loaded || !!shared.state.error} className="grid gap-3 py-3">
           <label className="grid gap-2 text-sm">{t("Completed items")}
             <select className="w-full rounded-lg border border-input bg-background p-2" value={display.completed} onChange={event => setTodoListDisplay(selected, { completed: event.target.value as TodoDisplay["completed"] })}>
-              <option value="inline">{t("Show finished inline")}</option><option value="under">{t("Show finished underneath")}</option><option value="hide">{t("Hide finished")}</option>
+              <option value="inline">{t("Show finished inline")}</option><option value="under">{t("Show finished underneath")}</option><option value="collapsed">{t("Hide finished underneath")}</option><option value="hide">{t("Hide finished")}</option>
             </select>
           </label>
           <label className="grid gap-2 text-sm">{t("Sort order")}

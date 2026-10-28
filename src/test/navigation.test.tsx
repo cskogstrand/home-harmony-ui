@@ -495,10 +495,11 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   const options = within(disclosure.parentElement);
   expect(options.getByRole("combobox", { name: "Sort order" })).toHaveValue("home-assistant");
   fireEvent.change(options.getByRole("combobox", { name: "Sort order" }), { target: { value: "due-date" } });
-  fireEvent.change(options.getByRole("combobox", { name: "Completed items" }), { target: { value: "hide" } });
+  expect(options.getByRole("option", { name: "Hide finished underneath" })).toHaveValue("collapsed");
+  fireEvent.change(options.getByRole("combobox", { name: "Completed items" }), { target: { value: "collapsed" } });
   for (const name of ["Show details", "Show due date", "Celebrate completion"]) fireEvent.click(options.getByRole("switch", { name }));
   await saved();
-  const display = { completed: "hide", sort: "due-date", showDetails: false, showDueDate: false, celebrate: true };
+  const display = { completed: "collapsed", sort: "due-date", showDetails: false, showDueDate: false, celebrate: true };
   expect(settings.settings.todoLists["home|todo.example"].display).toEqual(display);
   chooseEntity("Tasks for Other example", "todo.example");
   fireEvent.click(screen.getByRole("button", { name: "Change list" }));
@@ -507,7 +508,7 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   expect(screen.getByRole("button", { name: "Tasks for Example person" })).toHaveTextContent("Add list");
   first.unmount(); render(<App />); await saved();
   fireEvent.click(screen.getByLabelText("Display settings for Tasks for Other example"));
-  expect(screen.getByRole("combobox", { name: "Completed items" })).toHaveValue("hide");
+  expect(screen.getByRole("combobox", { name: "Completed items" })).toHaveValue("collapsed");
   expect(screen.getByRole("combobox", { name: "Sort order" })).toHaveValue("due-date");
   expect(screen.getByRole("switch", { name: "Celebrate completion" })).toBeChecked();
   fireEvent.click(screen.getByRole("button", { name: "Tasks for Other example" }));
