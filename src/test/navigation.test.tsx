@@ -42,6 +42,61 @@ const saved = async () => {
   await pageReady();
 };
 
+it.each([
+  ["en", "2026-10-28", null],
+  ["en", "2026-10-29", null],
+  ["en", "2026-10-30", "No plans for the next couple of days. Next up is Friday."],
+  ["nb", "2026-10-30", "Ingen planer de neste par dagene. Neste er fredag."],
+] as const)("explains the next family plan in %s on %s", async (language, date, summary) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
+  settings.settings.language = language;
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
+    { summary: "Example activity", start: `${date}T16:00:00Z`, end: `${date}T17:00:00Z` },
+  ]));
+  render(<App />); await pageReady();
+  const next = screen.getByRole("region", { name: language === "nb" ? "Neste familieplan" : "Next family plan" });
+  expect(await within(next).findByRole("heading", { name: "Example activity" })).toBeVisible();
+  expect(next.querySelector(".next-plan-summary")?.textContent ?? null).toBe(summary);
+  fireEvent.click(within(next).getByRole("button", { name: /Example activity/ }));
+  expect(screen.getByRole("dialog", { name: "Example activity" })).toBeVisible();
+});
+
+it.each(["all-day", "ongoing", "loading", "failed", "offline"])("does not claim quiet days with %s calendar data", async mode => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off"), "calendar.other": state("calendar.other", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example", "home|calendar.other": "home|person.example" };
+  app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => {
+    if (id === "calendar.example") receive([{ summary: "Example activity", start: "2026-10-30T16:00:00Z", end: "2026-10-30T17:00:00Z" }]);
+    else if (mode === "all-day") receive([{ summary: "Example day plan", start: "2026-10-29", end: "2026-10-30" }]);
+    else if (mode === "ongoing") receive([{ summary: "Example ongoing plan", start: "2026-10-28T09:00:00Z", end: "2026-10-28T11:00:00Z" }]);
+    else if (mode === "failed") receive(null);
+  });
+  app.homeOnline = mode !== "offline";
+  render(<App />); await saved();
+  const next = screen.getByRole("region", { name: "Next family plan" });
+  if (mode !== "offline") expect(await within(next).findByRole("heading", { name: "Example activity" })).toBeVisible();
+  expect(next.querySelector(".next-plan-summary")).not.toBeInTheDocument();
+});
+
+it("looks ahead beyond a Monday-based week for the next family plan", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-01T10:00:00Z"));
+  settings.settings.calendar.startDay = "monday";
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
+    { summary: "Example activity", start: "2026-11-03T16:00:00Z", end: "2026-11-03T17:00:00Z" },
+  ]));
+  render(<App />); await saved();
+  expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", "2026-10-25T23:00:00.000Z", "2026-11-07T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
+  const next = within(screen.getByRole("region", { name: "Next family plan" }));
+  expect(await next.findByText("No plans for the next couple of days. Next up is Tuesday.")).toBeVisible();
+});
+
 it("switches calendar periods, loads the whole month, filters people and drills into a multi-day event", async () => {
   app.currentHome = mapHome({
     "person.example": state("person.example", "home", { friendly_name: "Example person" }),
@@ -474,6 +529,7 @@ it.each([
   ["2026-10-25", "today"],
   ["2026-12-31", "monday"],
 ] as const)("optionally shows tomorrow after %s with the week starting on %s", async (today, startDay) => {
+  settings.settings.dashboard.nextPlan = false;
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(`${today}T12:00:00Z`));
   const tomorrow = addDays(today, 1), afterTomorrow = addDays(today, 2);

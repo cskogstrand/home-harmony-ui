@@ -179,7 +179,8 @@
 .avatar-group .member-avatar { margin-left: -5px; box-shadow: 0 0 0 3px hsl(var(--background)); }
 .member-avatar { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #213331; font-size: 0.875rem; font-weight: 600; }
 .member-avatar.small { width: 29px; height: 29px; font-size: 0.75rem; }
-.next-chapter { grid-column: 1 / -1; display: flex; align-items: center; gap: 1.5rem; background: hsl(var(--card)); border: 1px solid hsl(var(--border) / .45); border-radius: 24px; padding: var(--panel-space); }
+.next-chapter { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; background: hsl(var(--card)); border: 1px solid hsl(var(--border) / .45); border-radius: 24px; padding: var(--panel-space); }
+.next-plan-summary { flex-basis: 100%; color: hsl(var(--muted-foreground)); line-height: 1.6; }
 .next-event { position: relative; text-align: left; flex: 1; min-width: 0; padding-right: 26px; }
 .next-event .eyebrow { color: hsl(var(--primary)); font-size: 0.8125rem; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--primary)); }

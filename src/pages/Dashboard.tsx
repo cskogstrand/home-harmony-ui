@@ -26,7 +26,8 @@ export default function Dashboard() {
     && !Object.values(timetables).some(pages => pages.length) && !Object.values(timetableEnabled).some(Boolean) && !Object.values(timetableSettings).some(settings => settings.type === "calendar") && homeEntities === undefined && !selectedAlarm;
   const weekEnd = addDays(start, 7);
   const tomorrowEnd = addDays(today, 2);
-  const data = useCalendarPlans(start, dashboard.day && dashboard.showTomorrow && tomorrowEnd > weekEnd ? tomorrowEnd : weekEnd);
+  const upcomingEnd = addDays(today, dashboard.nextPlan ? 7 : dashboard.day && dashboard.showTomorrow ? 2 : 0);
+  const data = useCalendarPlans(start, upcomingEnd > weekEnd ? upcomingEnd : weekEnd);
   const { events, people: familyMembers } = data;
   const schoolMembers = members.filter(m => hasTimetable(m.id));
   const [editing, setEditing] = useState<FamilyEvent>();
@@ -36,6 +37,9 @@ export default function Dashboard() {
   const addPlan = (date: string, member: MemberId) => { setEditing(undefined); setNewPlan({ date, member }); setEditorOpen(true); };
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
   const next = upcoming.find(e => !e.allDay);
+  const quietDays = !data.loading && !data.errors.length && (!connectedPlanner || homeOnline)
+    && !events.some(e => e.date >= today && e.date < tomorrowEnd
+      && (e.date > today || e.allDay || e.continues || (e.endTime ?? e.time) >= time));
   const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
   return <div className="portrait-board">
     <header className="ambient-heading">
@@ -46,6 +50,7 @@ export default function Dashboard() {
     {dashboard.morningSummary && <MorningSummary />}
     {dashboard.wasteCollection && <WasteCollection />}
     {dashboard.nextPlan && <section className="next-chapter" aria-label={t("Next family plan")}>
+      {next && quietDays && <p className="next-plan-summary">{t("No plans for the next couple of days. Next up is {day}.", { day: dateLabel(next.date, next.date < addDays(today, 7) ? { weekday: "long" } : { weekday: "long", day: "numeric", month: "long" }) })}</p>}
       {next ? <><button className="next-event" onClick={() => openEvent(next)}><h2>{next.title}</h2><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
         <div className="next-event"><h2>{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : t("No upcoming plans to display.")}</h2></div>}
       <Button className="add-plan" onClick={() => openEvent()} aria-label={t("Add a family plan")} disabled={connectedPlanner && !homeOnline}><Plus size={20} /><span>{t("Add a plan")}</span></Button>

@@ -689,6 +689,7 @@ export const nb = {
   "New {value1} task": "Ny {value1}-oppgave",
   "Next 7 days": "Neste 7 dager",
   "Next family plan": "Neste familieplan",
+  "No plans for the next couple of days. Next up is {day}.": "Ingen planer de neste par dagene. Neste er {day}.",
   "Next timetable page": "Neste timeplanside",
   "Next week": "Neste uke",
   "No alarm": "Ingen alarm",
