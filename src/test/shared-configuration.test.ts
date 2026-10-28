@@ -2,7 +2,7 @@ import { configuredCard } from "./device-card-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { SharedConfiguration } from "@/lib/shared-configuration";
-import { emptyConfiguration, emptyPlanner, parseConfiguration, type Configuration, type TimetableSettings } from "../../shared/configuration";
+import { emptyConfiguration, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration, type TimetableSettings } from "../../shared/configuration";
 
 const response = (status: number, value: unknown) => ({ ok: status === 200, status, json: async () => structuredClone(value) }) as Response;
 const deferred = <T,>() => { let resolve: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve: resolve! }; };
@@ -26,6 +26,24 @@ function server() {
   return { request, start, current: () => config };
 }
 const url = "http://ha.local:8123";
+
+it("validates, shares and restores per-list display and next-plan range settings", async () => {
+  const config = emptyConfiguration();
+  const read = (display: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, todoLists: { "home|todo.example": { kind: "daily", member: "home|person.example", display } } } }));
+  expect(read({}).settings.todoLists["home|todo.example"].display).toEqual(defaultTodoDisplay);
+  for (const display of [null, { completed: "other" }, { showDetails: "true" }, { showDueDate: 1 }, { celebrate: "false" }, { unknown: true }]) expect(() => read(display)).toThrow();
+  for (const nextPlanDays of [-1, 91, 1.5, "2", null]) expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, nextPlanDays } } }))).toThrow();
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  const display = { completed: "inline" as const, showDetails: false, showDueDate: false, celebrate: true };
+  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, nextPlanDays: 14 }, todoLists: { "home|todo.example": { kind: "daily", member: "home|person.example", display } } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.todoLists["home|todo.example"].display).toEqual(display);
+  expect(backup.settings.dashboard.nextPlanDays).toBe(14);
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings).toEqual(backup.settings);
+});
 
 it("defaults old list settings and shares and restores homework assignments", async () => {
   const old = emptyConfiguration();
@@ -77,11 +95,12 @@ it("defaults weather to Today and shares and restores the source and placements"
 
 it("shares notification rules across screens and restores them with the existing backup flow", async () => {
   const backend = server(), a = await backend.start(), b = await backend.start();
-  a.updateSettings(p => ({ ...p, notifications: { enabled: true, presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntity: "", durationSeconds: 60, cooldownSeconds: 10 }] } }));
+  a.updateSettings(p => ({ ...p, notifications: { enabled: true, presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntities: ["home|example-progress", "home|example-remaining"], durationSeconds: 60, cooldownSeconds: 10 }] } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
   expect(backup.settings.notifications.rules[0].title).toBe("Example task");
+  expect(backup.settings.notifications.rules[0].detailEntities).toEqual(["home|example-progress", "home|example-remaining"]);
   expect(backup.settings.notifications).toMatchObject({ presentation: "banner", pages: "today" });
   await b.replace(emptyConfiguration());
   await b.replace(backup);
@@ -120,7 +139,8 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { showTomorrow, wasteCollection, ...sections } = dashboard;
+  const { showTomorrow, wasteCollection, nextPlanDays, ...sections } = dashboard;
+  expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
   expect(Object.values(sections).every(Boolean)).toBe(true);

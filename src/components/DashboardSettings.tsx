@@ -30,6 +30,8 @@ export function DashboardSettings() {
   const shared = useSharedConfiguration();
   const [wasteDays, setWasteDays] = useState(String(wasteCollectionDays));
   useEffect(() => setWasteDays(String(wasteCollectionDays)), [wasteCollectionDays]);
+  const [planDays, setPlanDays] = useState(String(dashboard.nextPlanDays === "auto" ? 1 : dashboard.nextPlanDays));
+  useEffect(() => { if (dashboard.nextPlanDays !== "auto") setPlanDays(String(dashboard.nextPlanDays)); }, [dashboard.nextPlanDays]);
   return <Dialog>
     <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label={t("Customize Today")} title={t("Customize Today")}><Settings aria-hidden="true" /></Button></DialogTrigger>
     <DialogContent className="max-h-[calc(100dvh-24px)] overflow-y-auto">
@@ -43,6 +45,19 @@ export function DashboardSettings() {
             <span>{t(label)}</span><Switch checked={dashboard[key]} onCheckedChange={visible => setDashboard({ [key]: visible })}
               disabled={!shared?.state.loaded || !!shared.state.error} aria-label={t(label)} />
           </label>
+          {key === "nextPlan" && dashboard.nextPlan && <fieldset className="grid gap-3 pb-4" disabled={!shared?.state.loaded || !!shared.state.error}>
+            <label className="grid gap-2 text-sm">{t("Look ahead")}
+              <select className="w-full rounded-lg border border-input bg-background p-2" value={dashboard.nextPlanDays === "auto" ? "auto" : "custom"}
+                onChange={event => setDashboard({ nextPlanDays: event.target.value === "auto" ? "auto" : 1 })}>
+                <option value="auto">{t("Auto · follow Everyone’s day")}</option><option value="custom">{t("Choose number of days")}</option>
+              </select>
+            </label>
+            {dashboard.nextPlanDays !== "auto" && <label className="flex items-center justify-between gap-4 text-sm"><span>{t("Days ahead")}</span>
+              <Input type="number" min={0} max={90} step={1} required className="w-20" value={planDays} onChange={event => setPlanDays(event.currentTarget.value)}
+                onBlur={event => { if (event.currentTarget.reportValidity()) setDashboard({ nextPlanDays: event.currentTarget.valueAsNumber }); }} />
+            </label>}
+            <p className="text-sm text-muted-foreground">{t(dashboard.nextPlanDays === "auto" ? "Checks today, plus tomorrow when Show tomorrow’s plans is enabled." : "0–90 days ahead, including today. Use 0 for today only.")}</p>
+          </fieldset>}
           {key === "wasteCollection" && dashboard.wasteCollection && <div className="pb-4">
             <EntityPicker label={t("Waste collection calendar")} entities={currentHome.entities.filter(entity => entity.domain === "calendar")}
               value={wasteCalendarEntity} onChange={setWasteCalendarEntity} groupByDevice={false}

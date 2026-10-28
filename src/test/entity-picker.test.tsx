@@ -24,6 +24,26 @@ const home = mapHome({
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ currentHome: home }) }));
 afterEach(cleanup);
 
+it("opens from Add list and restores it after dismissal or clearing the selection", async () => {
+  function Picker() {
+    const [value, setValue] = useState("");
+    return <EntityPicker entities={home.entities} label="Task list" value={value} onChange={setValue} emptyActionLabel="Add list" clearLabel="No list selected" />;
+  }
+  render(<Picker />);
+  const trigger = screen.getByRole("button", { name: "Task list" });
+  expect(trigger).toHaveTextContent("Add list");
+  fireEvent.click(trigger);
+  expect(screen.getByRole("searchbox")).toHaveFocus();
+  fireEvent.keyDown(screen.getByRole("searchbox"), { key: "Escape" });
+  expect(trigger).toHaveTextContent("Add list");
+  await waitFor(() => expect(trigger).toHaveFocus());
+  chooseEntity(trigger, "sensor.example_status");
+  expect(trigger).toHaveTextContent("Example status");
+  fireEvent.click(trigger);
+  fireEvent.click(screen.getByRole("button", { name: "No list selected" }));
+  expect(trigger).toHaveTextContent("Add list");
+});
+
 it("narrows by device, returns to all devices and selects stable entity IDs", async () => {
   const change = vi.fn();
   render(<EntityPicker entities={home.entities} label="Source entity" value="" onChange={change} />);

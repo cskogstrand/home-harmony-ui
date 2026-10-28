@@ -2,6 +2,7 @@
 .entity-picker > label { display: block; margin-bottom: 8px; font-size: .9375rem; }
 .entity-picker-trigger { width: 100%; height: auto; min-height: 48px; justify-content: space-between; gap: 12px; padding: 9px 12px; border-radius: 14px; text-align: left; font-weight: 400; }
 .entity-picker-trigger > span { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
+.entity-picker-trigger.entity-picker-add { justify-content: flex-start; gap: 6px; color: hsl(var(--muted-foreground)); }
 .entity-picker-popover { display: flex; flex-direction: column; padding: 0; width: max(360px, var(--radix-popover-trigger-width)); max-width: min(520px, calc(100vw - 24px)); max-height: min(560px, var(--radix-popover-content-available-height)); overflow: hidden; }
 .entity-picker-search { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid hsl(var(--border)); }
 .entity-picker-search > svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }

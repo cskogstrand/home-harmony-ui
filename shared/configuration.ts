@@ -70,6 +70,14 @@ export const smartHomeSchema = z.object({
     .refine(cards => new Set(cards.map(card => card.id)).size === cards.length, "Card IDs must be unique."),
 // Retired visibility fields are discarded; no old layout is inferred from discovery.
 }).strip();
+export const todoDisplaySchema = z.object({
+  completed: z.enum(["inline", "under", "hide"]).default("under"),
+  showDetails: z.boolean().default(true),
+  showDueDate: z.boolean().default(true),
+  celebrate: z.boolean().default(false),
+}).strict();
+export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
+export const defaultTodoDisplay = todoDisplaySchema.parse({});
 export const plannerSchema = z.object({
   notifications: notificationSettingsSchema.default({}),
   language: z.enum(["en", "nb"]).default("en"),
@@ -81,6 +89,7 @@ export const plannerSchema = z.object({
     morningSummary: z.boolean().default(true),
     wasteCollection: z.boolean().default(false),
     nextPlan: z.boolean().default(true),
+    nextPlanDays: z.union([z.literal("auto"), z.number().int().min(0).max(90)]).default("auto"),
     day: z.boolean().default(true),
     showTomorrow: z.boolean().default(false),
     week: z.boolean().default(true),
@@ -107,7 +116,7 @@ export const plannerSchema = z.object({
   weatherTemperatureEntity: z.union([memberSchema, z.literal("")]).default(""),
   weatherPlacement: z.object({ today: z.boolean().default(true), header: z.boolean().default(false) }).strict().default({}),
   calendarMembers: z.record(keySchema, memberSchema).default({}),
-  todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks", "homework"]), member: memberSchema }).strict()).default({}),
+  todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks", "homework"]), member: memberSchema, display: todoDisplaySchema.optional() }).strict()).default({}),
 }).strict();
 export type Planner = z.infer<typeof plannerSchema>;
 export const instanceUrlSchema = z.string().max(2048).refine(value => {

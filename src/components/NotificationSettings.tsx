@@ -34,13 +34,14 @@ export function NotificationSettings() {
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<NotificationRule>();
   const entities = currentHome.entities;
+  const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
     setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
   };
-  const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string, optional = false) => {
-    const choices = entities.filter(entity => (!domain || entity.domain === domain) && !(entity.domain === "input_text" && entity.attributes.mode === "password"));
-    return <EntityPicker label={t(label)} entities={choices} value={value} onChange={update} disabled={disabled} clearLabel={optional ? t("None") : undefined} />;
+  const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string) => {
+    const choices = selectable.filter(entity => !domain || entity.domain === domain);
+    return <EntityPicker label={t(label)} entities={choices} value={value} onChange={update} disabled={disabled} />;
   };
   const save = () => {
     const current = notifications.rules.find(rule => rule.id === draft.id);
@@ -73,7 +74,7 @@ export function NotificationSettings() {
     {!homeOnline && <p role="status" className="page-note">{t("Notifications are paused until Home Assistant reconnects.")}</p>}
     <div className="flex flex-wrap gap-2">{(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
       const Icon = icons[kind];
-      return <Button key={kind} variant="outline" disabled={disabled || notifications.rules.length >= 100} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntity: "", cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Icon size={17} aria-hidden="true" /><Plus size={14} aria-hidden="true" />{t(kinds[kind])}</Button>;
+      return <Button key={kind} variant="outline" disabled={disabled || notifications.rules.length >= 100} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Icon size={17} aria-hidden="true" /><Plus size={14} aria-hidden="true" />{t(kinds[kind])}</Button>;
     })}</div>
     {!notifications.rules.length && <p className="empty-note">{t("No rules yet. Add an ongoing task for an appliance, a current alert for a state or calendar, or a camera popup for your doorbell.")}</p>}
     <ul className="mt-4 divide-y">{notifications.rules.map(rule => {
@@ -113,7 +114,9 @@ export function NotificationSettings() {
         {draft.trigger.type === "ha-event" && <label>{t("Event data filters (JSON)")}<textarea rows={3} value={filters} maxLength={8000} onChange={event => setFilters(event.target.value)} /><span className="page-note">{t("Match exact top-level fields, such as action or device_id. Empty filters match every event of this type.")}</span></label>}
         {draft.trigger.type === "calendar" && <label>{t("Show minutes before start")}<input type="number" min={0} max={1440} required value={draft.trigger.leadMinutes} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger })} /></label>}
         {draft.kind === "camera" && selectEntity("Camera", draft.cameraEntity, cameraEntity => setDraft({ ...draft, cameraEntity }), "camera")}
-        {selectEntity("Additional reading (optional)", draft.detailEntity, detailEntity => setDraft({ ...draft, detailEntity }), undefined, true)}
+        <EntityPicker multiple label={t("Additional readings (optional)")} entities={selectable} value={draft.detailEntities}
+          onChange={detailEntities => setDraft({ ...draft, detailEntities })} disabled={disabled}
+          disabledReason={entity => draft.detailEntities.length >= 100 && !draft.detailEntities.includes(entity.preferenceId) ? t("Choose up to 100 additional readings.") : undefined} />
         {(draft.kind === "camera" || ["entity-event", "ha-event"].includes(draft.trigger.type)) && <div className="grid gap-3 sm:grid-cols-2">
           <label>{t("Show for (seconds)")}<input type="number" min={10} max={3600} required value={draft.durationSeconds} onChange={event => setDraft({ ...draft, durationSeconds: event.target.valueAsNumber })} /></label>
           <label>{t("Cooldown (seconds)")}<input type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>

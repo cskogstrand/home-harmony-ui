@@ -11,6 +11,21 @@ const now = Date.parse("2026-10-24T12:00:00Z");
 const zone = "Europe/Oslo";
 
 describe("notification configuration", () => {
+  it("migrates single readings, preserves multiple selections and honors explicit clearing", () => {
+    const { detailEntities: _details, ...legacy } = rule();
+    const migrated = notificationRuleSchema.parse({ ...legacy, detailEntity: "home|sensor.remaining" });
+    expect(migrated.detailEntities).toEqual(["home|sensor.remaining"]);
+    expect(migrated).not.toHaveProperty("detailEntity");
+    expect(notificationRuleSchema.parse(legacy).detailEntities).toEqual([]);
+    expect(notificationRuleSchema.parse({ ...legacy, detailEntity: "" }).detailEntities).toEqual([]);
+    expect(notificationRuleSchema.parse({ ...legacy, detailEntity: "home|sensor.remaining", detailEntities: [] }).detailEntities).toEqual([]);
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = [migrated, rule({ id: "multiple", detailEntities: ["home|sensor.remaining", "home|sensor.progress"] })];
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    for (const detailEntities of [null, "sensor.example", [""], ["x".repeat(513)], ["same", "same"], Array.from({ length: 101 }, (_, i) => `sensor.example_${i}`)]) {
+      expect(notificationRuleSchema.safeParse({ ...legacy, detailEntities }).success).toBe(false);
+    }
+  });
   it("defaults to no rules and preserves configured rules through backups", () => {
     const config = emptyConfiguration();
     delete config.settings.notifications;

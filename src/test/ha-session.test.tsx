@@ -1425,7 +1425,7 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
   expect(select("Tasks for Morgan")).toHaveTextContent("personal");
   await choose("Tasks for Morgan", "family");
   await confirmAction("Change list");
-  expect(select("Tasks for Everyone")).toHaveTextContent("No list selected");
+  expect(select("Tasks for Everyone")).toHaveTextContent("Add list");
   expect(savedSettings().todoLists[`home|todo.personal`]).toBeUndefined();
   await choose("Tasks for Morgan", "");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));

@@ -67,11 +67,62 @@ it("restricts the camera picker to cameras and allows clearing the optional read
   const picker = within(screen.getByRole("dialog", { name: "Camera" }));
   expect(picker.queryByRole("button", { name: /Example detector/ })).not.toBeInTheDocument();
   fireEvent.click(picker.getByRole("button", { name: "Example camera · camera.example" }));
-  chooseEntity("Additional reading (optional)", "binary_sensor.example");
-  fireEvent.click(screen.getByRole("button", { name: "Additional reading (optional)" }));
-  fireEvent.click(screen.getByRole("button", { name: "None" }));
+  fireEvent.click(screen.getByRole("button", { name: "Additional readings (optional)" }));
+  const reading = screen.getByRole("checkbox", { name: "Example detector" });
+  fireEvent.click(reading);
+  expect(reading).toBeChecked();
+  fireEvent.click(reading);
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
-  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ kind: "camera", cameraEntity: "home|camera.example", detailEntity: "" })] });
+  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ kind: "camera", cameraEntity: "home|camera.example", detailEntities: [] })] });
+});
+
+it("adds multiple readings, reopens their selections and removes one without losing the others", () => {
+  mocks.app.currentHome = mapHome({
+    "sensor.remaining": state("sensor.remaining", "15", { friendly_name: "Example remaining" }),
+    "sensor.progress": state("sensor.progress", "40", { friendly_name: "Example progress" }),
+    "input_text.private": state("input_text.private", "fictional", { friendly_name: "Example password", mode: "password" }),
+  }, emptyRegistries, "home");
+  const rule = cameraRule();
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  fireEvent.click(screen.getByRole("button", { name: "Additional readings (optional)" }));
+  expect(screen.queryByRole("checkbox", { name: "Example password" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Example remaining" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Example progress" }));
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules: [{ ...rule, detailEntities: ["home|sensor.remaining", "home|sensor.progress"] }] });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...rule, detailEntities: ["home|sensor.remaining", "home|sensor.progress"] }] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  fireEvent.click(screen.getByRole("button", { name: "Additional readings (optional)" }));
+  expect(screen.getByRole("checkbox", { name: "Example remaining" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Example progress" })).toBeChecked();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Example remaining" }));
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules: [{ ...rule, detailEntities: ["home|sensor.progress"] }] });
+});
+
+it.each([false, true])("renders and refreshes all readings, retaining available ones when another is missing (banner: %s)", compact => {
+  const readingHome = (progress: string) => mapHome({
+    "sensor.remaining": state("sensor.remaining", "15", { friendly_name: "Example remaining", unit_of_measurement: "min" }),
+    "sensor.progress": state("sensor.progress", progress, { friendly_name: "Example progress", unit_of_measurement: "%" }),
+  }, emptyRegistries, "home");
+  mocks.app.currentHome = readingHome("40");
+  const rule = { ...cameraRule(), detailEntities: ["home|sensor.remaining", "home|sensor.progress", "home|sensor.missing"] };
+  const value = { notifications: [{ id: "example", rule, startedAt: 0, popup: false }], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const content = () => <MemoryRouter><NotificationContext.Provider value={value}><NotificationList compact={compact} presentation="banner" /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content());
+  expect(screen.getByText("Example remaining · 15 min")).toBeVisible();
+  expect(screen.getByText("Example progress · 40 %")).toBeVisible();
+  expect(screen.getByText("Some additional readings are unavailable")).toBeVisible();
+  mocks.app.currentHome = readingHome("50");
+  view.rerender(content());
+  expect(screen.getByText("Example progress · 50 %")).toBeVisible();
+  expect(screen.queryByText("Example progress · 40 %")).not.toBeInTheDocument();
 });
 
 it("saves display and page choices through shared settings and disables them when storage is unavailable", () => {

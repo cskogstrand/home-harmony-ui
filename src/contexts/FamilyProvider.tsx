@@ -5,7 +5,7 @@ import { useApp } from "./AppContext";
 import { FamilyContext, homeDate, weekStart, type FamilyState, type FamilyMember, type MemberId } from "./FamilyContext";
 import { useSharedConfiguration } from "./SharedConfigurationContext";
 import { SharedConfigurationProvider } from "./SharedConfigurationProvider";
-import { plannerSettings, emptyPlanner, parseConfiguration, type Configuration } from "../../shared/configuration";
+import { plannerSettings, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration } from "../../shared/configuration";
 import { memberPalette } from "@/lib/member-colors";
 import { moveSmartHomeCard } from "@/lib/smart-home-cards";
 
@@ -102,9 +102,12 @@ function FamilyStore({ children }: { children: ReactNode }) {
       // Shopping keeps its shared storage key; it has no person assignment.
       const owner = kind === "shopping" ? "everyone" : member;
       const todoLists = Object.fromEntries(Object.entries(p.todoLists).filter(([id, assigned]) => id !== list && !(assigned.kind === kind && assigned.member === owner)));
-      if (list) todoLists[list] = { kind, member: owner };
+      if (list) todoLists[list] = { ...p.todoLists[list], kind, member: owner };
       return { ...p, todoLists };
     }),
+    setTodoListDisplay: (list, display) => setPlanner(p => p.todoLists[list] ? ({ ...p, todoLists: { ...p.todoLists,
+      [list]: { ...p.todoLists[list], display: { ...defaultTodoDisplay, ...p.todoLists[list].display, ...display } },
+    } }) : p),
     saveEvent: rejectLocalContent, deleteEvent: rejectLocalContent, addItem: rejectLocalContent,
     toggleItem: rejectLocalContent, renameItem: rejectLocalContent, deleteItem: rejectLocalContent,
     hasTimetable: member => planner.timetableEnabled[member] ?? (planner.timetableSettings[member]?.type === "calendar" || !!planner.timetables[member]?.length),

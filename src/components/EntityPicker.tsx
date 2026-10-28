@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Layers, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Layers, Plus, Search, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import type { Entity } from "@/types/api";
@@ -15,6 +15,7 @@ type EntityPickerProps = {
   label: string;
   ariaLabel?: string;
   placeholder?: string;
+  emptyActionLabel?: string;
   disabled?: boolean;
   hideLabel?: boolean;
   describedBy?: string;
@@ -74,6 +75,7 @@ export function EntityPicker(props: EntityPickerProps) {
     options[next].focus();
   };
   const selectionNames = selected.map(value => { const entity = entities.find(entity => entity.preferenceId === value); return entity ? getLabel(entity) : missingLabel(value); });
+  const showAdd = !selected.length && !open && !!props.emptyActionLabel;
   const renderEntity = (value: string, entity?: Entity) => {
     const name = entity ? getLabel(entity) : missingLabel(value);
     const reason = entity && disabledReason?.(entity);
@@ -90,8 +92,8 @@ export function EntityPicker(props: EntityPickerProps) {
     {!props.hideLabel && <label htmlFor={id}>{label}</label>}
     {/* Let the portaled results own their scroll lock inside a parent dialog. */}
     <Popover modal open={open} onOpenChange={value => { setOpen(value); if (value) { setSearch(""); setDevice(undefined); } }}>
-      <PopoverTrigger asChild><Button id={id} type="button" variant="outline" disabled={disabled} aria-label={ariaLabel} aria-describedby={[props.describedBy, `${id}-selection`].filter(Boolean).join(" ")} className="entity-picker-trigger">
-        <span id={`${id}-selection`}>{selectionNames.length > 2 ? t("{count} selected", { count: selectionNames.length }) : selectionNames.length ? selectionNames.join(", ") : props.placeholder ?? t("Choose an entity")}</span><ChevronDown size={16} className="shrink-0" aria-hidden="true" />
+      <PopoverTrigger asChild><Button id={id} type="button" variant={showAdd ? "ghost" : "outline"} disabled={disabled} aria-label={ariaLabel} aria-describedby={[props.describedBy, `${id}-selection`].filter(Boolean).join(" ")} className={`entity-picker-trigger${showAdd ? " entity-picker-add" : ""}`}>
+        {showAdd && <Plus size={16} aria-hidden="true" />}<span id={`${id}-selection`}>{showAdd ? props.emptyActionLabel : selectionNames.length > 2 ? t("{count} selected", { count: selectionNames.length }) : selectionNames.length ? selectionNames.join(", ") : props.placeholder ?? t("Choose an entity")}</span>{!showAdd && <ChevronDown size={16} className="shrink-0" aria-hidden="true" />}
       </Button></PopoverTrigger>
       <PopoverContent align="start" collisionPadding={12} className="entity-picker-popover" aria-label={ariaLabel} onOpenAutoFocus={event => { event.preventDefault(); input.current?.focus(); }}>
         <div className="entity-picker-search"><Search size={18} aria-hidden="true" /><Input ref={input} type="search" aria-label={t("Search devices and entities")} placeholder={t("Search names, IDs, rooms or integrations…")} value={search} onChange={event => { setSearch(event.target.value); if (list.current) list.current.scrollTop = 0; }} onKeyDown={moveFocus} /></div>

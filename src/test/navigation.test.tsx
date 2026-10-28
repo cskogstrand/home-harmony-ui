@@ -43,14 +43,19 @@ const saved = async () => {
 };
 
 it.each([
-  ["en", "2026-10-28", null],
-  ["en", "2026-10-29", null],
-  ["en", "2026-10-30", "No plans for the next couple of days. Next up is Friday."],
-  ["nb", "2026-10-30", "Ingen planer de neste par dagene. Neste er fredag."],
-] as const)("explains the next family plan in %s on %s", async (language, date, summary) => {
+  ["en", "2026-10-28", "auto", false, null],
+  ["en", "2026-10-29", "auto", true, null],
+  ["en", "2026-10-29", "auto", false, "No more plans today. Next up is Thursday."],
+  ["en", "2026-10-30", "auto", true, "No plans today or tomorrow. Next up is Friday."],
+  ["nb", "2026-10-30", "auto", true, "Ingen planer i dag eller i morgen. Neste er fredag."],
+  ["en", "2026-10-30", 3, false, null],
+  ["en", "2026-11-01", 3, false, "No plans in the next 3 days. Next up is Sunday."],
+] as const)("explains the next family plan in %s on %s (%s, tomorrow %s)", async (language, date, days, showTomorrow, summary) => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
   settings.settings.language = language;
+  settings.settings.dashboard.nextPlanDays = days;
+  settings.settings.dashboard.showTomorrow = showTomorrow;
   app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
   settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
   app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
@@ -67,6 +72,7 @@ it.each([
 it.each(["all-day", "ongoing", "loading", "failed", "offline"])("does not claim quiet days with %s calendar data", async mode => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
+  settings.settings.dashboard.showTomorrow = true;
   app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off"), "calendar.other": state("calendar.other", "off") }, emptyRegistries, "home");
   settings.settings.calendarMembers = { "home|calendar.example": "home|person.example", "home|calendar.other": "home|person.example" };
   app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => {
@@ -94,7 +100,7 @@ it("looks ahead beyond a Monday-based week for the next family plan", async () =
   render(<App />); await saved();
   expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", "2026-10-25T23:00:00.000Z", "2026-11-07T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
-  expect(await next.findByText("No plans for the next couple of days. Next up is Tuesday.")).toBeVisible();
+  expect(await next.findByText("No more plans today. Next up is Tuesday.")).toBeVisible();
 });
 
 it("switches calendar periods, loads the whole month, filters people and drills into a multi-day event", async () => {
@@ -391,7 +397,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   expect(screen.queryByRole("region", { name: "Next family plan" })).not.toBeInTheDocument();
   expect(screen.getByText("All sections are hidden. Use the settings cog to show them again.")).toBeInTheDocument();
   expect(settings.settings.dashboard.showTomorrow).toBe(true);
-  expect(Object.entries(settings.settings.dashboard).filter(([key]) => key !== "showTomorrow").every(([, value]) => !value)).toBe(true);
+  expect(Object.entries(settings.settings.dashboard).filter(([key]) => !["showTomorrow", "nextPlanDays"].includes(key)).every(([, value]) => !value)).toBe(true);
   expect(settings.settings.timetables).toEqual(originalTimetables);
   first.unmount();
   render(<App />); await saved();
@@ -407,7 +413,63 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ morningSummary: false, wasteCollection: false, nextPlan: false, day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ morningSummary: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+});
+
+it("saves a custom next-plan window, fetches the full range and returns to Auto", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([]));
+  const first = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Look ahead" }), { target: { value: "custom" } });
+  const days = screen.getByRole("spinbutton", { name: "Days ahead" });
+  fireEvent.change(days, { target: { value: "14" } }); fireEvent.blur(days);
+  await waitFor(() => expect(settings.settings.dashboard.nextPlanDays).toBe(14));
+  expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", expect.any(String), "2026-11-11T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
+  fireEvent.change(days, { target: { value: "91" } }); fireEvent.blur(days);
+  expect(settings.settings.dashboard.nextPlanDays).toBe(14);
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(await screen.findByRole("heading", { name: "No plans in the next 14 days." })).toBeVisible();
+  first.unmount(); render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  expect(screen.getByRole("spinbutton", { name: "Days ahead" })).toHaveValue(14);
+  fireEvent.change(screen.getByRole("combobox", { name: "Look ahead" }), { target: { value: "auto" } });
+  fireEvent.click(screen.getByRole("switch", { name: "Show tomorrow’s plans" }));
+  await waitFor(() => expect(settings.settings.dashboard.nextPlanDays).toBe("auto"));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(await screen.findByRole("heading", { name: "No plans today or tomorrow." })).toBeVisible();
+});
+
+it("saves list display choices, keeps them on reassignment and restores Add list when unlinked", async () => {
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "person.other": state("person.other", "home", { friendly_name: "Other example" }), "todo.example": state("todo.example", "0", { friendly_name: "Example list" }) }, emptyRegistries, "home");
+  settings.settings.todoLists = { "home|todo.example": { kind: "tasks", member: "home|person.example" } };
+  window.history.replaceState(null, "", "/settings/lists");
+  const first = render(<App />); await saved();
+  const disclosure = screen.getByLabelText("Display settings for Tasks for Example person");
+  fireEvent.click(disclosure);
+  const options = within(disclosure.parentElement);
+  fireEvent.change(options.getByRole("combobox", { name: "Completed items" }), { target: { value: "hide" } });
+  for (const name of ["Show details", "Show due date", "Celebrate completion"]) fireEvent.click(options.getByRole("switch", { name }));
+  await saved();
+  const display = { completed: "hide", showDetails: false, showDueDate: false, celebrate: true };
+  expect(settings.settings.todoLists["home|todo.example"].display).toEqual(display);
+  chooseEntity("Tasks for Other example", "todo.example");
+  fireEvent.click(screen.getByRole("button", { name: "Change list" }));
+  await saved();
+  expect(settings.settings.todoLists["home|todo.example"]).toMatchObject({ member: "home|person.other", display });
+  expect(screen.getByRole("button", { name: "Tasks for Example person" })).toHaveTextContent("Add list");
+  first.unmount(); render(<App />); await saved();
+  fireEvent.click(screen.getByLabelText("Display settings for Tasks for Other example"));
+  expect(screen.getByRole("combobox", { name: "Completed items" })).toHaveValue("hide");
+  expect(screen.getByRole("switch", { name: "Celebrate completion" })).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Tasks for Other example" }));
+  fireEvent.click(screen.getByRole("button", { name: "No list selected" }));
+  fireEvent.click(screen.getByRole("button", { name: "Unlink list" }));
+  await saved();
+  expect(screen.getByRole("button", { name: "Tasks for Other example" })).toHaveTextContent("Add list");
 });
 
 it("configures and preserves the waste calendar when its Today section is hidden", async () => {

@@ -3,7 +3,7 @@ import { createContext, useContext } from "react";
 import { z } from "zod";
 import { getISOWeek } from "date-fns";
 import type { CalendarEvent } from "@/types/api";
-import { calendarSettingsSchema, eventSchema, itemSchema, memberSchema, type CardDensity, type Configuration, type Planner, type TimetableSettings, type DeviceCardSettings } from "../../shared/configuration";
+import { calendarSettingsSchema, eventSchema, itemSchema, memberSchema, type CardDensity, type Configuration, type Planner, type TimetableSettings, type DeviceCardSettings, type TodoDisplay } from "../../shared/configuration";
 export { isPlannerDate } from "../../shared/configuration";
 
 export interface FamilyMember { id: string; name: string; initials: string; color: string; picture?: string }
@@ -69,6 +69,7 @@ interface FamilyContextValue extends FamilyState {
   moveSmartHomeCard: (id: string, group: string, beforeId?: string) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
   setTodoList: (kind: TodoListKind, member: MemberId, list: string) => void;
+  setTodoListDisplay: (list: string, display: Partial<TodoDisplay>) => boolean;
   saveEvent: (event: FamilyEvent) => boolean;
   deleteEvent: (id: string) => boolean;
   addItem: (text: string, kind: ListKind, member: MemberId) => boolean;

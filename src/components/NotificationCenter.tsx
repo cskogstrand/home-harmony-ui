@@ -25,7 +25,7 @@ function NotificationRow({ item, condensed = false }: { item: HomeNotification; 
   const { currentHome } = useApp();
   const { dismiss, camera } = useNotifications();
   const source = "entity" in item.rule.trigger ? notificationEntity(currentHome.entities, item.rule.trigger.entity) : undefined;
-  const detail = notificationEntity(currentHome.entities, item.rule.detailEntity);
+  const details = item.rule.detailEntities.map(id => notificationEntity(currentHome.entities, id));
   const Icon = item.rule.kind === "ongoing" ? ListChecks : item.rule.kind === "camera" ? Camera : Bell;
   const time = new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, hour: "2-digit", minute: "2-digit" });
   return <li className={condensed ? "flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "flex items-start gap-3 border-t py-3 first:border-0"}>
@@ -34,8 +34,8 @@ function NotificationRow({ item, condensed = false }: { item: HomeNotification; 
       {!condensed && item.eventTitle && <p className="text-sm text-muted-foreground">{item.rule.title} · {t(item.eventStart > Date.now() ? "Starts at {time}" : "Started at {time}", { time: time.format(item.eventStart) })}</p>}
       {!condensed && item.rule.message && <p className="text-sm">{item.rule.message}</p>}
       {!condensed && source && item.rule.trigger.type === "state" && <p className="text-sm text-muted-foreground">{source.name} · {entityStateLabel(source, language)}</p>}
-      {detail && <p className="text-sm">{detail.name} · {entityStateLabel(detail, language)}{available(detail) && typeof detail.attributes.unit_of_measurement === "string" ? ` ${detail.attributes.unit_of_measurement}` : ""}</p>}
-      {item.rule.detailEntity && !detail && <p className="text-sm text-muted-foreground">{t("Additional reading unavailable")}</p>}
+      {details.map((detail, index) => detail && <p key={item.rule.detailEntities[index]} className="text-sm">{detail.name} · {entityStateLabel(detail, language)}{available(detail) && typeof detail.attributes.unit_of_measurement === "string" ? ` ${detail.attributes.unit_of_measurement}` : ""}</p>)}
+      {details.some(detail => !detail) && <p className="text-sm text-muted-foreground">{t("Some additional readings are unavailable")}</p>}
       {item.rule.kind === "camera" && <Button variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button>}
     </div>
     {item.rule.kind !== "ongoing" && <Button size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>}

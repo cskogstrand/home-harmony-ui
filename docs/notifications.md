@@ -25,7 +25,7 @@ Momentary events and camera popups have a duration and cooldown. Repeated trigge
 
 The camera popup header counts down to its expiry in minutes and seconds. While a state trigger still matches, it shows “Closes automatically when this alert expires.” instead. The configured expiry still applies; clearing the trigger does not restart the countdown.
 
-An optional **Additional reading** displays another entity's reported value, such as an appliance's remaining minutes or completion percentage. It does not estimate progress.
+Use **Additional readings (optional)** to select multiple entities, such as an appliance's remaining minutes and completion percentage. Each selected reading appears in the banner and notification list with its reported value and unit. Uncheck a selection to remove it. Existing rules keep their previously selected reading; these choices are shared across screens and included in backups. Readings do not estimate progress.
 
 ## Typical setup
 

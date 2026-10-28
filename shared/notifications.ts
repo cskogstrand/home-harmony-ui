@@ -13,10 +13,14 @@ export const notificationTriggerSchema = z.discriminatedUnion("type", [
 export const notificationRuleSchema = z.object({
   id: reference, title: z.string().trim().min(1).max(100), message: z.string().trim().max(300).default(""),
   enabled: z.boolean().default(true), kind: z.enum(["ongoing", "current", "camera"]), trigger: notificationTriggerSchema,
-  detailEntity: z.string().max(512).default(""), cameraEntity: z.string().max(512).default(""),
+  detailEntity: z.string().max(512).optional(),
+  detailEntities: z.array(reference).max(100).refine(ids => new Set(ids).size === ids.length).optional(),
+  cameraEntity: z.string().max(512).default(""),
   durationSeconds: z.number().int().min(10).max(3600).default(60),
   cooldownSeconds: z.number().int().min(0).max(3600).default(10),
-}).strict().superRefine((rule, ctx) => {
+}).strict().transform(({ detailEntity, detailEntities, ...rule }) => ({
+  ...rule, detailEntities: detailEntities ?? (detailEntity ? [detailEntity] : []),
+})).superRefine((rule, ctx) => {
   if (rule.kind === "ongoing" && rule.trigger.type !== "state") ctx.addIssue({ code: "custom", path: ["trigger"], message: "Ongoing tasks require a state condition." });
   if (rule.kind === "camera" && !rule.cameraEntity) ctx.addIssue({ code: "custom", path: ["cameraEntity"], message: "Choose a camera." });
   if (rule.trigger.type === "calendar" && rule.kind !== "current") ctx.addIssue({ code: "custom", path: ["kind"], message: "Calendar events use current notifications." });

@@ -14,10 +14,13 @@ import { TimetableAdministration } from "@/components/TimetableAdministration";
 import { EntityPicker } from "@/components/EntityPicker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { isTemperatureEntity } from "@/lib/ha-model";
+import { defaultTodoDisplay, type TodoDisplay } from "../../shared/configuration";
+import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 export default function HomeSettings({ section }: { section: "connection" | "people" | "timetables" | "calendars" | "lists" | "weather" }) {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
-  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList, weatherEntity, setWeatherEntity, weatherTemperatureEntity, setWeatherTemperatureEntity, weatherPlacement, setWeatherPlacement } = useFamily();
+  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList, setTodoListDisplay, weatherEntity, setWeatherEntity, weatherTemperatureEntity, setWeatherTemperatureEntity, weatherPlacement, setWeatherPlacement } = useFamily();
+  const shared = useSharedConfiguration();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [...members, ...[...new Set(Object.values(todoLists).filter(assigned => assigned.kind !== "shopping").map(assigned => assigned.member))]
@@ -44,9 +47,25 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
   };
   const listSelector = (kind: TodoListKind, person: { id: string; name: string }) => {
     const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
-    return <EntityPicker className="min-w-0 flex-[1_1_12rem]" label={t(listLabels[kind])} ariaLabel={kind === "shopping" ? t("Shared shopping list") : t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name })}
-      entities={lists} value={selected} disabled={!homeOnline} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
-      getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberMessage(assigned.member, assigned.kind), value2: msg(listLabels[assigned.kind]) }) : ""; }} />;
+    const display = todoLists[selected]?.display ?? defaultTodoDisplay;
+    const label = kind === "shopping" ? t("Shared shopping list") : t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name });
+    return <div className="min-w-0 flex-[1_1_12rem]">
+      <EntityPicker label={t(listLabels[kind])} ariaLabel={label}
+        entities={lists} value={selected} disabled={!homeOnline} emptyActionLabel={t("Add list")} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
+        getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberMessage(assigned.member, assigned.kind), value2: msg(listLabels[assigned.kind]) }) : ""; }} />
+      {selected && <details className="todo-display-settings" key={selected}>
+        <summary aria-label={t("Display settings for {list}", { list: label })}>{t("Display settings")}</summary>
+        <fieldset disabled={!shared?.state.loaded || !!shared.state.error} className="grid gap-3 py-3">
+          <label className="grid gap-2 text-sm">{t("Completed items")}
+            <select className="w-full rounded-lg border border-input bg-background p-2" value={display.completed} onChange={event => setTodoListDisplay(selected, { completed: event.target.value as TodoDisplay["completed"] })}>
+              <option value="inline">{t("Show finished inline")}</option><option value="under">{t("Show finished underneath")}</option><option value="hide">{t("Hide finished")}</option>
+            </select>
+          </label>
+          {([["showDetails", "Show details"], ["showDueDate", "Show due date"], ["celebrate", "Celebrate completion"]] as const).map(([key, title]) =>
+            <label key={key} className="flex min-h-11 items-center justify-between gap-3 text-sm"><span>{t(title)}</span><Switch checked={display[key]} onCheckedChange={value => setTodoListDisplay(selected, { [key]: value })} /></label>)}
+        </fieldset>
+      </details>}
+    </div>;
   };
   return <>
     {section === "weather" && <section className="glow-panel"><PanelHeading title={t("Weather source")} />
@@ -112,8 +131,8 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     {section === "lists" && <section className="glow-panel" id="family-lists"><PanelHeading title={t("People and to-do lists")} />
       {!homeOnline && <p role="status">{t("Lists unavailable while offline.")}</p>}
       {homeOnline && !lists.length && <p className="empty-note">{t("No to-do lists available.")}</p>}
-      {listPeople.map(person => <div key={person.id} role="group" aria-label={t("To-do lists for {value1}", { value1: person.name })} className="flex flex-wrap items-center gap-3 border-b py-3">
-        <span className="w-28 shrink-0 break-words font-medium">{person.name}</span>
+      {listPeople.map(person => <div key={person.id} role="group" aria-label={t("To-do lists for {value1}", { value1: person.name })} className="flex flex-wrap items-start gap-3 border-b py-3">
+        <span className="w-full break-words font-medium">{person.name}</span>
         <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}{listSelector("homework", person)}</div>
       </div>)}
       <div className="mt-3 max-w-md">{listSelector("shopping", { id: "everyone", name: t("Household") })}</div>
