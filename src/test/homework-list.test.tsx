@@ -28,7 +28,7 @@ beforeEach(() => {
   mocks.app.todoItems.mockResolvedValue([]);
   mocks.app.command.mockResolvedValue(undefined);
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 it.each(["en", "nb"] as const)("sorts homework and labels due dates in %s, using the home time zone", async language => {
   mocks.language = language;
@@ -70,27 +70,56 @@ it.each(["school", "lists"])("keeps generated homework completion-only in %s, wi
   expect(view.container.querySelector(".todo-description-field")).not.toBeInTheDocument();
 });
 
-it.each(["school", "lists", "shopping"])("refreshes %s through the icon while retaining rows and announcing status without layout space", async surface => {
+it.each(["school", "lists", "shopping"])("refreshes %s automatically while retaining rows and announcing status without layout space", async surface => {
+  vi.useFakeTimers();
   if (surface === "shopping") mocks.family.todoLists["home|todo.homework"].kind = "shopping";
   mocks.app.todoItems.mockResolvedValue([item("Example task")]);
-  if (surface === "school") show();
-  else render(<MemoryRouter><ListPanel kind={surface === "shopping" ? "shopping" : "homework"} /></MemoryRouter>);
-  const checkbox = await screen.findByRole("checkbox", { name: "Example task" });
-  const refresh = screen.getByRole("button", { name: "Refresh list" });
+  const view = surface === "school" ? show() : render(<MemoryRouter><ListPanel kind={surface === "shopping" ? "shopping" : "homework"} /></MemoryRouter>);
+  await act(async () => {});
+  const checkbox = screen.getByRole("checkbox", { name: "Example task" });
+  expect(screen.queryByRole("button", { name: /Refresh|Retry/ })).not.toBeInTheDocument();
   let finish: (items: TodoItem[]) => void;
   mocks.app.todoItems.mockImplementationOnce(() => new Promise<TodoItem[]>(resolve => { finish = resolve; }));
-  fireEvent.click(refresh);
-  expect(refresh).toBeDisabled();
-  expect(refresh).toHaveAttribute("aria-busy", "true");
-  expect(refresh.querySelector("svg")).toHaveClass("motion-safe:animate-spin");
+  await act(async () => vi.advanceTimersByTimeAsync(60000));
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(2);
+  expect(checkbox.closest('[role="group"]')).toHaveAttribute("aria-busy", "true");
   expect(checkbox).toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveClass("sr-only");
   expect(screen.getByRole("status")).toHaveTextContent("Refreshing list…");
   expect(screen.queryByText("Loading to-do items…")).not.toBeInTheDocument();
-  await act(async () => finish([item("Example task")]));
-  expect(refresh).toBeEnabled();
-  expect(refresh).toHaveAttribute("aria-busy", "false");
-  expect(refresh.querySelector("svg")).not.toHaveClass("motion-safe:animate-spin");
+  await act(async () => vi.advanceTimersByTimeAsync(60000));
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(2);
+  await act(async () => finish([item("Example task"), item("Added elsewhere")]));
+  expect(screen.getByRole("checkbox", { name: "Added elsewhere" })).toBeInTheDocument();
+  expect(checkbox.closest('[role="group"]')).toHaveAttribute("aria-busy", "false");
+  view.unmount();
+  await act(async () => vi.advanceTimersByTimeAsync(60000));
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(2);
+});
+
+it("pauses background list reads while a write is pending or Home Assistant is offline", async () => {
+  vi.useFakeTimers();
+  mocks.app.todoItems.mockResolvedValue([item("Example task")]);
+  let finish: () => void;
+  mocks.app.command.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+  const view = show();
+  await act(async () => {});
+  fireEvent.click(screen.getByRole("checkbox", { name: "Example task" }));
+  await act(async () => vi.advanceTimersByTimeAsync(120000));
+  expect(mocks.app.todoItems).toHaveBeenCalledOnce();
+  expect(mocks.app.command).toHaveBeenCalledOnce();
+  await act(async () => finish());
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(2);
+  mocks.app.homeOnline = false;
+  view.rerender(<MemoryRouter><HomeworkList member={member} /></MemoryRouter>);
+  await act(async () => vi.advanceTimersByTimeAsync(120000));
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(2);
+  mocks.app.homeOnline = true;
+  view.rerender(<MemoryRouter><HomeworkList member={member} /></MemoryRouter>);
+  await act(async () => {});
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(3);
+  await act(async () => vi.advanceTimersByTimeAsync(60000));
+  expect(mocks.app.todoItems).toHaveBeenCalledTimes(4);
 });
 
 it("orders repeated-hour deadlines by their instant, after date-only items and before undated ones", async () => {
@@ -120,8 +149,9 @@ it("shows the empty state, read-only rows, unavailable state and recoverable err
   mocks.app.todoItems.mockRejectedValueOnce(new Error("Could not read list"));
   const failed = show();
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not read list");
-  fireEvent.click(screen.getByRole("button", { name: "Refresh list" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByRole("checkbox", { name: "Read only" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
   failed.unmount();
   mocks.app.homeOnline = false;
   show();

@@ -8,7 +8,7 @@ import { ArrowUpRight, Plus, CalendarDays, CalendarClock, BookOpen } from "lucid
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { ListPanel } from "@/components/FamilyLists";
-import { CalendarRefreshButton, CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,7 @@ export default function Dashboard() {
     </section>}
     {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
     {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
-      <div className="panel-heading calendar-panel-heading"><PanelTitle icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><div className="calendar-heading-actions"><CalendarViewControls /><CalendarRefreshButton data={data} /></div></div>
+      <div className="panel-heading calendar-panel-heading"><PanelTitle icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><CalendarViewControls /></div>
       <HomeAssistantCalendar data={data} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
       <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={t("View {value1}, week {value2}", { value1: dateLabel(day), value2: weekNumber(day) })} aria-current={day === today ? "date" : undefined}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>

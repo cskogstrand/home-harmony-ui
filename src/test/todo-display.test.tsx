@@ -132,7 +132,7 @@ it.each(["disabled", "keyboard", "failed command", "failed refresh", "unconfirme
   if (mode === "failed command" || mode === "unconfirmed") expect(screen.getByRole("checkbox", { name: "Example task" })).toBeEnabled();
   if (mode === "failed refresh") {
     app.todoItems.mockResolvedValue([pendingItem]);
-    fireEvent.click(screen.getByRole("button", { name: "Refresh list" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("checkbox", { name: "Example task" })).toBeEnabled();
   }
 });

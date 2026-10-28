@@ -216,8 +216,9 @@ it("opens old date links as a day agenda and distinguishes failed data from an e
   expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("Some calendars could not be loaded.");
   expect(screen.queryByText("No plans for this day.")).not.toBeInTheDocument();
   app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([]));
-  fireEvent.click(screen.getByRole("button", { name: "Next day" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(await screen.findByText("No plans for this day.")).toBeVisible();
+  expect(screen.queryByRole("button", { name: /Refresh|Retry/ })).not.toBeInTheDocument();
 });
 
 it("selects weather entities, saves both placement checkboxes across reloads and can hide the widget", async () => {
@@ -613,12 +614,8 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   expect(emptyToday).toHaveTextContent(/^$/);
   expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent(/^No calendars selected$/);
   expect(app.watchCalendarEvents.mock.calls.map(([id]) => id).sort()).toEqual(["calendar.a", "calendar.b", "calendar.extra", "calendar.shared"]);
-  const refresh = day.getByRole("button", { name: "Refresh calendars" });
-  expect(refresh).toHaveAttribute("title", "Refresh calendars");
-  expect(refresh).toHaveTextContent(/^$/);
+  expect(day.queryByRole("button", { name: /Refresh|Retry/ })).not.toBeInTheDocument();
   expect(day.queryByRole("link", { name: "Open calendar" })).not.toBeInTheDocument();
-  fireEvent.click(refresh);
-  await waitFor(() => expect(app.watchCalendarEvents).toHaveBeenCalledTimes(8));
   fireEvent.click(person.getByRole("button", { name: /Later example/ }));
   expect(screen.getByRole("dialog", { name: "Later example" })).toHaveTextContent("Example preparation details");
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });

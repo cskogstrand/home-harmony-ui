@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
-import { CalendarRefreshButton, CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { CalendarDay, CalendarMonth } from "@/components/CalendarViews";
 import "./calendar.css";
 
@@ -54,7 +54,7 @@ export default function Calendar() {
     : `${dateLabel(start, { day: "numeric", month: "short" })} — ${dateLabel(addDays(end, -1), { day: "numeric", month: "short", year: "numeric" })}`;
 
   return <div className="planner-page calendar-page">
-    <PageHeading title={t("Calendar")}><div className="flex items-center gap-2"><CalendarRefreshButton data={data} /><Button className="mobile-icon-button" onClick={() => openEvent()}><Plus size={18} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add a plan")}</span></Button></div></PageHeading>
+    <PageHeading title={t("Calendar")}><Button className="mobile-icon-button" onClick={() => openEvent()}><Plus size={18} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add a plan")}</span></Button></PageHeading>
     <section className="glow-panel calendar-toolbar" aria-label={t("Calendar navigation")}>
       <div className="calendar-navigation">
         <div className="calendar-date-navigation">

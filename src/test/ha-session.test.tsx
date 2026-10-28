@@ -842,7 +842,8 @@ it.each(["/", "/calendar"])("saves new plans from %s to the selected HA calendar
   setupWritableCalendars();
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
-  await waitFor(() => screen.getAllByRole("button", { name: "Refresh calendars" }).forEach(button => expect(button).toBeEnabled()));
+  await waitFor(() => expect(haFetch).toHaveBeenCalled());
+  await waitFor(() => expect(screen.queryByText("Loading calendar events…")).not.toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: path === "/" ? "Add a family plan" : "Add a plan" }));
   fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Evening walk" } });
   const select = screen.getByRole("button", { name: "Calendar" });
@@ -878,7 +879,8 @@ it("preserves a failed calendar draft and blocks writes offline or without a wri
   const { household } = setupWritableCalendars();
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  await waitFor(() => expect(screen.getByRole("button", { name: "Refresh calendars" })).not.toBeDisabled());
+  await waitFor(() => expect(haFetch).toHaveBeenCalled());
+  await waitFor(() => expect(screen.queryByText("Loading calendar events…")).not.toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Add a plan for Morgan on Thu 8 Oct" }));
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-08");
   expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");

@@ -1,6 +1,6 @@
 import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useState } from "react";
-import { Apple, Check, Cylinder, Leaf, Milk, Newspaper, PlugZap, RefreshCw, Shirt, Trash2, TriangleAlert, Wine, type LucideIcon } from "lucide-react";
+import { Apple, Check, Cylinder, Leaf, Milk, Newspaper, PlugZap, Shirt, Trash2, TriangleAlert, Wine, type LucideIcon } from "lucide-react";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily } from "@/contexts/FamilyContext";
@@ -61,9 +61,10 @@ export function WasteCollection() {
   return <section className="glow-panel col-span-full waste-collection" aria-label={t("Waste collection")} aria-busy={loading}>
     <div className="panel-heading">
       <PanelTitle icon={Trash2}>{t("Waste collection")}</PanelTitle>
-      {wasteCalendarEntity && <Button variant="ghost" size="icon" aria-label={t("Refresh waste collections")} title={t("Refresh waste collections")} disabled={!ready || loading} onClick={() => setRefresh(value => value + 1)}><RefreshCw size={18} aria-hidden="true" /></Button>}
     </div>
-    {status ? <p role={events === null ? "alert" : "status"} className="text-muted-foreground">{status}</p> : <ul className="waste-collection-list">
+    {status ? <div className="space-y-2"><p role={events === null ? "alert" : "status"} className="text-muted-foreground">{status}</p>
+      {events === null && <Button variant="outline" onClick={() => setRefresh(value => value + 1)}>{t("Retry")}</Button>}
+    </div> : <ul className="waste-collection-list">
       {collections.map(({ event, start, daysAway }, index) => {
         const icons = wasteIconRules.filter(([pattern]) => pattern.test(event.summary)).map(([, icon]) => icon);
         if (!icons.length) icons.push(Trash2);

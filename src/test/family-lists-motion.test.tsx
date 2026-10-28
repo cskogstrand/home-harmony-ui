@@ -71,8 +71,8 @@ it("clears pending feedback after a failed refresh so the list can recover", asy
   fireEvent.click(checkbox);
   expect(await screen.findByRole("alert")).toHaveTextContent("Could not refresh items");
   expect(view.container.querySelector(".lucide-loader-circle")).not.toBeInTheDocument();
-  const refresh = screen.getByRole("button", { name: "Refresh list" });
-  await waitFor(() => expect(refresh).toBeEnabled());
-  fireEvent.click(refresh);
+  const retry = screen.getByRole("button", { name: "Retry" });
+  await waitFor(() => expect(retry).toBeEnabled());
+  fireEvent.click(retry);
   expect(await screen.findByRole("checkbox", { name: "Set the table" })).toBeEnabled();
 });

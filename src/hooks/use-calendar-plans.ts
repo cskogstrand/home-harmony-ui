@@ -50,6 +50,6 @@ export function useCalendarPlans(start: string, end: string) {
   return { events: sortEvents([...localEvents, ...remote]), people,
     loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
     errors: homeOnline && result.key === requestKey ? result.errors.map(calendar => t("Could not read {value1}. Check the calendar integration, permissions, connection and HA CORS configuration.", { value1: calendar })) : [],
-    refresh: () => setRefresh(n => n + 1), selectedCount: selected.length,
+    refresh: () => setRefresh(n => n + 1),
   };
 }

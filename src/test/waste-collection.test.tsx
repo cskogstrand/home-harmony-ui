@@ -144,16 +144,19 @@ it("distinguishes loading, errors and empty calendars and supports retry and liv
   data.app.watchCalendarEvents.mockImplementation(() => {});
   render(<WasteCollection />);
   expect(screen.getByRole("status")).toHaveTextContent("Loading your calendar");
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
   const [, , , signal, receive] = data.app.watchCalendarEvents.mock.calls[0];
   act(() => receive(null));
   expect(screen.getByRole("alert")).toHaveTextContent("Could not load waste collections");
-  fireEvent.click(screen.getByRole("button", { name: "Refresh waste collections" }));
+  fireEvent.click(screen.getByRole("button", { name: "Retry" }));
   expect(signal.aborted).toBe(true);
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
   const retry = data.app.watchCalendarEvents.mock.calls[1][4];
   act(() => retry([]));
   expect(screen.queryByRole("region", { name: "Waste collection" })).not.toBeInTheDocument();
   act(() => retry(events));
   expect(screen.getByText("Food waste")).toBeInTheDocument();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
 it.each(["missing", "unavailable", "offline", "unconfigured"])("does not request or show an empty schedule when %s", condition => {

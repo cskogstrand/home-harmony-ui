@@ -3,7 +3,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useListItemFeedback, type ItemFeedback } from "@/hooks/use-list-item-feedback";
 import { forwardRef, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
-import { Check, LoaderCircle, Plus, RefreshCw, X, ClipboardList, ShoppingBasket, ListChecks, BookOpen } from "lucide-react";
+import { Check, LoaderCircle, Plus, X, ClipboardList, ShoppingBasket, ListChecks, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
@@ -189,6 +189,11 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     ? items.map(item => ({ id: item.uid, text: item.summary, complete: item.status === "completed" })) : null);
   const status = commands[entityId];
   const busy = loading || !!status?.pending;
+  useEffect(() => {
+    if (!online || busy || pendingToggle) return;
+    const timer = setInterval(() => setRefresh(n => n + 1), 60000);
+    return () => clearInterval(timer);
+  }, [online, busy, pendingToggle]);
   const can = (action: TodoAction) => (editable || action === "update_item") && online && !loading && !result.error && !status?.pending && !pendingToggle && !heldCompletion && supportsAction(entity, action, services);
   const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }) => {
     try {
@@ -244,14 +249,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
   return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
     {celebration && <TodoCelebration origin={celebration} onComplete={endCelebration} />}
-    {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle>{online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} aria-busy={busy} disabled={busy || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw size={18} aria-hidden="true" className={busy ? "motion-safe:animate-spin" : undefined} /></Button>}</div> : <div className="list-composer">
+    {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
         <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div>{kind !== "shopping" && <h3>{memberName(member)}</h3>}<span>{entity?.name ?? t("List unavailable")}</span></div></div>
-        <div className="ml-auto flex items-center gap-1">
-          {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[700px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
-          {online && <Button variant="ghost" size="icon" aria-label={t("Refresh list")} title={t("Refresh list")} aria-busy={busy}
-            disabled={busy || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}><RefreshCw aria-hidden="true" className={busy ? "motion-safe:animate-spin" : undefined} /></Button>}
-        </div>
+        {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[700px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
       </div>
       {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
@@ -263,7 +264,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     </div>}
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
-      {hasResult && (result.error ? <p role="alert">{message(result.error)}</p> : <>
+      {hasResult && (result.error ? <div className="space-y-2"><p role="alert">{message(result.error)}</p><Button variant="outline" disabled={busy || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}>{t("Retry")}</Button></div> : <>
         {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
         <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletion && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
