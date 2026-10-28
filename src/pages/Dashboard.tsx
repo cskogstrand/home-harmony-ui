@@ -23,7 +23,7 @@ import { WasteCollection } from "@/components/WasteCollection";
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
   const { homeOnline } = useApp();
-  const { today, time, members, memberName, connectedPlanner, hasTimetable, calendar, calendarStart: start, calendarMembers, todoLists, timetables, timetableEnabled, timetableSettings, homeEntities, selectedAlarm, dashboard } = useFamily();
+  const { today, time, members, memberName, memberColor, connectedPlanner, hasTimetable, calendar, calendarStart: start, calendarMembers, todoLists, timetables, timetableEnabled, timetableSettings, homeEntities, selectedAlarm, dashboard } = useFamily();
   const shared = useSharedConfiguration();
   const needsSetup = shared?.state.loaded && !Object.keys(calendarMembers).length && !Object.keys(todoLists).length
     && !Object.values(timetables).some(pages => pages.length) && !Object.values(timetableEnabled).some(Boolean) && !Object.values(timetableSettings).some(settings => settings.type === "calendar") && homeEntities === undefined && !selectedAlarm;
@@ -56,11 +56,15 @@ export default function Dashboard() {
     {dashboard.morningSummary && <MorningSummary />}
     {dashboard.wasteCollection && <WasteCollection />}
     {dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
-      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle>{next && <Badge variant="secondary" className="next-plan-countdown px-3 py-1 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge>}</div>
-      <div className="next-plan-content">
-      {next ? <><button className="next-event" onClick={() => openEvent(next)}><h3>{next.title}</h3><p className="next-label">{t("Up next · {name}", { name: memberName(next.member) })}</p><p>{[next.location, next.note].filter(Boolean).join(" · ")}</p><ArrowUpRight className="next-arrow" size={24} aria-hidden="true" /></button><div className="next-event-time"><time className={next.endTime ? "event-time-range" : undefined}>{eventTimeLabel(next)}</time><span>{next.date === today ? t("Today") : dateLabel(next.date)}</span></div></> :
+      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle></div>
+      {next ? <button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
+        <div className="next-event-copy">
+          <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge></div>
+          <small>{[memberName(next.member), next.location, next.note].filter(Boolean).join(" · ")}</small>
+        </div>
+        <div className="next-event-time"><time>{eventTimeLabel(next)}</time><small>{next.date === today ? t("Today") : dateLabel(next.date)}</small></div>
+      </button> :
         <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
-      </div>
     </section>}
     {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
     {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>

@@ -59,10 +59,11 @@ it.each([
   settings.settings.language = language;
   settings.settings.dashboard.nextPlanDays = days;
   settings.settings.dashboard.showTomorrow = showTomorrow;
+  settings.settings.memberColors = { "home|person.example": "#a5c9bd" };
   app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
   settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
   app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
-    { summary: "Example activity", start: `${date}T16:00:00Z`, end: `${date}T17:00:00Z` },
+    { summary: "Example activity", start: `${date}T16:00:00Z`, end: `${date}T17:00:00Z`, location: "Example location", description: "Example reminder" },
   ]));
   render(<App />); await pageReady();
   const next = screen.getByRole("region", { name: language === "nb" ? "Neste familieplan" : "Next family plan" });
@@ -71,7 +72,11 @@ it.each([
   expect(within(next).queryByText(/^(No (more )?plans|Ingen (flere )?planer)/)).not.toBeInTheDocument();
   expect(next.querySelector(".next-plan-countdown")?.textContent ?? null).toBe(countdown);
   expect(within(next).getAllByRole("button")).toHaveLength(1);
-  fireEvent.click(within(next).getByRole("button", { name: /Example activity/ }));
+  const plan = within(next).getByRole("button", { name: /Example activity/ });
+  expect(plan.style.getPropertyValue("--member")).toBe("#a5c9bd");
+  expect(within(plan).getByText(countdown, { selector: ".next-plan-countdown" })).toBeVisible();
+  expect(within(plan).getByText("Example person · Example location · Example reminder")).toBeVisible();
+  fireEvent.click(within(plan).getByText("17:00 – 18:00"));
   expect(screen.getByRole("dialog", { name: "Example activity" })).toBeVisible();
 });
 
