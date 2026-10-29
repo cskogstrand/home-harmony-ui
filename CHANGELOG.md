@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.27
+
+<!-- release-source: 68cbc34a5eb0dd54c1832aa31e5e8032a4965bd6 -->
+
+- fix: wait for saves before reading configuration
+- feat: preview and style all notifications
+- fix: refine notification editor opening
+- feat: choose notification style per rule
+- feat: set notification pages per rule
+- feat: make notification progress text optional
+- feat: clarify notification entity controls
+- feat: unify notification entity setup and motion
+- fix: hide waste collection time on Today
+- feat: add collapsible notification editor sections
+- feat: customize notification layout and previews
+
 ## 0.9.26
 
 <!-- release-source: 246e807f716b581ebc3064d23a6961ae5b71c0a9 -->
