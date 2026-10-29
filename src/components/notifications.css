@@ -125,8 +125,12 @@
   .notification-entity-settings .notification-range { grid-template-columns: minmax(0, 1fr); }
 }
 .notification-settings-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
-.notification-preview-dialog { width: min(620px, calc(100% - 24px)); max-width: 620px; max-height: calc(100dvh - 24px); overflow-y: auto; }
+.notification-preview-dialog { width: min(1120px, calc(100% - 24px)); max-width: 1120px; max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; }
+.notification-preview-collection { min-height: 0; overflow-y: auto; padding: .25rem; display: grid; gap: 2rem; }
+.notification-preview-collection > .notification-preview { max-width: 34rem; }
+.notification-preview-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 2rem; align-items: start; }
 .notification-preview-dialog .notification-preview { padding: 0; }
+.notification-preview .notification-editor-section .panel-title { font-size: .9375rem; }
 .notification-style-picker { min-width: 0; }
 .notification-style-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 .notification-style-options > .notification-style-option { display: flex; flex-direction: column; height: auto; min-width: 0; padding: 1rem; gap: 1rem; white-space: normal; border-radius: 16px; }

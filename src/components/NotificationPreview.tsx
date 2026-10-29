@@ -11,13 +11,17 @@ import { NotificationRow } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
+import { Accordion } from "./ui/accordion";
+import { NotificationEditorSection } from "./NotificationEditorSection";
+import { NotificationStylePicker } from "./NotificationStylePicker";
 
-export function NotificationPreview({ rule, presentation: defaultPresentation }: { rule?: NotificationRule; presentation: NotificationPresentation }) {
+export function NotificationPreview({ rule, presentation: defaultPresentation, disabled = false, onPresentationChange }: { rule?: NotificationRule; presentation: NotificationPresentation; disabled?: boolean; onPresentationChange?: (presentation: NotificationPresentation) => void }) {
   const { message: t } = useI18n();
   const { currentHome } = useApp();
   const [demo, setDemo] = useState(true);
   const [percent, setPercent] = useState(40);
   const [playing, setPlaying] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
   const reducedMotion = useReducedMotion();
   const id = useId();
   const example = notificationRuleSchema.parse({
@@ -67,9 +71,9 @@ export function NotificationPreview({ rule, presentation: defaultPresentation }:
       }
     }
   }
-  return <section className="notification-preview" aria-label={t("Notification preview")}>
-    <PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
-    <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p>
+  return <section className="notification-preview" aria-label={onPresentationChange ? t("Preview {name}", { name: previewRule.title }) : t("Notification preview")}>
+    {!onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
+      <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p></>}
     {rule && <div className="notification-toggle"><span>{t("Use sample data")}</span><Switch aria-label={t("Use sample data")} checked={demo} onCheckedChange={checked => { setDemo(checked); setPlaying(false); }} /></div>}
     <ul className={activity ? "notification-activity-grid" : presentation === "banner" ? "notification-preview-banner" : "notification-preview-section"}>
       <NotificationRow item={{ id: "preview", rule: previewRule, startedAt: 0, popup: false }} activity={activity} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} entities={entities} preview />
@@ -80,5 +84,10 @@ export function NotificationPreview({ rule, presentation: defaultPresentation }:
         <Button type="button" variant="outline" size="icon" disabled={!!reducedMotion} aria-label={t(playing ? "Pause demo" : "Play demo")} onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}</Button>
       </div>
     </div>}
+    {onPresentationChange && <Accordion type="single" collapsible value={styleOpen ? "presentation" : ""} onValueChange={value => setStyleOpen(value === "presentation")}>
+      <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={styleOpen}>
+        <NotificationStylePicker value={presentation} disabled={disabled} onChange={onPresentationChange} />
+      </NotificationEditorSection>
+    </Accordion>}
   </section>;
 }

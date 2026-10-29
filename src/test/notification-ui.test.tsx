@@ -518,6 +518,63 @@ it("previews simulated progress without saving settings or mutating Home Assista
   expect(screen.queryByRole("region", { name: "Notification preview" })).not.toBeInTheDocument();
 });
 
+it("previews every saved rule and saves display choices independently without resetting demo progress", async () => {
+  const progress = { current: { type: "entity" as const, entity: "home|sensor.remaining" }, start: { type: "value" as const, value: 100 }, end: { type: "value" as const, value: 0 } };
+  const rules = [
+    cameraRule(),
+    { ...cameraRule(), id: "current", kind: "current" as const, title: "Example current", enabled: false },
+    ...["first", "second"].map(id => notificationRuleSchema.parse({ ...cameraRule(), id, title: `Example ${id}`, kind: "ongoing", progress })),
+  ];
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Preview notification" }));
+  const dialog = within(screen.getByRole("dialog", { name: "Preview notification" }));
+  expect(dialog.queryByRole("combobox")).not.toBeInTheDocument();
+  expect(dialog.getAllByRole("heading", { name: /^(Ongoing tasks|Current alerts|Camera popup)$/ }).map(heading => heading.textContent)).toEqual(["Ongoing tasks", "Current alerts", "Camera popup"]);
+  for (const rule of rules) expect(dialog.getByRole("region", { name: `Preview ${rule.title}` })).toBeVisible();
+  const first = within(dialog.getByRole("region", { name: "Preview Example first" }));
+  const second = within(dialog.getByRole("region", { name: "Preview Example second" }));
+  fireEvent.change(first.getByRole("slider"), { target: { value: "70" } });
+  expect(second.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "40");
+  fireEvent.click(first.getByRole("button", { name: "Display as" }));
+  await waitFor(() => expect(first.getByRole("button", { name: "Compact activity card" })).toBeVisible());
+  fireEvent.click(first.getByRole("button", { name: "Compact activity card" }));
+  const updated = rules.map(rule => rule.id === "first" ? { ...rule, presentation: "activity-compact" } : rule);
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules: updated });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: updated };
+  view.rerender(content());
+  expect(first.getByRole("button", { name: "Compact activity card" })).toHaveAttribute("aria-pressed", "true");
+  expect(first.getByRole("listitem")).toHaveClass("notification-activity-compact");
+  expect(first.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "70");
+  expect(second.getByRole("listitem")).not.toHaveClass("notification-activity-compact");
+  fireEvent.click(second.getByRole("button", { name: "Display as" }));
+  await waitFor(() => expect(second.getByRole("button", { name: "Banner" })).toBeVisible());
+  fireEvent.click(second.getByRole("button", { name: "Banner" }));
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules: updated.map(rule => rule.id === "second" ? { ...rule, presentation: "banner" } : rule) });
+  expect(dialog.getByRole("button", { name: "Show camera" })).toBeDisabled();
+  expect(dialog.getByRole("button", { name: "Dismiss Example current" })).toBeDisabled();
+});
+
+it("keeps the saved preview style on failure and disables style changes when storage is unavailable", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Preview notification" }));
+  fireEvent.click(screen.getByRole("button", { name: "Display as" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Activity cards" })).toBeVisible());
+  setNotifications.mockReturnValue(false);
+  fireEvent.click(screen.getByRole("button", { name: "Activity cards" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("The display choice could not be saved.");
+  expect(screen.getByRole("button", { name: "Section" })).toHaveAttribute("aria-pressed", "true");
+  setNotifications.mockReturnValue(true);
+  fireEvent.click(screen.getByRole("button", { name: "Activity cards" }));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  mocks.shared.state.error = "Storage unavailable";
+  view.rerender(content());
+  for (const button of within(screen.getByRole("group", { name: "Display as" })).getAllByRole("button")) expect(button).toBeDisabled();
+});
+
 it.each(["section", "activity"] as const)("groups ongoing, current and camera notifications separately in %s and settings", presentation => {
   const rules = [cameraRule(), { ...cameraRule(), id: "current", kind: "current" as const, title: "Example current" }, { ...cameraRule(), id: "ongoing", kind: "ongoing" as const, title: "Example ongoing" }];
   mocks.family.notifications = { ...emptyPlanner().notifications, presentation, rules };

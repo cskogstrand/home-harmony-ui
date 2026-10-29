@@ -39,8 +39,8 @@ export function NotificationSettings() {
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const [draft, setDraft] = useState<NotificationRule>();
   const [openSections, setOpenSections] = useState<string[]>([]);
-  const [previewId, setPreviewId] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
   const [original, setOriginal] = useState("");
   const [filters, setFilters] = useState("{}");
   const [error, setError] = useState("");
@@ -55,7 +55,7 @@ export function NotificationSettings() {
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
     setOpenSections(rule.title.trim() ? [] : ["content"]);
-    setDraft(rule); setPreviewId(rule.id); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
+    setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
   };
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string) => {
@@ -85,16 +85,24 @@ export function NotificationSettings() {
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Home Harmony is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
-    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+    <Dialog open={previewOpen} onOpenChange={open => { setPreviewOpen(open); setPreviewError(false); }}>
     <div className="notification-settings-toolbar">
       <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
     </div>
     <DialogContent className="notification-preview-dialog">
-      <DialogHeader><DialogTitle>{t("Preview notification")}</DialogTitle><DialogDescription>{t("Choose a saved notification or try the example with sample data.")}</DialogDescription></DialogHeader>
-      <div className="planner-form"><label>{t("Preview notification")}<select value={notifications.rules.some(rule => rule.id === previewId) ? previewId : ""} onChange={event => setPreviewId(event.target.value)}>
-        <option value="">{t("Example task")}</option>{notifications.rules.map(rule => <option key={rule.id} value={rule.id}>{rule.title}</option>)}
-      </select></label></div>
-      <NotificationPreview key={previewId} rule={notifications.rules.find(rule => rule.id === previewId)} presentation={notifications.presentation} />
+      <DialogHeader><DialogTitle>{t("Preview notification")}</DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
+      {previewError && <p role="alert" className="text-destructive">{t("The display choice could not be saved. Check settings storage and try again.")}</p>}
+      <div className="notification-preview-collection">
+        {!notifications.rules.length && <NotificationPreview presentation={notifications.presentation} />}
+        {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
+          const rules = notifications.rules.filter(rule => rule.kind === kind);
+          return rules.length > 0 && <section key={kind} aria-label={t(kinds[kind])}>
+            <PanelTitle as="h3" icon={icons[kind]} className="mb-4 text-muted-foreground">{t(kinds[kind])}</PanelTitle>
+            <div className="notification-preview-gallery">{rules.map(rule => <NotificationPreview key={rule.id} rule={rule} presentation={notifications.presentation} disabled={disabled}
+              onPresentationChange={presentation => setPreviewError(!setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, presentation } : item) }))} />)}</div>
+          </section>;
+        })}
+      </div>
     </DialogContent></Dialog>
     {!homeOnline && <p role="status" className="page-note">{t("Notifications are paused until Home Assistant reconnects.")}</p>}
     {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
