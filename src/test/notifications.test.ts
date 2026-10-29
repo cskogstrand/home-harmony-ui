@@ -161,8 +161,11 @@ it("validates entity display settings and combines repeated references without m
   expect(readings[0]).toMatchObject({ defaultPlacement: "left", roles: ["Source entity", "Additional reading"] });
   expect(readings[1]).toMatchObject({ name: "Completion", placement: "right", roles: ["Current value"] });
   const entry = { entity: "home|sensor.example", name: "Example" };
-  for (const entityDisplay of [[{ ...entry, placement: "elsewhere" }], [entry, entry], [{ ...entry, name: "x".repeat(101) }], [{ ...entry, attribute: "x".repeat(101) }]]) {
+  for (const entityDisplay of [[{ ...entry, placement: "elsewhere" }], [entry, entry], [{ ...entry, name: "x".repeat(101) }], [{ ...entry, attribute: "x".repeat(101) }], [{ ...entry, hideName: "yes" }]]) {
     expect(notificationRuleSchema.safeParse({ ...configured, entityDisplay }).success).toBe(false);
   }
   expect(notificationRuleSchema.parse({ ...configured, entityDisplay: [entry] }).entityDisplay[0]).toEqual({ ...entry, attribute: "", placement: "auto" });
+  const config = emptyConfiguration();
+  config.settings.notifications.rules = [notificationRuleSchema.parse({ ...configured, entityDisplay: [{ ...entry, hideName: true }] })];
+  expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
 });

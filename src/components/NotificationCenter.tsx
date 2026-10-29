@@ -42,7 +42,8 @@ export function NotificationRow({ item, condensed = false, activity = false, pre
     const value = !readable ? t("Entity unavailable") : !reading.attribute && entity.attributes.device_class === "timestamp" && Number.isFinite(Date.parse(String(raw))) ? time.format(Date.parse(String(raw))) : entityStateLabel(reading.attribute ? { ...entity, domain: "sensor", state: String(raw) } : entity, language);
     const unit = readable && !reading.attribute && typeof entity.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : "";
     const key = JSON.stringify([reading.entity, reading.attribute]);
-    return prominent ? <div key={key}><strong>{value}{unit && <small>{unit}</small>}</strong><span>{name}</span></div> : <p key={key} className="text-sm">{name} · {value}{unit}</p>;
+    const hideName = activity && reading.hideName;
+    return prominent ? <div key={key}><strong>{value}{unit && <small>{unit}</small>}</strong><span className={hideName ? "sr-only" : undefined}>{name}</span></div> : <p key={key} className="text-sm">{hideName ? <span className="sr-only">{name}: </span> : `${name} · `}{value}{unit}</p>;
   };
   return <li className={activity ? "notification-activity" : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0"}>
     <NotificationIcon rule={item.rule} animate={activity && item.rule.kind === "ongoing"} />

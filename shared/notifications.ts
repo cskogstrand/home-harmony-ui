@@ -20,6 +20,7 @@ export type NotificationProgressSource = NotificationProgress["start"];
 const notificationEntityDisplaySchema = z.object({
   entity: reference, attribute: z.string().trim().max(100).default(""),
   name: z.string().trim().max(100).default(""),
+  hideName: z.boolean().optional(),
   placement: z.enum(["auto", "subtitle", "left", "right", "footer", "hidden"]).default("auto"),
 }).strict();
 export type NotificationEntityDisplay = z.infer<typeof notificationEntityDisplaySchema>;

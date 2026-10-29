@@ -534,3 +534,68 @@ it("adds, names and positions a reading in one section, and keeps its draft thro
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ detailEntities: ["home|binary_sensor.example"], entityDisplay: [{ entity: "home|binary_sensor.example", attribute: "", name: "Status", placement: "right" }] });
 });
+
+it("explains required entities and opens their assignment, while removing only the extra reading", async () => {
+  const configured = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", detailEntities: ["home|binary_sensor.example"], progress: {
+    current: { type: "entity", entity: "home|binary_sensor.example" }, start: { type: "entity", entity: "home|sensor.total" }, end: { type: "value", value: 0 },
+  } });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [configured] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Entities and readings");
+  const total = within(screen.getByRole("group", { name: "sensor.total" }));
+  expect(total.getByText("In use")).toBeVisible();
+  expect(total.getByText("Start value")).toBeVisible();
+  expect(total.getByText("Change its assignment before removing this entity.")).toBeVisible();
+  expect(total.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
+  const source = within(screen.getByRole("group", { name: "Example detector" }));
+  expect(source.getByText("Removing the extra reading keeps its other uses.")).toBeVisible();
+  fireEvent.click(source.getByRole("button", { name: "Remove additional reading Example detector" }));
+  expect(source.getByText("In use")).toBeVisible();
+  expect(source.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
+  fireEvent.click(source.getByRole("button", { name: "Edit trigger" }));
+  expect(screen.getByRole("button", { name: "When to show it" })).toHaveFocus();
+  fireEvent.click(total.getByRole("button", { name: "Edit progress" }));
+  expect(screen.getByRole("button", { name: "Progress" })).toHaveFocus();
+  await openEditorSection("Progress");
+  fireEvent.change(screen.getByLabelText("Start value: value source"), { target: { value: "value" } });
+  fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "100" } });
+  expect(screen.queryByRole("group", { name: "sensor.total" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ detailEntities: [], progress: { current: configured.progress.current, start: { type: "value" } } });
+});
+
+it("persists the activity name toggle through other entity edits and updates the preview", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [cameraRule()] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Entities and readings");
+  fireEvent.click(screen.getByRole("switch", { name: "Example detector: show name in activity card" }));
+  fireEvent.change(screen.getByLabelText("Example detector: display name"), { target: { value: "Detection" } });
+  fireEvent.change(screen.getByLabelText("Example detector: placement"), { target: { value: "left" } });
+  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByText("Detection")).toHaveClass("sr-only");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.entityDisplay[0]).toMatchObject({ name: "Detection", placement: "left", hideName: true });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [saved] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Entities and readings");
+  const toggle = screen.getByRole("switch", { name: "Example detector: show name in activity card" });
+  expect(toggle).toHaveAttribute("aria-checked", "false");
+  fireEvent.click(toggle);
+  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByText("Detection")).not.toHaveClass("sr-only");
+});
+
+it.each(["subtitle", "left", "right", "footer"] as const)("hides only the activity label at %s, preserving the value and other styles", placement => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), entityDisplay: [{ entity: "home|binary_sensor.example", name: "Detection", placement, hideName: true }] });
+  const item = { id: rule.id, rule, popup: false, startedAt: 0 };
+  const view = render(<MemoryRouter><NotificationRow item={item} activity /></MemoryRouter>);
+  const reading = view.container.querySelector(`[data-placement="${placement}"]`);
+  expect(reading).toHaveTextContent("Off");
+  expect(within(reading as HTMLElement).getByText(/Detection/)).toHaveClass("sr-only");
+  for (const condensed of [true, false]) {
+    view.rerender(<MemoryRouter><NotificationRow item={item} condensed={condensed} /></MemoryRouter>);
+    expect(screen.getByText("Detection · Off")).not.toHaveClass("sr-only");
+  }
+});

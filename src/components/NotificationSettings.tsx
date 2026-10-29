@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
@@ -45,6 +45,11 @@ export function NotificationSettings() {
   const [filters, setFilters] = useState("{}");
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<NotificationRule>();
+  const editor = useRef<HTMLFormElement>(null);
+  const editUsage = (section: "trigger" | "progress" | "readings") => {
+    setOpenSections(sections => [...new Set([...sections, section])]);
+    editor.current?.querySelector<HTMLButtonElement>(`[data-section="${section}"] > h3 > button`)?.focus();
+  };
   const entities = currentHome.entities;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
@@ -120,7 +125,7 @@ export function NotificationSettings() {
     })}
     <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor">
       <DialogHeader><DialogTitle>{t(original ? "Edit notification" : "Add notification")}</DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
-      {draft && <form className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
+      {draft && <form ref={editor} className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
         <div className="notification-editor-layout">
         <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="notification-editor-fields">
         <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
@@ -147,7 +152,7 @@ export function NotificationSettings() {
         {draft.trigger.type === "calendar" && <label>{t("Show minutes before start")}<input type="number" min={0} max={1440} required value={draft.trigger.leadMinutes} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger })} /></label>}
         </NotificationEditorSection>
         <NotificationEditorSection value="readings" title={t("Entities and readings")} icon={Gauge} open={openSections.includes("readings")}>
-            <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={changes => setDraft({ ...draft, ...changes })} />
+            <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={changes => setDraft({ ...draft, ...changes })} onEditUsage={editUsage} />
           </NotificationEditorSection>
         {draft.kind === "ongoing" && <NotificationEditorSection value="progress" title={t("Progress")} icon={ChartNoAxesColumnIncreasing} open={openSections.includes("progress")}>
           <NotificationProgressSettings rule={draft} entities={selectable} disabled={disabled} onChange={progress => setDraft({ ...draft, progress })} />
