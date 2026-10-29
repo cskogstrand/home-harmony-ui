@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.3
+
+<!-- release-source: ffcb13b687ae917ba59cf9d31910f3635af7f44f -->
+
+- feat: choose morning summary playback script
+
 ## 0.10.2
 
 <!-- release-source: 4bd2a4996993bdabb0a55fd63bea25fe77b7625f -->
