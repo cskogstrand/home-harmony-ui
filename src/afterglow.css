@@ -299,8 +299,8 @@
 .todo-celebration-list i { top: 0; left: 0; width: 10px; height: 18px; }
 .todo-celebration-list i:nth-child(4n) { width: 12px; height: 12px; border-radius: 50%; }
 .todo-celebration-list i:nth-child(5n) { width: 6px; height: 26px; background: hsl(var(--info)); }
-.todo-celebration-message { position: relative; display: grid; justify-items: center; gap: .35rem; max-width: calc(100% - 2rem); padding: 1rem 1.5rem; border-radius: 16px; background: hsl(var(--card) / .96); color: hsl(var(--foreground)); text-align: center; box-shadow: 0 8px 32px hsl(var(--glass-shade)); }
-.todo-celebration-message > svg { width: 48px; height: 48px; color: hsl(var(--warning)); stroke-width: 1.8; }
+.todo-celebration-message { position: relative; z-index: 1; display: grid; justify-items: center; gap: .35rem; max-width: calc(100% - 2rem); padding: 1rem 1.5rem; border-radius: 16px; background: hsl(var(--card) / .96); color: hsl(var(--foreground)); text-align: center; box-shadow: 0 8px 32px hsl(var(--glass-shade)); }
+.todo-celebration-message > svg { width: 48px; height: 48px; color: hsl(var(--success)); stroke-width: 3; }
 .todo-celebration-message > strong { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; letter-spacing: -.03em; overflow-wrap: anywhere; }
 .todo-celebration-message > span { font-size: .875rem; }
 @container todo-finale (height < 180px) {

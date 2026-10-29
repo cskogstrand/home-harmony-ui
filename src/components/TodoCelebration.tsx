@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useReducedMotion } from "framer-motion";
-import { Trophy } from "lucide-react";
+import { Check } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 
 export function TodoCelebration({ origin, wholeList = false, onComplete }: { origin: { x: number; y: number }; wholeList?: boolean; onComplete: () => void }) {
@@ -36,6 +36,15 @@ export function TodoCelebration({ origin, wholeList = false, onComplete }: { ori
         { opacity: 1, ...resting, offset: 1 - 160 / duration, easing },
         { opacity: 0, ...away, offset: 1 },
       ], { duration, fill: "both" }));
+      if (!reduceMotion) {
+        animations.push(message.querySelector("svg")?.animate?.([
+          { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)" },
+        ], { duration: 480, delay: 160, easing, fill: "both" }));
+        animations.push(message.querySelector("strong")?.animate?.([
+          { opacity: 0, transform: "translateY(15%) scale(.95)" },
+          { opacity: 1, transform: "translateY(0%) scale(1)" },
+        ], { duration: 240, delay: 240, easing, fill: "both" }));
+      }
     }
     let active = true;
     const finish = () => { if (active) onComplete(); };
@@ -47,7 +56,7 @@ export function TodoCelebration({ origin, wholeList = false, onComplete }: { ori
   // A portal lets confetti escape the list's clipping without shifting its rows.
   const celebration = <div ref={ref} className={`todo-celebration${wholeList ? " todo-celebration-list" : ""}${reduceMotion ? " todo-celebration-reduced" : ""}`} style={wholeList ? undefined : { left: origin.x, top: origin.y }} aria-hidden="true">
     {Array.from({ length: reduceMotion ? wholeList ? 0 : 1 : wholeList ? 96 : 32 }, (_, index) => <i key={index} />)}
-    {wholeList && <div className="todo-celebration-message"><Trophy aria-hidden="true" /><strong>{t("All done!")}</strong><span>{t("Every item, checked.")}</span></div>}
+    {wholeList && <div className="todo-celebration-message"><Check aria-hidden="true" /><strong>{t("All done!")}</strong><span>{t("Every item, checked.")}</span></div>}
   </div>;
   return wholeList ? celebration : createPortal(celebration, document.body);
 }
