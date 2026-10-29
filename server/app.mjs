@@ -190,6 +190,8 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
           response.end(contents);
           return;
         }
+        // Let pending saves finish before exposing their revision and upload error state.
+        if (request.method === "GET") await writes;
         json(200, request.method === "PUT" ? await replace(request) : { revision, config, timetableError });
         return;
       }

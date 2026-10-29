@@ -2,7 +2,7 @@ import { load } from "js-yaml";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFileSync, readdirSync } from "node:fs";
-import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, open, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -46,6 +46,44 @@ async function fixture(t, options = {}) {
   };
 }
 const configuration = () => ({ ...emptyConfiguration(), settings: { ...emptyPlanner(), memberOrder: ["home|person.one"] } });
+
+test("configuration reads wait for pending saves to finish", async t => {
+  const app = await fixture(t);
+  const handler = await createAppHandler(app);
+  const handle = await open(app.dataDir, "r");
+  const prototype = Object.getPrototypeOf(handle);
+  await handle.close();
+  const sync = prototype.sync;
+  const started = Promise.withResolvers(), resume = Promise.withResolvers();
+  const mocked = t.mock.method(prototype, "sync", async function () {
+    started.resolve();
+    await resume.promise;
+    return sync.call(this);
+  });
+  const headers = { authorization: `Basic ${Buffer.from("dashboard:fixture-valid-token").toString("base64")}` };
+  const call = async (method, body, extra = {}) => {
+    let result;
+    await handler(Object.assign(Readable.from(body ? [Buffer.from(JSON.stringify(body))] : []), {
+      method, url: "/api/config", headers: { ...headers, ...extra },
+    }), { writeHead: status => assert.equal(status, 200), end: body => { result = JSON.parse(body); } });
+    return result;
+  };
+  const before = await call("GET");
+  const pending = call("PUT", configuration(), { "content-type": "application/json", "if-match": `"${before.revision}"` });
+  await started.promise;
+  let finished = false;
+  const reading = call("GET").then(result => { finished = true; return result; });
+  try {
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(finished, false, "Do not expose a save while disk operations are pending");
+  } finally {
+    resume.resolve();
+    await pending;
+    await reading;
+    mocked.mock.restore();
+  }
+  assert.deepEqual(await reading, await pending);
+});
 
 function timetablePdf(pages = 2) {
   const objects = ["<< /Type /Catalog /Pages 2 0 R >>", `<< /Type /Pages /Count ${pages} /Kids [${Array.from({ length: pages }, (_, i) => `${4 + i * 2} 0 R`).join(" ")}] >>`, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"];
