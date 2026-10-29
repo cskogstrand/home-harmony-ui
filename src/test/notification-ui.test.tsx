@@ -336,13 +336,42 @@ it.each(["section", "banner", "activity"] as const)("updates accessible progress
   mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "40") }, emptyRegistries, "home");
   const view = render(content());
   expect(screen.getByRole("progressbar", { name: "Progress for Example doorbell" })).toHaveAttribute("aria-valuenow", "40");
+  expect(view.container.querySelector(".notification-progress")).toHaveTextContent(/^40%$/);
   mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "75") }, emptyRegistries, "home");
   view.rerender(content());
   expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
+  value.notifications[0].rule.progress.text = "none";
+  view.rerender(content());
+  expect(view.container.querySelector(".notification-progress")).toHaveTextContent(/^$/);
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "75% complete, current value 75");
   mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "unavailable") }, emptyRegistries, "home");
   view.rerender(content());
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   expect(screen.getByText("Progress unavailable. Check the numeric readings and range.")).toBeVisible();
+});
+
+it("previews and saves progress without text, preserving the choice when sources change and the editor reopens", async () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", progress: { current: { type: "entity", entity: "home|sensor.example" }, start: { type: "value", value: 100 }, end: { type: "value", value: 0 } } });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [rule] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Progress");
+  expect(screen.getByLabelText("Progress text")).toHaveValue("percentage");
+  fireEvent.change(screen.getByLabelText("Progress text"), { target: { value: "none" } });
+  fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "120" } });
+  expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^$/);
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "40");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.progress).toMatchObject({ text: "none", start: { type: "value", value: 120 } });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [saved] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Progress");
+  expect(screen.getByLabelText("Progress text")).toHaveValue("none");
+  fireEvent.change(screen.getByLabelText("Progress text"), { target: { value: "percentage" } });
+  expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^40%$/);
 });
 
 it("previews simulated progress without saving settings or mutating Home Assistant readings", () => {

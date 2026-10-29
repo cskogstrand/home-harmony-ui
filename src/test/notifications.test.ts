@@ -148,6 +148,11 @@ describe("notification progress", () => {
     expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
     expect(rule().progress).toBeUndefined();
     for (const changes of [{ progress: { ...progress, end: progress.start } }, { progress: { ...progress, current: { type: "value", value: 1 } } }, { progress: { ...progress, end: { type: "value", value: Infinity } } }, { progress: { ...progress, current: { ...progress.current, entity: "" } } }, { kind: "current", progress }, { icon: "custom-script" }]) expect(notificationRuleSchema.safeParse({ ...configured, ...changes }).success).toBe(false);
+    for (const text of ["none", "percentage"] as const) {
+      config.settings.notifications.rules = [rule({ progress: { ...progress, text } })];
+      expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    }
+    expect(notificationRuleSchema.safeParse({ ...configured, progress: { ...progress, text: "custom" } }).success).toBe(false);
   });
 });
 

@@ -15,7 +15,7 @@ export function NotificationProgress({ progress, entities, title }: { progress: 
   const percent = number(Math.round(value.percent));
   const reading = `${number(value.current)}${unit}`;
   return <div className="notification-progress">
-    <div className="notification-progress-label"><span>{t("{value} now · {target} at completion", { value: reading, target: `${number(value.end)}${unit}` })}</span><strong>{percent}%</strong></div>
+    {progress.text !== "none" && <div className="notification-progress-label"><strong>{percent}%</strong></div>}
     <Progress value={value.percent} aria-label={t("Progress for {name}", { name: title })} aria-valuetext={t("{percent}% complete, current value {value}", { percent, value: reading })} className="h-2" />
   </div>;
 }
@@ -53,6 +53,9 @@ export function NotificationProgressSettings({ rule, onChange, entities, disable
     <div className="notification-toggle"><span>{t("Show progress bar")}</span><Switch aria-label={t("Show progress bar")} checked={!!progress} disabled={disabled} onCheckedChange={checked => checked ? enable() : onChange(undefined)} /></div>
     <p className="page-note">{t("Use a numeric state or attribute. The trigger still decides when the notification appears and clears.")}</p>
     {progress && <>
+      <label>{t("Progress text")}<select value={progress.text ?? "percentage"} disabled={disabled} onChange={event => onChange({ ...progress, text: event.target.value as ProgressSettings["text"] })}>
+        <option value="percentage">{t("Percentage only")}</option><option value="none">{t("No text")}</option>
+      </select></label>
       <ProgressSourceField label="Current value" current source={progress.current} entities={entities} disabled={disabled} onChange={current => { if (current.type === "entity") onChange({ ...progress, current }); }} />
       <div className="notification-range">
         <ProgressSourceField label="Start value" source={progress.start} entities={entities} disabled={disabled} onChange={start => onChange({ ...progress, start })} />

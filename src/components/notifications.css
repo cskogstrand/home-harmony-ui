@@ -33,8 +33,7 @@
 .notification-icon svg { width: 1.4rem; height: 1.4rem; }
 .notification-row > .notification-icon { margin-top: .25rem; }
 .notification-progress { display: grid; gap: .5rem; margin-top: 1rem; }
-.notification-progress-label { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
-.notification-progress-label > span { color: hsl(var(--muted-foreground)); }
+.notification-progress-label { display: flex; justify-content: flex-end; font-size: .875rem; font-variant-numeric: tabular-nums; }
 .notification-progress-label > strong { flex-shrink: 0; color: hsl(var(--primary)); }
 .notification-progress-unavailable { font-size: .875rem; color: hsl(var(--muted-foreground)); margin-top: .75rem; }
 .notification-activity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; }

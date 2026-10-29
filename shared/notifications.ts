@@ -8,6 +8,7 @@ const progressBoundSchema = z.discriminatedUnion("type", [
 ]);
 const notificationProgressSchema = z.object({
   current: progressEntitySchema, start: progressBoundSchema, end: progressBoundSchema,
+  text: z.enum(["percentage", "none"]).optional(),
 }).strict().superRefine(({ start, end }, ctx) => {
   if ((start.type === "value" && end.type === "value" && start.value === end.value) ||
     (start.type === "entity" && end.type === "entity" && start.entity === end.entity && start.attribute === end.attribute)) {
