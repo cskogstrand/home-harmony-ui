@@ -24,7 +24,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
 
-it.each(["banner", "section"])("places the notification %s only on the chosen main pages and preserves the header bell", presentation => {
+it.each(["banner", "section", "activity"])("places the notification %s only on the chosen main pages and preserves the header bell", presentation => {
   const rule = notificationRuleSchema.parse({ id: "fictional", title: "Example task", kind: "ongoing", trigger: { type: "state", entity: "home|sensor.example", operator: "eq", value: "running" } });
   const value = { notifications: [{ id: rule.id, rule, startedAt: 0, popup: false }], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
   const content = (path: string) => <MemoryRouter key={path} initialEntries={[path]}><NotificationContext.Provider value={value}><AppLayout /></NotificationContext.Provider></MemoryRouter>;
@@ -40,6 +40,16 @@ it.each(["banner", "section"])("places the notification %s only on the chosen ma
       expect(screen.getByRole("link", { name: "Notifications: 1 active" })).toBeVisible();
     }
   }
+});
+
+it("honors a rule's main-page override even when the legacy global choice is Today only", () => {
+  shared.notifications = { presentation: "activity", pages: "today" };
+  const rules = ["today", "main"].map(pages => notificationRuleSchema.parse({ id: pages, title: `Example ${pages}`, pages, kind: "ongoing", trigger: { type: "state", entity: "home|sensor.example", operator: "eq", value: "running" } }));
+  const value = { notifications: rules.map(rule => ({ id: rule.id, rule, startedAt: 0, popup: false })), errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  render(<MemoryRouter initialEntries={["/calendar"]}><NotificationContext.Provider value={value}><AppLayout /></NotificationContext.Provider></MemoryRouter>);
+  expect(screen.getByText("Example main")).toBeVisible();
+  expect(screen.queryByText("Example today")).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Notifications: 2 active" })).toBeVisible();
 });
 
 it("keeps navigation visible during page loading and scrolls to the anchor after it loads", async () => {

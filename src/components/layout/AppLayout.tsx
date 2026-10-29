@@ -53,7 +53,7 @@ export function AppLayout() {
     <ConnectionBanner />
     <main id="main-content" tabIndex={-1} className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
-      {isMainPage(pathname) && (notifications.pages === "main" || pathname === "/") && <NotificationList compact presentation={notifications.presentation} />}
+      {isMainPage(pathname) && <NotificationList compact presentation={notifications.presentation} />}
       <PageErrorBoundary key={pathname} fallback={<div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>}>
         <Suspense fallback={<p role="status">{t("Loading…")}</p>}><PageOutlet /></Suspense>
       </PageErrorBoundary>

@@ -32,6 +32,10 @@ describe("notification configuration", () => {
     expect(parseConfiguration(JSON.stringify(config)).settings.notifications).toEqual({ enabled: true, presentation: "section", pages: "main", rules: [] });
     config.settings.notifications = { enabled: true, presentation: "banner", pages: "today", rules: [rule()] };
     expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    config.settings.notifications.rules.push(rule({ id: "main-pages", pages: "main" }), rule({ id: "today-only", pages: "today" }));
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    expect(config.settings.notifications.rules[0].pages).toBeUndefined();
+    expect(notificationRuleSchema.safeParse({ ...rule(), pages: "settings" }).success).toBe(false);
     for (const invalid of [{ presentation: "toast" }, { pages: "settings" }]) expect(notificationSettingsSchema.safeParse(invalid).success).toBe(false);
   });
   it("rejects duplicate IDs, invalid ranges, camera-less popups and incompatible triggers", () => {

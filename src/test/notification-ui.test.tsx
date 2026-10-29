@@ -132,19 +132,62 @@ it.each([false, true])("renders and refreshes all readings, retaining available 
   expect(screen.queryByText("Example progress · 40 %")).not.toBeInTheDocument();
 });
 
-it("saves display and page choices through shared settings and disables them when storage is unavailable", () => {
+it("saves page choices per rule and disables editing when storage is unavailable", () => {
+  const other = { ...cameraRule(), id: "other", title: "Example second alert", pages: "main" as const };
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule(), other] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
   expect(screen.getByRole("button", { name: "Section" })).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByLabelText("Show on")).toHaveValue("main");
+  expect(screen.queryByLabelText("Show on")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Banner" }));
   expect(setNotifications).toHaveBeenLastCalledWith({ presentation: "banner" });
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  expect(screen.getByLabelText("Show on")).toHaveValue("main");
   fireEvent.change(screen.getByLabelText("Show on"), { target: { value: "today" } });
-  expect(setNotifications).toHaveBeenLastCalledWith({ pages: "today" });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const rules = [{ ...cameraRule(), pages: "today" }, other];
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules };
+  view.rerender(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  expect(screen.getByLabelText("Show on")).toHaveValue("today");
   mocks.shared.state.error = "Storage unavailable";
   view.rerender(content());
-  expect(screen.getByRole("button", { name: "Banner" })).toBeDisabled();
   expect(screen.getByLabelText("Show on")).toBeDisabled();
+});
+
+it("inherits the saved global page choice for existing and new rules", () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, pages: "today", rules: [cameraRule()] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  expect(screen.getByLabelText("Show on")).toHaveValue("today");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Ongoing tasks" }));
+  expect(screen.getByLabelText("Show on")).toHaveValue("today");
+});
+
+it.each(["banner", "section", "activity"] as const)("filters %s by each rule's page choice while retaining the full notification list", presentation => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, pages: "today" };
+  const rules = [cameraRule(), { ...cameraRule(), id: "today", title: "Example today", pages: "today" as const }, { ...cameraRule(), id: "main", title: "Example everywhere", pages: "main" as const }];
+  const value = { notifications: rules.map(rule => ({ id: rule.id, rule, startedAt: 0, popup: false })), errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const content = (path: string, compact = true) => <MemoryRouter key={path} initialEntries={[path]}><NotificationContext.Provider value={value}><NotificationList compact={compact} presentation={presentation} /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content("/calendar"));
+  expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  expect(screen.getByText("Example everywhere")).toBeVisible();
+  expect(screen.getByRole("link", { name: "View all (3)" })).toBeVisible();
+  view.rerender(content("/"));
+  expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  view.rerender(content("/notifications", false));
+  expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  value.notifications = value.notifications.filter(item => item.id !== "main");
+  view.rerender(content("/calendar"));
+  expect(screen.queryByRole("region", { name: "Active notifications" })).not.toBeInTheDocument();
+});
+
+it("shows every activity card on main pages instead of limiting each group to three", () => {
+  const notifications = Array.from({ length: 5 }, (_, index) => ({ id: `example-${index}`, rule: { ...cameraRule(), id: `example-${index}`, kind: "ongoing" as const, title: `Example task ${index}` }, startedAt: 0, popup: false }));
+  render(<MemoryRouter><NotificationContext.Provider value={{ notifications, errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() }}><NotificationList compact presentation="activity" /></NotificationContext.Provider></MemoryRouter>);
+  expect(screen.getAllByRole("listitem")).toHaveLength(5);
 });
 
 it("summarizes banners while keeping camera, dismiss, retry and the full list available", () => {

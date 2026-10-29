@@ -87,12 +87,8 @@ export function NotificationSettings() {
     <NotificationStylePicker value={notifications.presentation} disabled={disabled} onChange={presentation => setNotifications({ presentation })} />
     <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
     <div className="notification-settings-toolbar">
-      <div className="planner-form"><label>{t("Show on")}<select value={notifications.pages} disabled={disabled} onChange={event => setNotifications({ pages: event.target.value as typeof notifications.pages })}>
-        <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
-      </select></label></div>
       <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
     </div>
-    <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
     <DialogContent className="notification-preview-dialog">
       <DialogHeader><DialogTitle>{t("Preview notification")}</DialogTitle><DialogDescription>{t("Choose a saved notification or try the example with sample data.")}</DialogDescription></DialogHeader>
       <div className="planner-form"><label>{t("Preview notification")}<select value={notifications.rules.some(rule => rule.id === previewId) ? previewId : ""} onChange={event => setPreviewId(event.target.value)}>
@@ -114,7 +110,7 @@ export function NotificationSettings() {
       const Icon = icons[rule.kind];
       const missing = ("entity" in rule.trigger && !source) || (rule.kind === "camera" && notificationEntity(entities, rule.cameraEntity)?.domain !== "camera");
       return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
-        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t(kinds[rule.kind])} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
+        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
         <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
         <Switch aria-label={t("Enable {name}", { name: rule.title })} checked={rule.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, enabled } : item) })} />
         <Button variant="ghost" disabled={disabled} onClick={() => begin(rule, true)} aria-label={t("Edit {name}", { name: rule.title })}>{t("Edit")}</Button>
@@ -131,6 +127,10 @@ export function NotificationSettings() {
         <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
         <label>{t("Title")}<input required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t("Message (optional)")}<textarea maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
+        <label>{t("Show on")}<select value={draft.pages ?? notifications.pages} disabled={disabled} onChange={event => setDraft({ ...draft, pages: event.target.value as NotificationRule["pages"] })}>
+          <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
+        </select></label>
+        <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
         </NotificationEditorSection>
         <NotificationEditorSection value="trigger" title={t("When to show it")} icon={Zap} open={openSections.includes("trigger")}>
         <label>{t("Trigger")}<select value={draft.trigger.type} onChange={event => { setDraft({ ...draft, trigger: newTrigger(event.target.value as NotificationTrigger["type"]) }); setFilters("{}"); }}>

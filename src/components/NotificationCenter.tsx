@@ -1,9 +1,10 @@
 import { PanelTitle } from "@/components/PanelTitle";
 import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Bell, Camera, ListChecks, X } from "lucide-react";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useApp } from "@/contexts/AppContext";
+import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
 import { matchesState, notificationEntity, notificationReadings, type HomeNotification } from "@/lib/notifications";
@@ -65,7 +66,10 @@ export function NotificationRow({ item, condensed = false, activity = false, pre
 
 export function NotificationList({ compact = false, presentation = "section" }: { compact?: boolean; presentation?: "banner" | "section" | "activity" }) {
   const { message: t } = useI18n();
-  const { notifications, errors, retry } = useNotifications();
+  const { notifications: settings } = useFamily();
+  const { pathname } = useLocation();
+  const { notifications: allNotifications, errors, retry } = useNotifications();
+  const notifications = allNotifications.filter(item => !compact || pathname === "/" || (item.rule.pages ?? settings.pages) === "main");
   if (compact && !notifications.length && !errors.length) return null;
   const banner = compact && presentation === "banner";
   const activity = presentation === "activity";
@@ -75,7 +79,7 @@ export function NotificationList({ compact = false, presentation = "section" }: 
     { kind: "camera", title: "Camera popup", icon: Camera },
   ] as const;
   const ordered = groups.flatMap(group => notifications.filter(item => item.rule.kind === group.kind));
-  const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: notifications.length })}</Link></div>;
+  const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link></div>;
   return <section className={activity ? "notification-activities mb-5" : banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : "glow-panel mb-5"} aria-label={t("Active notifications")}>
     {!banner && heading}
     {!!errors.length && <div role="status" className="mb-3 w-full"><p>{t("Some notification sources could not be loaded. Check the Home Assistant connection and permissions.")}</p><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>}
@@ -85,7 +89,7 @@ export function NotificationList({ compact = false, presentation = "section" }: 
         const items = notifications.filter(item => item.rule.kind === group.kind);
         return items.length > 0 && <section key={group.kind} className="min-w-0" aria-label={t(group.title)}>
           <PanelTitle as="h3" icon={group.icon} className="mb-3 text-sm font-semibold text-muted-foreground">{t(group.title)}</PanelTitle>
-          <ul className={activity ? "notification-activity-grid" : ""}>{(compact ? items.slice(0, 3) : items).map(item => <NotificationRow key={item.id} item={item} activity={activity} />)}</ul>
+          <ul className={activity ? "notification-activity-grid" : ""}>{(compact && !activity ? items.slice(0, 3) : items).map(item => <NotificationRow key={item.id} item={item} activity={activity} />)}</ul>
         </section>;
       })}
     </div>}
