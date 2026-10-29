@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.29
+
+<!-- release-source: 799b07ac587183bee1767d48a3447aef95fba6a8 -->
+
+- style: ease in the celebration checkmark
+- feat: refine the glass celebration popup
+- feat: animate the final celebration checkmark
+- feat: celebrate completing the whole todo list
+- fix: allow concurrent to-do item updates
+
 ## 0.9.28
 
 <!-- release-source: bc540a74ecfc5715a7e816288aac8664bd9683f7 -->
