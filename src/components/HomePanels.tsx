@@ -3,7 +3,7 @@ import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2, Sunrise, Heart } from "lucide-react";
+import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2, Sunrise, Heart, Sun, Moon, Coffee, CalendarDays, CalendarCheck, ClipboardList, ListChecks, Bell, House, type LucideIcon } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
@@ -15,6 +15,30 @@ import { Button } from "@/components/ui/button";
 import { EntityPicker } from "./EntityPicker";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { PanelHeading } from "./FamilyPlanner";
+
+const morningSummaryIcons = new Map<string, LucideIcon>([
+  ["sunrise", Sunrise],
+  ["mdi:weather-sunset-up", Sunrise],
+  ["sun", Sun],
+  ["mdi:weather-sunny", Sun],
+  ["moon", Moon],
+  ["mdi:weather-night", Moon],
+  ["coffee", Coffee],
+  ["mdi:coffee", Coffee],
+  ["calendar-days", CalendarDays],
+  ["mdi:calendar", CalendarDays],
+  ["calendar-check", CalendarCheck],
+  ["mdi:calendar-check", CalendarCheck],
+  ["clipboard-list", ClipboardList],
+  ["mdi:clipboard-list", ClipboardList],
+  ["list-checks", ListChecks],
+  ["mdi:format-list-checks", ListChecks],
+  ["bell", Bell],
+  ["mdi:bell", Bell],
+  ["house", House],
+  ["mdi:home", House],
+]);
+
 export function MorningSummary() {
   const { t } = useI18n();
   const { currentHome, homeOnline, command, commands, services } = useApp();
@@ -25,9 +49,14 @@ export function MorningSummary() {
   const running = script?.state === "on" || !!commands[scriptId]?.pending;
   const message = summary?.attributes.message;
   if (summary?.state !== today || typeof message !== "string" || !message.trim()) return null;
-  return <section className="glow-panel col-span-full" aria-label={t("Morning summary")}>
+  const entityTitle = summary.attributes.title;
+  const title = (typeof entityTitle === "string" ? entityTitle.trim() : "") || t("Morning summary");
+  const Icon = [summary.attributes.icon_name, summary.attributes.icon]
+    .map(icon => typeof icon === "string" ? morningSummaryIcons.get(icon.trim().replace(/^lucide:/, "")) : undefined)
+    .find(icon => icon !== undefined) ?? Sunrise;
+  return <section className="glow-panel col-span-full" aria-label={title}>
     <div className="panel-heading">
-      <PanelTitle icon={Sunrise}>{t("Morning summary")}</PanelTitle>
+      <PanelTitle icon={Icon}>{title}</PanelTitle>
       <div className="command-controller shrink-0" aria-busy={running}>
         <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !script || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on").catch(() => {}); }}>
           <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? t("Preparing summary…") : t("Play summary")}</span>

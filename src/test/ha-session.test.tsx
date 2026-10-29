@@ -243,12 +243,49 @@ it("shows the morning notification on the front page, updates live, and hides st
 
   const entityId = "sensor.afterglow_morning_summary";
   const message = `🏡 Household: ${"Remember today's plans. ".repeat(11)}\n\n🧑 Parent: Bring gym shoes.`;
-  const publish = (date: string, value: unknown) => act(() => conn.entityCallback?.({ ...states, [entityId]: state(entityId, date, { message: value }) }));
+  const publish = (date: string, value: unknown, title?: unknown, icon?: unknown, icon_name?: unknown) => act(() => conn.entityCallback?.({ ...states, [entityId]: state(entityId, date, { message: value, title, icon, icon_name }) }));
   publish("2026-10-19", message);
   const panel = await screen.findByRole("region", { name: "Morning summary" });
   expect(message.length).toBeGreaterThan(255);
   expect(panel.querySelector("p")?.textContent).toBe(message);
   expect(panel.querySelector("p")).toHaveClass("whitespace-pre-wrap", "break-words");
+
+  for (const title of ["  Today's plans  ", "Updated <b>summary</b>"]) {
+    publish("2026-10-19", message, title);
+    expect(screen.getByRole("region", { name: title.trim() })).toBe(panel);
+    expect(within(panel).getByRole("heading", { level: 2, name: title.trim() })).toBeVisible();
+    expect(panel.querySelector("b")).toBeNull();
+  }
+  for (const title of [undefined, null, "", "  ", 42, { text: "Title" }]) {
+    publish("2026-10-19", message, title);
+    expect(screen.getByRole("region", { name: "Morning summary" })).toBe(panel);
+    expect(within(panel).getByRole("heading", { level: 2, name: "Morning summary" })).toBeVisible();
+  }
+
+  for (const [name, mdi] of [
+    ["sunrise", "weather-sunset-up"], ["sun", "weather-sunny"], ["moon", "weather-night"],
+    ["coffee", "coffee"], ["calendar-days", "calendar"], ["calendar-check", "calendar-check"],
+    ["clipboard-list", "clipboard-list"], ["list-checks", "format-list-checks"], ["bell", "bell"], ["house", "home"],
+  ]) {
+    for (const icon of [name, `lucide:${name}`, ` mdi:${mdi} `]) {
+      publish("2026-10-19", message, undefined, icon);
+      const svg = within(panel).getByRole("heading", { level: 2 }).querySelector("svg");
+      expect(svg).toHaveClass(`lucide-${name}`);
+      expect(svg).toHaveAttribute("aria-hidden", "true");
+    }
+  }
+  for (const icon of [undefined, null, "", "  ", 42, { name: "coffee" }, "mdi:unknown-icon", "constructor"]) {
+    publish("2026-10-19", message, undefined, icon);
+    expect(within(panel).getByRole("heading", { level: 2 }).querySelector("svg")).toHaveClass("lucide-sunrise");
+    publish("2026-10-19", message, undefined, "mdi:coffee", icon);
+    expect(within(panel).getByRole("heading", { level: 2 }).querySelector("svg")).toHaveClass("lucide-coffee");
+    publish("2026-10-19", message, undefined, "mdi:unknown-icon", icon);
+    expect(within(panel).getByRole("heading", { level: 2 }).querySelector("svg")).toHaveClass("lucide-sunrise");
+  }
+  for (const [iconName, expected] of [["sun", "sun"], [" lucide:moon ", "moon"], ["mdi:calendar", "calendar-days"]]) {
+    publish("2026-10-19", message, undefined, "mdi:coffee", iconName);
+    expect(within(panel).getByRole("heading", { level: 2 }).querySelector("svg")).toHaveClass(`lucide-${expected}`);
+  }
 
   publish("2026-10-19", "🏡 Household: Updated plans. <b>Bring food.</b>");
   expect(panel).toHaveTextContent("Updated plans. <b>Bring food.</b>");

@@ -38,9 +38,26 @@ The automation also publishes the same `notification_message` before phone deliv
 {{ state_attr('sensor.afterglow_morning_summary', 'message') }}
 ```
 
-Afterglow automatically shows today's message in a **Morning summary** panel below the front-page greeting, using its existing Home Assistant connection. It hides missing, empty, unavailable and other-day summaries, and labels a cached summary when disconnected. Updating the sensor refreshes the panel without reloading the page. [Trigger-based template sensors restore their state and attributes after a Home Assistant restart](https://www.home-assistant.io/integrations/template/#trigger-based-template-entities).
+Afterglow automatically shows today's message in a **Morning summary** panel below the front-page greeting, using its existing Home Assistant connection. The heading uses the sensor's `title` attribute, falling back to the translated **Morning summary** label when it is missing, blank or not text. It hides missing, empty, unavailable and other-day summaries, and labels a cached summary when disconnected. Updating the sensor refreshes the panel without reloading the page. [Trigger-based template sensors restore their state and attributes after a Home Assistant restart](https://www.home-assistant.io/integrations/template/#trigger-based-template-entities).
 
 When upgrading, merge the new `template` block from `morning-summary-config.yaml` into your existing template list, update the UI automation, and reload Template entities (or restart Home Assistant). Keep the entity ID `sensor.afterglow_morning_summary`; if HA adds a numeric suffix because that ID is already taken, resolve the conflict in entity settings. The panel appears after the updated automation next generates a summary; it does not generate one itself.
+
+The heading reads the sensor's `icon_name` attribute first, falling back to `icon` when the preferred value is missing, blank, non-text or unsupported. It updates when either attribute changes. The panel uses [Lucide icons](https://lucide.dev/icons/); these are the supported values. Each Lucide name also accepts a `lucide:` prefix, such as `lucide:coffee`. The listed Home Assistant `mdi:` names render the corresponding Lucide design.
+
+| Lucide name | Home Assistant icon |
+| --- | --- |
+| `sunrise` | `mdi:weather-sunset-up` |
+| `sun` | `mdi:weather-sunny` |
+| `moon` | `mdi:weather-night` |
+| `coffee` | `mdi:coffee` |
+| `calendar-days` | `mdi:calendar` |
+| `calendar-check` | `mdi:calendar-check` |
+| `clipboard-list` | `mdi:clipboard-list` |
+| `list-checks` | `mdi:format-list-checks` |
+| `bell` | `mdi:bell` |
+| `house` | `mdi:home` |
+
+For example, publish `icon_name: coffee` in the sensor's attributes to display a coffee cup, or set `icon: mdi:coffee` on the template sensor as a fallback. If neither attribute contains a supported icon, the panel uses `sunrise`. Only the names listed above are supported in this panel. The optional `run` attribute (`morgen` or `ettermiddag`) is not needed; the supplied title and icon determine the heading.
 
 Validate the example YAML offline with `node scripts/test-morning-summary.mjs`. Run `python3 scripts/test-morning-summary-templates.py` with Jinja2 and PyYAML installed to exercise the actual structure, validation and formatting templates with fictional data. Neither check connects to Home Assistant.
 
