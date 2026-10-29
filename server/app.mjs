@@ -14,9 +14,8 @@ const revisionOf = config => createHash("sha256").update(JSON.stringify(config))
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
 const failure = (status, message) => Object.assign(new Error(message), { status });
 const storageError = "Configuration storage is unavailable. Reload to check the last saved version before retrying.";
-let warnedLegacyTimetableKey = false;
 
-export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey, timetableLegacyUrlKey = true, now = Date.now }) {
+export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey, now = Date.now }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
   const file = resolve(dataDir, "settings.yaml");
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
@@ -124,38 +123,22 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
     const json = (status, body) => { response.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }); response.end(JSON.stringify(body)); };
     try {
       const url = new URL(request.url, "http://localhost");
-      let pathname = url.pathname;
-      const keyedPath = pathname.match(/^\/api\/timetables\/([^/]+)(\/.*)?$/);
-      const timetablePath = keyedPath && `/api/timetables${keyedPath[2] ?? ""}`;
-      const keyedRoute = timetablePath && (timetablePath === "/api/timetables" || timetableImagePath.test(timetablePath));
-      if (keyedRoute && !timetableLegacyUrlKey) throw failure(404, "Not found.");
-      const keyedRead = request.method === "GET" && keyedRoute;
+      const pathname = url.pathname;
       const headerRead = request.method === "GET" && (pathname === "/api/timetables" || timetableImagePath.test(pathname)) && matchesTimetableKey(request.headers["x-home-harmony-key"]);
       const signedRead = timetableImagePath.test(pathname) && (url.searchParams.has("sig") || url.searchParams.has("expires"));
-      if (keyedRead) {
-        if (!matchesTimetableKey(keyedPath[1])) throw failure(401, "Invalid timetable API key.");
-        pathname = timetablePath;
-      } else if (signedRead) checkDownload(request, url);
+      if (signedRead) checkDownload(request, url);
       else if (!headerRead) authenticate(request);
-      if (keyedRead || headerRead || signedRead) {
+      if (headerRead || signedRead) {
         checkTimetableOrigin(request);
         response.setHeader("Referrer-Policy", "no-referrer");
-      }
-      if (keyedRead) {
-        response.setHeader("Deprecation", "true");
-        response.setHeader("Link", '<DOCS.md#read-timetables-from-an-automation>; rel="deprecation"');
-        if (!warnedLegacyTimetableKey) {
-          warnedLegacyTimetableKey = true;
-          console.warn("Timetable URL-key authentication is deprecated. Use X-Home-Harmony-Key and signed downloads; see DOCS.md#read-timetables-from-an-automation.");
-        }
       }
       const image = pathname.match(timetableImagePath);
       if (pathname === "/api/timetables" && request.method === "GET") {
         const expires = Math.floor(now() / 1000) + 600;
         json(200, { timetables: Object.entries(config.settings.timetables).map(([member, pages]) => ({
           member, enabled: config.settings.timetableSettings[member]?.type !== "calendar" && (config.settings.timetableEnabled[member] ?? pages.length > 0),
-          pages: pages.map(page => keyedRead && timetableImagePath.test(page) ? page.replace("/api/timetables/", `/api/timetables/${timetableApiKey}/`) : page),
-          ...((keyedRead || headerRead) ? { downloads: pages.map(page => downloadUrl(page, expires)) } : {}),
+          pages,
+          ...(headerRead ? { downloads: pages.map(page => downloadUrl(page, expires)) } : {}),
         })) });
         return;
       }

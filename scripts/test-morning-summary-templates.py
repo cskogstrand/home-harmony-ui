@@ -4,7 +4,7 @@ from ast import literal_eval
 from pathlib import Path
 import re
 
-from jinja2 import StrictUndefined
+from jinja2 import StrictUndefined, UndefinedError
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 import yaml
 
@@ -47,30 +47,35 @@ timetables = [
 page_context = {"summary_groups": groups, "timetable_response": {
     "content": {"timetables": timetables}, "dashboard_origin": "https://dashboard.example",
 }}
-assert literal_eval(owner_invalid.render(**page_context).strip()) is False
-pages = literal_eval(page_template.render(**page_context).strip())
-assert [page["group"] for page in pages] == ["Person C", "Person C", "Person C", "Person B"]
-assert [page["page"] for page in pages] == [1, 2, 3, 1]
-assert [page["filename"] for page in pages] == ["1.png", "2.png", "3.png", "4.png"]
-assert pages[0]["url"] == "https://dashboard.example/api/timetables/example/1.png"
-# New listings use downloads verbatim, including signed queries; old listings keep the PNG fallback above.
 timetables[0]["downloads"] = [
     "/api/timetables/example/1.png?expires=1800000600&sig=" + "a" * 64,
     "https://school.example/notices.png?version=2",
     "https://school.example/homework.png",
 ]
-signed_pages = literal_eval(page_template.render(**page_context).strip())
-assert signed_pages[0]["url"] == "https://dashboard.example" + timetables[0]["downloads"][0]
-assert signed_pages[1]["url"] == timetables[0]["downloads"][1]
-assert [page["mime"] for page in signed_pages] == ["image/png"] * 4
-assert [page["filename"] for page in signed_pages] == ["1.png", "2.png", "3.png", "4.png"]
+timetables[1]["downloads"] = timetables[1]["pages"]
+assert literal_eval(owner_invalid.render(**page_context).strip()) is False
+pages = literal_eval(page_template.render(**page_context).strip())
+assert [page["group"] for page in pages] == ["Person C", "Person C", "Person C", "Person B"]
+assert [page["page"] for page in pages] == [1, 2, 3, 1]
+assert [page["filename"] for page in pages] == ["1.png", "2.png", "3.png", "4.png"]
+assert pages[0]["url"] == "https://dashboard.example" + timetables[0]["downloads"][0]
+assert pages[1]["url"] == timetables[0]["downloads"][1]
+assert [page["mime"] for page in pages] == ["image/png"] * 4
+downloads = timetables[0].pop("downloads")
+try:
+    page_template.render(**page_context)
+    raise AssertionError("A listing without downloads must not fall back to page URLs")
+except UndefinedError:
+    pass
+finally:
+    timetables[0]["downloads"] = downloads
 download_action = next(action["repeat"] for action in actions if action.get("repeat", {}).get("for_each") == "{{ timetable_pages }}")
 assert download_action["sequence"][0]["action"] == "downloader.download_file"
 assert download_action["sequence"][0]["data"]["url"] == "{{ repeat.item.url }}"
 attachment_template = env.from_string(next(action["variables"]["timetable_attachments"] for action in actions if "timetable_attachments" in action.get("variables", {})))
-attachments = literal_eval(attachment_template.render(timetable_pages=signed_pages, download_run="example_run").strip())
+attachments = literal_eval(attachment_template.render(timetable_pages=pages, download_run="example_run").strip())
 assert [item["media_content_id"] for item in attachments] == [
-    "media-source://media_source/local/morning-summary/example_run/" + page["filename"] for page in signed_pages
+    "media-source://media_source/local/morning-summary/example_run/" + page["filename"] for page in pages
 ]
 assert generate["data"]["attachments"] == "{{ timetable_attachments }}"
 for wrong_groups in [

@@ -71,8 +71,7 @@ actions:
         timetable_response.content.timetables if timetable.enabled and timetable.pages %}
           {% set owner = summary_groups[1:] | selectattr('timetable_member', 'defined') | selectattr('timetable_member', 'equalto', timetable.member) | first %}
           {% for page in timetable.pages %}
-            {% set path = timetable.downloads[loop.index0] if timetable.downloads is defined else
-              (page | regex_replace('-dark[.]svg$', '.png') if page.startswith('/api/timetables/') else page) %}
+            {% set path = timetable.downloads[loop.index0] %}
             {% set url = timetable_response.dashboard_origin.rstrip('/') ~ path if path.startswith('/') else path %}
             {% set extension = url.split('?')[0].split('#')[0].rsplit('.', 1)[-1] | lower %}
             {% set mime = {'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'webp': 'image/webp', 'gif': 'image/gif'}.get(extension, '') %}

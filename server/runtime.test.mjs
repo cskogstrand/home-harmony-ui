@@ -8,7 +8,7 @@ import { runtimeOptions } from "./runtime.mjs";
 test("loads .env and HAOS options, gives environment values precedence, and rejects incomplete configuration", async () => {
   const directory = await mkdtemp(join(tmpdir(), "home-harmony-env-"));
   const cwd = process.cwd(), saved = { ...process.env };
-  const keys = ["DATA_DIR", "HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN", "DASHBOARD_PASSWORD", "DASHBOARD_AUTH_DISABLED", "TIMETABLE_API_KEY", "TIMETABLE_LEGACY_URL_KEY", "PORT"];
+  const keys = ["DATA_DIR", "HOME_ASSISTANT_URL", "HOME_ASSISTANT_TOKEN", "DASHBOARD_PASSWORD", "DASHBOARD_AUTH_DISABLED", "TIMETABLE_API_KEY", "PORT"];
   try {
     process.chdir(directory);
     keys.forEach(key => delete process.env[key]);
@@ -21,21 +21,6 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
     assert.equal(options.dashboardPassword, "haos-password-123");
     assert.equal(options.dashboardAuthDisabled, false);
     assert.equal(options.timetableApiKey, "");
-    assert.equal(options.timetableLegacyUrlKey, true);
-    for (const value of [true, false]) {
-      await writeFile("data/options.json", JSON.stringify({ ...haosOptions, timetable_legacy_url_key: value }));
-      assert.equal((await runtimeOptions()).timetableLegacyUrlKey, value);
-      process.env.TIMETABLE_LEGACY_URL_KEY = String(!value);
-      assert.equal((await runtimeOptions()).timetableLegacyUrlKey, !value, "Environment overrides HAOS");
-      delete process.env.TIMETABLE_LEGACY_URL_KEY;
-    }
-    for (const value of ["yes", "1", "", "FALSE", 1]) {
-      await writeFile("data/options.json", JSON.stringify({ ...haosOptions, timetable_legacy_url_key: value }));
-      await assert.rejects(runtimeOptions(), /TIMETABLE_LEGACY_URL_KEY/);
-      process.env.TIMETABLE_LEGACY_URL_KEY = String(value);
-      await assert.rejects(runtimeOptions(), /TIMETABLE_LEGACY_URL_KEY/);
-      delete process.env.TIMETABLE_LEGACY_URL_KEY;
-    }
     haosOptions.timetable_api_key = "haos-timetable-api-key-12345678901";
     await writeFile("data/options.json", JSON.stringify(haosOptions));
     assert.equal((await runtimeOptions()).timetableApiKey, haosOptions.timetable_api_key);
@@ -78,14 +63,13 @@ test("loads .env and HAOS options, gives environment values precedence, and reje
     }
     delete process.env.DASHBOARD_AUTH_DISABLED;
     await writeFile("data/options.json", JSON.stringify(haosOptions));
-    await writeFile(".env", 'HOME_ASSISTANT_URL=http://env.local:8123\nHOME_ASSISTANT_TOKEN=env-token\nDASHBOARD_PASSWORD="env-password-123"\nTIMETABLE_LEGACY_URL_KEY=false\nPORT=9000\n');
+    await writeFile(".env", 'HOME_ASSISTANT_URL=http://env.local:8123\nHOME_ASSISTANT_TOKEN=env-token\nDASHBOARD_PASSWORD="env-password-123"\nPORT=9000\n');
     process.env.HOME_ASSISTANT_TOKEN = " \texplicit-token\r\n";
     options = await runtimeOptions();
     assert.equal(options.homeAssistantToken, "explicit-token");
     assert.equal(options.homeAssistantUrl, "http://env.local:8123");
     assert.equal(options.dashboardPassword, "env-password-123");
     assert.equal(options.port, 9000);
-    assert.equal(options.timetableLegacyUrlKey, false);
     process.env.HOME_ASSISTANT_TOKEN = " ";
     await assert.rejects(runtimeOptions(), /Set HOME_ASSISTANT_TOKEN/);
     process.env.HOME_ASSISTANT_TOKEN = "explicit-token";

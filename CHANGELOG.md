@@ -4,7 +4,10 @@
 
 - Add read-only timetable authentication through `X-Home-Harmony-Key`, keeping the long-lived key out of header-authenticated listings and download URLs.
 - Add ordered `downloads` arrays with page-specific signed PNG links that expire after 10 minutes. Update the Home Assistant morning summary examples to use header authentication and local AI Task attachments.
-- Deprecate keys in timetable URL paths. `timetable_legacy_url_key` / `TIMETABLE_LEGACY_URL_KEY` defaults to `true` for compatibility in 0.9.30; **the default flips to `false` in the next minor release (0.10.0)**. Disable it after migrating; legacy requests then return 404. Legacy reads send deprecation headers and log one warning per process without the key.
+
+### Breaking changes
+
+- Removed path-key timetable URLs and `timetable_legacy_url_key`; use the `X-Home-Harmony-Key` header and `downloads`.
 
 ## 0.9.29
 

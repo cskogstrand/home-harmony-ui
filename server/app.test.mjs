@@ -122,10 +122,10 @@ async function waitForTimetable(app, before = app.saved) {
   assert.fail("Timetable conversion did not finish");
 }
 
-test("lists saved timetables with a read-only key in the path without exposing dashboard settings", async t => {
-  const warnings = t.mock.method(console, "warn", () => {});
+test("lists saved timetables with a read-only header key without exposing dashboard settings", async t => {
   const app = await fixture(t, { timetableApiKey });
-  assert.deepEqual(await (await app.api(timetableApiPath, {}, "")).json(), { timetables: [] });
+  const headers = { "X-Home-Harmony-Key": timetableApiKey };
+  assert.deepEqual(await (await app.api("/api/timetables", { headers }, "")).json(), { timetables: [] });
   const { config, revision } = await (await app.request()).json();
   config.settings.timetables = {
     "home|person.one": ["https://school.example/first.png", "https://school.example/second.png"],
@@ -144,36 +144,55 @@ test("lists saved timetables with a read-only key in the path without exposing d
     { member: "home|person.calendar", enabled: false, pages: ["/saved-for-later.png"] },
   ] };
   await app.restart();
-  const response = await app.api(timetableApiPath, {}, "");
+  const response = await app.api("/api/timetables", { headers }, "");
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
-  assert.equal(response.headers.get("deprecation"), "true");
-  assert.equal(response.headers.get("link"), '<DOCS.md#read-timetables-from-an-automation>; rel="deprecation"');
   assert.deepEqual(await response.json(), { timetables: expected.timetables.map(entry => ({ ...entry, downloads: entry.pages })) });
-  assert.equal(warnings.mock.callCount(), 1, "Warn only once across requests and handler restarts in this process");
-  assert.match(warnings.mock.calls[0].arguments[0], /deprecated/);
-  assert.ok(!JSON.stringify(warnings.mock.calls).includes(timetableApiKey));
   assert.deepEqual(await (await app.api("/api/timetables")).json(), expected, "Dashboard credentials still work");
   for (const headers of [{}, { Authorization: `Bearer ${timetableApiKey}` }, { Authorization: `Basic ${Buffer.from(`dashboard:${timetableApiKey}`).toString("base64")}` }]) {
     assert.equal((await app.api("/api/timetables", { headers }, "")).status, 401);
   }
-  assert.equal((await app.api("/api/timetables/wrong-key", {}, "")).status, 401);
-  assert.equal((await app.api("/api/timetables/wrong-key")).status, 401, "Dashboard login cannot bypass a wrong URL key");
   for (const [method, path] of [["GET", `/${timetableApiKey}`], ["GET", `/api/config/${timetableApiKey}`], ["PUT", `/api/config/${timetableApiKey}`], ["GET", `/api/runtime/${timetableApiKey}`], ["GET", `/api/calendars/${timetableApiKey}/calendar.family`], ["POST", `${timetableApiPath}?member=home%7Cperson.one`], ["DELETE", timetableApiPath]]) {
     assert.equal((await app.api(path, { method }, "")).status, 401, `${method} ${path} must require dashboard credentials`);
   }
-  for (const headers of [{ Origin: "https://other.example" }, { "Sec-Fetch-Site": "cross-site" }]) {
-    assert.equal((await app.api(timetableApiPath, { headers }, "")).status, 403);
+  for (const origin of [{ Origin: "https://other.example" }, { "Sec-Fetch-Site": "cross-site" }]) {
+    assert.equal((await app.api("/api/timetables", { headers: { ...headers, ...origin } }, "")).status, 403);
   }
   for (const path of ["/api/runtime", "/api/config"]) assert.ok(!(await (await app.api(path)).text()).includes(timetableApiKey));
   assert.ok(!(await readFile(join(app.dataDir, "settings.yaml"), "utf8")).includes(timetableApiKey));
 });
 
+test("old path-key timetable URLs never return data or echo credentials", async t => {
+  const logs = ["log", "warn", "error"].map(method => t.mock.method(console, method, () => {}));
+  for (const dashboardAuthDisabled of [false, true]) {
+    const app = await fixture(t, { timetableApiKey, dashboardAuthDisabled });
+    const prefix = "/api/timetables/example_child/00000000-0000-4000-8000-000000000000";
+    const directory = join(app.dataDir, "timetables", ...prefix.split("/").slice(3));
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "1.png"), "fixture PNG page");
+    await writeFile(join(directory, "1-dark.svg"), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+    const { config, revision } = await (await app.request()).json();
+    config.settings.timetables = { "home|person.example_child": [`${prefix}/1.png`] };
+    assert.equal((await app.request("PUT", config, revision)).status, 200);
+    const paths = [timetableApiPath, ...["1.png", "1-dark.svg"].map(page => `${timetableApiPath}${prefix.slice("/api/timetables".length)}/${page}`)];
+    for (const path of paths) {
+      for (const token of ["", "fixture-valid-token"]) {
+        for (const headers of [{}, { "X-Home-Harmony-Key": timetableApiKey }]) {
+          const response = await app.api(path, { headers }, token);
+          assert.equal(response.status, dashboardAuthDisabled || token ? 404 : 401);
+          assert.ok(!(await response.text()).includes(timetableApiKey));
+          assert.ok(!JSON.stringify([...response.headers]).includes(timetableApiKey));
+        }
+      }
+    }
+  }
+  for (const log of logs) assert.ok(!JSON.stringify(log.mock.calls).includes(timetableApiKey));
+});
+
 test("header keys grant only timetable reads, with key-free pages and expiring page-specific downloads", async t => {
   let clock = 1800000000000;
-  const warnings = t.mock.method(console, "warn", () => {});
-  const app = await fixture(t, { timetableApiKey, timetableLegacyUrlKey: false, now: () => clock });
+  const app = await fixture(t, { timetableApiKey, now: () => clock });
   const headers = { "X-Home-Harmony-Key": timetableApiKey };
   const prefix = "/api/timetables/example_child/00000000-0000-4000-8000-000000000000";
   const directory = join(app.dataDir, "timetables", ...prefix.split("/").slice(3));
@@ -189,7 +208,6 @@ test("header keys grant only timetable reads, with key-free pages and expiring p
   assert.equal(listing.status, 200);
   assert.equal(listing.headers.get("referrer-policy"), "no-referrer");
   assert.equal(listing.headers.get("cache-control"), "no-store");
-  assert.equal(listing.headers.get("deprecation"), null);
   const body = await listing.text();
   assert.ok(!body.includes(timetableApiKey));
   const { timetables } = JSON.parse(body);
@@ -237,9 +255,6 @@ test("header keys grant only timetable reads, with key-free pages and expiring p
   for (const origin of [{ Origin: "https://other.example" }, { "Sec-Fetch-Site": "cross-site" }]) {
     for (const path of ["/api/timetables", pages[0], downloads[0]]) assert.equal((await app.api(path, { headers: { ...headers, ...origin } }, "")).status, 403);
   }
-  for (const path of [timetableApiPath, `${timetableApiPath}${prefix.slice("/api/timetables".length)}/1.png`]) {
-    for (const method of ["GET", "POST", "DELETE"]) assert.equal((await app.api(path, { method }, "")).status, 404);
-  }
   clock += 599000;
   assert.equal((await app.api(downloads[0], {}, "")).status, 200);
   clock += 1000;
@@ -248,7 +263,6 @@ test("header keys grant only timetable reads, with key-free pages and expiring p
   assert.equal((await app.api(refreshed.timetables[0].downloads[0], {}, "")).status, 200);
   for (const path of ["/api/runtime", "/api/config"]) assert.ok(!(await (await app.api(path)).text()).includes(timetableApiKey));
   assert.ok(!(await readFile(join(app.dataDir, "settings.yaml"), "utf8")).includes(timetableApiKey));
-  assert.equal(warnings.mock.callCount(), 0);
 });
 
 test("an unset or empty timetable key keeps dashboard authentication and the explicit login bypass", async t => {
@@ -260,7 +274,7 @@ test("an unset or empty timetable key keeps dashboard authentication and the exp
   }
   const app = await fixture(t, { dashboardAuthDisabled: true });
   assert.equal((await app.api("/api/timetables", {}, "")).status, 200);
-  assert.equal((await app.api(timetableApiPath, {}, "")).status, 401, "A URL key must be configured even when dashboard login is disabled");
+  assert.equal((await app.api(timetableApiPath, {}, "")).status, 404, "Unknown routes stay unavailable when dashboard login is disabled");
   assert.equal((await app.api("/api/timetables", { headers: { Origin: "https://other.example" } }, "")).status, 403);
 });
 
@@ -301,9 +315,9 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   assert.match((await response.json()).message, /received/);
   const saved = await waitForTimetable(app);
   const pages = saved.config.settings.timetables["home|person.one"];
-  const keyedPages = pages.map(path => path.replace("/api/timetables", timetableApiPath));
-  const listing = await (await app.api(timetableApiPath, {}, "")).json();
-  assert.deepEqual(listing.timetables.find(timetable => timetable.member === "home|person.one").pages, keyedPages);
+  const headers = { "X-Home-Harmony-Key": timetableApiKey };
+  const listing = await (await app.api("/api/timetables", { headers }, "")).json();
+  assert.deepEqual(listing.timetables.find(timetable => timetable.member === "home|person.one").pages, pages);
   const downloads = listing.timetables.find(timetable => timetable.member === "home|person.one").downloads;
   assert.equal(downloads.length, pages.length);
   assert.ok(!JSON.stringify(downloads).includes(timetableApiKey));
@@ -328,11 +342,11 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
     assert.equal(image.headers.get("content-type"), "image/png");
     assert.equal(image.headers.get("cache-control"), "no-store");
     images.push(Buffer.from(await image.arrayBuffer()));
-    const keyedImage = await app.api(path.replace("/api/timetables", timetableApiPath), {}, "");
-    assert.equal(keyedImage.status, 200);
-    assert.equal(keyedImage.headers.get("cache-control"), "no-store");
-    assert.equal(keyedImage.headers.get("referrer-policy"), "no-referrer");
-    assert.deepEqual(Buffer.from(await keyedImage.arrayBuffer()), images.at(-1));
+    const headerImage = await app.api(path, { headers }, "");
+    assert.equal(headerImage.status, 200);
+    assert.equal(headerImage.headers.get("cache-control"), "no-store");
+    assert.equal(headerImage.headers.get("referrer-policy"), "no-referrer");
+    assert.deepEqual(Buffer.from(await headerImage.arrayBuffer()), images.at(-1));
     assert.equal(images.at(-1).subarray(1, 4).toString(), "PNG");
     assert.deepEqual([images.at(-1).readUInt32BE(16), images.at(-1).readUInt32BE(20)], [6000, 4500], "Render at high resolution while preserving the page aspect ratio");
   }
@@ -346,7 +360,7 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
     assert.equal(dark.headers.get("content-type"), "image/svg+xml");
     assert.equal(dark.headers.get("cache-control"), "no-store");
     const svg = await dark.text();
-    assert.equal(await (await app.api(darkPath.replace("/api/timetables", timetableApiPath), {}, "")).text(), svg);
+    assert.equal(await (await app.api(darkPath, { headers }, "")).text(), svg);
     assert.match(svg, /filter="url\(#dark\)"/);
     assert.ok(svg.includes(`width="${images[index].readUInt32BE(16)}" height="${images[index].readUInt32BE(20)}"`));
     assert.deepEqual(Buffer.from(svg.match(/base64,([^\"]+)/)[1], "base64"), images[index], "Dark image embeds the matching original page");
@@ -357,9 +371,9 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   for (const name of ["99-dark.svg", "1.svg", "1-dark.png", "source.pdf"]) {
     assert.equal((await app.api(pages[0].replace("1.png", name))).status, 404);
   }
-  assert.equal((await app.api(keyedPages[0].replace("1.png", "source.pdf"), {}, "")).status, 401);
-  assert.equal((await app.api(keyedPages[0], { method: "POST" }, "")).status, 401);
-  assert.equal((await app.api(keyedPages[0], { headers: { Origin: "https://other.example" } }, "")).status, 403);
+  assert.equal((await app.api(pages[0].replace("1.png", "source.pdf"), { headers }, "")).status, 401);
+  assert.equal((await app.api(pages[0], { method: "POST", headers }, "")).status, 401);
+  assert.equal((await app.api(pages[0], { headers: { ...headers, Origin: "https://other.example" } }, "")).status, 403);
   assert.equal((await app.upload(timetablePdf(1))).status, 202);
   const replaced = await waitForTimetable(app, saved);
   assert.equal(replaced.config.settings.timetables["home|person.one"].length, 1);
