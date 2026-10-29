@@ -35,11 +35,8 @@ script morning_summary:
     alias: Fetch family timetables
     variables:
       dashboard_origin: !secret home_harmony_dashboard_origin
-      timetable_api_key: !secret home_harmony_timetable_api_key
     sequence:
       - action: rest_command.family_timetables
-        data:
-          url: "{{ dashboard_origin.rstrip('/') }}/api/timetables/{{ timetable_api_key }}"
         response_variable: timetable_response
       - variables:
           result:
@@ -56,7 +53,9 @@ script morning_summary:
 
 rest_command:
   family_timetables:
-    url: "{{ url }}"
+    url: !secret home_harmony_timetables_url
+    headers:
+      X-Home-Harmony-Key: !secret home_harmony_timetable_api_key
     method: GET
     timeout: 30
 

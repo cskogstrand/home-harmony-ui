@@ -18,6 +18,7 @@ Jump to: [Connection help](#access-and-the-home-assistant-connection) · [Storag
    dashboard_password: YOUR_UNIQUE_PASSWORD_AT_LEAST_12_CHARACTERS
    dashboard_auth_disabled: false
    timetable_api_key: "" # Optional read-only timetable access; see below.
+   timetable_legacy_url_key: true # Disable after migrating automations to header authentication.
    ```
 
 4. Start/restart the app and open its web interface on port **8099**. Enter username **dashboard** and the configured dashboard password in the browser's authentication prompt. To skip login on a trusted local network, set `dashboard_auth_disabled: true`; the dashboard password can then be empty.
@@ -165,13 +166,13 @@ To rebuild the distributable after editing `scripts/build-timetable-shortcut.mjs
 
 Set `timetable_api_key` in the HAOS app configuration, or `TIMETABLE_API_KEY` in `.env` for Node, Vite and Docker Compose. Use a separate random key of 32–4096 URL-safe characters (letters, digits, `.`, `_`, `~`, `-`); `openssl rand -hex 32` generates one. Restart the app after changing it. An empty value disables key access. The key stays out of dashboard settings, exports and `/api/runtime`.
 
-Fetch `GET /api/timetables/<api-key>` without authentication headers:
+Fetch `GET /api/timetables` with the dedicated `X-Home-Harmony-Key` header:
 
 ```sh
-curl 'http://YOUR_DASHBOARD:8099/api/timetables/YOUR_API_KEY'
+curl -H 'X-Home-Harmony-Key: YOUR_TIMETABLE_API_KEY' http://YOUR_DASHBOARD:8099/api/timetables
 ```
 
-The response contains all saved timetable entries, their enabled flag and ordered page URLs:
+The header-authenticated response contains all saved timetable entries, their enabled flag, ordered page URLs and a parallel `downloads` array:
 
 ```json
 {
@@ -179,14 +180,27 @@ The response contains all saved timetable entries, their enabled flag and ordere
     {
       "member": "home|person.example_child",
       "enabled": true,
-      "pages": ["/api/timetables/YOUR_API_KEY/example_child/UPLOAD_ID/1.png"]
+      "pages": ["/api/timetables/example_child/UPLOAD_ID/1.png"],
+      "downloads": ["/api/timetables/example_child/UPLOAD_ID/1.png?expires=UNIX_SECONDS&sig=HEX_SIGNATURE"]
     }
   ]
 }
 ```
 
-Prefix relative page URLs with your dashboard's origin to download the images without headers. A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. External image URLs are returned unchanged; never send your API key to those hosts. Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have an empty `pages` array. Disabled timetables remain listed with `enabled: false`, so automations can skip them. Saved pages also report `enabled: false` while the person uses Calendars, preventing image-based automations from reading an inactive timetable. Calendar events remain available through Home Assistant’s calendar APIs.
+Prefix relative URLs with your dashboard's origin. Stored `pages` require the same header (or dashboard credentials). A saved PNG also has a dark variant at the same path ending in `-dark.svg` instead of `.png`. `downloads` has the same order and length as `pages`; uploaded pages get a signed PNG URL, including when the saved reference is a dark SVG. These URLs work with a plain GET and expire **10 minutes after the listing is generated**. Each signature permits only its exact image path and GET method. Expired, malformed or changed signatures return 401. Fetch a new listing for fresh links; changing the URL's expiry does not extend it. External page URLs appear unchanged in both arrays; never send your API key to those hosts. Their access rules and expiry are controlled by the external host.
 
-The key permits only listing timetables and downloading stored PNG/SVG pages, including older retained uploads. It cannot upload PDFs, read/change dashboard settings, or access HA controls. Responses use `Cache-Control: no-store`. Dashboard credentials still work on the original routes, including `GET /api/timetables` (which returns page URLs without a key).
+Read the listing on each automation run to get the latest upload's pages. Entries without saved URLs are omitted; saved empty entries have empty arrays. Disabled timetables remain listed with `enabled: false`, so automations can skip them. Saved pages also report `enabled: false` while the person uses Calendars, preventing image-based automations from reading an inactive timetable. Calendar events remain available through Home Assistant’s calendar APIs.
 
-Treat the entire URL as a secret: anyone with it can read timetables, and URLs may appear in automation traces, proxy logs or AI-provider requests. Use HTTPS or a trusted LAN/VPN. Rotate the key and restart to invalidate old URLs. For AI image analysis, attach the PNG through the AI integration's supported image input; a URL in a text prompt alone does not guarantee that the model will fetch it.
+The key permits only listing timetables and downloading stored PNG/SVG pages, including older retained uploads. It cannot upload PDFs, delete files, read/change dashboard settings, access `/api/runtime`, calendars or HA controls. `Authorization` remains reserved for dashboard authentication; a Bearer timetable key is rejected. A missing or incorrect timetable header requires valid dashboard credentials. Responses use `Cache-Control: no-store`; key and signed-download requests also keep the origin checks and `Referrer-Policy: no-referrer`. Dashboard credentials still work on the original routes; dashboard-only listings retain their existing `pages` response without `downloads`.
+
+Signed downloads use HMAC-SHA256 over `GET\n<path>\n<expires>`, with a key derived by HMAC-SHA256 from the timetable API key and `home-harmony-timetable-download-v1`. The long-lived key never appears in these URLs. Anyone holding a signed URL can read that one page until it expires, so use HTTPS or a trusted LAN/VPN. Rotating the key and restarting invalidates both old signed downloads and legacy key URLs.
+
+### Migrate existing automations
+
+1. Update the file-loaded [morning summary configuration](examples/home-assistant/morning-summary-config.yaml) and [secrets](examples/home-assistant/morning-summary-secrets.example.yaml): set `home_harmony_timetables_url` to the dashboard origin plus `/api/timetables`, and put `home_harmony_timetable_api_key` only in the REST command's `X-Home-Harmony-Key` header. [REST commands support custom headers](https://www.home-assistant.io/integrations/rest_command/). Remove the old key script variable and `data.url` argument, then restart Home Assistant or reload the changed YAML integrations.
+2. Update the [automation](examples/home-assistant/morning-summary.yaml) to use `downloads` by page index. Downloader still receives just a URL, saves the image locally, and supplies a `media-source://media_source/local/...` attachment to AI Task. The long-lived key is absent from the script variables, action data and response; traced download URLs expire after 10 minutes. The fallback for older servers still uses `pages` and can expose their legacy key URLs.
+3. Verify your consumers, then set `timetable_legacy_url_key: false` in HAOS or `TIMETABLE_LEGACY_URL_KEY=false` in `.env`/Compose and restart the dashboard. Rotate the key to retire copies left in old traces or logs.
+
+Legacy `GET /api/timetables/<key>` and keyed image paths remain available with `timetable_legacy_url_key: true` (the default in this release). Their listings still contain the key in uploaded `pages` for compatibility and also include key-free signed `downloads`. These requests send `Deprecation: true` and `Link: <DOCS.md#read-timetables-from-an-automation>; rel="deprecation"`, and log one warning per process without the key. Disabling the option returns 404 for legacy routes. **The default changes to `false` in the next minor release (0.10.0).** Treat legacy URLs as long-lived secrets until you migrate.
+
+A possible HAOS-only alternative is an add-on `map: media:rw` mount with pages written under `/media/home-harmony/` and returned as media-source IDs. That mode is not implemented; adding the mount alone does not export pages. Signed downloads work across HAOS, Docker and Node without that extra storage path.

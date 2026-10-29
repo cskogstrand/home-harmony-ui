@@ -14,6 +14,9 @@ export async function runtimeOptions() {
   const homeAssistantToken = typeof configuredToken === "string" ? configuredToken.trim() : configuredToken;
   const dashboardPassword = process.env.DASHBOARD_PASSWORD ?? options.dashboard_password;
   const timetableApiKey = process.env.TIMETABLE_API_KEY ?? options.timetable_api_key ?? "";
+  const configuredLegacyUrlKey = process.env.TIMETABLE_LEGACY_URL_KEY ?? options.timetable_legacy_url_key ?? true;
+  if (![true, false, "true", "false"].includes(configuredLegacyUrlKey)) throw new Error("Set TIMETABLE_LEGACY_URL_KEY (timetable_legacy_url_key in HAOS) to true or false.");
+  const timetableLegacyUrlKey = configuredLegacyUrlKey === true || configuredLegacyUrlKey === "true";
   const configuredAuthDisabled = process.env.DASHBOARD_AUTH_DISABLED ?? options.dashboard_auth_disabled ?? false;
   if (![true, false, "true", "false"].includes(configuredAuthDisabled)) throw new Error("Set DASHBOARD_AUTH_DISABLED (dashboard_auth_disabled in HAOS) to true or false.");
   const dashboardAuthDisabled = configuredAuthDisabled === true || configuredAuthDisabled === "true";
@@ -24,5 +27,5 @@ export async function runtimeOptions() {
   if (!dashboardAuthDisabled && (typeof dashboardPassword !== "string" || dashboardPassword.length < 12 || /[\r\n]/.test(dashboardPassword))) throw new Error("Set DASHBOARD_PASSWORD (dashboard_password in HAOS) to at least 12 characters.");
   if (typeof timetableApiKey !== "string" || (timetableApiKey !== "" && !/^[A-Za-z0-9._~-]{32,4096}$/.test(timetableApiKey))) throw new Error("Set TIMETABLE_API_KEY (timetable_api_key in HAOS) to 32–4096 letters, digits, dots, underscores, tildes or hyphens, or leave it empty to disable API-key access.");
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("PORT must be between 1 and 65535.");
-  return { dataDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey, port };
+  return { dataDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey, timetableLegacyUrlKey, port };
 }

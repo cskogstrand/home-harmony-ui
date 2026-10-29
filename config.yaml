@@ -21,9 +21,11 @@ options:
   dashboard_password: ""
   dashboard_auth_disabled: false
   timetable_api_key: ""
+  timetable_legacy_url_key: true
 schema:
   home_assistant_url: url
   home_assistant_token: password
   dashboard_password: password?
   dashboard_auth_disabled: bool
   timetable_api_key: password?
+  timetable_legacy_url_key: bool

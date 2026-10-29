@@ -32,6 +32,13 @@ assert.equal(summaryTemplate.sensor[0].default_entity_id, "sensor.afterglow_morn
 assert.equal(summaryTemplate.sensor[0].state, "{{ trigger.event.data.date }}");
 assert.equal(summaryTemplate.sensor[0].attributes.message, "{{ trigger.event.data.message }}");
 const settings = config["script morning_summary"].family_timetables.sequence.find(action => action.variables)?.variables.result;
+const timetableScript = config["script morning_summary"].family_timetables;
+const timetableCommand = config.rest_command.family_timetables;
+assert.equal(timetableCommand.url, `${exampleSecrets.home_harmony_dashboard_origin}/api/timetables`);
+assert.deepEqual(timetableCommand.headers, { "X-Home-Harmony-Key": exampleSecrets.home_harmony_timetable_api_key });
+assert.equal(timetableScript.sequence[0].action, "rest_command.family_timetables");
+assert.equal(timetableScript.sequence[0].data, undefined, "Keep credentials out of traced service-call data");
+assert.ok(!JSON.stringify(timetableScript).includes(exampleSecrets.home_harmony_timetable_api_key), "Do not put the key in script variables or responses");
 assert.equal(settings.ai_task_entity, exampleSecrets.main_ai_task_entity);
 assert.deepEqual(settings.summary_groups, exampleSecrets.home_harmony_summary_groups);
 assert.deepEqual(settings.weekly_reminders, exampleSecrets.home_harmony_weekly_reminders);

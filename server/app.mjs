@@ -1,7 +1,7 @@
 import { load, dump, JSON_SCHEMA } from "js-yaml";
 import { dashboardAccess, attachHomeAssistantSocket } from "./home-assistant.mjs";
 import { createServer } from "node:http";
-import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdir, open, readFile, realpath, rename, rm, stat, unlink } from "node:fs/promises";
 import { extname, join, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
@@ -14,8 +14,9 @@ const revisionOf = config => createHash("sha256").update(JSON.stringify(config))
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
 const failure = (status, message) => Object.assign(new Error(message), { status });
 const storageError = "Configuration storage is unavailable. Reload to check the last saved version before retrying.";
+let warnedLegacyTimetableKey = false;
 
-export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey }) {
+export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, homeAssistantToken, dashboardPassword, dashboardAuthDisabled, timetableApiKey, timetableLegacyUrlKey = true, now = Date.now }) {
   if (!homeAssistantUrl || !instanceUrlSchema.safeParse(homeAssistantUrl).success) throw new Error("Configure a valid Home Assistant origin.");
   const file = resolve(dataDir, "settings.yaml");
   await mkdir(dataDir, { recursive: true, mode: 0o700 });
@@ -35,6 +36,24 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
   const authenticate = dashboardAccess(dashboardPassword, dashboardAuthDisabled);
   const checkTimetableOrigin = dashboardAccess(undefined, true);
   const timetableKeyDigest = timetableApiKey ? createHash("sha256").update(timetableApiKey).digest() : undefined;
+  const matchesTimetableKey = key => timetableKeyDigest && typeof key === "string" && timingSafeEqual(createHash("sha256").update(key).digest(), timetableKeyDigest);
+  const downloadKey = timetableApiKey ? createHmac("sha256", timetableApiKey).update("home-harmony-timetable-download-v1").digest() : undefined;
+  const downloadSignature = (path, expires) => createHmac("sha256", downloadKey).update(`GET\n${path}\n${expires}`).digest();
+
+  function downloadUrl(page, expires) {
+    if (!timetableImagePath.test(page)) return page;
+    const path = page.replace(/-dark\.svg$/, ".png");
+    return `${path}?expires=${expires}&sig=${downloadSignature(path, expires).toString("hex")}`;
+  }
+
+  function checkDownload(request, url) {
+    const expires = url.searchParams.get("expires"), signature = url.searchParams.get("sig");
+    if (!downloadKey || request.method !== "GET" || url.searchParams.size !== 2
+      || !/^[1-9]\d{0,15}$/.test(expires) || !Number.isSafeInteger(Number(expires)) || Number(expires) <= Math.floor(now() / 1000)
+      || !/^[a-f0-9]{64}$/.test(signature) || !timingSafeEqual(Buffer.from(signature, "hex"), downloadSignature(url.pathname, expires))) {
+      throw failure(401, "Invalid or expired timetable download.");
+    }
+  }
 
   function save(change) {
     const write = writes.then(async () => {
@@ -108,18 +127,35 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
       let pathname = url.pathname;
       const keyedPath = pathname.match(/^\/api\/timetables\/([^/]+)(\/.*)?$/);
       const timetablePath = keyedPath && `/api/timetables${keyedPath[2] ?? ""}`;
-      const keyedRead = request.method === "GET" && timetablePath && (timetablePath === "/api/timetables" || timetableImagePath.test(timetablePath));
+      const keyedRoute = timetablePath && (timetablePath === "/api/timetables" || timetableImagePath.test(timetablePath));
+      if (keyedRoute && !timetableLegacyUrlKey) throw failure(404, "Not found.");
+      const keyedRead = request.method === "GET" && keyedRoute;
+      const headerRead = request.method === "GET" && (pathname === "/api/timetables" || timetableImagePath.test(pathname)) && matchesTimetableKey(request.headers["x-home-harmony-key"]);
+      const signedRead = timetableImagePath.test(pathname) && (url.searchParams.has("sig") || url.searchParams.has("expires"));
       if (keyedRead) {
-        if (!timetableKeyDigest || !timingSafeEqual(createHash("sha256").update(keyedPath[1]).digest(), timetableKeyDigest)) throw failure(401, "Invalid timetable API key.");
+        if (!matchesTimetableKey(keyedPath[1])) throw failure(401, "Invalid timetable API key.");
+        pathname = timetablePath;
+      } else if (signedRead) checkDownload(request, url);
+      else if (!headerRead) authenticate(request);
+      if (keyedRead || headerRead || signedRead) {
         checkTimetableOrigin(request);
         response.setHeader("Referrer-Policy", "no-referrer");
-        pathname = timetablePath;
-      } else authenticate(request);
+      }
+      if (keyedRead) {
+        response.setHeader("Deprecation", "true");
+        response.setHeader("Link", '<DOCS.md#read-timetables-from-an-automation>; rel="deprecation"');
+        if (!warnedLegacyTimetableKey) {
+          warnedLegacyTimetableKey = true;
+          console.warn("Timetable URL-key authentication is deprecated. Use X-Home-Harmony-Key and signed downloads; see DOCS.md#read-timetables-from-an-automation.");
+        }
+      }
       const image = pathname.match(timetableImagePath);
       if (pathname === "/api/timetables" && request.method === "GET") {
+        const expires = Math.floor(now() / 1000) + 600;
         json(200, { timetables: Object.entries(config.settings.timetables).map(([member, pages]) => ({
           member, enabled: config.settings.timetableSettings[member]?.type !== "calendar" && (config.settings.timetableEnabled[member] ?? pages.length > 0),
           pages: pages.map(page => keyedRead && timetableImagePath.test(page) ? page.replace("/api/timetables/", `/api/timetables/${timetableApiKey}/`) : page),
+          ...((keyedRead || headerRead) ? { downloads: pages.map(page => downloadUrl(page, expires)) } : {}),
         })) });
         return;
       }

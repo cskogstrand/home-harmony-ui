@@ -1,6 +1,7 @@
 import { load } from "js-yaml";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
+import { createHmac } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { mkdtemp, mkdir, open, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -122,6 +123,7 @@ async function waitForTimetable(app, before = app.saved) {
 }
 
 test("lists saved timetables with a read-only key in the path without exposing dashboard settings", async t => {
+  const warnings = t.mock.method(console, "warn", () => {});
   const app = await fixture(t, { timetableApiKey });
   assert.deepEqual(await (await app.api(timetableApiPath, {}, "")).json(), { timetables: [] });
   const { config, revision } = await (await app.request()).json();
@@ -146,7 +148,12 @@ test("lists saved timetables with a read-only key in the path without exposing d
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
-  assert.deepEqual(await response.json(), expected);
+  assert.equal(response.headers.get("deprecation"), "true");
+  assert.equal(response.headers.get("link"), '<DOCS.md#read-timetables-from-an-automation>; rel="deprecation"');
+  assert.deepEqual(await response.json(), { timetables: expected.timetables.map(entry => ({ ...entry, downloads: entry.pages })) });
+  assert.equal(warnings.mock.callCount(), 1, "Warn only once across requests and handler restarts in this process");
+  assert.match(warnings.mock.calls[0].arguments[0], /deprecated/);
+  assert.ok(!JSON.stringify(warnings.mock.calls).includes(timetableApiKey));
   assert.deepEqual(await (await app.api("/api/timetables")).json(), expected, "Dashboard credentials still work");
   for (const headers of [{}, { Authorization: `Bearer ${timetableApiKey}` }, { Authorization: `Basic ${Buffer.from(`dashboard:${timetableApiKey}`).toString("base64")}` }]) {
     assert.equal((await app.api("/api/timetables", { headers }, "")).status, 401);
@@ -163,11 +170,93 @@ test("lists saved timetables with a read-only key in the path without exposing d
   assert.ok(!(await readFile(join(app.dataDir, "settings.yaml"), "utf8")).includes(timetableApiKey));
 });
 
+test("header keys grant only timetable reads, with key-free pages and expiring page-specific downloads", async t => {
+  let clock = 1800000000000;
+  const warnings = t.mock.method(console, "warn", () => {});
+  const app = await fixture(t, { timetableApiKey, timetableLegacyUrlKey: false, now: () => clock });
+  const headers = { "X-Home-Harmony-Key": timetableApiKey };
+  const prefix = "/api/timetables/example_child/00000000-0000-4000-8000-000000000000";
+  const directory = join(app.dataDir, "timetables", ...prefix.split("/").slice(3));
+  await mkdir(directory, { recursive: true });
+  await writeFile(join(directory, "1.png"), "fixture PNG page 1");
+  await writeFile(join(directory, "2.png"), "fixture PNG page 2");
+  await writeFile(join(directory, "1-dark.svg"), '<svg xmlns="http://www.w3.org/2000/svg"/>');
+  const { config, revision } = await (await app.request()).json();
+  const pages = [`${prefix}/1-dark.svg`, `${prefix}/2.png`, "https://school.example/timetable.png"];
+  config.settings.timetables = { "home|person.example_child": pages, empty: [] };
+  assert.equal((await app.request("PUT", config, revision)).status, 200);
+  const listing = await app.api("/api/timetables", { headers }, "");
+  assert.equal(listing.status, 200);
+  assert.equal(listing.headers.get("referrer-policy"), "no-referrer");
+  assert.equal(listing.headers.get("cache-control"), "no-store");
+  assert.equal(listing.headers.get("deprecation"), null);
+  const body = await listing.text();
+  assert.ok(!body.includes(timetableApiKey));
+  const { timetables } = JSON.parse(body);
+  assert.deepEqual(timetables[0].pages, pages);
+  for (const entry of timetables) assert.equal(entry.downloads.length, entry.pages.length);
+  const downloads = timetables[0].downloads;
+  const expires = String(clock / 1000 + 600);
+  const derivedKey = createHmac("sha256", timetableApiKey).update("home-harmony-timetable-download-v1").digest();
+  const sig = createHmac("sha256", derivedKey).update(`GET\n${prefix}/1.png\n${expires}`).digest("hex");
+  assert.equal(downloads[0], `${prefix}/1.png?expires=${expires}&sig=${sig}`);
+  assert.equal(downloads[2], pages[2], "Never sign or rewrite external URLs");
+  for (const path of [`${prefix}/1.png`, pages[0], pages[1]]) {
+    const image = await app.api(path, { headers }, "");
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get("content-type"), path.endsWith(".png") ? "image/png" : "image/svg+xml");
+    assert.equal(image.headers.get("referrer-policy"), "no-referrer");
+    for (const key of [undefined, "wrong-key"]) {
+      assert.equal((await app.api(path, { headers: key ? { "X-Home-Harmony-Key": key } : {} }, "")).status, 401);
+    }
+  }
+  for (const path of downloads.slice(0, 2)) {
+    const image = await app.api(path, {}, "");
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get("content-type"), "image/png");
+    assert.equal(image.headers.get("cache-control"), "no-store");
+    assert.equal(image.headers.get("referrer-policy"), "no-referrer");
+  }
+  assert.equal((await app.api(downloads[0], {}, "")).status, 200, "Downloads can be retried until expiry");
+  const tampered = [
+    downloads[0].replace("/1.png", "/2.png"), downloads[0].replace("/1.png", "/1-dark.svg"),
+    downloads[0].replace("example_child", "another_child"), downloads[0].replace(expires, String(Number(expires) + 1)),
+    downloads[0].replace(sig, "0".repeat(64)), downloads[0].replace(sig, "short"), downloads[0].replace(sig, "g".repeat(64)),
+    downloads[0].replace(expires, "invalid"), downloads[0].replace(expires, "9007199254740992"),
+    `${prefix}/1.png?sig=${sig}`, `${prefix}/1.png?expires=${expires}`, `${downloads[0]}&sig=${sig}`, `${downloads[0]}&expires=${expires}`,
+  ];
+  for (const path of tampered) assert.equal((await app.api(path, {}, "")).status, 401, path);
+  for (const method of ["POST", "PUT", "DELETE", "HEAD", "OPTIONS"]) assert.equal((await app.api(downloads[0], { method }, "")).status, 401);
+  for (const [method, path] of [["GET", "/api/config"], ["PUT", "/api/config"], ["GET", "/api/runtime"], ["GET", "/api/calendars/calendar.example"], ["POST", timetableUploadPath("home|person.example_child")], ["DELETE", "/api/timetables"], ["DELETE", pages[1]], ["GET", `${prefix}/source.pdf`]]) {
+    assert.equal((await app.api(path, { method, headers }, "")).status, 401, `${method} ${path}`);
+  }
+  for (const headers of [{}, { "X-Home-Harmony-Key": "wrong-key" }, { Authorization: `Bearer ${timetableApiKey}` }]) {
+    assert.equal((await app.api("/api/timetables", { headers }, "")).status, 401);
+    if (!headers.Authorization) assert.equal((await app.api("/api/timetables", { headers })).status, 200, "Dashboard credentials remain independent");
+  }
+  for (const origin of [{ Origin: "https://other.example" }, { "Sec-Fetch-Site": "cross-site" }]) {
+    for (const path of ["/api/timetables", pages[0], downloads[0]]) assert.equal((await app.api(path, { headers: { ...headers, ...origin } }, "")).status, 403);
+  }
+  for (const path of [timetableApiPath, `${timetableApiPath}${prefix.slice("/api/timetables".length)}/1.png`]) {
+    for (const method of ["GET", "POST", "DELETE"]) assert.equal((await app.api(path, { method }, "")).status, 404);
+  }
+  clock += 599000;
+  assert.equal((await app.api(downloads[0], {}, "")).status, 200);
+  clock += 1000;
+  assert.equal((await app.api(downloads[0], {}, "")).status, 401, "The URL expires exactly at its expiry time");
+  const refreshed = await (await app.api("/api/timetables", { headers }, "")).json();
+  assert.equal((await app.api(refreshed.timetables[0].downloads[0], {}, "")).status, 200);
+  for (const path of ["/api/runtime", "/api/config"]) assert.ok(!(await (await app.api(path)).text()).includes(timetableApiKey));
+  assert.ok(!(await readFile(join(app.dataDir, "settings.yaml"), "utf8")).includes(timetableApiKey));
+  assert.equal(warnings.mock.callCount(), 0);
+});
+
 test("an unset or empty timetable key keeps dashboard authentication and the explicit login bypass", async t => {
   for (const timetableApiKey of [undefined, ""]) {
     const app = await fixture(t, { timetableApiKey });
     for (const path of ["/api/timetables", timetableApiPath, "/api/timetables/"]) assert.equal((await app.api(path, {}, "")).status, 401);
     assert.equal((await app.api("/api/timetables")).status, 200);
+    assert.equal((await app.api("/api/timetables", { headers: { "X-Home-Harmony-Key": "fixture-timetable-api-key-1234567890" } }, "")).status, 401);
   }
   const app = await fixture(t, { dashboardAuthDisabled: true });
   assert.equal((await app.api("/api/timetables", {}, "")).status, 200);
@@ -215,6 +304,14 @@ test("uploads and converts ordered PDF pages privately, persists them, and rejec
   const keyedPages = pages.map(path => path.replace("/api/timetables", timetableApiPath));
   const listing = await (await app.api(timetableApiPath, {}, "")).json();
   assert.deepEqual(listing.timetables.find(timetable => timetable.member === "home|person.one").pages, keyedPages);
+  const downloads = listing.timetables.find(timetable => timetable.member === "home|person.one").downloads;
+  assert.equal(downloads.length, pages.length);
+  assert.ok(!JSON.stringify(downloads).includes(timetableApiKey));
+  for (const [index, download] of downloads.entries()) {
+    const image = await app.api(download, {}, "");
+    assert.equal(image.status, 200);
+    assert.deepEqual(await image.arrayBuffer(), await (await app.api(pages[index])).arrayBuffer());
+  }
   assert.equal(pages.length, 2);
   assert.match(pages[0], /\/1\.png$/);
   assert.match(pages[1], /\/2\.png$/);

@@ -53,6 +53,26 @@ assert [page["group"] for page in pages] == ["Person C", "Person C", "Person C",
 assert [page["page"] for page in pages] == [1, 2, 3, 1]
 assert [page["filename"] for page in pages] == ["1.png", "2.png", "3.png", "4.png"]
 assert pages[0]["url"] == "https://dashboard.example/api/timetables/example/1.png"
+# New listings use downloads verbatim, including signed queries; old listings keep the PNG fallback above.
+timetables[0]["downloads"] = [
+    "/api/timetables/example/1.png?expires=1800000600&sig=" + "a" * 64,
+    "https://school.example/notices.png?version=2",
+    "https://school.example/homework.png",
+]
+signed_pages = literal_eval(page_template.render(**page_context).strip())
+assert signed_pages[0]["url"] == "https://dashboard.example" + timetables[0]["downloads"][0]
+assert signed_pages[1]["url"] == timetables[0]["downloads"][1]
+assert [page["mime"] for page in signed_pages] == ["image/png"] * 4
+assert [page["filename"] for page in signed_pages] == ["1.png", "2.png", "3.png", "4.png"]
+download_action = next(action["repeat"] for action in actions if action.get("repeat", {}).get("for_each") == "{{ timetable_pages }}")
+assert download_action["sequence"][0]["action"] == "downloader.download_file"
+assert download_action["sequence"][0]["data"]["url"] == "{{ repeat.item.url }}"
+attachment_template = env.from_string(next(action["variables"]["timetable_attachments"] for action in actions if "timetable_attachments" in action.get("variables", {})))
+attachments = literal_eval(attachment_template.render(timetable_pages=signed_pages, download_run="example_run").strip())
+assert [item["media_content_id"] for item in attachments] == [
+    "media-source://media_source/local/morning-summary/example_run/" + page["filename"] for page in signed_pages
+]
+assert generate["data"]["attachments"] == "{{ timetable_attachments }}"
 for wrong_groups in [
     groups[:3],
     [*groups, {"name": "Duplicate", "timetable_member": groups[3]["timetable_member"]}],
