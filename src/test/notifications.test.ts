@@ -146,11 +146,13 @@ describe("notification progress", () => {
     for (const value of [true, false, null, {}, [], ""]) expect(notificationProgress({ ...progress, current: { ...progress.current, attribute: "done" } }, entities("running", { done: value }))).toBeUndefined();
   });
   it("validates progress and activity styles and preserves them through configuration backups", () => {
-    const configured = rule({ progress, icon: "washing", animateIcon: false });
+    const configured = rule({ progress, icon: "washing", animateIcon: false, presentation: "activity-compact" });
     const config = emptyConfiguration();
     config.settings.notifications = { ...config.settings.notifications, presentation: "activity", rules: [configured] };
     expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
     expect(rule().progress).toBeUndefined();
+    expect(rule().presentation).toBeUndefined();
+    expect(notificationRuleSchema.safeParse({ ...configured, presentation: "custom" }).success).toBe(false);
     for (const changes of [{ progress: { ...progress, end: progress.start } }, { progress: { ...progress, current: { type: "value", value: 1 } } }, { progress: { ...progress, end: { type: "value", value: Infinity } } }, { progress: { ...progress, current: { ...progress.current, entity: "" } } }, { kind: "current", progress }, { icon: "custom-script" }]) expect(notificationRuleSchema.safeParse({ ...configured, ...changes }).success).toBe(false);
     for (const text of ["none", "percentage"] as const) {
       config.settings.notifications.rules = [rule({ progress: { ...progress, text } })];

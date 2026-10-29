@@ -137,10 +137,7 @@ it("saves page choices per rule and disables editing when storage is unavailable
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule(), other] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
-  expect(screen.getByRole("button", { name: "Section" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.queryByLabelText("Show on")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Banner" }));
-  expect(setNotifications).toHaveBeenLastCalledWith({ presentation: "banner" });
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   expect(screen.getByLabelText("Show on")).toHaveValue("main");
   fireEvent.change(screen.getByLabelText("Show on"), { target: { value: "today" } });
@@ -188,6 +185,59 @@ it("shows every activity card on main pages instead of limiting each group to th
   const notifications = Array.from({ length: 5 }, (_, index) => ({ id: `example-${index}`, rule: { ...cameraRule(), id: `example-${index}`, kind: "ongoing" as const, title: `Example task ${index}` }, startedAt: 0, popup: false }));
   render(<MemoryRouter><NotificationContext.Provider value={{ notifications, errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() }}><NotificationList compact presentation="activity" /></NotificationContext.Provider></MemoryRouter>);
   expect(screen.getAllByRole("listitem")).toHaveLength(5);
+});
+
+it("previews and saves compact activity cards per rule without changing other cards", async () => {
+  const other = { ...cameraRule(), id: "other", title: "Example second alert" };
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [cameraRule(), other] };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  const preview = within(screen.getByRole("region", { name: "Notification preview" }));
+  expect(preview.getByRole("listitem")).not.toHaveClass("notification-activity-compact");
+  await openEditorSection("Display as");
+  fireEvent.click(screen.getByRole("button", { name: "Compact activity card" }));
+  expect(preview.getByRole("listitem")).toHaveClass("notification-activity-compact");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const rules = [{ ...cameraRule(), presentation: "activity-compact" }, other];
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules };
+  view.rerender(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Display as");
+  expect(screen.getByRole("button", { name: "Compact activity card" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Activity cards" }));
+  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem")).not.toHaveClass("notification-activity-compact");
+});
+
+it.each(["banner", "section", "activity", "activity-compact"] as const)("keeps readings and actions in each rule's chosen style (%s)", presentation => {
+  const rule = { ...cameraRule(), presentation, message: "Example message", detailEntities: ["home|binary_sensor.example"] };
+  const camera = vi.fn(), dismiss = vi.fn();
+  render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: rule.id, rule, popup: false, startedAt: 0 }], errors: [], camera, dismiss, retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
+  expect(screen.getByRole("listitem").classList.contains("notification-activity-compact")).toBe(presentation === "activity-compact");
+  expect(screen.getByRole("listitem")).toHaveTextContent("Off");
+  if (presentation !== "banner") expect(screen.getByText("Example message")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
+  expect(camera).toHaveBeenCalledWith(rule.id, true);
+  fireEvent.click(screen.getByRole("button", { name: "Dismiss Example doorbell" }));
+  expect(dismiss).toHaveBeenCalledWith(rule.id);
+});
+
+it("mixes per-rule styles in the same notification group and shares a grid between normal and compact cards", () => {
+  const notifications = (["banner", "section", "activity", "activity-compact"] as const).map(presentation => ({ id: presentation, rule: { ...cameraRule(), id: presentation, title: `Example ${presentation}`, kind: "ongoing" as const, presentation, message: "Example details" }, popup: false, startedAt: 0 }));
+  const content = (compact: boolean) => <MemoryRouter><NotificationContext.Provider value={{ notifications, errors: [], camera: vi.fn(), dismiss: vi.fn(), retry: vi.fn() }}><NotificationList compact={compact} presentation="section" /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content(true));
+  const item = (style: string) => screen.getByText(`Example ${style}`).closest("li");
+  expect(screen.getAllByRole("listitem")).toHaveLength(4);
+  expect(item("banner").parentElement).toHaveClass("notification-banner-list");
+  expect(item("section").parentElement).toHaveClass("notification-section-list");
+  expect(item("activity").parentElement).toHaveClass("notification-activity-grid");
+  expect(item("activity-compact").parentElement).toBe(item("activity").parentElement);
+  expect(item("activity-compact")).toHaveClass("notification-activity-compact");
+  expect(within(item("banner")).queryByText("Example details")).not.toBeInTheDocument();
+  view.rerender(content(false));
+  expect(screen.getAllByRole("listitem")).toHaveLength(4);
+  expect(within(item("banner")).getByText("Example details")).toBeVisible();
 });
 
 it("summarizes banners while keeping camera, dismiss, retry and the full list available", () => {
@@ -469,18 +519,22 @@ it("simulates an attribute and a total state on the same entity without corrupti
 });
 
 
-it("adds a notification from each empty group and offers exactly three style examples", () => {
+it("adds a notification from each empty group and offers four style examples inside each editor", async () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
-  const styles = within(screen.getByRole("group", { name: "Display as" }));
-  expect(styles.getAllByRole("button")).toHaveLength(3);
-  fireEvent.click(styles.getByRole("button", { name: "Activity cards" }));
-  expect(setNotifications).toHaveBeenLastCalledWith({ presentation: "activity" });
+  expect(screen.queryByRole("group", { name: "Display as" })).not.toBeInTheDocument();
   for (const kind of ["Ongoing tasks", "Current alerts", "Camera popup"]) {
     const group = within(screen.getByRole("region", { name: kind }));
     expect(group.getByText("No notifications in this group yet.")).toBeVisible();
     fireEvent.click(group.getByRole("button", { name: `Add ${kind}` }));
     expect(screen.getByRole("dialog", { name: "Add notification" })).toHaveAccessibleDescription(kind);
     expect(screen.getByRole("region", { name: "Notification preview" })).toBeVisible();
+    await openEditorSection("Display as");
+    const styles = within(screen.getByRole("group", { name: "Display as" }));
+    expect(styles.getAllByRole("button")).toHaveLength(4);
+    expect(styles.getByRole("button", { name: "Section" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(styles.getByRole("button", { name: "Activity cards" }));
+    expect(styles.getByRole("button", { name: "Activity cards" })).toHaveAttribute("aria-pressed", "true");
+    expect(setNotifications).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   }
 });
@@ -575,7 +629,7 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   expect(within(screen.getByRole("region", { name: "Notification preview" })).getByText("Draft title")).toBeVisible();
   content.focus();
   fireEvent.keyDown(content, { key: "ArrowDown" });
-  expect(trigger).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Display as" })).toHaveFocus();
   fireEvent.click(content);
   expect(screen.getByLabelText("Title")).toHaveValue("Draft title");
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "" } });

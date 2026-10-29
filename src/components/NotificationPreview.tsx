@@ -6,13 +6,13 @@ import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { notificationEntity, progressSourceValue } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
-import { notificationRuleSchema, type NotificationRule } from "../../shared/notifications";
+import { notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
 import { NotificationRow } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 
-export function NotificationPreview({ rule, presentation }: { rule?: NotificationRule; presentation: "banner" | "section" | "activity" }) {
+export function NotificationPreview({ rule, presentation: defaultPresentation }: { rule?: NotificationRule; presentation: NotificationPresentation }) {
   const { message: t } = useI18n();
   const { currentHome } = useApp();
   const [demo, setDemo] = useState(true);
@@ -27,6 +27,8 @@ export function NotificationPreview({ rule, presentation }: { rule?: Notificatio
     progress: { current: { type: "entity", entity: "preview|sensor.remaining" }, start: { type: "value", value: 90 }, end: { type: "value", value: 0 } },
   });
   const previewRule = rule ? { ...rule, title: rule.title || t("Your notification") } : example;
+  const presentation = previewRule.presentation ?? defaultPresentation;
+  const activity = presentation === "activity" || presentation === "activity-compact";
   const useDemo = !rule || demo;
   const canPlay = useDemo && !!previewRule.progress && !reducedMotion;
   useEffect(() => {
@@ -69,8 +71,8 @@ export function NotificationPreview({ rule, presentation }: { rule?: Notificatio
     <PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
     <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p>
     {rule && <div className="notification-toggle"><span>{t("Use sample data")}</span><Switch aria-label={t("Use sample data")} checked={demo} onCheckedChange={checked => { setDemo(checked); setPlaying(false); }} /></div>}
-    <ul className={presentation === "activity" ? "notification-activity-grid" : presentation === "banner" ? "notification-preview-banner" : "notification-preview-section"}>
-      <NotificationRow item={{ id: "preview", rule: previewRule, startedAt: 0, popup: false }} activity={presentation === "activity"} condensed={presentation === "banner"} entities={entities} preview />
+    <ul className={activity ? "notification-activity-grid" : presentation === "banner" ? "notification-preview-banner" : "notification-preview-section"}>
+      <NotificationRow item={{ id: "preview", rule: previewRule, startedAt: 0, popup: false }} activity={activity} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} entities={entities} preview />
     </ul>
     {useDemo && previewRule.progress && <div className="notification-demo-controls">
       <label htmlFor={id}>{t("Demo progress")} <strong>{percent}%</strong></label>

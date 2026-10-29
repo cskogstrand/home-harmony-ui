@@ -12,6 +12,7 @@ import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { MediaSurface } from "./devices/EntityMedia";
 import type { Entity } from "@/types/api";
+import type { NotificationPresentation } from "../../shared/notifications";
 import { NotificationIcon } from "./NotificationIcon";
 import { NotificationProgress } from "./NotificationProgress";
 import "./devices/device-cards.css";
@@ -26,7 +27,7 @@ export function NotificationBell() {
   </Link><span role="status" aria-atomic="true" className="sr-only">{titles ? t("Active notifications: {titles}", { titles }) : notifications.length ? "" : t("No active notifications")}</span></>;
 }
 
-export function NotificationRow({ item, condensed = false, activity = false, preview = false, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; preview?: boolean; entities?: Entity[] }) {
+export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, preview = false, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; preview?: boolean; entities?: Entity[] }) {
   const { message: t, language, locale } = useI18n();
   const { currentHome } = useApp();
   const { dismiss, camera } = useNotifications();
@@ -46,7 +47,7 @@ export function NotificationRow({ item, condensed = false, activity = false, pre
     const hideName = activity && reading.hideName;
     return prominent ? <div key={key}><strong>{value}{unit && <small>{unit}</small>}</strong><span className={hideName ? "sr-only" : undefined}>{name}</span></div> : <p key={key} className="text-sm">{hideName ? <span className="sr-only">{name}: </span> : `${name} · `}{value}{unit}</p>;
   };
-  return <li className={activity ? "notification-activity" : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0"}>
+  return <li className={activity ? `notification-activity${compactActivity ? " notification-activity-compact" : ""}` : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0"}>
     <NotificationIcon rule={item.rule} animate={activity && item.rule.kind === "ongoing"} />
     <div className="min-w-0 flex-1 break-words"><strong className="block">{item.eventTitle || item.rule.title}</strong>
       {!condensed && item.eventTitle && <p className="text-sm text-muted-foreground">{item.rule.title} · {t(item.eventStart > Date.now() ? "Starts at {time}" : "Started at {time}", { time: time.format(item.eventStart) })}</p>}
@@ -64,15 +65,16 @@ export function NotificationRow({ item, condensed = false, activity = false, pre
   </li>;
 }
 
-export function NotificationList({ compact = false, presentation = "section" }: { compact?: boolean; presentation?: "banner" | "section" | "activity" }) {
+export function NotificationList({ compact = false, presentation = "section" }: { compact?: boolean; presentation?: NotificationPresentation }) {
   const { message: t } = useI18n();
   const { notifications: settings } = useFamily();
   const { pathname } = useLocation();
   const { notifications: allNotifications, errors, retry } = useNotifications();
   const notifications = allNotifications.filter(item => !compact || pathname === "/" || (item.rule.pages ?? settings.pages) === "main");
   if (compact && !notifications.length && !errors.length) return null;
-  const banner = compact && presentation === "banner";
-  const activity = presentation === "activity";
+  const style = (item: HomeNotification) => item.rule.presentation ?? presentation;
+  const banner = compact && (notifications.length ? notifications.every(item => style(item) === "banner") : presentation === "banner");
+  const sectionFrame = !banner && (notifications.length ? notifications.every(item => style(item) === "section" || (!compact && style(item) === "banner")) : !["activity", "activity-compact"].includes(presentation));
   const groups = [
     { kind: "ongoing", title: "Ongoing tasks", icon: ListChecks },
     { kind: "current", title: "Current alerts", icon: Bell },
@@ -80,16 +82,23 @@ export function NotificationList({ compact = false, presentation = "section" }: 
   ] as const;
   const ordered = groups.flatMap(group => notifications.filter(item => item.rule.kind === group.kind));
   const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link></div>;
-  return <section className={activity ? "notification-activities mb-5" : banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : "glow-panel mb-5"} aria-label={t("Active notifications")}>
+  return <section className={banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : sectionFrame ? "glow-panel mb-5" : "notification-activities mb-5"} aria-label={t("Active notifications")}>
     {!banner && heading}
     {!!errors.length && <div role="status" className="mb-3 w-full"><p>{t("Some notification sources could not be loaded. Check the Home Assistant connection and permissions.")}</p><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>}
     {!notifications.length && !errors.length && <p className="empty-note">{t("Nothing needs your attention right now.")}</p>}
     {banner ? <ul className="flex min-w-0 flex-1 basis-72 flex-wrap gap-x-5 gap-y-2">{ordered.slice(0, 3).map(item => <NotificationRow key={item.id} item={item} condensed />)}</ul> : <div className="notification-groups">
       {groups.map(group => {
         const items = notifications.filter(item => item.rule.kind === group.kind);
+        const banners = compact ? items.filter(item => style(item) === "banner") : [];
+        const sections = items.filter(item => style(item) === "section" || (!compact && style(item) === "banner"));
+        const cards = items.filter(item => ["activity", "activity-compact"].includes(style(item)));
         return items.length > 0 && <section key={group.kind} className="min-w-0" aria-label={t(group.title)}>
           <PanelTitle as="h3" icon={group.icon} className="mb-3 text-sm font-semibold text-muted-foreground">{t(group.title)}</PanelTitle>
-          <ul className={activity ? "notification-activity-grid" : ""}>{(compact && !activity ? items.slice(0, 3) : items).map(item => <NotificationRow key={item.id} item={item} activity={activity} />)}</ul>
+          <div className="notification-group-styles">
+            {!!banners.length && <ul className="notification-banner-list">{banners.slice(0, 3).map(item => <NotificationRow key={item.id} item={item} condensed />)}</ul>}
+            {!!sections.length && <ul className={sectionFrame ? "" : "notification-section-list"}>{(compact ? sections.slice(0, 3) : sections).map(item => <NotificationRow key={item.id} item={item} />)}</ul>}
+            {!!cards.length && <ul className="notification-activity-grid">{cards.map(item => <NotificationRow key={item.id} item={item} activity compactActivity={style(item) === "activity-compact"} />)}</ul>}
+          </div>
         </section>;
       })}
     </div>}

@@ -16,6 +16,8 @@ const notificationProgressSchema = z.object({
   }
 });
 const notificationIcons = ["default", "washing", "dishes", "cleaning", "cooking", "charging", "timer"] as const;
+const notificationPresentationSchema = z.enum(["banner", "section", "activity", "activity-compact"]);
+export type NotificationPresentation = z.infer<typeof notificationPresentationSchema>;
 export type NotificationProgress = z.infer<typeof notificationProgressSchema>;
 export type NotificationProgressSource = NotificationProgress["start"];
 const notificationEntityDisplaySchema = z.object({
@@ -37,6 +39,7 @@ export const notificationRuleSchema = z.object({
   id: reference, title: z.string().trim().min(1).max(100), message: z.string().trim().max(300).default(""),
   enabled: z.boolean().default(true), kind: z.enum(["ongoing", "current", "camera"]), trigger: notificationTriggerSchema,
   pages: z.enum(["today", "main"]).optional(),
+  presentation: notificationPresentationSchema.optional(),
   detailEntity: z.string().max(512).optional(),
   detailEntities: z.array(reference).max(100).refine(ids => new Set(ids).size === ids.length).optional(),
   entityDisplay: z.array(notificationEntityDisplaySchema).max(105)
@@ -58,7 +61,7 @@ export const notificationRuleSchema = z.object({
 });
 export const notificationSettingsSchema = z.object({
   enabled: z.boolean().default(true),
-  presentation: z.enum(["banner", "section", "activity"]).default("section"),
+  presentation: notificationPresentationSchema.default("section"),
   // Keep the previous global choice for rules without their own page setting.
   pages: z.enum(["today", "main"]).default("main"),
   rules: z.array(notificationRuleSchema).max(100).default([]).refine(rules => new Set(rules.map(rule => rule.id)).size === rules.length),

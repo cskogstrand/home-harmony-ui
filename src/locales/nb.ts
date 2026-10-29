@@ -1769,6 +1769,7 @@ export const nb = {
   "Weather updates resume when Home Assistant reconnects.": "Været oppdateres igjen når Home Assistant kobles til.",
   "Weather entity unavailable. Choose another source in settings.": "Værentiteten er utilgjengelig. Velg en annen kilde i innstillingene.",
   "Activity cards": "Aktivitetskort",
+  "Compact activity card": "Aktivitetskort kompakt",
   "Notification content": "Innhold",
   "When to show it": "Når varselet skal vises",
   "Readings and details": "Målinger og detaljer",
