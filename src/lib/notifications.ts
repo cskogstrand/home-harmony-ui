@@ -1,4 +1,4 @@
-import type { NotificationRule } from "../../shared/notifications";
+import type { NotificationRule, NotificationProgress, NotificationProgressSource, NotificationEntityDisplay } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
 
@@ -14,6 +14,49 @@ export interface HomeNotification {
 }
 export interface NotificationEvent { event_type: string; data: Record<string, unknown> }
 export const notificationEntity = (entities: Entity[], id: string) => entities.find(entity => entity.preferenceId === id);
+
+export function notificationReadings(rule: NotificationRule) {
+  const readings: (NotificationEntityDisplay & { roles: string[]; defaultPlacement: NotificationEntityDisplay["placement"] })[] = [];
+  const add = (entity: string, attribute: string, role: string, placement: NotificationEntityDisplay["placement"]) => {
+    if (!entity) return;
+    const existing = readings.find(reading => reading.entity === entity && reading.attribute === attribute);
+    if (existing) {
+      existing.roles.push(role);
+      if (role === "Additional reading") existing.defaultPlacement = placement;
+    } else readings.push({ entity, attribute, name: "", placement: "auto", defaultPlacement: placement, roles: [role] });
+  };
+  if ("entity" in rule.trigger) add(rule.trigger.entity, rule.trigger.type === "state" ? rule.trigger.attribute : "", "Source entity", rule.trigger.type === "state" ? "subtitle" : "hidden");
+  rule.detailEntities.forEach((entity, index) => add(entity, "", "Additional reading", index === 0 ? "left" : index === 1 ? "right" : "footer"));
+  if (rule.progress) {
+    for (const [key, role] of [["current", "Current value"], ["start", "Start value"], ["end", "End / total value"]] as const) {
+      const source = rule.progress[key];
+      if (source.type === "entity") add(source.entity, source.attribute, role, "hidden");
+    }
+  }
+  if (rule.kind === "camera") add(rule.cameraEntity, "", "Camera", "hidden");
+  return readings.map(reading => ({ ...reading, ...rule.entityDisplay?.find(item => item.entity === reading.entity && item.attribute === reading.attribute) }));
+}
+
+export function progressNumber(value: unknown) {
+  return (typeof value === "number" || typeof value === "string" && value.trim() !== "") && Number.isFinite(Number(value)) ? Number(value) : undefined;
+}
+
+export function progressSourceValue(source: NotificationProgressSource, entities: Entity[]) {
+  if (source.type === "value") return progressNumber(source.value);
+  const entity = notificationEntity(entities, source.entity);
+  if (!entity || !available(entity) || entity.attributes.mode === "password") return undefined;
+  return progressNumber(source.attribute ? entity.attributes[source.attribute] : entity.state);
+}
+
+export function notificationProgress(progress: NotificationProgress, entities: Entity[]) {
+  const current = progressSourceValue(progress.current, entities);
+  const start = progressSourceValue(progress.start, entities);
+  const end = progressSourceValue(progress.end, entities);
+  if (current === undefined || start === undefined || end === undefined || start === end) return undefined;
+  const fraction = (current - start) / (end - start);
+  if (!Number.isFinite(fraction)) return undefined;
+  return { current, start, end, percent: Math.max(0, Math.min(100, fraction * 100)) };
+}
 
 export function matchesState(rule: NotificationRule, entity?: Entity) {
   const trigger = rule.trigger;

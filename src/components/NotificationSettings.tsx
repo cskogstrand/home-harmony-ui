@@ -1,17 +1,24 @@
 import { useState } from "react";
-import { Bell, Camera, ListChecks, Plus } from "lucide-react";
+import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, LayoutTemplate, Plus, Timer, Zap } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { notificationEntity } from "@/lib/notifications";
+import { notificationEntity, notificationReadings } from "@/lib/notifications";
 import { notificationRuleSchema, type NotificationRule, type NotificationTrigger } from "../../shared/notifications";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { ConfirmDialog } from "./common/ConfirmDialog";
 import { EntityPicker } from "./EntityPicker";
+import { PanelTitle } from "./PanelTitle";
+import { NotificationProgressSettings } from "./NotificationProgress";
+import { NotificationPreview } from "./NotificationPreview";
+import { NotificationStylePicker } from "./NotificationStylePicker";
+import { NotificationEntitySettings } from "./NotificationEntitySettings";
+import { NotificationIconPicker } from "./NotificationIcon";
+import "./notifications.css";
 
 const kinds = { ongoing: "Ongoing tasks", current: "Current alerts", camera: "Camera popup" } as const;
 const icons = { ongoing: ListChecks, current: Bell, camera: Camera };
@@ -29,6 +36,8 @@ export function NotificationSettings() {
   const shared = useSharedConfiguration();
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const [draft, setDraft] = useState<NotificationRule>();
+  const [previewId, setPreviewId] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [original, setOriginal] = useState("");
   const [filters, setFilters] = useState("{}");
   const [error, setError] = useState("");
@@ -36,7 +45,7 @@ export function NotificationSettings() {
   const entities = currentHome.entities;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
-    setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
+    setDraft(rule); setPreviewId(rule.id); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
   };
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string) => {
@@ -51,8 +60,9 @@ export function NotificationSettings() {
       try { trigger = { ...trigger, filters: JSON.parse(filters) }; }
       catch { setError("Event filters must be a JSON object, for example {\"action\":\"single\"}."); return; }
     }
-    const result = notificationRuleSchema.safeParse({ ...draft, trigger });
-    if (!result.success) { setError("Check the title, trigger, camera and numeric values. Event filters must contain at most 10 text, number or boolean fields."); return; }
+    const readings = notificationReadings(draft);
+    const result = notificationRuleSchema.safeParse({ ...draft, trigger, ...(draft.entityDisplay && { entityDisplay: draft.entityDisplay.filter(item => readings.some(reading => reading.entity === item.entity && reading.attribute === item.attribute)) }) });
+    if (!result.success) { setError(result.error.issues.some(issue => issue.path[0] === "progress") ? "Check progress: choose numeric sources and different start and end values." : "Check the title, trigger, camera and numeric values. Event filters must contain at most 10 text, number or boolean fields."); return; }
     const rules = current ? notifications.rules.map(rule => rule.id === draft.id ? result.data : rule) : [...notifications.rules, result.data];
     if (setNotifications({ rules })) setDraft(undefined);
     else setError("The rule could not be saved. Your draft is still here. Check settings storage and retry.");
@@ -62,40 +72,57 @@ export function NotificationSettings() {
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Home Harmony is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
-    <div className="planner-form mb-4"><div className="grid gap-4 sm:grid-cols-2">
-      <label>{t("Display as")}<select value={notifications.presentation} disabled={disabled} onChange={event => setNotifications({ presentation: event.target.value as typeof notifications.presentation })}>
-        <option value="banner">{t("Banner")}</option><option value="section">{t("Section")}</option>
-      </select></label>
-      <label>{t("Show on")}<select value={notifications.pages} disabled={disabled} onChange={event => setNotifications({ pages: event.target.value as typeof notifications.pages })}>
+    <NotificationStylePicker value={notifications.presentation} disabled={disabled} onChange={presentation => setNotifications({ presentation })} />
+    <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+    <div className="notification-settings-toolbar">
+      <div className="planner-form"><label>{t("Show on")}<select value={notifications.pages} disabled={disabled} onChange={event => setNotifications({ pages: event.target.value as typeof notifications.pages })}>
         <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
-      </select></label>
-    </div><p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
+      </select></label></div>
+      <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
     </div>
+    <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
+    <DialogContent className="notification-preview-dialog">
+      <DialogHeader><DialogTitle>{t("Preview notification")}</DialogTitle><DialogDescription>{t("Choose a saved notification or try the example with sample data.")}</DialogDescription></DialogHeader>
+      <div className="planner-form"><label>{t("Preview notification")}<select value={notifications.rules.some(rule => rule.id === previewId) ? previewId : ""} onChange={event => setPreviewId(event.target.value)}>
+        <option value="">{t("Example task")}</option>{notifications.rules.map(rule => <option key={rule.id} value={rule.id}>{rule.title}</option>)}
+      </select></label></div>
+      <NotificationPreview key={previewId} rule={notifications.rules.find(rule => rule.id === previewId)} presentation={notifications.presentation} />
+    </DialogContent></Dialog>
     {!homeOnline && <p role="status" className="page-note">{t("Notifications are paused until Home Assistant reconnects.")}</p>}
-    <div className="flex flex-wrap gap-2">{(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
+    {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
+      const rules = notifications.rules.filter(rule => rule.kind === kind);
       const Icon = icons[kind];
-      return <Button key={kind} variant="outline" disabled={disabled || notifications.rules.length >= 100} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Icon size={17} aria-hidden="true" /><Plus size={14} aria-hidden="true" />{t(kinds[kind])}</Button>;
-    })}</div>
-    {!notifications.rules.length && <p className="empty-note">{t("No rules yet. Add an ongoing task for an appliance, a current alert for a state or calendar, or a camera popup for your doorbell.")}</p>}
-    <ul className="mt-4 divide-y">{notifications.rules.map(rule => {
+      return <section key={kind} className="notification-rule-group" aria-label={t(kinds[kind])}>
+      <div className="notification-rule-group-heading"><PanelTitle as="h3" icon={Icon}>{t(kinds[kind])}</PanelTitle>
+        <Button variant="outline" disabled={disabled || notifications.rules.length >= 100} aria-label={t("Add {kind}", { kind: t(kinds[kind]) })} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Plus size={18} aria-hidden="true" />{t("Add notification")}</Button>
+      </div>
+      {!rules.length && <p className="page-note">{t("No notifications in this group yet.")}</p>}
+      <ul className="divide-y">{rules.map(rule => {
       const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
       const Icon = icons[rule.kind];
       const missing = ("entity" in rule.trigger && !source) || (rule.kind === "camera" && notificationEntity(entities, rule.cameraEntity)?.domain !== "camera");
       return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
-        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t(kinds[rule.kind])} · {source?.name ?? (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
+        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t(kinds[rule.kind])} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
         <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
         <Switch aria-label={t("Enable {name}", { name: rule.title })} checked={rule.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, enabled } : item) })} />
         <Button variant="ghost" disabled={disabled} onClick={() => begin(rule, true)} aria-label={t("Edit {name}", { name: rule.title })}>{t("Edit")}</Button>
         <Button variant="ghost" disabled={disabled} onClick={() => setRemove(rule)} aria-label={t("Delete {name}", { name: rule.title })}>{t("Delete")}</Button>
         </div>
       </li>;
-    })}</ul>
-    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="max-h-[calc(100dvh-24px)] overflow-y-auto">
+    })}</ul></section>;
+    })}
+    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor">
       <DialogHeader><DialogTitle>{t(original ? "Edit notification" : "Add notification")}</DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
-      {draft && <form className="planner-form" onSubmit={event => { event.preventDefault(); save(); }}>
-        <div className="planner-form max-h-[55dvh] overflow-y-auto px-1 py-1">
+      {draft && <form className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
+        <div className="notification-editor-layout">
+        <div className="notification-editor-fields">
+        <section className="notification-editor-section">
+        <PanelTitle as="h3" icon={MessageSquare}>{t("Notification content")}</PanelTitle>
         <label>{t("Title")}<input required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t("Message (optional)")}<textarea maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
+        </section>
+        <section className="notification-editor-section">
+        <PanelTitle as="h3" icon={Zap}>{t("When to show it")}</PanelTitle>
         <label>{t("Trigger")}<select value={draft.trigger.type} onChange={event => { setDraft({ ...draft, trigger: newTrigger(event.target.value as NotificationTrigger["type"]) }); setFilters("{}"); }}>
           <option value="state">{t("Entity state")}</option>
           {draft.kind !== "ongoing" && <><option value="entity-event">{t("Event entity")}</option><option value="ha-event">{t("Home Assistant event")}</option></>}
@@ -113,14 +140,35 @@ export function NotificationSettings() {
         {draft.trigger.type === "entity-event" && <p className="page-note">{t("Triggers on a new event timestamp. Leave the event type empty to match every event from this entity.")}</p>}
         {draft.trigger.type === "ha-event" && <label>{t("Event data filters (JSON)")}<textarea rows={3} value={filters} maxLength={8000} onChange={event => setFilters(event.target.value)} /><span className="page-note">{t("Match exact top-level fields, such as action or device_id. Empty filters match every event of this type.")}</span></label>}
         {draft.trigger.type === "calendar" && <label>{t("Show minutes before start")}<input type="number" min={0} max={1440} required value={draft.trigger.leadMinutes} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger })} /></label>}
+        </section>
+        <section className="notification-editor-section">
+        <PanelTitle as="h3" icon={Gauge}>{t("Readings and details")}</PanelTitle>
         {draft.kind === "camera" && selectEntity("Camera", draft.cameraEntity, cameraEntity => setDraft({ ...draft, cameraEntity }), "camera")}
         <EntityPicker multiple label={t("Additional readings (optional)")} entities={selectable} value={draft.detailEntities}
           onChange={detailEntities => setDraft({ ...draft, detailEntities })} disabled={disabled}
           disabledReason={entity => draft.detailEntities.length >= 100 && !draft.detailEntities.includes(entity.preferenceId) ? t("Choose up to 100 additional readings.") : undefined} />
-        {(draft.kind === "camera" || ["entity-event", "ha-event"].includes(draft.trigger.type)) && <div className="grid gap-3 sm:grid-cols-2">
+        </section>
+        {draft.kind === "ongoing" && <section className="notification-editor-section">
+          <PanelTitle as="h3" icon={ChartNoAxesColumnIncreasing}>{t("Progress")}</PanelTitle>
+          <NotificationProgressSettings rule={draft} entities={selectable} disabled={disabled} onChange={progress => setDraft({ ...draft, progress })} />
+        </section>}
+        <section className="notification-editor-section">
+          <PanelTitle as="h3" icon={LayoutTemplate}>{t("Entity names and placement")}</PanelTitle>
+          <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={entityDisplay => setDraft({ ...draft, entityDisplay })} />
+        </section>
+        <section className="notification-editor-section">
+          <PanelTitle as="h3" icon={Palette}>{t("Icon and animation")}</PanelTitle>
+          <NotificationIconPicker rule={draft} disabled={disabled} onChange={icon => setDraft({ ...draft, icon })} />
+          {draft.kind === "ongoing" && <div className="notification-toggle"><span>{t("Animate activity icon")}</span><Switch aria-label={t("Animate activity icon")} checked={draft.animateIcon !== false} disabled={disabled} onCheckedChange={animateIcon => setDraft({ ...draft, animateIcon })} /></div>}
+          <p className="page-note">{t("Icons animate in activity cards while the task is active. Reduced motion keeps them still.")}</p>
+        </section>
+        {(draft.kind === "camera" || ["entity-event", "ha-event"].includes(draft.trigger.type)) && <section className="notification-editor-section">
+          <PanelTitle as="h3" icon={Timer}>{t("Timing")}</PanelTitle><div className="grid gap-3 sm:grid-cols-2">
           <label>{t("Show for (seconds)")}<input type="number" min={10} max={3600} required value={draft.durationSeconds} onChange={event => setDraft({ ...draft, durationSeconds: event.target.valueAsNumber })} /></label>
           <label>{t("Cooldown (seconds)")}<input type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>
-        </div>}
+        </div></section>}
+        </div>
+        <NotificationPreview key={draft.id} rule={draft} presentation={notifications.presentation} />
         </div>
         {error && <p role="alert" className="text-destructive">{t(error)}</p>}
         <div className="form-actions"><Button type="button" variant="outline" onClick={() => setDraft(undefined)}>{t("Cancel")}</Button><Button type="submit" disabled={disabled}>{t("Save notification")}</Button></div>

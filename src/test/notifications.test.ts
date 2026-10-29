@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { notificationRuleSchema, notificationSettingsSchema, type NotificationRule } from "../../shared/notifications";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
-import { matchesState, NotificationEngine } from "@/lib/notifications";
+import { matchesState, notificationProgress, notificationReadings, NotificationEngine } from "@/lib/notifications";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
@@ -120,4 +120,49 @@ describe("notification lifecycle", () => {
     expect(update(now + 1000)).toHaveLength(1);
     expect(update(Date.parse("2026-10-24T22:00:00Z"))).toHaveLength(0);
   });
+});
+
+describe("notification progress", () => {
+  const progress = { current: { type: "entity" as const, entity: "home|sensor.example", attribute: "" }, start: { type: "value" as const, value: 0 }, end: { type: "value" as const, value: 100 } };
+  it("supports decimal readings, count-up, countdown, attributes and live total entities", () => {
+    expect(notificationProgress(progress, entities("42.5"))).toMatchObject({ current: 42.5, percent: 42.5 });
+    const countdown = { ...progress, start: { type: "entity" as const, entity: "home|sensor.example", attribute: "total" }, end: { type: "value" as const, value: 0 } };
+    expect(notificationProgress(countdown, entities("30", { total: 120 }))).toMatchObject({ percent: 75 });
+    expect(notificationProgress(countdown, entities("30", { total: 60 }))).toMatchObject({ percent: 50 });
+    expect(notificationProgress({ ...progress, current: { ...progress.current, attribute: "done" }, end: { type: "entity", entity: "home|sensor.example", attribute: "total" } }, entities("running", { done: 12, total: 80 }))).toMatchObject({ percent: 15 });
+    expect(notificationProgress(progress, entities("-1"))?.percent).toBe(0);
+    expect(notificationProgress(progress, entities("200"))?.percent).toBe(100);
+    expect(notificationProgress(countdown, entities("-1", { total: 60 }))?.percent).toBe(100);
+  });
+  it("never invents progress for missing, invalid, private or equal readings", () => {
+    for (const value of ["", " ", "unknown", "unavailable", "missing", "NaN", "Infinity", "on"]) expect(notificationProgress(progress, entities(value))).toBeUndefined();
+    expect(notificationProgress(progress, [])).toBeUndefined();
+    expect(notificationProgress(progress, entities("40", { mode: "password" }))).toBeUndefined();
+    expect(notificationProgress({ ...progress, end: progress.start }, entities("40"))).toBeUndefined();
+    for (const value of [true, false, null, {}, [], ""]) expect(notificationProgress({ ...progress, current: { ...progress.current, attribute: "done" } }, entities("running", { done: value }))).toBeUndefined();
+  });
+  it("validates progress and activity styles and preserves them through configuration backups", () => {
+    const configured = rule({ progress, icon: "washing", animateIcon: false });
+    const config = emptyConfiguration();
+    config.settings.notifications = { ...config.settings.notifications, presentation: "activity", rules: [configured] };
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    expect(rule().progress).toBeUndefined();
+    for (const changes of [{ progress: { ...progress, end: progress.start } }, { progress: { ...progress, current: { type: "value", value: 1 } } }, { progress: { ...progress, end: { type: "value", value: Infinity } } }, { progress: { ...progress, current: { ...progress.current, entity: "" } } }, { kind: "current", progress }, { icon: "custom-script" }]) expect(notificationRuleSchema.safeParse({ ...configured, ...changes }).success).toBe(false);
+  });
+});
+
+
+it("validates entity display settings and combines repeated references without merging distinct attributes", () => {
+  const configured = rule({ detailEntities: ["home|sensor.example"], progress: {
+    current: { type: "entity", entity: "home|sensor.example", attribute: "progress" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 },
+  }, entityDisplay: [{ entity: "home|sensor.example", attribute: "progress", name: "Completion", placement: "right" }] });
+  const readings = notificationReadings(configured);
+  expect(readings).toHaveLength(2);
+  expect(readings[0]).toMatchObject({ defaultPlacement: "left", roles: ["Source entity", "Additional reading"] });
+  expect(readings[1]).toMatchObject({ name: "Completion", placement: "right", roles: ["Current value"] });
+  const entry = { entity: "home|sensor.example", name: "Example" };
+  for (const entityDisplay of [[{ ...entry, placement: "elsewhere" }], [entry, entry], [{ ...entry, name: "x".repeat(101) }], [{ ...entry, attribute: "x".repeat(101) }]]) {
+    expect(notificationRuleSchema.safeParse({ ...configured, entityDisplay }).success).toBe(false);
+  }
+  expect(notificationRuleSchema.parse({ ...configured, entityDisplay: [entry] }).entityDisplay[0]).toEqual({ ...entry, attribute: "", placement: "auto" });
 });

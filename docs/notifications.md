@@ -1,8 +1,8 @@
 # Notifications
 
-Open **Home settings → Notifications** to add rules. Choose **Display as → Banner** for a compact summary or **Section** for grouped details. **Show on** places it at the top of **Today only** or **All main pages**: Today, Our week, Lists, School and Smart home. The default is a section on all main pages. Both choices are shared across screens and included in backups.
+Open **Home settings → Notifications** to add rules using **Add notification** in the relevant group, including an empty group. Select one of the three full-width style examples under **Display as**. Choose **Display as → Banner** for a compact summary, **Section** for grouped details, or **Activity cards** for larger readings, an optional animated task icon and progress. **Show on** places it at the top of **Today only** or **All main pages**: Today, Calendar, Lists, School and Smart home. The default is a section on all main pages. Both choices are shared across screens and included in backups.
 
-The banner shows up to three alerts, including additional readings and camera/dismiss actions; **View all** opens the complete list. The section shows up to three ongoing tasks and three current alerts. Both hide when there is nothing to show. The header bell and automatic camera popups remain available on every page, regardless of this placement choice.
+The banner shows up to three alerts, including additional readings and camera/dismiss actions; **View all** opens the complete list. Sections and activity cards show up to three notifications per group: ongoing tasks, current alerts and camera popups. The settings list and full notification page use the same separate groups. All styles hide when there is nothing to show. The header bell and automatic camera popups remain available on every page, regardless of this placement choice.
 
 | Type | Behavior |
 | --- | --- |
@@ -25,7 +25,33 @@ Momentary events and camera popups have a duration and cooldown. Repeated trigge
 
 The camera popup header counts down to its expiry in minutes and seconds. While a state trigger still matches, it shows “Closes automatically when this alert expires.” instead. The configured expiry still applies; clearing the trigger does not restart the countdown.
 
-Use **Additional readings (optional)** to select multiple entities, such as an appliance's remaining minutes and completion percentage. Each selected reading appears in the banner and notification list with its reported value and unit. Uncheck a selection to remove it. Existing rules keep their previously selected reading; these choices are shared across screens and included in backups. Readings do not estimate progress.
+Use **Additional readings (optional)** to select multiple entities, such as an appliance's remaining minutes and completion percentage. Each selected reading appears in the banner and notification list with its reported value and unit. Uncheck a selection to remove it. Existing rules keep their previously selected reading; these choices are shared across screens and included in backups. Readings keep their reported values; optional progress is configured separately below.
+
+## Entity names and placement
+
+In **Entity names and placement**, set a local display name for every selected source, additional reading, progress entity or camera. State and attribute readings can have different names and placements, even when they belong to the same entity. Leaving the name empty uses the entity name. Home Assistant names and references remain unchanged.
+
+Choose **Under the title**, **Left reading**, **Right reading**, **At the bottom**, or **Hidden**. Activity cards show left and right as large readings in separate columns; other styles show them as text. **Automatic** keeps the source under the title, places the first two additional readings left and right, and places the rest at the bottom. Entities selected only for progress or camera playback start hidden. Hidden readings still drive triggers and progress. Names and placements are saved with the rule and included in backups.
+
+## Progress for ongoing tasks
+
+Enable **Show progress bar** in an ongoing task. Choose a **Current value** entity and optional numeric attribute, then configure **Start value** and **End / total value** using either fixed numbers or entities (with optional attributes). Enabling progress preselects the numeric trigger source or the first numeric additional reading and uses a numeric trigger threshold as the end value; otherwise the end defaults to 100. Review these values before saving.
+
+- Completion percentage: current percentage entity, start 0, end 100.
+- Completed units: current count entity, start 0, end the entity reporting the total.
+- Remaining time: remaining-time entity, start the total-duration entity, end 0.
+
+All three values must use the same unit. Progress follows `(current − start) / (end − start)` and is limited to 0–100%. Both directions and decimals are supported. Missing, unavailable, nonnumeric or equal endpoint readings show an unavailable message rather than invented progress. The trigger still controls when the task appears and clears; reaching 100% does not change Home Assistant or override the trigger.
+
+Progress appears in banners, sections and activity cards. It updates with entity readings, and its configuration is shared across screens and included in backups. Existing rules keep progress off.
+
+## Activity cards and previews
+
+Choose **Display as → Activity cards** for the iPhone activity-inspired layout. Each rule offers an automatic icon, laundry, dishwashing, cleaning, cooking, charging or timer. Ongoing tasks can animate their icon; the per-rule switch and the device's reduced-motion preference can keep it still. Current and camera alerts use static icons. Readings and text remain stationary. Timestamp readings show the reported time in the home's timezone; no completion time is estimated.
+
+Open **Preview notification** on the settings page to choose a saved rule or the built-in example in a modal. The editor keeps its preview alongside the fields. Both reuse the production notification component, including custom names and placements. **Sample data** is clearly labeled and stays local to the preview. Drag **Demo progress** or press **Play demo** to simulate progress. In the editor, turn sample data off to inspect current readings. Camera and dismiss actions are disabled in the preview; demo values never change Home Assistant or saved rules. Reduced motion also disables automatic demo playback; the slider remains available.
+
+The editor separates content, trigger, readings, progress, appearance and timing. Save and Cancel remain outside the scrolling fields; on wide screens the preview sits beside the form, and on phones it appears above it.
 
 ## Typical setup
 

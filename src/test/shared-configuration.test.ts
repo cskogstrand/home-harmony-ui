@@ -98,13 +98,14 @@ it("defaults weather to Today and shares and restores the source and placements"
 
 it("shares notification rules across screens and restores them with the existing backup flow", async () => {
   const backend = server(), a = await backend.start(), b = await backend.start();
-  a.updateSettings(p => ({ ...p, notifications: { enabled: true, presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntities: ["home|example-progress", "home|example-remaining"], durationSeconds: 60, cooldownSeconds: 10 }] } }));
+  a.updateSettings(p => ({ ...p, notifications: { enabled: true, presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntities: ["home|example-progress", "home|example-remaining"], progress: { current: { type: "entity", entity: "home|example-progress", attribute: "" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 } }, icon: "washing", animateIcon: false, entityDisplay: [{ entity: "home|example-remaining", attribute: "", name: "Time left", placement: "right" }], durationSeconds: 60, cooldownSeconds: 10 }] } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
   expect(backup.settings.notifications.rules[0].title).toBe("Example task");
   expect(backup.settings.notifications.rules[0].detailEntities).toEqual(["home|example-progress", "home|example-remaining"]);
   expect(backup.settings.notifications).toMatchObject({ presentation: "banner", pages: "today" });
+  expect(backup.settings.notifications.rules[0]).toMatchObject({ progress: { end: { type: "value", value: 100 } }, icon: "washing", animateIcon: false, entityDisplay: [{ entity: "home|example-remaining", attribute: "", name: "Time left", placement: "right" }] });
   await b.replace(emptyConfiguration());
   await b.replace(backup);
   await a.refresh();

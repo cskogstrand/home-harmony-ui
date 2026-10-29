@@ -2,6 +2,8 @@ import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
+import { NotificationRow } from "@/components/NotificationCenter";
+import { NotificationPreview } from "@/components/NotificationPreview";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { NotificationBell, NotificationCamera, NotificationList } from "@/components/NotificationCenter";
 import { NotificationContext } from "@/contexts/NotificationContext";
@@ -16,7 +18,7 @@ vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<object>(), useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 
-const setNotifications = vi.fn(() => true);
+const setNotifications = vi.fn((_settings: Partial<ReturnType<typeof emptyPlanner>["notifications"]>) => true);
 const watchEvents = vi.fn();
 const watchCameraStream = vi.fn();
 const home = (value = "off") => mapHome({ "binary_sensor.example": state("binary_sensor.example", value, { friendly_name: "Example detector" }), "camera.example": state("camera.example", "idle", { friendly_name: "Example camera" }) }, emptyRegistries, "home");
@@ -24,12 +26,13 @@ const cameraRule = () => notificationRuleSchema.parse({ id: "example-camera", ti
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   mocks.app = { currentHome: home(), homeOnline: true, watchEvents, watchCameraStream, watchCalendarEvents: vi.fn() };
   mocks.family = { ...emptyPlanner(), today: "2026-10-24", setNotifications };
   mocks.shared.state = { loaded: true, error: "" };
   setNotifications.mockReturnValue(true);
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 it("announces incoming titles and same-count replacements without repeating sensor readings", () => {
   const notification = { id: "example", rule: { ...cameraRule(), kind: "current" as const }, startedAt: 0, popup: false };
@@ -50,7 +53,7 @@ it("announces incoming titles and same-count replacements without repeating sens
 
 it("configures ongoing tasks with a stable entity reference", () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
-  fireEvent.click(screen.getByRole("button", { name: "Ongoing tasks" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Ongoing tasks" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example wash" } });
   chooseEntity("Source entity", "binary_sensor.example");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
@@ -60,7 +63,7 @@ it("configures ongoing tasks with a stable entity reference", () => {
 
 it("restricts the camera picker to cameras and allows clearing the optional reading", () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
-  fireEvent.click(screen.getByRole("button", { name: "Camera popup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Camera popup" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example camera alert" } });
   chooseEntity("Source entity", "binary_sensor.example");
   fireEvent.click(screen.getByRole("button", { name: "Camera" }));
@@ -128,15 +131,15 @@ it.each([false, true])("renders and refreshes all readings, retaining available 
 it("saves display and page choices through shared settings and disables them when storage is unavailable", () => {
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
-  expect(screen.getByLabelText("Display as")).toHaveValue("section");
+  expect(screen.getByRole("button", { name: "Section" })).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByLabelText("Show on")).toHaveValue("main");
-  fireEvent.change(screen.getByLabelText("Display as"), { target: { value: "banner" } });
+  fireEvent.click(screen.getByRole("button", { name: "Banner" }));
   expect(setNotifications).toHaveBeenLastCalledWith({ presentation: "banner" });
   fireEvent.change(screen.getByLabelText("Show on"), { target: { value: "today" } });
   expect(setNotifications).toHaveBeenLastCalledWith({ pages: "today" });
   mocks.shared.state.error = "Storage unavailable";
   view.rerender(content());
-  expect(screen.getByLabelText("Display as")).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Banner" })).toBeDisabled();
   expect(screen.getByLabelText("Show on")).toBeDisabled();
 });
 
@@ -166,7 +169,7 @@ it("summarizes banners while keeping camera, dismiss, retry and the full list av
 
 it("preserves drafts on invalid filters or failed saves and blocks settings edits before storage loads", () => {
   const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
-  fireEvent.click(screen.getByRole("button", { name: "Current alerts" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add Current alerts" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example event" } });
   fireEvent.change(screen.getByLabelText("Trigger"), { target: { value: "ha-event" } });
   fireEvent.change(screen.getByLabelText("Event type"), { target: { value: "example_event" } });
@@ -182,7 +185,7 @@ it("preserves drafts on invalid filters or failed saves and blocks settings edit
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   mocks.shared.state.loaded = false;
   view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
-  expect(screen.getByRole("button", { name: "Current alerts" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Add Current alerts" })).toBeDisabled();
 });
 
 it("opens one camera on a fresh trigger, stops its stream on close, and expires the alert", () => {
@@ -272,4 +275,197 @@ it("counts down event camera alerts every second and keeps the original deadline
   expect(screen.getByRole("timer")).toHaveTextContent("Closes in 0:56");
   act(() => { vi.advanceTimersByTime(56000); });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("configures progress from a numeric reading, a total entity and a chosen activity icon", () => {
+  mocks.app.currentHome = mapHome({
+    "binary_sensor.example": state("binary_sensor.example", "on"),
+    "sensor.remaining": state("sensor.remaining", "30"),
+    "sensor.total": state("sensor.total", "90"),
+  }, emptyRegistries, "home");
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", detailEntities: ["home|sensor.remaining"] });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [rule] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Show progress bar" }));
+  expect(screen.getByRole("button", { name: "Current value: entity" })).toHaveTextContent("Remaining");
+  fireEvent.change(screen.getByLabelText("End / total value"), { target: { value: "0" } });
+  fireEvent.change(screen.getByLabelText("Start value: value source"), { target: { value: "entity" } });
+  chooseEntity("Start value: entity", "sensor.total");
+  fireEvent.click(screen.getByRole("button", { name: "Laundry" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Animate activity icon" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved).toMatchObject({ icon: "washing", animateIcon: false, progress: {
+    current: { type: "entity", entity: "home|sensor.remaining", attribute: "" },
+    start: { type: "entity", entity: "home|sensor.total", attribute: "" }, end: { type: "value", value: 0 },
+  } });
+});
+
+it("suggests the numeric trigger and threshold, rejects an empty range, and lets progress be removed", () => {
+  mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "30") }, emptyRegistries, "home");
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", trigger: { type: "state", entity: "home|sensor.example", operator: "lt", value: "80" } });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Show progress bar" }));
+  expect(screen.getByLabelText("End / total value")).toHaveValue(80);
+  fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "80" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("Check progress");
+  expect(setNotifications).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("switch", { name: "Show progress bar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].progress).toBeUndefined();
+});
+
+it.each(["section", "banner", "activity"] as const)("updates accessible progress from live readings in %s", presentation => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", progress: { current: { type: "entity", entity: "home|sensor.example" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 } } });
+  const value = { notifications: [{ id: "example", rule, startedAt: 0, popup: false }], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const content = () => <MemoryRouter><NotificationContext.Provider value={value}><NotificationList compact presentation={presentation} /></NotificationContext.Provider></MemoryRouter>;
+  mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "40") }, emptyRegistries, "home");
+  const view = render(content());
+  expect(screen.getByRole("progressbar", { name: "Progress for Example doorbell" })).toHaveAttribute("aria-valuenow", "40");
+  mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "75") }, emptyRegistries, "home");
+  view.rerender(content());
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
+  mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "unavailable") }, emptyRegistries, "home");
+  view.rerender(content());
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  expect(screen.getByText("Progress unavailable. Check the numeric readings and range.")).toBeVisible();
+});
+
+it("previews simulated progress without saving settings or mutating Home Assistant readings", () => {
+  vi.useFakeTimers();
+  const currentHome = home();
+  const original = JSON.stringify(currentHome);
+  mocks.app.currentHome = currentHome;
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  expect(screen.queryByRole("region", { name: "Notification preview" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Preview notification" }));
+  const preview = within(screen.getByRole("dialog", { name: "Preview notification" }));
+  expect(preview.getByText("Sample data only. Nothing is sent to Home Assistant.")).toBeVisible();
+  fireEvent.change(preview.getByRole("slider", { name: "Demo progress" }), { target: { value: "70" } });
+  expect(preview.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "70");
+  fireEvent.click(preview.getByRole("button", { name: "Play demo" }));
+  act(() => vi.advanceTimersByTime(1000));
+  expect(preview.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
+  fireEvent.click(preview.getByRole("button", { name: "Pause demo" }));
+  expect(JSON.stringify(currentHome)).toBe(original);
+  expect(setNotifications).not.toHaveBeenCalled();
+  fireEvent.click(preview.getByRole("button", { name: "Close" }));
+  act(() => vi.advanceTimersByTime(1));
+  expect(screen.getByRole("button", { name: "Preview notification" })).toHaveFocus();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Notification preview" })).not.toBeInTheDocument();
+});
+
+it.each(["section", "activity"] as const)("groups ongoing, current and camera notifications separately in %s and settings", presentation => {
+  const rules = [cameraRule(), { ...cameraRule(), id: "current", kind: "current" as const, title: "Example current" }, { ...cameraRule(), id: "ongoing", kind: "ongoing" as const, title: "Example ongoing" }];
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation, rules };
+  const value = { notifications: rules.map(rule => ({ id: rule.id, rule, startedAt: 0, popup: false })), errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const view = render(<MemoryRouter><NotificationContext.Provider value={value}><NotificationList presentation={presentation} /></NotificationContext.Provider></MemoryRouter>);
+  expect(within(screen.getByRole("region", { name: "Current alerts" })).queryByText("Example doorbell")).not.toBeInTheDocument();
+  expect(within(screen.getByRole("region", { name: "Camera popup" })).getByText("Example doorbell")).toBeVisible();
+  expect(screen.getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Ongoing tasks", "Current alerts", "Camera popup"]);
+  view.unmount();
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  expect(within(screen.getByRole("region", { name: "Camera popup" })).getByRole("button", { name: "Edit Example doorbell" })).toBeVisible();
+  expect(within(screen.getByRole("region", { name: "Current alerts" })).getByRole("button", { name: "Edit Example current" })).toBeVisible();
+});
+
+it("simulates an attribute and a total state on the same entity without corrupting either source", () => {
+  mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "90", { remaining: 30 }) }, emptyRegistries, "home");
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", progress: {
+    current: { type: "entity", entity: "home|sensor.example", attribute: "remaining" },
+    start: { type: "entity", entity: "home|sensor.example" }, end: { type: "value", value: 0 },
+  } });
+  render(<MemoryRouter><NotificationPreview rule={rule} presentation="activity" /></MemoryRouter>);
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "40");
+  fireEvent.click(screen.getByRole("switch", { name: "Use sample data" }));
+  expect(Number(screen.getByRole("progressbar").getAttribute("aria-valuenow"))).toBeCloseTo(66.67, 2);
+});
+
+
+it("adds a notification from each empty group and offers exactly three style examples", () => {
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  const styles = within(screen.getByRole("group", { name: "Display as" }));
+  expect(styles.getAllByRole("button")).toHaveLength(3);
+  fireEvent.click(styles.getByRole("button", { name: "Activity cards" }));
+  expect(setNotifications).toHaveBeenLastCalledWith({ presentation: "activity" });
+  for (const kind of ["Ongoing tasks", "Current alerts", "Camera popup"]) {
+    const group = within(screen.getByRole("region", { name: kind }));
+    expect(group.getByText("No notifications in this group yet.")).toBeVisible();
+    fireEvent.click(group.getByRole("button", { name: `Add ${kind}` }));
+    expect(screen.getByRole("dialog", { name: "Add notification" })).toHaveAccessibleDescription(kind);
+    expect(screen.getByRole("region", { name: "Notification preview" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  }
+});
+
+it("saves and reopens names and placement for sources, readings and progress attributes", () => {
+  mocks.app.currentHome = mapHome({
+    "sensor.example": state("sensor.example", "90", { friendly_name: "Example cycle", remaining: 30 }),
+    "sensor.power": state("sensor.power", "500", { friendly_name: "Example power", unit_of_measurement: "W" }),
+  }, emptyRegistries, "home");
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing",
+    trigger: { type: "state", entity: "home|sensor.example", operator: "gt", value: "0" },
+    detailEntities: ["home|sensor.power"],
+    progress: { current: { type: "entity", entity: "home|sensor.example", attribute: "remaining" }, start: { type: "entity", entity: "home|sensor.example" }, end: { type: "value", value: 0 } },
+    entityDisplay: [{ entity: "home|sensor.old", name: "Old selection" }],
+  });
+  mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [rule] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  const entries = [
+    ["Example cycle", "Total duration", "footer"],
+    ["Example power", "Power now", "right"],
+    ["Example cycle · remaining", "Time left", "left"],
+  ];
+  for (const [name, alias, placement] of entries) {
+    fireEvent.change(screen.getByLabelText(`${name}: display name`), { target: { value: alias } });
+    fireEvent.change(screen.getByLabelText(`${name}: placement`), { target: { value: placement } });
+  }
+  const preview = within(screen.getByRole("region", { name: "Notification preview" }));
+  expect(preview.getByText("Time left").closest("[data-placement]")).toHaveAttribute("data-placement", "left");
+  expect(preview.getByText("Power now").closest("[data-placement]")).toHaveAttribute("data-placement", "right");
+  expect(preview.getByText(/Total duration ·/).closest("[data-placement]")).toHaveAttribute("data-placement", "footer");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.entityDisplay).toHaveLength(3);
+  expect(saved.trigger).toEqual(rule.trigger);
+  expect(saved.progress).toEqual(rule.progress);
+  mocks.family.notifications = { ...mocks.family.notifications as object, rules: [saved] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  for (const [name, alias, placement] of entries) {
+    expect(screen.getByLabelText(`${name}: display name`)).toHaveValue(alias);
+    expect(screen.getByLabelText(`${name}: placement`)).toHaveValue(placement);
+  }
+});
+
+it("lets camera and event entities have local names and placements", () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  fireEvent.change(screen.getByLabelText("Example detector: display name"), { target: { value: "Detection" } });
+  fireEvent.change(screen.getByLabelText("Example camera: display name"), { target: { value: "Camera status" } });
+  fireEvent.change(screen.getByLabelText("Example camera: placement"), { target: { value: "footer" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].entityDisplay).toEqual([
+    { entity: "home|binary_sensor.example", attribute: "", name: "Detection", placement: "auto" },
+    { entity: "home|camera.example", attribute: "", name: "Camera status", placement: "footer" },
+  ]);
+});
+
+it.each(["banner", "section", "activity"] as const)("respects names and placements while hidden readings still drive progress in %s", presentation => {
+  const entities = mapHome({ "sensor.example": state("sensor.example", "40", { remaining: 60, friendly_name: "Original name" }) }, emptyRegistries, "home").entities;
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", trigger: { type: "state", entity: "home|sensor.example", operator: "gt", value: "0" },
+    progress: { current: { type: "entity", entity: "home|sensor.example", attribute: "remaining" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 } },
+    entityDisplay: [{ entity: "home|sensor.example", name: "Secret label", placement: "hidden" }, { entity: "home|sensor.example", attribute: "remaining", name: "Remaining", placement: "right" }],
+  });
+  render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} entities={entities} activity={presentation === "activity"} condensed={presentation === "banner"} /></MemoryRouter>);
+  expect(screen.queryByText(/Secret label|Original name/)).not.toBeInTheDocument();
+  expect(screen.getByText(presentation === "activity" ? "Remaining" : "Remaining · 60").closest("[data-placement]")).toHaveAttribute("data-placement", "right");
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "60");
 });
