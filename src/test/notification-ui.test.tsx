@@ -19,6 +19,10 @@ vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOr
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 
 const setNotifications = vi.fn((_settings: Partial<ReturnType<typeof emptyPlanner>["notifications"]>) => true);
+const openEditorSection = (name: string) => {
+  const trigger = screen.getByRole("button", { name, exact: true });
+  if (trigger.getAttribute("aria-expanded") === "false") fireEvent.click(trigger);
+};
 const watchEvents = vi.fn();
 const watchCameraStream = vi.fn();
 const home = (value = "off") => mapHome({ "binary_sensor.example": state("binary_sensor.example", value, { friendly_name: "Example detector" }), "camera.example": state("camera.example", "idle", { friendly_name: "Example camera" }) }, emptyRegistries, "home");
@@ -66,10 +70,12 @@ it("restricts the camera picker to cameras and allows clearing the optional read
   fireEvent.click(screen.getByRole("button", { name: "Add Camera popup" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example camera alert" } });
   chooseEntity("Source entity", "binary_sensor.example");
+  openEditorSection("Readings and details");
   fireEvent.click(screen.getByRole("button", { name: "Camera" }));
   const picker = within(screen.getByRole("dialog", { name: "Camera" }));
   expect(picker.queryByRole("button", { name: /Example detector/ })).not.toBeInTheDocument();
   fireEvent.click(picker.getByRole("button", { name: "Example camera · camera.example" }));
+  openEditorSection("Readings and details");
   fireEvent.click(screen.getByRole("button", { name: "Additional readings (optional)" }));
   const reading = screen.getByRole("checkbox", { name: "Example detector" });
   fireEvent.click(reading);
@@ -90,6 +96,7 @@ it("adds multiple readings, reopens their selections and removes one without los
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
   const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Readings and details");
   fireEvent.click(screen.getByRole("button", { name: "Additional readings (optional)" }));
   expect(screen.queryByRole("checkbox", { name: "Example password" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("checkbox", { name: "Example remaining" }));
@@ -100,6 +107,7 @@ it("adds multiple readings, reopens their selections and removes one without los
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...rule, detailEntities: ["home|sensor.remaining", "home|sensor.progress"] }] };
   view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Readings and details");
   fireEvent.click(screen.getByRole("button", { name: "Additional readings (optional)" }));
   expect(screen.getByRole("checkbox", { name: "Example remaining" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "Example progress" })).toBeChecked();
@@ -287,11 +295,13 @@ it("configures progress from a numeric reading, a total entity and a chosen acti
   mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [rule] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Progress");
   fireEvent.click(screen.getByRole("switch", { name: "Show progress bar" }));
   expect(screen.getByRole("button", { name: "Current value: entity" })).toHaveTextContent("Remaining");
   fireEvent.change(screen.getByLabelText("End / total value"), { target: { value: "0" } });
   fireEvent.change(screen.getByLabelText("Start value: value source"), { target: { value: "entity" } });
   chooseEntity("Start value: entity", "sensor.total");
+  openEditorSection("Icon and animation");
   fireEvent.click(screen.getByRole("button", { name: "Laundry" }));
   fireEvent.click(screen.getByRole("switch", { name: "Animate activity icon" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
@@ -308,12 +318,16 @@ it("suggests the numeric trigger and threshold, rejects an empty range, and lets
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Progress");
   fireEvent.click(screen.getByRole("switch", { name: "Show progress bar" }));
   expect(screen.getByLabelText("End / total value")).toHaveValue(80);
   fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "80" } });
+  fireEvent.click(screen.getByRole("button", { name: "Progress", exact: true }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(screen.getByRole("alert")).toHaveTextContent("Check progress");
+  expect(screen.getByRole("button", { name: "Progress", exact: true })).toHaveAttribute("aria-expanded", "true");
   expect(setNotifications).not.toHaveBeenCalled();
+  openEditorSection("Progress");
   fireEvent.click(screen.getByRole("switch", { name: "Show progress bar" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications.mock.lastCall[0].rules[0].progress).toBeUndefined();
@@ -417,6 +431,7 @@ it("saves and reopens names and placement for sources, readings and progress att
   mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [rule] };
   const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Entity names and placement");
   const entries = [
     ["Example cycle", "Total duration", "footer"],
     ["Example power", "Power now", "right"],
@@ -438,6 +453,7 @@ it("saves and reopens names and placement for sources, readings and progress att
   mocks.family.notifications = { ...mocks.family.notifications as object, rules: [saved] };
   view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Entity names and placement");
   for (const [name, alias, placement] of entries) {
     expect(screen.getByLabelText(`${name}: display name`)).toHaveValue(alias);
     expect(screen.getByLabelText(`${name}: placement`)).toHaveValue(placement);
@@ -448,6 +464,7 @@ it("lets camera and event entities have local names and placements", () => {
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  openEditorSection("Entity names and placement");
   fireEvent.change(screen.getByLabelText("Example detector: display name"), { target: { value: "Detection" } });
   fireEvent.change(screen.getByLabelText("Example camera: display name"), { target: { value: "Camera status" } });
   fireEvent.change(screen.getByLabelText("Example camera: placement"), { target: { value: "footer" } });
@@ -468,4 +485,35 @@ it.each(["banner", "section", "activity"] as const)("respects names and placemen
   expect(screen.queryByText(/Secret label|Original name/)).not.toBeInTheDocument();
   expect(screen.getByText(presentation === "activity" ? "Remaining" : "Remaining · 60").closest("[data-placement]")).toHaveAttribute("data-placement", "right");
   expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "60");
+});
+
+
+it("collapses editor sections independently, keeps draft values and reveals invalid hidden fields", () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  const content = screen.getByRole("button", { name: "Notification content" });
+  const trigger = screen.getByRole("button", { name: "When to show it" });
+  const readings = screen.getByRole("button", { name: "Readings and details" });
+  expect(content).toHaveAttribute("aria-expanded", "true");
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(readings).toHaveAttribute("aria-expanded", "false");
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Draft title" } });
+  fireEvent.click(content);
+  expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("region", { name: "Notification preview" })).toBeVisible();
+  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByText("Draft title")).toBeVisible();
+  content.focus();
+  fireEvent.keyDown(content, { key: "ArrowDown" });
+  expect(trigger).toHaveFocus();
+  fireEvent.click(content);
+  expect(screen.getByLabelText("Title")).toHaveValue("Draft title");
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "" } });
+  fireEvent.click(content);
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  expect(content).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByLabelText("Title")).toHaveValue("");
+  expect(screen.getByRole("alert")).toBeVisible();
 });

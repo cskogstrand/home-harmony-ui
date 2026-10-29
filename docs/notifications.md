@@ -51,7 +51,7 @@ Choose **Display as → Activity cards** for the iPhone activity-inspired layout
 
 Open **Preview notification** on the settings page to choose a saved rule or the built-in example in a modal. The editor keeps its preview alongside the fields. Both reuse the production notification component, including custom names and placements. **Sample data** is clearly labeled and stays local to the preview. Drag **Demo progress** or press **Play demo** to simulate progress. In the editor, turn sample data off to inspect current readings. Camera and dismiss actions are disabled in the preview; demo values never change Home Assistant or saved rules. Reduced motion also disables automatic demo playback; the slider remains available.
 
-The editor separates content, trigger, readings, progress, appearance and timing. Save and Cancel remain outside the scrolling fields; on wide screens the preview sits beside the form, and on phones it appears above it.
+The editor uses collapsible sections for content, trigger, readings, progress, entity names and placement, appearance and timing. Content and trigger start open; several sections can stay open at once. Collapsing a section keeps its draft values, and saving opens any section with invalid settings. Save and Cancel remain outside the scrolling fields; on wide screens the preview sits beside the form, and on phones it appears above it.
 
 ## Typical setup
 
