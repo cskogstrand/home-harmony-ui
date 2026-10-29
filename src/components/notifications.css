@@ -5,7 +5,7 @@
 .notification-editor-section { border: 0; }
 .notification-editor-section > [role="region"] { animation: none; transition: none; }
 .notification-section-shell { padding: 0; }
-.notification-editor-section > [aria-hidden="true"] .notification-icon :is(svg, path, line) { animation-play-state: paused; }
+.notification-editor-section > [aria-hidden="true"] .notification-icon :is(svg, svg *) { animation-play-state: paused !important; }
 .notification-editor-section-content { min-width: 0; }
 .notification-entity-heading { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
 .notification-entity-heading > div { min-width: 0; }
@@ -30,7 +30,10 @@
 .notification-progress-field { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
 .notification-progress-field legend { font-weight: 600; font-size: .9375rem; margin-bottom: .75rem; }
 .notification-progress-field label { font-size: .875rem; }
-.notification-icon-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .5rem; }
+.notification-icon-picker { display: grid; gap: .75rem; }
+.notification-icon-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; }
+.notification-icon-filters > label { min-width: 0; }
+.notification-icon-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr)); align-content: start; gap: .5rem; max-height: 24rem; overflow-y: auto; overscroll-behavior: contain; padding: .25rem; scroll-padding: .25rem; }
 .notification-icon-options > button { height: auto; min-height: 4.5rem; flex-direction: column; border-radius: 14px; padding: .75rem .5rem; white-space: normal; }
 .notification-icon-options > button[aria-pressed="true"] { color: hsl(var(--accent-foreground)); background: hsl(var(--accent)); border-color: hsl(var(--primary)); outline: 1px solid hsl(var(--primary)); outline-offset: -1px; }
 .notification-icon { display: inline-flex; flex-shrink: 0; color: hsl(var(--primary)); }
@@ -69,25 +72,40 @@
 
 /* Slow loops indicate an active appliance; readings and card geometry stay still. */
 @media (prefers-reduced-motion: no-preference) {
-  .notification-icon[data-animate="true"][data-icon="washing"] svg path:last-child { transform-origin: 12px 13px; animation: notification-turn 3s linear infinite; }
-  .notification-icon[data-animate="true"][data-icon="washing"] > svg { animation: notification-rock 3s var(--ease-in-out) infinite; }
-  .notification-icon[data-animate="true"][data-icon="cleaning"] svg { animation: notification-sweep 3s var(--ease-in-out) infinite; }
-  .notification-icon[data-animate="true"][data-icon="cooking"] svg path:nth-child(n+3) { animation: notification-steam 3s var(--ease-in-out) infinite; }
-  .notification-icon[data-animate="true"][data-icon="dishes"] svg { transform-origin: center; animation: notification-rock 3s var(--ease-in-out) infinite; }
-  .notification-icon[data-animate="true"][data-icon="charging"] svg,
-  .notification-icon[data-animate="true"][data-icon="default"] svg { animation: notification-pulse 3s var(--ease-in-out) infinite; }
-  .notification-icon[data-animate="true"][data-icon="timer"] svg line:nth-child(2) { transform-origin: 12px 14px; animation: notification-turn 6s linear infinite; }
+  .notification-icon[data-animate="true"][data-motion="washing"] svg path:last-child { transform-origin: 12px 13px; animation: notification-turn 3s linear infinite; }
+  .notification-icon[data-animate="true"]:is([data-motion="washing"], [data-motion="rock"]) > svg { animation: notification-rock 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="sweep"] svg { animation: notification-sweep 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="steam"] svg path:nth-child(n+3) { animation: notification-steam 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="pulse"] svg { animation: notification-pulse 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="timer"] svg line:nth-child(2) { transform-origin: 12px 14px; animation: notification-turn 6s linear infinite; }
+  .notification-icon[data-animate="true"][data-motion="spin"] svg { animation: notification-turn 3s linear infinite; }
+  .notification-icon[data-animate="true"]:is([data-motion="vacuum"], [data-motion="mower"]) > svg { animation: notification-travel 6s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"] .notification-brush { animation: notification-brush 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"] .notification-rotor { transform-origin: 12px 13px; animation: notification-turn 3s linear infinite; }
+  .notification-icon[data-animate="true"][data-motion="lift"] svg { animation: notification-lift 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="swing"] svg { transform-origin: 20% 50%; animation: notification-swing 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="heat"] svg { animation: notification-steam 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="flow"] svg { animation: notification-flow 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-motion="signal"] svg { animation: notification-signal 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-paused="true"] :is(svg, svg *) { animation-play-state: paused !important; }
 }
 @keyframes notification-turn { to { transform: rotate(360deg); } }
 @keyframes notification-sweep { 0%, 100% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
 @keyframes notification-rock { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
 @keyframes notification-steam { 0%, 100% { opacity: .35; transform: translateY(2px); } 50% { opacity: 1; transform: translateY(-3px); } }
 @keyframes notification-pulse { 0%, 100% { opacity: .5; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes notification-travel { 0%, 100% { transform: translateX(-10%) rotate(-6deg); } 50% { transform: translateX(10%) rotate(6deg); } }
+@keyframes notification-brush { 0%, 100% { transform: translateX(-3%); } 50% { transform: translateX(3%); } }
+@keyframes notification-lift { 0%, 100% { transform: translateY(5%); } 50% { transform: translateY(-10%); } }
+@keyframes notification-swing { 0%, 100% { transform: perspective(80px) rotateY(0deg); } 50% { transform: perspective(80px) rotateY(-25deg); } }
+@keyframes notification-flow { 0%, 100% { opacity: .65; transform: translateY(-6%); } 50% { opacity: 1; transform: translateY(6%); } }
+@keyframes notification-signal { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 @media (max-width: 799px) {
   .notification-editor-layout { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
   .notification-editor .notification-preview { position: static; grid-row: 1; }
 }
 @media (max-width: 449px) {
+  .notification-icon-filters { grid-template-columns: minmax(0, 1fr); }
   .notification-range { grid-template-columns: minmax(0, 1fr); }
   .notification-activity { padding: 1rem; gap: .75rem; }
   .notification-activity > .notification-icon svg { width: 2rem; height: 2rem; }

@@ -5,12 +5,15 @@ import { MemoryRouter } from "react-router-dom";
 import { NotificationRow } from "@/components/NotificationCenter";
 import { NotificationPreview } from "@/components/NotificationPreview";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { NotificationIcon, NotificationIconPicker } from "@/components/NotificationIcon";
+import { cardDesigns } from "@/components/devices/card-designs";
+import { nb } from "@/locales/nb";
 import { NotificationBell, NotificationCamera, NotificationList } from "@/components/NotificationCenter";
 import { NotificationContext } from "@/contexts/NotificationContext";
 import { NotificationProvider } from "@/contexts/NotificationProvider";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { emptyPlanner } from "../../shared/configuration";
-import { notificationRuleSchema } from "../../shared/notifications";
+import { notificationIcons, notificationRuleSchema } from "../../shared/notifications";
 import { state } from "./ha-fixtures";
 
 const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {} as Record<string, unknown>, shared: { state: { loaded: true, error: "" } } }));
@@ -38,6 +41,83 @@ beforeEach(() => {
   setNotifications.mockReturnValue(true);
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it("offers a translated, selectable icon for every device family and preserves filtering selections", () => {
+  const onChange = vi.fn();
+  const rule = { ...cameraRule(), kind: "ongoing" as const, icon: "vacuum" as const };
+  const view = render(<NotificationIconPicker rule={rule} disabled={false} onChange={onChange} />);
+  const choices = within(screen.getByRole("group", { name: "Notification icon" }));
+  expect(choices.getAllByRole("button")).toHaveLength(notificationIcons.length);
+  for (const design of cardDesigns) expect(notificationIcons).toContain(design.id);
+  for (const button of choices.getAllByRole("button")) {
+    expect(nb).toHaveProperty(button.textContent);
+    const icon = button.querySelector(".notification-icon");
+    expect(icon.querySelector("svg")).not.toBeNull();
+    fireEvent.click(button);
+    expect(onChange).toHaveBeenLastCalledWith(icon.getAttribute("data-icon"));
+  }
+  expect(choices.getByRole("button", { name: "Robot vacuum" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.change(screen.getByLabelText("Search icons"), { target: { value: "lawn" } });
+  expect(choices.getAllByRole("button")).toHaveLength(1);
+  expect(choices.getByRole("button", { name: "Robot lawn mower" })).toBeVisible();
+  expect(screen.getByText("Selected icon: Robot vacuum")).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Icon category"), { target: { value: "Security" } });
+  expect(screen.getByRole("status")).toHaveTextContent("No matching icons");
+  fireEvent.change(screen.getByLabelText("Search icons"), { target: { value: "" } });
+  expect(choices.getByRole("button", { name: "Smoke detector" })).toBeVisible();
+  expect(choices.queryByRole("button", { name: "Robot vacuum" })).not.toBeInTheDocument();
+  view.rerender(<NotificationIconPicker rule={rule} disabled onChange={onChange} />);
+  expect(screen.getByLabelText("Search icons")).toBeDisabled();
+  expect(screen.getByLabelText("Icon category")).toBeDisabled();
+  for (const button of choices.getAllByRole("button")) expect(button).toBeDisabled();
+});
+
+it.each([["vacuum", "Robot vacuum"], ["lawn_mower", "Robot lawn mower"]] as const)("previews, saves and reopens the %s icon", async (icon, label) => {
+  const rule = { ...cameraRule(), kind: "ongoing" as const, presentation: "activity" as const };
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Icon and animation");
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  const previewIcon = screen.getByRole("region", { name: "Notification preview" }).querySelector(".notification-icon");
+  expect(previewIcon).toHaveAttribute("data-icon", icon);
+  expect(previewIcon).toHaveAttribute("data-animate", "true");
+  fireEvent.click(screen.getByRole("switch", { name: "Animate activity icon" }));
+  expect(previewIcon).toHaveAttribute("data-animate", "false");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).toHaveBeenLastCalledWith({ rules: [{ ...rule, icon, animateIcon: false }] });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...rule, icon, animateIcon: false }] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Icon and animation");
+  expect(screen.getByRole("button", { name: label })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("switch", { name: "Animate activity icon" })).not.toBeChecked();
+});
+
+it("pauses icon loops offscreen and in hidden tabs and cleans up when animation is disabled", () => {
+  let observer: IntersectionObserverCallback;
+  const disconnect = vi.fn();
+  vi.stubGlobal("IntersectionObserver", class { constructor(callback: IntersectionObserverCallback) { observer = callback; } observe() {} disconnect = disconnect; });
+  const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(false);
+  const rule = { ...cameraRule(), icon: "lawn_mower" as const };
+  const view = render(<NotificationIcon rule={rule} animate />);
+  const icon = view.container.querySelector(".notification-icon");
+  expect(icon).toHaveAttribute("data-paused", "true");
+  observer([{ isIntersecting: true }] as IntersectionObserverEntry[], null);
+  expect(icon).toHaveAttribute("data-paused", "false");
+  hidden.mockReturnValue(true);
+  fireEvent(document, new Event("visibilitychange"));
+  expect(icon).toHaveAttribute("data-paused", "true");
+  hidden.mockReturnValue(false);
+  fireEvent(document, new Event("visibilitychange"));
+  expect(icon).toHaveAttribute("data-paused", "false");
+  observer([{ isIntersecting: false }] as IntersectionObserverEntry[], null);
+  expect(icon).toHaveAttribute("data-paused", "true");
+  view.rerender(<NotificationIcon rule={{ ...rule, animateIcon: false }} animate />);
+  expect(icon).toHaveAttribute("data-animate", "false");
+  expect(disconnect).toHaveBeenCalledOnce();
+  hidden.mockRestore();
+});
 
 it.each(["Ongoing tasks", "Current alerts", "Camera popup"])("opens only content and focuses the title for a new %s", async kind => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { notificationRuleSchema, notificationSettingsSchema, type NotificationRule } from "../../shared/notifications";
+import { notificationIcons, notificationRuleSchema, notificationSettingsSchema, type NotificationRule } from "../../shared/notifications";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
 import { matchesState, notificationProgress, notificationReadings, NotificationEngine } from "@/lib/notifications";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
@@ -11,6 +11,11 @@ const now = Date.parse("2026-10-24T12:00:00Z");
 const zone = "Europe/Oslo";
 
 describe("notification configuration", () => {
+  it("preserves every supported icon and its animation choice through configuration backups", () => {
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = notificationIcons.map(icon => rule({ id: `example-${icon}`, icon, animateIcon: false }));
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+  });
   it("migrates single readings, preserves multiple selections and honors explicit clearing", () => {
     const { detailEntities: _details, ...legacy } = rule();
     const migrated = notificationRuleSchema.parse({ ...legacy, detailEntity: "home|sensor.remaining" });

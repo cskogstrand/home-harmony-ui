@@ -15,7 +15,19 @@ const notificationProgressSchema = z.object({
     ctx.addIssue({ code: "custom", path: ["end"], message: "Progress start and end must be different." });
   }
 });
-const notificationIcons = ["default", "washing", "dishes", "cleaning", "cooking", "charging", "timer"] as const;
+export const notificationIcons = [
+  "default", "washing", "dishes", "cleaning", "cooking", "charging", "timer",
+  "vacuum", "lawn_mower", "dryer", "oven", "refrigerator", "freezer",
+  "light", "climate", "cover", "media_player", "lock", "switch", "fan", "humidifier", "water_heater",
+  "alarm_control_panel", "siren", "valve", "camera", "remote", "image", "sensor", "air_quality", "binary_sensor",
+  "weather", "event", "presence", "scene", "script", "automation", "counter", "number", "select", "text",
+  "datetime", "button", "calendar", "todo", "update", "voice", "ai_task", "notify",
+  "air_purifier", "dehumidifier", "heat_pump", "radiator", "air_conditioner", "sprinkler", "ev_charger", "solar",
+  "blind", "curtain", "awning", "damper", "door", "garage", "gate", "shade", "shutter", "window",
+  "temperature", "humidity", "battery", "power", "energy", "water", "moisture", "smoke", "carbon_monoxide",
+  "gas", "motion", "occupancy", "connectivity", "vibration", "problem", "tamper", "sound", "illuminance",
+  "tv", "speaker", "router", "doorbell",
+] as const;
 const notificationPresentationSchema = z.enum(["banner", "section", "activity", "activity-compact"]);
 export type NotificationPresentation = z.infer<typeof notificationPresentationSchema>;
 export type NotificationProgress = z.infer<typeof notificationProgressSchema>;
