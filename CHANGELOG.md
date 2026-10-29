@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0
+
+<!-- release-source: 69a38ffab1ea3a19bd3dc7679f8e15bbb74ab112 -->
+
+- feat!: remove path-key timetable authentication
+- fix: keep timetable keys out of download URLs
+
 ## Unreleased
 
 - Add read-only timetable authentication through `X-Home-Harmony-Key`, keeping the long-lived key out of header-authenticated listings and download URLs.
