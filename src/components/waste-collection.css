@@ -21,7 +21,6 @@
 .waste-collection-icons { display: flex; flex-shrink: 0; gap: .25rem; margin-top: .1rem; }
 .waste-collection-countdown { display: flex; align-items: center; gap: .35rem; margin-top: .3rem; font-weight: 500; color: hsl(var(--muted-foreground)); }
 .waste-collection-countdown svg { flex-shrink: 0; }
-.waste-collection-time { font-size: .875rem; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
 .waste-collection-item[data-state="today"] .waste-collection-date { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .waste-collection-item[data-state="tomorrow"] .waste-collection-date { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
 .waste-collection-item:is([data-state="today"], [data-state="tomorrow"]) .waste-collection-countdown { color: hsl(var(--primary)); }

@@ -79,7 +79,6 @@ export function WasteCollection() {
           <div className="waste-collection-copy">
             <h3><span className="waste-collection-icons" aria-hidden="true">{icons.map((Icon, iconIndex) => <Icon key={iconIndex} size={20} />)}</span><span>{event.summary || t("Waste collection")}</span></h3>
             <p className="waste-collection-countdown">{pickedUp && <Check size={17} aria-hidden="true" />}{label}</p>
-            {start.includes("T") && !pickedUp && <span className="waste-collection-time">{start.slice(11, 16)}</span>}
           </div>
         </li>;
       })}

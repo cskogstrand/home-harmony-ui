@@ -86,7 +86,8 @@ it("shows the next three collections in the home's timezone with literal waste t
   const rows = within(panel).getAllByRole("listitem");
   expect(rows).toHaveLength(3);
   expect(rows[0]).toHaveTextContent("Food wasteI dag");
-  expect(rows[1]).toHaveTextContent("Residual wasteI morgen00:30");
+  expect(rows[1]).toHaveTextContent("Residual wasteI morgen");
+  expect(panel).not.toHaveTextContent("00:30");
   expect(rows[2]).toHaveTextContent("Paper");
   expect(rows[2]).toHaveTextContent("Om 3 dager");
   expect(rows[2].querySelector("time")).toHaveAttribute("datetime", "2026-10-27");
@@ -197,7 +198,7 @@ it("aborts and ignores old results on calendar changes, disconnection, date roll
   const fourth = data.app.watchCalendarEvents.mock.calls[3];
   act(() => fourth[4](events));
   expect(screen.queryByText("Food waste")).not.toBeInTheDocument();
-  expect(screen.getByText("Residual waste").closest("li")).toHaveTextContent("Today00:30");
+  expect(screen.getByText("Residual waste").closest("li")).toHaveTextContent("Today");
   view.unmount();
   expect(fourth[3].aborted).toBe(true);
 });
