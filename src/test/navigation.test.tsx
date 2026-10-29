@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { toast } from "sonner";
 import App from "@/App";
-import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
+import { dashboardSections, emptyConfiguration, parseConfiguration } from "../../shared/configuration";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
@@ -455,7 +455,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   expect(screen.queryByRole("region", { name: "Next family plan" })).not.toBeInTheDocument();
   expect(screen.getByText("All sections are hidden. Use the settings cog to show them again.")).toBeInTheDocument();
   expect(settings.settings.dashboard.showTomorrow).toBe(true);
-  expect(Object.entries(settings.settings.dashboard).filter(([key]) => !["showTomorrow", "nextPlanDays"].includes(key)).every(([, value]) => !value)).toBe(true);
+  expect(dashboardSections.every(key => !settings.settings.dashboard[key])).toBe(true);
   expect(settings.settings.timetables).toEqual(originalTimetables);
   first.unmount();
   render(<App />); await saved();
@@ -471,7 +471,54 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ morningSummary: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ order: [...dashboardSections], morningSummary: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+});
+
+it("reorders Today sections, preserves hidden positions across reload and resets only the order", async () => {
+  const first = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const dialog = screen.getByRole("dialog", { name: "Customize Today" });
+  const rows = () => within(dialog).getByRole("list", { name: "Section order" });
+  expect(within(dialog).getByRole("button", { name: "Move Morning summary earlier" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Move Home favorites later" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();
+  for (let i = 0; i < 6; i++) fireEvent.click(within(dialog).getByRole("button", { name: "Move Shopping earlier" }));
+  expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
+  await waitFor(() => expect(within(dialog).getByRole("switch", { name: "Shopping" })).toHaveFocus());
+  expect(rows().firstElementChild).toHaveAttribute("data-section", "shopping");
+  expect(within(dialog).getByText("Moved Shopping to position 1 of 9.")).toBeInTheDocument();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Move Shopping later" }));
+  await waitFor(() => expect(within(dialog).getByRole("button", { name: "Move Shopping later" })).toHaveFocus());
+  fireEvent.click(within(dialog).getByRole("switch", { name: "Shopping" }));
+  await waitFor(() => expect(settings.settings.dashboard.order[1]).toBe("shopping"));
+  await waitFor(() => expect(settings.settings.dashboard.shopping).toBe(false));
+  first.unmount();
+  render(<App />); await saved();
+  expect(screen.queryByRole("heading", { name: "Shopping" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const restored = screen.getByRole("dialog", { name: "Customize Today" });
+  expect(within(restored).getByRole("list", { name: "Section order" }).children[1]).toHaveAttribute("data-section", "shopping");
+  fireEvent.click(within(restored).getByRole("switch", { name: "Shopping" }));
+  fireEvent.keyDown(restored, { key: "Escape" });
+  await saved();
+  expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Shopping");
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Everyone’s week" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset section order" }));
+  await waitFor(() => expect(settings.settings.dashboard.order).toEqual(dashboardSections));
+  expect(settings.settings.dashboard.week).toBe(false);
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Next family plan");
+});
+
+it("disables reordering when shared configuration fails to load", async () => {
+  app.configurationRequest.mockRejectedValue(new Error("Example storage failure"));
+  render(<App />); await pageReady();
+  fireEvent.click(await screen.findByRole("button", { name: "Customize Today" }));
+  const dialog = screen.getByRole("dialog", { name: "Customize Today" });
+  expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Move Shopping later" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();
 });
 
 it("selects, persists and clears the morning summary sensor in Today settings", async () => {

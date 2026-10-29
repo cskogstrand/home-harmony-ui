@@ -2,7 +2,8 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
+import type { DashboardSection } from "../../shared/configuration";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, CalendarDays, CalendarClock, BookOpen } from "lucide-react";
@@ -47,15 +48,10 @@ export default function Dashboard() {
       && (e.date > today || e.continues || (e.endTime ?? e.time) >= time));
   const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
   const quietSummary = t(planDays === 0 ? "No more plans today." : planDays === 1 ? "No plans today or tomorrow." : "No plans in the next {days} days.", { days: planDays });
-  return <div className="portrait-board">
-    <header className="ambient-heading">
-      <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}<DashboardSettings /></div></div>
-      <div className="ambient-glance"><time className="ambient-clock">{time}</time><WeatherWidget placement="today" /></div>
-    </header>
-    {!Object.entries(dashboard).some(([key, visible]) => key !== "showTomorrow" && visible === true) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
-    {dashboard.morningSummary && <MorningSummary />}
-    {dashboard.wasteCollection && <WasteCollection />}
-    {dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
+  const sections: Record<DashboardSection, ReactNode> = {
+    morningSummary: dashboard.morningSummary && <MorningSummary />,
+    wasteCollection: dashboard.wasteCollection && <WasteCollection />,
+    nextPlan: dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
       <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle></div>
       {next ? <button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
         <div className="next-event-copy">
@@ -65,9 +61,9 @@ export default function Dashboard() {
         <div className="next-event-time"><time>{eventTimeLabel(next)}</time><small>{next.date === today ? t("Today") : dateLabel(next.date)}</small></div>
       </button> :
         <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
-    </section>}
-    {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
-    {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
+    </section>,
+    day: dashboard.day && <FamilyDay data={data} onEdit={openEvent} />,
+    week: dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
       <div className="panel-heading calendar-panel-heading"><PanelTitle icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><CalendarViewControls /></div>
       <HomeAssistantCalendar data={data} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
@@ -82,11 +78,19 @@ export default function Dashboard() {
           {shown.length === 0 && <p className="empty-note">{connectedPlanner ? t("No plans yet.") : t("A lovely open week.")}</p>}
         </div>;
       })}</div></>}
-    </section>}
-    {dashboard.daily && <ListPanel kind="daily" limit={3} />}
-    {dashboard.shopping && <ListPanel kind="shopping" limit={3} />}
-    {dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>}
-    {dashboard.home && <HomeFavorites />}
+    </section>,
+    daily: dashboard.daily && <ListPanel kind="daily" limit={3} />,
+    shopping: dashboard.shopping && <ListPanel kind="shopping" limit={3} />,
+    school: dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>,
+    home: dashboard.home && <HomeFavorites />,
+  };
+  return <div className="portrait-board">
+    <header className="ambient-heading">
+      <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}<DashboardSettings /></div></div>
+      <div className="ambient-glance"><time className="ambient-clock">{time}</time><WeatherWidget placement="today" /></div>
+    </header>
+    {!dashboard.order.some(key => dashboard[key]) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
+    {dashboard.order.map(key => <Fragment key={key}>{sections[key]}</Fragment>)}
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;
 }

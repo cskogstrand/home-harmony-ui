@@ -79,6 +79,8 @@ export const todoDisplaySchema = z.object({
 }).strict();
 export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
+export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "school", "home"] as const;
+export type DashboardSection = typeof dashboardSections[number];
 export const plannerSchema = z.object({
   notifications: notificationSettingsSchema.default({}),
   language: z.enum(["en", "nb"]).default("en"),
@@ -87,6 +89,9 @@ export const plannerSchema = z.object({
   timetableSettings: z.record(keySchema, timetableSettingsSchema).default({}),
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
   dashboard: z.object({
+    order: z.array(z.enum(dashboardSections)).max(dashboardSections.length).default([])
+      .refine(order => new Set(order).size === order.length, "Dashboard sections must be unique.")
+      .transform(order => [...order, ...dashboardSections.filter(section => !order.includes(section))]),
     morningSummary: z.boolean().default(true),
     wasteCollection: z.boolean().default(false),
     nextPlan: z.boolean().default(true),

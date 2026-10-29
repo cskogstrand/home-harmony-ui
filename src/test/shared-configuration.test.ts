@@ -2,7 +2,7 @@ import { configuredCard } from "./device-card-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { SharedConfiguration } from "@/lib/shared-configuration";
-import { emptyConfiguration, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration, type TimetableSettings } from "../../shared/configuration";
+import { dashboardSections, emptyConfiguration, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration, type TimetableSettings } from "../../shared/configuration";
 
 const response = (status: number, value: unknown) => ({ ok: status === 200, status, json: async () => structuredClone(value) }) as Response;
 const deferred = <T,>() => { let resolve: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve: resolve! }; };
@@ -164,7 +164,8 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { showTomorrow, wasteCollection, nextPlanDays, ...sections } = dashboard;
+  const { order, showTomorrow, wasteCollection, nextPlanDays, ...sections } = dashboard;
+  expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
@@ -174,6 +175,17 @@ it("preserves the current dashboard for older backups and validates section choi
   const { day: _day, ...oldDashboard } = sections;
   expect(read({ ...oldDashboard, week: false }).settings.dashboard).toEqual({ ...dashboard, week: false });
   for (const invalid of [{ shopping: "false" }, { showTomorrow: "true" }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
+});
+
+it("defaults missing section order and rejects duplicate or unknown sections", () => {
+  const config = emptyConfiguration();
+  const read = (order: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, order } } })).settings.dashboard.order;
+  expect(read(undefined)).toEqual(dashboardSections);
+  expect(read([])).toEqual(dashboardSections);
+  expect(read(["shopping", "day"])).toEqual(["shopping", "day", ...dashboardSections.filter(key => key !== "shopping" && key !== "day")]);
+  for (const invalid of [null, "shopping", ["shopping", "shopping"], ["unknown"], ["showTomorrow"], Array(10).fill("shopping")]) {
+    expect(() => read(invalid)).toThrow();
+  }
 });
 
 it("validates, shares and restores the waste calendar without storing its events", async () => {
@@ -207,12 +219,13 @@ it("validates, shares and restores the waste calendar without storing its events
 it("shares dashboard sections across screens and restores them from backups", async () => {
   const backend = server();
   const a = await backend.start(), b = await backend.start();
-  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, day: false, showTomorrow: true, week: false, shopping: false } }));
+  const order = [...dashboardSections].reverse();
+  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, order, day: false, showTomorrow: true, week: false, shopping: false } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
-  expect(b.getSnapshot().config.settings.dashboard).toEqual({ ...emptyPlanner().dashboard, day: false, showTomorrow: true, week: false, shopping: false });
+  expect(b.getSnapshot().config.settings.dashboard).toEqual({ ...emptyPlanner().dashboard, order, day: false, showTomorrow: true, week: false, shopping: false });
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
-  b.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, shopping: true } }));
+  b.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, order: [...dashboardSections], shopping: true } }));
   await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
   await b.replace(backup);
   await a.refresh();

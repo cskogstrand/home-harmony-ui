@@ -15,6 +15,8 @@
 
 Home Assistant owns your people, events, lists and devices. Afterglow stores dashboard preferences and uploaded timetables; the HA token stays on the server.
 
+Use the settings cog on Today (I dag) to show, hide or reorder sections with the up/down arrows. The order is saved across screens and included in backups. Reset section order restores the original order without changing visibility.
+
 Unfinished to-dos with due dates appear under their assigned person in the month, week and day calendars, including Today’s calendar previews. A small task icon distinguishes them from calendar events. Date-only deadlines appear as all-day items; timed deadlines use the home’s time zone. Open a task for its details and a link to its list. Completed tasks, undated tasks and the shared shopping list stay out of the calendar.
 
 ## Get started
