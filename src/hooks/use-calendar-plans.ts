@@ -5,6 +5,7 @@ import { useFamily, sortEvents } from "@/contexts/FamilyContext";
 import { calendarBoundary } from "@/lib/ha-model";
 import { calendarPlans } from "@/lib/family-calendar";
 import type { CalendarEvent } from "@/types/api";
+import { useCalendarTodos } from "./use-calendar-todos";
 
 // Calendar events stay in memory; settings storage never contains HA data.
 export function useCalendarPlans(start: string, end: string) {
@@ -13,6 +14,7 @@ export function useCalendarPlans(start: string, end: string) {
   const { events, calendarMembers, members, compareMembers, isMemberVisible } = useFamily();
   const localEvents = events.filter(event => isMemberVisible(event.member));
   const [refresh, setRefresh] = useState(0);
+  const todos = useCalendarTodos(start, end, refresh);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
   const selected = calendars.filter(e => members.some(m => m.id === calendarMembers[e.preferenceId]));
@@ -47,9 +49,9 @@ export function useCalendarPlans(start: string, end: string) {
   const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
     .filter(id => id !== "everyone" && !members.some(m => m.id === id))
     .map(id => ({ id, name: t("Person unavailable"), initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id));
-  return { events: sortEvents([...localEvents, ...remote]), people,
-    loading: homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
-    errors: homeOnline && result.key === requestKey ? result.errors.map(calendar => t("Could not read {value1}. Check the calendar integration, permissions, connection and HA CORS configuration.", { value1: calendar })) : [],
+  return { events: sortEvents([...localEvents, ...remote, ...todos.events]), people,
+    loading: todos.loading || homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
+    errors: [...todos.errors, ...(homeOnline && result.key === requestKey ? result.errors.map(calendar => t("Could not read {value1}. Check the calendar integration, permissions, connection and HA CORS configuration.", { value1: calendar })) : [])],
     refresh: () => setRefresh(n => n + 1),
   };
 }

@@ -60,11 +60,11 @@ export default function Dashboard() {
       {next ? <button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
         <div className="next-event-copy">
           <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge></div>
-          <small>{[memberName(next.member), next.location, next.note].filter(Boolean).join(" · ")}</small>
+          <small>{[next.todo && t("Task"), memberName(next.member), next.location, next.note].filter(Boolean).join(" · ")}</small>
         </div>
         <div className="next-event-time"><time>{eventTimeLabel(next)}</time><small>{next.date === today ? t("Today") : dateLabel(next.date)}</small></div>
       </button> :
-        <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
+        <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
     </section>}
     {dashboard.day && <FamilyDay data={data} onEdit={openEvent} />}
     {dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>

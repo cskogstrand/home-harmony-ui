@@ -1,5 +1,5 @@
 import { PanelTitle } from "@/components/PanelTitle";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ListTodo } from "lucide-react";
 import { useFamily, addDays, type FamilyEvent } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
@@ -24,8 +24,8 @@ export function CalendarMonth({ date, start, end, events, unavailable, onDay, on
           {!!plans.length && <span className="calendar-month-count">{count}</span>}
         </button>
         <div className="calendar-month-events">{plans.slice(0, 3).map(event => <button key={event.id} className="calendar-month-event" style={{ "--member": memberColor(event.member) } as React.CSSProperties}
-          aria-label={`${event.title}, ${eventTimeLabel(event)}, ${memberName(event.member)}`} onClick={() => onEdit(event)}>
-          <span className="calendar-event-dot" aria-hidden="true" /><span>{event.title}</span>{!event.allDay && !event.continues && <time>{event.time}</time>}
+          aria-label={`${event.todo ? `${t("Task")}: ` : ""}${event.title}, ${eventTimeLabel(event)}, ${memberName(event.member)}`} onClick={() => onEdit(event)}>
+          <span className="calendar-event-dot" aria-hidden="true" /><span>{event.title}</span>{event.todo && <ListTodo size={14} className="shrink-0" aria-hidden="true" />}{!event.allDay && !event.continues && <time>{event.time}</time>}
         </button>)}
           {plans.length > 3 && <button className="calendar-month-more" onClick={() => onDay(day)}>{t("{count} more", { count: plans.length - 3 })}</button>}
         </div>

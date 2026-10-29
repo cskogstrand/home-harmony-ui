@@ -13,6 +13,7 @@ export type CalendarSettings = z.infer<typeof calendarSettingsSchema>;
 export type FamilyEvent = z.infer<typeof eventSchema> & {
   calendarId?: string; calendarEvent?: CalendarEvent; allDay?: boolean; continues?: boolean; endDate?: string;
   calendarSpan?: { id: string; firstDay: string; lastDay: string };
+  todo?: { list: string; kind: TodoListKind };
 };
 export type ListItem = z.infer<typeof itemSchema>;
 export type MemberId = z.infer<typeof memberSchema>;

@@ -79,9 +79,9 @@ export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCal
   const { connectedPlanner } = useFamily();
   if (!connectedPlanner || (homeOnline && !data.loading && !data.errors.length)) return null;
   return <div className="page-note space-y-2">
-    {data.loading && <p role="status">{t("Loading calendar events…")}</p>}
+    {data.loading && <p role="status">{t("Loading plans…")}</p>}
     {data.errors.map(error => <p role="alert" key={message(error)}>{message(error)}</p>)}
     {homeOnline && !!data.errors.length && <Button variant="outline" disabled={data.loading} onClick={data.refresh}>{t("Retry")}</Button>}
-    {!homeOnline && <p role="status">{t("Home Assistant calendar events are unavailable while offline.")}</p>}
+    {!homeOnline && <p role="status">{t("Calendars and to-do lists are unavailable while offline.")}</p>}
   </div>;
 }

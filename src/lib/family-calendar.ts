@@ -1,7 +1,8 @@
 import { addMonths, format, parseISO } from "date-fns";
-import { addDays, homeDate, isPlannerDate, sortEvents, weekStart, type FamilyEvent } from "@/contexts/FamilyContext";
+import { addDays, homeDate, isPlannerDate, sortEvents, weekStart, type FamilyEvent, type TodoListKind } from "@/contexts/FamilyContext";
 import { calendarBoundary, calendarDateValue, calendarTimeInput } from "./ha-model";
-import type { CalendarEvent } from "@/types/api";
+import type { CalendarEvent, TodoItem } from "@/types/api";
+import { todoDueInput } from "./todo-items";
 
 export type CalendarView = "month" | "week" | "day";
 
@@ -26,6 +27,16 @@ export function uniqueCalendarPlans(events: FamilyEvent[]) {
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
+  });
+}
+
+export function todoPlans(items: TodoItem[], list: string, kind: TodoListKind, member: string, start: string, end: string, timeZone: string): FamilyEvent[] {
+  return items.flatMap(item => {
+    const due = todoDueInput(item.due, timeZone), date = due.slice(0, 10);
+    if (item.status === "completed" || !due || date < start || date >= end) return [];
+    return [{ id: JSON.stringify(["todo", list, item.uid]), todo: { list, kind }, member, date,
+      allDay: !due.includes("T"), time: due.slice(11, 16) || "00:00",
+      title: item.summary, location: "", note: item.description ?? "" }];
   });
 }
 

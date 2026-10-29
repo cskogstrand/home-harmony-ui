@@ -9,7 +9,7 @@ import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
 vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));
@@ -17,6 +17,7 @@ let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
   app.watchCalendarEvents.mockReset();
+  app.todoItems.mockReset().mockResolvedValue([]);
   app.homeOnline = true;
   app.connectionStatus = "connected";
   app.haUrl = "http://ha.local:8123";
@@ -214,7 +215,7 @@ it("jumps to a date, pages months and returns to today without changing dashboar
   expect(settings.settings.calendar).toEqual({ view: "week", startDay: "today" });
   fireEvent.click(screen.getByRole("button", { name: "Week" }));
   fireEvent.click(screen.getByRole("button", { name: "Monday, 26 October 2026" }));
-  expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("No calendars selected");
+  expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("No calendars or to-do lists selected");
   expect(screen.queryByText("No plans for this day.")).not.toBeInTheDocument();
 });
 
@@ -225,7 +226,7 @@ it("opens old date links as a day agenda and distinguishes failed data from an e
   window.history.replaceState(null, "", "/calendar?date=2026-10-26");
   render(<App />); await saved();
   expect(screen.getByRole("button", { name: "Day", pressed: true })).toBeVisible();
-  expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("Some calendars could not be loaded.");
+  expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("Some calendars or to-do lists could not be loaded.");
   expect(screen.queryByText("No plans for this day.")).not.toBeInTheDocument();
   app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([]));
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
@@ -616,15 +617,16 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   expect(person.getAllByRole("button").map(button => button.querySelector("strong")?.textContent)).toEqual(["Overnight example", "Early example", "Later example"]);
   expect(person.getByRole("button", { name: /Early example/ })).toHaveTextContent("00:15 – 00:25");
   expect(person.getByRole("button", { name: /Overnight example/ })).toHaveTextContent("Continues – 07:00");
-  expect(person.getByRole("button", { name: /Later example/ })).toHaveTextContent("Example A · Example hall");
+  expect(person.getByRole("button", { name: /Later example/ })).toHaveTextContent("Example hall");
+  for (const card of person.getAllByRole("button")) expect(card).not.toHaveTextContent("Example A");
   expect(day.queryByText("Previous day example")).not.toBeInTheDocument();
   expect(day.queryByText("Next day example")).not.toBeInTheDocument();
   expect(within(day.getByRole("group", { name: "Everyone" })).getByRole("button", { name: /Shared example/ })).toHaveTextContent("All day");
   expect(day.getAllByText("Shared example")).toHaveLength(1);
   const emptyToday = day.getByRole("group", { name: "Example B" });
   expect(within(emptyToday).getByRole("img", { name: "No plans today." })).toBeInTheDocument();
-  expect(emptyToday).toHaveTextContent(/^$/);
-  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent(/^No calendars selected$/);
+  expect(within(emptyToday).queryByRole("button")).not.toBeInTheDocument();
+  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars or to-do lists selected");
   expect(app.watchCalendarEvents.mock.calls.map(([id]) => id).sort()).toEqual(["calendar.a", "calendar.b", "calendar.extra", "calendar.shared"]);
   expect(day.queryByRole("button", { name: /Refresh|Retry/ })).not.toBeInTheDocument();
   expect(day.queryByRole("link", { name: "Open calendar" })).not.toBeInTheDocument();
@@ -640,8 +642,8 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   expect(screen.queryByRole("region", { name: "Everyone’s week" })).not.toBeInTheDocument();
   const emptyTomorrow = within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example B" });
   expect(within(emptyTomorrow).getByRole("img", { name: "No plans tomorrow." })).toBeInTheDocument();
-  expect(emptyTomorrow).toHaveTextContent(/^$/);
-  expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars selected");
+  expect(within(emptyTomorrow).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars or to-do lists selected");
 });
 
 it.each([
@@ -720,8 +722,8 @@ it.each(["loading", "failed", "offline", "missing"])("does not claim daily plans
   const day = within(screen.getByRole("region", { name: "Everyone’s day" }));
   for (const label of ["Today", "Tomorrow"]) {
     const person = within(day.getByRole("region", { name: label })).getByRole("group", { name: "Example person" });
-    expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars unavailable while offline." : "Some calendars could not be loaded.");
-    expect(person).not.toHaveTextContent("Example person");
+    expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars and to-do lists are unavailable while offline." : "Some calendars or to-do lists could not be loaded.");
+    expect(within(person).getByRole("heading", { name: "Example person" })).toBeInTheDocument();
     expect(within(person).queryByRole("img")).not.toBeInTheDocument();
   }
   expect(day.queryByText("No plans today.")).not.toBeInTheDocument();
@@ -1240,7 +1242,7 @@ it("distinguishes offline plans and security from successful empty reads", async
   app.homeOnline = false;
   app.connectionStatus = "disconnected";
   const view = render(<App />); await saved();
-  expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars unavailable while offline.");
+  expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars and to-do lists are unavailable while offline.");
   expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   await navigate("Smart home");
   expect(screen.queryByText("No visible alarm")).not.toBeInTheDocument();
@@ -1534,4 +1536,72 @@ it("offers opt-in source recommendations and renders a clean production card pre
   expect(settings.settings.smartHome.layout[0]).toMatchObject({ mainEntity: "home|lamp", linkedEntities: ["home|battery"], title: "Preview lamp", density: "original" });
   fireEvent.click(screen.getByRole("button", { name: /Preview lamp Light/ }));
   expect(within(screen.getByRole("complementary", { name: "Card preview" })).getByRole("article", { name: "Preview lamp" })).toHaveAttribute("data-variant", "Original");
+});
+
+it.each(["month", "week", "day"])("includes assigned dated tasks in the %s calendar and opens their list details", async mode => {
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "person.other": state("person.other", "home", { friendly_name: "Other person" }),
+    "todo.example": state("todo.example", "2"),
+    "todo.other": state("todo.other", "1"),
+  }, emptyRegistries, "home");
+  settings.settings.todoLists = {
+    "home|todo.example": { kind: "tasks", member: "home|person.example" },
+    "home|todo.other": { kind: "homework", member: "home|person.other" },
+  };
+  app.todoItems.mockImplementation(async id => id === "todo.example" ? [
+    { uid: "date", summary: "Example deadline", status: "needs_action", due: "2026-10-29", description: "Example task details" },
+    { uid: "timed", summary: "Timed deadline", status: "needs_action", due: "2026-10-29T12:00:00Z" },
+    { uid: "done", summary: "Finished task", status: "completed", due: "2026-10-29" },
+    { uid: "undated", summary: "Undated task", status: "needs_action" },
+  ] : [{ uid: "other", summary: "Other homework", status: "needs_action", due: "2026-10-29" }]);
+  window.history.replaceState(null, "", `/calendar?view=${mode}&date=2026-10-29`);
+  render(<App />);
+  const task = await screen.findByRole("button", { name: /Example deadline/ });
+  expect(task).toHaveAccessibleName(/Task/);
+  if (mode !== "month") expect(within(task).getByRole("img", { name: "Task" })).toBeVisible();
+  expect(screen.getByRole("button", { name: /Timed deadline/ })).toHaveTextContent("13:00");
+  expect(screen.queryByText("No calendars or to-do lists selected")).not.toBeInTheDocument();
+  expect(screen.queryByText("Finished task")).not.toBeInTheDocument();
+  expect(screen.queryByText("Undated task")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Other homework/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Example person" }));
+  expect(screen.queryByRole("button", { name: /Other homework/ })).not.toBeInTheDocument();
+  if (mode === "week") {
+    fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "By person" }));
+    expect(screen.getByRole("button", { name: /Example deadline/ })).toBeVisible();
+  }
+  fireEvent.click(screen.getByRole("button", { name: /Example deadline/ }));
+  const details = within(screen.getByRole("dialog", { name: "Example deadline" }));
+  expect(details.getByText("Example task details")).toBeVisible();
+  expect(details.getByRole("link", { name: "Open to-do list" })).toHaveAttribute("href", "/lists?tab=tasks");
+  expect(details.queryByRole("button", { name: /Save|Delete/ })).not.toBeInTheDocument();
+  expect(settings.settings).not.toHaveProperty("events");
+});
+
+it("marks tasks in Today's person columns without repeating their owner's name", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-29T10:00:00Z"));
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "todo.example": state("todo.example", "1"),
+    "calendar.example": state("calendar.example", "off"),
+  }, emptyRegistries, "home");
+  settings.settings.todoLists = { "home|todo.example": { kind: "tasks", member: "home|person.example" } };
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  app.todoItems.mockResolvedValue([{ uid: "task", summary: "Example deadline", status: "needs_action", due: "2026-10-29" }]);
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
+    { summary: "Example appointment", start: "2026-10-29T14:00:00Z", end: "2026-10-29T15:00:00Z", location: "Example hall" },
+  ]));
+  render(<App />);
+  const day = within(await screen.findByRole("region", { name: "Everyone’s day" }));
+  const person = within(day.getByRole("group", { name: "Example person" }));
+  expect(person.getByRole("heading", { name: "Example person" })).toBeInTheDocument();
+  const task = await person.findByRole("button", { name: /Example deadline/ });
+  expect(within(task).getByRole("img", { name: "Task" })).toBeVisible();
+  const appointment = person.getByRole("button", { name: /Example appointment/ });
+  expect(within(appointment).queryByRole("img", { name: "Task" })).not.toBeInTheDocument();
+  expect(appointment).toHaveTextContent("Example hall");
+  for (const card of person.getAllByRole("button")) expect(card).not.toHaveTextContent("Example person");
 });

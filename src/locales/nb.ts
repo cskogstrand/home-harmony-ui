@@ -1,4 +1,9 @@
 export const nb = {
+  "Open to-do list": "Åpne gjøremålsliste",
+  "Could not read to-do list {value1}. Check it in Home Assistant.": "Kunne ikke lese gjøremålslisten {value1}. Sjekk den i Home Assistant.",
+  "Calendars and to-do lists are unavailable while offline.": "Kalendere og gjøremålslister er utilgjengelige uten forbindelse.",
+  "No calendars or to-do lists selected": "Ingen kalendere eller gjøremålslister valgt",
+  "Some calendars or to-do lists could not be loaded.": "Noen kalendere eller gjøremålslister kunne ikke lastes.",
   "Homework": "Lekser",
   "No homework.": "Ingen lekser.",
   "{name} homework": "Lekser for {name}",

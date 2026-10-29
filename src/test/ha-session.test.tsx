@@ -844,7 +844,7 @@ it.each(["/", "/calendar"])("saves new plans through Calendar starting from %s w
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
   await waitFor(() => expect(haFetch).toHaveBeenCalled());
-  await waitFor(() => expect(screen.queryByText("Loading calendar events…")).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText("Loading plans…")).not.toBeInTheDocument());
   if (path === "/") fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Calendar" }));
   fireEvent.click(await screen.findByRole("button", { name: "Add a plan" }));
   fireEvent.change(await screen.findByLabelText("What’s happening?"), { target: { value: "Evening walk" } });
@@ -882,7 +882,7 @@ it("preserves a failed calendar draft and blocks writes offline or without a wri
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
   await waitFor(() => expect(haFetch).toHaveBeenCalled());
-  await waitFor(() => expect(screen.queryByText("Loading calendar events…")).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText("Loading plans…")).not.toBeInTheDocument());
   fireEvent.click(screen.getByRole("button", { name: "Add a plan for Morgan on Thu 8 Oct" }));
   expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-08");
   expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");
@@ -1369,7 +1369,7 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
   expect(screen.getByRole("alert")).toHaveTextContent("Could not read calendar.denied");
   act(() => conn.emit("disconnected"));
   expect(screen.queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();
-  expect(screen.getByText(/calendar events are unavailable while offline/)).toBeInTheDocument();
+  expect(screen.getByText(/Calendars and to-do lists are unavailable while offline/)).toBeInTheDocument();
   expect(screen.queryByText(/Anna|Erik|Emma|Leo/)).not.toBeInTheDocument();
 });
 

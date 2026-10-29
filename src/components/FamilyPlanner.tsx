@@ -2,7 +2,7 @@ import { MessageError, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2, PencilOff, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2, PencilOff, ListTodo, type LucideIcon } from "lucide-react";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -39,15 +39,16 @@ export function PanelHeading({ title, icon, to, label = "View all" }: { title: s
   const { message } = useI18n();
   return <div className="panel-heading"><PanelTitle icon={icon}>{title}</PanelTitle>{to && <Link to={to} className="text-link">{message(label)}<ArrowUpRight size={17} aria-hidden="true" /></Link>}</div>;
 }
-export function EventButton({ event, onClick, showDate = false, showMember = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; showMember?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
+export function EventButton({ event, onClick, showDate = false, showMember = false, hideMember = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; showMember?: boolean; hideMember?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
   const { t, dateLabel, eventTimeLabel } = useI18n();
   const { memberName, memberColor } = useFamily();
   const span = event.calendarSpan;
   const dates = span && span.firstDay !== span.lastDay ? `${dateLabel(span.firstDay)} – ${dateLabel(span.lastDay)}` : dateLabel(event.date, { weekday: "short", day: "numeric" });
+  const details = [!hideMember && (showMember || !event.location) && memberName(event.member), event.location].filter(Boolean).join(" · ");
   return <button type="button" className={`event-button press-feedback${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} style={{ "--member": memberColor(event.member) } as React.CSSProperties} onClick={onClick}>
-    <strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>
+    <div className="event-title"><strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>{event.todo && <ListTodo size={16} role="img" aria-label={t("Task")} />}</div>
     <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
-    <small>{event.location && showMember && `${memberName(event.member)} · `}{event.location || memberName(event.member)}</small>
+    {details && <small>{details}</small>}
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}
   </button>;
 }
@@ -131,6 +132,13 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
     }
     finally { setDeleting(false); }
   };
+  if (event?.todo) return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent>
+    <DialogHeader><DialogTitle>{event.title}</DialogTitle><DialogDescription>{t("Task")} · {memberName(event.member)}</DialogDescription></DialogHeader>
+    <div className="dialog-form-body space-y-3 break-words"><p>{t("Due date")}: {dateLabel(event.date)}{!event.allDay && ` · ${event.time}`}</p>
+      {event.note && <p className="whitespace-pre-wrap">{event.note}</p>}
+      <Link className="text-link" to={`/lists?tab=${event.todo.kind}`} onClick={() => onOpenChange(false)}>{t("Open to-do list")}</Link>
+    </div>
+  </DialogContent></Dialog>;
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />{t("Delete")}</Button>;
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent>
     <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription className={editingUnsupported ? "sr-only" : undefined}>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>

@@ -20,7 +20,7 @@ const nextLabels = { month: "Next month", week: "Next week", day: "Next day" } a
 export default function Calendar() {
   const { t, dateLabel } = useI18n();
   const { homeOnline, currentHome } = useApp();
-  const { today, calendar, calendarMembers } = useFamily();
+  const { today, calendar, calendarMembers, todoLists } = useFamily();
   const [params, setParams] = useSearchParams();
   const selected = params.get("date"), selectedWeek = params.get("week"), selectedView = params.get("view");
   const validDate = isPlannerDate(selected) ? selected : null;
@@ -47,9 +47,10 @@ export default function Calendar() {
   const visible = events.filter(e => e.date >= start && e.date < end && (member === "all" || e.member === member));
   const people = familyMembers.filter(m => member === "all" || member === m.id);
   const calendars = Object.entries(calendarMembers).filter(([, id]) => people.some(person => person.id === id));
+  const hasLists = Object.values(todoLists).some(list => list.kind !== "shopping" && people.some(person => person.id === list.member));
   const missing = calendars.some(([id]) => !currentHome.entities.some(entity => entity.preferenceId === id));
-  const unavailable = !homeOnline ? t("Calendars unavailable while offline.") : !calendars.length ? t("No calendars selected")
-    : data.loading ? t("Loading plans…") : data.errors.length || missing ? t("Some calendars could not be loaded.") : undefined;
+  const unavailable = !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
+    : data.loading ? t("Loading plans…") : data.errors.length || missing ? t("Some calendars or to-do lists could not be loaded.") : undefined;
   const period = view === "month" ? dateLabel(date, { month: "long", year: "numeric" }) : view === "day" ? dateLabel(date, { day: "numeric", month: "long", year: "numeric" })
     : `${dateLabel(start, { day: "numeric", month: "short" })} — ${dateLabel(addDays(end, -1), { day: "numeric", month: "short", year: "numeric" })}`;
 

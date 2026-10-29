@@ -209,12 +209,16 @@
 .lane-heading { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-bottom: 13px; font-size: 0.9375rem; text-align: center; overflow-wrap: anywhere; }
 .lane-heading strong { font-weight: 500; }
 .lane-heading > span:last-child { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
+.family-day-mobile-person { display: none; }
 .event-button { --event-tint: 30%; --event-surface: color-mix(in srgb, var(--member) var(--event-tint), hsl(var(--card))); --event-ink: color-mix(in srgb, var(--member) 20%, hsl(var(--foreground))); position: relative; width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: .25rem; min-height: 48px; padding: .75rem .75rem .75rem 1rem; border: 1px solid transparent; border-radius: 8px; background: var(--event-surface); color: var(--event-ink); text-align: left; }
 .dark .event-button { --event-tint: 18%; }
 /* The calendar-color marker identifies ownership; the event itself stays opaque. */
 .event-button::before { content: ""; position: absolute; inset: .5rem auto .5rem .35rem; width: 3px; border-radius: 999px; background: color-mix(in srgb, var(--member) 75%, var(--event-ink)); }
 .event-button strong { display: block; font-size: .9375rem; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
 .event-button strong svg { display: inline; vertical-align: -.1em; }
+.event-title { display: flex; align-items: flex-start; gap: .5rem; }
+.event-title > strong { flex: 1; min-width: 0; }
+.event-title > svg { flex-shrink: 0; margin-top: .1rem; }
 .event-time { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .5rem; font-size: .8125rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
 .event-button small { display: block; font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; color: color-mix(in srgb, var(--event-ink) 85%, var(--event-surface)); }
 .family-lane .event-button { margin-bottom: .5rem; }
@@ -822,7 +826,8 @@
   .list-add-button { width: 56px; min-width: 56px; min-height: 56px; }
   .list-identity { flex-basis: 0; }
   .family-lanes { grid-template-columns: 1fr; }
-  .family-day-people { grid-template-columns: repeat(auto-fit, minmax(min(100%, 64px), 1fr)); }
+  .family-day-people { display: none; }
+  .family-day-mobile-person { display: flex; }
   .family-day-column-lines { display: none; }
   .family-lane { border-left: 0; padding-left: 0; }
   .family-dock { bottom: calc(.75rem + env(safe-area-inset-bottom)); left: max(.75rem, env(safe-area-inset-left)); right: max(.75rem, env(safe-area-inset-right)); border-radius: 34px; padding: .35rem; gap: .15rem; }

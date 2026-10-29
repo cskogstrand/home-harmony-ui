@@ -1,7 +1,22 @@
 import { expect, it } from "vitest";
-import { calendarPlans, calendarRange, moveCalendarDate, uniqueCalendarPlans, weekEventRows } from "@/lib/family-calendar";
+import { calendarPlans, calendarRange, moveCalendarDate, todoPlans, uniqueCalendarPlans, weekEventRows } from "@/lib/family-calendar";
 import { addDays, eventTimeLabel, weekNumber } from "@/contexts/FamilyContext";
-import type { CalendarEvent } from "@/types/api";
+import type { CalendarEvent, TodoItem } from "@/types/api";
+
+it("places only unfinished dated to-dos within the visible range, in the home time zone", () => {
+  const items: TodoItem[] = [
+    { uid: "date", summary: "Example task", status: "needs_action", due: "2026-10-25", description: "Example notes" },
+    { uid: "timed", summary: "Timed task", status: "needs_action", due: "2026-10-25T23:30:00Z" },
+    { uid: "done", summary: "Completed", status: "completed", due: "2026-10-25" },
+    ...[undefined, null, "invalid", "2026-02-30", "2026-10-24", "2026-10-27"].map((due, index) => ({ uid: `skip-${index}`, summary: "Excluded", status: "needs_action" as const, due })),
+  ];
+  const plans = todoPlans(items, "home|todo.example", "tasks", "home|person.example", "2026-10-25", "2026-10-27", "Europe/Oslo");
+  expect(plans).toHaveLength(2);
+  expect(plans[0]).toMatchObject({ date: "2026-10-25", time: "00:00", allDay: true, note: "Example notes", member: "home|person.example", todo: { list: "home|todo.example", kind: "tasks" } });
+  expect(plans[1]).toMatchObject({ date: "2026-10-26", time: "00:30", allDay: false });
+  expect(todoPlans(items, "home|todo.other", "tasks", "home|person.example", "2026-10-25", "2026-10-27", "Europe/Oslo")[0].id).not.toBe(plans[0].id);
+  expect(todoPlans(items, "home|todo.example", "tasks", "home|person.example", "2026-10-26", "2026-10-27", "Europe/Oslo")[0].id).toBe(plans[1].id);
+});
 
 it("covers complete Monday-first month grids, including leap days and year boundaries", () => {
   expect(calendarRange("2026-10-31", "month", "today")).toEqual({ start: "2026-09-28", end: "2026-11-02" });
