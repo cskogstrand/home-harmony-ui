@@ -84,6 +84,8 @@ const voiceScripts = yaml.load(readExample("morning-summary-voice.yaml"), { sche
 assert.deepEqual([...secrets].sort(), Object.keys(exampleSecrets).sort());
 assert.deepEqual(Object.keys(voiceScripts), ["morning_summary_voice"], "scripts.yaml needs a script ID above variables/sequence, or HA treats settings as scripts");
 const voice = voiceScripts.morning_summary_voice;
+assert.equal(voice.fields.summary_entity.required, false);
+assert.equal(voice.fields.summary_entity.selector.entity.domain, "sensor");
 assert.ok(Array.isArray(voice.sequence), "The named script must contain its action sequence");
 assert.equal(voice.variables.ai_task_entity, exampleSecrets.main_ai_task_entity);
 assert.equal(voice.variables.speaker_entity, exampleSecrets.main_announcement_speaker);

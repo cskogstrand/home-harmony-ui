@@ -66,25 +66,29 @@ it("defaults old list settings and shares and restores homework assignments", as
   expect(a.getSnapshot().config.settings.todoLists).toEqual(todoLists);
 });
 
-it("defaults older summary settings and shares and restores the chosen sensor", async () => {
+it.each([
+  ["morningSummaryEntity", "sensor.afterglow_morning_summary", "home|stable-summary"],
+  ["morningSummaryScript", "script.morning_summary_voice", "home|stable-voice"],
+] as const)("defaults older %s settings and shares and restores the choice", async (field, defaultEntity, selected) => {
   const config = emptyConfiguration();
-  delete config.settings.morningSummaryEntity;
-  expect(parseConfiguration(JSON.stringify(config)).settings.morningSummaryEntity).toBe("sensor.afterglow_morning_summary");
-  for (const morningSummaryEntity of [null, [], 42, "x".repeat(513)]) {
-    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, morningSummaryEntity } }))).toThrow();
+  expect(config.settings[field]).toBe(defaultEntity);
+  delete config.settings[field];
+  expect(parseConfiguration(JSON.stringify(config)).settings[field]).toBe(defaultEntity);
+  for (const value of [null, [], {}, false, 42, "x".repeat(513)]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, [field]: value } }))).toThrow();
   }
   const backend = server(), a = await backend.start(), b = await backend.start();
-  a.updateSettings(p => ({ ...p, morningSummaryEntity: "home|stable-summary" }));
+  a.updateSettings(p => ({ ...p, [field]: selected }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
-  expect(backup.settings.morningSummaryEntity).toBe("home|stable-summary");
+  expect(backup.settings[field]).toBe(selected);
   await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
-  expect(a.getSnapshot().config.settings.morningSummaryEntity).toBe("home|stable-summary");
-  a.updateSettings(p => ({ ...p, morningSummaryEntity: "" }));
+  expect(a.getSnapshot().config.settings[field]).toBe(selected);
+  a.updateSettings(p => ({ ...p, [field]: "" }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
-  expect(b.getSnapshot().config.settings.morningSummaryEntity).toBe("");
+  expect(b.getSnapshot().config.settings[field]).toBe("");
 });
 
 it("defaults weather to Today and shares and restores the source and placements", async () => {

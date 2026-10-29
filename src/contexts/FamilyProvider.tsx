@@ -69,6 +69,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setNotifications: settings => setPlanner(p => ({ ...p, notifications: { ...p.notifications, ...settings } })),
     setSelectedAlarm: id => setPlanner(p => ({ ...p, selectedAlarm: id })),
     setMorningSummaryEntity: id => setPlanner(p => ({ ...p, morningSummaryEntity: id })),
+    setMorningSummaryScript: id => setPlanner(p => ({ ...p, morningSummaryScript: id })),
     setWeatherEntity: id => setPlanner(p => ({ ...p, weatherEntity: id })),
     setWasteCalendarEntity: id => setPlanner(p => ({ ...p, wasteCalendarEntity: id })),
     setWasteCollectionDays: days => setPlanner(p => ({ ...p, wasteCollectionDays: days })),

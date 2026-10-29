@@ -519,6 +519,7 @@ it("disables reordering when shared configuration fails to load", async () => {
   expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Move Shopping later" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Playback script" })).toBeDisabled();
 });
 
 it("selects, persists and clears the morning summary sensor in Today settings", async () => {
@@ -545,6 +546,38 @@ it("selects, persists and clears the morning summary sensor in Today settings", 
   await waitFor(() => expect(settings.settings.morningSummaryEntity).toBe(""));
   fireEvent.keyDown(screen.getByRole("dialog", { name: "Customize Today" }), { key: "Escape" });
   expect(screen.queryByRole("region", { name: "Morning summary" })).not.toBeInTheDocument();
+});
+
+it.each([
+  ["en", "Customize Today", "Playback script", "Play summary", "Clear selection", "The script that runs when you press Play. Choose the speaker and voice in Home Assistant."],
+  ["nb", "Tilpass I dag", "Avspillingsskript", "Spill av oppsummering", "Fjern valg", "Skriptet som kjøres når du trykker Spill av. Høyttaler og stemme velges i Home Assistant."],
+] as const)("selects, persists and clears the playback script in %s Today settings", async (language, customize, label, play, clear, help) => {
+  settings.settings.language = language;
+  app.currentHome = mapHome({
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", homeDate(new Date(), "UTC"), { message: "Example summary." }),
+    "script.morning_summary_voice": state("script.morning_summary_voice", "off", { friendly_name: "Default voice" }),
+    "script.example_voice": state("script.example_voice", "off", { friendly_name: "Example voice" }),
+  }, { ...emptyRegistries, entities: [{ entity_id: "script.example_voice", id: "stable-voice" }] }, "home");
+  app.currentHome.timeZone = "UTC";
+  const first = render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: customize }));
+  const picker = screen.getByRole("button", { name: label });
+  await waitFor(() => expect(picker).toBeEnabled());
+  expect(picker).toHaveTextContent("Default voice");
+  expect(picker).toHaveAccessibleDescription(expect.stringContaining(help));
+  fireEvent.click(picker);
+  expect(within(screen.getByRole("dialog", { name: label })).queryByRole("button", { name: /sensor\.afterglow_morning_summary/ })).not.toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("dialog", { name: label })).getByRole("button", { name: "Example voice · script.example_voice" }));
+  await waitFor(() => expect(settings.settings.morningSummaryScript).toBe("home|stable-voice"));
+  first.unmount(); render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: customize }));
+  await waitFor(() => expect(screen.getByRole("button", { name: label })).toHaveTextContent("Example voice"));
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: label })).getByRole("button", { name: clear }));
+  await waitFor(() => expect(settings.settings.morningSummaryScript).toBe(""));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: customize }), { key: "Escape" });
+  expect(screen.getByText("Example summary.")).toBeVisible();
+  expect(screen.queryByRole("button", { name: play })).not.toBeInTheDocument();
 });
 
 it("saves a custom next-plan window, fetches the full range and returns to Auto", async () => {

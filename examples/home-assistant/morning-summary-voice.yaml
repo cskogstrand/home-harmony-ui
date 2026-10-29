@@ -4,6 +4,14 @@ morning_summary_voice:
   alias: Morning - spoken summary
   description: Read today's Afterglow summary aloud in Norwegian with a fresh delivery.
   mode: single
+  fields:
+    summary_entity:
+      name: Summary sensor
+      description: Sensor to read. Defaults to sensor.afterglow_morning_summary.
+      required: false
+      selector:
+        entity:
+          domain: sensor
   variables:
     ai_task_entity: !secret main_ai_task_entity
     tts_entity: tts.home_assistant_cloud

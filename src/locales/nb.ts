@@ -672,6 +672,8 @@ export const nb = {
   "Monday": "Mandag",
   "Morning summary": "Morgenoppsummering",
   "Morning summary sensor": "Sensor for morgenoppsummering",
+  "Playback script": "Avspillingsskript",
+  "The script that runs when you press Play. Choose the speaker and voice in Home Assistant.": "Skriptet som kjøres når du trykker Spill av. Høyttaler og stemme velges i Home Assistant.",
   "Choose valid script variables.": "Velg gyldige skriptvariabler.",
   "Shown only when the selected sensor has a summary dated today.": "Vises bare når den valgte sensoren har en oppsummering datert i dag.",
   "Waste collection": "Tømmevarsler",

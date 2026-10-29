@@ -45,10 +45,10 @@ const morningSummaryIcons = new Map<string, LucideIcon>([
 export function MorningSummary() {
   const { t } = useI18n();
   const { currentHome, homeOnline, command, commands, services } = useApp();
-  const { today, morningSummaryEntity } = useFamily();
+  const { today, morningSummaryEntity, morningSummaryScript } = useFamily();
   const summary = currentHome.entities.find(entity => entity.preferenceId === morningSummaryEntity || entity.entityId === morningSummaryEntity);
-  const scriptId = "script.morning_summary_voice";
-  const script = currentHome.entities.find(entity => entity.entityId === scriptId);
+  const script = currentHome.entities.find(entity => entity.domain === "script" && (entity.preferenceId === morningSummaryScript || entity.entityId === morningSummaryScript));
+  const scriptId = script?.entityId ?? "";
   const running = script?.state === "on" || !!commands[scriptId]?.pending;
   const message = summary?.attributes.message;
   const messages = Array.isArray(summary?.attributes.messages) ? summary.attributes.messages.flatMap(value => {
@@ -65,12 +65,12 @@ export function MorningSummary() {
   return <section className="glow-panel col-span-full" aria-label={title}>
     <div className="panel-heading">
       <PanelTitle icon={Icon}>{title}</PanelTitle>
-      <div className="command-controller shrink-0" aria-busy={running}>
-        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !script || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
+      {script && <div className="command-controller shrink-0" aria-busy={running}>
+        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
           <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? t("Preparing summary…") : t("Play summary")}</span>
         </Button>
         {!commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
-      </div>
+      </div>}
     </div>
     {messages.length ? <ul className="space-y-5">{messages.map((entry, index) => {
       const key = entry.key.trim().toLowerCase();
@@ -82,7 +82,7 @@ export function MorningSummary() {
         <div className="min-w-0 max-w-prose flex-1"><h3 className="break-words font-semibold">{entry.name}</h3><p className="whitespace-pre-wrap break-words leading-relaxed">{entry.text}</p></div>
       </li>;
     })}</ul> : <p className="whitespace-pre-wrap break-words leading-relaxed">{typeof message === "string" ? message : ""}</p>}
-    {commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
+    {script && commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
     {!homeOnline && <p className="page-note">{t("Cached summary · Home Assistant is offline.")}</p>}
   </section>;
 }

@@ -364,14 +364,18 @@ it("shows ordered morning messages with matching faces and emoji fallbacks", asy
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
-it("plays the morning summary only on request and blocks duplicate, unavailable and offline starts", async () => {
+it.each([
+  ["script.morning_summary_voice", "script.morning_summary_voice"],
+  ["script.example_voice", "script.example_voice"],
+  ["home|script.example_voice", "script.example_voice"],
+])("plays the morning summary with %s and blocks duplicate, unavailable and offline starts", async (selected, scriptId) => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
   vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
   serverConfig.settings.morningSummaryEntity = "home|sensor.example_summary";
+  serverConfig.settings.morningSummaryScript = selected;
   render(<App />);
   await waitFor(() => expect(conn.entityCallback).toBeDefined());
-  const scriptId = "script.morning_summary_voice";
   const summaryId = "sensor.example_summary";
   const publish = (scriptState?: string) => act(() => conn.entityCallback?.({
     ...states,
@@ -380,9 +384,10 @@ it("plays the morning summary only on request and blocks duplicate, unavailable 
   }));
   publish();
   const panel = await screen.findByRole("region", { name: "Morning summary" });
-  const play = within(panel).getByRole("button", { name: "Play summary" });
-  expect(play).toBeDisabled();
+  expect(within(panel).queryByRole("button", { name: "Play summary" })).not.toBeInTheDocument();
+  expect(within(panel).queryByRole("alert")).not.toBeInTheDocument();
   publish("off");
+  const play = within(panel).getByRole("button", { name: "Play summary" });
   await waitFor(() => expect(play).toBeEnabled());
   expect(ha.callService).not.toHaveBeenCalled();
 
@@ -403,16 +408,57 @@ it("plays the morning summary only on request and blocks duplicate, unavailable 
   fireEvent.click(play);
   expect(await within(panel).findByRole("alert")).toHaveTextContent("Home Assistant rejected or did not acknowledge the command");
   expect(play).toBeEnabled();
-  for (const scriptState of [undefined, "unknown", "unavailable", "on"]) {
+  for (const scriptState of ["unknown", "unavailable", "on"]) {
     publish(scriptState);
     expect(play).toBeDisabled();
     fireEvent.click(play);
   }
+  publish();
+  expect(within(panel).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(panel).queryByRole("alert")).not.toBeInTheDocument();
   publish("off");
   act(() => conn.emit("disconnected"));
+  const offlinePlay = within(panel).getByRole("button", { name: "Play summary" });
+  expect(offlinePlay).toBeDisabled();
+  fireEvent.click(offlinePlay);
+  expect(ha.callService).toHaveBeenCalledTimes(2);
+});
+
+it.each(["", "script.missing", "home|missing", "sensor.afterglow_morning_summary"])("hides summary playback for selection %j without falling back to the default script", async selected => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
+  serverConfig.settings.morningSummaryScript = selected;
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  act(() => conn.entityCallback?.({
+    ...states,
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", "2026-10-19", { message: "Example summary." }),
+    "script.morning_summary_voice": state("script.morning_summary_voice", "off"),
+  }));
+  const panel = await screen.findByRole("region", { name: "Morning summary" });
+  expect(within(panel).getByText("Example summary.")).toBeVisible();
+  expect(within(panel).queryByRole("button")).not.toBeInTheDocument();
+  expect(within(panel).queryByRole("alert")).not.toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("disables summary playback when script.turn_on is unsupported", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: {} });
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  act(() => conn.entityCallback?.({
+    ...states,
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", "2026-10-19", { message: "Example summary." }),
+    "script.morning_summary_voice": state("script.morning_summary_voice", "off"),
+  }));
+  const panel = await screen.findByRole("region", { name: "Morning summary" });
+  const play = within(panel).getByRole("button", { name: "Play summary" });
   expect(play).toBeDisabled();
   fireEvent.click(play);
-  expect(ha.callService).toHaveBeenCalledTimes(2);
+  expect(ha.callService).not.toHaveBeenCalled();
 });
 
 it("cleans subscriptions/listeners and closes obsolete connections", async () => {
