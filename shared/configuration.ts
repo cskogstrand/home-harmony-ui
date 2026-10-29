@@ -76,6 +76,7 @@ export const todoDisplaySchema = z.object({
   showDetails: z.boolean().default(true),
   showDueDate: z.boolean().default(true),
   celebrate: z.boolean().default(false),
+  celebrateFinal: z.boolean().default(false),
 }).strict();
 export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});

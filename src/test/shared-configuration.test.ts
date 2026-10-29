@@ -32,12 +32,13 @@ it("validates, shares and restores per-list display and next-plan range settings
   const read = (display: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, todoLists: { "home|todo.example": { kind: "daily", member: "home|person.example", display } } } }));
   expect(read({}).settings.todoLists["home|todo.example"].display).toEqual(defaultTodoDisplay);
   expect(read({}).settings.todoLists["home|todo.example"].display.completed).toBe("collapsed");
+  expect(read({ celebrate: true }).settings.todoLists["home|todo.example"].display.celebrateFinal).toBe(false);
   expect(read({ completed: "under" }).settings.todoLists["home|todo.example"].display.completed).toBe("under");
   expect(read({ completed: "hide", celebrate: true }).settings.todoLists["home|todo.example"].display.sort).toBe("home-assistant");
-  for (const display of [null, { completed: "other" }, { sort: "other" }, { showDetails: "true" }, { showDueDate: 1 }, { celebrate: "false" }, { unknown: true }]) expect(() => read(display)).toThrow();
+  for (const display of [null, { completed: "other" }, { sort: "other" }, { showDetails: "true" }, { showDueDate: 1 }, { celebrate: "false" }, { celebrateFinal: "true" }, { unknown: true }]) expect(() => read(display)).toThrow();
   for (const nextPlanDays of [-1, 91, 1.5, "2", null]) expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, nextPlanDays } } }))).toThrow();
   const backend = server(), a = await backend.start(), b = await backend.start();
-  const display = { completed: "collapsed" as const, sort: "due-date" as const, showDetails: false, showDueDate: false, celebrate: true };
+  const display = { completed: "collapsed" as const, sort: "due-date" as const, showDetails: false, showDueDate: false, celebrate: true, celebrateFinal: true };
   a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, nextPlanDays: 14 }, todoLists: { "home|todo.example": { kind: "daily", member: "home|person.example", display } } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();

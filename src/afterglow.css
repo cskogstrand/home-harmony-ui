@@ -294,6 +294,24 @@
 .todo-celebration i:nth-child(3n + 2) { background: hsl(var(--success)); }
 .todo-celebration i:nth-child(3n) { background: hsl(var(--warning)); }
 .todo-celebration-reduced i { width: 28px; height: 28px; margin: -14px; border: 2px solid hsl(var(--primary)); border-radius: 9px; background: transparent; }
+.household-list { position: relative; }
+.todo-celebration-list { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; overflow: clip; border-radius: 16px; container: todo-finale / size; }
+.todo-celebration-list i { top: 0; left: 0; width: 10px; height: 18px; }
+.todo-celebration-list i:nth-child(4n) { width: 12px; height: 12px; border-radius: 50%; }
+.todo-celebration-list i:nth-child(5n) { width: 6px; height: 26px; background: hsl(var(--info)); }
+.todo-celebration-message { position: relative; display: grid; justify-items: center; gap: .35rem; max-width: calc(100% - 2rem); padding: 1rem 1.5rem; border-radius: 16px; background: hsl(var(--card) / .96); color: hsl(var(--foreground)); text-align: center; box-shadow: 0 8px 32px hsl(var(--glass-shade)); }
+.todo-celebration-message > svg { width: 48px; height: 48px; color: hsl(var(--warning)); stroke-width: 1.8; }
+.todo-celebration-message > strong { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.1; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.todo-celebration-message > span { font-size: .875rem; }
+@container todo-finale (height < 180px) {
+  .todo-celebration-message { grid-template-columns: auto 1fr; gap: .75rem; padding: .75rem 1rem; }
+  .todo-celebration-message > svg { width: 32px; height: 32px; }
+  .todo-celebration-message > strong { font-size: 1.5rem; }
+  .todo-celebration-message > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .todo-celebration-list i { display: none; } }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .todo-celebration-message { background: hsl(var(--card)); box-shadow: none; outline: 1px solid currentColor; } }
+@media (forced-colors: active) { .todo-celebration-message { background: Canvas; color: CanvasText; outline: 1px solid CanvasText; } }
 .quick-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .75rem; margin-top: .75rem; }
 .quick-add input { flex: 1; min-width: 100px; }
 .quick-add select { max-width: 130px; }

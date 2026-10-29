@@ -120,7 +120,7 @@ it.each(["inline", "under", "collapsed", "hide"] as const)("celebrates only afte
 });
 
 it.each(["disabled", "keyboard", "failed command", "failed refresh", "unconfirmed"])("does not celebrate %s", async mode => {
-  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, celebrate: mode !== "disabled" };
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, celebrate: mode !== "disabled", celebrateFinal: mode !== "disabled" };
   if (mode === "keyboard") document.documentElement.dataset.motionInput = "keyboard";
   app.todoItems.mockResolvedValueOnce([pendingItem]);
   if (mode === "failed refresh") app.todoItems.mockRejectedValue(new Error("Example refresh failure"));
@@ -177,14 +177,14 @@ it("uses a stationary fade with reduced motion and does not replay it when reope
   expect(document.querySelector(".todo-celebration")).toBeNull();
 });
 
-it("waits for every browser animation to finish and cancels particles on unmount", async () => {
+it.each([false, true])("waits for every browser animation to finish and cancels on unmount (whole list: %s)", async wholeList => {
   const animate = Element.prototype.animate;
   const finishes: (() => void)[] = [];
   const cancel = vi.fn();
   Element.prototype.animate = vi.fn(() => ({ finished: new Promise<void>(resolve => finishes.push(resolve)), cancel })) as unknown as typeof animate;
   try {
     const onComplete = vi.fn();
-    const view = render(<TodoCelebration origin={{ x: 100, y: 100 }} onComplete={onComplete} />);
+    const view = render(<TodoCelebration origin={{ x: 100, y: 100 }} wholeList={wholeList} onComplete={onComplete} />);
     await act(async () => finishes.slice(1).forEach(finish => finish()));
     expect(onComplete).not.toHaveBeenCalled();
     await act(async () => finishes[0]());
@@ -200,6 +200,114 @@ const deferred = <T,>() => {
   const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
   return { promise, resolve: resolve!, reject: reject! };
 };
+
+it.each(["inline", "under", "collapsed", "hide"] as const)("celebrates the whole list only after the final item is confirmed (%s)", async completed => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed, celebrateFinal: true };
+  app.currentHome = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 85 }) }, emptyRegistries, "home");
+  const write = deferred<void>(), read = deferred<typeof pendingItem[]>();
+  app.todoItems.mockResolvedValue([pendingItem]);
+  app.command.mockReturnValue(write.promise);
+  const view = renderList();
+  const checkbox = await screen.findByRole("checkbox", { name: "Example task" });
+  fireEvent.click(checkbox);
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+  app.todoItems.mockReturnValueOnce(read.promise);
+  await act(async () => write.resolve());
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+  await act(async () => read.resolve([{ ...pendingItem, status: "completed" }]));
+  const finale = view.container.querySelector(".todo-celebration-list");
+  expect(finale).toHaveTextContent("All done!");
+  expect(finale.querySelectorAll("i")).toHaveLength(96);
+  expect(finale.closest(".household-list")).toContainElement(checkbox);
+  expect(screen.getByRole("button", { name: "Add item" })).toBeEnabled();
+  await waitFor(() => expect(document.querySelector(".todo-celebration")).toBeNull(), { timeout: 3000 });
+});
+
+it("does not mistake a dashboard limit, initial load or remote completion for the final checkmark", async () => {
+  motion.reduced = true;
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, celebrateFinal: true };
+  const other = { ...pendingItem, uid: "two", summary: "Another task" };
+  const done = { ...pendingItem, status: "completed" };
+  app.todoItems.mockResolvedValue([pendingItem, other]);
+  app.command.mockResolvedValue(undefined);
+  const view = render(<MemoryRouter><ListPanel kind="shopping" limit={1} /></MemoryRouter>);
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Example task" }));
+  app.todoItems.mockResolvedValue([done, other]);
+  await act(async () => {});
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+  app.todoItems.mockResolvedValue([done, { ...other, status: "completed" }]);
+  app.currentHome.entities[0].lastUpdated = "remote-completion";
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" limit={1} /></MemoryRouter>);
+  await act(async () => {});
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+  view.unmount();
+  renderList();
+  await screen.findByText("All done.");
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+});
+
+it("waits for concurrent writes, celebrates once and cancels when an unfinished item arrives", async () => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "inline", celebrateFinal: true };
+  const other = { ...pendingItem, uid: "two", summary: "Another task" };
+  const first = deferred<void>(), second = deferred<void>();
+  app.todoItems.mockResolvedValue([pendingItem, other]);
+  app.command.mockImplementation((_entity, _action, value) => value.item === "one" ? first.promise : second.promise);
+  const view = renderList();
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Example task" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Another task" }));
+  const done = [pendingItem, other].map(item => ({ ...item, status: "completed" }));
+  app.todoItems.mockResolvedValue(done);
+  await act(async () => first.resolve());
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+  await act(async () => second.resolve());
+  const finale = document.querySelector(".todo-celebration-list");
+  expect(document.querySelectorAll(".todo-celebration-list")).toHaveLength(1);
+  app.currentHome.entities[0].lastUpdated = "same-completion";
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  await act(async () => {});
+  expect(document.querySelector(".todo-celebration-list")).toBe(finale);
+  app.todoItems.mockResolvedValue([pendingItem, done[1]]);
+  app.currentHome.entities[0].lastUpdated = "new-work";
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  await act(async () => {});
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+  app.command.mockResolvedValue(undefined);
+  app.todoItems.mockResolvedValue(done);
+  fireEvent.click(screen.getByRole("checkbox", { name: "Example task" }));
+  await act(async () => {});
+  expect(document.querySelectorAll(".todo-celebration-list")).toHaveLength(1);
+});
+
+it("replaces the finale particles and scaling with a readable stationary fade for reduced motion", async () => {
+  motion.reduced = true;
+  const animate = Element.prototype.animate;
+  Element.prototype.animate = vi.fn(() => ({ finished: new Promise(() => {}), cancel: vi.fn() })) as unknown as typeof animate;
+  try {
+    const view = render(<TodoCelebration origin={{ x: 0, y: 0 }} wholeList onComplete={vi.fn()} />);
+    expect(view.container.querySelectorAll("i")).toHaveLength(0);
+    expect(view.container).toHaveTextContent("All done!");
+    expect(Element.prototype.animate).toHaveBeenCalledOnce();
+    const [frames, options] = vi.mocked(Element.prototype.animate).mock.calls[0];
+    expect(frames).toEqual(expect.arrayContaining([expect.objectContaining({ opacity: 1 })]));
+    expect((frames as Keyframe[]).every(frame => !("transform" in frame))).toBe(true);
+    expect(options).toMatchObject({ duration: 1600 });
+    view.unmount();
+  } finally { Element.prototype.animate = animate; }
+});
+
+it("stops an active finale when its setting is disabled", async () => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, celebrateFinal: true };
+  app.todoItems.mockResolvedValueOnce([pendingItem]).mockResolvedValue([{ ...pendingItem, status: "completed" }]);
+  app.command.mockResolvedValue(undefined);
+  const view = renderList();
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Example task" }));
+  await act(async () => {});
+  expect(document.querySelector(".todo-celebration-list")).not.toBeNull();
+  family.todoLists["home|todo.example"].display.celebrateFinal = false;
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  await act(async () => {});
+  expect(document.querySelector(".todo-celebration")).toBeNull();
+});
 
 it.each(["shopping", "tasks", "daily", "homework", "school"] as const)("updates separate items in parallel and ignores older refreshes (%s)", async surface => {
   family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "inline", celebrate: false };

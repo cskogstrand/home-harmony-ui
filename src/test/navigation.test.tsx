@@ -587,9 +587,10 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   fireEvent.change(options.getByRole("combobox", { name: "Sort order" }), { target: { value: "due-date" } });
   expect(options.getByRole("option", { name: "Hide finished underneath" })).toHaveValue("collapsed");
   fireEvent.change(options.getByRole("combobox", { name: "Completed items" }), { target: { value: "collapsed" } });
-  for (const name of ["Show details", "Show due date", "Celebrate completion"]) fireEvent.click(options.getByRole("switch", { name }));
+  expect(options.getByRole("switch", { name: "Celebrate finishing the list" })).not.toBeChecked();
+  for (const name of ["Show details", "Show due date", "Celebrate completion", "Celebrate finishing the list"]) fireEvent.click(options.getByRole("switch", { name }));
   await saved();
-  const display = { completed: "collapsed", sort: "due-date", showDetails: false, showDueDate: false, celebrate: true };
+  const display = { completed: "collapsed", sort: "due-date", showDetails: false, showDueDate: false, celebrate: true, celebrateFinal: true };
   expect(settings.settings.todoLists["home|todo.example"].display).toEqual(display);
   chooseEntity("Tasks for Other example", "todo.example");
   fireEvent.click(screen.getByRole("button", { name: "Change list" }));
@@ -601,6 +602,7 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   expect(screen.getByRole("combobox", { name: "Completed items" })).toHaveValue("collapsed");
   expect(screen.getByRole("combobox", { name: "Sort order" })).toHaveValue("due-date");
   expect(screen.getByRole("switch", { name: "Celebrate completion" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Celebrate finishing the list" })).toBeChecked();
   fireEvent.click(screen.getByRole("button", { name: "Tasks for Other example" }));
   fireEvent.click(screen.getByRole("button", { name: "No list selected" }));
   fireEvent.click(screen.getByRole("button", { name: "Unlink list" }));

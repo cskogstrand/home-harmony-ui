@@ -23,7 +23,7 @@ const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
 type ListPresence = { itemIds: string[]; completedIds: string[] };
-type TodoCompletion = { index: number; checkbox: HTMLInputElement; origin: { x: number; y: number }; confirmed?: boolean; onComplete: () => void };
+type TodoCompletion = { index: number; checkbox: HTMLInputElement; origin: { x: number; y: number }; confirmed?: boolean; finale?: boolean; onComplete: () => void };
 function ListPanelSurface() {
   const reduceMotion = useReducedMotion();
   return <motion.div className="list-panel-surface" aria-hidden="true" layout={!reduceMotion}
@@ -147,11 +147,13 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const versions = useRef({ read: 0, source: 0 }).current;
   const [pendingItems, setPendingItems] = useState<string[]>([]);
   const [heldCompletions, setHeldCompletions] = useState(new Map<string, TodoCompletion>());
+  const finaleShown = useRef(false);
   const endCompletion = useCallback((id: string) => setHeldCompletions(previous => {
     const next = new Map(previous); next.delete(id); return next;
   }), []);
   useEffect(() => {
     setPendingItems([]); setHeldCompletions(new Map());
+    finaleShown.current = false;
     const pending = changes.current;
     return () => { versions.source++; versions.read++; pending.clear(); };
   }, [online, entityId, haUrl, versions]);
@@ -174,12 +176,23 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     const ready = () => [...changes.current].filter(([, change]) => change.refresh !== undefined && change.refresh <= version);
     void todoItems(entityId).then(items => {
       if (!current()) return;
-      for (const [id, { completion }] of ready()) {
+      const settled = ready();
+      const allComplete = items.length > 0 && items.every(item => item.status === "completed");
+      if (!allComplete || !display.celebrateFinal) {
+        finaleShown.current = false;
+        setHeldCompletions(previous => new Map([...previous].filter(([, completion]) => !completion.finale)));
+      }
+      const confirmed = settled.filter(([id, { completion }]) => completion && items.some(item => item.uid === id && item.status === "completed"));
+      // One finale per completed list, including when several checkmarks finish together.
+      const finaleId = display.celebrateFinal && allComplete && !finaleShown.current && settled.length === changes.current.size
+        ? confirmed[confirmed.length - 1]?.[0] : undefined;
+      if (finaleId) finaleShown.current = true;
+      for (const [id, { completion }] of settled) {
         if (!completion) continue;
-        if (display.celebrate && items.some(item => item.uid === id && item.status === "completed")) {
+        if ((display.celebrate || id === finaleId) && items.some(item => item.uid === id && item.status === "completed")) {
           const rect = completion.checkbox.isConnected ? completion.checkbox.nextElementSibling.getBoundingClientRect() : undefined;
           const origin = rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : completion.origin;
-          setHeldCompletions(previous => new Map(previous).set(id, { ...completion, origin, confirmed: true }));
+          setHeldCompletions(previous => new Map(previous).set(id, { ...completion, origin, confirmed: true, finale: id === finaleId }));
         } else endCompletion(id);
       }
       setResult({ key: requestKey, entityId, items });
@@ -194,7 +207,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
       setPendingItems([...changes.current.keys()]);
     });
     return () => { active = false; };
-  }, [online, entityId, requestKey, todoItems, display.celebrate, endCompletion, versions]);
+  }, [online, entityId, requestKey, todoItems, display.celebrate, display.celebrateFinal, endCompletion, versions]);
   const loading = online && result.key !== requestKey;
   // Keep the last rows mounted during refresh so confirmed changes can animate out.
   const hasResult = result.entityId === entityId && !!result.key;
@@ -243,7 +256,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const toggle = async (item: TodoItem, checkbox: HTMLInputElement) => {
     if (!can("update_item", item.uid)) return;
     let completion: TodoCompletion;
-    if (display.celebrate && item.status !== "completed" && document.documentElement.dataset.motionInput !== "keyboard") {
+    if ((display.celebrate || display.celebrateFinal) && item.status !== "completed" && document.documentElement.dataset.motionInput !== "keyboard") {
       const rect = checkbox.nextElementSibling.getBoundingClientRect();
       completion = { index: shown.findIndex(row => row.uid === item.uid), checkbox, origin: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }, onComplete: () => endCompletion(item.uid) };
       setHeldCompletions(previous => new Map(previous).set(item.uid, completion));
@@ -289,7 +302,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     onToggle={checkbox => void toggle(item, checkbox)}
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
   return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
-    {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} onComplete={completion.onComplete} />)}
+    {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
     {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
         <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div>{kind !== "shopping" && <h3>{memberName(member)}</h3>}<span>{entity?.name ?? t("List unavailable")}</span></div></div>

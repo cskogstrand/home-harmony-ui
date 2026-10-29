@@ -66,7 +66,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
               <option value="home-assistant">{t("Home Assistant order")}</option><option value="alphabetical">{t("Alphabetical")}</option><option value="due-date">{t("Due date")}</option>
             </select>
           </label>
-          {([["showDetails", "Show details"], ["showDueDate", "Show due date"], ["celebrate", "Celebrate completion"]] as const).map(([key, title]) =>
+          {([["showDetails", "Show details"], ["showDueDate", "Show due date"], ["celebrate", "Celebrate completion"], ["celebrateFinal", "Celebrate finishing the list"]] as const).map(([key, title]) =>
             <label key={key} className="flex min-h-11 items-center justify-between gap-3 text-sm"><span>{t(title)}</span><Switch checked={display[key]} onCheckedChange={value => setTodoListDisplay(selected, { [key]: value })} /></label>)}
         </fieldset>
       </details>}
