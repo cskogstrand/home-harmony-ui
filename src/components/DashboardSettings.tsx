@@ -25,7 +25,7 @@ const sections = [
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
-  const { dashboard, setDashboard, wasteCalendarEntity, setWasteCalendarEntity, wasteCollectionDays, setWasteCollectionDays } = useFamily();
+  const { dashboard, setDashboard, morningSummaryEntity, setMorningSummaryEntity, wasteCalendarEntity, setWasteCalendarEntity, wasteCollectionDays, setWasteCollectionDays } = useFamily();
   const { currentHome } = useApp();
   const shared = useSharedConfiguration();
   const [wasteDays, setWasteDays] = useState(String(wasteCollectionDays));
@@ -45,6 +45,13 @@ export function DashboardSettings() {
             <span>{t(label)}</span><Switch checked={dashboard[key]} onCheckedChange={visible => setDashboard({ [key]: visible })}
               disabled={!shared?.state.loaded || !!shared.state.error} aria-label={t(label)} />
           </label>
+          {key === "morningSummary" && dashboard.morningSummary && <div className="pb-4">
+            <EntityPicker label={t("Morning summary sensor")} entities={currentHome.entities.filter(entity => entity.domain === "sensor")}
+              value={currentHome.entities.find(entity => entity.entityId === morningSummaryEntity)?.preferenceId ?? morningSummaryEntity}
+              onChange={setMorningSummaryEntity} groupByDevice={false} clearLabel={t("Clear selection")}
+              disabled={!shared?.state.loaded || !!shared.state.error} describedBy="morning-summary-help" />
+            <p id="morning-summary-help" className="mt-2 text-sm text-muted-foreground">{t("Shown only when the selected sensor has a summary dated today.")}</p>
+          </div>}
           {key === "nextPlan" && dashboard.nextPlan && <fieldset className="grid gap-3 pb-4" disabled={!shared?.state.loaded || !!shared.state.error}>
             <label className="grid gap-2 text-sm">{t("Look ahead")}
               <select className="w-full rounded-lg border border-input bg-background p-2" value={dashboard.nextPlanDays === "auto" ? "auto" : "custom"}

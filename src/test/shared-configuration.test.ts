@@ -65,6 +65,27 @@ it("defaults old list settings and shares and restores homework assignments", as
   expect(a.getSnapshot().config.settings.todoLists).toEqual(todoLists);
 });
 
+it("defaults older summary settings and shares and restores the chosen sensor", async () => {
+  const config = emptyConfiguration();
+  delete config.settings.morningSummaryEntity;
+  expect(parseConfiguration(JSON.stringify(config)).settings.morningSummaryEntity).toBe("sensor.afterglow_morning_summary");
+  for (const morningSummaryEntity of [null, [], 42, "x".repeat(513)]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, morningSummaryEntity } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, morningSummaryEntity: "home|stable-summary" }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.morningSummaryEntity).toBe("home|stable-summary");
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings.morningSummaryEntity).toBe("home|stable-summary");
+  a.updateSettings(p => ({ ...p, morningSummaryEntity: "" }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.morningSummaryEntity).toBe("");
+});
+
 it("defaults weather to Today and shares and restores the source and placements", async () => {
   const config = emptyConfiguration();
   delete config.settings.weatherEntity;

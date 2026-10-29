@@ -107,3 +107,41 @@ rendered = message.render(**context)
 assert len(rendered) > 350 and rendered.endswith(long_text)
 assert rendered.startswith("🏡 Felles: Fast eksempelpåminnelse.\n\n🧒 Person C:")
 print("Morning summary templates pass: structured groups, multiline text, empty groups, reminders, times and invalid responses.")
+
+
+class VoiceLoader(yaml.SafeLoader):
+    pass
+
+
+VoiceLoader.add_constructor("!secret", lambda loader, node: loader.construct_scalar(node))
+voice = yaml.load(
+    (Path(__file__).resolve().parents[1] / "examples/home-assistant/morning-summary-voice.yaml").read_text(),
+    Loader=VoiceLoader,
+)["morning_summary_voice"]["sequence"]
+source = env.from_string(voice[0]["variables"]["summary_entity"])
+assert source.render() == "sensor.afterglow_morning_summary"
+assert source.render(summary_entity="sensor.example") == "sensor.example"
+spoken_source = env.from_string(voice[1]["variables"]["summary"])
+entries = [
+    {"key": "example_second", "name": "Person B", "emoji": "🧒", "text": "First line.\nSecond line."},
+    {"key": "example_first", "name": "Person A", "emoji": "🧑", "text": "Another message."},
+]
+attributes = {"messages": entries, "message": "Legacy block."}
+
+
+def state_attr(entity_id, attribute):
+    assert entity_id == "sensor.example"
+    return attributes.get(attribute)
+
+
+def render_voice():
+    return spoken_source.render(summary_entity="sensor.example", state_attr=state_attr).strip()
+
+
+assert render_voice() == "Person B: First line.\nSecond line.\n\nPerson A: Another message."
+attributes["messages"] = [None, 42, {}, {**entries[0], "text": " "}, *entries]
+assert render_voice() == "Person B: First line.\nSecond line.\n\nPerson A: Another message."
+for invalid_messages in [None, [], "[]", {}, [None, {"text": "Invalid entry"}]]:
+    attributes["messages"] = invalid_messages
+    assert render_voice() == "Legacy block."
+print("Voice source templates pass: selected/default sensor, ordered messages, malformed entries and legacy fallback.")

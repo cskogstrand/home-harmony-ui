@@ -82,10 +82,12 @@ assert.equal(voice.variables.ai_task_entity, exampleSecrets.main_ai_task_entity)
 assert.equal(voice.variables.speaker_entity, exampleSecrets.main_announcement_speaker);
 assert.equal(voice.mode, "single");
 assert.ok(!voice.triggers, "Installing the voice script must not schedule playback");
-const source = voice.sequence[0].variables;
+const source = voice.sequence[1].variables;
 const sensorId = summaryTemplate.sensor[0].default_entity_id;
-assert.equal(source.summary, `{{ state_attr('${sensorId}', 'message') }}`);
-assert.equal(source.summary_date, `{{ states('${sensorId}') }}`);
+assert.equal(voice.sequence[0].variables.summary_entity, `{{ summary_entity | default('${sensorId}') }}`);
+assert.match(source.summary, /state_attr\(summary_entity, 'message'\)/);
+assert.match(source.summary, /state_attr\(summary_entity, 'messages'\)/);
+assert.equal(source.summary_date, "{{ states(summary_entity) }}");
 const generateIndex = voice.sequence.findIndex(action => action.action === "ai_task.generate_data");
 const speakIndex = voice.sequence.findIndex(action => action.action === "tts.speak");
 const voiceInstructions = voice.sequence[generateIndex].data.instructions.replace(/\s+/g, " ");
@@ -94,7 +96,7 @@ for (const instructions of [summaryInstructions, voiceInstructions]) {
   assert.match(instructions, /Bare når verken tidspunkt eller retning er oppgitt/);
 }
 assert.ok(generateIndex > 1 && speakIndex > generateIndex);
-assert.equal(voice.sequence[1].then[0].error, true, "Reject missing/stale source before generation");
+assert.equal(voice.sequence[2].then[0].error, true, "Reject missing/stale source before generation");
 assert.equal(voice.sequence[speakIndex - 1].then[0].error, true, "Reject invalid AI output before playback");
 assert.equal(voice.variables.tts_entity, "tts.home_assistant_cloud");
 assert.equal(voice.sequence[speakIndex].target.entity_id, "{{ tts_entity }}");

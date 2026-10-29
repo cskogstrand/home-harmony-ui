@@ -111,6 +111,7 @@ export const plannerSchema = z.object({
     darkTimetables: z.boolean().default(false),
   }).strict().default({ theme: "dark", colorPalette: "pearl", compactMode: false, darkTimetables: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),
+  morningSummaryEntity: z.union([memberSchema, z.literal("")]).default("sensor.afterglow_morning_summary"),
   weatherEntity: z.union([memberSchema, z.literal("")]).default(""),
   wasteCalendarEntity: z.union([memberSchema, z.literal("")]).default(""),
   wasteCollectionDays: z.number().int().min(0).max(90).default(7),

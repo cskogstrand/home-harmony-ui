@@ -10,8 +10,21 @@ morning_summary_voice:
     speaker_entity: !secret main_announcement_speaker
   sequence:
     - variables:
-        summary: "{{ state_attr('sensor.afterglow_morning_summary', 'message') }}"
-        summary_date: "{{ states('sensor.afterglow_morning_summary') }}"
+        summary_entity: "{{ summary_entity | default('sensor.afterglow_morning_summary') }}"
+    - variables:
+        summary: >-
+          {% set messages = state_attr(summary_entity, 'messages') %}
+          {% set ns = namespace(lines=[]) %}
+          {% if messages is sequence and messages is not string and messages is not mapping %}
+            {% for item in messages %}
+              {% if item is mapping and item.key is string and item.name is string
+                    and item.emoji is string and item.text is string and item.text | trim %}
+                {% set ns.lines = ns.lines + [item.name ~ ': ' ~ item.text] %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.lines | join('\n\n') if ns.lines else state_attr(summary_entity, 'message') }}
+        summary_date: "{{ states(summary_entity) }}"
     - if:
         - condition: template
           value_template: >-

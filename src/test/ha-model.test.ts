@@ -30,6 +30,15 @@ describe("HA mapping", () => {
 });
 
 describe("HA commands", () => {
+  it("passes script variables without changing parameterless script calls", () => {
+    const script = mapHome({ "script.example": state("script.example", "off") }, registries, "test").entities.find(e => e.domain === "script")!;
+    const services = { script: { turn_on: { fields: {} } } };
+    expect(entityCommand(script, "turn_on", services).data).toEqual({});
+    expect(entityCommand(script, "turn_on", services, { variables: { summary_entity: "sensor.example" } }).data).toEqual({ variables: { summary_entity: "sensor.example" } });
+    for (const value of [null, [], "sensor.example", {}, { variables: null }, { variables: [] }, { variables: {}, extra: true }]) {
+      expect(() => entityCommand(script, "turn_on", services, value)).toThrow("Choose valid script variables.");
+    }
+  });
   it("validates to-do details, respects field capabilities and clears due dates explicitly", () => {
     const todo = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 127 }) }, registries, "test").entities.find(e => e.domain === "todo")!;
     const services = { todo: { add_item: { fields: {} }, update_item: { fields: {} } } };

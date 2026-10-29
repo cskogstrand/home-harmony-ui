@@ -474,6 +474,32 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   expect(settings.settings.dashboard).toEqual({ morningSummary: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
 });
 
+it("selects, persists and clears the morning summary sensor in Today settings", async () => {
+  const today = homeDate(new Date(), "UTC");
+  app.currentHome = mapHome({
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", today, { friendly_name: "Default summary", message: "Default block." }),
+    "sensor.example_summary": state("sensor.example_summary", today, { friendly_name: "Example summary", message: "Selected block." }),
+  }, { ...emptyRegistries, entities: [{ entity_id: "sensor.example_summary", id: "stable-summary" }] }, "home");
+  app.currentHome.timeZone = "UTC";
+  const first = render(<App />); await saved();
+  expect(screen.getByText("Default block.")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  expect(screen.getByRole("button", { name: "Morning summary sensor" })).toHaveTextContent("Default summary");
+  chooseEntity("Morning summary sensor", "sensor.example_summary");
+  await waitFor(() => expect(settings.settings.morningSummaryEntity).toBe("home|stable-summary"));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Customize Today" }), { key: "Escape" });
+  expect(screen.getByText("Selected block.")).toBeVisible();
+  expect(screen.queryByText("Default block.")).not.toBeInTheDocument();
+  first.unmount(); render(<App />); await saved();
+  expect(screen.getByText("Selected block.")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("button", { name: "Morning summary sensor" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Morning summary sensor" })).getByRole("button", { name: "Clear selection" }));
+  await waitFor(() => expect(settings.settings.morningSummaryEntity).toBe(""));
+  fireEvent.keyDown(screen.getByRole("dialog", { name: "Customize Today" }), { key: "Escape" });
+  expect(screen.queryByRole("region", { name: "Morning summary" })).not.toBeInTheDocument();
+});
+
 it("saves a custom next-plan window, fetches the full range and returns to Auto", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));

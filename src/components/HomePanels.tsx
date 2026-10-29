@@ -2,6 +2,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
+import { z } from "zod";
 import { Link } from "react-router-dom";
 import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2, Sunrise, Heart, Sun, Moon, Coffee, CalendarDays, CalendarCheck, ClipboardList, ListChecks, Bell, House, type LucideIcon } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
@@ -14,7 +15,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { EntityPicker } from "./EntityPicker";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { PanelHeading } from "./FamilyPlanner";
+import { MemberAvatar, PanelHeading } from "./FamilyPlanner";
+
+const morningMessageSchema = z.object({ key: z.string(), name: z.string(), emoji: z.string(), text: z.string().refine(text => !!text.trim()) });
 
 const morningSummaryIcons = new Map<string, LucideIcon>([
   ["sunrise", Sunrise],
@@ -42,13 +45,18 @@ const morningSummaryIcons = new Map<string, LucideIcon>([
 export function MorningSummary() {
   const { t } = useI18n();
   const { currentHome, homeOnline, command, commands, services } = useApp();
-  const { today } = useFamily();
-  const summary = currentHome.entities.find(entity => entity.entityId === "sensor.afterglow_morning_summary");
+  const { today, morningSummaryEntity } = useFamily();
+  const summary = currentHome.entities.find(entity => entity.preferenceId === morningSummaryEntity || entity.entityId === morningSummaryEntity);
   const scriptId = "script.morning_summary_voice";
   const script = currentHome.entities.find(entity => entity.entityId === scriptId);
   const running = script?.state === "on" || !!commands[scriptId]?.pending;
   const message = summary?.attributes.message;
-  if (summary?.state !== today || typeof message !== "string" || !message.trim()) return null;
+  const messages = Array.isArray(summary?.attributes.messages) ? summary.attributes.messages.flatMap(value => {
+    const parsed = morningMessageSchema.safeParse(value);
+    return parsed.success ? [parsed.data] : [];
+  }) : [];
+  if (summary?.state !== today || !messages.length && (typeof message !== "string" || !message.trim())) return null;
+  const people = currentHome.entities.filter(entity => entity.domain === "person");
   const entityTitle = summary.attributes.title;
   const title = (typeof entityTitle === "string" ? entityTitle.trim() : "") || t("Morning summary");
   const Icon = [summary.attributes.icon_name, summary.attributes.icon]
@@ -58,13 +66,22 @@ export function MorningSummary() {
     <div className="panel-heading">
       <PanelTitle icon={Icon}>{title}</PanelTitle>
       <div className="command-controller shrink-0" aria-busy={running}>
-        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !script || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on").catch(() => {}); }}>
+        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !script || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
           <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? t("Preparing summary…") : t("Play summary")}</span>
         </Button>
         {!commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
       </div>
     </div>
-    <p className="whitespace-pre-wrap break-words leading-relaxed">{message}</p>
+    {messages.length ? <ul className="space-y-5">{messages.map((entry, index) => {
+      const key = entry.key.trim().toLowerCase();
+      const exact = people.find(person => person.entityId === `person.${key}`);
+      const matches = people.filter(person => person.name.toLowerCase() === key || person.name.toLowerCase().split(/\s+/)[0] === key);
+      const person = exact ?? (matches.length === 1 ? matches[0] : undefined);
+      return <li key={`${entry.key}-${index}`} className="flex items-start gap-3">
+        {person ? <MemberAvatar member={person.preferenceId} /> : <span className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-2xl" aria-hidden="true">{entry.emoji}</span>}
+        <div className="min-w-0 max-w-prose flex-1"><h3 className="break-words font-semibold">{entry.name}</h3><p className="whitespace-pre-wrap break-words leading-relaxed">{entry.text}</p></div>
+      </li>;
+    })}</ul> : <p className="whitespace-pre-wrap break-words leading-relaxed">{typeof message === "string" ? message : ""}</p>}
     {commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
     {!homeOnline && <p className="page-note">{t("Cached summary · Home Assistant is offline.")}</p>}
   </section>;

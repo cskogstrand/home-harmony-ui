@@ -153,6 +153,11 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   let service: string = actionServices[action] ?? action;
   const data: Record<string, unknown> = {};
   const a = entity.attributes;
+  if (entity.domain === "script" && action === "turn_on" && value !== undefined) {
+    const parsed = z.object({ variables: z.record(z.unknown()) }).strict().safeParse(value);
+    if (!parsed.success) throw new Error("Choose valid script variables.");
+    data.variables = parsed.data.variables;
+  }
   if (entity.domain === "siren" && action === "turn_on" && value !== undefined) {
     const parsed = z.object({ tone: z.string().optional(), volume_level: z.number().min(0).max(1).optional() }).strict().safeParse(value);
     if (!parsed.success) throw new Error("Choose valid siren settings.");

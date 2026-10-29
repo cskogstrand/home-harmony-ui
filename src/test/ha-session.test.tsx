@@ -310,14 +310,69 @@ it("shows the morning notification on the front page, updates live, and hides st
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
+it("shows ordered morning messages with matching faces and emoji fallbacks", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-18T22:05:00Z"));
+  const photo = "/api/image/serve/0123456789abcdef0123456789abcdef/original";
+  vi.stubGlobal("Image", class extends EventTarget {
+    complete = true;
+    naturalWidth = 256;
+    set src(_value: string) { queueMicrotask(() => this.dispatchEvent(new Event("load"))); }
+  });
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  const entityId = "sensor.afterglow_morning_summary";
+  const messages = [
+    { key: "felles", name: "Household", emoji: "🏡", text: "Shared plans." },
+    { key: "example", name: "Display label", emoji: "🧑", text: "First line.\nSecond line. <b>Plain text.</b>" },
+    { key: "morgan", name: "Morgan", emoji: "🧒", text: "Another message." },
+    { key: "unknown", name: "Visitor", emoji: "👋", text: "Visitor message." },
+    { key: "alex", name: "Ambiguous name", emoji: "🦊", text: "Do not guess a face." },
+  ];
+  const publish = (value: unknown, message: unknown = "Legacy block.", date = "2026-10-19") => act(() => conn.entityCallback?.({
+    ...states,
+    "person.example": state("person.example", "home", { friendly_name: "Example person", entity_picture: photo }),
+    "person.other": state("person.other", "home", { friendly_name: "Morgan Example" }),
+    "person.alex_one": state("person.alex_one", "home", { friendly_name: "Alex One" }),
+    "person.alex_two": state("person.alex_two", "home", { friendly_name: "Alex Two" }),
+    [entityId]: state(entityId, date, { messages: value, message, title: "Today's briefing", icon_name: "coffee" }),
+  }));
+  publish(messages, null);
+  const panel = await screen.findByRole("region", { name: "Today's briefing" });
+  const rows = within(panel).getAllByRole("listitem");
+  expect(rows.map(row => row.querySelector("h3")?.textContent)).toEqual(messages.map(entry => entry.name));
+  expect(rows.map(row => row.querySelector("p")?.textContent)).toEqual(messages.map(entry => entry.text));
+  expect(within(panel).getByRole("heading", { level: 2 }).querySelector("svg")).toHaveClass("lucide-coffee");
+  await waitFor(() => expect(rows[1].querySelector("img")).toHaveAttribute("src", photo));
+  expect(rows[2].querySelector(".member-avatar")).toHaveAttribute("aria-label", "Morgan Example");
+  expect(rows[0]).toHaveTextContent("🏡");
+  expect(rows[3]).toHaveTextContent("👋");
+  expect(rows[4]).toHaveTextContent("🦊");
+  expect(panel.querySelector("b")).toBeNull();
+  expect(within(panel).queryByText("Legacy block.")).not.toBeInTheDocument();
+  publish([null, 42, {}, { ...messages[0], text: " " }, ...messages]);
+  expect(within(panel).getAllByRole("listitem")).toHaveLength(messages.length);
+  for (const value of [undefined, null, [], "[]", {}, [null, { text: "Invalid entry" }]]) {
+    publish(value);
+    expect(within(panel).getByText("Legacy block.")).toBeVisible();
+    expect(within(panel).queryByRole("list")).not.toBeInTheDocument();
+  }
+  for (const date of ["2026-10-18", "2026-10-20", "unknown", "unavailable"]) {
+    publish(messages, "Legacy block.", date);
+    expect(screen.queryByRole("region", { name: "Today's briefing" })).not.toBeInTheDocument();
+  }
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
 it("plays the morning summary only on request and blocks duplicate, unavailable and offline starts", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
   vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
+  serverConfig.settings.morningSummaryEntity = "home|sensor.example_summary";
   render(<App />);
   await waitFor(() => expect(conn.entityCallback).toBeDefined());
   const scriptId = "script.morning_summary_voice";
-  const summaryId = "sensor.afterglow_morning_summary";
+  const summaryId = "sensor.example_summary";
   const publish = (scriptState?: string) => act(() => conn.entityCallback?.({
     ...states,
     [summaryId]: state(summaryId, "2026-10-19", { message: "God morgen! Husk gymtøy." }),
@@ -335,7 +390,7 @@ it("plays the morning summary only on request and blocks duplicate, unavailable 
   vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
   fireEvent.click(play);
   fireEvent.click(play);
-  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "script", "turn_on", {}, { entity_id: scriptId });
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "script", "turn_on", { variables: { summary_entity: summaryId } }, { entity_id: scriptId });
   expect(play).toBeDisabled();
   expect(play).toHaveTextContent("Preparing summary…");
   publish("on");
