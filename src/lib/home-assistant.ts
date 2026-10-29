@@ -11,6 +11,7 @@ import { playCameraStream } from "./camera-stream";
 import type { NotificationEvent } from "./notifications";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
+type CommandStatus = { pending: boolean; error?: string; message?: string };
 interface Snapshot {
   url: string;
   status: ConnectionStatus;
@@ -21,7 +22,7 @@ interface Snapshot {
   config?: HassConfig;
   user?: HassUser;
   services: HassServices;
-  commands: Record<string, { pending: boolean; error?: string; message?: string }>;
+  commands: Record<string, CommandStatus & { items?: Record<string, CommandStatus> }>;
 }
 const calendarDate = z.string().refine(value => /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value) && Number.isFinite(Date.parse(value)));
 const calendarDateValue = z.union([calendarDate, z.object({ date: calendarDate }), z.object({ dateTime: calendarDate })]);
@@ -180,10 +181,19 @@ export class HomeAssistantClient {
     const conn = this.connection;
     const generation = this.generation;
     const epoch = this.epoch;
+    const item = entityId.startsWith("todo.") && value && typeof value === "object" && "item" in value && typeof value.item === "string" ? value.item : undefined;
     const setCommand = (command: Snapshot["commands"][string]) => {
-      if (generation === this.generation) this.update({ commands: { ...this.snapshot.commands, [entityId]: command } });
+      if (generation !== this.generation) return;
+      if (item !== undefined) {
+        const items = { ...this.snapshot.commands[entityId]?.items, [item]: command };
+        if (!command.pending && !command.error) delete items[item];
+        const statuses = Object.values(items);
+        command = { ...command, items, pending: statuses.some(status => status.pending), error: statuses.find(status => status.error)?.error };
+      }
+      this.update({ commands: { ...this.snapshot.commands, [entityId]: command } });
     };
-    if (this.snapshot.commands[entityId]?.pending) throw new Error("A command is already pending for this entity.");
+    const status = this.snapshot.commands[entityId];
+    if ((item !== undefined && status?.items ? status.items[item] : status)?.pending) throw new Error("A command is already pending for this entity.");
     try {
       if (!conn?.connected || !this.fresh || this.snapshot.status !== "connected") throw new Error("Controls are paused until fresh Home Assistant state arrives.");
       const entity = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities.find(e => e.entityId === entityId);

@@ -584,6 +584,34 @@ it("does not clear the pending guard when a duplicate action is rejected", async
   await first;
   expect(ha.callService).toHaveBeenCalledOnce();
 });
+it.each([false, true])("guards to-do commands per item and retains errors across concurrent results (failure first: %s)", async failureFirst => {
+  const client = await connectedClient();
+  act(() => conn.entityCallback?.({ ...states, "todo.example": state("todo.example", "2", { supported_features: 7 }) }));
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, todo: { update_item: { fields: {} }, remove_item: { fields: {} } } });
+  await act(async () => conn.subscriptions.get("service_registered")?.());
+  await waitFor(() => expect(client.getSnapshot().services.todo).toBeDefined());
+  const first = deferred<unknown>(), second = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+  const one = client.command("todo.example", "update_item", { item: "one", status: "completed" });
+  const rejected = expect(one).rejects.toThrow("Home Assistant rejected");
+  const two = client.command("todo.example", "update_item", { item: "two", status: "completed" });
+  await expect(client.command("todo.example", "remove_item", { item: "one" })).rejects.toThrow("already pending");
+  expect(ha.callService).toHaveBeenCalledTimes(2);
+  expect(client.getSnapshot().commands["todo.example"].items.one.pending).toBe(true);
+  expect(client.getSnapshot().commands["todo.example"].items.two.pending).toBe(true);
+  const fail = async () => { first.reject(new Error("Example rejection")); await rejected; };
+  const succeed = async () => { second.resolve({}); await two; };
+  await (failureFirst ? fail() : succeed());
+  expect(client.getSnapshot().commands["todo.example"].pending).toBe(true);
+  await (failureFirst ? succeed() : fail());
+  expect(client.getSnapshot().commands["todo.example"].pending).toBe(false);
+  expect(client.getSnapshot().commands["todo.example"].error).toContain("Home Assistant rejected");
+  expect(client.getSnapshot().commands["todo.example"].items.one.error).toContain("Home Assistant rejected");
+  expect(client.getSnapshot().commands["todo.example"].items.two).toBeUndefined();
+  await client.command("todo.example", "update_item", { item: "one", status: "completed" });
+  expect(client.getSnapshot().commands["todo.example"].error).toBeUndefined();
+  expect(client.getSnapshot().commands["todo.example"].items).toEqual({});
+});
 it("loads only the displayed HA calendar range and never saves its events in the shared settings", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-06T12:00:00Z"));

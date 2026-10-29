@@ -23,6 +23,7 @@ const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
 type ListPresence = { itemIds: string[]; completedIds: string[] };
+type TodoCompletion = { index: number; checkbox: HTMLInputElement; origin: { x: number; y: number }; confirmed?: boolean; onComplete: () => void };
 function ListPanelSurface() {
   const reduceMotion = useReducedMotion();
   return <motion.div className="list-panel-surface" aria-hidden="true" layout={!reduceMotion}
@@ -142,13 +143,21 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const online = homeOnline && !!entity && available(entity);
   const editable = kind !== "homework" && !school;
   const [refresh, setRefresh] = useState(0);
-  const [pendingToggle, setPendingToggle] = useState<{ id: string; refresh: number }>();
-  const [heldCompletion, setHeldCompletion] = useState<{ id: string; index: number }>();
-  const completionTarget = useRef<{ id: string; refresh: number; checkbox: HTMLInputElement; x: number; y: number }>();
-  const [celebration, setCelebration] = useState<{ x: number; y: number }>();
-  const endCelebration = useCallback(() => { setCelebration(undefined); setHeldCompletion(undefined); }, []);
+  const changes = useRef(new Map<string, { refresh?: number; completion?: TodoCompletion }>());
+  const versions = useRef({ read: 0, source: 0 }).current;
+  const [pendingItems, setPendingItems] = useState<string[]>([]);
+  const [heldCompletions, setHeldCompletions] = useState(new Map<string, TodoCompletion>());
+  const endCompletion = useCallback((id: string) => setHeldCompletions(previous => {
+    const next = new Map(previous); next.delete(id); return next;
+  }), []);
+  useEffect(() => {
+    setPendingItems([]); setHeldCompletions(new Map());
+    const pending = changes.current;
+    return () => { versions.source++; versions.read++; pending.clear(); };
+  }, [online, entityId, haUrl, versions]);
   const [result, setResult] = useState<{ key: string; entityId?: string; items: TodoItem[]; error?: string }>({ key: "", items: [] });
   const [adding, setAdding] = useState(false);
+  const [addingItem, setAddingItem] = useState<string>();
   const [editing, setEditing] = useState<TodoItem>();
   const [removing, setRemoving] = useState<TodoItem>();
   const [text, setText] = useState("");
@@ -158,29 +167,34 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const suggestionsId = `${formId}-suggestions`;
   const requestKey = `${haUrl}|${entityId}|${entity?.lastUpdated}|${entity?.state}|${refresh}`;
   useEffect(() => {
-    if (!online) { setResult({ key: "", items: [] }); setPendingToggle(undefined); completionTarget.current = undefined; endCelebration(); return; }
+    if (!online) { setResult({ key: "", items: [] }); return; }
     let active = true;
+    const version = versions.read;
+    const current = () => active && version === versions.read;
+    const ready = () => [...changes.current].filter(([, change]) => change.refresh !== undefined && change.refresh <= version);
     void todoItems(entityId).then(items => {
-      if (active) {
-        const target = completionTarget.current;
-        if (target?.refresh === refresh) {
-          completionTarget.current = undefined;
-          if (display.celebrate && items.some(item => item.uid === target.id && item.status === "completed")) {
-            const rect = target.checkbox.isConnected ? target.checkbox.nextElementSibling.getBoundingClientRect() : undefined;
-            setCelebration(rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : { x: target.x, y: target.y });
-          } else setHeldCompletion(undefined);
-        }
-        setResult({ key: requestKey, entityId, items });
+      if (!current()) return;
+      for (const [id, { completion }] of ready()) {
+        if (!completion) continue;
+        if (display.celebrate && items.some(item => item.uid === id && item.status === "completed")) {
+          const rect = completion.checkbox.isConnected ? completion.checkbox.nextElementSibling.getBoundingClientRect() : undefined;
+          const origin = rect ? { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 } : completion.origin;
+          setHeldCompletions(previous => new Map(previous).set(id, { ...completion, origin, confirmed: true }));
+        } else endCompletion(id);
       }
+      setResult({ key: requestKey, entityId, items });
     }).catch((error: Error) => {
-      if (active) setResult({ key: requestKey, entityId, items: [], error: error.message });
+      if (!current()) return;
+      setResult({ key: requestKey, entityId, items: [], error: error.message });
+      ready().forEach(([id]) => endCompletion(id));
     }).finally(() => {
-      // Only the refresh after this command can finish its checkbox feedback.
-      if (active) setPendingToggle(pending => pending?.refresh === refresh ? undefined : pending);
-      if (active && completionTarget.current?.refresh === refresh) { completionTarget.current = undefined; setHeldCompletion(undefined); }
+      if (!current()) return;
+      // A read can release only writes that finished before it started.
+      ready().forEach(([id]) => changes.current.delete(id));
+      setPendingItems([...changes.current.keys()]);
     });
     return () => { active = false; };
-  }, [online, entityId, requestKey, refresh, todoItems, display.celebrate, endCelebration]);
+  }, [online, entityId, requestKey, todoItems, display.celebrate, endCompletion, versions]);
   const loading = online && result.key !== requestKey;
   // Keep the last rows mounted during refresh so confirmed changes can animate out.
   const hasResult = result.entityId === entityId && !!result.key;
@@ -188,39 +202,63 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   const feedback = useListItemFeedback(online && hasResult && !result.error
     ? items.map(item => ({ id: item.uid, text: item.summary, complete: item.status === "completed" })) : null);
   const status = commands[entityId];
-  const busy = loading || !!status?.pending;
+  const busy = loading || !!status?.pending || pendingItems.length > 0;
   useEffect(() => {
-    if (!online || busy || pendingToggle) return;
+    if (!online || busy) return;
     const timer = setInterval(() => setRefresh(n => n + 1), 60000);
     return () => clearInterval(timer);
-  }, [online, busy, pendingToggle]);
-  const can = (action: TodoAction) => (editable || action === "update_item") && online && !loading && !result.error && !status?.pending && !pendingToggle && !heldCompletion && supportsAction(entity, action, services);
-  const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }) => {
+  }, [online, busy]);
+  const can = (action: TodoAction, item?: string) => (editable || action === "update_item") && online && hasResult && !result.error
+    && !(action === "add_item" && addingItem)
+    && !(status?.pending && !status.items) && !changes.current.has(item) && !status?.items?.[item]?.pending && !heldCompletions.has(item)
+    && supportsAction(entity, action, services);
+  const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }, completion?: TodoCompletion) => {
+    if (changes.current.has(value.item)) return false;
+    const source = versions.source;
+    const pending = { completion, refresh: undefined as number | undefined };
+    changes.current.set(value.item, pending);
+    setPendingItems([...changes.current.keys()]);
+    // Invalidate reads immediately, before React commits the next render.
+    versions.read++;
     try {
       await command(entityId, action, value);
-      setRefresh(n => n + 1);
+      if (changes.current.get(value.item) !== pending) return false;
+      pending.refresh = ++versions.read;
       return true;
-    } catch { return false; /* The shared command state displays failures without replaying writes. */ }
+    } catch (error) {
+      if (changes.current.get(value.item) === pending) {
+        versions.read++;
+        changes.current.delete(value.item);
+        endCompletion(value.item);
+      }
+      if (action === "remove_item") throw error;
+      return false; // The shared command state displays failures without replaying writes.
+    } finally {
+      if (source === versions.source) {
+        setPendingItems([...changes.current.keys()]);
+        setRefresh(n => n + 1);
+      }
+    }
   };
   const toggle = async (item: TodoItem, checkbox: HTMLInputElement) => {
-    if (!can("update_item")) return;
-    completionTarget.current = undefined;
+    if (!can("update_item", item.uid)) return;
+    let completion: TodoCompletion;
     if (display.celebrate && item.status !== "completed" && document.documentElement.dataset.motionInput !== "keyboard") {
       const rect = checkbox.nextElementSibling.getBoundingClientRect();
-      completionTarget.current = { id: item.uid, refresh: refresh + 1, checkbox, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-      setHeldCompletion({ id: item.uid, index: shown.findIndex(row => row.uid === item.uid) });
+      completion = { index: shown.findIndex(row => row.uid === item.uid), checkbox, origin: { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }, onComplete: () => endCompletion(item.uid) };
+      setHeldCompletions(previous => new Map(previous).set(item.uid, completion));
     }
-    setPendingToggle({ id: item.uid, refresh: refresh + 1 });
-    if (!await change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" })) { setPendingToggle(undefined); completionTarget.current = undefined; setHeldCompletion(undefined); }
+    await change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" }, completion);
   };
   const add = async (name = text) => {
     if (!can("add_item") || !name.trim()) return;
     const matches = items.filter(item => itemName(item.summary) === itemName(name));
     const existing = matches.find(item => item.status !== "completed") ?? matches[0];
-    if (existing?.status === "completed" && !can("update_item")) { toast.error(t("This list cannot reopen completed items.")); return; }
+    if (existing?.status === "completed" && !can("update_item", existing.uid)) { toast.error(t("This list cannot reopen completed items.")); return; }
     if (existing && existing.status !== "completed") toast.info(t("This item is already on the list."));
     else {
       setAddError("");
+      setAddingItem(existing?.uid ?? name);
       try {
         const changes = todoDetailChanges(existing ?? {}, details, entity, currentHome.timeZone);
         // Reopening a suggestion keeps its existing details unless the draft supplies replacements.
@@ -228,6 +266,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
         if (existing && !details.description) delete changes.description;
         if (!await change(existing ? "update_item" : "add_item", { item: existing?.uid ?? name, ...(existing ? { status: "needs_action" } : {}), ...changes })) return;
       } catch (error) { setAddError(error instanceof Error ? error.message : t("Configuration could not be saved.")); return; }
+      finally { setAddingItem(undefined); }
     }
     setText(""); setDetails({ due: "", description: "" }); setAdding(false);
   };
@@ -235,50 +274,49 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   if (display.sort === "alphabetical") sorted.sort((a, b) => a.summary.localeCompare(b.summary, locale));
   if (display.sort === "due-date") sorted.sort((a, b) => todoDueTimestamp(a.due, currentHome.timeZone) - todoDueTimestamp(b.due, currentHome.timeZone) || a.summary.localeCompare(b.summary, locale));
   const completed = sorted.filter(item => item.status === "completed");
-  const completedBelow = completed.filter(item => item.uid !== heldCompletion?.id);
+  const completedBelow = completed.filter(item => !heldCompletions.has(item.uid));
   const presence: ListPresence = { itemIds: items.map(item => item.uid), completedIds: completed.map(item => item.uid) };
   const pending = sorted.filter(item => item.status !== "completed");
-  const ordered = (display.completed === "inline" ? sorted : pending).filter(item => item.uid !== heldCompletion?.id);
-  const heldItem = items.find(item => item.uid === heldCompletion?.id);
-  // Keep the clicked row in place even if Home Assistant moves completed items first.
-  if (heldItem) ordered.splice(heldCompletion.index, 0, heldItem);
+  const ordered = (display.completed === "inline" ? sorted : pending).filter(item => !heldCompletions.has(item.uid));
+  // Keep clicked rows in place even if Home Assistant moves completed items first.
+  for (const [id, { index }] of [...heldCompletions].sort(([, a], [, b]) => a.index - b.index)) {
+    const item = items.find(item => item.uid === id);
+    if (item) ordered.splice(index, 0, item);
+  }
   const shown = limit ? ordered.slice(0, limit) : ordered;
   const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
-    pending={pendingToggle?.id === item.uid} disabled={!can("update_item")} removeDisabled={!can("remove_item")}
+    pending={pendingItems.includes(item.uid) || status?.items?.[item.uid]?.pending} disabled={!can("update_item", item.uid)} removeDisabled={!can("remove_item", item.uid)}
     onToggle={checkbox => void toggle(item, checkbox)}
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
   return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
-    {celebration && <TodoCelebration origin={celebration} onComplete={endCelebration} />}
+    {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} onComplete={completion.onComplete} />)}
     {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
         <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div>{kind !== "shopping" && <h3>{memberName(member)}</h3>}<span>{entity?.name ?? t("List unavailable")}</span></div></div>
-        {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!status?.pending : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[700px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
+        {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[700px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
       </div>
       {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
-        <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{status?.pending ? t("Saving…") : t("Add")}</Button>
+        <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{addingItem ? t("Saving…") : t("Add")}</Button>
         <details className="todo-add-details"><summary>{t("Due date and description")}</summary>{entity && <TodoItemFields entity={entity} value={details} onChange={setDetails} disabled={!can("add_item")} />}</details>
         {addError && <p role="alert">{message(addError)}</p>}
-        <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={add} isDisabled={name => !can("add_item") || !can("update_item") || pending.some(item => itemName(item.summary) === itemName(name))} />
+        <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={add} isDisabled={name => !can("add_item") || items.some(item => itemName(item.summary) === itemName(name) && (item.status !== "completed" || !can("update_item", item.uid)))} />
       </form>}
     </div>}
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
-      {hasResult && (result.error ? <div className="space-y-2"><p role="alert">{message(result.error)}</p><Button variant="outline" disabled={busy || !!pendingToggle} onClick={() => setRefresh(n => n + 1)}>{t("Retry")}</Button></div> : <>
+      {hasResult && (result.error ? <div className="space-y-2"><p role="alert">{message(result.error)}</p><Button variant="outline" disabled={busy} onClick={() => setRefresh(n => n + 1)}>{t("Retry")}</Button></div> : <>
         {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
-        <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletion && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletions.size && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
         <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(display.completed === "under" || display.completed === "collapsed") && !!completedBelow.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={display.completed === "under"}>{completedBelow.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}
       <span role="status" className="sr-only">{status?.pending ? t("Updating list…") : loading && hasResult ? t("Refreshing list…") : ""}</span>
     </>}
-    {editable && editing && <ItemEditor text={editing.summary} kind={kind} description={t("Saved to {value1} in Home Assistant.", { value1: entity?.name ?? t("your list") })} disabled={!can("update_item")} error={status?.error} item={editing} entity={entity} timeZone={currentHome.timeZone} onSave={(text, details) => can("update_item") ? change("update_item", { item: editing.uid, rename: text, ...todoDetailChanges(editing, details, entity, currentHome.timeZone) }) : false} onClose={() => setEditing(undefined)} />}
-    {editable && removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from {value2} in Home Assistant? This cannot be undone.", { value1: removing.summary, value2: entity?.name ?? t("this list") })} confirmLabel={t("Remove item")} pendingLabel={t("Removing…")} destructive disabled={!can("remove_item") || !items.some(item => item.uid === removing.uid)} onConfirm={async () => {
-      await command(entityId, "remove_item", { item: removing.uid });
-      setRefresh(n => n + 1);
-    }} />}
+    {editable && editing && <ItemEditor text={editing.summary} kind={kind} description={t("Saved to {value1} in Home Assistant.", { value1: entity?.name ?? t("your list") })} disabled={!can("update_item", editing.uid)} error={status?.items ? status.items[editing.uid]?.error : status?.error} item={editing} entity={entity} timeZone={currentHome.timeZone} onSave={(text, details) => can("update_item", editing.uid) ? change("update_item", { item: editing.uid, rename: text, ...todoDetailChanges(editing, details, entity, currentHome.timeZone) }) : false} onClose={() => setEditing(undefined)} />}
+    {editable && removing && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoving(undefined); }} title={t("Remove item?")} description={t("Remove “{value1}” from {value2} in Home Assistant? This cannot be undone.", { value1: removing.summary, value2: entity?.name ?? t("this list") })} confirmLabel={t("Remove item")} pendingLabel={t("Removing…")} destructive disabled={!can("remove_item", removing.uid) || !items.some(item => item.uid === removing.uid)} onConfirm={() => change("remove_item", { item: removing.uid })} />}
   </section>;
 }
 

@@ -7,7 +7,7 @@ import { defaultTodoDisplay, type TodoDisplay } from "../../shared/configuration
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
-const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: null, commands: {}, services: { todo: { update_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }));
+const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: null, commands: {}, services: { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }));
 const family = vi.hoisted(() => ({ connectedPlanner: true, todoLists: { "home|todo.example": { kind: "shopping", member: "everyone", display: undefined as TodoDisplay | undefined } }, today: "2026-10-28", allMembers: [], memberColor: () => "#aabbcc", compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Example person" }));
 const motion = vi.hoisted(() => ({ reduced: false }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
@@ -16,6 +16,8 @@ vi.mock("framer-motion", async original => ({ ...await original<typeof import("f
 beforeEach(() => {
   vi.resetAllMocks();
   motion.reduced = false;
+  app.commands = {};
+  app.homeOnline = true;
   family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay };
   app.currentHome = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 84 }) }, emptyRegistries, "home");
   document.documentElement.dataset.motionInput = "pointer";
@@ -190,4 +192,143 @@ it("waits for every browser animation to finish and cancels particles on unmount
     view.unmount();
     expect(cancel).toHaveBeenCalledTimes(finishes.length);
   } finally { Element.prototype.animate = animate; }
+});
+
+const deferred = <T,>() => {
+  let resolve: (value: T) => void;
+  let reject: (error: Error) => void;
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve: resolve!, reject: reject! };
+};
+
+it.each(["shopping", "tasks", "daily", "homework", "school"] as const)("updates separate items in parallel and ignores older refreshes (%s)", async surface => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "inline", celebrate: false };
+  app.currentHome.entities[0].attributes.supported_features = 7;
+  const items = [pendingItem, { ...pendingItem, uid: "two", summary: "Second task" }, { ...pendingItem, uid: "three", summary: "Third task" }];
+  const first = deferred<void>(), second = deferred<void>(), staleRead = deferred<typeof items>();
+  app.todoItems.mockResolvedValue(items);
+  app.command.mockImplementation((_entity, _action, value) => {
+    app.commands = { "todo.example": { pending: true, items: { [value.item]: { pending: true } } } };
+    return value.item === "one" ? first.promise : second.promise;
+  });
+  const view = render(<MemoryRouter><HomeAssistantList preferenceId="home|todo.example" member="everyone" kind={surface === "school" ? "homework" : surface} school={surface === "school"} /></MemoryRouter>);
+  const one = await screen.findByRole("checkbox", { name: "Example task" });
+  const two = screen.getByRole("checkbox", { name: "Second task" });
+  const three = screen.getByRole("checkbox", { name: "Third task" });
+  fireEvent.click(one);
+  expect(two).toBeEnabled();
+  if (surface !== "homework" && surface !== "school") {
+    expect(screen.getByRole("button", { name: "Edit Example task" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove Example task" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Edit Second task" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Remove Second task" })).toBeEnabled();
+  }
+  fireEvent.click(two);
+  fireEvent.click(one);
+  expect(app.command).toHaveBeenCalledTimes(2);
+  expect(one).toBeDisabled();
+  expect(two).toBeDisabled();
+  expect(three).toBeEnabled();
+  app.todoItems.mockReturnValueOnce(staleRead.promise);
+  await act(async () => second.resolve());
+  expect(two).toHaveAttribute("aria-busy", "true");
+  expect(three).toBeEnabled();
+  app.commands = {};
+  app.todoItems.mockResolvedValue(items.map(item => item.uid === "three" ? item : { ...item, status: "completed" }));
+  await act(async () => first.resolve());
+  expect(one).toBeChecked();
+  expect(two).toBeChecked();
+  expect(one).toBeEnabled();
+  expect(two).toBeEnabled();
+  await act(async () => staleRead.resolve(items.map(item => item.uid === "two" ? { ...item, status: "completed" } : item)));
+  expect(one).toBeChecked();
+  expect(two).toBeChecked();
+  expect(view.container.querySelector(".lucide-loader-circle")).not.toBeInTheDocument();
+});
+
+it("keeps another item pending and usable after one update fails", async () => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "inline", celebrate: false };
+  const items = [pendingItem, { ...pendingItem, uid: "two", summary: "Second task" }];
+  const first = deferred<void>(), second = deferred<void>();
+  app.todoItems.mockResolvedValue(items);
+  app.command.mockImplementation((_entity, _action, value) => value.item === "one" ? first.promise : second.promise);
+  renderList();
+  const one = await screen.findByRole("checkbox", { name: "Example task" });
+  const two = screen.getByRole("checkbox", { name: "Second task" });
+  fireEvent.click(one);
+  fireEvent.click(two);
+  await act(async () => first.reject(new Error("Example failure")));
+  expect(one).toBeEnabled();
+  expect(one).not.toBeChecked();
+  expect(two).toBeDisabled();
+  expect(two).toHaveAttribute("aria-busy", "true");
+  app.todoItems.mockResolvedValue([pendingItem, { ...items[1], status: "completed" }]);
+  await act(async () => second.resolve());
+  expect(two).toBeChecked();
+  expect(two).toBeEnabled();
+});
+
+it("celebrates concurrent completions independently without locking the remaining item", async () => {
+  motion.reduced = true;
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "hide", celebrate: true };
+  const items = [pendingItem, { ...pendingItem, uid: "two", summary: "Second task" }, { ...pendingItem, uid: "three", summary: "Third task" }];
+  const first = deferred<void>(), second = deferred<void>();
+  app.todoItems.mockResolvedValue(items);
+  app.command.mockImplementation((_entity, _action, value) => value.item === "one" ? first.promise : second.promise);
+  renderList();
+  const one = await screen.findByRole("checkbox", { name: "Example task" });
+  const two = screen.getByRole("checkbox", { name: "Second task" });
+  fireEvent.click(one);
+  fireEvent.click(two);
+  app.todoItems.mockResolvedValue(items.map(item => item.uid === "three" ? item : { ...item, status: "completed" }));
+  await act(async () => { second.resolve(); first.resolve(); });
+  expect(document.querySelectorAll(".todo-celebration")).toHaveLength(2);
+  expect(one).toBeChecked();
+  expect(two).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Third task" })).toBeEnabled();
+  await waitFor(() => expect(document.querySelector(".todo-celebration")).toBeNull());
+  await waitFor(() => expect(one).not.toBeInTheDocument());
+  expect(two).not.toBeInTheDocument();
+});
+
+it("invalidates a background read as soon as an item is clicked", async () => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "inline", celebrate: false };
+  const write = deferred<void>(), staleRead = deferred<typeof pendingItem[]>();
+  app.todoItems.mockResolvedValue([pendingItem]);
+  app.command.mockReturnValue(write.promise);
+  const view = renderList();
+  const checkbox = await screen.findByRole("checkbox", { name: "Example task" });
+  app.todoItems.mockReturnValueOnce(staleRead.promise);
+  app.currentHome.entities[0].lastUpdated = "background-update";
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  expect(checkbox).toBeEnabled();
+  fireEvent.click(checkbox);
+  await act(async () => staleRead.reject(new Error("Stale read failure")));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(checkbox).toHaveAttribute("aria-busy", "true");
+  app.todoItems.mockResolvedValue([{ ...pendingItem, status: "completed" }]);
+  await act(async () => write.resolve());
+  expect(checkbox).toBeChecked();
+  expect(checkbox).toBeEnabled();
+});
+
+it.each([false, true])("ignores an old command after reconnecting (rejected: %s)", async rejected => {
+  family.todoLists["home|todo.example"].display = { ...defaultTodoDisplay, completed: "inline", celebrate: true };
+  const write = deferred<void>();
+  app.todoItems.mockResolvedValue([pendingItem]);
+  app.command.mockReturnValue(write.promise);
+  const view = renderList();
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Example task" }));
+  app.homeOnline = false;
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  app.homeOnline = true;
+  view.rerender(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+  const checkbox = await screen.findByRole("checkbox", { name: "Example task" });
+  expect(checkbox).toBeEnabled();
+  const reads = app.todoItems.mock.calls.length;
+  await act(async () => { if (rejected) write.reject(new Error("Connection changed")); else write.resolve(); });
+  expect(app.todoItems).toHaveBeenCalledTimes(reads);
+  expect(checkbox).not.toBeChecked();
+  expect(checkbox).toBeEnabled();
+  expect(document.querySelector(".todo-celebration")).toBeNull();
 });
