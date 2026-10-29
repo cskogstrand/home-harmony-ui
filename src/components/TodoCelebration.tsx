@@ -37,10 +37,9 @@ export function TodoCelebration({ origin, wholeList = false, onComplete }: { ori
         { opacity: 0, ...away, offset: 1 },
       ], { duration, fill: "both" }));
       if (!reduceMotion) {
-        const drawingEasing = getComputedStyle(root).getPropertyValue("--ease-out-in").trim() || "cubic-bezier(0, .42, 1, .58)";
         animations.push(message.querySelector("svg")?.animate?.([
           { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)" },
-        ], { duration: 1200, delay: 160, easing: drawingEasing, fill: "both" }));
+        ], { duration: 800, delay: 60, easing: "ease-in", fill: "both" }));
         animations.push(message.querySelector("strong")?.animate?.([
           { opacity: 0, transform: "translateY(15%) scale(.95)" },
           { opacity: 1, transform: "translateY(0%) scale(1)" },
