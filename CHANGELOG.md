@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.28
+
+<!-- release-source: bc540a74ecfc5715a7e816288aac8664bd9683f7 -->
+
+- feat: allow reordering Today sections
+- feat: add configurable morning summary messages
+- fix: read summary title and preferred icon
+- feat: show dated tasks in calendar views
+- feat: expand notification icons and animations
+
 ## 0.9.27
 
 <!-- release-source: 68cbc34a5eb0dd54c1832aa31e5e8032a4965bd6 -->
