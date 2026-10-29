@@ -25,11 +25,11 @@ Momentary events and camera popups have a duration and cooldown. Repeated trigge
 
 The camera popup header counts down to its expiry in minutes and seconds. While a state trigger still matches, it shows “Closes automatically when this alert expires.” instead. The configured expiry still applies; clearing the trigger does not restart the countdown.
 
-Use **Additional readings (optional)** to select multiple entities, such as an appliance's remaining minutes and completion percentage. Each selected reading appears in the banner and notification list with its reported value and unit. Uncheck a selection to remove it. Existing rules keep their previously selected reading; these choices are shared across screens and included in backups. Readings keep their reported values; optional progress is configured separately below.
+Under **Entities and readings**, use **Add entity** to choose an additional reading, such as an appliance's remaining minutes or completion percentage. Its display name and placement are configured in the same section. Each selected reading appears in the banner and notification list with its reported value and unit. Use the remove button beside a reading to remove that additional selection. Entities also used by the trigger or progress stay available for those roles. Existing rules keep their previously selected reading; these choices are shared across screens and included in backups. Readings keep their reported values; optional progress is configured separately below.
 
-## Entity names and placement
+## Entities and readings
 
-In **Entity names and placement**, set a local display name for every selected source, additional reading, progress entity or camera. State and attribute readings can have different names and placements, even when they belong to the same entity. Leaving the name empty uses the entity name. Home Assistant names and references remain unchanged.
+In **Entities and readings**, set a local display name for every selected source, additional reading, progress entity or camera. State and attribute readings can have different names and placements, even when they belong to the same entity. Leaving the name empty uses the entity name. Home Assistant names and references remain unchanged.
 
 Choose **Under the title**, **Left reading**, **Right reading**, **At the bottom**, or **Hidden**. Activity cards show left and right as large readings in separate columns; other styles show them as text. **Automatic** keeps the source under the title, places the first two additional readings left and right, and places the rest at the bottom. Entities selected only for progress or camera playback start hidden. Hidden readings still drive triggers and progress. Names and placements are saved with the rule and included in backups.
 
@@ -47,11 +47,11 @@ Progress appears in banners, sections and activity cards. It updates with entity
 
 ## Activity cards and previews
 
-Choose **Display as → Activity cards** for the iPhone activity-inspired layout. Each rule offers an automatic icon, laundry, dishwashing, cleaning, cooking, charging or timer. Ongoing tasks can animate their icon; the per-rule switch and the device's reduced-motion preference can keep it still. Current and camera alerts use static icons. Readings and text remain stationary. Timestamp readings show the reported time in the home's timezone; no completion time is estimated.
+Choose **Display as → Activity cards** for the iPhone activity-inspired layout. Each rule offers an automatic icon, laundry, dishwashing, cleaning, cooking, charging or timer. Ongoing tasks can animate their icon; the per-rule switch and the device's reduced-motion preference can keep it still. The chosen icon also animates in the editor’s icon picker so you can see its motion before saving. Current and camera alerts use static icons. Readings and text remain stationary. Timestamp readings show the reported time in the home's timezone; no completion time is estimated.
 
 Open **Preview notification** on the settings page to choose a saved rule or the built-in example in a modal. The editor keeps its preview alongside the fields. Both reuse the production notification component, including custom names and placements. **Sample data** is clearly labeled and stays local to the preview. Drag **Demo progress** or press **Play demo** to simulate progress. In the editor, turn sample data off to inspect current readings. Camera and dismiss actions are disabled in the preview; demo values never change Home Assistant or saved rules. Reduced motion also disables automatic demo playback; the slider remains available.
 
-The editor uses collapsible sections for content, trigger, readings, progress, entity names and placement, appearance and timing. Content and trigger start open; several sections can stay open at once. Collapsing a section keeps its draft values, and saving opens any section with invalid settings. Save and Cancel remain outside the scrolling fields; on wide screens the preview sits beside the form, and on phones it appears above it.
+The editor uses collapsible sections for content, trigger, entities and readings, progress, appearance and timing. Content and trigger start open; several sections can stay open at once. Sections expand smoothly and can reverse midway through a transition. Keyboard actions are immediate, reduced motion avoids moving the fields, and the editor stays the same height as sections open or close. Collapsing a section keeps its draft values, and saving opens any section with invalid settings. Save and Cancel remain outside the scrolling fields; on wide screens the preview sits beside the form, and on phones it appears above it.
 
 ## Typical setup
 

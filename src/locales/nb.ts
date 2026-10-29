@@ -1835,4 +1835,9 @@ export const nb = {
   "Add {kind}": "Legg til: {kind}",
   "No notifications in this group yet.": "Ingen varsler i denne gruppen ennå.",
   "Display name": "Visningsnavn",
+  "Entities and readings": "Entiteter og målinger",
+  "Add entity": "Legg til entitet",
+  "Add an entity to choose its name and placement here.": "Legg til en entitet for å velge navn og plassering her.",
+  "Already added to this notification": "Allerede lagt til i dette varselet",
+  "Remove additional reading {name}": "Fjern ekstra måling {name}",
 } as const;

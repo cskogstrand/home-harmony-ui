@@ -1,10 +1,16 @@
-.notification-editor { width: min(1100px, calc(100% - 24px)); max-width: 1100px; max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; }
-.notification-editor-form { min-height: 0; }
-.notification-editor-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2rem; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+.notification-editor { width: min(1100px, calc(100% - 24px)); max-width: 1100px; height: min(900px, calc(100dvh - 24px)); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; }
+.notification-editor-form { min-height: 0; flex: 1; }
+.notification-editor-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 2rem; min-height: 0; flex: 1; overflow-y: auto; scrollbar-gutter: stable; }
 .notification-editor-fields { min-width: 0; padding: .25rem; }
 .notification-editor-section { border-bottom: 1px solid hsl(var(--border)); }
 .notification-editor-section:last-child { border-bottom: 0; }
-.notification-editor-section > h3 > button { gap: 1rem; padding-block: 1.25rem; text-align: left; border-radius: 4px; }
+.notification-editor-section > [role="region"] { animation: none; transition: none; }
+.notification-section-shell { padding: 0; }
+.notification-editor-section > [aria-hidden="true"] .notification-icon :is(svg, path, line) { animation-play-state: paused; }
+.notification-editor-section-content { min-width: 0; }
+.notification-entity-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.notification-entity-heading > button { flex-shrink: 0; }
+.notification-editor-section > h3 > button { gap: 1rem; padding-block: 1.25rem; text-align: left; border-radius: 8px; text-decoration: none; }
 .notification-editor-section > h3 > button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
 .notification-editor-section-content { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1.5rem; }
 .notification-editor-section .panel-title, .notification-preview .panel-title { font-size: 1.25rem; font-weight: 600; }
@@ -56,17 +62,19 @@
 /* Slow loops indicate an active appliance; readings and card geometry stay still. */
 @media (prefers-reduced-motion: no-preference) {
   .notification-icon[data-animate="true"][data-icon="washing"] svg path:last-child { transform-origin: 12px 13px; animation: notification-turn 3s linear infinite; }
+  .notification-icon[data-animate="true"][data-icon="washing"] > svg { animation: notification-rock 3s var(--ease-in-out) infinite; }
   .notification-icon[data-animate="true"][data-icon="cleaning"] svg { animation: notification-sweep 3s var(--ease-in-out) infinite; }
   .notification-icon[data-animate="true"][data-icon="cooking"] svg path:nth-child(n+3) { animation: notification-steam 3s var(--ease-in-out) infinite; }
-  .notification-icon[data-animate="true"][data-icon="dishes"] svg { animation: notification-sweep 3s var(--ease-in-out) infinite; }
+  .notification-icon[data-animate="true"][data-icon="dishes"] svg { transform-origin: center; animation: notification-rock 3s var(--ease-in-out) infinite; }
   .notification-icon[data-animate="true"][data-icon="charging"] svg,
   .notification-icon[data-animate="true"][data-icon="default"] svg { animation: notification-pulse 3s var(--ease-in-out) infinite; }
   .notification-icon[data-animate="true"][data-icon="timer"] svg line:nth-child(2) { transform-origin: 12px 14px; animation: notification-turn 6s linear infinite; }
 }
 @keyframes notification-turn { to { transform: rotate(360deg); } }
-@keyframes notification-sweep { 0%, 100% { transform: translateX(-2px); } 50% { transform: translateX(2px); } }
-@keyframes notification-steam { 0%, 100% { opacity: .5; transform: translateY(1px); } 50% { opacity: 1; transform: translateY(-1px); } }
-@keyframes notification-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes notification-sweep { 0%, 100% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
+@keyframes notification-rock { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes notification-steam { 0%, 100% { opacity: .35; transform: translateY(2px); } 50% { opacity: 1; transform: translateY(-3px); } }
+@keyframes notification-pulse { 0%, 100% { opacity: .5; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.1); } }
 @media (max-width: 799px) {
   .notification-editor-layout { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
   .notification-editor .notification-preview { position: static; grid-row: 1; }
@@ -132,3 +140,30 @@
 @media (forced-colors: active) {
   .notification-style-option[aria-pressed="true"] { outline: 2px solid Highlight; }
 }
+
+/* Keep interaction feedback local to notifications and honor keyboard input. */
+.notification-editor-section > h3 > button,
+.notification-editor-section > h3 > button > svg,
+.notification-style-option,
+.notification-icon-options > button { transition: none; }
+.notification-editor-section > h3 > button[data-state="open"] .panel-title-icon { color: hsl(var(--primary)); }
+@media (prefers-reduced-motion: no-preference) {
+  .notification-editor.motion-surface, .notification-preview-dialog.motion-surface { --surface-duration: 250ms; --surface-enter: notification-surface-in; --surface-exit: notification-surface-out; }
+  [data-motion-input="pointer"] .notification-editor-section > h3 > button > svg { transition: transform 250ms var(--ease-out); }
+  [data-motion-input="pointer"] .notification-editor-section .panel-title-icon { transition: transform 250ms var(--ease-out); }
+  [data-motion-input="pointer"] .notification-editor-section > h3 > button[data-state="open"] .panel-title-icon { transform: scale(1.15); }
+  [data-motion-input="pointer"] :is(.notification-style-option, .notification-icon-options > button, .notification-entity-heading > button, .notification-editor .entity-picker-add) { transition: transform 160ms var(--ease-out), background-color 160ms ease, border-color 160ms ease; }
+  [data-motion-input="pointer"] :is(.notification-style-option, .notification-icon-options > button, .notification-entity-heading > button, .notification-editor .entity-picker-add):active:not(:disabled) { transform: scale(.95); }
+  [data-motion-input="pointer"] .notification-style-example { transition: transform 250ms var(--ease-out); }
+  [data-motion-input="pointer"] .notification-style-option[aria-pressed="true"] .notification-style-example { transform: translateY(-3px) scale(1.04); }
+  [data-motion-input="pointer"] .notification-entity-settings > fieldset { transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out); }
+  @starting-style {
+    [data-motion-input="pointer"] .notification-entity-settings > fieldset { opacity: 0; transform: translateY(8px) scale(.97); }
+  }
+  .notification-progress [role="progressbar"] > div { transition: transform 250ms linear; }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  [data-motion-input="pointer"] :is(.notification-style-option, .notification-icon-options > button):hover:not(:disabled):not(:active) { transform: translateY(-3px); }
+}
+@keyframes notification-surface-in { from { opacity: 0; transform: translateY(3%) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes notification-surface-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(3%) scale(.94); } }

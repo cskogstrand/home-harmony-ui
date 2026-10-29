@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, LayoutTemplate, Plus, Timer, Zap } from "lucide-react";
+import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -8,7 +8,8 @@ import { notificationEntity, notificationReadings } from "@/lib/notifications";
 import { notificationRuleSchema, type NotificationRule, type NotificationTrigger } from "../../shared/notifications";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Accordion } from "./ui/accordion";
+import { NotificationEditorSection } from "./NotificationEditorSection";
 import { Switch } from "./ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { ConfirmDialog } from "./common/ConfirmDialog";
@@ -66,7 +67,7 @@ export function NotificationSettings() {
     const readings = notificationReadings(draft);
     const result = notificationRuleSchema.safeParse({ ...draft, trigger, ...(draft.entityDisplay && { entityDisplay: draft.entityDisplay.filter(item => readings.some(reading => reading.entity === item.entity && reading.attribute === item.attribute)) }) });
     if (!result.success) {
-      const sectionForField = { title: "content", message: "content", trigger: "trigger", cameraEntity: "readings", detailEntities: "readings", progress: "progress", entityDisplay: "entities", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+      const sectionForField = { title: "content", message: "content", trigger: "trigger", cameraEntity: "readings", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
       setOpenSections(sections => [...new Set([...sections, ...result.error.issues.map(issue => sectionForField[issue.path[0]] ?? "content")])]);
       setError(result.error.issues.some(issue => issue.path[0] === "progress") ? "Check progress: choose numeric sources and different start and end values." : "Check the title, trigger, camera and numeric values. Event filters must contain at most 10 text, number or boolean fields."); return; }
     const rules = current ? notifications.rules.map(rule => rule.id === draft.id ? result.data : rule) : [...notifications.rules, result.data];
@@ -122,15 +123,11 @@ export function NotificationSettings() {
       {draft && <form className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
         <div className="notification-editor-layout">
         <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="notification-editor-fields">
-        <AccordionItem value="content" className="notification-editor-section">
-        <AccordionTrigger><span className="panel-title"><MessageSquare className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Notification content")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content">
+        <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
         <label>{t("Title")}<input required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t("Message (optional)")}<textarea maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
-        </AccordionContent></AccordionItem>
-        <AccordionItem value="trigger" className="notification-editor-section">
-        <AccordionTrigger><span className="panel-title"><Zap className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("When to show it")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content">
+        </NotificationEditorSection>
+        <NotificationEditorSection value="trigger" title={t("When to show it")} icon={Zap} open={openSections.includes("trigger")}>
         <label>{t("Trigger")}<select value={draft.trigger.type} onChange={event => { setDraft({ ...draft, trigger: newTrigger(event.target.value as NotificationTrigger["type"]) }); setFilters("{}"); }}>
           <option value="state">{t("Entity state")}</option>
           {draft.kind !== "ongoing" && <><option value="entity-event">{t("Event entity")}</option><option value="ha-event">{t("Home Assistant event")}</option></>}
@@ -148,38 +145,22 @@ export function NotificationSettings() {
         {draft.trigger.type === "entity-event" && <p className="page-note">{t("Triggers on a new event timestamp. Leave the event type empty to match every event from this entity.")}</p>}
         {draft.trigger.type === "ha-event" && <label>{t("Event data filters (JSON)")}<textarea rows={3} value={filters} maxLength={8000} onChange={event => setFilters(event.target.value)} /><span className="page-note">{t("Match exact top-level fields, such as action or device_id. Empty filters match every event of this type.")}</span></label>}
         {draft.trigger.type === "calendar" && <label>{t("Show minutes before start")}<input type="number" min={0} max={1440} required value={draft.trigger.leadMinutes} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger })} /></label>}
-        </AccordionContent></AccordionItem>
-        <AccordionItem value="readings" className="notification-editor-section">
-        <AccordionTrigger><span className="panel-title"><Gauge className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Readings and details")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content">
-        {draft.kind === "camera" && selectEntity("Camera", draft.cameraEntity, cameraEntity => setDraft({ ...draft, cameraEntity }), "camera")}
-        <EntityPicker multiple label={t("Additional readings (optional)")} entities={selectable} value={draft.detailEntities}
-          onChange={detailEntities => setDraft({ ...draft, detailEntities })} disabled={disabled}
-          disabledReason={entity => draft.detailEntities.length >= 100 && !draft.detailEntities.includes(entity.preferenceId) ? t("Choose up to 100 additional readings.") : undefined} />
-        </AccordionContent></AccordionItem>
-        {draft.kind === "ongoing" && <AccordionItem value="progress" className="notification-editor-section">
-          <AccordionTrigger><span className="panel-title"><ChartNoAxesColumnIncreasing className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Progress")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content">
+        </NotificationEditorSection>
+        <NotificationEditorSection value="readings" title={t("Entities and readings")} icon={Gauge} open={openSections.includes("readings")}>
+            <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={changes => setDraft({ ...draft, ...changes })} />
+          </NotificationEditorSection>
+        {draft.kind === "ongoing" && <NotificationEditorSection value="progress" title={t("Progress")} icon={ChartNoAxesColumnIncreasing} open={openSections.includes("progress")}>
           <NotificationProgressSettings rule={draft} entities={selectable} disabled={disabled} onChange={progress => setDraft({ ...draft, progress })} />
-        </AccordionContent></AccordionItem>}
-        <AccordionItem value="entities" className="notification-editor-section">
-          <AccordionTrigger><span className="panel-title"><LayoutTemplate className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Entity names and placement")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content">
-          <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={entityDisplay => setDraft({ ...draft, entityDisplay })} />
-        </AccordionContent></AccordionItem>
-        <AccordionItem value="appearance" className="notification-editor-section">
-          <AccordionTrigger><span className="panel-title"><Palette className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Icon and animation")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content">
+        </NotificationEditorSection>}
+        <NotificationEditorSection value="appearance" title={t("Icon and animation")} icon={Palette} open={openSections.includes("appearance")}>
           <NotificationIconPicker rule={draft} disabled={disabled} onChange={icon => setDraft({ ...draft, icon })} />
           {draft.kind === "ongoing" && <div className="notification-toggle"><span>{t("Animate activity icon")}</span><Switch aria-label={t("Animate activity icon")} checked={draft.animateIcon !== false} disabled={disabled} onCheckedChange={animateIcon => setDraft({ ...draft, animateIcon })} /></div>}
           <p className="page-note">{t("Icons animate in activity cards while the task is active. Reduced motion keeps them still.")}</p>
-        </AccordionContent></AccordionItem>
-        {(draft.kind === "camera" || ["entity-event", "ha-event"].includes(draft.trigger.type)) && <AccordionItem value="timing" className="notification-editor-section">
-          <AccordionTrigger><span className="panel-title"><Timer className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Timing")}</span></span></AccordionTrigger>
-        <AccordionContent className="notification-editor-section-content"><div className="grid gap-3 sm:grid-cols-2">
+        </NotificationEditorSection>
+        {(draft.kind === "camera" || ["entity-event", "ha-event"].includes(draft.trigger.type)) && <NotificationEditorSection value="timing" title={t("Timing")} icon={Timer} open={openSections.includes("timing")}><div className="grid gap-3 sm:grid-cols-2">
           <label>{t("Show for (seconds)")}<input type="number" min={10} max={3600} required value={draft.durationSeconds} onChange={event => setDraft({ ...draft, durationSeconds: event.target.valueAsNumber })} /></label>
           <label>{t("Cooldown (seconds)")}<input type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>
-        </div></AccordionContent></AccordionItem>}
+        </div></NotificationEditorSection>}
         </Accordion>
         <NotificationPreview key={draft.id} rule={draft} presentation={notifications.presentation} />
         </div>

@@ -22,6 +22,6 @@ export function NotificationIcon({ rule, animate = false }: { rule: Notification
 export function NotificationIconPicker({ rule, disabled, onChange }: { rule: NotificationRule; disabled: boolean; onChange: (icon: NotificationRule["icon"]) => void }) {
   const { message: t } = useI18n();
   return <div className="notification-icon-options" role="group" aria-label={t("Notification icon")}>{Object.entries(notificationIconOptions).map(([icon, option]) => <Button type="button" key={icon} variant="outline" aria-pressed={(rule.icon ?? "default") === icon} disabled={disabled} onClick={() => onChange(icon as NotificationRule["icon"])}>
-    <NotificationIcon rule={{ ...rule, icon: icon as NotificationRule["icon"] }} /><span>{t(option.label)}</span>
+    <NotificationIcon rule={{ ...rule, icon: icon as NotificationRule["icon"] }} animate={rule.kind === "ongoing" && (rule.icon ?? "default") === icon} /><span>{t(option.label)}</span>
   </Button>)}</div>;
 }
