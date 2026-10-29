@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.2
+
+<!-- release-source: 4bd2a4996993bdabb0a55fd63bea25fe77b7625f -->
+
+- No changes beyond release metadata.
+
 ## 0.10.0
 
 <!-- release-source: 69a38ffab1ea3a19bd3dc7679f8e15bbb74ab112 -->
