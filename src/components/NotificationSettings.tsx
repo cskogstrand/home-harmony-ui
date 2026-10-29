@@ -38,7 +38,7 @@ export function NotificationSettings() {
   const shared = useSharedConfiguration();
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const [draft, setDraft] = useState<NotificationRule>();
-  const [openSections, setOpenSections] = useState(["content", "trigger"]);
+  const [openSections, setOpenSections] = useState<string[]>([]);
   const [previewId, setPreviewId] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [original, setOriginal] = useState("");
@@ -46,6 +46,7 @@ export function NotificationSettings() {
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<NotificationRule>();
   const editor = useRef<HTMLFormElement>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
   const editUsage = (section: "trigger" | "progress" | "readings") => {
     setOpenSections(sections => [...new Set([...sections, section])]);
     editor.current?.querySelector<HTMLButtonElement>(`[data-section="${section}"] > h3 > button`)?.focus();
@@ -53,7 +54,7 @@ export function NotificationSettings() {
   const entities = currentHome.entities;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
-    setOpenSections(["content", "trigger"]);
+    setOpenSections(rule.title.trim() ? [] : ["content"]);
     setDraft(rule); setPreviewId(rule.id); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
   };
@@ -118,13 +119,15 @@ export function NotificationSettings() {
       </li>;
     })}</ul></section>;
     })}
-    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor">
+    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor" onOpenAutoFocus={event => {
+      if (!draft?.title.trim()) { event.preventDefault(); titleInput.current?.focus(); }
+    }}>
       <DialogHeader><DialogTitle>{t(original ? "Edit notification" : "Add notification")}</DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
       {draft && <form ref={editor} className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
         <div className="notification-editor-layout">
         <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="notification-editor-fields">
         <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
-        <label>{t("Title")}<input required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
+        <label>{t("Title")}<input ref={titleInput} required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t("Message (optional)")}<textarea maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
         <label>{t("Show on")}<select value={draft.pages ?? notifications.pages} disabled={disabled} onChange={event => setDraft({ ...draft, pages: event.target.value as NotificationRule["pages"] })}>
           <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>

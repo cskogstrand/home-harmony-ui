@@ -39,6 +39,26 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
+it.each(["Ongoing tasks", "Current alerts", "Camera popup"])("opens only content and focuses the title for a new %s", async kind => {
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: `Add ${kind}` }));
+  const dialog = within(screen.getByRole("dialog", { name: "Add notification" }));
+  await waitFor(() => expect(dialog.getByLabelText("Title")).toHaveFocus());
+  expect(dialog.getAllByRole("button", { expanded: true })).toEqual([dialog.getByRole("button", { name: "Notification content" })]);
+  expect(dialog.getByRole("button", { name: "When to show it" })).toHaveAttribute("aria-expanded", "false");
+  fireEvent.change(dialog.getByLabelText("Title"), { target: { value: "Example task" } });
+  expect(dialog.getByLabelText("Title")).toHaveFocus();
+  expect(dialog.getByRole("button", { name: "Notification content" })).toHaveAttribute("aria-expanded", "true");
+});
+
+it("treats a whitespace-only title as unset when opening an existing draft", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), title: "   " }] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: /^Edit\s*$/ }));
+  await waitFor(() => expect(screen.getByLabelText("Title")).toHaveFocus());
+  expect(within(screen.getByRole("dialog")).getAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Notification content" })]);
+});
+
 it("announces incoming titles and same-count replacements without repeating sensor readings", () => {
   const notification = { id: "example", rule: { ...cameraRule(), kind: "current" as const }, startedAt: 0, popup: false };
   const value = { notifications: [notification], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
@@ -56,10 +76,11 @@ it("announces incoming titles and same-count replacements without repeating sens
   expect(screen.getByRole("status")).toBeEmptyDOMElement();
 });
 
-it("configures ongoing tasks with a stable entity reference", () => {
+it("configures ongoing tasks with a stable entity reference", async () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add Ongoing tasks" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example wash" } });
+  await openEditorSection("When to show it");
   chooseEntity("Source entity", "binary_sensor.example");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example wash", kind: "ongoing", trigger: expect.objectContaining({ entity: "home|binary_sensor.example", value: "on" }) })] });
@@ -70,6 +91,7 @@ it("restricts the camera picker to cameras and allows clearing the optional read
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add Camera popup" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example camera alert" } });
+  await openEditorSection("When to show it");
   chooseEntity("Source entity", "binary_sensor.example");
   await openEditorSection("Entities and readings");
   fireEvent.click(screen.getByRole("button", { name: "Camera" }));
@@ -132,13 +154,14 @@ it.each([false, true])("renders and refreshes all readings, retaining available 
   expect(screen.queryByText("Example progress · 40 %")).not.toBeInTheDocument();
 });
 
-it("saves page choices per rule and disables editing when storage is unavailable", () => {
+it("saves page choices per rule and disables editing when storage is unavailable", async () => {
   const other = { ...cameraRule(), id: "other", title: "Example second alert", pages: "main" as const };
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule(), other] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
   expect(screen.queryByLabelText("Show on")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Notification content");
   expect(screen.getByLabelText("Show on")).toHaveValue("main");
   fireEvent.change(screen.getByLabelText("Show on"), { target: { value: "today" } });
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
@@ -147,16 +170,18 @@ it("saves page choices per rule and disables editing when storage is unavailable
   mocks.family.notifications = { ...emptyPlanner().notifications, rules };
   view.rerender(content());
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Notification content");
   expect(screen.getByLabelText("Show on")).toHaveValue("today");
   mocks.shared.state.error = "Storage unavailable";
   view.rerender(content());
   expect(screen.getByLabelText("Show on")).toBeDisabled();
 });
 
-it("inherits the saved global page choice for existing and new rules", () => {
+it("inherits the saved global page choice for existing and new rules", async () => {
   mocks.family.notifications = { ...emptyPlanner().notifications, pages: "today", rules: [cameraRule()] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Notification content");
   expect(screen.getByLabelText("Show on")).toHaveValue("today");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(screen.getByRole("button", { name: "Add Ongoing tasks" }));
@@ -264,10 +289,11 @@ it("summarizes banners while keeping camera, dismiss, retry and the full list av
   expect(value.retry).toHaveBeenCalledOnce();
 });
 
-it("preserves drafts on invalid filters or failed saves and blocks settings edits before storage loads", () => {
+it("preserves drafts on invalid filters or failed saves and blocks settings edits before storage loads", async () => {
   const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add Current alerts" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example event" } });
+  await openEditorSection("When to show it");
   fireEvent.change(screen.getByLabelText("Trigger"), { target: { value: "ha-event" } });
   fireEvent.change(screen.getByLabelText("Event type"), { target: { value: "example_event" } });
   fireEvent.change(screen.getByLabelText("Event data filters (JSON)", { exact: false }), { target: { value: "[1]" } });
@@ -617,9 +643,13 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   const content = screen.getByRole("button", { name: "Notification content" });
   const trigger = screen.getByRole("button", { name: "When to show it" });
   const readings = screen.getByRole("button", { name: "Entities and readings" });
-  expect(content).toHaveAttribute("aria-expanded", "true");
-  expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toHaveLength(0);
+  expect(content).toHaveFocus();
+  expect(content).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
   expect(readings).toHaveAttribute("aria-expanded", "false");
+  await openEditorSection("Notification content");
+  await openEditorSection("When to show it");
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Draft title" } });
   fireEvent.click(content);
   await waitFor(() => expect(screen.getByLabelText("Title")).not.toBeVisible());
@@ -639,6 +669,10 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   expect(content).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByLabelText("Title")).toHaveValue("");
   expect(screen.getByRole("alert")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toHaveLength(0);
+  expect(screen.getByLabelText("Title")).not.toHaveFocus();
 });
 
 

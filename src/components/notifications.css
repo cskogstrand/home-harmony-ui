@@ -1,9 +1,8 @@
 .notification-editor { width: min(1160px, calc(100% - 24px)); max-width: 1160px; height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; }
 .notification-editor-form { min-height: 0; flex: 1; }
 .notification-editor-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; min-height: 0; flex: 1; overflow-y: auto; scrollbar-gutter: stable; scroll-padding-block: .25rem; }
-.notification-editor-fields { min-width: 0; padding: .25rem; }
-.notification-editor-section { border-bottom: 1px solid hsl(var(--border)); }
-.notification-editor-section:last-child { border-bottom: 0; }
+.notification-editor-fields { min-width: 0; padding: .25rem; display: flex; flex-direction: column; gap: .625rem; align-self: start; }
+.notification-editor-section { border: 0; }
 .notification-editor-section > [role="region"] { animation: none; transition: none; }
 .notification-section-shell { padding: 0; }
 .notification-editor-section > [aria-hidden="true"] .notification-icon :is(svg, path, line) { animation-play-state: paused; }
@@ -13,11 +12,16 @@
 .notification-entity-heading strong { display: block; font-size: .9375rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
 .notification-entity-heading .page-note { margin-top: .25rem; font-size: .8125rem; }
 .notification-entity-heading > button { flex-shrink: 0; }
-.notification-editor-section > h3 { position: sticky; top: 0; z-index: 1; background: hsl(var(--nav-background)); border-radius: 8px; }
-.notification-editor-section > h3 > button { gap: 1rem; padding-block: 1rem; text-align: left; border-radius: 8px; text-decoration: none; }
+.notification-editor-section > h3 { position: sticky; top: 0; z-index: 1; background: hsl(var(--nav-background)); border-radius: 14px; }
+.notification-editor-section > h3 > button { gap: 1rem; min-height: 3.5rem; padding: .875rem 1rem; text-align: left; border-radius: inherit; text-decoration: none; }
+.notification-editor-section > h3 > button[data-state="open"] { background: hsl(var(--muted)); }
 .notification-editor-section > h3 > button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
-.notification-editor-section-content { display: flex; flex-direction: column; gap: 1rem; padding-bottom: 1.5rem; }
-.notification-editor-section .panel-title, .notification-preview .panel-title { font-size: 1.25rem; font-weight: 600; }
+.notification-editor-section-content { display: flex; flex-direction: column; gap: 1rem; padding: 1rem .25rem; }
+.notification-editor-section .panel-title { font-size: 1.0625rem; font-weight: 600; }
+.notification-preview .panel-title { font-size: 1.25rem; font-weight: 600; }
+@media (hover: hover) {
+  .notification-editor-section > h3 > button:hover { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+}
 .notification-editor-section .page-note, .notification-preview .page-note { margin: 0; }
 .notification-toggle { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .notification-toggle > span { font-size: .9375rem; font-weight: 500; }
