@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.4
+
+<!-- release-source: 0036e315fe0f131d2fbec5ba4ed3c49d754244b8 -->
+
+- feat: gate summary playback with input\_boolean
+
 ## 0.10.3
 
 <!-- release-source: ffcb13b687ae917ba59cf9d31910f3635af7f44f -->
