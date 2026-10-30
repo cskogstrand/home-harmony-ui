@@ -69,6 +69,7 @@ it("defaults old list settings and shares and restores homework assignments", as
 it.each([
   ["morningSummaryEntity", "sensor.afterglow_morning_summary", "home|stable-summary"],
   ["morningSummaryScript", "script.morning_summary_voice", "home|stable-voice"],
+  ["morningSummaryPlaybackEntity", "", "home|stable-playback"],
 ] as const)("defaults older %s settings and shares and restores the choice", async (field, defaultEntity, selected) => {
   const config = emptyConfiguration();
   expect(config.settings[field]).toBe(defaultEntity);

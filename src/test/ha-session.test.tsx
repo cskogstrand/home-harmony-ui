@@ -365,22 +365,24 @@ it("shows ordered morning messages with matching faces and emoji fallbacks", asy
 });
 
 it.each([
-  ["script.morning_summary_voice", "script.morning_summary_voice"],
-  ["script.example_voice", "script.example_voice"],
-  ["home|script.example_voice", "script.example_voice"],
-])("plays the morning summary with %s and blocks duplicate, unavailable and offline starts", async (selected, scriptId) => {
+  ["script.morning_summary_voice", "script.morning_summary_voice", "input_boolean.example_playback"],
+  ["script.example_voice", "script.example_voice", "home|input_boolean.example_playback"],
+  ["home|script.example_voice", "script.example_voice", "home|input_boolean.example_playback"],
+])("plays the morning summary with %s only when the selected helper is on and blocks duplicate, unavailable and offline starts", async (selected, scriptId, playbackEntity) => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
   vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
   serverConfig.settings.morningSummaryEntity = "home|sensor.example_summary";
   serverConfig.settings.morningSummaryScript = selected;
+  serverConfig.settings.morningSummaryPlaybackEntity = playbackEntity;
   render(<App />);
   await waitFor(() => expect(conn.entityCallback).toBeDefined());
   const summaryId = "sensor.example_summary";
-  const publish = (scriptState?: string) => act(() => conn.entityCallback?.({
+  const publish = (scriptState?: string, playbackState: string | null = "on") => act(() => conn.entityCallback?.({
     ...states,
     [summaryId]: state(summaryId, "2026-10-19", { message: "God morgen! Husk gymtøy." }),
     ...(scriptState ? { [scriptId]: state(scriptId, scriptState) } : {}),
+    ...(playbackState ? { "input_boolean.example_playback": state("input_boolean.example_playback", playbackState) } : {}),
   }));
   publish();
   const panel = await screen.findByRole("region", { name: "Morning summary" });
@@ -389,6 +391,13 @@ it.each([
   publish("off");
   const play = within(panel).getByRole("button", { name: "Play summary" });
   await waitFor(() => expect(play).toBeEnabled());
+  for (const playbackState of ["off", "unknown", "unavailable", "true", null]) {
+    publish("off", playbackState);
+    expect(play).toBeDisabled();
+    fireEvent.click(play);
+    publish("off", "on");
+    expect(play).toBeEnabled();
+  }
   expect(ha.callService).not.toHaveBeenCalled();
 
   const request = deferred<object>();
@@ -443,16 +452,39 @@ it.each(["", "script.missing", "home|missing", "sensor.afterglow_morning_summary
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
-it("disables summary playback when script.turn_on is unsupported", async () => {
+it.each(["", "input_boolean.missing", "home|missing", "switch.example_playback"])("disables summary playback for helper selection %j without falling back to another entity", async selected => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
-  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: {} });
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
+  serverConfig.settings.morningSummaryPlaybackEntity = selected;
   render(<App />);
   await waitFor(() => expect(conn.entityCallback).toBeDefined());
   act(() => conn.entityCallback?.({
     ...states,
     "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", "2026-10-19", { message: "Example summary." }),
     "script.morning_summary_voice": state("script.morning_summary_voice", "off"),
+    "input_boolean.example_playback": state("input_boolean.example_playback", "on"),
+    "switch.example_playback": state("switch.example_playback", "on"),
+  }));
+  const panel = await screen.findByRole("region", { name: "Morning summary" });
+  const play = within(panel).getByRole("button", { name: "Play summary" });
+  expect(play).toBeDisabled();
+  fireEvent.click(play);
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it("disables summary playback when script.turn_on is unsupported", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: {} });
+  serverConfig.settings.morningSummaryPlaybackEntity = "input_boolean.example_playback";
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  act(() => conn.entityCallback?.({
+    ...states,
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", "2026-10-19", { message: "Example summary." }),
+    "script.morning_summary_voice": state("script.morning_summary_voice", "off"),
+    "input_boolean.example_playback": state("input_boolean.example_playback", "on"),
   }));
   const panel = await screen.findByRole("region", { name: "Morning summary" });
   const play = within(panel).getByRole("button", { name: "Play summary" });

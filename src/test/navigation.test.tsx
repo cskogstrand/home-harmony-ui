@@ -580,6 +580,35 @@ it.each([
   expect(screen.queryByRole("button", { name: play })).not.toBeInTheDocument();
 });
 
+it.each([
+  ["en", "Customize Today", "Playback switch (input_boolean)", "Clear selection", "Play is available only when this helper is on. Without a selection, playback is disabled."],
+  ["nb", "Tilpass I dag", "Avspillingsbryter (input_boolean)", "Fjern valg", "Spill av er bare tilgjengelig når denne hjelperen er på. Uten et valg er avspilling deaktivert."],
+] as const)("selects, persists and clears only an input_boolean for summary playback in %s", async (language, customize, label, clear, help) => {
+  settings.settings.language = language;
+  app.currentHome = mapHome({
+    "input_boolean.example_playback": state("input_boolean.example_playback", "on", { friendly_name: "Example playback" }),
+    "switch.example_playback": state("switch.example_playback", "on"),
+    "sensor.example": state("sensor.example", "on"),
+  }, { ...emptyRegistries, entities: [{ entity_id: "input_boolean.example_playback", id: "stable-playback" }] }, "home");
+  const first = render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: customize }));
+  const picker = screen.getByRole("button", { name: label });
+  await waitFor(() => expect(picker).toBeEnabled());
+  expect(picker).toHaveAccessibleDescription(expect.stringContaining(help));
+  fireEvent.click(picker);
+  const options = within(screen.getByRole("dialog", { name: label }));
+  expect(options.queryByRole("button", { name: /switch\.example_playback/ })).not.toBeInTheDocument();
+  expect(options.queryByRole("button", { name: /sensor\.example/ })).not.toBeInTheDocument();
+  fireEvent.click(options.getByRole("button", { name: "Example playback · input_boolean.example_playback" }));
+  await waitFor(() => expect(settings.settings.morningSummaryPlaybackEntity).toBe("home|stable-playback"));
+  first.unmount(); render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: customize }));
+  await waitFor(() => expect(screen.getByRole("button", { name: label })).toHaveTextContent("Example playback"));
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: label })).getByRole("button", { name: clear }));
+  await waitFor(() => expect(settings.settings.morningSummaryPlaybackEntity).toBe(""));
+});
+
 it("saves a custom next-plan window, fetches the full range and returns to Auto", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));

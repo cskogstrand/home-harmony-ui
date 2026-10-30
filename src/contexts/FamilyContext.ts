@@ -53,6 +53,7 @@ interface FamilyContextValue extends FamilyState {
   setSelectedAlarm: (id: string) => boolean;
   setMorningSummaryEntity: (id: string) => boolean;
   setMorningSummaryScript: (id: string) => boolean;
+  setMorningSummaryPlaybackEntity: (id: string) => boolean;
   setWeatherEntity: (id: string) => boolean;
   setWasteCalendarEntity: (id: string) => boolean;
   setWasteCollectionDays: (days: number) => boolean;

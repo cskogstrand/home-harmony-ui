@@ -70,6 +70,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setSelectedAlarm: id => setPlanner(p => ({ ...p, selectedAlarm: id })),
     setMorningSummaryEntity: id => setPlanner(p => ({ ...p, morningSummaryEntity: id })),
     setMorningSummaryScript: id => setPlanner(p => ({ ...p, morningSummaryScript: id })),
+    setMorningSummaryPlaybackEntity: id => setPlanner(p => ({ ...p, morningSummaryPlaybackEntity: id })),
     setWeatherEntity: id => setPlanner(p => ({ ...p, weatherEntity: id })),
     setWasteCalendarEntity: id => setPlanner(p => ({ ...p, wasteCalendarEntity: id })),
     setWasteCollectionDays: days => setPlanner(p => ({ ...p, wasteCollectionDays: days })),

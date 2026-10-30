@@ -45,9 +45,10 @@ const morningSummaryIcons = new Map<string, LucideIcon>([
 export function MorningSummary() {
   const { t } = useI18n();
   const { currentHome, homeOnline, command, commands, services } = useApp();
-  const { today, morningSummaryEntity, morningSummaryScript } = useFamily();
+  const { today, morningSummaryEntity, morningSummaryScript, morningSummaryPlaybackEntity } = useFamily();
   const summary = currentHome.entities.find(entity => entity.preferenceId === morningSummaryEntity || entity.entityId === morningSummaryEntity);
   const script = currentHome.entities.find(entity => entity.domain === "script" && (entity.preferenceId === morningSummaryScript || entity.entityId === morningSummaryScript));
+  const playbackSwitch = currentHome.entities.find(entity => entity.domain === "input_boolean" && (entity.preferenceId === morningSummaryPlaybackEntity || entity.entityId === morningSummaryPlaybackEntity));
   const scriptId = script?.entityId ?? "";
   const running = script?.state === "on" || !!commands[scriptId]?.pending;
   const message = summary?.attributes.message;
@@ -66,7 +67,7 @@ export function MorningSummary() {
     <div className="panel-heading">
       <PanelTitle icon={Icon}>{title}</PanelTitle>
       {script && <div className="command-controller shrink-0" aria-busy={running}>
-        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={!homeOnline || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
+        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={playbackSwitch?.state !== "on" || !homeOnline || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
           <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? t("Preparing summary…") : t("Play summary")}</span>
         </Button>
         {!commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}

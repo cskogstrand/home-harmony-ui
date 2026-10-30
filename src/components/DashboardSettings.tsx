@@ -19,7 +19,7 @@ const sectionLabels = {
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
-  const { dashboard, setDashboard, morningSummaryEntity, setMorningSummaryEntity, morningSummaryScript, setMorningSummaryScript, wasteCalendarEntity, setWasteCalendarEntity, wasteCollectionDays, setWasteCollectionDays } = useFamily();
+  const { dashboard, setDashboard, morningSummaryEntity, setMorningSummaryEntity, morningSummaryScript, setMorningSummaryScript, morningSummaryPlaybackEntity, setMorningSummaryPlaybackEntity, wasteCalendarEntity, setWasteCalendarEntity, wasteCollectionDays, setWasteCollectionDays } = useFamily();
   const { currentHome } = useApp();
   const shared = useSharedConfiguration();
   const disabled = !shared?.state.loaded || !!shared.state.error;
@@ -75,6 +75,11 @@ export function DashboardSettings() {
               onChange={setMorningSummaryScript} groupByDevice={false} clearLabel={t("Clear selection")}
               disabled={disabled} describedBy="morning-summary-script-help" />
             <p id="morning-summary-script-help" className="mt-2 text-sm text-muted-foreground">{t("The script that runs when you press Play. Choose the speaker and voice in Home Assistant.")}</p>
+            <EntityPicker className="mt-4" label={t("Playback switch (input_boolean)")} entities={currentHome.entities.filter(entity => entity.domain === "input_boolean")}
+              value={currentHome.entities.find(entity => entity.entityId === morningSummaryPlaybackEntity)?.preferenceId ?? morningSummaryPlaybackEntity}
+              onChange={setMorningSummaryPlaybackEntity} groupByDevice={false} clearLabel={t("Clear selection")}
+              disabled={disabled} describedBy="morning-summary-playback-help" />
+            <p id="morning-summary-playback-help" className="mt-2 text-sm text-muted-foreground">{t("Play is available only when this helper is on. Without a selection, playback is disabled.")}</p>
           </div>}
           {key === "nextPlan" && dashboard.nextPlan && <fieldset className="grid min-w-0 gap-3 pb-4" disabled={!shared?.state.loaded || !!shared.state.error}>
             <label className="grid gap-2 text-sm">{t("Look ahead")}

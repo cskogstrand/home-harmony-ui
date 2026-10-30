@@ -673,6 +673,8 @@ export const nb = {
   "Morning summary": "Morgenoppsummering",
   "Morning summary sensor": "Sensor for morgenoppsummering",
   "Playback script": "Avspillingsskript",
+  "Playback switch (input_boolean)": "Avspillingsbryter (input_boolean)",
+  "Play is available only when this helper is on. Without a selection, playback is disabled.": "Spill av er bare tilgjengelig når denne hjelperen er på. Uten et valg er avspilling deaktivert.",
   "The script that runs when you press Play. Choose the speaker and voice in Home Assistant.": "Skriptet som kjøres når du trykker Spill av. Høyttaler og stemme velges i Home Assistant.",
   "Choose valid script variables.": "Velg gyldige skriptvariabler.",
   "Shown only when the selected sensor has a summary dated today.": "Vises bare når den valgte sensoren har en oppsummering datert i dag.",
