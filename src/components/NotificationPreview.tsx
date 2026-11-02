@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { notificationEntity, progressSourceValue } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
-import { notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
+import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
 import { NotificationRow } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Button } from "./ui/button";
@@ -52,7 +52,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
       if (attribute) { if (!available(entity)) entity.state = "0"; entity.attributes[attribute] = value; }
       else entity.state = String(value);
     };
-    if ("entity" in previewRule.trigger) setReading(previewRule.trigger.entity, previewRule.trigger.type === "state" ? previewRule.trigger.value : "on", t("Example source"), previewRule.trigger.type === "state" ? previewRule.trigger.attribute : "");
+    for (const trigger of notificationTriggers(previewRule)) if ("entity" in trigger) setReading(trigger.entity, trigger.type === "state" ? trigger.value : "on", t("Example source"), trigger.type === "state" ? trigger.attribute : "");
     previewRule.detailEntities.forEach((reference, index) => {
       const entity = notificationEntity(entities, reference);
       const value = entity?.attributes.device_class === "timestamp" ? new Date(Date.now() + 1800000).toISOString() : index === 0 ? Math.round(90 * (1 - percent / 100)) : 90;

@@ -1,13 +1,13 @@
 import { configuredCamera } from "../../shared/cameras";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap } from "lucide-react";
+import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { notificationEntity, notificationReadings } from "@/lib/notifications";
-import { notificationRuleSchema, type NotificationRule, type NotificationTrigger } from "../../shared/notifications";
+import { MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger } from "../../shared/notifications";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
 import { Accordion } from "./ui/accordion";
@@ -47,7 +47,7 @@ export function NotificationSettings() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const [original, setOriginal] = useState("");
-  const [filters, setFilters] = useState("{}");
+  const [filters, setFilters] = useState<string[]>(["{}"]);
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<NotificationRule>();
   const editor = useRef<HTMLFormElement>(null);
@@ -62,14 +62,14 @@ export function NotificationSettings() {
   const begin = (rule: NotificationRule, existing = false) => {
     setOpenSections([...(rule.title.trim() ? [] : ["content"]), ...(rule.kind === "camera" ? ["camera"] : [])]);
     setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
-    setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
+    setFilters(notificationTriggers(rule).map(trigger => trigger.type === "ha-event" ? JSON.stringify(trigger.filters, null, 2) : "{}"));
   };
   useEffect(() => {
     if (!requestedCamera || !shared?.state.loaded || draft) return;
     const camera = configuredCamera(cameras, requestedCamera);
     if (!camera) return;
     setDraft({ id: newPlannerId(), title: camera.name.slice(0, 100), message: "", kind: "camera", enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: camera.id, durationSeconds: 60, cooldownSeconds: 10 });
-    setOriginal(""); setError(""); setOpenSections(["camera", "trigger"]);
+    setOriginal(""); setError(""); setFilters(["{}"]); setOpenSections(["camera", "trigger"]);
     const next = new URLSearchParams(params); next.delete("camera"); setParams(next, { replace: true });
   }, [requestedCamera, shared?.state.loaded, cameras, draft, params, setParams]);
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string) => {
@@ -80,22 +80,20 @@ export function NotificationSettings() {
     if (draft.kind === "camera" && !configuredCamera(cameras, draft.cameraEntity)) { setOpenSections(sections => [...new Set([...sections, "camera"])]); setError("Choose a camera you have added in Camera settings."); return; }
     const current = notifications.rules.find(rule => rule.id === draft.id);
     if (original && JSON.stringify(current) !== original) { setError("This rule changed on another screen. Cancel and reopen it before saving."); return; }
-    let trigger = draft.trigger;
-    if (trigger.type === "ha-event") {
-      try { trigger = { ...trigger, filters: JSON.parse(filters) }; }
-      catch { setOpenSections(sections => [...new Set([...sections, "trigger"])]); setError("Event filters must be a JSON object, for example {\"action\":\"single\"}."); return; }
-    }
+    let triggers: NotificationTrigger[];
+    try { triggers = notificationTriggers(draft).map((trigger, index) => trigger.type === "ha-event" ? { ...trigger, filters: JSON.parse(filters[index]) } : trigger); }
+    catch { setOpenSections(sections => [...new Set([...sections, "trigger"])]); setError("Event filters must be a JSON object, for example {\"action\":\"single\"}."); return; }
     const readings = notificationReadings(draft);
-    const result = notificationRuleSchema.safeParse({ ...draft, trigger, ...(draft.entityDisplay && { entityDisplay: draft.entityDisplay.filter(item => readings.some(reading => reading.entity === item.entity && reading.attribute === item.attribute)) }) });
+    const result = notificationRuleSchema.safeParse({ ...draft, trigger: triggers[0], additionalTriggers: triggers.length > 1 ? triggers.slice(1) : undefined, ...(draft.entityDisplay && { entityDisplay: draft.entityDisplay.filter(item => readings.some(reading => reading.entity === item.entity && reading.attribute === item.attribute)) }) });
     if (!result.success) {
-      const sectionForField = { title: "content", message: "content", presentation: "presentation", trigger: "trigger", cameraEntity: "camera", cameraMedia: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+      const sectionForField = { title: "content", message: "content", presentation: "presentation", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
       setOpenSections(sections => [...new Set([...sections, ...result.error.issues.map(issue => sectionForField[issue.path[0]] ?? "content")])]);
       setError(result.error.issues.some(issue => issue.path[0] === "progress") ? "Check progress: choose numeric sources and different start and end values." : "Check the title, trigger, camera and numeric values. Event filters must contain at most 10 text, number or boolean fields."); return; }
     const rules = current ? notifications.rules.map(rule => rule.id === draft.id ? result.data : rule) : [...notifications.rules, result.data];
     if (setNotifications({ rules })) setDraft(undefined);
     else setError("The rule could not be saved. Your draft is still here. Check settings storage and retry.");
   };
-  const source = draft && "entity" in draft.trigger ? notificationEntity(entities, draft.trigger.entity) : undefined;
+  const setTriggers = (triggers: NotificationTrigger[]) => setDraft({ ...draft, trigger: triggers[0], additionalTriggers: triggers.length > 1 ? triggers.slice(1) : undefined });
   return <section className="glow-panel" id="notifications">
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Home Harmony is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
@@ -131,9 +129,9 @@ export function NotificationSettings() {
       <ul className="divide-y">{rules.map(rule => {
       const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
       const Icon = icons[rule.kind];
-      const missing = ("entity" in rule.trigger && !source) || (rule.kind === "camera" && !configuredCamera(cameras, rule.cameraEntity));
+      const missing = notificationTriggers(rule).some(trigger => "entity" in trigger && !notificationEntity(entities, trigger.entity)) || (rule.kind === "camera" && !configuredCamera(cameras, rule.cameraEntity));
       return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
-        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
+        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}{notificationTriggers(rule).length > 1 && <> · {t("{count} triggers", { count: notificationTriggers(rule).length })}</>}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
         <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
         <Switch aria-label={t("Enable {name}", { name: rule.title })} checked={rule.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, enabled } : item) })} />
         <Button variant="ghost" disabled={disabled} onClick={() => begin(rule, true)} aria-label={t("Edit {name}", { name: rule.title })}>{t("Edit")}</Button>
@@ -164,23 +162,44 @@ export function NotificationSettings() {
           <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />
         </NotificationEditorSection>
         <NotificationEditorSection value="trigger" title={t("When to show it")} icon={Zap} open={openSections.includes("trigger")}>
-        <label>{t("Trigger")}<select value={draft.trigger.type} onChange={event => { setDraft({ ...draft, trigger: newTrigger(event.target.value as NotificationTrigger["type"]) }); setFilters("{}"); }}>
-          <option value="state">{t("Entity state")}</option>
-          {draft.kind !== "ongoing" && <><option value="entity-event">{t("Event entity")}</option><option value="ha-event">{t("Home Assistant event")}</option></>}
-          {draft.kind === "current" && <option value="calendar">{t("Calendar event")}</option>}
-        </select></label>
-        {"entity" in draft.trigger && selectEntity("Source entity", draft.trigger.entity, entity => setDraft({ ...draft, trigger: { ...draft.trigger, entity } as NotificationTrigger }), draft.trigger.type === "calendar" ? "calendar" : draft.trigger.type === "entity-event" ? "event" : undefined)}
-        {draft.trigger.type === "state" && <>
-          <p className="page-note">{t("Shown while the condition matches. Camera popups open only when it becomes true.")}{source && <> {t("Reported state: {state}", { state: source.attributes.mode === "password" ? "••••••" : source.state })}</>}</p>
-          <label>{t("Attribute (optional)")}<input maxLength={100} value={draft.trigger.attribute} placeholder={t("Leave empty to use the state")} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, attribute: event.target.value } as NotificationTrigger })} /></label>
-          <div className="grid gap-3 sm:grid-cols-2"><label>{t("Condition")}<select value={draft.trigger.operator} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, operator: event.target.value } as NotificationTrigger })}>
-            <option value="eq">{t("Equals")}</option><option value="neq">{t("Does not equal")}</option><option value="gt">{t("Above")}</option><option value="lt">{t("Below")}</option>
-          </select></label><label>{t("Value")}<input required maxLength={256} value={draft.trigger.value} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, value: event.target.value } as NotificationTrigger })} /></label></div>
-        </>}
-        {(draft.trigger.type === "entity-event" || draft.trigger.type === "ha-event") && <label>{t(draft.trigger.type === "entity-event" ? "Event type (optional)" : "Event type")}<input required={draft.trigger.type === "ha-event"} maxLength={100} value={draft.trigger.eventType} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, eventType: event.target.value } as NotificationTrigger })} /></label>}
-        {draft.trigger.type === "entity-event" && <p className="page-note">{t("Triggers on a new event timestamp. Leave the event type empty to match every event from this entity.")}</p>}
-        {draft.trigger.type === "ha-event" && <label>{t("Event data filters (JSON)")}<textarea rows={3} value={filters} maxLength={8000} onChange={event => setFilters(event.target.value)} /><span className="page-note">{t("Match exact top-level fields, such as action or device_id. Empty filters match every event of this type.")}</span></label>}
-        {draft.trigger.type === "calendar" && <label>{t("Show minutes before start")}<input type="number" min={0} max={1440} required value={draft.trigger.leadMinutes} onChange={event => setDraft({ ...draft, trigger: { ...draft.trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger })} /></label>}
+        <p className="page-note">{t("Any trigger can show this notification. Camera and event triggers share one cooldown.")}</p>
+        {notificationTriggers(draft).map((trigger, index, triggers) => {
+          const source = "entity" in trigger ? notificationEntity(entities, trigger.entity) : undefined;
+          const update = (value: NotificationTrigger) => setTriggers(triggers.map((item, i) => i === index ? value : item));
+          return <fieldset key={index} className="notification-trigger" disabled={disabled} data-trigger-index={index}>
+            <legend className="sr-only">{t("Trigger {number}", { number: index + 1 })}</legend>
+            {triggers.length > 1 && <div className="flex items-center justify-between gap-3">
+              <strong>{t("Trigger {number}", { number: index + 1 })}</strong>
+              <Button type="button" variant="ghost" size="icon" aria-label={t("Remove trigger {number}", { number: index + 1 })} onClick={() => {
+                setTriggers(triggers.filter((_, i) => i !== index)); setFilters(values => values.filter((_, i) => i !== index));
+                requestAnimationFrame(() => editor.current?.querySelector<HTMLButtonElement>("[data-add-trigger]")?.focus());
+              }}><X size={18} aria-hidden="true" /></Button>
+            </div>}
+            <label>{t("Trigger")}<select value={trigger.type} onChange={event => { update(newTrigger(event.target.value as NotificationTrigger["type"])); setFilters(values => values.map((value, i) => i === index ? "{}" : value)); }}>
+              <option value="state">{t("Entity state")}</option>
+              {draft.kind !== "ongoing" && <><option value="entity-event">{t("Event entity")}</option><option value="ha-event">{t("Home Assistant event")}</option></>}
+              {draft.kind === "current" && <option value="calendar">{t("Calendar event")}</option>}
+            </select></label>
+            {"entity" in trigger && selectEntity("Source entity", trigger.entity, entity => update({ ...trigger, entity } as NotificationTrigger), trigger.type === "calendar" ? "calendar" : trigger.type === "entity-event" ? "event" : undefined)}
+            {trigger.type === "state" && <>
+              <p className="page-note">{t("Shown while the condition matches. Camera popups open only when it becomes true.")}{source && <> {t("Reported state: {state}", { state: source.attributes.mode === "password" ? "••••••" : source.state })}</>}</p>
+              <label>{t("Attribute (optional)")}<input maxLength={100} value={trigger.attribute} placeholder={t("Leave empty to use the state")} onChange={event => update({ ...trigger, attribute: event.target.value } as NotificationTrigger)} /></label>
+              <div className="grid gap-3 sm:grid-cols-2"><label>{t("Condition")}<select value={trigger.operator} onChange={event => update({ ...trigger, operator: event.target.value } as NotificationTrigger)}>
+                <option value="eq">{t("Equals")}</option><option value="neq">{t("Does not equal")}</option><option value="gt">{t("Above")}</option><option value="lt">{t("Below")}</option>
+              </select></label><label>{t("Value")}<input required maxLength={256} value={trigger.value} onChange={event => update({ ...trigger, value: event.target.value } as NotificationTrigger)} /></label></div>
+            </>}
+            {(trigger.type === "entity-event" || trigger.type === "ha-event") && <label>{t(trigger.type === "entity-event" ? "Event type (optional)" : "Event type")}<input required={trigger.type === "ha-event"} maxLength={100} value={trigger.eventType} onChange={event => update({ ...trigger, eventType: event.target.value } as NotificationTrigger)} /></label>}
+            {trigger.type === "entity-event" && <p className="page-note">{t("Triggers on a new event timestamp. Leave the event type empty to match every event from this entity.")}</p>}
+            {trigger.type === "ha-event" && <label>{t("Event data filters (JSON)")}<textarea rows={3} value={filters[index]} maxLength={8000} onChange={event => setFilters(values => values.map((value, i) => i === index ? event.target.value : value))} /><span className="page-note">{t("Match exact top-level fields, such as action or device_id. Empty filters match every event of this type.")}</span></label>}
+            {trigger.type === "calendar" && <label>{t("Show minutes before start")}<input type="number" min={0} max={1440} required value={trigger.leadMinutes} onChange={event => update({ ...trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger)} /></label>}
+          </fieldset>;
+        })}
+        <Button type="button" variant="outline" data-add-trigger disabled={disabled || notificationTriggers(draft).length >= MAX_NOTIFICATION_TRIGGERS} onClick={() => {
+          const index = notificationTriggers(draft).length;
+          setTriggers([...notificationTriggers(draft), newTrigger("state")]); setFilters(values => [...values, "{}"]);
+          requestAnimationFrame(() => editor.current?.querySelector<HTMLSelectElement>(`[data-trigger-index="${index}"] select`)?.focus());
+        }}><Plus size={18} aria-hidden="true" />{t("Add trigger")}</Button>
+        {notificationTriggers(draft).length >= MAX_NOTIFICATION_TRIGGERS && <p className="page-note">{t("Choose up to {count} triggers.", { count: MAX_NOTIFICATION_TRIGGERS })}</p>}
         </NotificationEditorSection>
         <NotificationEditorSection value="readings" title={t("Entities and readings")} icon={Gauge} open={openSections.includes("readings")}>
             <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={changes => setDraft({ ...draft, ...changes })} onEditUsage={editUsage} />
@@ -193,7 +212,7 @@ export function NotificationSettings() {
           {draft.kind === "ongoing" && <div className="notification-toggle"><span>{t("Animate activity icon")}</span><Switch aria-label={t("Animate activity icon")} checked={draft.animateIcon !== false} disabled={disabled} onCheckedChange={animateIcon => setDraft({ ...draft, animateIcon })} /></div>}
           <p className="page-note">{t("Icons animate in activity cards while the task is active. Reduced motion keeps them still.")}</p>
         </NotificationEditorSection>
-        {(draft.kind === "camera" || ["entity-event", "ha-event"].includes(draft.trigger.type)) && <NotificationEditorSection value="timing" title={t("Timing")} icon={Timer} open={openSections.includes("timing")}><div className="grid gap-3 sm:grid-cols-2">
+        {(draft.kind === "camera" || notificationTriggers(draft).some(trigger => ["entity-event", "ha-event"].includes(trigger.type))) && <NotificationEditorSection value="timing" title={t("Timing")} icon={Timer} open={openSections.includes("timing")}><div className="grid gap-3 sm:grid-cols-2">
           <label>{t("Show for (seconds)")}<input type="number" min={10} max={3600} required value={draft.durationSeconds} onChange={event => setDraft({ ...draft, durationSeconds: event.target.valueAsNumber })} /></label>
           <label>{t("Cooldown (seconds)")}<input type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>
         </div></NotificationEditorSection>}

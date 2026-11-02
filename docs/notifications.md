@@ -12,7 +12,11 @@ The banner shows up to three alerts, including additional readings and camera/di
 
 Rules, titles, messages and selected entities are saved in shared settings and included in settings backups. Each rule and the whole notification system can be switched off. No rule is enabled until you add it.
 
-## Choose a trigger
+## Choose triggers
+
+Under **When to show it** (**Når varselet skal vises**), use **Add trigger** (**Legg til utløser**) to configure up to 10 triggers for one notification. **Any** trigger can activate it. For example, one camera popup can respond to both a doorbell event and a motion sensor. Each trigger has its own source, condition or event filters, and can be removed while at least one remains. Existing single-trigger rules keep working, and extra triggers are shared across screens and included in backups.
+
+State alerts stay visible while at least one state condition matches. Camera state triggers react independently: a second sensor becoming active can open the camera even while the first is still active. All camera and momentary-event triggers in a rule share its cooldown and duration; simultaneous matches create one timed alert. Calendar events remain separate alerts, and mixed current-alert rules keep their state, calendar and timed alerts independent.
 
 Entity fields use the shared [entity picker](entity-picker.md). Choose a device to narrow the list, choose **All entities** or **Without a device**, or search directly by name, entity ID, room or integration. Calendar fields show supported calendar entities. Camera selection is separate and lists your configured cameras. Unavailable saved entity selections stay visible until you replace or remove them.
 

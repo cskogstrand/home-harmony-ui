@@ -1,3 +1,4 @@
+import { notificationTriggers } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -116,9 +117,8 @@ export function NotificationCamera() {
   const item = notifications.find(item => item.popup && item.rule.kind === "camera");
   const shared = useSharedConfiguration();
   const selectedCamera = item && configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
-  const source = item && "entity" in item.rule.trigger ? notificationEntity(currentHome.entities, item.rule.trigger.entity) : undefined;
   const seconds = item?.expiresAt === undefined ? undefined : Math.max(0, Math.ceil((item.expiresAt - Date.now()) / 1000));
-  const countdown = seconds !== undefined && !matchesState(item.rule, source);
+  const countdown = seconds !== undefined && !notificationTriggers(item.rule).some(trigger => trigger.type === "state" && matchesState(trigger, notificationEntity(currentHome.entities, trigger.entity)));
   const returnFocus = useRef<HTMLElement | null>(null);
   return <Dialog open={!!item} onOpenChange={open => { if (!open && item) camera(item.id, false); }}>
     <DialogContent className="smart-media-dialog" onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }} onCloseAutoFocus={event => {

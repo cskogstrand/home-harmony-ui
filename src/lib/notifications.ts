@@ -1,4 +1,4 @@
-import type { NotificationRule, NotificationProgress, NotificationProgressSource, NotificationEntityDisplay } from "../../shared/notifications";
+import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
 
@@ -21,11 +21,11 @@ export function notificationReadings(rule: NotificationRule) {
     if (!entity) return;
     const existing = readings.find(reading => reading.entity === entity && reading.attribute === attribute);
     if (existing) {
-      existing.roles.push(role);
+      if (!existing.roles.includes(role)) existing.roles.push(role);
       if (role === "Additional reading") existing.defaultPlacement = placement;
     } else readings.push({ entity, attribute, name: "", placement: "auto", defaultPlacement: placement, roles: [role] });
   };
-  if ("entity" in rule.trigger) add(rule.trigger.entity, rule.trigger.type === "state" ? rule.trigger.attribute : "", "Source entity", rule.trigger.type === "state" ? "subtitle" : "hidden");
+  for (const trigger of notificationTriggers(rule)) if ("entity" in trigger) add(trigger.entity, trigger.type === "state" ? trigger.attribute : "", "Source entity", trigger.type === "state" ? "subtitle" : "hidden");
   rule.detailEntities.forEach((entity, index) => add(entity, "", "Additional reading", index === 0 ? "left" : index === 1 ? "right" : "footer"));
   if (rule.progress) {
     for (const [key, role] of [["current", "Current value"], ["start", "Start value"], ["end", "End / total value"]] as const) {
@@ -58,8 +58,7 @@ export function notificationProgress(progress: NotificationProgress, entities: E
   return { current, start, end, percent: Math.max(0, Math.min(100, fraction * 100)) };
 }
 
-export function matchesState(rule: NotificationRule, entity?: Entity) {
-  const trigger = rule.trigger;
+export function matchesState(trigger: NotificationTrigger, entity?: Entity) {
   if (trigger.type !== "state" || !entity) return false;
   const value = trigger.attribute ? entity.attributes[trigger.attribute] : entity.state;
   if (!["string", "number", "boolean"].includes(typeof value)) return false;
@@ -71,13 +70,12 @@ export function matchesState(rule: NotificationRule, entity?: Entity) {
   return trigger.operator === "gt" ? Number(value) > Number(trigger.value) : Number(value) < Number(trigger.value);
 }
 
-export function matchesEvent(rule: NotificationRule, event: NotificationEvent) {
-  const trigger = rule.trigger;
+export function matchesEvent(trigger: NotificationTrigger, event: NotificationEvent) {
   return trigger.type === "ha-event" && event.event_type === trigger.eventType &&
     Object.entries(trigger.filters).every(([key, value]) => Object.prototype.hasOwnProperty.call(event.data, key) && event.data[key] === value);
 }
 
-type Observation = { signature: string; entity?: Entity; matched: boolean; calendarIds?: Set<string>; lastFired: number };
+type Observation = { signature: string; triggers: { entity?: Entity; matched: boolean }[]; stateId?: string; calendarIds: Set<string>; lastFired: number };
 
 // Session-only state: never persist event payloads, camera images, or notification history.
 export class NotificationEngine {
@@ -94,12 +92,12 @@ export class NotificationEngine {
     const observation = this.observations.get(rule.id);
     if (!observation || observation.signature !== JSON.stringify(rule) || now - observation.lastFired < rule.cooldownSeconds * 1000) return;
     observation.lastFired = now;
-    this.removeRule(rule.id);
+    for (const [id, entry] of this.entries) if (entry.rule.id === rule.id && entry.expiresAt !== undefined) this.entries.delete(id);
     const id = `${rule.id}:${++this.sequence}`;
     this.entries.set(id, { id, rule, startedAt: now, expiresAt: now + rule.durationSeconds * 1000, popup: rule.kind === "camera" });
   }
   receive(rules: NotificationRule[], event: NotificationEvent, now: number) {
-    for (const rule of rules) if (rule.enabled && matchesEvent(rule, event)) this.fire(rule, now);
+    for (const rule of rules) if (rule.enabled && notificationTriggers(rule).some(trigger => matchesEvent(trigger, event))) this.fire(rule, now);
     return this.list();
   }
   update(rules: NotificationRule[], entities: Entity[], calendars: Record<string, CalendarEvent[] | null>, online: boolean, now: number, timeZone: string) {
@@ -111,36 +109,47 @@ export class NotificationEngine {
     for (const [id, entry] of this.entries) if (entry.expiresAt <= now) this.entries.delete(id);
     for (const rule of enabled) {
       const previous = this.observations.get(rule.id);
-      const trigger = rule.trigger;
-      const entity = "entity" in trigger ? notificationEntity(entities, trigger.entity) : undefined;
-      const observation: Observation = { signature: JSON.stringify(rule), entity, matched: matchesState(rule, entity), lastFired: previous?.lastFired ?? -Infinity };
+      const triggers = notificationTriggers(rule);
+      const observation: Observation = { signature: JSON.stringify(rule), triggers: triggers.map(trigger => {
+        const entity = "entity" in trigger ? notificationEntity(entities, trigger.entity) : undefined;
+        return { entity, matched: matchesState(trigger, entity) };
+      }), stateId: previous?.stateId, calendarIds: new Set(), lastFired: previous?.lastFired ?? -Infinity };
       this.observations.set(rule.id, observation);
-      if (trigger.type === "state") {
-        if (rule.kind !== "camera") {
-          if (!observation.matched) this.removeRule(rule.id);
-          else if (!previous?.matched) {
-            const id = `${rule.id}:${++this.sequence}`;
-            this.entries.set(id, { id, rule, startedAt: now, popup: false });
-          }
-        } else if (observation.matched && previous && !previous.matched && previous.entity && available(previous.entity)) this.fire(rule, now);
-      } else if (trigger.type === "entity-event") {
-        if (entity?.domain === "event" && available(entity) && Number.isFinite(Date.parse(entity.state)) && previous?.entity &&
-          !["unavailable", "missing"].includes(previous.entity.state) && Date.parse(entity.state) > Date.parse(previous.entity.state === "unknown" ? previous.entity.lastUpdated : previous.entity.state) &&
-          (!trigger.eventType || entity.attributes.event_type === trigger.eventType)) this.fire(rule, now);
-      } else if (trigger.type === "calendar") {
-        const events = entity?.domain === "calendar" && available(entity) ? calendars[entity.entityId] : undefined;
-        observation.calendarIds = events ? new Set() : undefined;
-        for (const event of events ?? []) {
-          const from = calendarDateValue(event.start), to = calendarDateValue(event.end);
-          const start = Date.parse(from.includes("T") ? from : calendarBoundary(from, timeZone));
-          const end = Date.parse(to.includes("T") ? to : calendarBoundary(to, timeZone));
-          if (!(now >= start - trigger.leadMinutes * 60000 && now < end)) continue;
-          const id = JSON.stringify([rule.id, event.uid ?? event.summary, event.recurrence_id, from]);
-          observation.calendarIds.add(id);
-          if (rule.kind === "current") this.entries.set(id, { id, rule, startedAt: now, popup: false, ...this.entries.get(id), eventTitle: event.summary, eventStart: start });
+      if (rule.kind !== "camera") {
+        if (!observation.triggers.some(trigger => trigger.matched)) {
+          if (observation.stateId) this.entries.delete(observation.stateId);
+          observation.stateId = undefined;
+        } else if (!observation.stateId) {
+          const id = `${rule.id}:${++this.sequence}`;
+          observation.stateId = id;
+          this.entries.set(id, { id, rule, startedAt: now, popup: false });
         }
-        for (const [id, entry] of this.entries) if (entry.rule.id === rule.id && !observation.calendarIds?.has(id)) this.entries.delete(id);
       }
+      let fired = false;
+      triggers.forEach((trigger, index) => {
+        const { entity, matched } = observation.triggers[index];
+        const old = previous?.triggers[index];
+        if (trigger.type === "state") {
+          if (rule.kind === "camera" && matched && old && !old.matched && old.entity && available(old.entity)) fired = true;
+        } else if (trigger.type === "entity-event") {
+          if (entity?.domain === "event" && available(entity) && Number.isFinite(Date.parse(entity.state)) && old?.entity &&
+            !["unavailable", "missing"].includes(old.entity.state) && Date.parse(entity.state) > Date.parse(old.entity.state === "unknown" ? old.entity.lastUpdated : old.entity.state) &&
+            (!trigger.eventType || entity.attributes.event_type === trigger.eventType)) fired = true;
+        } else if (trigger.type === "calendar") {
+          const events = entity?.domain === "calendar" && available(entity) ? calendars[entity.entityId] : undefined;
+          for (const event of events ?? []) {
+            const from = calendarDateValue(event.start), to = calendarDateValue(event.end);
+            const start = Date.parse(from.includes("T") ? from : calendarBoundary(from, timeZone));
+            const end = Date.parse(to.includes("T") ? to : calendarBoundary(to, timeZone));
+            if (!(now >= start - trigger.leadMinutes * 60000 && now < end)) continue;
+            const id = JSON.stringify([rule.id, trigger.entity, event.uid ?? event.summary, event.recurrence_id, from]);
+            observation.calendarIds.add(id);
+            if (rule.kind === "current") this.entries.set(id, { id, rule, startedAt: now, popup: false, ...this.entries.get(id), eventTitle: event.summary, eventStart: start });
+          }
+        }
+      });
+      for (const id of previous?.calendarIds ?? []) if (!observation.calendarIds.has(id)) this.entries.delete(id);
+      if (fired) this.fire(rule, now);
     }
     return this.list();
   }

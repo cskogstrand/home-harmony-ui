@@ -1,3 +1,4 @@
+import { notificationTriggers } from "../../shared/notifications";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "./AppContext";
 import { addDays, useFamily } from "./FamilyContext";
@@ -19,10 +20,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const currentRules = useRef(rules);
   currentRules.current = rules;
   const publish = useCallback((next: HomeNotification[]) => setNotifications(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next), []);
-  const eventTypes = JSON.stringify([...new Set(rules.filter(rule => rule.enabled && rule.trigger.type === "ha-event").map(rule => rule.trigger.type === "ha-event" && rule.trigger.eventType))].sort());
-  const calendarIds = JSON.stringify([...new Set(rules.flatMap(rule => {
-    if (!rule.enabled || rule.trigger.type !== "calendar") return [];
-    const entity = notificationEntity(currentHome.entities, rule.trigger.entity);
+  const triggers = rules.filter(rule => rule.enabled).flatMap(notificationTriggers);
+  const eventTypes = JSON.stringify([...new Set(triggers.flatMap(trigger => trigger.type === "ha-event" ? [trigger.eventType] : []))].sort());
+  const calendarIds = JSON.stringify([...new Set(triggers.flatMap(trigger => {
+    if (trigger.type !== "calendar") return [];
+    const entity = notificationEntity(currentHome.entities, trigger.entity);
     return entity?.domain === "calendar" ? [entity.entityId] : [];
   }))].sort());
   useEffect(() => {

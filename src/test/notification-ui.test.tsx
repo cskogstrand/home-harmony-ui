@@ -46,6 +46,107 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
+it("adds, saves and reopens camera triggers, preserving filters when the first trigger is removed", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("When to show it");
+  fireEvent.click(screen.getByRole("button", { name: "Add trigger" }));
+  const second = within(screen.getByRole("group", { name: "Trigger 2" }));
+  await waitFor(() => expect(second.getByLabelText("Trigger")).toHaveFocus());
+  fireEvent.change(second.getByLabelText("Trigger"), { target: { value: "ha-event" } });
+  fireEvent.change(second.getByLabelText("Event type"), { target: { value: "example_event" } });
+  fireEvent.change(second.getByLabelText(/^Event data filters/), { target: { value: '{"action":"pressed"}' } });
+  fireEvent.click(screen.getByRole("button", { name: "Add trigger" }));
+  const third = within(screen.getByRole("group", { name: "Trigger 3" }));
+  fireEvent.change(third.getByLabelText("Trigger"), { target: { value: "ha-event" } });
+  fireEvent.change(third.getByLabelText("Event type"), { target: { value: "other_event" } });
+  fireEvent.change(third.getByLabelText(/^Event data filters/), { target: { value: '{"action":"motion"}' } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.trigger).toEqual(cameraRule().trigger);
+  expect(saved.additionalTriggers).toEqual([
+    { type: "ha-event", eventType: "example_event", filters: { action: "pressed" } },
+    { type: "ha-event", eventType: "other_event", filters: { action: "motion" } },
+  ]);
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  expect(screen.getByText(/3 triggers/)).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("When to show it");
+  fireEvent.click(screen.getByRole("button", { name: "Remove trigger 1" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Add trigger" })).toHaveFocus());
+  expect(JSON.parse(within(screen.getByRole("group", { name: "Trigger 1" })).getByLabelText<HTMLTextAreaElement>(/^Event data filters/).value)).toEqual({ action: "pressed" });
+  expect(JSON.parse(within(screen.getByRole("group", { name: "Trigger 2" })).getByLabelText<HTMLTextAreaElement>(/^Event data filters/).value)).toEqual({ action: "motion" });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ trigger: saved.additionalTriggers[0], additionalTriggers: [saved.additionalTriggers[1]] });
+});
+
+it("retains invalid additional trigger drafts and opens their section on save", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("When to show it");
+  fireEvent.click(screen.getByRole("button", { name: "Add trigger" }));
+  fireEvent.click(screen.getByRole("button", { name: "When to show it" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  expect(screen.getByRole("button", { name: "When to show it" })).toHaveAttribute("aria-expanded", "true");
+  const second = within(screen.getByRole("group", { name: "Trigger 2" }));
+  fireEvent.change(second.getByLabelText("Trigger"), { target: { value: "ha-event" } });
+  fireEvent.change(second.getByLabelText("Event type"), { target: { value: "example_event" } });
+  fireEvent.change(second.getByLabelText(/^Event data filters/), { target: { value: "{" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert")).toHaveTextContent("Event filters must be a JSON object");
+  expect(second.getByLabelText(/^Event data filters/)).toHaveValue("{");
+  fireEvent.click(screen.getByRole("button", { name: "Remove trigger 2" }));
+  expect(screen.queryByRole("button", { name: /Remove trigger/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].additionalTriggers).toBeUndefined();
+});
+
+it("limits trigger count and translates the camera trigger controls", async () => {
+  mocks.shared.state.config.settings.language = "nb";
+  const rule = cameraRule();
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...rule, additionalTriggers: Array(8).fill(rule.trigger) }] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Rediger Example doorbell" }));
+  await openEditorSection("Når varselet skal vises");
+  fireEvent.click(screen.getByRole("button", { name: "Legg til utløser" }));
+  expect(screen.getByRole("button", { name: "Legg til utløser" })).toBeDisabled();
+  expect(screen.getByText("Velg opptil 10 utløsere.")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Fjern utløser 10" }));
+  expect(screen.getByRole("button", { name: "Legg til utløser" })).toBeEnabled();
+});
+
+it("subscribes to all distinct event and calendar triggers and cleans up on edits", () => {
+  const rule = { ...cameraRule(), kind: "current" as const, additionalTriggers: [
+    { type: "ha-event" as const, eventType: "example_event", filters: { action: "pressed" } },
+    { type: "ha-event" as const, eventType: "other_event", filters: {} },
+    { type: "ha-event" as const, eventType: "example_event", filters: { action: "motion" } },
+    { type: "calendar" as const, entity: "home|calendar.example", leadMinutes: 0 },
+    { type: "calendar" as const, entity: "home|calendar.example", leadMinutes: 5 },
+    { type: "calendar" as const, entity: "home|calendar.other", leadMinutes: 0 },
+  ] };
+  const watchCalendarEvents = vi.fn();
+  mocks.app = { ...mocks.app, watchCalendarEvents, currentHome: mapHome({ "calendar.example": state("calendar.example", "on"), "calendar.other": state("calendar.other", "on") }, emptyRegistries, "home") };
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const content = () => <MemoryRouter><NotificationProvider><NotificationList /></NotificationProvider></MemoryRouter>;
+  const view = render(content());
+  expect(watchEvents.mock.calls.map(([type]) => type)).toEqual(["example_event", "other_event"]);
+  expect(watchCalendarEvents.mock.calls.map(([id]) => id)).toEqual(["calendar.example", "calendar.other"]);
+  const [, signal, receive] = watchEvents.mock.calls[0];
+  act(() => receive({ event_type: "example_event", data: { action: "motion" } }));
+  expect(screen.getByText("Example doorbell")).toBeVisible();
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  view.rerender(content());
+  expect(signal.aborted).toBe(true);
+  expect(watchCalendarEvents.mock.calls[0][3].aborted).toBe(true);
+  act(() => receive({ event_type: "example_event", data: { action: "motion" } }));
+  expect(screen.queryByText("Example doorbell")).not.toBeInTheDocument();
+});
+
 it("starts a camera rule from its shortcut, names the go2rtc output and tests live video or person images", async () => {
   mocks.shared.state.config.settings.cameras = cameraSettings();
   render(<MemoryRouter initialEntries={["/settings/notifications?camera=example-camera"]}><NotificationSettings /></MemoryRouter>);

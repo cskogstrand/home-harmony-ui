@@ -11,6 +11,19 @@ const now = Date.parse("2026-10-24T12:00:00Z");
 const zone = "Europe/Oslo";
 
 describe("notification configuration", () => {
+  it("keeps legacy triggers and round-trips multiple validated triggers through backups", () => {
+    expect(rule().additionalTriggers).toBeUndefined();
+    const extra = { type: "state" as const, entity: "home|sensor.other", attribute: "", operator: "gt" as const, value: "10" };
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = [rule({ additionalTriggers: [extra] })];
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    expect(notificationRuleSchema.safeParse({ ...rule(), additionalTriggers: Array(9).fill(extra) }).success).toBe(true);
+    for (const additionalTriggers of [null, {}, Array(10).fill(extra), [{ ...extra, value: "NaN" }], [{ ...extra, entity: "" }], [{ type: "entity-event", entity: "home|event.example" }]]) {
+      expect(notificationRuleSchema.safeParse({ ...rule(), additionalTriggers }).success).toBe(false);
+    }
+    expect(notificationRuleSchema.safeParse({ ...rule({ kind: "camera", cameraEntity: "example-camera" }), additionalTriggers: [{ type: "calendar", entity: "home|calendar.example" }] }).success).toBe(false);
+    expect(notificationRuleSchema.safeParse({ ...rule({ kind: "current" }), additionalTriggers: [{ type: "ha-event", eventType: "example", filters: { nested: {} } }] }).success).toBe(false);
+  });
   it("preserves every supported icon and its animation choice through configuration backups", () => {
     const config = emptyConfiguration();
     config.settings.notifications.rules = notificationIcons.map(icon => rule({ id: `example-${icon}`, icon, animateIcon: false }));
@@ -55,6 +68,71 @@ describe("notification configuration", () => {
 });
 
 describe("notification lifecycle", () => {
+  it("keeps one state alert until every condition clears, including dismissal across handoffs", () => {
+    const engine = new NotificationEngine();
+    const configured = rule({ additionalTriggers: [{ type: "state", entity: "home|sensor.other", attribute: "", operator: "gt", value: "5" }] });
+    const update = (first: string, second: string) => engine.update([configured], [...entities(first), ...entities(second, {}, "sensor.other")], {}, true, now, zone);
+    const first = update("10", "0")[0];
+    expect(update("0", "10").map(item => item.id)).toEqual([first.id]);
+    engine.dismiss(first.id);
+    expect(update("10", "10")).toHaveLength(0);
+    update("0", "0");
+    expect(update("0", "10")).toHaveLength(1);
+  });
+  it("tracks each camera transition independently while sharing cooldown and suppressing recovery", () => {
+    const engine = new NotificationEngine();
+    const configured = rule({ kind: "camera", cameraEntity: "example-camera", additionalTriggers: [
+      { type: "state", entity: "home|sensor.other", attribute: "", operator: "gt", value: "5" },
+      { type: "entity-event", entity: "home|event.example", eventType: "pressed" },
+      { type: "ha-event", eventType: "example_event", filters: { action: "pressed" } },
+    ] });
+    const update = (first: string, second: string, offset: number, event = "unknown", online = true, rules = [configured]) => engine.update(rules,
+      [...entities(first), ...entities(second, {}, "sensor.other"), ...entities(event, { event_type: "pressed" }, "event.example")], {}, online, now + offset, zone);
+    expect(update("10", "0", 0)).toHaveLength(0);
+    const first = update("10", "10", 1000)[0];
+    expect(first.popup).toBe(true);
+    update("10", "0", 2000);
+    expect(update("10", "10", 3000)[0].id).toBe(first.id);
+    const event = { event_type: "example_event", data: { action: "pressed" } };
+    expect(engine.receive([configured], { ...event, data: { action: "released" } }, now + 12000)[0].id).toBe(first.id);
+    const second = engine.receive([configured], event, now + 12000)[0];
+    expect(second.id).not.toBe(first.id);
+    const third = update("10", "10", 23000, new Date(now + 23000).toISOString())[0];
+    expect(third.id).not.toBe(second.id);
+    update("10", "unavailable", 24000);
+    expect(update("10", "10", 35000)[0].id).toBe(third.id);
+    update("10", "10", 36000, "unknown", false);
+    expect(update("10", "10", 37000)).toHaveLength(0);
+    expect(update("10", "10", 38000, "unknown", true, [{ ...configured, title: "Edited example" }])).toHaveLength(0);
+  });
+  it("fires once when several camera triggers match the same update or event", () => {
+    const engine = new NotificationEngine();
+    const trigger = { type: "ha-event" as const, eventType: "example_event", filters: {} };
+    const configured = rule({ kind: "camera", cameraEntity: "example-camera", cooldownSeconds: 0, additionalTriggers: [rule().trigger, trigger, trigger] });
+    engine.update([configured], entities("0"), {}, true, now, zone);
+    expect(engine.update([configured], entities("10"), {}, true, now, zone)[0].id).toBe("example-rule:1");
+    expect(engine.receive([configured], { event_type: "example_event", data: {} }, now)[0].id).toBe("example-rule:2");
+  });
+  it("keeps calendars, state conditions and timed events independent in a mixed rule", () => {
+    const engine = new NotificationEngine();
+    const configured = rule({ kind: "current", durationSeconds: 10, additionalTriggers: [
+      { type: "calendar", entity: "home|calendar.first", leadMinutes: 0 },
+      { type: "calendar", entity: "home|calendar.second", leadMinutes: 0 },
+      { type: "calendar", entity: "home|calendar.first", leadMinutes: 5 },
+      { type: "ha-event", eventType: "example_event", filters: {} },
+    ] });
+    const calendarEntities = [...entities("on", {}, "calendar.first"), ...entities("on", {}, "calendar.second")];
+    const plans = [{ uid: "same-id", summary: "Example event", start: "2026-10-24T12:00:00Z", end: "2026-10-24T13:00:00Z" }];
+    const calendars = { "calendar.first": plans, "calendar.second": plans };
+    const update = (value: string, offset = 0) => engine.update([configured], [...entities(value), ...calendarEntities], calendars, true, now + offset, zone);
+    expect(update("10")).toHaveLength(3);
+    expect(engine.receive([configured], { event_type: "example_event", data: {} }, now)).toHaveLength(4);
+    expect(update("0")).toHaveLength(3);
+    calendars["calendar.first"] = [];
+    expect(update("0")).toHaveLength(2);
+    expect(update("0", 10001)).toHaveLength(1);
+    expect(update("0", 3600000)).toHaveLength(0);
+  });
   it("shows active tasks immediately, updates from attributes, and clears completed or unavailable tasks", () => {
     const engine = new NotificationEngine();
     const update = (value: string) => engine.update([rule()], entities(value), {}, true, now, zone);
@@ -64,8 +142,8 @@ describe("notification lifecycle", () => {
     expect(update("unknown")).toHaveLength(0);
     expect(update("unavailable")).toHaveLength(0);
     const attrRule = rule({ trigger: { type: "state", entity: "home|sensor.example", attribute: "progress", operator: "lt", value: "100" } });
-    expect(matchesState(attrRule, entities("running", { progress: 40 })[0])).toBe(true);
-    for (const value of [undefined, null, "", " ", true, {}, "unknown"]) expect(matchesState(attrRule, entities("running", { progress: value })[0])).toBe(false);
+    expect(matchesState(attrRule.trigger, entities("running", { progress: 40 })[0])).toBe(true);
+    for (const value of [undefined, null, "", " ", true, {}, "unknown"]) expect(matchesState(attrRule.trigger, entities("running", { progress: value })[0])).toBe(false);
   });
   it("keeps current alerts dismissed until the condition clears, and removes disabled or edited rules", () => {
     const engine = new NotificationEngine(), current = rule({ kind: "current" });

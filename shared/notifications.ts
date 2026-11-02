@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+export const MAX_NOTIFICATION_TRIGGERS = 10;
 const reference = z.string().min(1).max(512);
 const field = z.string().trim().min(1).max(100).refine(value => !["__proto__", "constructor", "prototype"].includes(value));
 const progressEntitySchema = z.object({ type: z.literal("entity"), entity: reference, attribute: z.string().trim().max(100).default("") }).strict();
@@ -50,12 +51,13 @@ export const notificationTriggerSchema = z.discriminatedUnion("type", [
 export const notificationRuleSchema = z.object({
   id: reference, title: z.string().trim().min(1).max(100), message: z.string().trim().max(300).default(""),
   enabled: z.boolean().default(true), kind: z.enum(["ongoing", "current", "camera"]), trigger: notificationTriggerSchema,
+  additionalTriggers: z.array(notificationTriggerSchema).max(MAX_NOTIFICATION_TRIGGERS - 1).optional(),
   pages: z.enum(["today", "main"]).optional(),
   presentation: notificationPresentationSchema.optional(),
   detailEntity: z.string().max(512).optional(),
   // One extra slot preserves a named camera-state reading from older rules.
   detailEntities: z.array(reference).max(101).refine(ids => new Set(ids).size === ids.length).optional(),
-  entityDisplay: z.array(notificationEntityDisplaySchema).max(105)
+  entityDisplay: z.array(notificationEntityDisplaySchema).max(105 + MAX_NOTIFICATION_TRIGGERS - 1)
     .refine(items => new Set(items.map(item => JSON.stringify([item.entity, item.attribute]))).size === items.length).optional(),
   progress: notificationProgressSchema.optional(),
   icon: z.enum(notificationIcons).optional(),
@@ -67,11 +69,14 @@ export const notificationRuleSchema = z.object({
 }).strict().transform(({ detailEntity, detailEntities, ...rule }) => ({
   ...rule, detailEntities: detailEntities ?? (detailEntity ? [detailEntity] : []),
 })).superRefine((rule, ctx) => {
-  if (rule.kind === "ongoing" && rule.trigger.type !== "state") ctx.addIssue({ code: "custom", path: ["trigger"], message: "Ongoing tasks require a state condition." });
   if (rule.progress && rule.kind !== "ongoing") ctx.addIssue({ code: "custom", path: ["progress"], message: "Progress is only available for ongoing tasks." });
   if (rule.kind === "camera" && !rule.cameraEntity) ctx.addIssue({ code: "custom", path: ["cameraEntity"], message: "Choose a camera." });
-  if (rule.trigger.type === "calendar" && rule.kind !== "current") ctx.addIssue({ code: "custom", path: ["kind"], message: "Calendar events use current notifications." });
-  if (rule.trigger.type === "state" && ["gt", "lt"].includes(rule.trigger.operator) && !Number.isFinite(Number(rule.trigger.value))) ctx.addIssue({ code: "custom", path: ["trigger", "value"], message: "Enter a numeric threshold." });
+  [rule.trigger, ...(rule.additionalTriggers ?? [])].forEach((trigger, index) => {
+    const path = index === 0 ? ["trigger"] : ["additionalTriggers", index - 1];
+    if (rule.kind === "ongoing" && trigger.type !== "state") ctx.addIssue({ code: "custom", path, message: "Ongoing tasks require a state condition." });
+    if (trigger.type === "calendar" && rule.kind !== "current") ctx.addIssue({ code: "custom", path, message: "Calendar events use current notifications." });
+    if (trigger.type === "state" && ["gt", "lt"].includes(trigger.operator) && !Number.isFinite(Number(trigger.value))) ctx.addIssue({ code: "custom", path: [...path, "value"], message: "Enter a numeric threshold." });
+  });
 });
 export const notificationSettingsSchema = z.object({
   enabled: z.boolean().default(true),
@@ -82,3 +87,4 @@ export const notificationSettingsSchema = z.object({
 }).strict();
 export type NotificationRule = z.infer<typeof notificationRuleSchema>;
 export type NotificationTrigger = NotificationRule["trigger"];
+export const notificationTriggers = (rule: NotificationRule) => [rule.trigger, ...(rule.additionalTriggers ?? [])];
