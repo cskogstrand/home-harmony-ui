@@ -80,6 +80,38 @@ it("adds a selected HA camera with a local name and optional person image", () =
   expect(mocks.go2rtc).not.toHaveBeenCalled();
 });
 
+it("configures a Frigate preview without changing the video or person image and protects its connection", async () => {
+  configure();
+  const settings = mocks.shared.state.config.settings.cameras;
+  settings.connections.push({ id: "frigate", name: "Example Frigate", type: "frigate", url: "http://frigate.example:5000" });
+  const view = renderSettings("/settings/cameras?camera=example-camera");
+  await screen.findByRole("option", { name: "example" });
+  fireEvent.change(screen.getByLabelText("Preview while video connects"), { target: { value: "frigate" } });
+  fireEvent.change(screen.getByLabelText("Frigate preview connection"), { target: { value: "frigate" } });
+  fireEvent.change(screen.getByLabelText("Frigate preview camera"), { target: { value: "example_entry" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save and test camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0]).toMatchObject({ source: "example", connectionId: "example-go2rtc",
+    frigatePreview: { connectionId: "frigate", camera: "example_entry" }, personSnapshot: { type: "home-assistant", entity: "image.example_person" } });
+  expect(mocks.go2rtc).toHaveBeenCalledWith("example-camera", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
+  expect(mocks.fetch).toHaveBeenLastCalledWith("/api/cameras/example-camera/snapshot.jpg", expect.anything());
+  view.unmount();
+  render(<MemoryRouter><CameraConnections /></MemoryRouter>);
+  expect(screen.getByRole("button", { name: "Delete Example Frigate" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example Frigate" }));
+  expect(screen.getByLabelText("Connection type")).toBeDisabled();
+});
+
+it("uses a configured Frigate preview with HA video and cancels it when its source changes", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const camera = { ...mocks.shared.state.config.settings.cameras.items[0], connectionId: "home-assistant", source: "camera.example", frigatePreview: { connectionId: "frigate", camera: "example_entry" } };
+  const view = render(<MediaSurface camera={camera} expanded />);
+  expect(mocks.ha).toHaveBeenCalledWith("camera.example", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
+  expect(mocks.fetch).toHaveBeenLastCalledWith("/api/cameras/example-camera/snapshot.jpg", expect.anything());
+  view.rerender(<MediaSurface camera={{ ...camera, frigatePreview: undefined }} expanded />);
+  expect(mocks.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  expect(mocks.fetch).toHaveBeenLastCalledWith("/api/camera_proxy/camera.example", expect.anything());
+});
+
 it("retains invalid drafts and refuses to overwrite edits from another screen", () => {
   configure(); renderSettings("/settings/cameras?camera=example-camera");
   fireEvent.change(screen.getByLabelText("Camera name"), { target: { value: "" } });

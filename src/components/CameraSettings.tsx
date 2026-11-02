@@ -46,7 +46,7 @@ export function CameraSettings() {
         const existing = current.cameras.items.find(item => item.id === draft.id);
         if (original && JSON.stringify(existing) !== original) throw new Error("This camera changed on another screen. Cancel and reopen it.");
         const result = cameraSettingsSchema.safeParse({ ...current.cameras, items: existing ? current.cameras.items.map(item => item.id === draft.id ? draft : item) : [...current.cameras.items, draft] });
-        if (!result.success) throw new Error("Enter a camera name, choose a connection and source, and check the optional person image.");
+        if (!result.success) throw new Error("Enter a camera name, choose a connection and source, and check the preview and optional person image.");
         return { ...current, cameras: result.data };
       });
       if (watch) setPreview({ id: draft.id, type: "live" });
@@ -82,6 +82,20 @@ export function CameraSettings() {
         </select></label>
         {draft.connectionId === "home-assistant" && <EntityPicker label={t("Home Assistant camera")} entities={currentHome.entities.filter(entity => entity.domain === "camera")} value={draft.source ? `home|${draft.source}` : ""} onChange={value => setDraft({ ...draft, source: value.replace(/^home\|/, "") })} />}
         {connection?.type === "go2rtc" && <Go2rtcSourcePicker key={connection.id} connection={connection} value={draft.source} onChange={source => setDraft({ ...draft, source })} />}
+        <div className="space-y-4 border-t pt-4">
+          <label>{t("Preview while video connects")}<select value={draft.frigatePreview ? "frigate" : "video"} onChange={event => setDraft({ ...draft, frigatePreview: event.target.value === "frigate" ? { connectionId: "", camera: "" } : undefined })}>
+            <option value="video">{t("Use the video connection")}</option><option value="frigate">{t("Frigate latest image")}</option>
+          </select></label>
+          <p className="page-note">{t("Show updating images immediately while live video connects. This also applies to camera notifications.")}</p>
+          {draft.frigatePreview && <>
+            <label>{t("Frigate preview connection")}<select value={draft.frigatePreview.connectionId} onChange={event => setDraft({ ...draft, frigatePreview: { ...draft.frigatePreview, connectionId: event.target.value } })}>
+              <option value="">{t("Choose a connection")}</option>{settings.connections.filter(item => item.type === "frigate").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select></label>
+            <label>{t("Frigate preview camera")}<input maxLength={128} value={draft.frigatePreview.camera} onChange={event => setDraft({ ...draft, frigatePreview: { ...draft.frigatePreview, camera: event.target.value } })} /></label>
+            <p className="page-note">{t("Use the camera name from Frigate. It can differ from the go2rtc stream name.")}</p>
+            {!settings.connections.some(item => item.type === "frigate") && <Link className="text-primary underline" to="/settings/camera-connections" target="_blank" rel="noreferrer">{t("Add a Frigate connection (new tab)")}</Link>}
+          </>}
+        </div>
         <details open={snapshot.type !== "none" || undefined}><summary className="min-h-11 cursor-pointer py-2">{t("Person image (optional)")}</summary><div className="space-y-4 pt-3">
           <label>{t("Person snapshot source")}<select value={snapshot.type} onChange={event => setDraft({ ...draft, personSnapshot: event.target.value === "frigate" ? { type: "frigate", connectionId: "", camera: "" } : event.target.value === "home-assistant" ? { type: "home-assistant", entity: "" } : { type: "none" } })}><option value="none">{t("No person snapshot")}</option><option value="home-assistant">{t("Person image from Home Assistant")}</option><option value="frigate">{t("Person image directly from Frigate")}</option></select></label>
           {snapshot.type === "home-assistant" && <><EntityPicker label={t("Person image entity")} entities={currentHome.entities.filter(item => ["image", "camera", "sensor", "binary_sensor"].includes(item.domain))} value={snapshot.entity ? `home|${snapshot.entity}` : ""}

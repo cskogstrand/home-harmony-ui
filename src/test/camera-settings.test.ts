@@ -78,3 +78,21 @@ it("validates unique IDs, live connector types and snapshot references and norma
   settings.items[0].personSnapshot = { type: "frigate", connectionId: "example-go2rtc", camera: "example" };
   expect(cameraSettingsSchema.safeParse(settings).success).toBe(false);
 });
+
+it("round-trips a separate Frigate preview and rejects invalid names or connections", () => {
+  const config = emptyConfiguration(); config.settings.cameras = cameraSettings();
+  config.settings.cameras.connections.push({ id: "frigate", name: "Example Frigate", type: "frigate", url: "http://frigate.example:5000" });
+  const camera = config.settings.cameras.items[0];
+  camera.frigatePreview = { connectionId: "frigate", camera: "example_entry" };
+  expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+  for (const invalid of [
+    { connectionId: "missing", camera: "example_entry" }, { connectionId: "example-go2rtc", camera: "example_entry" },
+    { connectionId: "frigate", camera: "../other" }, { connectionId: "frigate", camera: "http://camera.example/latest.jpg" },
+    { connectionId: "frigate", camera: "" },
+  ]) {
+    camera.frigatePreview = invalid;
+    expect(cameraSettingsSchema.safeParse(config.settings.cameras).success).toBe(false);
+  }
+  delete camera.frigatePreview;
+  expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+});

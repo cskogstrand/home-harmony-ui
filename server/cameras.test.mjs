@@ -11,7 +11,7 @@ import { go2rtcErrors } from "../shared/cameras.ts";
 
 const headers = { Authorization: `Basic ${Buffer.from("dashboard:fixture-password-long").toString("base64")}` };
 const listen = async server => { server.listen(0, "127.0.0.1"); await once(server, "listening"); return `http://127.0.0.1:${server.address().port}`; };
-async function fixture(t, snapshot = { type: "frigate", connectionId: "example-frigate", camera: "example" }, response = {}) {
+async function fixture(t, snapshot = { type: "frigate", connectionId: "example-frigate", camera: "example" }, response = {}, frigatePreview) {
   const dir = await mkdtemp(join(tmpdir(), "camera-proxy-"));
   const distDir = join(dir, "dist"), dataDir = join(dir, "data");
   await mkdir(distDir); await mkdir(dataDir); await writeFile(join(distDir, "index.html"), "Fixture");
@@ -27,7 +27,7 @@ async function fixture(t, snapshot = { type: "frigate", connectionId: "example-f
   });
   const origin = await listen(upstream);
   const config = emptyConfiguration();
-  config.settings.cameras = { connections: [{ id: "example-go2rtc", name: "Example go2rtc", type: "go2rtc", url: origin }, { id: "example-frigate", name: "Example Frigate", type: "frigate", url: origin }], items: [{ id: "example-camera", name: "Example camera", connectionId: "example-go2rtc", source: "example", personSnapshot: snapshot }] };
+  config.settings.cameras = { connections: [{ id: "example-go2rtc", name: "Example go2rtc", type: "go2rtc", url: origin }, { id: "example-frigate", name: "Example Frigate", type: "frigate", url: origin }], items: [{ id: "example-camera", name: "Example camera", connectionId: "example-go2rtc", source: "example", personSnapshot: snapshot, frigatePreview }] };
   config.settings.notifications.rules = [{ id: "example", title: "Example", kind: "camera", cameraEntity: "example-camera", cameraMedia: "person", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" } }];
   await writeFile(join(dataDir, "settings.yaml"), JSON.stringify(config));
   const server = await createAppServer({ dataDir, distDir, homeAssistantUrl: origin, homeAssistantToken: "fixture-ha-token", dashboardPassword: "fixture-password-long" });
@@ -59,6 +59,20 @@ test("rejects failed, redirected, non-image and oversized preview frames", async
     const result = await fetch(`${app.url}/api/cameras/example-camera/snapshot.jpg`, { headers });
     assert.ok([413, 502].includes(result.status)); assert.equal(app.requests.length, 1);
   }
+});
+
+test("uses Frigate's configured camera name for previews and keeps video and person sources independent", async t => {
+  const app = await fixture(t, { type: "frigate", connectionId: "example-frigate", camera: "example_person" }, {}, { connectionId: "example-frigate", camera: "example_entry" });
+  const preview = await fetch(`${app.url}/api/cameras/example-camera/snapshot.jpg?camera=wrong&url=http://other.example`, { headers });
+  assert.equal(preview.status, 200); assert.equal(await preview.text(), "fixture-image");
+  assert.equal(preview.headers.get("cache-control"), "no-store");
+  assert.equal((await fetch(`${app.url}/api/cameras/example-camera/webrtc`, offer)).status, 200);
+  assert.equal((await fetch(`${app.url}/api/cameras/example-camera/person.jpg`, { headers })).status, 200);
+  assert.deepEqual(app.requests.map(({ path, authorization }) => ({ path, authorization })), [
+    { path: "/api/example_entry/latest.jpg", authorization: undefined },
+    { path: "/api/webrtc?src=example", authorization: undefined },
+    { path: "/api/example_person/person/snapshot.jpg", authorization: undefined },
+  ]);
 });
 
 test("proxies configured go2rtc and Frigate without forwarding dashboard or HA credentials", async t => {

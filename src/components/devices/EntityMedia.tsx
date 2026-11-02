@@ -57,8 +57,9 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const [retry, setRetry] = useState(0), [failedSrc, setFailedSrc] = useState("");
   const [streamError, setStreamError] = useState("");
   const [snapshot, setSnapshot] = useState(false), [mjpeg, setMjpeg] = useState(false);
-  const previewSrc = customStream ? `/api/cameras/${encodeURIComponent(configured.id)}/snapshot.jpg` : `/api/camera_proxy/${encodeURIComponent(id)}`;
-  const sourceKey = JSON.stringify([id, configured?.source, connection?.url]);
+  const previewConnection = shared?.state.config.settings.cameras.connections.find(item => item.id === configured?.frigatePreview?.connectionId);
+  const previewSrc = customStream || configured?.frigatePreview ? `/api/cameras/${encodeURIComponent(configured.id)}/snapshot.jpg` : `/api/camera_proxy/${encodeURIComponent(id)}`;
+  const sourceKey = JSON.stringify([id, configured?.source, connection?.url, configured?.frigatePreview, previewConnection?.url]);
   const [previousSource, setPreviousSource] = useState(sourceKey);
   if (previousSource !== sourceKey) { setPreviousSource(sourceKey); setMjpeg(false); setSnapshot(false); setFailedSrc(""); }
   const camera = domain === "camera";

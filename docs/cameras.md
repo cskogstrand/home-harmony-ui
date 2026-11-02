@@ -8,11 +8,11 @@ Open **Home settings → Camera connections**, or **Manage connections** from ca
 
 - **Home Assistant** is built in and uses the home's existing authenticated connection. Its `camera.*` entities become choices when adding a camera; its image entities can supply person snapshots.
 - **go2rtc:** choose **Add connection**, give it a name and enter its HTTP API address, for example `http://go2rtc.example:1984`. A working `stream.html?src=example_camera` or `webrtc.html?src=example_camera&media=video+audio` URL is also accepted; its server address is extracted. Multiple cameras can share this connection, and multiple go2rtc servers can be configured separately.
-- **Frigate snapshots:** add a separate connection with Frigate's internal API address, for example `http://frigate.example:5000`. This connection supplies person images; go2rtc supplies live video.
+- **Frigate snapshots:** add a separate connection with Frigate's internal API address, for example `http://frigate.example:5000`. This connection supplies fast camera previews and person images; go2rtc supplies live video.
 
 Addresses must be reachable from the Home Harmony server without an additional login. A reverse-proxy base path is supported. Passwords, tokens and fragments are rejected; only supported player-link parameters are accepted and removed when saving the server address. Keep camera credentials in Frigate/go2rtc's private configuration. The built-in Home Assistant connection uses the existing server-side HA token.
 
-Connections can be renamed or edited. A connection used by a camera's live video or person image cannot be deleted until those sources are changed. Removing an unused connection does not change the upstream server.
+Connections can be renamed or edited. A connection used by a camera's live video, startup preview or person image cannot be deleted until those sources are changed. Removing an unused connection does not change the upstream server.
 
 ## Add a camera
 
@@ -20,8 +20,9 @@ Connections can be renamed or edited. A connection used by a camera's live video
 2. Enter a **Camera name**. This is the name shown in Home Harmony and its notification camera picker.
 3. Choose a **Connection**.
 4. For **Home Assistant**, select a **Home Assistant camera**. For **go2rtc**, choose a **Stream** from the selected server's list. **Refresh streams** reloads the list. If discovery is unavailable, **Enter stream manually** accepts a `stream.html` or `webrtc.html` link, a stream name, or an RTSP restream address such as `rtsp://frigate.example:8554/example_camera`. Only `example_camera` is saved; the selected connection determines the server. A player link for another server is rejected until its matching connection is selected. **Open in go2rtc (new tab)** opens the selected source in the upstream player for comparison.
-5. Optionally open **Person image (optional)** and choose its source.
-6. Press **Save camera**, or **Save and test camera** to save and open its live video.
+5. Under **Preview while video connects**, select **Frigate latest image** for a fast preview from Frigate's API. Choose the saved **Frigate preview connection** and enter the **Frigate preview camera** name. This is Frigate's camera name, which can differ from the go2rtc stream name. **Use the video connection** keeps the existing go2rtc or HA snapshot source. The preview choice applies to this camera everywhere, including live camera notifications.
+6. Optionally open **Person image (optional)** and choose its source independently.
+7. Press **Save camera**, or **Save and test camera** to save and open its live video.
 
 The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/blob/master/website/api/openapi.yaml). Home Harmony returns stream names only; upstream producer URLs and credentials are not sent to the browser. A failed or empty list does not erase the selected source.
 
@@ -36,6 +37,8 @@ Camera deletion requires confirmation and is blocked while a notification refere
 ## Live playback
 
 Camera views and live camera notifications request a current snapshot immediately while video connects. The preview refreshes up to twice per second, keeps the previous image until its replacement is decoded, and switches to video on playback. Requests never overlap; slow cameras determine the actual refresh rate, and failed snapshots retry after two seconds without interrupting video. Polling stops when video plays, the viewer closes, or the camera view is hidden, and resumes if video stalls. Home Assistant cameras use their camera snapshot; go2rtc cameras use a 640-pixel-wide JPEG from the configured live stream, independently of optional person images. There is no background preloading or stored image cache, so the first image still depends on camera/server response time. go2rtc's [snapshot endpoint](https://github.com/AlexxIT/go2rtc/blob/master/internal/mjpeg/README.md#jpeg) may need FFmpeg on the go2rtc server to convert an H.264/H.265 frame to JPEG.
+
+When a Frigate preview is configured, Home Harmony instead requests `/api/<frigate-camera>/latest.jpg` through the authenticated dashboard proxy. This uses Frigate's latest frame and avoids go2rtc's on-demand JPEG conversion. The configured Frigate camera name is used exactly; Home Harmony never derives it by removing suffixes from a go2rtc stream name. Older settings and backups keep their existing snapshot source until a Frigate preview is selected. Preview failures do not stop the live video from connecting.
 
 Browsers do not play RTSP directly. Home Harmony first exchanges receive-only SDP with the selected go2rtc server; the browser receives WebRTC media from it. This direct WebRTC path needs access to the server's configured WebRTC candidates, normally TCP/UDP port 8555. HTTP signaling alone does not relay video; if direct WebRTC cannot connect, the HTTP MSE fallback below can still play the stream. H.264 offers broad browser compatibility. See [Frigate restreaming](https://docs.frigate.video/configuration/restream/) and [WebRTC setup](https://docs.frigate.video/configuration/live/#webrtc-extra-configuration).
 

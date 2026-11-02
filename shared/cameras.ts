@@ -55,6 +55,7 @@ export const go2rtcErrors = {
 export const configuredCameraSchema = z.object({
   id, name: z.string().trim().min(1).max(100), connectionId: z.string().min(1).max(128),
   source: z.string().trim().max(2048).transform(go2rtcStreamName).pipe(name),
+  frigatePreview: z.object({ connectionId: id, camera: name }).strict().optional(),
   personSnapshot: z.discriminatedUnion("type", [
     z.object({ type: z.literal("none") }).strict(),
     z.object({ type: z.literal("home-assistant"), entity: imageEntity }).strict(),
@@ -72,6 +73,8 @@ const settingsSchema = z.object({
     const connection = settings.connections.find(item => item.id === camera.connectionId);
     if (camera.connectionId === "home-assistant" ? !/^camera\.[a-z0-9_]+$/.test(camera.source) : connection?.type !== "go2rtc")
       ctx.addIssue({ code: "custom", path: ["items", index, "connectionId"], message: "Choose Home Assistant or a saved go2rtc connection and its camera source." });
+    if (camera.frigatePreview && !settings.connections.some(item => item.id === camera.frigatePreview.connectionId && item.type === "frigate"))
+      ctx.addIssue({ code: "custom", path: ["items", index, "frigatePreview"], message: "Choose a saved Frigate connection for the preview." });
     const snapshot = camera.personSnapshot;
     if (snapshot.type === "frigate" && !settings.connections.some(item => item.id === snapshot.connectionId && item.type === "frigate"))
       ctx.addIssue({ code: "custom", path: ["items", index, "personSnapshot"], message: "Choose a saved Frigate connection for person snapshots." });

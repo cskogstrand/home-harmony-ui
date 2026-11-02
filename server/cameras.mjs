@@ -54,10 +54,17 @@ export async function proxyCameraMedia(request, response, url, settings, { homeA
       return;
     }
     if (match[2] === "snapshot.jpg") {
-      const connection = settings.connections.find(item => item.id === source.connectionId && item.type === "go2rtc");
-      if (!connection) throw failure(404, "Configure a go2rtc stream for this camera.");
-      target = `${connection.url}/api/frame.jpeg?${new URLSearchParams({ src: source.source, width: "640" })}`;
-      allowedTypes = ["image/jpeg"];
+      if (source.frigatePreview) {
+        const connection = settings.connections.find(item => item.id === source.frigatePreview.connectionId && item.type === "frigate");
+        if (!connection) throw failure(404, "Configure the Frigate preview connection.");
+        target = `${connection.url}/api/${encodeURIComponent(source.frigatePreview.camera)}/latest.jpg`;
+        allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+      } else {
+        const connection = settings.connections.find(item => item.id === source.connectionId && item.type === "go2rtc");
+        if (!connection) throw failure(404, "Configure a go2rtc stream for this camera.");
+        target = `${connection.url}/api/frame.jpeg?${new URLSearchParams({ src: source.source, width: "640" })}`;
+        allowedTypes = ["image/jpeg"];
+      }
       limit = 10 * 1024 * 1024;
     } else if (match[2] === "webrtc") {
       const connection = settings.connections.find(item => item.id === source.connectionId && item.type === "go2rtc");

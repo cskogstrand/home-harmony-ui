@@ -16,7 +16,7 @@ export function CameraConnections() {
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<CameraConnection>();
   const disabled = !shared.state.loaded || !!shared.state.error || shared.state.saving;
-  const used = (id: string) => settings.items.some(camera => camera.connectionId === id || camera.personSnapshot.type === "frigate" && camera.personSnapshot.connectionId === id);
+  const used = (id: string) => settings.items.some(camera => camera.connectionId === id || camera.frigatePreview?.connectionId === id || camera.personSnapshot.type === "frigate" && camera.personSnapshot.connectionId === id);
   const begin = (connection: CameraConnection, existing = false) => { setDraft(connection); setOriginal(existing ? JSON.stringify(connection) : ""); setError(""); };
   const save = () => {
     const result = cameraConnectionSchema.safeParse(draft);
@@ -48,7 +48,7 @@ export function CameraConnections() {
         <label>{t("Connection type")}<select value={draft.type} disabled={used(draft.id)} onChange={event => setDraft({ ...draft, type: event.target.value as CameraConnection["type"] })}><option value="go2rtc">go2rtc</option><option value="frigate">{t("Frigate snapshots")}</option></select></label>
         <label>{t("Server address")}<input type="url" maxLength={2048} placeholder={draft.type === "go2rtc" ? "http://go2rtc.example:1984" : "http://frigate.example:5000"} value={draft.url} onChange={event => setDraft({ ...draft, url: event.target.value })} /></label>
         {draft.type === "go2rtc" && <p className="page-note">{t("You can also paste a working go2rtc player link. We will use its server address.")}</p>}
-        <p className="page-note">{t(draft.type === "go2rtc" ? "Use the go2rtc API address, usually port 1984. Cameras will list the streams from this server." : "Use Frigate's internal API address for person snapshots, usually port 5000. For live video, add a go2rtc connection.")}</p>
+        <p className="page-note">{t(draft.type === "go2rtc" ? "Use the go2rtc API address, usually port 1984. Cameras will list the streams from this server." : "Use Frigate's internal API address for fast previews and person snapshots, usually port 5000. For live video, add a go2rtc connection.")}</p>
         <details><summary className="min-h-11 cursor-pointer py-2">{t("Connection help")}</summary><p className="page-note">{t("Use an internal server reachable by Home Harmony without login. Camera credentials stay on the server, not in these settings.")}</p>{draft.type === "go2rtc" && <p className="page-note">{t("Direct WebRTC usually uses port 8555. If it cannot connect, compatible video is relayed through Home Harmony.")}</p>}</details>
       </fieldset>
       {error && <p role="alert" className="text-destructive">{t(error)}</p>}
@@ -56,7 +56,7 @@ export function CameraConnections() {
     </form>}
     <ConfirmDialog open={!!remove} onOpenChange={open => { if (!open) setRemove(undefined); }} title="Delete connection?" description="This removes the saved connection from Home Harmony. The server itself is unchanged." confirmLabel="Delete" destructive disabled={disabled || !!remove && used(remove.id)} onConfirm={() => {
       shared.store.updateSettings(current => {
-        if (current.cameras.items.some(camera => camera.connectionId === remove.id || camera.personSnapshot.type === "frigate" && camera.personSnapshot.connectionId === remove.id)) throw new Error("In use by cameras. Change their sources before deleting this connection.");
+        if (current.cameras.items.some(camera => camera.connectionId === remove.id || camera.frigatePreview?.connectionId === remove.id || camera.personSnapshot.type === "frigate" && camera.personSnapshot.connectionId === remove.id)) throw new Error("In use by cameras. Change their sources before deleting this connection.");
         return { ...current, cameras: { ...current.cameras, connections: current.cameras.connections.filter(item => item.id !== remove.id) } };
       });
     }} />
