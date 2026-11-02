@@ -6,6 +6,9 @@ import { available } from "@/lib/ha-model";
 import { Button } from "@/components/ui/button";
 import { Expand } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
+import { playGo2rtcStream } from "@/lib/go2rtc-stream";
+import { CameraPersonSnapshot } from "@/components/CameraPersonSnapshot";
 
 function MediaImage({ src, name, caption, onError }: { src: string; name: string; caption?: string; onError: () => void }) {
   const { message: t } = useI18n();
@@ -16,30 +19,47 @@ function MediaImage({ src, name, caption, onError }: { src: string; name: string
 
 function CameraVideo({ entity, expanded, onError }: { entity: Entity; expanded: boolean; onError: () => void }) {
   const { watchCameraStream } = useApp();
+  const shared = useSharedConfiguration();
+  const settings = shared?.state.config.settings.cameras;
+  const source = settings?.sources[entity.entityId]?.stream;
+  const server = settings?.go2rtcUrl;
   const { message: t } = useI18n();
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [haFallback, setHaFallback] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    watchCameraStream(entity.entityId, ref.current, controller.signal, onError);
+    setHaFallback(false); setPlaying(false);
+    if (source && server) playGo2rtcStream(entity.entityId, ref.current, controller.signal, () => {
+      setHaFallback(true);
+      watchCameraStream(entity.entityId, ref.current, controller.signal, onError);
+    });
+    else watchCameraStream(entity.entityId, ref.current, controller.signal, onError);
     return () => controller.abort();
-  }, [entity.entityId, watchCameraStream, onError]);
+  }, [entity.entityId, watchCameraStream, onError, source, server]);
   return <><video ref={ref} aria-label={entity.name} autoPlay muted playsInline controls={expanded}
     poster={`/api/camera_proxy/${encodeURIComponent(entity.entityId)}`} onPlaying={() => setPlaying(true)} onWaiting={() => setPlaying(false)} onEmptied={() => setPlaying(false)} />
-    {playing ? <span className="smart-media-caption">{t("Live camera")}</span> : <p role="status">{t("Loading video…")}</p>}</>;
+    {playing ? <span className="smart-media-caption">{t(haFallback ? "Live camera · Home Assistant fallback" : "Live camera")}</span> : <p role="status">{t(haFallback ? "go2rtc unavailable · trying Home Assistant…" : "Loading video…")}</p>}</>;
 }
 
 export function MediaSurface({ entity, suspended = false, expanded = false }: { entity: Entity; suspended?: boolean; expanded?: boolean }) {
   const { homeOnline } = useApp();
+  const shared = useSharedConfiguration();
+  const settings = shared?.state.config.settings.cameras;
+  const streamName = settings?.sources[entity.entityId]?.stream;
+  const customStream = !!(settings?.go2rtcUrl && streamName);
   const { message: t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false), [seen, setSeen] = useState(false), [active, setActive] = useState(!document.hidden);
   const [retry, setRetry] = useState(0), [failedSrc, setFailedSrc] = useState("");
   const [snapshot, setSnapshot] = useState(false);
   const [mjpeg, setMjpeg] = useState(false);
+  const sourceKey = JSON.stringify([entity.entityId, settings?.go2rtcUrl, streamName]);
+  const [previousSource, setPreviousSource] = useState(sourceKey);
+  if (previousSource !== sourceKey) { setPreviousSource(sourceKey); setMjpeg(false); setSnapshot(false); setFailedSrc(""); }
   const fallback = useCallback(() => setMjpeg(true), []);
   const camera = entity.domain === "camera";
-  const reported = homeOnline && available(entity) && (!camera || entity.state !== "off");
+  const reported = camera && customStream || homeOnline && available(entity) && (!camera || entity.state !== "off");
   const path = camera ? snapshot ? "camera_proxy" : "camera_proxy_stream" : entity.domain === "image" ? "image_proxy" : "media_player_proxy";
   const src = `/api/${path}/${encodeURIComponent(entity.entityId)}?v=${encodeURIComponent(camera ? retry : `${entity.lastUpdated ?? entity.state}-${retry}`)}`;
   const failed = failedSrc === src;
@@ -61,13 +81,17 @@ export function MediaSurface({ entity, suspended = false, expanded = false }: { 
       : <MediaImage key={src} src={src} name={entity.name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline ? "Offline" : !reported ? "Unavailable" : failed ? "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
-    {!suspended && reported && (failed || mjpeg) && <Button variant="outline" onClick={() => { setSnapshot(false); setMjpeg(false); setRetry(value => value + 1); }}>{t("Retry")}</Button>}
+    {!suspended && reported && (failed || mjpeg) && <Button type="button" variant="outline" onClick={() => { setSnapshot(false); setMjpeg(false); setRetry(value => value + 1); }}>{t("Retry")}</Button>}
   </div>;
 }
 
 export function EntityMedia({ entity }: { entity: Entity }) {
   const { message: t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [person, setPerson] = useState(false);
+  const shared = useSharedConfiguration();
+  const personSource = shared?.state.config.settings.cameras?.sources[entity.entityId]?.personSnapshot;
+  const hasPerson = personSource && personSource.type !== "none";
   const opener = useRef<HTMLButtonElement>(null);
   const expandable = ["camera", "image"].includes(entity.domain);
   return <Dialog open={open} onOpenChange={setOpen}>
@@ -77,7 +101,11 @@ export function EntityMedia({ entity }: { entity: Entity }) {
     </div>
     {expandable && <DialogContent className="smart-media-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>
       <DialogHeader><DialogTitle>{entity.name}</DialogTitle></DialogHeader>
-      <MediaSurface entity={entity} expanded />
+      {hasPerson && <div className="flex flex-wrap gap-2" role="group" aria-label={t("Camera media")}>
+        <Button variant={person ? "outline" : "default"} aria-pressed={!person} onClick={() => setPerson(false)}>{t("Live camera")}</Button>
+        <Button variant={person ? "default" : "outline"} aria-pressed={person} onClick={() => setPerson(true)}>{t("Person snapshot")}</Button>
+      </div>}
+      {person && hasPerson ? <CameraPersonSnapshot entityId={entity.entityId} /> : <MediaSurface entity={entity} expanded />}
     </DialogContent>}
   </Dialog>;
 }

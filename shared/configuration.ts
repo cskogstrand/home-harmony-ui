@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { notificationSettingsSchema } from "./notifications.ts";
+import { cameraSettingsSchema } from "./cameras.ts";
 
 export const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 export function isPlannerDate(value: string | null): value is string {
@@ -83,6 +84,7 @@ export const defaultTodoDisplay = todoDisplaySchema.parse({});
 export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "school", "home"] as const;
 export type DashboardSection = typeof dashboardSections[number];
 export const plannerSchema = z.object({
+  cameras: cameraSettingsSchema.default({}),
   notifications: notificationSettingsSchema.default({}),
   language: z.enum(["en", "nb"]).default("en"),
   timetables: z.record(keySchema, z.array(imageUrl).max(100)),

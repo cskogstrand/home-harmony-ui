@@ -2,6 +2,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bell, Camera, ListChecks, X } from "lucide-react";
+import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
@@ -124,8 +125,11 @@ export function NotificationCamera() {
     }}>
       <DialogHeader><div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1"><DialogTitle>{item?.rule.title}</DialogTitle>
         <p role={countdown ? "timer" : undefined} aria-live="off" className="text-sm tabular-nums text-muted-foreground">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t("Closes automatically when this alert expires.")}</p>
-      </div><DialogDescription>{item?.rule.message || t("Live camera alert")}</DialogDescription></DialogHeader>
-      {entity?.domain === "camera" ? <MediaSurface key={entity.entityId} entity={entity} expanded /> : <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>}
+      </div><DialogDescription>{item?.rule.message || t(item?.rule.cameraMedia === "person" ? "Person snapshot" : "Live camera alert")}</DialogDescription></DialogHeader>
+      {entity?.domain === "camera" ? item.rule.cameraMedia === "person"
+        ? <CameraPersonSnapshot key={item.id} entityId={entity.entityId} />
+        : <MediaSurface key={`${item.id}-${entity.entityId}`} entity={entity} expanded />
+        : <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>}
       <div className="flex justify-end"><Button variant="outline" onClick={() => { if (item) camera(item.id, false); }}>{t("Close camera")}</Button></div>
     </DialogContent>
   </Dialog>;

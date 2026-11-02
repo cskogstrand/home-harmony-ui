@@ -9,6 +9,7 @@ import { pipeline } from "node:stream/promises";
 import { emptyConfiguration, instanceUrlSchema, MAX_CONFIG_BYTES, parseConfiguration } from "../shared/configuration.ts";
 import { timetableImagePath } from "../shared/timetables.ts";
 import { convertTimetable, darkTimetableImage } from "./timetables.mjs";
+import { proxyCameraMedia } from "./cameras.mjs";
 
 const revisionOf = config => createHash("sha256").update(JSON.stringify(config)).digest("hex");
 const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".txt": "text/plain", ".json": "application/json", ".woff2": "font/woff2" };
@@ -143,6 +144,10 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
+      if (pathname.startsWith("/api/cameras/")) {
+        await proxyCameraMedia(request, response, url, config.settings.cameras, { homeAssistantUrl, homeAssistantToken });
+        return;
+      }
       const hls = /^\/api\/hls\/[a-f0-9]+\/(?:(?:master_)?playlist\.m3u8|init\.mp4|segment\/\d+(?:\.\d+)?\.m4s)$/.test(pathname);
       if ((hls || /^\/api\/(camera_proxy(?:_stream)?\/camera|image_proxy\/image|media_player_proxy\/media_player)\.[a-z0-9_]+$/.test(pathname)) && request.method === "GET") {
         if (hls && [...url.searchParams].some(([key, value]) => !(["_HLS_msn", "_HLS_part"].includes(key) ? /^\d+$/.test(value) : key === "_HLS_skip" && /^(YES|v2)$/.test(value)))) throw failure(400, "Invalid stream parameters.");

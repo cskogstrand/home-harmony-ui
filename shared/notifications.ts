@@ -60,6 +60,7 @@ export const notificationRuleSchema = z.object({
   icon: z.enum(notificationIcons).optional(),
   animateIcon: z.boolean().optional(),
   cameraEntity: z.string().max(512).default(""),
+  cameraMedia: z.enum(["live", "person"]).optional(),
   durationSeconds: z.number().int().min(10).max(3600).default(60),
   cooldownSeconds: z.number().int().min(0).max(3600).default(10),
 }).strict().transform(({ detailEntity, detailEntities, ...rule }) => ({

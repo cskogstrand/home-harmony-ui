@@ -9,7 +9,7 @@ import type { NotificationEntityDisplay, NotificationRule } from "../../shared/n
 
 const placements = { auto: "Automatic placement", subtitle: "Under the title", left: "Left reading", right: "Right reading", footer: "At the bottom", hidden: "Hidden" } as const;
 
-export function NotificationEntitySettings({ rule, entities, disabled, onChange, onEditUsage }: { rule: NotificationRule; entities: Entity[]; disabled: boolean; onChange: (value: Partial<NotificationRule>) => void; onEditUsage: (section: "trigger" | "progress" | "readings") => void }) {
+export function NotificationEntitySettings({ rule, entities, disabled, onChange, onEditUsage }: { rule: NotificationRule; entities: Entity[]; disabled: boolean; onChange: (value: Partial<NotificationRule>) => void; onEditUsage: (section: "trigger" | "progress" | "readings" | "camera") => void }) {
   const { message: t } = useI18n();
   const readings = notificationReadings(rule);
   const update = (reading: NotificationEntityDisplay, change: Partial<NotificationEntityDisplay>) => {
@@ -19,7 +19,6 @@ export function NotificationEntitySettings({ rule, entities, disabled, onChange,
   };
   return <>
     <p className="page-note">{t("Choose a name and placement for each entity. These names only apply to this notification.")}</p>
-    {rule.kind === "camera" && <EntityPicker label={t("Camera")} entities={entities.filter(entity => entity.domain === "camera")} value={rule.cameraEntity} disabled={disabled} onChange={cameraEntity => onChange({ cameraEntity })} />}
     <EntityPicker label={t("Add entity")} emptyActionLabel={t("Add entity")} hideLabel entities={entities} value="" disabled={disabled || rule.detailEntities.length >= 100}
       disabledReason={entity => rule.detailEntities.includes(entity.preferenceId) ? t("Already added to this notification") : undefined}
       onChange={entity => onChange({ detailEntities: [...rule.detailEntities, entity] })} />
@@ -42,7 +41,7 @@ export function NotificationEntitySettings({ rule, entities, disabled, onChange,
           <div className="notification-entity-shortcuts">
             {reading.roles.includes("Source entity") && <Button type="button" variant="link" onClick={() => onEditUsage("trigger")}>{t("Edit trigger")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
             {reading.roles.some(role => ["Current value", "Start value", "End / total value"].includes(role)) && <Button type="button" variant="link" onClick={() => onEditUsage("progress")}>{t("Edit progress")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
-            {reading.roles.includes("Camera") && <Button type="button" variant="link" onClick={() => onEditUsage("readings")}>{t("Change camera")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
+            {reading.roles.includes("Camera") && <Button type="button" variant="link" onClick={() => onEditUsage("camera")}>{t("Change camera")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
           </div>
         </div>}
         <div className="notification-range">

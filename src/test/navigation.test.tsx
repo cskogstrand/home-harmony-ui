@@ -1153,7 +1153,7 @@ it("navigates with empty HA data and shows the server-managed connection", async
   expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
   await navigate("Smart home");
-  for (const [link, heading] of [["Devices", "Devices"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
+  for (const [link, heading] of [["Devices", "Devices"], ["Cameras", "Cameras"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
     const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
     const direct = nav.queryByRole("link", { name: link });
     if (direct) fireEvent.click(direct);
@@ -1429,7 +1429,7 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
   const destinations = [
     ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"], ["Weather", "weather"],
     ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
-    ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
+    ["Cameras", "cameras"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
   ];
   for (const [title, path] of destinations) {
     const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));

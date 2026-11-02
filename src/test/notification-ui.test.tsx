@@ -12,14 +12,16 @@ import { NotificationBell, NotificationCamera, NotificationList } from "@/compon
 import { NotificationContext } from "@/contexts/NotificationContext";
 import { NotificationProvider } from "@/contexts/NotificationProvider";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
-import { emptyPlanner } from "../../shared/configuration";
+import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { notificationIcons, notificationRuleSchema } from "../../shared/notifications";
 import { state } from "./ha-fixtures";
+import { playGo2rtcStream } from "@/lib/go2rtc-stream";
 
-const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {} as Record<string, unknown>, shared: { state: { loaded: true, error: "" } } }));
+const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {} as Record<string, unknown>, shared: { state: { loaded: true, error: "", config: undefined as ReturnType<typeof emptyConfiguration> } } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<object>(), useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
+vi.mock("@/lib/go2rtc-stream", () => ({ playGo2rtcStream: vi.fn() }));
 
 const setNotifications = vi.fn((_settings: Partial<ReturnType<typeof emptyPlanner>["notifications"]>) => true);
 const openEditorSection = async (name: string) => {
@@ -37,10 +39,55 @@ beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   mocks.app = { currentHome: home(), homeOnline: true, watchEvents, watchCameraStream, watchCalendarEvents: vi.fn() };
   mocks.family = { ...emptyPlanner(), today: "2026-10-24", setNotifications };
-  mocks.shared.state = { loaded: true, error: "" };
+  mocks.shared.state = { loaded: true, error: "", config: emptyConfiguration() };
   setNotifications.mockReturnValue(true);
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it("starts a camera rule from its shortcut, names the go2rtc output and tests live video or person images", async () => {
+  mocks.shared.state.config.settings.cameras = { go2rtcUrl: "http://go2rtc.example:1984", frigateUrl: "", sources: { "camera.example": { stream: "example_camera", personSnapshot: { type: "home-assistant", entity: "image.example_person" } } } };
+  render(<MemoryRouter initialEntries={["/settings/notifications?camera=camera.example"]}><NotificationSettings /></MemoryRouter>);
+  const dialog = within(await screen.findByRole("dialog", { name: "Add notification" }));
+  expect(dialog.getByRole("button", { name: "Camera" })).toHaveTextContent("Example camera");
+  expect(dialog.getByLabelText("Show in notification")).toHaveDisplayValue("Live video from go2rtc · example_camera");
+  expect(dialog.getByRole("link", { name: "Configure camera (new tab)" })).toHaveAttribute("href", "/settings/cameras?camera=camera.example");
+  expect(dialog.getByRole("link", { name: "Configure camera (new tab)" })).toHaveAttribute("target", "_blank");
+  fireEvent.click(dialog.getByRole("button", { name: "Test camera output" }));
+  expect(playGo2rtcStream).toHaveBeenCalledWith("camera.example", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
+  const signal = vi.mocked(playGo2rtcStream).mock.calls[0][2];
+  fireEvent.click(dialog.getByRole("button", { name: "Camera and image" }));
+  expect(signal.aborted).toBe(true);
+  await openEditorSection("Camera and image");
+  fireEvent.change(dialog.getByLabelText("Show in notification"), { target: { value: "person" } });
+  fireEvent.click(dialog.getByRole("button", { name: "Test camera output" }));
+  expect(dialog.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/camera.example/person.jpg"));
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  chooseEntity("Source entity", "binary_sensor.example");
+  fireEvent.click(dialog.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example camera", kind: "camera", cameraEntity: "home|camera.example", cameraMedia: "person", trigger: expect.objectContaining({ entity: "home|binary_sensor.example" }) })] });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("disables person output until a snapshot source is configured", () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  expect(screen.getByLabelText("Show in notification")).toHaveDisplayValue("Live video from Home Assistant");
+  expect(screen.getByRole("option", { name: "Person snapshot · Not configured" })).toBeDisabled();
+});
+
+it("opens the configured person snapshot instead of starting video for a person camera rule", () => {
+  vi.useFakeTimers();
+  mocks.shared.state.config.settings.cameras.sources["camera.example"] = { stream: "", personSnapshot: { type: "home-assistant", entity: "image.example_person" } };
+  mocks.family.notifications = { enabled: true, rules: [{ ...cameraRule(), cameraMedia: "person" }] };
+  const content = () => <MemoryRouter><NotificationProvider><NotificationCamera /></NotificationProvider></MemoryRouter>;
+  const view = render(content()); mocks.app.currentHome = home("on"); view.rerender(content());
+  expect(within(screen.getByRole("dialog")).getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/camera.example/person.jpg"));
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Close camera" }));
+  act(() => { vi.advanceTimersByTime(0); });
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+});
 
 it("offers a translated, selectable icon for every device family and preserves filtering selections", () => {
   const onChange = vi.fn();
@@ -119,12 +166,12 @@ it("pauses icon loops offscreen and in hidden tabs and cleans up when animation 
   hidden.mockRestore();
 });
 
-it.each(["Ongoing tasks", "Current alerts", "Camera popup"])("opens only content and focuses the title for a new %s", async kind => {
+it.each(["Ongoing tasks", "Current alerts", "Camera popup"])("opens the relevant sections and focuses the title for a new %s", async kind => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: `Add ${kind}` }));
   const dialog = within(screen.getByRole("dialog", { name: "Add notification" }));
   await waitFor(() => expect(dialog.getByLabelText("Title")).toHaveFocus());
-  expect(dialog.getAllByRole("button", { expanded: true })).toEqual([dialog.getByRole("button", { name: "Notification content" })]);
+  expect(dialog.getAllByRole("button", { expanded: true })).toEqual([dialog.getByRole("button", { name: "Notification content" }), ...(kind === "Camera popup" ? [dialog.getByRole("button", { name: "Camera and image" })] : [])]);
   expect(dialog.getByRole("button", { name: "When to show it" })).toHaveAttribute("aria-expanded", "false");
   fireEvent.change(dialog.getByLabelText("Title"), { target: { value: "Example task" } });
   expect(dialog.getByLabelText("Title")).toHaveFocus();
@@ -136,7 +183,7 @@ it("treats a whitespace-only title as unset when opening an existing draft", asy
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: /^Edit\s*$/ }));
   await waitFor(() => expect(screen.getByLabelText("Title")).toHaveFocus());
-  expect(within(screen.getByRole("dialog")).getAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Notification content" })]);
+  expect(within(screen.getByRole("dialog")).getAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Notification content" }), screen.getByRole("button", { name: "Camera and image" })]);
 });
 
 it("announces incoming titles and same-count replacements without repeating sensor readings", () => {
@@ -173,11 +220,12 @@ it("restricts the camera picker to cameras and allows clearing the optional read
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example camera alert" } });
   await openEditorSection("When to show it");
   chooseEntity("Source entity", "binary_sensor.example");
-  await openEditorSection("Entities and readings");
+  await openEditorSection("Camera and image");
   fireEvent.click(screen.getByRole("button", { name: "Camera" }));
   const picker = within(screen.getByRole("dialog", { name: "Camera" }));
   expect(picker.queryByRole("button", { name: /Example detector/ })).not.toBeInTheDocument();
   fireEvent.click(picker.getByRole("button", { name: "Example camera · camera.example" }));
+  await openEditorSection("Entities and readings");
   chooseEntity("Add entity", "binary_sensor.example");
   fireEvent.click(screen.getByRole("button", { name: "Remove additional reading Example detector" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
@@ -780,7 +828,7 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   const content = screen.getByRole("button", { name: "Notification content" });
   const trigger = screen.getByRole("button", { name: "When to show it" });
   const readings = screen.getByRole("button", { name: "Entities and readings" });
-  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toHaveLength(0);
+  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Camera and image" })]);
   expect(content).toHaveFocus();
   expect(content).toHaveAttribute("aria-expanded", "false");
   expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -796,7 +844,7 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   expect(within(screen.getByRole("region", { name: "Notification preview" })).getByText("Draft title")).toBeVisible();
   content.focus();
   fireEvent.keyDown(content, { key: "ArrowDown" });
-  expect(screen.getByRole("button", { name: "Display as" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Camera and image" })).toHaveFocus();
   fireEvent.click(content);
   expect(screen.getByLabelText("Title")).toHaveValue("Draft title");
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "" } });
@@ -808,7 +856,7 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   expect(screen.getByRole("alert")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
-  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toHaveLength(0);
+  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Camera and image" })]);
   expect(screen.getByLabelText("Title")).not.toHaveFocus();
 });
 

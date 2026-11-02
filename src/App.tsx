@@ -16,6 +16,7 @@ const School = lazy(() => import("./pages/School"));
 const SmartHome = lazy(() => import("./pages/SmartHome"));
 const DeviceGallery = lazy(() => import("./pages/DeviceGallery"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Cameras = lazy(() => import("./pages/Cameras"));
 const Devices = lazy(() => import("./pages/Devices"));
 const DeviceDetail = lazy(() => import("./pages/DeviceDetail"));
 const EntityDetail = lazy(() => import("./pages/EntityDetail"));
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/school" element={<School />} />
                 <Route path="/home" element={<SmartHome />} />
                 <Route path="/device-gallery" element={<DeviceGallery />} />
+                <Route path="/cameras" element={<Cameras />} />
                 <Route path="/devices" element={<Devices />} />
                 <Route path="/devices/:deviceId" element={<DeviceDetail />} />
                 <Route path="/entities/:entityId" element={<EntityDetail />} />

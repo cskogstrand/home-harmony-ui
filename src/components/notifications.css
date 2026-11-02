@@ -103,6 +103,7 @@
 @media (max-width: 799px) {
   .notification-editor-layout { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
   .notification-editor .notification-preview { position: static; grid-row: 1; }
+  .notification-editor[data-kind="camera"] .notification-preview { grid-row: auto; }
 }
 @media (max-width: 449px) {
   .notification-icon-filters { grid-template-columns: minmax(0, 1fr); }

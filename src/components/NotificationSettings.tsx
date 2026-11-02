@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
@@ -18,6 +19,7 @@ import { PanelTitle } from "./PanelTitle";
 import { NotificationProgressSettings } from "./NotificationProgress";
 import { NotificationPreview } from "./NotificationPreview";
 import { NotificationStylePicker } from "./NotificationStylePicker";
+import { NotificationCameraSettings } from "./NotificationCameraSettings";
 import { NotificationEntitySettings } from "./NotificationEntitySettings";
 import { NotificationIconPicker } from "./NotificationIcon";
 import "./notifications.css";
@@ -34,6 +36,8 @@ const newTrigger = (type: NotificationTrigger["type"]): NotificationTrigger => {
 export function NotificationSettings() {
   const { message: t } = useI18n();
   const { notifications, setNotifications } = useFamily();
+  const [params, setParams] = useSearchParams();
+  const requestedCamera = params.get("camera");
   const { currentHome, homeOnline } = useApp();
   const shared = useSharedConfiguration();
   const disabled = !shared?.state.loaded || !!shared.state.error;
@@ -47,17 +51,25 @@ export function NotificationSettings() {
   const [remove, setRemove] = useState<NotificationRule>();
   const editor = useRef<HTMLFormElement>(null);
   const titleInput = useRef<HTMLInputElement>(null);
-  const editUsage = (section: "trigger" | "progress" | "readings") => {
+  const editUsage = (section: "trigger" | "progress" | "readings" | "camera") => {
     setOpenSections(sections => [...new Set([...sections, section])]);
     editor.current?.querySelector<HTMLButtonElement>(`[data-section="${section}"] > h3 > button`)?.focus();
   };
   const entities = currentHome.entities;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
-    setOpenSections(rule.title.trim() ? [] : ["content"]);
+    setOpenSections([...(rule.title.trim() ? [] : ["content"]), ...(rule.kind === "camera" ? ["camera"] : [])]);
     setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(rule.trigger.type === "ha-event" ? JSON.stringify(rule.trigger.filters, null, 2) : "{}");
   };
+  useEffect(() => {
+    if (!requestedCamera || !shared?.state.loaded || draft) return;
+    const camera = entities.find(entity => entity.entityId === requestedCamera && entity.domain === "camera");
+    if (!camera) return;
+    setDraft({ id: newPlannerId(), title: camera.name.slice(0, 100), message: "", kind: "camera", enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: camera.preferenceId, durationSeconds: 60, cooldownSeconds: 10 });
+    setOriginal(""); setError(""); setOpenSections(["camera", "trigger"]);
+    const next = new URLSearchParams(params); next.delete("camera"); setParams(next, { replace: true });
+  }, [requestedCamera, shared?.state.loaded, entities, draft, params, setParams]);
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string) => {
     const choices = selectable.filter(entity => !domain || entity.domain === domain);
     return <EntityPicker label={t(label)} entities={choices} value={value} onChange={update} disabled={disabled} />;
@@ -73,7 +85,7 @@ export function NotificationSettings() {
     const readings = notificationReadings(draft);
     const result = notificationRuleSchema.safeParse({ ...draft, trigger, ...(draft.entityDisplay && { entityDisplay: draft.entityDisplay.filter(item => readings.some(reading => reading.entity === item.entity && reading.attribute === item.attribute)) }) });
     if (!result.success) {
-      const sectionForField = { title: "content", message: "content", presentation: "presentation", trigger: "trigger", cameraEntity: "readings", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+      const sectionForField = { title: "content", message: "content", presentation: "presentation", trigger: "trigger", cameraEntity: "camera", cameraMedia: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
       setOpenSections(sections => [...new Set([...sections, ...result.error.issues.map(issue => sectionForField[issue.path[0]] ?? "content")])]);
       setError(result.error.issues.some(issue => issue.path[0] === "progress") ? "Check progress: choose numeric sources and different start and end values." : "Check the title, trigger, camera and numeric values. Event filters must contain at most 10 text, number or boolean fields."); return; }
     const rules = current ? notifications.rules.map(rule => rule.id === draft.id ? result.data : rule) : [...notifications.rules, result.data];
@@ -127,7 +139,7 @@ export function NotificationSettings() {
       </li>;
     })}</ul></section>;
     })}
-    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor" onOpenAutoFocus={event => {
+    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor" data-kind={draft?.kind} onOpenAutoFocus={event => {
       if (!draft?.title.trim()) { event.preventDefault(); titleInput.current?.focus(); }
     }}>
       <DialogHeader><DialogTitle>{t(original ? "Edit notification" : "Add notification")}</DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
@@ -142,6 +154,9 @@ export function NotificationSettings() {
         </select></label>
         <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
         </NotificationEditorSection>
+        {draft.kind === "camera" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
+          <NotificationCameraSettings rule={draft} entities={entities} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
+        </NotificationEditorSection>}
         <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>
           <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />
         </NotificationEditorSection>
