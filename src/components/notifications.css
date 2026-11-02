@@ -1,5 +1,6 @@
 .notification-editor { width: min(1160px, calc(100% - 24px)); max-width: 1160px; height: calc(100dvh - 24px); max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; }
 .notification-editor-form { min-height: 0; flex: 1; }
+.notification-presence { display: flow-root; overflow: hidden; }
 .notification-editor-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; min-height: 0; flex: 1; overflow-y: auto; scrollbar-gutter: stable; scroll-padding-block: .25rem; }
 .notification-editor-fields { min-width: 0; padding: .25rem; display: flex; flex-direction: column; gap: .625rem; align-self: start; }
 .notification-editor-section { border: 0; }

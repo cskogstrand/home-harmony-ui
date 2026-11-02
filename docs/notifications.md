@@ -12,6 +12,8 @@ The banner shows up to three alerts, including additional readings and camera/di
 
 Rules, titles, messages and selected entities are saved in shared settings and included in settings backups. Each rule and the whole notification system can be switched off. No rule is enabled until you add it.
 
+On main pages, the first notification expands the notification area and the last one collapses it over 250 ms with ease-in-out, moving the dashboard content with it. Exiting controls become inactive immediately. Reduced motion removes the height animation and keeps a short fade.
+
 ## Choose triggers
 
 Under **When to show it** (**Når varselet skal vises**), use **Add trigger** (**Legg til utløser**) to configure up to 10 triggers for one notification. **Any** trigger can activate it. For example, one camera popup can respond to both a doorbell event and a motion sensor. Each trigger has its own source, condition or event filters, and can be removed while at least one remains. Existing single-trigger rules keep working, and extra triggers are shared across screens and included in backups.

@@ -1,6 +1,7 @@
 import { notificationTriggers } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { Bell, Camera, ListChecks, X } from "lucide-react";
 import { configuredCamera } from "../../shared/cameras";
@@ -92,13 +93,25 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   </li>;
 }
 
+function NotificationPresence({ children }: { children: ReactNode }) {
+  const present = useIsPresent();
+  const reducedMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { ref.current?.toggleAttribute("inert", !present); }, [present]);
+  return <motion.div className="notification-presence" ref={ref} aria-hidden={!present || undefined}
+    initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+    transition={{ height: { duration: reducedMotion ? 0 : .25, delay: reducedMotion && !present ? .16 : 0, ease: [.77, 0, .175, 1] }, opacity: { duration: .16 } }}>
+    {children}
+  </motion.div>;
+}
+
 export function NotificationList({ compact = false, presentation = "section" }: { compact?: boolean; presentation?: NotificationPresentation }) {
   const { message: t } = useI18n();
   const { notifications: settings } = useFamily();
   const { pathname } = useLocation();
   const { notifications: allNotifications, errors, retry } = useNotifications();
   const notifications = allNotifications.filter(item => !compact || pathname === "/" || (item.rule.pages ?? settings.pages) === "main");
-  if (compact && !notifications.length && !errors.length) return null;
+  const shown = !compact || notifications.length > 0 || errors.length > 0;
   const style = (item: HomeNotification) => item.rule.presentation ?? presentation;
   const banner = compact && (notifications.length ? notifications.every(item => style(item) === "banner") : presentation === "banner");
   const sectionFrame = !banner && (notifications.length ? notifications.every(item => style(item) === "section" || (!compact && style(item) === "banner")) : !["activity", "activity-compact"].includes(presentation));
@@ -109,7 +122,7 @@ export function NotificationList({ compact = false, presentation = "section" }: 
   ] as const;
   const ordered = groups.flatMap(group => notifications.filter(item => item.rule.kind === group.kind));
   const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link></div>;
-  return <section className={banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : sectionFrame ? "glow-panel mb-5" : "notification-activities mb-5"} aria-label={t("Active notifications")}>
+  const content = <section className={banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : sectionFrame ? "glow-panel mb-5" : "notification-activities mb-5"} aria-label={t("Active notifications")}>
     {!banner && heading}
     {!!errors.length && <div role="status" className="mb-3 w-full"><p>{t("Some notification sources could not be loaded. Check the Home Assistant connection and permissions.")}</p><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>}
     {!notifications.length && !errors.length && <p className="empty-note">{t("Nothing needs your attention right now.")}</p>}
@@ -131,6 +144,7 @@ export function NotificationList({ compact = false, presentation = "section" }: 
     </div>}
     {banner && heading}
   </section>;
+  return compact ? <AnimatePresence initial={false}>{shown && <NotificationPresence key="notifications">{content}</NotificationPresence>}</AnimatePresence> : content;
 }
 
 export function NotificationCamera() {

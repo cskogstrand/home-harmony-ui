@@ -436,6 +436,26 @@ it.each(["banner", "section", "activity"] as const)("filters %s by each rule's p
   expect(screen.queryByRole("region", { name: "Active notifications" })).not.toBeInTheDocument();
 });
 
+it("retains the exiting notification until collapse finishes and reverses when another alert arrives", async () => {
+  const rule = { ...cameraRule(), kind: "current" as const };
+  const value = { notifications: [], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() } as React.ContextType<typeof NotificationContext>;
+  const content = () => <MemoryRouter><NotificationContext.Provider value={value}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content());
+  expect(view.container.querySelector(".notification-presence")).toBeNull();
+  value.notifications = [{ id: rule.id, rule, startedAt: 0, popup: false }]; view.rerender(content());
+  const panel = view.container.querySelector(".notification-presence");
+  expect(screen.getByRole("region", { name: "Active notifications" })).toBeInTheDocument();
+  value.notifications = []; view.rerender(content());
+  expect(view.container.querySelector(".notification-presence")).toBe(panel);
+  expect(panel).toHaveAttribute("inert");
+  expect(screen.queryByRole("region", { name: "Active notifications" })).not.toBeInTheDocument();
+  value.notifications = [{ id: rule.id, rule, startedAt: 1, popup: false }]; view.rerender(content());
+  expect(panel).not.toHaveAttribute("inert");
+  expect(screen.getAllByText(rule.title)).toHaveLength(1);
+  value.notifications = []; view.rerender(content());
+  await waitFor(() => expect(view.container.querySelector(".notification-presence")).toBeNull());
+});
+
 it("shows every activity card on main pages instead of limiting each group to three", () => {
   const notifications = Array.from({ length: 5 }, (_, index) => ({ id: `example-${index}`, rule: { ...cameraRule(), id: `example-${index}`, kind: "ongoing" as const, title: `Example task ${index}` }, startedAt: 0, popup: false }));
   render(<MemoryRouter><NotificationContext.Provider value={{ notifications, errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() }}><NotificationList compact presentation="activity" /></NotificationContext.Provider></MemoryRouter>);
