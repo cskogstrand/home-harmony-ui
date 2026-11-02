@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.5
+
+<!-- release-source: 50fc711c267202dd2ce30f5ac879c88507dc6e03 -->
+
+- feat: separate cameras from connections
+- feat: add go2rtc cameras and person snapshots
+
 ## 0.10.4
 
 <!-- release-source: 0036e315fe0f131d2fbec5ba4ed3c49d754244b8 -->
