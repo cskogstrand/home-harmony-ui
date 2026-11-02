@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.6
+
+<!-- release-source: c20f89a37bc49589f715781ee8dca32cf80dea19 -->
+
+- test: cover camera snapshot playback handoff
+- test: retain calendar plans during disconnects
+- fix: keep active camera video above snapshots
+- fix: retain calendar plans during refresh
+- feat: animate notification area visibility
+- feat: group camera media preview controls
+- fix: fade video over retained camera snapshots
+- feat: show camera feeds on notification cards
+- feat: configure Frigate startup images
+- feat: preview snapshots while cameras connect
+- feat: add multiple notification triggers
+
 ## 0.10.5
 
 <!-- release-source: 50fc711c267202dd2ce30f5ac879c88507dc6e03 -->
