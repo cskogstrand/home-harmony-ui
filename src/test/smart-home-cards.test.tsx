@@ -273,16 +273,29 @@ it("falls back from camera video to MJPEG and snapshots and permits retry after 
 
 it("plays camera video without restarting on state updates and releases the preview when expanded", async () => {
   mocks.camera.mockImplementation(() => {});
+  const fetchPreview = vi.fn().mockImplementation(async () => new Response("fixture-frame", { headers: { "Content-Type": "image/jpeg" } }));
+  vi.stubGlobal("fetch", fetchPreview);
+  vi.stubGlobal("Image", class { src = ""; decode = async () => {}; });
+  vi.stubGlobal("URL", class extends URL { static createObjectURL = () => "blob:preview"; static revokeObjectURL = vi.fn(); });
   const entity = cardEntity("camera", "idle", { entity_picture: "https://example.invalid/private?token=fixture" });
   const view = open(entity);
-  const video = screen.getByLabelText(entity.name, { selector: "video" });
+  const video = screen.getByLabelText<HTMLVideoElement>(entity.name, { selector: "video" });
   expect(video.tagName).toBe("VIDEO");
   expect(video).toHaveAttribute("autoplay"); expect(video).toHaveAttribute("playsinline");
-  expect((video as HTMLVideoElement).muted).toBe(true);
-  expect(video).toHaveAttribute("poster", "/api/camera_proxy/camera.example");
-  fireEvent.playing(video); expect(screen.getByText("Live camera")).toBeVisible();
+  expect(video.muted).toBe(true);
+  const preview = await screen.findByRole("img", { name: entity.name });
+  expect(preview).toHaveAttribute("src", "blob:preview");
+  expect(fetchPreview).toHaveBeenCalledWith("/api/camera_proxy/camera.example", { cache: "no-store", signal: expect.any(AbortSignal) });
+  fireEvent.playing(video);
+  expect(screen.queryByText("Live camera")).not.toBeInTheDocument();
+  Object.defineProperty(video, "readyState", { value: 4 });
+  video.currentTime = .5; fireEvent.timeUpdate(video);
+  expect(screen.getByText("Live camera")).toBeVisible();
+  expect(screen.getByRole("img", { name: entity.name })).toBe(preview);
+  expect(fetchPreview.mock.calls[0][1].signal.aborted).toBe(true);
   view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={{ ...entity, state: "streaming" }} /></TooltipProvider></MemoryRouter>);
   expect(mocks.camera).toHaveBeenCalledOnce();
+  expect(screen.getByLabelText(entity.name, { selector: "video" })).toBe(video);
   fireEvent.click(screen.getByRole("button", { name: `Expand ${entity.name}` }));
   expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
   expect(document.querySelectorAll("video")).toHaveLength(1);
