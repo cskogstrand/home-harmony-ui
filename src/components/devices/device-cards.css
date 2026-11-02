@@ -432,8 +432,8 @@
 .smart-entity-media > button { margin: .5rem; }
 .smart-media-caption { display: block; padding: .4rem .7rem; font-size: .75rem; background: hsl(var(--card)); width: 100%; }
 .smart-camera-player { position: relative; width: 100%; aspect-ratio: 16 / 9; }
-.smart-entity-media .smart-camera-player video { position: absolute; inset: 0; z-index: 1; height: 100%; aspect-ratio: 16 / 9; background: hsl(var(--muted)); opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease-out) 1s; }
-.smart-entity-media .smart-camera-player.is-playing video { opacity: 1; pointer-events: auto; transition-delay: 0s; }
+.smart-entity-media .smart-camera-player video { position: absolute; inset: 0; z-index: 1; height: 100%; aspect-ratio: 16 / 9; background: hsl(var(--muted)); opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease-out); }
+.smart-entity-media .smart-camera-player.is-playing video { opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
   .smart-entity-media .smart-camera-player video { transition-duration: 160ms; }
 }

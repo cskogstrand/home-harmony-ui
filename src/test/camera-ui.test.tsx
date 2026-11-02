@@ -30,7 +30,7 @@ beforeEach(() => {
   mocks.fetch.mockResolvedValue({ ok: true, json: async () => ["example", "example_sub"] }); vi.stubGlobal("fetch", mocks.fetch);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} unobserve() {} });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
 
@@ -185,16 +185,19 @@ it("plays configured go2rtc without HA, stops on suspension and retries without 
 });
 
 it("loads snapshots alongside video, stops them on playback and resumes only in visible viewers", () => {
-  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  vi.useFakeTimers(); configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
   const camera = mocks.shared.state.config.settings.cameras.items[0];
   const view = render(<MediaSurface camera={camera} expanded />);
   expect(mocks.go2rtc).toHaveBeenCalledOnce();
   expect(mocks.fetch).toHaveBeenLastCalledWith(`/api/cameras/${camera.id}/snapshot.jpg`, expect.objectContaining({ cache: "no-store" }));
   const video = view.container.querySelector("video");
+  vi.spyOn(video, "readyState", "get").mockReturnValue(4);
+  vi.spyOn(video, "paused", "get").mockReturnValue(false);
   fireEvent.playing(video);
   expect(mocks.fetch.mock.calls[0][1].signal.aborted).toBe(true);
   expect(screen.getByText("Live video from go2rtc")).toBeVisible();
   fireEvent.waiting(video);
+  act(() => { vi.advanceTimersByTime(3000); });
   expect(mocks.fetch).toHaveBeenCalledTimes(2);
   expect(mocks.go2rtc).toHaveBeenCalledOnce();
   expect(mocks.go2rtc.mock.calls[0][2].aborted).toBe(false);
@@ -214,6 +217,63 @@ it("loads snapshots alongside video, stops them on playback and resumes only in 
   view.unmount();
   render(<MediaSurface camera={{ ...camera, connectionId: "home-assistant", source: "camera.example" }} expanded />);
   expect(mocks.fetch).toHaveBeenLastCalledWith("/api/camera_proxy/camera.example", expect.objectContaining({ cache: "no-store" }));
+});
+
+it.each([true, false])("holds streaming video through waiting signals and falls back only after progress stops (frame callbacks: %s)", frameCallbacks => {
+  vi.useFakeTimers(); configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const prototype = HTMLVideoElement.prototype;
+  const originalFrame = Object.getOwnPropertyDescriptor(prototype, "requestVideoFrameCallback");
+  const originalCancel = Object.getOwnPropertyDescriptor(prototype, "cancelVideoFrameCallback");
+  let nextFrame: VideoFrameRequestCallback;
+  const requestFrame = vi.fn(callback => { nextFrame = callback; return 1; });
+  const cancelFrame = vi.fn();
+  Object.defineProperty(prototype, "requestVideoFrameCallback", { configurable: true, value: frameCallbacks ? requestFrame : undefined });
+  Object.defineProperty(prototype, "cancelVideoFrameCallback", { configurable: true, value: cancelFrame });
+  try {
+    const camera = mocks.shared.state.config.settings.cameras.items[0];
+    const view = render(<MediaSurface camera={camera} expanded />);
+    const video = view.container.querySelector("video");
+    vi.spyOn(video, "readyState", "get").mockReturnValue(4);
+    const paused = vi.spyOn(video, "paused", "get").mockReturnValue(false);
+    const present = () => act(() => {
+      video.currentTime += .5;
+      if (frameCallbacks) nextFrame(performance.now(), {} as VideoFrameCallbackMetadata);
+      else fireEvent.timeUpdate(video);
+    });
+    fireEvent.playing(video); present();
+    const player = video.closest(".smart-camera-player");
+    expect(player).toHaveClass("is-playing");
+    for (let i = 0; i < 8; i++) {
+      fireEvent.waiting(video);
+      act(() => { vi.advanceTimersByTime(500); }); present();
+      expect(player).toHaveClass("is-playing");
+      expect(mocks.fetch).toHaveBeenCalledOnce();
+    }
+    act(() => { vi.advanceTimersByTime(2999); });
+    expect(player).toHaveClass("is-playing");
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(player).not.toHaveClass("is-playing");
+    expect(mocks.fetch).toHaveBeenCalledTimes(2);
+    expect(view.container.querySelector("video")).toBe(video);
+    expect(mocks.go2rtc).toHaveBeenCalledOnce();
+    expect(mocks.go2rtc.mock.calls[0][2].aborted).toBe(false);
+    present();
+    expect(player).toHaveClass("is-playing");
+    expect(mocks.fetch.mock.calls[1][1].signal.aborted).toBe(true);
+    paused.mockReturnValue(true); fireEvent.pause(video);
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(player).toHaveClass("is-playing");
+    view.unmount();
+    if (frameCallbacks) {
+      expect(cancelFrame).toHaveBeenCalledWith(1);
+      const calls = requestFrame.mock.calls.length;
+      present(); expect(requestFrame).toHaveBeenCalledTimes(calls);
+    }
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    if (originalFrame) Object.defineProperty(prototype, "requestVideoFrameCallback", originalFrame); else delete prototype.requestVideoFrameCallback;
+    if (originalCancel) Object.defineProperty(prototype, "cancelVideoFrameCallback", originalCancel); else delete prototype.cancelVideoFrameCallback;
+  }
 });
 
 it("ignores stream discovery from the previous connection and offers manual input after failure", async () => {

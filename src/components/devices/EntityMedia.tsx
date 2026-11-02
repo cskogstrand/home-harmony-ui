@@ -27,6 +27,33 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
   const [playing, setPlaying] = useState(false);
   const [transport, setTransport] = useState<"webrtc" | "mse">("webrtc");
   useEffect(() => {
+    const video = ref.current;
+    let stopped = false, lastTime = -1;
+    let frame: number, timer: ReturnType<typeof setTimeout>;
+    const progressed = () => {
+      if (stopped) return;
+      clearTimeout(timer); setPlaying(true);
+      timer = setTimeout(() => { if (!video.paused) setPlaying(false); }, 3000);
+    };
+    const nextFrame: VideoFrameRequestCallback = () => {
+      if (stopped) return;
+      progressed(); frame = video.requestVideoFrameCallback(nextFrame);
+    };
+    const timeUpdate = () => {
+      if (video.readyState >= 2 && video.currentTime !== lastTime) { lastTime = video.currentTime; progressed(); }
+    };
+    const emptied = () => { clearTimeout(timer); lastTime = -1; setPlaying(false); };
+    // Waiting/playing can chatter around MSE chunks; only missing frame progress hides established video.
+    if (video.requestVideoFrameCallback) frame = video.requestVideoFrameCallback(nextFrame);
+    else { video.addEventListener("playing", timeUpdate); video.addEventListener("timeupdate", timeUpdate); }
+    video.addEventListener("emptied", emptied);
+    return () => {
+      stopped = true; clearTimeout(timer);
+      if (frame !== undefined) video.cancelVideoFrameCallback(frame);
+      video.removeEventListener("playing", timeUpdate); video.removeEventListener("timeupdate", timeUpdate); video.removeEventListener("emptied", emptied);
+    };
+  }, [id, transport]);
+  useEffect(() => {
     const controller = new AbortController();
     const failed = (message?: string) => {
       if (go2rtc && transport === "webrtc") { setPlaying(false); setTransport("mse"); }
@@ -38,8 +65,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
   return <><div className={`smart-camera-player${playing ? " is-playing" : ""}`}>
     <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
       status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
-    <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded}
-    onPlaying={() => setPlaying(true)} onWaiting={() => setPlaying(false)} onEmptied={() => setPlaying(false)} />
+    <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded} />
     <span className="smart-media-caption smart-camera-caption">{t(playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…")}</span></div></>;
 }
 
