@@ -1,6 +1,6 @@
 import { notificationTriggers } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bell, Camera, ListChecks, X } from "lucide-react";
 import { configuredCamera } from "../../shared/cameras";
@@ -29,6 +29,29 @@ export function NotificationBell() {
   return <><Link to="/notifications" className="icon-button glass-surface relative" aria-label={t("Notifications: {count} active", { count: notifications.length })}>
     <Bell size={20} aria-hidden="true" />{(notifications.length > 0 || errors.length > 0) && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length || "!"}</span>}
   </Link><span role="status" aria-atomic="true" className="sr-only">{titles ? t("Active notifications: {titles}", { titles }) : notifications.length ? "" : t("No active notifications")}</span></>;
+}
+
+function NotificationCameraFeed({ item, preview }: { item: HomeNotification; preview: boolean }) {
+  const { message: t } = useI18n();
+  const shared = useSharedConfiguration();
+  const selected = configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(!globalThis.IntersectionObserver && !document.hidden);
+  useEffect(() => {
+    if (preview) return;
+    let inView = !globalThis.IntersectionObserver;
+    const update = () => setVisible(inView && !document.hidden);
+    const observer = globalThis.IntersectionObserver && new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; update(); }, { rootMargin: "100px" });
+    if (ref.current) observer?.observe(ref.current);
+    document.addEventListener("visibilitychange", update); update();
+    return () => { observer?.disconnect(); document.removeEventListener("visibilitychange", update); };
+  }, [preview]);
+  return <div ref={ref} className="notification-camera-feed">
+    {preview || item.popup || !visible ? <div className="notification-camera-placeholder"><Camera size={32} aria-hidden="true" /><span>{t(preview ? "Camera preview" : item.popup ? "Open in viewer" : "Stream paused")}</span></div>
+      : !selected ? <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>
+      : item.rule.cameraMedia === "person" ? <CameraPersonSnapshot key={selected.id} cameraId={selected.id} />
+      : <MediaSurface camera={selected} />}
+  </div>;
 }
 
 export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, preview = false, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; preview?: boolean; entities?: Entity[] }) {
@@ -63,7 +86,7 @@ export function NotificationRow({ item, condensed = false, activity = false, com
       {readings.some(reading => !notificationEntity(entities, reading.entity)) && <p className="text-sm text-muted-foreground">{t("Some additional readings are unavailable")}</p>}
       {item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} />}
       {!!at("footer").length && <div data-placement="footer" className="notification-reading-footer">{at("footer").map(reading => renderReading(reading))}</div>}
-      {item.rule.kind === "camera" && <Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button>}
+      {item.rule.kind === "camera" && <><NotificationCameraFeed item={item} preview={preview} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>}
     </div>
     {item.rule.kind !== "ongoing" && <Button type="button" disabled={preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>}
   </li>;

@@ -67,6 +67,8 @@ Camera rules have a **Camera and image** section. **Camera** lists only cameras 
 
 **Show in notification** chooses that camera's live video or its configured **Person snapshot**. **Test camera output** previews the choice. **Configure camera (new tab)** opens setup without losing the notification draft. **Smart home → Cameras → Use in notification** preselects the camera in a new rule. See [camera setup](cameras.md). A snapshot may predate the alert and refreshes while visible to pick up delayed images.
 
+Camera notification cards show the selected video or person image inline in every presentation, including banners and compact activity cards. Live video uses the camera's fast snapshot preview while connecting, including its configured Frigate latest-image source. **Show camera** opens the larger viewer; the card pauses its own feed while that popup is open and resumes when it closes. Offscreen cards and background tabs stop their feeds. Style previews show a camera placeholder without opening real streams; **Test camera output** remains the explicit media test.
+
 ## Connection and privacy
 
 Notifications run while the dashboard is open and connected. They do not send phone push notifications, email, or messages, and cannot catch events while the browser is closed or suspended. Active state/calendar notifications are reconstructed on load; old doorbell events and camera triggers are not replayed on initial load, reconnection or rule edits. Sensor recovery from `unavailable` does not open a camera.

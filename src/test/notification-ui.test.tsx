@@ -471,11 +471,60 @@ it.each(["banner", "section", "activity", "activity-compact"] as const)("keeps r
   render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: rule.id, rule, popup: false, startedAt: 0 }], errors: [], camera, dismiss, retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
   expect(screen.getByRole("listitem").classList.contains("notification-activity-compact")).toBe(presentation === "activity-compact");
   expect(screen.getByRole("listitem")).toHaveTextContent("Off");
+  expect(screen.getByRole("listitem").querySelector("video")).not.toBeNull();
+  expect(watchCameraStream).toHaveBeenCalledOnce();
   if (presentation !== "banner") expect(screen.getByText("Example message")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
   expect(camera).toHaveBeenCalledWith(rule.id, true);
   fireEvent.click(screen.getByRole("button", { name: "Dismiss Example doorbell" }));
   expect(dismiss).toHaveBeenCalledWith(rule.id);
+});
+
+it("shows the configured camera feed and fast snapshot on the card without opening a popup", () => {
+  mocks.shared.state.config.settings.cameras = cameraSettings();
+  const fetchFrame = vi.fn().mockReturnValue(new Promise(() => {})); vi.stubGlobal("fetch", fetchFrame);
+  const item = { id: "example", rule: cameraRule(), startedAt: 0, popup: false };
+  const view = render(<MemoryRouter><NotificationRow item={item} activity /></MemoryRouter>);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByRole("listitem").querySelector("video")).not.toBeNull();
+  expect(playGo2rtcStream).toHaveBeenCalledWith("example-camera", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
+  expect(fetchFrame).toHaveBeenCalledWith("/api/cameras/example-camera/snapshot.jpg", expect.anything());
+  const signal = vi.mocked(playGo2rtcStream).mock.calls[0][2];
+  view.rerender(<MemoryRouter><NotificationRow item={{ ...item, popup: true }} activity /></MemoryRouter>);
+  expect(signal.aborted).toBe(true); expect(fetchFrame.mock.calls[0][1].signal.aborted).toBe(true);
+  expect(screen.getByRole("listitem").querySelector("video")).toBeNull();
+  view.rerender(<MemoryRouter><NotificationRow item={item} activity /></MemoryRouter>);
+  expect(playGo2rtcStream).toHaveBeenCalledTimes(2);
+  view.unmount();
+  expect(vi.mocked(playGo2rtcStream).mock.calls[1][2].aborted).toBe(true);
+});
+
+it("shows person images on visible cards and stops them offscreen and in background tabs", () => {
+  mocks.shared.state.config.settings.cameras.items[0].personSnapshot = { type: "home-assistant", entity: "image.example_person" };
+  let intersect: (entries: { isIntersecting: boolean }[]) => void;
+  const disconnect = vi.fn();
+  vi.stubGlobal("IntersectionObserver", class { constructor(callback) { intersect = callback; } observe() {} disconnect = disconnect; });
+  const item = { id: "example", rule: { ...cameraRule(), cameraMedia: "person" as const }, startedAt: 0, popup: false };
+  const view = render(<MemoryRouter><NotificationRow item={item} activity /></MemoryRouter>);
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  act(() => intersect([{ isIntersecting: true }]));
+  expect(screen.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/example-camera/person.jpg"));
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  act(() => intersect([{ isIntersecting: false }]));
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  act(() => intersect([{ isIntersecting: true }]));
+  const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  fireEvent(document, new Event("visibilitychange"));
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  hidden.mockRestore(); view.unmount(); expect(disconnect).toHaveBeenCalledOnce();
+});
+
+it("shows a camera placeholder in style previews without requesting real media", () => {
+  const fetchFrame = vi.fn(); vi.stubGlobal("fetch", fetchFrame);
+  render(<MemoryRouter><NotificationPreview rule={cameraRule()} presentation="activity" /></MemoryRouter>);
+  expect(screen.getByText("Camera preview")).toBeVisible();
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  expect(watchCameraStream).not.toHaveBeenCalled(); expect(playGo2rtcStream).not.toHaveBeenCalled(); expect(fetchFrame).not.toHaveBeenCalled();
 });
 
 it("mixes per-rule styles in the same notification group and shares a grid between normal and compact cards", () => {
@@ -558,7 +607,11 @@ it("opens one camera on a fresh trigger, stops its stream on close, and expires 
   act(() => { vi.advanceTimersByTime(0); });
   expect(screen.getByLabelText("Interrupted field")).toHaveFocus();
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.getByRole("listitem").querySelector("video")).not.toBeNull();
+  expect(watchCameraStream).toHaveBeenCalledTimes(2);
+  const inlineSignal = watchCameraStream.mock.calls[1][2] as AbortSignal;
   fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
+  expect(inlineSignal.aborted).toBe(true);
   expect(screen.getByRole("dialog")).toBeVisible();
   act(() => { vi.advanceTimersByTime(11000); });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

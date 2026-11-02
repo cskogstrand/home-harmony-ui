@@ -27,6 +27,7 @@ export function NotificationCameraSettings({ rule, disabled, onChange, active }:
       <option value="live">{connection?.type === "go2rtc" ? t("Live video from go2rtc · {stream}", { stream: camera.source }) : t("Live video from Home Assistant")}</option>
       <option value="person" disabled={!person}>{t("Person snapshot")}{!person ? ` · ${t("Not configured")}` : ""}</option>
     </select></label>
+    <p className="page-note">{t("The selected video or person image appears on the notification card and in its larger camera viewer.")}</p>
     {camera && <p className="page-note break-words">{t("Connection: {name} · Source: {source}", { name: connection?.name ?? "Home Assistant", source: camera.source })}</p>}
     {rule.cameraMedia === "person" && !person && <p role="status">{t("Choose a person snapshot in Camera settings.")}</p>}
     <div className="flex flex-wrap gap-2">

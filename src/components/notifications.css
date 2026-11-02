@@ -39,6 +39,9 @@
 .notification-icon { display: inline-flex; flex-shrink: 0; color: hsl(var(--primary)); }
 .notification-icon svg { width: 1.4rem; height: 1.4rem; }
 .notification-row > .notification-icon { margin-top: .25rem; }
+.notification-camera-feed { width: 100%; max-width: 36rem; margin-top: .75rem; min-width: 0; }
+.notification-camera-feed .smart-entity-media { min-height: 0; margin-bottom: 0; }
+.notification-camera-placeholder { display: grid; align-content: center; justify-items: center; gap: .5rem; aspect-ratio: 16 / 9; border-radius: 12px; background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); font-size: .875rem; }
 .notification-progress { display: grid; gap: .5rem; margin-top: 1rem; }
 .notification-progress-label { display: flex; justify-content: flex-end; font-size: .875rem; font-variant-numeric: tabular-nums; }
 .notification-progress-label > strong { flex-shrink: 0; color: hsl(var(--primary)); }

@@ -1861,6 +1861,8 @@ export const nb = {
   "Loading image…": "Laster bilde…",
   "Loading video…": "Laster video…",
   "Snapshot preview · connecting video…": "Forhåndsvisning med øyeblikksbilder · kobler til video…",
+  "Camera preview": "Kameraforhåndsvisning",
+  "The selected video or person image appears on the notification card and in its larger camera viewer.": "Valgt video eller personbilde vises på varselkortet og i den større kameravisningen.",
   "Camera preview · video unavailable": "Kameraforhåndsvisning · video er utilgjengelig",
   "Image unavailable": "Bildet er utilgjengelig",
   "Snapshot · live stream unavailable": "Stillbilde · direktestrøm er utilgjengelig",
