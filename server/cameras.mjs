@@ -16,7 +16,7 @@ async function readLimited(body, limit) {
 
 // Called only after dashboard authentication; upstream destinations come from saved settings.
 export async function proxyCameraMedia(request, response, url, settings, { homeAssistantUrl, homeAssistantToken }) {
-  const match = url.pathname.match(/^\/api\/cameras\/([a-zA-Z0-9_.-]{1,128})\/(webrtc|stream\.mp4|person\.jpg)$/);
+  const match = url.pathname.match(/^\/api\/cameras\/([a-zA-Z0-9_.-]{1,128})\/(webrtc|stream\.mp4|snapshot\.jpg|person\.jpg)$/);
   const discovery = url.pathname.match(/^\/api\/camera-connections\/([a-zA-Z0-9_.-]{1,128})\/streams$/);
   if (discovery ? request.method !== "GET" : !match || request.method !== (match[2] === "webrtc" ? "POST" : "GET")) throw failure(404, "Camera source not found.");
   const source = match && settings.items.find(camera => camera.id === match[1]);
@@ -53,7 +53,13 @@ export async function proxyCameraMedia(request, response, url, settings, { homeA
       await pipeline(Readable.fromWeb(result.body), response, { signal: controller.signal });
       return;
     }
-    if (match[2] === "webrtc") {
+    if (match[2] === "snapshot.jpg") {
+      const connection = settings.connections.find(item => item.id === source.connectionId && item.type === "go2rtc");
+      if (!connection) throw failure(404, "Configure a go2rtc stream for this camera.");
+      target = `${connection.url}/api/frame.jpeg?${new URLSearchParams({ src: source.source, width: "640" })}`;
+      allowedTypes = ["image/jpeg"];
+      limit = 10 * 1024 * 1024;
+    } else if (match[2] === "webrtc") {
       const connection = settings.connections.find(item => item.id === source.connectionId && item.type === "go2rtc");
       if (!connection) throw failure(404, "Configure a go2rtc stream for this camera.");
       if (request.headers["content-type"]?.split(";")[0] !== "application/sdp") throw failure(415, "Send an SDP offer.");

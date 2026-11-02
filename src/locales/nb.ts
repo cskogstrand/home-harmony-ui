@@ -1851,6 +1851,7 @@ export const nb = {
   "Supporting entities": "Tilkoblede entiteter",
   "Loading image…": "Laster bilde…",
   "Loading video…": "Laster video…",
+  "Snapshot preview · connecting video…": "Forhåndsvisning med øyeblikksbilder · kobler til video…",
   "Camera preview · video unavailable": "Kameraforhåndsvisning · video er utilgjengelig",
   "Image unavailable": "Bildet er utilgjengelig",
   "Snapshot · live stream unavailable": "Stillbilde · direktestrøm er utilgjengelig",

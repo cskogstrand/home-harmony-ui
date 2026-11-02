@@ -126,6 +126,38 @@ it("plays configured go2rtc without HA, stops on suspension and retries without 
   expect(mocks.go2rtc).toHaveBeenCalledTimes(4);
 });
 
+it("loads snapshots alongside video, stops them on playback and resumes only in visible viewers", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  const view = render(<MediaSurface camera={camera} expanded />);
+  expect(mocks.go2rtc).toHaveBeenCalledOnce();
+  expect(mocks.fetch).toHaveBeenLastCalledWith(`/api/cameras/${camera.id}/snapshot.jpg`, expect.objectContaining({ cache: "no-store" }));
+  const video = view.container.querySelector("video");
+  fireEvent.playing(video);
+  expect(mocks.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  expect(screen.getByText("Live video from go2rtc")).toBeVisible();
+  fireEvent.waiting(video);
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(mocks.go2rtc).toHaveBeenCalledOnce();
+  expect(mocks.go2rtc.mock.calls[0][2].aborted).toBe(false);
+  expect(view.container.querySelector("video")).toBe(video);
+  act(() => { mocks.go2rtc.mock.calls[0][3]("WebRTC failed"); });
+  expect(mocks.mse).toHaveBeenCalledOnce();
+  expect(mocks.fetch).toHaveBeenCalledTimes(2);
+  expect(mocks.fetch.mock.calls[1][1].signal.aborted).toBe(false);
+  view.rerender(<MediaSurface camera={camera} expanded suspended />);
+  expect(mocks.fetch.mock.calls[1][1].signal.aborted).toBe(true);
+  view.rerender(<MediaSurface camera={camera} expanded />);
+  expect(mocks.fetch).toHaveBeenCalledTimes(3);
+  const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+  fireEvent(document, new Event("visibilitychange"));
+  expect(mocks.fetch.mock.calls[2][1].signal.aborted).toBe(true);
+  hidden.mockRestore();
+  view.unmount();
+  render(<MediaSurface camera={{ ...camera, connectionId: "home-assistant", source: "camera.example" }} expanded />);
+  expect(mocks.fetch).toHaveBeenLastCalledWith("/api/camera_proxy/camera.example", expect.objectContaining({ cache: "no-store" }));
+});
+
 it("ignores stream discovery from the previous connection and offers manual input after failure", async () => {
   let resolve: (value: unknown) => void;
   mocks.fetch.mockReturnValueOnce(new Promise(done => { resolve = done; })).mockRejectedValueOnce(new Error());

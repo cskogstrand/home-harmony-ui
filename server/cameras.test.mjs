@@ -23,7 +23,7 @@ async function fixture(t, snapshot = { type: "frigate", connectionId: "example-f
     const state = req.url.startsWith("/api/states/");
     const webrtc = req.url.startsWith("/api/webrtc");
     res.writeHead(response.status ?? 200, response.headers ?? { "Content-Type": state || discovery ? "application/json" : webrtc ? "application/sdp" : "image/jpeg" });
-    res.end(discovery ? JSON.stringify(response.streams ?? { example: { producers: [{ url: "rtsp://fixture:secret@camera.example/live" }] }, "invalid?url=secret": {} }) : state ? JSON.stringify({ attributes: { entity_picture: response.picture ?? "/api/image_proxy/image.example_person?token=fixture-picture-token" } }) : webrtc ? "v=0\r\nfixture-answer" : "fixture-image");
+    res.end(discovery ? JSON.stringify(response.streams ?? { example: { producers: [{ url: "rtsp://fixture:secret@camera.example/live" }] }, "invalid?url=secret": {} }) : state ? JSON.stringify({ attributes: { entity_picture: response.picture ?? "/api/image_proxy/image.example_person?token=fixture-picture-token" } }) : webrtc ? "v=0\r\nfixture-answer" : response.body ?? "fixture-image");
   });
   const origin = await listen(upstream);
   const config = emptyConfiguration();
@@ -36,6 +36,30 @@ async function fixture(t, snapshot = { type: "frigate", connectionId: "example-f
   return { url, requests };
 }
 const offer = { method: "POST", headers: { ...headers, "Content-Type": "application/sdp" }, body: "v=0\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=recvonly\r\n" };
+
+test("loads fresh go2rtc preview frames from the saved live source without person-image setup", async t => {
+  const app = await fixture(t, { type: "none" });
+  const path = `${app.url}/api/cameras/example-camera/snapshot.jpg`;
+  assert.equal((await fetch(path)).status, 401);
+  assert.equal((await fetch(path, { method: "POST", headers })).status, 404);
+  assert.equal((await fetch(`${app.url}/api/cameras/unknown/snapshot.jpg`, { headers })).status, 404);
+  assert.equal(app.requests.length, 0);
+  for (let i = 0; i < 2; i++) {
+    const image = await fetch(`${path}?src=other&width=9999&url=http://other.example&cache=1h`, { headers });
+    assert.equal(image.status, 200); assert.equal(await image.text(), "fixture-image");
+    assert.equal(image.headers.get("content-type"), "image/jpeg");
+    assert.equal(image.headers.get("cache-control"), "no-store");
+  }
+  assert.deepEqual(app.requests.map(({ path, authorization }) => ({ path, authorization })), Array(2).fill({ path: "/api/frame.jpeg?src=example&width=640", authorization: undefined }));
+});
+
+test("rejects failed, redirected, non-image and oversized preview frames", async t => {
+  for (const response of [{ status: 500 }, { headers: { "Content-Type": "text/html" } }, { status: 302, headers: { Location: "http://other.example" } }, { body: "x".repeat(10 * 1024 * 1024 + 1) }]) {
+    const app = await fixture(t, { type: "none" }, response);
+    const result = await fetch(`${app.url}/api/cameras/example-camera/snapshot.jpg`, { headers });
+    assert.ok([413, 502].includes(result.status)); assert.equal(app.requests.length, 1);
+  }
+});
 
 test("proxies configured go2rtc and Frigate without forwarding dashboard or HA credentials", async t => {
   const app = await fixture(t);

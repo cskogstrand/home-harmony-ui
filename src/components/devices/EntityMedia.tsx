@@ -11,6 +11,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { playGo2rtcStream } from "@/lib/go2rtc-stream";
 import { playGo2rtcMse } from "@/lib/go2rtc-mse";
 import { CameraPersonSnapshot } from "@/components/CameraPersonSnapshot";
+import { CameraStreamPreview } from "@/components/CameraStreamPreview";
 
 type MediaSource = { entity?: Entity; camera?: ConfiguredCamera };
 function MediaImage({ src, name, caption, onError }: { src: string; name: string; caption?: string; onError: () => void }) {
@@ -19,7 +20,7 @@ function MediaImage({ src, name, caption, onError }: { src: string; name: string
   return <><img src={src} alt={name} draggable={false} onLoad={() => setLoaded(true)} onError={onError} />
     {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <span className="smart-media-caption">{t(caption)}</span>}</>;
 }
-function CameraVideo({ id, name, go2rtc, expanded, onError }: { id: string; name: string; go2rtc: boolean; expanded: boolean; onError: (message?: string) => void }) {
+function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void }) {
   const { watchCameraStream } = useApp();
   const { message: t } = useI18n();
   const ref = useRef<HTMLVideoElement>(null);
@@ -34,9 +35,11 @@ function CameraVideo({ id, name, go2rtc, expanded, onError }: { id: string; name
     (go2rtc ? transport === "mse" ? playGo2rtcMse : playGo2rtcStream : watchCameraStream)(id, ref.current, controller.signal, failed);
     return () => controller.abort();
   }, [id, go2rtc, transport, watchCameraStream, onError]);
-  return <><video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded}
-    poster={go2rtc ? undefined : `/api/camera_proxy/${encodeURIComponent(id)}`} onPlaying={() => setPlaying(true)} onWaiting={() => setPlaying(false)} onEmptied={() => setPlaying(false)} />
-    {playing ? <span className="smart-media-caption">{t(go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera")}</span> : <p role="status">{t(transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…")}</p>}</>;
+  return <><div className="smart-camera-player"><video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded}
+    onPlaying={() => setPlaying(true)} onWaiting={() => setPlaying(false)} onEmptied={() => setPlaying(false)} />
+    {!playing && <CameraStreamPreview src={previewSrc} name={name}
+      status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />}</div>
+    {playing && <span className="smart-media-caption">{t(go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera")}</span>}</>;
 }
 
 export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false }: MediaSource & { suspended?: boolean; expanded?: boolean }) {
@@ -54,6 +57,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const [retry, setRetry] = useState(0), [failedSrc, setFailedSrc] = useState("");
   const [streamError, setStreamError] = useState("");
   const [snapshot, setSnapshot] = useState(false), [mjpeg, setMjpeg] = useState(false);
+  const previewSrc = customStream ? `/api/cameras/${encodeURIComponent(configured.id)}/snapshot.jpg` : `/api/camera_proxy/${encodeURIComponent(id)}`;
   const sourceKey = JSON.stringify([id, configured?.source, connection?.url]);
   const [previousSource, setPreviousSource] = useState(sourceKey);
   if (previousSource !== sourceKey) { setPreviousSource(sourceKey); setMjpeg(false); setSnapshot(false); setFailedSrc(""); }
@@ -78,7 +82,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   }, []);
   return <div ref={ref} className={`smart-entity-media${domain === "image" ? " is-map" : ""}`}>
     {reported && (seen || expanded) && !paused && !failed ? camera && !mjpeg
-      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} expanded={expanded} onError={fallback} />
+      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} />
       : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
