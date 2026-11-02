@@ -19,6 +19,8 @@ Use the settings cog on Today (I dag) to show, hide or reorder sections with the
 
 Unfinished to-dos with due dates appear under their assigned person in the month, week and day calendars, including Today’s calendar previews. A small task icon distinguishes them from calendar events. Date-only deadlines appear as all-day items; timed deadlines use the home’s time zone. Open a task for its details and a link to its list. Completed tasks, undated tasks and the shared shopping list stay out of the calendar.
 
+Calendar and Everyone’s day keep their last loaded plans during background refreshes and temporary connection failures. Loading text is reserved for the first fetch; connection errors still appear. Changing the selected home, calendar sources or date range clears unrelated cached calendar data. This cache lives only in memory.
+
 ## Get started
 
 ### Home Assistant OS

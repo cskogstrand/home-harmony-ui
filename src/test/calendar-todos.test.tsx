@@ -50,7 +50,7 @@ it("retains healthy lists when another fails and retries without persisting task
   expect(result.current.events).toHaveLength(2);
 });
 
-it("polls idle lists, pauses during writes and clears results offline", async () => {
+it("polls idle lists and pauses during writes", async () => {
   vi.useFakeTimers();
   const { result, rerender } = renderHook(() => useTodos());
   await act(async () => {});
@@ -69,6 +69,31 @@ it("polls idle lists, pauses during writes and clears results offline", async ()
   mocks.app.homeOnline = false;
   rerender();
   expect(result.current).toMatchObject({ events: [], errors: [], loading: false });
+});
+
+it("refreshes without flashing loading text and retains last known items on failures and reconnect", async () => {
+  const { result, rerender } = renderHook(({ refresh }) => useTodos(refresh), { initialProps: { refresh: 0 } });
+  await waitFor(() => expect(result.current.events).toHaveLength(1));
+  let reject: (reason: Error) => void;
+  mocks.app.todoItems.mockImplementation(() => new Promise((_resolve, fail) => { reject = fail; }));
+  rerender({ refresh: 1 });
+  expect(result.current.loading).toBe(false);
+  expect(result.current.events).toHaveLength(1);
+  await act(async () => { reject(new Error("Unavailable")); });
+  expect(result.current.events).toHaveLength(1);
+  expect(result.current.errors).toHaveLength(1);
+  mocks.app.currentHome.entities.find(entity => entity.entityId === "todo.example").state = "unavailable";
+  rerender({ refresh: 1 });
+  await act(async () => {});
+  expect(result.current.events).toHaveLength(1);
+  mocks.app.homeOnline = false; rerender({ refresh: 1 });
+  expect(result.current.events).toHaveLength(1);
+  mocks.app.todoItems.mockResolvedValue([]);
+  mocks.app.currentHome.entities.find(entity => entity.entityId === "todo.example").state = "0";
+  mocks.app.homeOnline = true; rerender({ refresh: 1 });
+  expect(result.current.events).toHaveLength(1);
+  await waitFor(() => expect(result.current.events).toEqual([]));
+  expect(result.current.errors).toEqual([]);
 });
 
 it("ignores late responses after the assignment is hidden and reports missing lists", async () => {

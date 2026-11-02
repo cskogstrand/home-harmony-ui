@@ -21,12 +21,13 @@ export function useCalendarPlans(start: string, end: string) {
   const calendarIds = selected.map(e => e.entityId).sort().join(",");
   const requestKey = `${haUrl}|${calendarIds}|${start}|${end}|${currentHome.timeZone}`;
   useEffect(() => {
-    if (!homeOnline || !calendarIds) {
+    if (!calendarIds) {
       setResult(previous => previous.key ? { key: "", events: [], errors: [], loading: false } : previous);
       return;
     }
+    if (!homeOnline) return;
     const controller = new AbortController();
-    setResult({ key: requestKey, events: [], errors: [], loading: true });
+    setResult(previous => previous.key === requestKey ? previous : { key: requestKey, events: [], errors: [], loading: true });
     const from = calendarBoundary(start, currentHome.timeZone);
     const to = calendarBoundary(end, currentHome.timeZone);
     const results = new Map<string, CalendarEvent[] | null>();
@@ -34,14 +35,17 @@ export function useCalendarPlans(start: string, end: string) {
     for (const id of ids) watchCalendarEvents(id, from, to, controller.signal, events => {
       if (controller.signal.aborted) return;
       results.set(id, events);
-      setResult({ key: requestKey, loading: results.size < ids.length,
-        events: [...results].flatMap(([calendar, plans]) => (plans ?? []).map(event => ({ event, calendar }))),
-        errors: [...results].flatMap(([calendar, plans]) => plans === null ? [calendar] : []),
-      });
+      setResult(previous => ({ key: requestKey, loading: previous.loading && results.size < ids.length,
+        events: ids.flatMap(calendar => {
+          const plans = results.get(calendar);
+          return plans == null ? previous.events.filter(item => item.calendar === calendar) : plans.map(event => ({ event, calendar }));
+        }),
+        errors: events === null ? [...new Set([...previous.errors, id])] : previous.errors.filter(calendar => calendar !== id),
+      }));
     });
     return () => controller.abort();
   }, [homeOnline, calendarIds, requestKey, start, end, currentHome.timeZone, watchCalendarEvents, refresh]);
-  const remote = homeOnline && result.key === requestKey ? result.events.flatMap(({ event, calendar }, index) => {
+  const remote = result.key === requestKey ? result.events.flatMap(({ event, calendar }, index) => {
     const entity = selected.find(e => e.entityId === calendar);
     return entity ? calendarPlans(event, calendar, calendarMembers[entity.preferenceId], start, end, currentHome.timeZone, index) : [];
   }) : [];
