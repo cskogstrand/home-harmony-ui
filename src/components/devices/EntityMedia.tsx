@@ -35,11 +35,12 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
     (go2rtc ? transport === "mse" ? playGo2rtcMse : playGo2rtcStream : watchCameraStream)(id, ref.current, controller.signal, failed);
     return () => controller.abort();
   }, [id, go2rtc, transport, watchCameraStream, onError]);
-  return <><div className="smart-camera-player"><video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded}
+  return <><div className={`smart-camera-player${playing ? " is-playing" : ""}`}>
+    <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
+      status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
+    <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded}
     onPlaying={() => setPlaying(true)} onWaiting={() => setPlaying(false)} onEmptied={() => setPlaying(false)} />
-    {!playing && <CameraStreamPreview src={previewSrc} name={name}
-      status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />}</div>
-    {playing && <span className="smart-media-caption">{t(go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera")}</span>}</>;
+    <span className="smart-media-caption smart-camera-caption">{t(playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…")}</span></div></>;
 }
 
 export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false }: MediaSource & { suspended?: boolean; expanded?: boolean }) {
@@ -81,7 +82,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     document.addEventListener("visibilitychange", update);
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
-  return <div ref={ref} className={`smart-entity-media${domain === "image" ? " is-map" : ""}`}>
+  return <div ref={ref} className={`smart-entity-media${camera ? " is-camera" : domain === "image" ? " is-map" : ""}`}>
     {reported && (seen || expanded) && !paused && !failed ? camera && !mjpeg
       ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} />
       : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}

@@ -426,15 +426,21 @@
 .smart-entity-media { position: relative; min-height: 10rem; margin-bottom: .75rem; background: hsl(var(--muted)); border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
 .smart-entity-media :is(img, video) { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
 .smart-entity-media.is-map img { aspect-ratio: 4 / 3; }
+.smart-entity-media.is-camera { width: 100%; aspect-ratio: 16 / 9; }
 .smart-entity-media > p { padding: 1rem; font-size: .85rem; text-align: center; }
 .smart-entity-media:has(img, video) > p { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .smart-entity-media > button { margin: .5rem; }
 .smart-media-caption { display: block; padding: .4rem .7rem; font-size: .75rem; background: hsl(var(--card)); width: 100%; }
 .smart-camera-player { position: relative; width: 100%; aspect-ratio: 16 / 9; }
-.smart-entity-media .smart-camera-player video { height: 100%; aspect-ratio: 16 / 9; }
+.smart-entity-media .smart-camera-player video { position: absolute; inset: 0; z-index: 1; height: 100%; aspect-ratio: 16 / 9; background: hsl(var(--muted)); opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease-out) 1s; }
+.smart-entity-media .smart-camera-player.is-playing video { opacity: 1; pointer-events: auto; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .smart-entity-media .smart-camera-player video { transition-duration: 160ms; }
+}
 .smart-camera-preview { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; background: hsl(var(--muted)); }
 .smart-entity-media .smart-camera-preview img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: contain; }
 .smart-camera-preview .smart-media-caption { position: absolute; bottom: 0; }
+.smart-camera-caption { position: absolute; bottom: 0; z-index: 2; pointer-events: none; }
 .smart-camera-preview > p { padding: 1rem; font-size: .85rem; text-align: center; }
 .smart-supporting-media { margin-top: .5rem; }
 .smart-supporting-media h3 { font-size: .85rem; margin: .4rem 0; }

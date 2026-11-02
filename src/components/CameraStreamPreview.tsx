@@ -1,15 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/hooks/use-i18n";
 
 // A decoded frame stays visible while the next request loads; never queue snapshots.
-export function CameraStreamPreview({ src, name, status }: { src: string; name: string; status: string }) {
+export function CameraStreamPreview({ src, name, status, active = true, caption = "Snapshot preview · connecting video…" }: { src: string; name: string; status: string; active?: boolean; caption?: string }) {
   const { message: t } = useI18n();
   const [frame, setFrame] = useState("");
+  const [failed, setFailed] = useState(false);
+  const current = useRef("");
   useEffect(() => {
-    let stopped = false, current = "", pending = "";
+    setFrame(""); setFailed(false);
+    return () => { if (current.current) URL.revokeObjectURL(current.current); current.current = ""; };
+  }, [src]);
+  useEffect(() => {
+    if (!active) return;
+    let stopped = false, pending = "";
     let request: AbortController;
     let timer: ReturnType<typeof setTimeout>, timeout: ReturnType<typeof setTimeout>;
-    setFrame("");
     const refresh = async () => {
       const started = performance.now();
       request = new AbortController();
@@ -25,11 +31,13 @@ export function CameraStreamPreview({ src, name, status }: { src: string; name: 
         await image.decode();
         if (stopped || request.signal.aborted) return;
         setFrame(pending);
-        if (current) URL.revokeObjectURL(current);
-        current = pending; pending = "";
+        setFailed(false);
+        if (current.current) URL.revokeObjectURL(current.current);
+        current.current = pending; pending = "";
         delay = Math.max(0, 500 - (performance.now() - started));
       } catch {
         // Snapshot errors must not interrupt the parallel live-video connection.
+        if (!stopped) setFailed(true);
       } finally {
         clearTimeout(timeout);
         if (pending) { URL.revokeObjectURL(pending); pending = ""; }
@@ -39,12 +47,11 @@ export function CameraStreamPreview({ src, name, status }: { src: string; name: 
     void refresh();
     return () => {
       stopped = true; clearTimeout(timer); clearTimeout(timeout); request?.abort();
-      if (current) URL.revokeObjectURL(current);
       if (pending) { URL.revokeObjectURL(pending); pending = ""; }
     };
-  }, [src]);
+  }, [src, active]);
   return <div className="smart-camera-preview">
-    {frame ? <><img src={frame} alt={name} draggable={false} /><span className="smart-media-caption">{t("Snapshot preview · connecting video…")}</span></>
-      : <p role="status">{t(status)}</p>}
+    {frame ? <><img src={frame} alt={name} draggable={false} />{caption && <span className="smart-media-caption">{t(caption)}</span>}</>
+      : <p role="status">{t(failed ? "Preview image unavailable. Check the camera connection. Retrying…" : status)}</p>}
   </div>;
 }

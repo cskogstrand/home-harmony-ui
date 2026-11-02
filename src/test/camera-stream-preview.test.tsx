@@ -47,6 +47,38 @@ it("requests the next frame immediately when the camera itself takes more than h
   view.unmount(); expect(vi.getTimerCount()).toBe(0);
 });
 
+it("retains the last image behind playing video, cancels polling and reuses it when buffering", async () => {
+  const content = (active: boolean) => <CameraStreamPreview src="/snapshot.jpg" name="Example camera" status="Loading image…" active={active} caption="Preview image · refreshes automatically" />;
+  const view = render(content(true));
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  const image = screen.getByRole("img");
+  expect(screen.getByText("Preview image · refreshes automatically")).toBeVisible();
+  view.rerender(content(false));
+  expect(image).toHaveAttribute("src", "blob:first");
+  expect(revoke).not.toHaveBeenCalled();
+  expect(fetchFrame.mock.calls[0][1].signal.aborted).toBe(true);
+  await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+  expect(fetchFrame).toHaveBeenCalledOnce();
+  fetchFrame.mockReturnValue(new Promise(() => {}));
+  view.rerender(content(true));
+  expect(screen.getByRole("img")).toBe(image);
+  expect(image).toHaveAttribute("src", "blob:first");
+  expect(fetchFrame).toHaveBeenCalledTimes(2);
+  view.unmount();
+  expect(revoke).toHaveBeenCalledExactlyOnceWith("blob:first");
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("reports an unavailable first image and recovers on retry", async () => {
+  fetchFrame.mockRejectedValueOnce(new Error());
+  render(preview());
+  await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+  expect(screen.getByRole("status")).toHaveTextContent("Preview image unavailable");
+  await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+  expect(screen.getByRole("img")).toHaveAttribute("src", "blob:first");
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
 it("keeps the previous image on failure, backs off, and ignores frames after closing", async () => {
   let finishResponse: (value: Response) => void;
   fetchFrame.mockResolvedValueOnce(response()).mockResolvedValueOnce(new Response("unavailable", { status: 502 }))
