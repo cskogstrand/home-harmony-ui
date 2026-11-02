@@ -22,7 +22,7 @@ export function CameraSettings() {
   const [original, setOriginal] = useState("");
   const [error, setError] = useState("");
   const [remove, setRemove] = useState<ConfiguredCamera>();
-  const [preview, setPreview] = useState<{ id: string; type: "live" | "person" }>();
+  const [preview, setPreview] = useState<{ id: string; type: "live" | "snapshot" | "person" }>();
   const disabled = !shared.state.loaded || !!shared.state.error || shared.state.saving;
   const begin = (camera: ConfiguredCamera, existing = false) => { setDraft(camera); setOriginal(existing ? JSON.stringify(camera) : ""); setError(""); setPreview(undefined); };
   useEffect(() => {
@@ -62,14 +62,20 @@ export function CameraSettings() {
     </div>
     {!settings.items.length && !draft && <p role="status" className="page-note">{t("No cameras added yet. Start with Add camera. Home Assistant is ready to use, or set up a go2rtc connection first.")}</p>}
     {!draft && <ul className="divide-y">{settings.items.map(camera => <li key={camera.id} className="space-y-3 py-4">
-      <h2 className="text-xl font-semibold break-words">{camera.name}</h2>
-      <p className="page-note break-words">{camera.connectionId === "home-assistant" ? "Home Assistant" : settings.connections.find(item => item.id === camera.connectionId)?.name} · {camera.source}</p>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={disabled} aria-label={t("Edit {name}", { name: camera.name })} onClick={() => begin(camera, true)}>{t("Edit")}</Button>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-48 space-y-1">
+          <h2 className="text-xl font-semibold break-words">{camera.name}</h2>
+          <p className="page-note break-words">{camera.connectionId === "home-assistant" ? "Home Assistant" : settings.connections.find(item => item.id === camera.connectionId)?.name} · {camera.source}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled={disabled} aria-label={t("Edit {name}", { name: camera.name })} onClick={() => begin(camera, true)}>{t("Edit")}</Button>
+          <Button variant="ghost" disabled={disabled || inUse(camera.id)} aria-label={t("Delete {name}", { name: camera.name })} onClick={() => setRemove(camera)}>{t("Delete")}</Button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t("Camera previews for {name}", { name: camera.name })}>
+        <Button variant="outline" onClick={() => setPreview({ id: camera.id, type: "snapshot" })}>{t("Preview startup image")}</Button>
         <Button variant="outline" onClick={() => setPreview({ id: camera.id, type: "live" })}>{t("Watch live stream")}</Button>
         {camera.personSnapshot.type !== "none" && <Button variant="outline" onClick={() => setPreview({ id: camera.id, type: "person" })}>{t("Preview person snapshot")}</Button>}
-        <Button variant="outline" asChild><Link to={`/settings/notifications?camera=${encodeURIComponent(camera.id)}`}>{t("Use in notification")}</Link></Button>
-        <Button variant="ghost" disabled={disabled || inUse(camera.id)} aria-label={t("Delete {name}", { name: camera.name })} onClick={() => setRemove(camera)}>{t("Delete")}</Button>
       </div>
       {inUse(camera.id) && <p className="page-note">{t("Used by notifications. Choose another camera in those rules before deleting it.")}</p>}
     </li>)}</ul>}
@@ -108,7 +114,8 @@ export function CameraSettings() {
       <div className="flex flex-wrap gap-2"><Button type="submit" disabled={disabled}>{t("Save camera")}</Button><Button type="button" variant="outline" disabled={disabled} onClick={() => save(true)}>{t("Save and test camera")}</Button><Button type="button" variant="outline" onClick={() => { setDraft(undefined); setError(""); }}>{t("Cancel")}</Button></div>
     </form>}
     {previewCamera && !draft && <div className="space-y-3 border-t pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{previewCamera.name}</h2><Button variant="outline" onClick={() => setPreview(undefined)}>{t("Close preview")}</Button></div>
-      {shared.state.error ? <p role="status">{t("Camera settings could not be saved. Check settings storage and retry.")}</p> : shared.state.saving || shared.state.dirty ? <p role="status">{t("Saving camera settings before opening the stream…")}</p> : preview.type === "person" ? <CameraPersonSnapshot cameraId={previewCamera.id} /> : <MediaSurface camera={previewCamera} expanded />}
+      {preview.type === "snapshot" && <p className="page-note">{t("This image is shown while the live stream connects.")}</p>}
+      {shared.state.error ? <p role="status">{t("Camera settings could not be saved. Check settings storage and retry.")}</p> : shared.state.saving || shared.state.dirty ? <p role="status">{t("Saving camera settings before opening the stream…")}</p> : preview.type === "person" ? <CameraPersonSnapshot cameraId={previewCamera.id} /> : <MediaSurface key={preview.type} camera={previewCamera} expanded snapshotOnly={preview.type === "snapshot"} />}
     </div>}
     <ConfirmDialog open={!!remove} onOpenChange={open => { if (!open) setRemove(undefined); }} title="Delete camera?" description="This removes the camera from Home Harmony. Its connection and the camera itself are unchanged." confirmLabel="Delete" destructive disabled={disabled || !!remove && inUse(remove.id)} onConfirm={() => {
       shared.store.updateSettings(current => {

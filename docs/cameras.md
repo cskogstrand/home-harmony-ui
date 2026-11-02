@@ -24,6 +24,8 @@ Connections can be renamed or edited. A connection used by a camera's live video
 6. Optionally open **Person image (optional)** and choose its source independently.
 7. Press **Save camera**, or **Save and test camera** to save and open its live video.
 
+Saved cameras group **Preview startup image**, **Watch live stream**, and **Preview person snapshot** (when configured). The startup preview refreshes the same image source used while video connects, without starting video. **Edit** and **Delete** sit beside the camera name.
+
 The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/blob/master/website/api/openapi.yaml). Home Harmony returns stream names only; upstream producer URLs and credentials are not sent to the browser. A failed or empty list does not erase the selected source.
 
 ## Watch cameras and use them in notifications

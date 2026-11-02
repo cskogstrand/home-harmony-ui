@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { CameraSettings } from "@/components/CameraSettings";
@@ -63,7 +63,33 @@ it("creates a reusable connection, then a named standalone go2rtc camera with a 
   expect(camera).toMatchObject({ name: "My example camera", connectionId: connection.id, source: "example_sub" });
   expect(mocks.go2rtc).toHaveBeenCalledWith(camera.id, expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
   expect(mocks.ha).not.toHaveBeenCalled();
-  expect(screen.getByRole("link", { name: "Use in notification" })).toHaveAttribute("href", `/settings/notifications?camera=${camera.id}`);
+  expect(screen.queryByRole("link", { name: "Use in notification" })).not.toBeInTheDocument();
+});
+
+it.each(["go2rtc", "home-assistant", "frigate"])("previews the %s startup image separately from video and person images", source => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  if (source === "home-assistant") { camera.connectionId = "home-assistant"; camera.source = "camera.example"; }
+  if (source === "frigate") camera.frigatePreview = { connectionId: "frigate", camera: "example_entry" };
+  const view = renderSettings();
+  const previews = within(screen.getByRole("group", { name: `Camera previews for ${camera.name}` }));
+  expect(previews.getAllByRole("button")).toHaveLength(3);
+  expect(previews.queryByRole("button", { name: `Edit ${camera.name}` })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: `Edit ${camera.name}` })).toBeVisible();
+  expect(screen.getByRole("button", { name: `Delete ${camera.name}` })).toBeVisible();
+  fireEvent.click(previews.getByRole("button", { name: "Preview startup image" }));
+  expect(mocks.fetch).toHaveBeenLastCalledWith(source === "home-assistant" ? "/api/camera_proxy/camera.example" : "/api/cameras/example-camera/snapshot.jpg", expect.anything());
+  expect(mocks.go2rtc).not.toHaveBeenCalled(); expect(mocks.ha).not.toHaveBeenCalled();
+  expect(view.container.querySelector("video")).toBeNull();
+  expect(screen.getByText("This image is shown while the live stream connects.")).toBeVisible();
+  fireEvent.click(previews.getByRole("button", { name: "Watch live stream" }));
+  expect(mocks.fetch.mock.calls[0][1].signal.aborted).toBe(true);
+  expect(view.container.querySelector("video")).not.toBeNull();
+  fireEvent.click(previews.getByRole("button", { name: "Preview person snapshot" }));
+  expect(view.container.querySelector("video")).toBeNull();
+  expect(screen.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/person.jpg"));
+  fireEvent.click(screen.getByRole("button", { name: "Close preview" }));
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
 });
 
 it("adds a selected HA camera with a local name and optional person image", () => {

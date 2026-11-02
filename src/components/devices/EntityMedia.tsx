@@ -43,7 +43,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
     <span className="smart-media-caption smart-camera-caption">{t(playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…")}</span></div></>;
 }
 
-export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false }: MediaSource & { suspended?: boolean; expanded?: boolean }) {
+export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean }) {
   const { homeOnline, currentHome } = useApp();
   const shared = useSharedConfiguration();
   const connection = shared?.state.config.settings.cameras.connections.find(item => item.id === configured?.connectionId);
@@ -83,7 +83,9 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
   return <div ref={ref} className={`smart-entity-media${camera ? " is-camera" : domain === "image" ? " is-map" : ""}`}>
-    {reported && (seen || expanded) && !paused && !failed ? camera && !mjpeg
+    {reported && (seen || expanded) && !paused && !failed ? snapshotOnly
+      ? <div className="smart-camera-player"><CameraStreamPreview key={sourceKey} src={previewSrc} name={name} status="Loading image…" caption="Preview image · refreshes automatically" /></div>
+      : camera && !mjpeg
       ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} />
       : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
