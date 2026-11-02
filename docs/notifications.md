@@ -14,7 +14,7 @@ Rules, titles, messages and selected entities are saved in shared settings and i
 
 ## Choose a trigger
 
-Entity fields use the shared [entity picker](entity-picker.md). Choose a device to narrow the list, choose **All entities** or **Without a device**, or search directly by name, entity ID, room or integration. Camera and calendar fields show the entities supported by that field. Unavailable saved selections stay visible until you replace or remove them.
+Entity fields use the shared [entity picker](entity-picker.md). Choose a device to narrow the list, choose **All entities** or **Without a device**, or search directly by name, entity ID, room or integration. Calendar fields show supported calendar entities. Camera selection is separate and lists your configured cameras. Unavailable saved entity selections stay visible until you replace or remove them.
 
 - **Entity state:** choose an entity, an optional attribute, and Equals, Does not equal, Above or Below. Use the raw Home Assistant value shown in the editor, such as `on`, `running`, or a numeric power threshold. Missing/unknown readings do not satisfy ordinary conditions; an explicit Equals `unavailable` or `unknown` condition can report those states.
 - **Calendar event:** choose a calendar and how many minutes before its start to show the alert, from 0 to 1,440. Each overlapping event gets its own alert, including all-day events in the home's timezone. The calendar does not need to be assigned to a person in the planner.
@@ -29,9 +29,9 @@ Under **Entities and readings**, use **Add entity** to choose an additional read
 
 ## Entities and readings
 
-In **Entities and readings**, set a local display name for every selected source, additional reading, progress entity or camera. State and attribute readings can have different names and placements, even when they belong to the same entity. Leaving the name empty uses the entity name. Home Assistant names and references remain unchanged.
+In **Entities and readings**, set a local display name for every selected source, additional reading or progress entity. State and attribute readings can have different names and placements, even when they belong to the same entity. Leaving the name empty uses the entity name. Home Assistant names and references remain unchanged. Configured camera names are managed under **Home settings → Cameras**.
 
-Choose **Under the title**, **Left reading**, **Right reading**, **At the bottom**, or **Hidden**. Activity cards show left and right as large readings in separate columns; other styles show them as text. **Automatic** keeps the source under the title, places the first two additional readings left and right, and places the rest at the bottom. Entities selected only for progress or camera playback start hidden. Hidden readings still drive triggers and progress. Names and placements are saved with the rule and included in backups.
+Choose **Under the title**, **Left reading**, **Right reading**, **At the bottom**, or **Hidden**. Activity cards show left and right as large readings in separate columns; other styles show them as text. **Automatic** keeps the source under the title, places the first two additional readings left and right, and places the rest at the bottom. Entities selected only for progress start hidden. Hidden readings still drive triggers and progress. Names and placements are saved with the rule and included in backups.
 
 ## Progress for ongoing tasks
 
@@ -59,12 +59,14 @@ The editor uses collapsible sections for content, camera and image, display styl
 2. For current plans, add **Current alerts**, choose **Calendar event**, select a calendar, and set the advance notice.
 3. For a doorbell, add **Camera popup**, select its event entity or a binary sensor that turns `on`, then select the camera. Person-detection sensors work the same way.
 
-Camera rules have a **Camera and image** section. Choose a camera, then use **Show in notification** to select live video from its saved source or **Person snapshot** when configured. The live option names its go2rtc stream or shows **Live video from Home Assistant**. To switch between them, change the camera's **Video source** through **Configure camera (new tab)** or **Home settings → Cameras**. **Test camera output** previews the selected video or image. **Smart home → Cameras** shows the live feeds and offers **Use in notification** to start a rule with the camera selected. See [camera setup](cameras.md). Existing rules keep live video. Person mode shows the latest available image, which may predate the alert, and refreshes while visible to pick up delayed snapshots.
+Camera rules have a **Camera and image** section. **Camera** lists only cameras explicitly added in **Home settings → Cameras**. Each camera has a name, a connection (Home Assistant or a saved go2rtc server), and a source. Configure reusable servers in **Home settings → Camera connections**. HA camera discovery alone does not add cameras to this picker.
+
+**Show in notification** chooses that camera's live video or its configured **Person snapshot**. **Test camera output** previews the choice. **Configure camera (new tab)** opens setup without losing the notification draft. **Smart home → Cameras → Use in notification** preselects the camera in a new rule. See [camera setup](cameras.md). A snapshot may predate the alert and refreshes while visible to pick up delayed images.
 
 ## Connection and privacy
 
 Notifications run while the dashboard is open and connected. They do not send phone push notifications, email, or messages, and cannot catch events while the browser is closed or suspended. Active state/calendar notifications are reconstructed on load; old doorbell events and camera triggers are not replayed on initial load, reconnection or rule edits. Sensor recovery from `unavailable` does not open a camera.
 
-Alert content, dismissals and camera views remain in this browser session. Reloading clears dismissals. Home Assistant events, event history and camera images are not written to settings storage. Cameras use the existing authenticated server media path, with video, MJPEG and labeled snapshot fallbacks; background tabs pause live playback. Connection loss clears active alerts and stops camera playback.
+Alert content, dismissals and camera views remain in this browser session. Reloading clears dismissals. Home Assistant events, event history and camera images are not written to settings storage. go2rtc cameras use authenticated signaling with an HTTP MSE fallback; Home Assistant cameras retain their video, MJPEG and labeled snapshot fallbacks. Background tabs pause live playback. Connection loss clears active alerts and stops camera playback.
 
 Choose devices from your own Home Assistant instance in the editor. Keep real household identifiers and event filters out of repository examples and screenshots.

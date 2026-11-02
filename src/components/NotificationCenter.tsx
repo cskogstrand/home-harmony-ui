@@ -2,6 +2,8 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Bell, Camera, ListChecks, X } from "lucide-react";
+import { configuredCamera } from "../../shared/cameras";
+import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useApp } from "@/contexts/AppContext";
@@ -112,7 +114,8 @@ export function NotificationCamera() {
   const { currentHome } = useApp();
   const { notifications, camera } = useNotifications();
   const item = notifications.find(item => item.popup && item.rule.kind === "camera");
-  const entity = item && notificationEntity(currentHome.entities, item.rule.cameraEntity);
+  const shared = useSharedConfiguration();
+  const selectedCamera = item && configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
   const source = item && "entity" in item.rule.trigger ? notificationEntity(currentHome.entities, item.rule.trigger.entity) : undefined;
   const seconds = item?.expiresAt === undefined ? undefined : Math.max(0, Math.ceil((item.expiresAt - Date.now()) / 1000));
   const countdown = seconds !== undefined && !matchesState(item.rule, source);
@@ -126,9 +129,9 @@ export function NotificationCamera() {
       <DialogHeader><div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1"><DialogTitle>{item?.rule.title}</DialogTitle>
         <p role={countdown ? "timer" : undefined} aria-live="off" className="text-sm tabular-nums text-muted-foreground">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t("Closes automatically when this alert expires.")}</p>
       </div><DialogDescription>{item?.rule.message || t(item?.rule.cameraMedia === "person" ? "Person snapshot" : "Live camera alert")}</DialogDescription></DialogHeader>
-      {entity?.domain === "camera" ? item.rule.cameraMedia === "person"
-        ? <CameraPersonSnapshot key={item.id} entityId={entity.entityId} />
-        : <MediaSurface key={`${item.id}-${entity.entityId}`} entity={entity} expanded />
+      {selectedCamera ? item.rule.cameraMedia === "person"
+        ? <CameraPersonSnapshot key={item.id} cameraId={selectedCamera.id} />
+        : <MediaSurface key={`${item.id}-${selectedCamera.id}`} camera={selectedCamera} expanded />
         : <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>}
       <div className="flex justify-end"><Button variant="outline" onClick={() => { if (item) camera(item.id, false); }}>{t("Close camera")}</Button></div>
     </DialogContent>

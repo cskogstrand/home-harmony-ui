@@ -33,7 +33,7 @@ export function notificationReadings(rule: NotificationRule) {
       if (source.type === "entity") add(source.entity, source.attribute, role, "hidden");
     }
   }
-  if (rule.kind === "camera") add(rule.cameraEntity, "", "Camera", "hidden");
+  if (rule.kind === "camera" && rule.cameraEntity.startsWith("home|")) add(rule.cameraEntity, "", "Camera", "hidden");
   return readings.map(reading => ({ ...reading, ...rule.entityDisplay?.find(item => item.entity === reading.entity && item.attribute === reading.attribute) }));
 }
 

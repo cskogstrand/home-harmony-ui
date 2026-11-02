@@ -27,7 +27,7 @@ describe("notification configuration", () => {
     const config = emptyConfiguration();
     config.settings.notifications.rules = [migrated, rule({ id: "multiple", detailEntities: ["home|sensor.remaining", "home|sensor.progress"] })];
     expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
-    for (const detailEntities of [null, "sensor.example", [""], ["x".repeat(513)], ["same", "same"], Array.from({ length: 101 }, (_, i) => `sensor.example_${i}`)]) {
+    for (const detailEntities of [null, "sensor.example", [""], ["x".repeat(513)], ["same", "same"], Array.from({ length: 102 }, (_, i) => `sensor.example_${i}`)]) {
       expect(notificationRuleSchema.safeParse({ ...legacy, detailEntities }).success).toBe(false);
     }
   });

@@ -104,7 +104,11 @@ it("exports only configuration and restores it through shared storage", async ()
   const text = new Promise<string>(resolve => { reader.onload = () => resolve(String(reader.result)); });
   reader.readAsText(create.mock.calls[0][0]);
   expect(await text).not.toContain("fixture-private-login");
-  expect(await text).not.toMatch(/"events"|"items"/);
+  const exported = JSON.parse(await text);
+  for (const value of [exported, exported.settings]) {
+    expect(value).not.toHaveProperty("events");
+    expect(value).not.toHaveProperty("items");
+  }
   expect(parseConfiguration(await text).format).toBe("home-harmony-config");
   await upload(JSON.stringify(backup()));
   await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
@@ -126,7 +130,11 @@ it("persists app preferences across reloads and does not save local list content
   expect(app.configurationRequest).toHaveBeenCalledTimes(count);
   const saved = parseConfiguration(app.configurationRequest.mock.calls.filter(([method]) => method === "PUT").slice(-1)[0][1]);
   expect(saved.settings).toMatchObject({ appearance: { theme: "light", compactMode: true }, selectedAlarm: `${app.haUrl}|alarm.one` });
-  expect(JSON.stringify(saved)).not.toMatch(/"events"|"items"|Must stay in HA/);
+  for (const value of [saved, saved.settings]) {
+    expect(value).not.toHaveProperty("events");
+    expect(value).not.toHaveProperty("items");
+  }
+  expect(JSON.stringify(saved)).not.toContain("Must stay in HA");
   view.unmount(); mount();
   await screen.findByText("Shared configuration saved.");
   expect(screen.getByLabelText("App preferences")).toHaveTextContent('"theme":"light"');

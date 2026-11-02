@@ -1,3 +1,4 @@
+import { configuredCamera } from "../../shared/cameras";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap } from "lucide-react";
@@ -56,6 +57,7 @@ export function NotificationSettings() {
     editor.current?.querySelector<HTMLButtonElement>(`[data-section="${section}"] > h3 > button`)?.focus();
   };
   const entities = currentHome.entities;
+  const cameras = shared?.state.config.settings.cameras;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
     setOpenSections([...(rule.title.trim() ? [] : ["content"]), ...(rule.kind === "camera" ? ["camera"] : [])]);
@@ -64,17 +66,18 @@ export function NotificationSettings() {
   };
   useEffect(() => {
     if (!requestedCamera || !shared?.state.loaded || draft) return;
-    const camera = entities.find(entity => entity.entityId === requestedCamera && entity.domain === "camera");
+    const camera = configuredCamera(cameras, requestedCamera);
     if (!camera) return;
-    setDraft({ id: newPlannerId(), title: camera.name.slice(0, 100), message: "", kind: "camera", enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: camera.preferenceId, durationSeconds: 60, cooldownSeconds: 10 });
+    setDraft({ id: newPlannerId(), title: camera.name.slice(0, 100), message: "", kind: "camera", enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: camera.id, durationSeconds: 60, cooldownSeconds: 10 });
     setOriginal(""); setError(""); setOpenSections(["camera", "trigger"]);
     const next = new URLSearchParams(params); next.delete("camera"); setParams(next, { replace: true });
-  }, [requestedCamera, shared?.state.loaded, entities, draft, params, setParams]);
+  }, [requestedCamera, shared?.state.loaded, cameras, draft, params, setParams]);
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string) => {
     const choices = selectable.filter(entity => !domain || entity.domain === domain);
     return <EntityPicker label={t(label)} entities={choices} value={value} onChange={update} disabled={disabled} />;
   };
   const save = () => {
+    if (draft.kind === "camera" && !configuredCamera(cameras, draft.cameraEntity)) { setOpenSections(sections => [...new Set([...sections, "camera"])]); setError("Choose a camera you have added in Camera settings."); return; }
     const current = notifications.rules.find(rule => rule.id === draft.id);
     if (original && JSON.stringify(current) !== original) { setError("This rule changed on another screen. Cancel and reopen it before saving."); return; }
     let trigger = draft.trigger;
@@ -128,7 +131,7 @@ export function NotificationSettings() {
       <ul className="divide-y">{rules.map(rule => {
       const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
       const Icon = icons[rule.kind];
-      const missing = ("entity" in rule.trigger && !source) || (rule.kind === "camera" && notificationEntity(entities, rule.cameraEntity)?.domain !== "camera");
+      const missing = ("entity" in rule.trigger && !source) || (rule.kind === "camera" && !configuredCamera(cameras, rule.cameraEntity));
       return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
         <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
         <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
@@ -155,7 +158,7 @@ export function NotificationSettings() {
         <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
         </NotificationEditorSection>
         {draft.kind === "camera" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
-          <NotificationCameraSettings rule={draft} entities={entities} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
+          <NotificationCameraSettings rule={draft} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
         </NotificationEditorSection>}
         <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>
           <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />

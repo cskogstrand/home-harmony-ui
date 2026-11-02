@@ -144,7 +144,7 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       if (pathname === "/api/runtime" && request.method === "GET") { json(200, { homeAssistantUrl }); return; }
-      if (pathname.startsWith("/api/cameras/")) {
+      if (pathname.startsWith("/api/cameras/") || pathname.startsWith("/api/camera-connections/")) {
         await proxyCameraMedia(request, response, url, config.settings.cameras, { homeAssistantUrl, homeAssistantToken });
         return;
       }

@@ -1429,7 +1429,7 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
   const destinations = [
     ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"], ["Weather", "weather"],
     ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
-    ["Cameras", "cameras"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
+    ["Cameras", "cameras"], ["Camera connections", "camera-connections"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
   ];
   for (const [title, path] of destinations) {
     const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));

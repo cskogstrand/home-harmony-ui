@@ -83,7 +83,7 @@ export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
 export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "school", "home"] as const;
 export type DashboardSection = typeof dashboardSections[number];
-export const plannerSchema = z.object({
+const plannerObjectSchema = z.object({
   cameras: cameraSettingsSchema.default({}),
   notifications: notificationSettingsSchema.default({}),
   language: z.enum(["en", "nb"]).default("en"),
@@ -130,6 +130,18 @@ export const plannerSchema = z.object({
   calendarMembers: z.record(keySchema, memberSchema).default({}),
   todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks", "homework"]), member: memberSchema, display: todoDisplaySchema.optional() }).strict()).default({}),
 }).strict();
+function preserveCameraNotifications(planner: z.infer<typeof plannerObjectSchema>) {
+  for (const rule of planner.notifications.rules) {
+    if (rule.kind !== "camera" || !/^(home\|)?camera\.[a-z0-9_]+$/.test(rule.cameraEntity)) continue;
+    const entity = rule.cameraEntity.replace(/^home\|/, "");
+    const id = `legacy-${entity}`;
+    if (rule.entityDisplay?.some(reading => reading.entity === rule.cameraEntity) && !rule.detailEntities.includes(rule.cameraEntity)) rule.detailEntities.push(rule.cameraEntity);
+    rule.cameraEntity = id;
+    if (!planner.cameras.items.some(camera => camera.id === id)) planner.cameras.items.push({ id, name: entity, connectionId: "home-assistant", source: entity, personSnapshot: { type: "none" } });
+  }
+  return planner;
+}
+export const plannerSchema = plannerObjectSchema.transform(preserveCameraNotifications).pipe(plannerObjectSchema);
 export type Planner = z.infer<typeof plannerSchema>;
 export const instanceUrlSchema = z.string().max(2048).refine(value => {
   if (!value) return true;
@@ -144,7 +156,7 @@ export const configurationSchema = z.object({
 export type Configuration = z.infer<typeof configurationSchema>;
 export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {}, smartHome: { layout: [] } });
 export const emptyConfiguration = (): Configuration => ({ format: "home-harmony-config", version: 3, settings: emptyPlanner() });
-export const plannerSettings = (planner: unknown): Planner => plannerSchema.strip().parse(planner);
+export const plannerSettings = (planner: unknown): Planner => plannerObjectSchema.strip().transform(preserveCameraNotifications).pipe(plannerObjectSchema).parse(planner);
 export function parseConfiguration(text: string): Configuration {
   if (new TextEncoder().encode(text).length > MAX_CONFIG_BYTES) throw new Error("The backup exceeds the 2 MB limit.");
   try { return configurationSchema.parse(JSON.parse(text)); }

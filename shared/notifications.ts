@@ -53,7 +53,8 @@ export const notificationRuleSchema = z.object({
   pages: z.enum(["today", "main"]).optional(),
   presentation: notificationPresentationSchema.optional(),
   detailEntity: z.string().max(512).optional(),
-  detailEntities: z.array(reference).max(100).refine(ids => new Set(ids).size === ids.length).optional(),
+  // One extra slot preserves a named camera-state reading from older rules.
+  detailEntities: z.array(reference).max(101).refine(ids => new Set(ids).size === ids.length).optional(),
   entityDisplay: z.array(notificationEntityDisplaySchema).max(105)
     .refine(items => new Set(items.map(item => JSON.stringify([item.entity, item.attribute]))).size === items.length).optional(),
   progress: notificationProgressSchema.optional(),

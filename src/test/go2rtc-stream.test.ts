@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { playGo2rtcStream } from "@/lib/go2rtc-stream";
+import { go2rtcErrors } from "../../shared/cameras";
 
 class Peer {
   static instances: Peer[] = [];
@@ -67,9 +68,20 @@ it("does not apply a late answer or start fallback after abort", async () => {
 });
 
 it("fails cleanly on HTTP errors and unsupported WebRTC", async () => {
-  request.mockResolvedValue({ ok: false });
+  request.mockResolvedValue({ ok: false, json: async () => ({ error: go2rtcErrors.unreachable }) });
   start(); await vi.advanceTimersByTimeAsync(0); Peer.instances[0].onicecandidate({ candidate: null });
   await vi.advanceTimersByTimeAsync(0); expect(failed).toHaveBeenCalledOnce();
+  expect(failed).toHaveBeenLastCalledWith(go2rtcErrors.unreachable);
   vi.stubGlobal("RTCPeerConnection", undefined); start(); await vi.advanceTimersByTimeAsync(0);
   expect(failed).toHaveBeenCalledTimes(2);
+  expect(failed).toHaveBeenLastCalledWith(go2rtcErrors.unsupported);
+});
+
+it("distinguishes WebRTC connectivity from untrusted signaling errors", async () => {
+  request.mockResolvedValue({ ok: false, json: async () => ({ error: "upstream private credentials" }) });
+  start(); await vi.advanceTimersByTimeAsync(0); Peer.instances[0].onicecandidate({ candidate: null });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(failed).toHaveBeenLastCalledWith(go2rtcErrors.signaling);
+  start(); await vi.advanceTimersByTimeAsync(20000);
+  expect(failed).toHaveBeenLastCalledWith(go2rtcErrors.connection);
 });

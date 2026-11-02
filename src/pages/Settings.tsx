@@ -7,6 +7,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { SmartHomeSettings } from "@/components/SmartHomeSettings";
+import { CameraConnections } from "@/components/CameraConnections";
 import { CameraSettings } from "@/components/CameraSettings";
 import { Button } from "@/components/ui/button";
 import HomeSettings from "./HomeSettings";
@@ -27,7 +28,8 @@ const groups = [
     { id: "timetables", title: "Timetables", description: "School calendars, PDF uploads and images", icon: BookOpen, content: <HomeSettings section="timetables" /> },
   ] },
   { title: "System", items: [
-    { id: "cameras", title: "Cameras", description: "Choose and test the video source for each camera", icon: Camera, content: <CameraSettings /> },
+    { id: "cameras", title: "Cameras", description: "Add cameras and choose their connections", icon: Camera, content: <CameraSettings /> },
+    { id: "camera-connections", title: "Camera connections", description: "Home Assistant, go2rtc and Frigate servers", icon: Wifi, content: <CameraConnections /> },
     { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
     { id: "connection", title: "Connection & account", description: "Home Assistant connection and instance details", icon: Wifi, content: <HomeSettings section="connection" /> },
     { id: "backups", title: "Storage and backups", description: "Export, restore and recover shared settings", icon: Database, content: <ConfigurationBackup /> },

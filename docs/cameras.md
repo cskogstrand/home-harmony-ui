@@ -1,39 +1,55 @@
-# Cameras and person snapshots
+# Cameras and connections
 
-Open **Smart home → Cameras** to watch your cameras. Each camera has **Configure camera** and **Use in notification** shortcuts. **Camera settings** opens setup for all cameras; it is also available under **Home settings → Cameras**.
+Cameras are created explicitly in Home Harmony. Home Assistant discovery does not add them to the camera page or notification picker. A camera has its own name and ID, a connection, a video source, and an optional person image. A go2rtc camera does not need a Home Assistant camera entity.
 
-Camera settings lists your Home Assistant cameras automatically. Open a camera and choose its **Video source**: **Home Assistant** or **Frigate / go2rtc**. The same saved source is used by the camera page, device cards, expanded viewers and camera notification popups. Unconfigured cameras keep their Home Assistant player. Settings are shared across screens and included in version 3 backups; old backups default to no overrides.
+## Set up connections
 
-## Frigate / go2rtc live video
+Open **Home settings → Camera connections**, or **Manage connections** from camera setup.
 
-1. Configure the camera stream in Frigate's `go2rtc.streams` (or standalone go2rtc).
-2. Open the matching camera's settings and select **Video source → Frigate / go2rtc**. Enter the **go2rtc server address**, for example `http://go2rtc.example:1984`. This address is shared by all go2rtc cameras and must be reachable from the Home Harmony server. It is the go2rtc API, not the RTSP port or Frigate's web UI. A reverse-proxy base path is supported.
-3. Enter its **Stream name or RTSP address**, for example `example_camera` or `rtsp://frigate.example:8554/example_camera`. Only `example_camera` is saved from that RTSP URL. The go2rtc server address determines which go2rtc instance serves it. URLs containing credentials, query parameters or fragments are rejected. Define camera credentials inside go2rtc's own private configuration.
-4. Press **Save and watch stream**. After saving, it becomes **Watch live stream**. The player tries go2rtc WebRTC first. If it fails, it reports that it is trying the existing Home Assistant WebRTC/HLS player, followed by the existing MJPEG and still-image fallbacks. Select **Video source → Home Assistant** to switch back.
+- **Home Assistant** is built in and uses the home's existing authenticated connection. Its `camera.*` entities become choices when adding a camera; its image entities can supply person snapshots.
+- **go2rtc:** choose **Add connection**, give it a name and enter its HTTP API address, for example `http://go2rtc.example:1984`. A working `stream.html?src=example_camera` or `webrtc.html?src=example_camera&media=video+audio` URL is also accepted; its server address is extracted. Multiple cameras can share this connection, and multiple go2rtc servers can be configured separately.
+- **Frigate snapshots:** add a separate connection with Frigate's internal API address, for example `http://frigate.example:5000`. This connection supplies person images; go2rtc supplies live video.
 
-Browsers do not play RTSP directly. Home Harmony exchanges receive-only SDP with go2rtc through its authenticated server, and the browser receives WebRTC media from go2rtc. The browser therefore needs access to the configured WebRTC candidates, normally TCP/UDP port 8555. Configure candidates for your LAN, VPN or remote access as appropriate; HTTP signaling alone does not relay video. H.264 offers the broadest compatibility. No new transcoder or public STUN service is added by Home Harmony. See [Frigate restreaming](https://docs.frigate.video/configuration/restream/) and [WebRTC setup](https://docs.frigate.video/configuration/live/#webrtc-extra-configuration).
+Addresses must be reachable from the Home Harmony server without an additional login. A reverse-proxy base path is supported. Passwords, tokens and fragments are rejected; only supported player-link parameters are accepted and removed when saving the server address. Keep camera credentials in Frigate/go2rtc's private configuration. The built-in Home Assistant connection uses the existing server-side HA token.
 
-For the Frigate Home Assistant app, the go2rtc API port may need enabling in its network settings. Keep that API on a trusted network: this implementation expects the configured go2rtc API to be reachable without an additional login. See [Frigate port access](https://docs.frigate.video/troubleshooting/go2rtc/#home-assistant-and-port-access). Inline device previews pause offscreen. Open live viewers pause in background tabs and stop when closed. A configured go2rtc stream can play independently of the HA camera's availability.
+Connections can be renamed or edited. A connection used by a camera's live video or person image cannot be deleted until those sources are changed. Removing an unused connection does not change the upstream server.
+
+## Add a camera
+
+1. Choose **Add camera** under **Smart home → Cameras** or **Home settings → Cameras**.
+2. Enter a **Camera name**. This is the name shown in Home Harmony and its notification camera picker.
+3. Choose a **Connection**.
+4. For **Home Assistant**, select a **Home Assistant camera**. For **go2rtc**, choose a **Stream** from the selected server's list. **Refresh streams** reloads the list. If discovery is unavailable, **Enter stream manually** accepts a `stream.html` or `webrtc.html` link, a stream name, or an RTSP restream address such as `rtsp://frigate.example:8554/example_camera`. Only `example_camera` is saved; the selected connection determines the server. A player link for another server is rejected until its matching connection is selected. **Open in go2rtc (new tab)** opens the selected source in the upstream player for comparison.
+5. Optionally open **Person image (optional)** and choose its source.
+6. Press **Save camera**, or **Save and test camera** to save and open its live video.
+
+The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/blob/master/website/api/openapi.yaml). Home Harmony returns stream names only; upstream producer URLs and credentials are not sent to the browser. A failed or empty list does not erase the selected source.
+
+## Watch cameras and use them in notifications
+
+**Smart home → Cameras** shows only cameras you have added. Each has **Configure camera** and **Use in notification**. The latter starts a camera notification with that camera selected; choose the trigger under **When to show it** before saving.
+
+In **Home settings → Notifications → Camera popup → Camera and image**, **Camera** lists your configured cameras, regardless of connection. **Show in notification** offers that camera's live source and its **Person snapshot**, when configured. **Test camera output** previews the choice. **Configure camera (new tab)** keeps the notification draft open while editing the camera. Changing a camera's connection or source applies wherever that camera is used.
+
+Camera deletion requires confirmation and is blocked while a notification references it. Delete or reassign those rules first. Removing a camera from Home Harmony leaves its connection, Home Assistant entity and physical camera unchanged.
+
+## Live playback
+
+Browsers do not play RTSP directly. Home Harmony first exchanges receive-only SDP with the selected go2rtc server; the browser receives WebRTC media from it. This direct WebRTC path needs access to the server's configured WebRTC candidates, normally TCP/UDP port 8555. HTTP signaling alone does not relay video; if direct WebRTC cannot connect, the HTTP MSE fallback below can still play the stream. H.264 offers broad browser compatibility. See [Frigate restreaming](https://docs.frigate.video/configuration/restream/) and [WebRTC setup](https://docs.frigate.video/configuration/live/#webrtc-extra-configuration).
+
+For the Frigate Home Assistant app, the go2rtc API port may need enabling in its network settings; see [Frigate port access](https://docs.frigate.video/troubleshooting/go2rtc/#home-assistant-and-port-access). Keep the API on a trusted network. When WebRTC fails, Home Harmony tries MSE using the same stream through an authenticated HTTP fMP4 relay. This avoids requiring a direct WebRTC media connection from the browser and carries the upstream codecs without transcoding. It prefers ManagedMediaSource when available, otherwise MediaSource, and requires compatible source codecs. Startup/stall timeouts, old-buffer pruning and cancellation on close bound the player. If both transports fail, a specific error, Retry and **Open in go2rtc (new tab)** are shown. It does not switch to an unrelated HA camera. Cameras using Home Assistant retain its WebRTC/HLS player, MJPEG and labeled still-image fallbacks. Inline previews pause offscreen; live viewers pause in background tabs and stop on close.
 
 ## Person images
 
-Choose a **Person snapshot source** for each camera:
+- **Person image from Home Assistant:** choose Frigate's `image.example_camera_person`. Older `camera.*` snapshot entities also work. A `sensor.*` or `binary_sensor.*` works only when its `entity_picture` refers to HA's `image_proxy` or `camera_proxy`. A person occupancy/count sensor without a picture is a notification trigger, not an image source. See the [Frigate integration](https://github.com/blakeblackshear/frigate-hass-integration).
+- **Person image directly from Frigate:** select a **Frigate connection** and enter its **Frigate camera name**. Home Harmony requests `/api/<camera>/person/snapshot.jpg`. Enable person tracking and snapshots in Frigate. The camera name can differ from the go2rtc stream name.
 
-- **Person image from Home Assistant:** select Frigate's `image.example_camera_person` entity. Older `camera.*` snapshot entities also work. A `sensor.*` or `binary_sensor.*` works only if its `entity_picture` points to HA's `image_proxy` or `camera_proxy`; external URLs and unrelated API paths are rejected. A person occupancy/count sensor without a picture is a notification trigger, not an image source. The [Frigate integration](https://github.com/blakeblackshear/frigate-hass-integration) publishes current person snapshots through image entities.
-- **Person image directly from Frigate:** enter the **Frigate server address**, for example `http://frigate.example:5000`, and the **Frigate camera name**, which can differ from the go2rtc stream name. Home Harmony requests `/api/<camera>/person/snapshot.jpg`. Enable person tracking and snapshots in Frigate. Use its internal API on a trusted network reachable from this server without a login. If direct access requires authentication, select the HA image entity instead. Credentials and tokens do not belong in these settings.
+Save the camera, then use **Preview person snapshot**. Expanded camera viewers also offer live video and person-image choices. Images use dashboard authentication; HA credentials are attached server-side only for HA requests, and redirects are refused. Images are not stored in settings or backups; responses use `no-store`.
 
-Save, then use **Preview person snapshot**. Expanded device viewers offer **Live camera** and **Person snapshot** when a snapshot is configured. Image requests use the dashboard's authentication; the HA token is added only by the server to HA requests. No HA credentials are forwarded to go2rtc or Frigate, and redirects are refused. Images are not written to settings or backups and responses are marked `no-store`.
+Person images are the latest available snapshot, not an event-bound capture, and may predate an alert. The viewer labels this and refreshes five seconds after the previous image request completes while visible, including after failures. HA image updates also trigger refreshes.
 
-The viewer shows the latest available person image, **not an event-bound capture**. It may predate an alert; the UI labels that limitation. While open and the tab is visible, the image refreshes five seconds after the previous request finishes, and HA image updates also refresh it. This allows a delayed snapshot to appear after a person sensor triggers. Frigate can return an empty image when no snapshot exists.
+## Existing settings
 
-## Notifications
+Settings remain shared and included in version 3 backups. Previous explicit camera overrides become named camera entries and reusable connections. Existing camera notification selections become entries too. Other discovered HA cameras are not imported. Camera names from older settings initially use their saved entity ID and can be renamed. Existing HA device cards continue to show their HA entities; the configured camera collection is managed separately.
 
-From a camera, press **Use in notification** to start a camera rule with that camera already selected. Or open **Home settings → Notifications** and add or edit a **Camera popup**.
-
-Under **Camera and image**, choose the camera. **Show in notification** offers its saved live source, labeled **Live video from go2rtc · example_camera** or **Live video from Home Assistant**, and **Person snapshot** when configured. To switch between go2rtc and Home Assistant, change the camera's **Video source** in its settings. **Test camera output** shows the selected video or image inside the editor. **Configure camera (new tab)** opens that camera's settings while keeping your notification draft.
-
-Choose the trigger under **When to show it**, then save the notification. An occupancy sensor changing to `on`, or a count sensor exceeding `0`, can trigger either mode. Existing rules keep live video.
-
-The popup layout, notification presentations, trigger rules and expiry behavior are unchanged. Event-specific snapshots, recordings and the popup redesign are outside this change.
-
-Validation used automated tests and synthetic UI fixtures. Real Frigate/go2rtc/Home Assistant camera playback and hardware were not verified.
+Automated tests and synthetic UI fixtures verify configuration, discovery, routing and interaction. Live go2rtc playback was verified in the local frontend at 2560 × 1440, with video ready state 4 and advancing playback time. This establishes playback for the tested setup; Home Assistant live playback and HA/Frigate person snapshots still require installation testing. The popup redesign, recordings and event-specific snapshots remain outside this change.

@@ -1,3 +1,4 @@
+import { cameraSettings } from "./camera-fixtures";
 import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -32,7 +33,7 @@ const openEditorSection = async (name: string) => {
 const watchEvents = vi.fn();
 const watchCameraStream = vi.fn();
 const home = (value = "off") => mapHome({ "binary_sensor.example": state("binary_sensor.example", value, { friendly_name: "Example detector" }), "camera.example": state("camera.example", "idle", { friendly_name: "Example camera" }) }, emptyRegistries, "home");
-const cameraRule = () => notificationRuleSchema.parse({ id: "example-camera", title: "Example doorbell", kind: "camera", cameraEntity: "home|camera.example", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" }, durationSeconds: 10 });
+const cameraRule = () => notificationRuleSchema.parse({ id: "example-camera", title: "Example doorbell", kind: "camera", cameraEntity: "example-camera", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" }, durationSeconds: 10 });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,31 +41,32 @@ beforeEach(() => {
   mocks.app = { currentHome: home(), homeOnline: true, watchEvents, watchCameraStream, watchCalendarEvents: vi.fn() };
   mocks.family = { ...emptyPlanner(), today: "2026-10-24", setNotifications };
   mocks.shared.state = { loaded: true, error: "", config: emptyConfiguration() };
+  mocks.shared.state.config.settings.cameras.items = [{ id: "example-camera", name: "Example camera", connectionId: "home-assistant", source: "camera.example", personSnapshot: { type: "none" } }];
   setNotifications.mockReturnValue(true);
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 it("starts a camera rule from its shortcut, names the go2rtc output and tests live video or person images", async () => {
-  mocks.shared.state.config.settings.cameras = { go2rtcUrl: "http://go2rtc.example:1984", frigateUrl: "", sources: { "camera.example": { stream: "example_camera", personSnapshot: { type: "home-assistant", entity: "image.example_person" } } } };
-  render(<MemoryRouter initialEntries={["/settings/notifications?camera=camera.example"]}><NotificationSettings /></MemoryRouter>);
+  mocks.shared.state.config.settings.cameras = cameraSettings();
+  render(<MemoryRouter initialEntries={["/settings/notifications?camera=example-camera"]}><NotificationSettings /></MemoryRouter>);
   const dialog = within(await screen.findByRole("dialog", { name: "Add notification" }));
-  expect(dialog.getByRole("button", { name: "Camera" })).toHaveTextContent("Example camera");
-  expect(dialog.getByLabelText("Show in notification")).toHaveDisplayValue("Live video from go2rtc · example_camera");
-  expect(dialog.getByRole("link", { name: "Configure camera (new tab)" })).toHaveAttribute("href", "/settings/cameras?camera=camera.example");
+  expect(dialog.getByLabelText("Camera")).toHaveTextContent("Example camera");
+  expect(dialog.getByLabelText("Show in notification")).toHaveDisplayValue("Live video from go2rtc · example");
+  expect(dialog.getByRole("link", { name: "Configure camera (new tab)" })).toHaveAttribute("href", "/settings/cameras?camera=example-camera");
   expect(dialog.getByRole("link", { name: "Configure camera (new tab)" })).toHaveAttribute("target", "_blank");
   fireEvent.click(dialog.getByRole("button", { name: "Test camera output" }));
-  expect(playGo2rtcStream).toHaveBeenCalledWith("camera.example", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
+  expect(playGo2rtcStream).toHaveBeenCalledWith("example-camera", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
   const signal = vi.mocked(playGo2rtcStream).mock.calls[0][2];
   fireEvent.click(dialog.getByRole("button", { name: "Camera and image" }));
   expect(signal.aborted).toBe(true);
   await openEditorSection("Camera and image");
   fireEvent.change(dialog.getByLabelText("Show in notification"), { target: { value: "person" } });
   fireEvent.click(dialog.getByRole("button", { name: "Test camera output" }));
-  expect(dialog.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/camera.example/person.jpg"));
+  expect(dialog.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/example-camera/person.jpg"));
   expect(watchCameraStream).not.toHaveBeenCalled();
   chooseEntity("Source entity", "binary_sensor.example");
   fireEvent.click(dialog.getByRole("button", { name: "Save notification" }));
-  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example camera", kind: "camera", cameraEntity: "home|camera.example", cameraMedia: "person", trigger: expect.objectContaining({ entity: "home|binary_sensor.example" }) })] });
+  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example camera", kind: "camera", cameraEntity: "example-camera", cameraMedia: "person", trigger: expect.objectContaining({ entity: "home|binary_sensor.example" }) })] });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
@@ -78,11 +80,11 @@ it("disables person output until a snapshot source is configured", () => {
 
 it("opens the configured person snapshot instead of starting video for a person camera rule", () => {
   vi.useFakeTimers();
-  mocks.shared.state.config.settings.cameras.sources["camera.example"] = { stream: "", personSnapshot: { type: "home-assistant", entity: "image.example_person" } };
+  mocks.shared.state.config.settings.cameras.items[0].personSnapshot = { type: "home-assistant", entity: "image.example_person" };
   mocks.family.notifications = { enabled: true, rules: [{ ...cameraRule(), cameraMedia: "person" }] };
   const content = () => <MemoryRouter><NotificationProvider><NotificationCamera /></NotificationProvider></MemoryRouter>;
   const view = render(content()); mocks.app.currentHome = home("on"); view.rerender(content());
-  expect(within(screen.getByRole("dialog")).getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/camera.example/person.jpg"));
+  expect(within(screen.getByRole("dialog")).getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/cameras/example-camera/person.jpg"));
   expect(watchCameraStream).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Close camera" }));
   act(() => { vi.advanceTimersByTime(0); });
@@ -214,22 +216,21 @@ it("configures ongoing tasks with a stable entity reference", async () => {
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
-it("restricts the camera picker to cameras and allows clearing the optional reading", async () => {
+it("offers configured cameras and allows clearing the optional reading", async () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add Camera popup" }));
   fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example camera alert" } });
   await openEditorSection("When to show it");
   chooseEntity("Source entity", "binary_sensor.example");
   await openEditorSection("Camera and image");
-  fireEvent.click(screen.getByRole("button", { name: "Camera" }));
-  const picker = within(screen.getByRole("dialog", { name: "Camera" }));
-  expect(picker.queryByRole("button", { name: /Example detector/ })).not.toBeInTheDocument();
-  fireEvent.click(picker.getByRole("button", { name: "Example camera · camera.example" }));
+  expect(screen.getByRole("option", { name: "Example camera" })).toBeInTheDocument();
+  expect(screen.queryByRole("option", { name: "Example detector" })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Camera"), { target: { value: "example-camera" } });
   await openEditorSection("Entities and readings");
   chooseEntity("Add entity", "binary_sensor.example");
   fireEvent.click(screen.getByRole("button", { name: "Remove additional reading Example detector" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
-  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ kind: "camera", cameraEntity: "home|camera.example", detailEntities: [] })] });
+  expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ kind: "camera", cameraEntity: "example-camera", detailEntities: [] })] });
 });
 
 it("adds multiple readings, reopens their selections and removes one without losing the others", async () => {
@@ -481,7 +482,7 @@ it("cleans up event subscriptions and alerts when notifications are switched off
 
 it("shows the active-state message in the camera header, then counts down to the original expiry", () => {
   vi.useFakeTimers();
-  Object.assign(mocks.shared.state, { config: { settings: { language: "nb" } } });
+  mocks.shared.state.config.settings.language = "nb";
   mocks.family.notifications = { enabled: true, rules: [cameraRule()] };
   const content = () => <NotificationProvider><NotificationCamera /></NotificationProvider>;
   const view = render(content());
@@ -793,11 +794,12 @@ it("saves and reopens names and placement for sources, readings and progress att
   }
 });
 
-it("lets camera and event entities have local names and placements", async () => {
+it("lets explicitly added HA camera readings and event entities have local names and placements", async () => {
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Entities and readings");
+  chooseEntity("Add entity", "camera.example");
   fireEvent.change(screen.getByLabelText("Example detector: display name"), { target: { value: "Detection" } });
   fireEvent.change(screen.getByLabelText("Example camera: display name"), { target: { value: "Camera status" } });
   fireEvent.change(screen.getByLabelText("Example camera: placement"), { target: { value: "footer" } });
