@@ -1549,7 +1549,7 @@ it("selects multiple calendars per person, moves and clears assignments, and res
   expect(selected("Everyone", "Shared")).toBeInTheDocument();
 });
 
-it("keeps successful calendar reads visible alongside errors and removes remote events while offline", async () => {
+it("keeps successful calendar reads visible alongside errors and during disconnects", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-07T10:00:00Z"));
   vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
@@ -1561,12 +1561,14 @@ it("keeps successful calendar reads visible alongside errors and removes remote 
   seedSettings({ events: [], items: [], timetables: {}, calendarMembers: { "home|calendar.good": "home|person.everyone", "home|calendar.denied": "home|person.everyone" } });
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  expect(await screen.findByRole("button", { name: /Shared day/ })).toBeInTheDocument();
+  const plan = await screen.findByRole("button", { name: /Shared day/ });
+  expect(plan).toBeVisible();
   expect(within(screen.getByRole("rowheader", { name: "Everyone" }).closest("tr")!).getByRole("button", { name: /Shared day/ })).toBeVisible();
   expect(within(screen.getByRole("rowheader", { name: "Morgan" }).closest("tr")!).queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent("Could not read calendar.denied");
   act(() => conn.emit("disconnected"));
-  expect(screen.queryByRole("button", { name: /Shared day/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /Shared day/ })).toBe(plan);
+  expect(plan).toBeVisible();
   expect(screen.getByText(/Calendars and to-do lists are unavailable while offline/)).toBeInTheDocument();
   expect(screen.queryByText(/Anna|Erik|Emma|Leo/)).not.toBeInTheDocument();
 });
