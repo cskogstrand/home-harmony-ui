@@ -23,7 +23,8 @@ it("requests immediately, retains the decoded image between refreshes and never 
   expect(fetchFrame).toHaveBeenCalledWith("/api/cameras/example/snapshot.jpg", { cache: "no-store", signal: expect.any(AbortSignal) });
   await act(async () => { await vi.advanceTimersByTimeAsync(0); });
   expect(screen.getByRole("img")).toHaveAttribute("src", "blob:first");
-  expect(screen.getByText("Snapshot preview · connecting video…")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Snapshot preview · connecting video…" })).toBeVisible();
+  expect(screen.queryByText("Snapshot preview · connecting video…")).not.toBeInTheDocument();
   await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
   expect(fetchFrame).toHaveBeenCalledTimes(2);
   expect(screen.getByRole("img")).toHaveAttribute("src", "blob:first");
@@ -52,7 +53,7 @@ it("retains the last image behind playing video, cancels polling and reuses it w
   const view = render(content(true));
   await act(async () => { await vi.advanceTimersByTimeAsync(0); });
   const image = screen.getByRole("img");
-  expect(screen.getByText("Preview image · refreshes automatically")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Preview image · refreshes automatically" })).toBeVisible();
   view.rerender(content(false));
   expect(image).toHaveAttribute("src", "blob:first");
   expect(revoke).not.toHaveBeenCalled();

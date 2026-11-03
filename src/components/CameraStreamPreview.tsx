@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { Image as ImageIcon } from "lucide-react";
+import { CameraMediaStatus } from "@/components/CameraMediaStatus";
 import { useI18n } from "@/hooks/use-i18n";
 
 // A decoded frame stays visible while the next request loads; never queue snapshots.
@@ -51,7 +53,7 @@ export function CameraStreamPreview({ src, name, status, active = true, caption 
     };
   }, [src, active]);
   return <div className="smart-camera-preview">
-    {frame ? <><img src={frame} alt={name} draggable={false} />{caption && <span className="smart-media-caption">{t(caption)}</span>}</>
+    {frame ? <><img src={frame} alt={name} draggable={false} />{caption && <CameraMediaStatus label={caption} icon={ImageIcon} />}</>
       : <p role="status">{t(failed ? "Preview image unavailable. Check the camera connection. Retrying…" : status)}</p>}
   </div>;
 }

@@ -6,24 +6,24 @@ import { usePageActive } from "@/contexts/PageActivityContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { Button } from "@/components/ui/button";
-import { Expand } from "lucide-react";
+import { Expand, LoaderCircle, Video, VideoOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { playGo2rtcStream } from "@/lib/go2rtc-stream";
 import { playGo2rtcMse } from "@/lib/go2rtc-mse";
 import { CameraPersonSnapshot } from "@/components/CameraPersonSnapshot";
 import { CameraStreamPreview } from "@/components/CameraStreamPreview";
+import { CameraMediaStatus } from "@/components/CameraMediaStatus";
 
 type MediaSource = { entity?: Entity; camera?: ConfiguredCamera };
 function MediaImage({ src, name, caption, onError }: { src: string; name: string; caption?: string; onError: () => void }) {
   const { message: t } = useI18n();
   const [loaded, setLoaded] = useState(false);
   return <><img src={src} alt={name} draggable={false} onLoad={() => setLoaded(true)} onError={onError} />
-    {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <span className="smart-media-caption">{t(caption)}</span>}</>;
+    {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} icon={VideoOff} />}</>;
 }
 function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void }) {
   const { watchCameraStream } = useApp();
-  const { message: t } = useI18n();
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [transport, setTransport] = useState<"webrtc" | "mse">("webrtc");
@@ -67,7 +67,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
     <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
       status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
     <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded} />
-    <span className="smart-media-caption smart-camera-caption">{t(playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…")}</span></div></>;
+    <CameraMediaStatus icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }
 
 export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean }) {

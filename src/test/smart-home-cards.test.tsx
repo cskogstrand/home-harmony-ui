@@ -263,7 +263,7 @@ it("falls back from camera video to MJPEG and snapshots and permits retry after 
   const snapshot = screen.getByRole("img");
   expect(snapshot).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy/camera.example"));
   fireEvent.load(snapshot);
-  expect(screen.getByText("Snapshot · live stream unavailable")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Snapshot · live stream unavailable" })).toBeVisible();
   fireEvent.error(snapshot);
   expect(screen.getByText("Image unavailable")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));
@@ -290,7 +290,7 @@ it("plays camera video without restarting on state updates and releases the prev
   expect(screen.queryByText("Live camera")).not.toBeInTheDocument();
   Object.defineProperty(video, "readyState", { value: 4 });
   video.currentTime = .5; fireEvent.timeUpdate(video);
-  expect(screen.getByText("Live camera")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Live camera" })).toBeVisible();
   expect(screen.getByRole("img", { name: entity.name })).toBe(preview);
   expect(fetchPreview.mock.calls[0][1].signal.aborted).toBe(true);
   view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={{ ...entity, state: "streaming" }} /></TooltipProvider></MemoryRouter>);
