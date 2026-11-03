@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.7
+
+<!-- release-source: 4ff69d526ec5e626a5ad30452f47dd91d27ee85f -->
+
+- test: account for calendar page preloading
+- fix: replace camera captions with corner icons
+- perf: preload and retain all main pages
+
 ## 0.10.6
 
 <!-- release-source: c20f89a37bc49589f715781ee8dca32cf80dea19 -->
