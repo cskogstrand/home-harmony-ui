@@ -46,11 +46,13 @@ it.each([
   if (transport === "mse") mocks.go2rtc.mockImplementation((_id, _video, _signal, failed) => failed());
   const view = render(<MediaSurface camera={camera} expanded />);
   expect(screen.getByRole("button", { name: "Snapshot preview · connecting video…" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Snapshot preview · connecting video…" }).querySelector("svg")).toHaveClass("motion-safe:animate-spin");
   expect(screen.queryByText("Snapshot preview · connecting video…")).not.toBeInTheDocument();
   const video = view.container.querySelector("video");
   vi.spyOn(video, "readyState", "get").mockReturnValue(4);
   fireEvent.playing(video);
   const status = screen.getByRole("button", { name: label });
+  expect(status.querySelector("svg")).not.toHaveClass("motion-safe:animate-spin");
   expect(status.textContent).toBe("");
   expect(screen.queryByText(label)).not.toBeInTheDocument();
   fireEvent.click(status);
