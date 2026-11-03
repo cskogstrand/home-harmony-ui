@@ -1,10 +1,13 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useMotionInput } from "@/hooks/use-motion-input";
 import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
-import { Component, Suspense, useEffect, useState, type ReactNode } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Suspense, useState, type ReactNode } from "react";
+import { Link, useLocation, type Location } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
-import { isHomeSection, isMainPage } from "@/lib/navigation";
+import { MainPages } from "./MainPages";
+import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
+import { PageContent } from "@/components/common/PageContent";
+import { isHomeSection, isMainPage, mainPagePath } from "@/lib/navigation";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { StateWrapper } from "@/components/common/StateWrapper";
@@ -16,7 +19,7 @@ import { NotificationBell, NotificationCamera, NotificationList } from "@/compon
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Check, LoaderCircle, Moon, RefreshCw, Settings, TriangleAlert, Wifi, WifiOff, X } from "lucide-react";
 
-export function AppLayout() {
+export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
@@ -28,7 +31,12 @@ export function AppLayout() {
   const storageWarning = shared?.state.error || (shared?.state.loaded && !saved && !shared?.state.saving);
   const storageBusy = shared?.state.saving || !shared?.state.loaded;
   const storageMessage = (shared?.state.error && message(shared.state.error)) || (shared.state.saving ? t("Saving shared settings…") : !shared.state.loaded ? t("Loading shared settings…") : !saved ? t("Shared settings are not saved yet.") : t("Shared settings saved."));
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
+  const mainPath = mainPagePath(pathname);
+  const [locations, setLocations] = useState<Record<string, Location>>({});
+  if (mainPath && locations[mainPath] !== location) setLocations({ ...locations, [mainPath]: location });
+  const errorFallback = <div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>;
   return <div className={`afterglow-app${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <WeatherWidget placement="header" /><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
@@ -54,27 +62,13 @@ export function AppLayout() {
     <main id="main-content" tabIndex={-1} className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
       {isMainPage(pathname) && <NotificationList compact presentation={notifications.presentation} />}
-      <PageErrorBoundary key={pathname} fallback={<div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>}>
-        <Suspense fallback={<p role="status">{t("Loading…")}</p>}><PageOutlet /></Suspense>
+      <MainPages locations={locations} errorFallback={errorFallback} />
+      <PageErrorBoundary key={pathname} fallback={errorFallback}>
+        <Suspense fallback={<p role="status">{t("Loading…")}</p>}><PageContent active={!mainPath}>{children}</PageContent></Suspense>
       </PageErrorBoundary>
     </main>
     <footer className="app-footer"><span>{t("Version {value1}", { value1: appVersion })}</span></footer>
-    <MainNav />
+    <MainNav locations={locations} />
     <NotificationCamera />
   </div>;
-}
-
-class PageErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }> {
-  state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() { return this.state.failed ? this.props.fallback : this.props.children; }
-}
-
-function PageOutlet() {
-  const { pathname, hash } = useLocation();
-  useEffect(() => {
-    const section = hash && document.getElementById(hash.slice(1));
-    if (section) section.scrollIntoView?.(); else window.scrollTo?.(0, 0);
-  }, [pathname, hash]);
-  return <Outlet />;
 }

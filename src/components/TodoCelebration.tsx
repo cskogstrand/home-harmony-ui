@@ -3,12 +3,15 @@ import { createPortal } from "react-dom";
 import { useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
+import { usePageActive } from "@/contexts/PageActivityContext";
 
 export function TodoCelebration({ origin, wholeList = false, onComplete }: { origin: { x: number; y: number }; wholeList?: boolean; onComplete: () => void }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
+  const pageActive = usePageActive();
   useEffect(() => {
+    if (!pageActive) { onComplete(); return; }
     const root = ref.current;
     if (!root) return;
     const duration = wholeList ? reduceMotion ? 1600 : 2080 : reduceMotion ? 160 : 1600;
@@ -52,7 +55,8 @@ export function TodoCelebration({ origin, wholeList = false, onComplete }: { ori
     const timer = running.length ? undefined : window.setTimeout(finish, duration);
     if (running.length) void Promise.all(running.map(animation => animation.finished)).then(finish, finish);
     return () => { active = false; window.clearTimeout(timer); running.forEach(animation => animation.cancel()); };
-  }, [origin, wholeList, reduceMotion, onComplete]);
+  }, [origin, wholeList, reduceMotion, onComplete, pageActive]);
+  if (!pageActive) return null;
   // A portal lets confetti escape the list's clipping without shifting its rows.
   const celebration = <div ref={ref} className={`todo-celebration${wholeList ? " todo-celebration-list" : ""}${reduceMotion ? " todo-celebration-reduced" : ""}`} style={wholeList ? undefined : { left: origin.x, top: origin.y }} aria-hidden="true">
     {Array.from({ length: reduceMotion ? wholeList ? 0 : 1 : wholeList ? 96 : 32 }, (_, index) => <i key={index} />)}

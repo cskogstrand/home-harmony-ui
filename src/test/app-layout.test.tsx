@@ -12,6 +12,7 @@ vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, cur
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma", appearance: { compactMode: false }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
+vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));
 
 beforeEach(() => {
   shared.enabled = true;
@@ -57,9 +58,9 @@ it("keeps navigation visible during page loading and scrolls to the anchor after
   const Page = () => <section id="example" ref={element => { if (element) element.scrollIntoView = scrollIntoView; }}>Page content</section>;
   let resolvePage: (module: { default: typeof Page }) => void;
   const LazyPage = lazy(() => new Promise<{ default: typeof Page }>(resolve => { resolvePage = resolve; }));
-  render(<MemoryRouter initialEntries={["/example#example"]}><Routes>
-    <Route element={<AppLayout />}><Route path="/example" element={<LazyPage />} /></Route>
-  </Routes></MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/example#example"]}><AppLayout><Routes>
+    <Route path="/example" element={<LazyPage />} />
+  </Routes></AppLayout></MemoryRouter>);
 
   expect(screen.getByText("Loading…")).toHaveAttribute("role", "status");
   expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
@@ -76,12 +77,10 @@ it("keeps navigation usable when a page download fails", async () => {
   vi.spyOn(window, "location", "get").mockReturnValue({ ...window.location, reload });
   let rejectPage: (error: Error) => void;
   const LazyPage = lazy(() => new Promise<{ default: () => JSX.Element }>((_, reject) => { rejectPage = reject; }));
-  render(<MemoryRouter initialEntries={["/school"]}><Routes>
-    <Route element={<AppLayout />}>
+  render(<MemoryRouter initialEntries={["/school"]}><AppLayout><Routes>
       <Route path="/school" element={<LazyPage />} />
       <Route path="/lists" element={<p>Working page</p>} />
-    </Route>
-  </Routes></MemoryRouter>);
+  </Routes></AppLayout></MemoryRouter>);
 
   const error = new TypeError("Failed to fetch dynamically imported module");
   const silenceExpectedError = (event: ErrorEvent) => { if (event.error === error) event.preventDefault(); };

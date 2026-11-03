@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Entity } from "@/types/api";
 import { go2rtcPlayerUrl, type ConfiguredCamera } from "../../../shared/cameras";
 import { useApp } from "@/contexts/AppContext";
+import { usePageActive } from "@/contexts/PageActivityContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
 }
 
 export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean }) {
+  const pageActive = usePageActive();
   const { homeOnline, currentHome } = useApp();
   const shared = useSharedConfiguration();
   const connection = shared?.state.config.settings.cameras.connections.find(item => item.id === configured?.connectionId);
@@ -96,7 +98,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const failed = failedSrc === src;
   const fallback = useCallback((message = "Stream unavailable. Check the camera connection.") => { if (customStream) { setStreamError(message); setFailedSrc(src); } else setMjpeg(true); }, [customStream, src]);
   const playerUrl = configured && go2rtcPlayerUrl(connection, configured.source);
-  const paused = suspended || (camera && !snapshot && ((!visible && !expanded) || !active));
+  const paused = !pageActive || suspended || (camera && !snapshot && ((!visible && !expanded) || !active));
   useEffect(() => {
     if (!globalThis.IntersectionObserver) { setVisible(true); setSeen(true); return; }
     const observer = new IntersectionObserver(([entry]) => { setVisible(entry.isIntersecting); if (entry.isIntersecting) setSeen(true); }, { rootMargin: "100px" });

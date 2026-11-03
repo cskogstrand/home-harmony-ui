@@ -8,14 +8,10 @@ import { AppProvider } from "@/contexts/AppProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { NotificationProvider } from "@/contexts/NotificationProvider";
+import { mainPaths } from "@/lib/navigation";
 import NotFound from "./pages/NotFound";
 
-const Calendar = lazy(() => import("./pages/Calendar"));
-const Lists = lazy(() => import("./pages/Lists"));
-const School = lazy(() => import("./pages/School"));
-const SmartHome = lazy(() => import("./pages/SmartHome"));
 const DeviceGallery = lazy(() => import("./pages/DeviceGallery"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Cameras = lazy(() => import("./pages/Cameras"));
 const Devices = lazy(() => import("./pages/Devices"));
 const DeviceDetail = lazy(() => import("./pages/DeviceDetail"));
@@ -43,14 +39,10 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+            <NotificationProvider><AppLayout>
             <Routes>
-              <Route element={<NotificationProvider><AppLayout /></NotificationProvider>}>
-                <Route path="/" element={<Dashboard />} />
+                {mainPaths.map(path => <Route key={path} path={path} element={null} />)}
                 <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/calendar" element={<Calendar />} />
-                <Route path="/lists" element={<Lists />} />
-                <Route path="/school" element={<School />} />
-                <Route path="/home" element={<SmartHome />} />
                 <Route path="/device-gallery" element={<DeviceGallery />} />
                 <Route path="/cameras" element={<Cameras />} />
                 <Route path="/devices" element={<Devices />} />
@@ -74,9 +66,9 @@ const App = () => (
                 <Route path="/settings/:section" element={<Settings />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/user-settings" element={<Navigate to="/settings/appearance" replace />} />
-              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </AppLayout></NotificationProvider>
           </BrowserRouter></FamilyProvider>
         </AppProvider>
       </TooltipProvider>

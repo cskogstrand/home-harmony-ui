@@ -12,6 +12,7 @@ import { state } from "./ha-fixtures";
 import { chooseEntity } from "./entity-picker-helpers";
 import { cameraSettings } from "./camera-fixtures";
 import Cameras from "@/pages/Cameras";
+import { PageActivityContext } from "@/contexts/PageActivityContext";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null, go2rtc: vi.fn(), mse: vi.fn(), ha: vi.fn(), save: vi.fn(), fetch: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -33,6 +34,25 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
+
+it("stops video and snapshot requests while a retained main page is inactive", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  const content = (active: boolean) => <PageActivityContext.Provider value={active}><MediaSurface camera={camera} expanded /></PageActivityContext.Provider>;
+  const view = render(content(false));
+  expect(mocks.go2rtc).not.toHaveBeenCalled();
+  expect(mocks.fetch).not.toHaveBeenCalled();
+  view.rerender(content(true));
+  expect(mocks.go2rtc).toHaveBeenCalledOnce();
+  expect(mocks.fetch).toHaveBeenCalledOnce();
+  const signal = mocks.go2rtc.mock.calls[0][2];
+  const previewSignal = mocks.fetch.mock.calls[0][1].signal;
+  view.rerender(content(false));
+  expect(signal.aborted).toBe(true);
+  expect(previewSignal.aborted).toBe(true);
+  view.rerender(content(true));
+  expect(mocks.go2rtc).toHaveBeenCalledTimes(2);
+});
 
 it("does not add discovered HA cameras to the camera page or settings", () => {
   const view = render(<MemoryRouter><Cameras /></MemoryRouter>);

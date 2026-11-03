@@ -2,6 +2,8 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ListPanel } from "@/components/FamilyLists";
+import { TodoCelebration } from "@/components/TodoCelebration";
+import { PageActivityContext } from "@/contexts/PageActivityContext";
 import type { Entity } from "@/types/api";
 import { state } from "./ha-fixtures";
 
@@ -13,6 +15,17 @@ beforeEach(() => {
   app.currentHome.entities = [{ ...state("todo.daily", "1", { supported_features: 4 }), entityId: "todo.daily", preferenceId: "home|todo.daily", domain: "todo", name: "Daily", areaId: "unassigned" }];
 });
 afterEach(() => { cleanup(); delete document.documentElement.dataset.motionInput; vi.useRealTimers(); vi.restoreAllMocks(); });
+
+it("finishes a celebration when its page goes into the background", () => {
+  const onComplete = vi.fn();
+  const origin = { x: 100, y: 100 };
+  const content = (active: boolean) => <PageActivityContext.Provider value={active}><TodoCelebration origin={origin} onComplete={onComplete} /></PageActivityContext.Provider>;
+  const view = render(content(true));
+  expect(document.querySelector(".todo-celebration")).toBeInTheDocument();
+  view.rerender(content(false));
+  expect(document.querySelector(".todo-celebration")).not.toBeInTheDocument();
+  expect(onComplete).toHaveBeenCalledOnce();
+});
 it.each(["pointer", "keyboard"])("completes HA list items without the animation delay when reduced motion is enabled (%s)", async input => {
   document.documentElement.dataset.motionInput = input;
   const matchMedia = window.matchMedia;

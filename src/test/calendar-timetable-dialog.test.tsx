@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } 
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { CalendarTimetable } from "@/components/CalendarTimetable";
 import { useTimetableCalendars } from "@/hooks/use-timetable-calendars";
+import { PageActivityContext } from "@/contexts/PageActivityContext";
 import type { CalendarEvent, Entity } from "@/types/api";
 import type { TimetableSettings } from "../../shared/configuration";
 
@@ -32,6 +33,22 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+it("centers today's tab when a preloaded timetable becomes active and preserves subsequent scrolling", () => {
+  const content = (active: boolean) => <PageActivityContext.Provider value={active}><CalendarTimetable child="example" settings={settings} dayView /></PageActivityContext.Provider>;
+  const view = render(content(false));
+  const list = screen.getByRole("tablist");
+  const today = screen.getByRole("tab", { name: /Monday/ });
+  Object.defineProperty(list, "clientWidth", { value: 200 });
+  Object.defineProperties(today, { offsetLeft: { value: 500 }, offsetWidth: { value: 100 } });
+  expect(list.scrollLeft).toBe(0);
+  view.rerender(content(true));
+  expect(list.scrollLeft).toBe(450);
+  list.scrollLeft = 100;
+  view.rerender(content(false));
+  view.rerender(content(true));
+  expect(list.scrollLeft).toBe(100);
+});
 
 it("switches weekday tabs in place while retaining today's live agenda", () => {
   render(<CalendarTimetable child="example" settings={settings} dayView />);

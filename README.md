@@ -21,6 +21,8 @@ Unfinished to-dos with due dates appear under their assigned person in the month
 
 Calendar and Everyone’s day keep their last loaded plans during background refreshes and temporary connection failures. Loading text is reserved for the first fetch; connection errors still appear. Changing the selected home, calendar sources or date range clears unrelated cached calendar data. This cache lives only in memory.
 
+Today, Calendar, Lists, School and Smart home preload shortly after startup and stay mounted while you navigate. Their loaded data, filters and drafts remain in memory, and the main navigation remembers the selected calendar date/view and list tab. Background pages keep receiving data updates; their dialogs are hidden and camera streams pause. Reloading the app resets this page state.
+
 ## Get started
 
 ### Home Assistant OS

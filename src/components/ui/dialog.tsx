@@ -4,6 +4,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { usePageActive } from "@/contexts/PageActivityContext";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -33,6 +34,8 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
   const { t } = useI18n();
+  const active = usePageActive();
+  if (!active) return null;
   return (
   <DialogPortal>
     <DialogOverlay />

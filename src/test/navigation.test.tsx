@@ -905,7 +905,8 @@ it("configures calendars in settings, shows today's agenda on School and keeps t
   const preview = screen.getByRole("tabpanel");
   expect(within(within(preview).getByRole("region", { name: "Activities" })).getByText("Example activity")).toBeVisible();
   expect(within(within(preview).getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Shared focus")).toBeVisible();
-  expect(app.watchCalendarEvents.mock.calls.every(([, , to]) => homeDate(new Date(to), app.currentHome.timeZone) === "2026-10-31")).toBe(true);
+  expect(app.watchCalendarEvents.mock.calls.every(([id, , to]) => homeDate(new Date(to), app.currentHome.timeZone) === "2026-10-31"
+    || id === "calendar.pedagogy" && homeDate(new Date(to), app.currentHome.timeZone) === "2027-10-25")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "School day view · Activities calendars for Example child" }));
   const popupPicker = screen.getByRole("dialog", { name: "School day view · Activities calendars for Example child" });
   fireEvent.click(within(popupPicker).getByRole("checkbox", { name: "Activities" }));

@@ -1,7 +1,8 @@
 import { PanelTitle } from "@/components/PanelTitle";
-import { useCallback, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
+import { usePageActive } from "@/contexts/PageActivityContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { useTimetableCalendars } from "@/hooks/use-timetable-calendars";
 import { timetableDays, timetableEventIsCurrent, timetableMessages, timetableWeek, type TimetableEvent } from "@/lib/calendar-timetable";
@@ -14,14 +15,17 @@ import type { TimetableSettings } from "../../shared/configuration";
 export function CalendarTimetable({ child, settings, dayView = false, sourceControls }: { child: string; settings: TimetableSettings; dayView?: boolean; sourceControls?: Record<"hours" | "activities" | "meetings" | "messages", ReactNode> }) {
   const { today, now, time, memberName } = useFamily();
   const { currentHome, homeOnline } = useApp();
+  const pageActive = usePageActive();
   const { t, dateLabel, eventTimeLabel, calendarName, calendarTitle } = useI18n();
+  const tabsList = useRef<HTMLDivElement | null>(null);
   const revealedList = useRef<HTMLDivElement | null>(null);
-  const revealToday = useCallback((list: HTMLDivElement | null) => {
-    if (!list || revealedList.current === list) return;
+  useEffect(() => {
+    const list = tabsList.current;
+    if (!pageActive || !list || revealedList.current === list) return;
     revealedList.current = list;
     const tab = list.querySelector<HTMLElement>('[aria-current="date"]');
     if (tab) list.scrollLeft = tab.offsetLeft - (list.clientWidth - tab.offsetWidth) / 2;
-  }, []);
+  });
   const start = timetableWeek(today);
   const { sources, closuresUnknown, popupClosuresUnknown, popupMeetingsLoading, popupMeetingsUnavailable, loading, errors, refresh } = useTimetableCalendars(settings, start, today);
   const daySources = sources.map(source => ({ ...source, roles: source.roles.filter(role =>
@@ -85,7 +89,7 @@ export function CalendarTimetable({ child, settings, dayView = false, sourceCont
     {loading && <p role="status">{t("Loading timetable…")}</p>}
     {loadError}
     {dayView ? <Tabs key={today} defaultValue={today}>
-      <TabsList ref={revealToday} className="timetable-week-tabs" aria-label={t("Choose a day")}>
+      <TabsList ref={tabsList} className="timetable-week-tabs" aria-label={t("Choose a day")}>
         {selectableDays.map(day => <TabsTrigger key={day.date} value={day.date} className="timetable-day-tab" aria-current={day.date === today ? "date" : undefined}>
           <strong>{dateLabel(day.date, { weekday: "long" })}</strong>
           <span className="timetable-tab-date"><time dateTime={day.date}>{dateLabel(day.date, { day: "numeric", month: "short" })}</time>{day.date === today && <span> · {t("Today")}</span>}</span>

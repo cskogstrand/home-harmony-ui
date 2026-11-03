@@ -1,6 +1,6 @@
-import { isHomeSection } from "@/lib/navigation";
+import { isHomeSection, mainPagePath } from "@/lib/navigation";
 import { useI18n } from "@/hooks/use-i18n";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, type Location } from "react-router-dom";
 import { Camera, House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -11,10 +11,10 @@ const mainItems = [
   { path: "/school", label: "School", icon: BookOpen },
   { path: "/home", label: "Smart home", icon: SlidersHorizontal },
 ];
-export function MainNav() {
+export function MainNav({ locations = {} }: { locations?: Record<string, Location> }) {
   const { t, message } = useI18n();
   const { pathname } = useLocation();
-  return <nav className="family-dock glass-surface" aria-label={t("Main navigation")}>{mainItems.map(item => <Link className="press-feedback" to={item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : pathname === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.8} aria-hidden="true" /><span>{message(item.label)}</span></Link>)}</nav>;
+  return <nav className="family-dock glass-surface" aria-label={t("Main navigation")}>{mainItems.map(item => <Link className="press-feedback" to={locations[item.path] ?? item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : mainPagePath(pathname) === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.8} aria-hidden="true" /><span>{message(item.label)}</span></Link>)}</nav>;
 }
 const smartItems = [
   { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },

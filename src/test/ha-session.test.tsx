@@ -939,6 +939,7 @@ it.each(["/", "/calendar"])("edits a recurring HA event from %s and refreshes wi
   render(<App />);
   const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
   fireEvent.click(await grid.findByRole("button", { name: /Family dinner/ }));
+  await waitFor(() => expect(subscriptions).toHaveLength(2));
   expect(await screen.findByLabelText("Time")).toHaveValue("16:00:15");
   expect(screen.getByLabelText("End time")).toHaveValue("17:00:30");
   expect(screen.getByLabelText("A little reminder")).toHaveValue("Bring bread\nAnd cheese");
@@ -965,7 +966,7 @@ it.each(["/", "/calendar"])("edits a recurring HA event from %s and refreshes wi
   await act(async () => request.resolve({}));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(await grid.findByRole("button", { name: /Dinner outside/ })).toBeInTheDocument();
-  expect(subscriptions).toHaveLength(2);
+  expect(subscriptions).toHaveLength(3);
   expect(ha.callService).not.toHaveBeenCalled();
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual([]);
 });
@@ -1102,7 +1103,7 @@ it("preserves a failed calendar draft and blocks writes offline or without a wri
   expect(ha.callService).toHaveBeenCalledOnce();
 });
 
-it("updates calendar plans from the WebSocket stream and replaces subscriptions across navigation and reconnect", async () => {
+it("keeps calendar subscriptions across navigation and replaces them for date ranges and reconnects", async () => {
   setupWritableCalendars();
   const subscriptions: { id: string; receive: (message: { events: unknown }) => void; unsubscribe: typeof haFetch }[] = [];
   conn.subscribeMessage.mockImplementation(async (receive, message) => {
@@ -1113,7 +1114,7 @@ it("updates calendar plans from the WebSocket stream and replaces subscriptions 
   });
   window.history.replaceState(null, "", "/calendar?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
-  await waitFor(() => expect(subscriptions).toHaveLength(4));
+  await waitFor(() => expect(subscriptions).toHaveLength(8));
   expect(conn.subscribeMessage).toHaveBeenCalledWith(expect.any(Function), { type: "calendar/event/subscribe", entity_id: "calendar.house", start: "2026-10-06T22:00:00.000Z", end: "2026-10-13T22:00:00.000Z" }, { resubscribe: false });
   const house = subscriptions.find(s => s.id === "calendar.house")!;
   const event = { summary: "Created in Home Assistant", start: "2026-10-07T14:00:00+02:00", end: "2026-10-07T15:00:00+02:00" };
@@ -1132,15 +1133,20 @@ it("updates calendar plans from the WebSocket stream and replaces subscriptions 
   expect(house.unsubscribe).toHaveBeenCalledOnce();
   act(() => house.receive({ events: [event] }));
   expect(screen.queryByRole("button", { name: /Created in Home Assistant/ })).not.toBeInTheDocument();
-  await waitFor(() => expect(subscriptions).toHaveLength(8));
+  await waitFor(() => expect(subscriptions).toHaveLength(12));
+  const retained = subscriptions.filter(subscription => !subscription.unsubscribe.mock.calls.length);
+  await navigate("School");
+  expect(retained.every(subscription => !subscription.unsubscribe.mock.calls.length)).toBe(true);
+  await navigate("Calendar");
+  expect(subscriptions).toHaveLength(12);
   act(() => conn.emit("disconnected"));
-  expect(subscriptions.slice(4).every(s => s.unsubscribe.mock.calls.length === 1)).toBe(true);
+  expect(subscriptions.every(s => s.unsubscribe.mock.calls.length === 1)).toBe(true);
   act(() => conn.emit("ready"));
   act(() => conn.entityCallback?.({ ...states, "calendar.house": state("calendar.house", "off") }));
-  await waitFor(() => expect(subscriptions).toHaveLength(9));
+  await waitFor(() => expect(subscriptions).toHaveLength(14));
   expect(haFetch).not.toHaveBeenCalled();
   view.unmount();
-  expect(subscriptions[8].unsubscribe).toHaveBeenCalledOnce();
+  expect(subscriptions.every(s => s.unsubscribe.mock.calls.length === 1)).toBe(true);
 });
 
 it("cleans up a calendar subscription acknowledged after its range was closed", async () => {
@@ -2000,7 +2006,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   await waitFor(() => expect(screen.getByRole("button", { name: "Remove item" })).toBeEnabled());
   const confirmedBike = shared.getByLabelText("Fix bike", { selector: "input" });
   const deletedItems = deferred<{ items: typeof lists["todo.family"] }>();
-  conn.sendMessagePromise.mockImplementationOnce(() => deletedItems.promise);
+  conn.sendMessagePromise.mockImplementation(message => message.type === "todo/item/list" && message.entity_id === "todo.family" ? deletedItems.promise : readItems(message));
   await confirmAction("Remove item");
   expect(confirmedBike).toBeInTheDocument();
   expect(confirmedBike.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
