@@ -690,7 +690,7 @@ it.each([false, true])("guards to-do commands per item and retains errors across
   expect(client.getSnapshot().commands["todo.example"].error).toBeUndefined();
   expect(client.getSnapshot().commands["todo.example"].items).toEqual({});
 });
-it("loads only the displayed HA calendar range and never saves its events in the shared settings", async () => {
+it("loads calendar ranges for the active and preloaded pages without saving events in shared settings", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-06T12:00:00Z"));
   vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
@@ -710,6 +710,8 @@ it("loads only the displayed HA calendar range and never saves its events in the
   const firstUrl = new URL(fetchMock.mock.calls[0][0], window.location.origin);
   expect(firstUrl.searchParams.get("start")).toBe("2026-10-05T22:00:00.000Z");
   expect(firstUrl.searchParams.get("end")).toBe("2026-10-12T22:00:00.000Z");
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  expect(fetchMock.mock.calls[1][0]).toBe(fetchMock.mock.calls[0][0]);
   fireEvent.click(screen.getAllByRole("button", { name: /Imported read-only event/ })[0]);
   expect(screen.getByText(/does not support editing existing events/)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
@@ -721,10 +723,12 @@ it("loads only the displayed HA calendar range and never saves its events in the
   const nextResponse = deferred<unknown>();
   fetchMock.mockReturnValueOnce(nextResponse.promise);
   fireEvent.click(screen.getByRole("button", { name: "Next week" }));
-  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-  expect(new URL(fetchMock.mock.calls[1][0], window.location.origin).searchParams.get("start")).toBe("2026-10-12T22:00:00.000Z");
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+  const [nextUrl, nextOptions] = fetchMock.mock.calls[2];
+  expect(new URL(nextUrl, window.location.origin).searchParams.get("start")).toBe("2026-10-12T22:00:00.000Z");
+  expect(new URL(nextUrl, window.location.origin).searchParams.get("end")).toBe("2026-10-19T22:00:00.000Z");
   view.unmount();
-  expect(fetchMock.mock.calls[1][1].signal.aborted).toBe(true);
+  expect(nextOptions.signal.aborted).toBe(true);
   await act(async () => nextResponse.resolve({ ok: true, json: async () => [event] }));
 });
 it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up next card with the next timed plan on %s", async date => {
