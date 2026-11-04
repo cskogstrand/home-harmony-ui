@@ -122,6 +122,40 @@ it("does not add discovered HA cameras to the camera page or settings", () => {
   expect(screen.queryByLabelText("Home Assistant camera")).not.toBeInTheDocument();
 });
 
+it.each(["go2rtc", "home-assistant", "frigate"])("switches each camera page preview between video, its %s still and the configured person image", async source => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const cameras = mocks.shared.state.config.settings.cameras.items;
+  const camera = cameras[0];
+  if (source === "home-assistant") { camera.connectionId = "home-assistant"; camera.source = "camera.example"; }
+  if (source === "frigate") camera.frigatePreview = { connectionId: "frigate", camera: "example_entry" };
+  cameras.push({ ...camera, id: "other-camera", name: "Other example camera", personSnapshot: { type: "none" } });
+  render(<MemoryRouter><Cameras /></MemoryRouter>);
+  const first = within(screen.getByRole("region", { name: camera.name }));
+  const other = within(screen.getByRole("region", { name: "Other example camera" }));
+  expect(other.queryByRole("button", { name: "Person snapshot" })).not.toBeInTheDocument();
+  const stream = (source === "home-assistant" ? mocks.ha : mocks.go2rtc).mock.calls[0][2];
+  const videoPreview = mocks.fetch.mock.calls[0][1].signal;
+  fireEvent.click(first.getByRole("button", { name: "Still image" }));
+  expect(stream.aborted).toBe(true); expect(videoPreview.aborted).toBe(true);
+  expect(first.getByRole("button", { name: "Still image" })).toHaveAttribute("aria-pressed", "true");
+  expect(mocks.fetch).toHaveBeenLastCalledWith(source === "home-assistant" ? "/api/camera_proxy/camera.example" : "/api/cameras/example-camera/snapshot.jpg", expect.anything());
+  expect(screen.getByRole("region", { name: camera.name }).querySelector("video")).toBeNull();
+  expect(other.getByRole("button", { name: "Live camera" })).toHaveAttribute("aria-pressed", "true");
+  const still = mocks.fetch.mock.lastCall[1].signal;
+  fireEvent.click(first.getByRole("button", { name: "Person snapshot" }));
+  expect(still.aborted).toBe(true);
+  expect(first.getByRole("img", { name: "Latest person snapshot" })).toBeVisible();
+  fireEvent.click(first.getByRole("button", { name: `Expand ${camera.name}` }));
+  const dialog = within(screen.getByRole("dialog", { name: camera.name }));
+  expect(dialog.getByRole("button", { name: "Person snapshot" })).toHaveAttribute("aria-pressed", "true");
+  expect(dialog.getByRole("img", { name: "Latest person snapshot" })).toBeVisible();
+  fireEvent.click(dialog.getByRole("button", { name: "Still image" }));
+  expect(screen.getByRole("dialog").querySelector("video")).toBeNull();
+  fireEvent.click(dialog.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(first.getByRole("button", { name: `Expand ${camera.name}` })).toHaveFocus());
+  expect(first.getByRole("button", { name: "Still image" })).toHaveAttribute("aria-pressed", "true");
+});
+
 it("creates a reusable connection, then a named standalone go2rtc camera with a discovered stream", async () => {
   const connections = render(<MemoryRouter><CameraConnections /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add connection" }));

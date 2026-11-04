@@ -28,6 +28,8 @@ If saving fails, the error identifies the field to correct and keeps your draft.
 
 Saved cameras group **Preview startup image**, **Watch live stream**, and **Preview person snapshot** (when configured). The startup preview refreshes the same image source used while video connects, without starting video. **Edit** and **Delete** sit beside the camera name.
 
+On **Smart home → Cameras**, each camera offers **Live camera**, **Still image**, and **Person snapshot** when a person source is configured. The still view refreshes the configured startup image from Frigate or the video connection without opening a live stream. Each camera keeps its own selection. Expand any view to see the same selected media in the larger viewer; switching views stops the previous live stream or still-image polling.
+
 The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/blob/master/website/api/openapi.yaml). Home Harmony returns stream names only; upstream producer URLs and credentials are not sent to the browser. A failed or empty list does not erase the selected source.
 
 ## Watch cameras and use them in notifications

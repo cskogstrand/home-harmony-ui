@@ -18,7 +18,7 @@ export default function Cameras() {
     {!settings.items.length && <section className="glow-panel space-y-3"><Camera size={28} aria-hidden="true" /><h2 className="text-xl font-semibold">{t("No cameras added yet")}</h2><p className="page-note">{t("Add a camera and choose its connection. Home Assistant cameras are available to select, but are not added automatically.")}</p><Button variant="outline" asChild><Link to="/settings/camera-connections">{t("Manage connections")}</Link></Button></section>}
     <div className="grid gap-6 lg:grid-cols-2">{settings.items.map(camera => <section key={camera.id} className="glow-panel min-w-0 space-y-4" aria-label={camera.name}>
       <div><h2 className="text-xl font-semibold break-words">{camera.name}</h2><p className="page-note break-words">{camera.connectionId === "home-assistant" ? "Home Assistant" : settings.connections.find(item => item.id === camera.connectionId)?.name} · {camera.source}</p></div>
-      <EntityMedia camera={camera} />
+      <EntityMedia camera={camera} showImageChoices />
       <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><Link to={`/settings/cameras?camera=${encodeURIComponent(camera.id)}`}>{t("Configure camera")}</Link></Button><Button variant="outline" asChild><Link to={`/settings/notifications?camera=${encodeURIComponent(camera.id)}`}>{t("Use in notification")}</Link></Button></div>
     </section>)}</div>
   </div>;

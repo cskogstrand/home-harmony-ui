@@ -124,27 +124,33 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   </div>;
 }
 
-export function EntityMedia({ entity, camera: suppliedCamera }: MediaSource) {
+export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices = false }: MediaSource & { showImageChoices?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const camera = suppliedCamera ?? shared?.state.config.settings.cameras.items.find(item => item.connectionId === "home-assistant" && item.source === entity?.entityId);
-  const [open, setOpen] = useState(false), [person, setPerson] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [media, setMedia] = useState<"live" | "snapshot" | "person">("live");
   const hasPerson = camera && camera.personSnapshot.type !== "none";
+  const selected = media === "person" && !hasPerson ? "live" : media;
+  const preview = showImageChoices ? selected : "live";
   const name = camera?.name ?? entity?.name ?? "Camera";
   const opener = useRef<HTMLButtonElement>(null);
   const expandable = !!camera || ["camera", "image"].includes(entity?.domain);
+  const choices = (hasPerson || showImageChoices) && <div className="flex flex-wrap gap-2" role="group" aria-label={t("Camera media")}>
+    <Button variant={selected === "live" ? "default" : "outline"} aria-pressed={selected === "live"} onClick={() => setMedia("live")}>{t("Live camera")}</Button>
+    {showImageChoices && <Button variant={selected === "snapshot" ? "default" : "outline"} aria-pressed={selected === "snapshot"} onClick={() => setMedia("snapshot")}>{t("Still image")}</Button>}
+    {hasPerson && <Button variant={selected === "person" ? "default" : "outline"} aria-pressed={selected === "person"} onClick={() => setMedia("person")}>{t("Person snapshot")}</Button>}
+  </div>;
   return <Dialog open={open} onOpenChange={setOpen}>
+    {showImageChoices && choices}
     <div className="smart-media-preview">
-      <MediaSurface entity={entity} camera={camera} suspended={open} />
+      {preview === "person" && !open ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open} snapshotOnly={preview === "snapshot"} />}
       {expandable && <button ref={opener} type="button" className="smart-media-open" aria-label={t("Expand {name}", { name })} onClick={() => setOpen(true)}><span><Expand size={18} /></span></button>}
     </div>
     {expandable && <DialogContent className="smart-media-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>
       <DialogHeader><DialogTitle>{name}</DialogTitle></DialogHeader>
-      {hasPerson && <div className="flex flex-wrap gap-2" role="group" aria-label={t("Camera media")}>
-        <Button variant={person ? "outline" : "default"} aria-pressed={!person} onClick={() => setPerson(false)}>{t("Live camera")}</Button>
-        <Button variant={person ? "default" : "outline"} aria-pressed={person} onClick={() => setPerson(true)}>{t("Person snapshot")}</Button>
-      </div>}
-      {person && hasPerson ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface entity={entity} camera={camera} expanded />}
+      {choices}
+      {selected === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={selected} entity={entity} camera={camera} expanded snapshotOnly={selected === "snapshot"} />}
     </DialogContent>}
   </Dialog>;
 }
