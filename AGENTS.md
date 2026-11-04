@@ -1,5 +1,9 @@
 # Repository instructions
 
+## Branch workflow
+
+- Make all changes directly on `main` unless the user explicitly asks to create or work on another branch.
+
 ## Personal information and secrets
 
 - Never add real personal or household-specific information to this repository, including source code, documentation, examples, test fixtures, screenshots, or commit messages. This includes names, contact details, addresses, locations, schedules, reminders, and private device or calendar identifiers. Never commit credentials, tokens, or API keys.
