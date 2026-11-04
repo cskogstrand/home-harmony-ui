@@ -13,7 +13,7 @@ const eventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("error") }),
 ]);
 
-// One visible surface owns one player; abort also closes its HA signaling subscription.
+// The shared playback session owns this player; abort also closes its HA signaling subscription.
 export function playCameraStream(connection: Connection, entityId: string, video: HTMLVideoElement, signal: AbortSignal, onError: () => void) {
   if (signal.aborted) return;
   let stopped = false, attempt = 0;

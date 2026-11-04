@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Expand, LoaderCircle, Video, VideoOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
-import { playGo2rtcStream } from "@/lib/go2rtc-stream";
-import { playGo2rtcMse } from "@/lib/go2rtc-mse";
+import { shareCameraStream } from "@/lib/shared-camera-stream";
 import { CameraPersonSnapshot } from "@/components/CameraPersonSnapshot";
 import { CameraStreamPreview } from "@/components/CameraStreamPreview";
 import { CameraMediaStatus } from "@/components/CameraMediaStatus";
@@ -22,21 +21,29 @@ function MediaImage({ src, name, caption, onError }: { src: string; name: string
   return <><img src={src} alt={name} draggable={false} onLoad={() => setLoaded(true)} onError={onError} />
     {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} icon={VideoOff} />}</>;
 }
-function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError, onAspectRatio }: { id: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
+function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, onError, onAspectRatio }: { id: string; sourceKey: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
   const { watchCameraStream } = useApp();
-  const ref = useRef<HTMLVideoElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const [playback, setPlayback] = useState<{ video: HTMLVideoElement; transport: "webrtc" | "mse" }>();
+  const { video, transport = "webrtc" } = playback ?? {};
   const [playing, setPlaying] = useState(false);
-  const [transport, setTransport] = useState<"webrtc" | "mse">("webrtc");
+  useLayoutEffect(() => shareCameraStream(sourceKey, id, go2rtc, watchCameraStream, {
+    container: ref.current, name, expanded, update: setPlayback, failed: onError,
+  }), [sourceKey, id, go2rtc, watchCameraStream, name, expanded, onError]);
   const updateAspectRatio = useCallback(() => {
-    const video = ref.current;
-    const preview = video?.parentElement.querySelector("img");
+    const preview = ref.current?.parentElement.querySelector("img");
     const width = playing ? video?.videoWidth : preview?.naturalWidth;
     const height = playing ? video?.videoHeight : preview?.naturalHeight;
     if (width && height) onAspectRatio(width / height);
-  }, [playing, onAspectRatio]);
+  }, [video, playing, onAspectRatio]);
   useLayoutEffect(updateAspectRatio, [updateAspectRatio]);
   useEffect(() => {
-    const video = ref.current;
+    if (!video) return;
+    video.addEventListener("loadedmetadata", updateAspectRatio); video.addEventListener("resize", updateAspectRatio);
+    return () => { video.removeEventListener("loadedmetadata", updateAspectRatio); video.removeEventListener("resize", updateAspectRatio); };
+  }, [video, updateAspectRatio]);
+  useEffect(() => {
+    if (!video) return;
     let stopped = false, lastTime = -1;
     let frame: number, timer: ReturnType<typeof setTimeout>;
     const progressed = () => {
@@ -52,6 +59,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError, onAspect
       if (video.readyState >= 2 && video.currentTime !== lastTime) { lastTime = video.currentTime; progressed(); }
     };
     const emptied = () => { clearTimeout(timer); lastTime = -1; setPlaying(false); };
+    timeUpdate();
     // Waiting/playing can chatter around MSE chunks; only missing frame progress hides established video.
     if (video.requestVideoFrameCallback) frame = video.requestVideoFrameCallback(nextFrame);
     else { video.addEventListener("playing", timeUpdate); video.addEventListener("timeupdate", timeUpdate); }
@@ -61,20 +69,11 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError, onAspect
       if (frame !== undefined) video.cancelVideoFrameCallback(frame);
       video.removeEventListener("playing", timeUpdate); video.removeEventListener("timeupdate", timeUpdate); video.removeEventListener("emptied", emptied);
     };
-  }, [id, transport]);
-  useEffect(() => {
-    const controller = new AbortController();
-    const failed = (message?: string) => {
-      if (go2rtc && transport === "webrtc") { setPlaying(false); setTransport("mse"); }
-      else onError(message);
-    };
-    (go2rtc ? transport === "mse" ? playGo2rtcMse : playGo2rtcStream : watchCameraStream)(id, ref.current, controller.signal, failed);
-    return () => controller.abort();
-  }, [id, go2rtc, transport, watchCameraStream, onError]);
+  }, [video, transport]);
   return <><div className={`smart-camera-player${playing ? " is-playing" : ""}`}>
     <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
       status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
-    <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded} onLoadedMetadata={updateAspectRatio} onResize={updateAspectRatio} />
+    <div ref={ref} />
     <CameraMediaStatus icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }
 
@@ -136,7 +135,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     {reported && (seen || expanded) && !paused && !failed ? snapshotOnly
       ? <div className="smart-camera-player"><CameraStreamPreview key={sourceKey} src={previewSrc} name={name} status="Loading image…" caption="Preview image · refreshes automatically" /></div>
       : camera && !mjpeg
-      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} onAspectRatio={setAspectRatio} />
+      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} sourceKey={sourceKey} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} onAspectRatio={setAspectRatio} />
       : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
@@ -170,7 +169,7 @@ export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices =
   return <Dialog open={open} onOpenChange={setOpen}>
     {showImageChoices && choices}
     <div className="smart-media-preview">
-      {preview === "person" && !open ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open} snapshotOnly={preview === "snapshot"} />}
+      {preview === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open && (preview !== selected || !camera && entity?.domain !== "camera")} snapshotOnly={preview === "snapshot"} />}
       {expandable && <button ref={opener} type="button" className="smart-media-open" aria-label={t("Expand {name}", { name })} onClick={() => setOpen(true)}><span><Expand size={18} /></span></button>}
     </div>
     {expandable && <DialogContent className="smart-media-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>

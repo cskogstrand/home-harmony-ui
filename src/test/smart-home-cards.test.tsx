@@ -271,7 +271,7 @@ it("falls back from camera video to MJPEG and snapshots and permits retry after 
   expect(screen.getByRole("img")).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy_stream/"));
 });
 
-it("plays camera video without restarting on state updates and releases the preview when expanded", async () => {
+it("keeps one camera player through state updates, expansion and closing", async () => {
   mocks.camera.mockImplementation(() => {});
   const fetchPreview = vi.fn().mockImplementation(async () => new Response("fixture-frame", { headers: { "Content-Type": "image/jpeg" } }));
   vi.stubGlobal("fetch", fetchPreview);
@@ -297,13 +297,16 @@ it("plays camera video without restarting on state updates and releases the prev
   expect(mocks.camera).toHaveBeenCalledOnce();
   expect(screen.getByLabelText(entity.name, { selector: "video" })).toBe(video);
   fireEvent.click(screen.getByRole("button", { name: `Expand ${entity.name}` }));
-  expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
+  expect(mocks.camera.mock.calls[0][2].aborted).toBe(false);
   expect(document.querySelectorAll("video")).toHaveLength(1);
+  expect(document.querySelector(".smart-media-preview canvas")).not.toBeNull();
   expect(within(screen.getByRole("dialog")).getByLabelText(entity.name)).toHaveAttribute("controls");
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
-  await waitFor(() => expect(mocks.camera).toHaveBeenCalledTimes(3));
-  expect(mocks.camera.mock.calls[1][2].aborted).toBe(true);
-  view.unmount(); expect(mocks.camera.mock.calls[2][2].aborted).toBe(true);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(mocks.camera).toHaveBeenCalledOnce();
+  expect(screen.getByLabelText(entity.name, { selector: "video" })).toBe(video);
+  expect(mocks.camera.mock.calls[0][2].aborted).toBe(false);
+  view.unmount(); expect(mocks.camera.mock.calls[0][2].aborted).toBe(true);
 });
 
 it("suspends camera video while the page is hidden and restarts it when visible", () => {
@@ -346,7 +349,7 @@ it.each(["camera", "image"])("expands %s into an accessible wide viewer and rest
   const dialog = screen.getByRole("dialog", { name: entity.name });
   expect(dialog).toHaveClass("smart-media-dialog");
   expect(within(dialog).getByRole("img")).toHaveAttribute("src", expect.stringContaining(domain === "camera" ? "/api/camera_proxy_stream/" : "/api/image_proxy/"));
-  expect(document.querySelectorAll("img")).toHaveLength(1);
+  expect(document.querySelectorAll("img")).toHaveLength(domain === "camera" ? 2 : 1);
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
   await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   expect(trigger).toHaveFocus();

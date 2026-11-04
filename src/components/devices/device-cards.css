@@ -424,17 +424,17 @@
 .smart-card-group-title { display: flex; align-items: baseline; gap: .65rem; margin-bottom: .8rem; font-size: 1.1rem; font-weight: 600; }
 .smart-card-group-title > span { color: hsl(var(--muted-foreground)); font-size: .85rem; font-weight: 400; }
 .smart-entity-media { position: relative; min-height: 10rem; margin-bottom: .75rem; background: hsl(var(--muted)); border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
-.smart-entity-media :is(img, video) { display: block; width: 100%; height: auto; object-fit: contain; }
+.smart-entity-media :is(img, video, canvas) { display: block; width: 100%; height: auto; object-fit: contain; }
 .smart-entity-media.is-camera { width: 100%; aspect-ratio: 16 / 9; }
 .smart-entity-media.is-camera > img { position: absolute; inset: 0; height: 100%; }
 .smart-entity-media > p { padding: 1rem; font-size: .85rem; text-align: center; }
-.smart-entity-media:has(img, video) > p { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.smart-entity-media:has(img, video, canvas) > p { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .smart-entity-media > button { margin: .5rem; }
 .smart-camera-player { position: absolute; inset: 0; }
-.smart-entity-media .smart-camera-player video { position: absolute; inset: 0; z-index: 1; height: 100%; background: hsl(var(--muted)); opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease-out); }
-.smart-entity-media .smart-camera-player.is-playing video { opacity: 1; pointer-events: auto; }
+.smart-entity-media .smart-camera-player :is(video, canvas) { position: absolute; inset: 0; z-index: 1; height: 100%; background: hsl(var(--muted)); opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease-out); }
+.smart-entity-media .smart-camera-player.is-playing :is(video, canvas) { opacity: 1; pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) {
-  .smart-entity-media .smart-camera-player video { transition-duration: 160ms; }
+  .smart-entity-media .smart-camera-player :is(video, canvas) { transition-duration: 160ms; }
 }
 .smart-camera-preview { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; background: hsl(var(--muted)); }
 .smart-entity-media .smart-camera-preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
@@ -500,7 +500,7 @@
 .smart-media-preview .smart-entity-media > button { z-index: 2; }
 .smart-media-dialog { width: calc(100% - 32px); max-width: none; max-height: calc(100dvh - 32px); overflow-y: auto; }
 .smart-media-dialog .smart-entity-media { margin: 0; min-height: 10rem; }
-.smart-media-dialog .smart-entity-media:has(img, video) { min-height: 0; }
+.smart-media-dialog .smart-entity-media:has(img, video, canvas) { min-height: 0; }
 .smart-media-dialog .smart-entity-media.is-camera { max-height: calc(100dvh - 16rem); }
 .smart-media-dialog .smart-entity-media:not(.is-camera) > img { max-height: calc(100dvh - 16rem); }
 .smart-media-dialog > button { min-width: 44px; min-height: 44px; display: grid; place-items: center; }

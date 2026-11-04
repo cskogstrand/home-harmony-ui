@@ -512,12 +512,12 @@ it("shows the configured camera feed and fast snapshot on the card without openi
   expect(fetchFrame).toHaveBeenCalledWith("/api/cameras/example-camera/snapshot.jpg", expect.anything());
   const signal = vi.mocked(playGo2rtcStream).mock.calls[0][2];
   view.rerender(<MemoryRouter><NotificationRow item={{ ...item, popup: true }} activity /></MemoryRouter>);
-  expect(signal.aborted).toBe(true); expect(fetchFrame.mock.calls[0][1].signal.aborted).toBe(true);
-  expect(screen.getByRole("listitem").querySelector("video")).toBeNull();
+  expect(signal.aborted).toBe(false); expect(fetchFrame.mock.calls[0][1].signal.aborted).toBe(false);
+  expect(screen.getByRole("listitem").querySelector("video")).not.toBeNull();
   view.rerender(<MemoryRouter><NotificationRow item={item} activity /></MemoryRouter>);
-  expect(playGo2rtcStream).toHaveBeenCalledTimes(2);
+  expect(playGo2rtcStream).toHaveBeenCalledOnce();
   view.unmount();
-  expect(vi.mocked(playGo2rtcStream).mock.calls[1][2].aborted).toBe(true);
+  expect(signal.aborted).toBe(true);
 });
 
 it("saves and reopens the per-rule person inset toggle and disables it without a person source", async () => {
@@ -653,7 +653,7 @@ it("preserves drafts on invalid filters or failed saves and blocks settings edit
   expect(screen.getByRole("button", { name: "Add Current alerts" })).toBeDisabled();
 });
 
-it("opens one camera on a fresh trigger, stops its stream on close, and expires the alert", () => {
+it("shares one camera through popup close/reopen and stops it when the alert expires", () => {
   vi.useFakeTimers();
   mocks.family.notifications = { enabled: true, rules: [cameraRule()] };
   const content = () => <MemoryRouter><NotificationProvider><main id="main-content" tabIndex={-1}><input aria-label="Interrupted field" /></main><NotificationList /><NotificationCamera /></NotificationProvider></MemoryRouter>;
@@ -665,20 +665,24 @@ it("opens one camera on a fresh trigger, stops its stream on close, and expires 
   expect(screen.getByRole("dialog")).toHaveTextContent("Example doorbell");
   expect(watchCameraStream).toHaveBeenCalledOnce();
   const signal = watchCameraStream.mock.calls[0][2] as AbortSignal;
+  const video = screen.getByRole("dialog").querySelector("video");
+  expect(document.querySelector(".notification-camera-feed canvas")).not.toBeNull();
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close camera" }));
-  expect(signal.aborted).toBe(true);
+  expect(signal.aborted).toBe(false);
   act(() => { vi.advanceTimersByTime(0); });
   expect(screen.getByLabelText("Interrupted field")).toHaveFocus();
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  expect(screen.getByRole("listitem").querySelector("video")).not.toBeNull();
-  expect(watchCameraStream).toHaveBeenCalledTimes(2);
-  const inlineSignal = watchCameraStream.mock.calls[1][2] as AbortSignal;
+  expect(screen.getByRole("listitem").querySelector("video")).toBe(video);
+  expect(watchCameraStream).toHaveBeenCalledOnce();
   fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
-  expect(inlineSignal.aborted).toBe(true);
+  expect(signal.aborted).toBe(false);
+  expect(screen.getByRole("dialog").querySelector("video")).toBe(video);
+  expect(watchCameraStream).toHaveBeenCalledOnce();
   expect(screen.getByRole("dialog")).toBeVisible();
   act(() => { vi.advanceTimersByTime(11000); });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(screen.queryByText("Example doorbell")).not.toBeInTheDocument();
+  expect(signal.aborted).toBe(true);
 });
 
 it("cleans up event subscriptions and alerts when notifications are switched off", () => {

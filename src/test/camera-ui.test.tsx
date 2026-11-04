@@ -214,7 +214,7 @@ it.each(["go2rtc", "home-assistant", "frigate"])("switches each camera page prev
   const stream = (source === "home-assistant" ? mocks.ha : mocks.go2rtc).mock.calls[0][2];
   const videoPreview = mocks.fetch.mock.calls[0][1].signal;
   fireEvent.click(first.getByRole("button", { name: "Still image" }));
-  expect(stream.aborted).toBe(true); expect(videoPreview.aborted).toBe(true);
+  expect(stream.aborted).toBe(source !== "home-assistant"); expect(videoPreview.aborted).toBe(true);
   expect(first.getByRole("button", { name: "Still image" })).toHaveAttribute("aria-pressed", "true");
   expect(mocks.fetch).toHaveBeenLastCalledWith(source === "home-assistant" ? "/api/camera_proxy/camera.example" : "/api/cameras/example-camera/snapshot.jpg", expect.anything());
   expect(screen.getByRole("region", { name: camera.name }).querySelector("video")).toBeNull();
@@ -524,6 +524,8 @@ it("loads snapshots alongside video, stops them on playback and resumes only in 
   expect(mocks.go2rtc).toHaveBeenCalledOnce();
   expect(mocks.go2rtc.mock.calls[0][2].aborted).toBe(false);
   expect(view.container.querySelector("video")).toBe(video);
+  vi.spyOn(video, "readyState", "get").mockReturnValue(0);
+  fireEvent.emptied(video);
   act(() => { mocks.go2rtc.mock.calls[0][3]("WebRTC failed"); });
   expect(mocks.mse).toHaveBeenCalledOnce();
   expect(mocks.fetch).toHaveBeenCalledTimes(2);
