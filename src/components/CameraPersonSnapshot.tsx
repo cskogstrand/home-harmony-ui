@@ -2,17 +2,32 @@ import { useCameraPersonImage } from "@/contexts/CameraPersonImageContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { CircleAlert, UserRound } from "lucide-react";
 
-export function CameraPersonSnapshot({ cameraId }: { cameraId: string }) {
+export function CameraPersonSnapshot({ cameraId, overlay = false }: { cameraId: string; overlay?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const source = shared?.state.config.settings.cameras?.items.find(camera => camera.id === cameraId)?.personSnapshot;
   const image = useCameraPersonImage(cameraId);
   const configured = source && source.type !== "none";
+  const status = !configured ? "Choose a person snapshot in Camera settings."
+    : image?.failed ? image.src ? "Could not update the person snapshot. Showing the previous image." : "Person snapshot unavailable. Check the source in Camera settings."
+    : !image?.src ? "Loading image…" : "Latest person snapshot · may predate this alert";
+  if (overlay) return <Popover>
+    <PopoverTrigger asChild><button type="button" className="smart-person-pip" aria-label={t("Latest person snapshot")} title={t(status)}>
+      {configured && image?.src ? <img src={image.src} alt={t("Latest person snapshot")} /> : <UserRound size={24} aria-hidden="true" />}
+      {image?.failed && <CircleAlert className="smart-person-pip-error" size={18} aria-hidden="true" />}
+    </button></PopoverTrigger>
+    <PopoverContent side="bottom" align="end" className="space-y-2 text-sm" aria-label={t("Latest person snapshot")}>
+      <p role="status">{t(status)}</p>
+      {image?.failed && <Button type="button" variant="outline" onClick={image.refresh}>{t("Retry")}</Button>}
+    </PopoverContent>
+  </Popover>;
   return <div className="smart-entity-media is-map">
     {configured && image?.src && <img src={image.src} alt={t("Latest person snapshot")} />}
-    {!configured ? <p role="status">{t("Choose a person snapshot in Camera settings.")}</p>
-      : image?.failed ? <><div role="status" className="smart-media-caption">{t(image.src ? "Could not update the person snapshot. Showing the previous image." : "Person snapshot unavailable. Check the source in Camera settings.")}</div><Button type="button" variant="outline" onClick={image.refresh}>{t("Retry")}</Button></>
-      : !image?.src ? <p role="status">{t("Loading image…")}</p> : <span className="smart-media-caption">{t("Latest person snapshot · may predate this alert")}</span>}
+    {!configured ? <p role="status">{t(status)}</p>
+      : image?.failed ? <><div role="status" className="smart-media-caption">{t(status)}</div><Button type="button" variant="outline" onClick={image.refresh}>{t("Retry")}</Button></>
+      : !image?.src ? <p role="status">{t(status)}</p> : <span className="smart-media-caption">{t(status)}</span>}
   </div>;
 }

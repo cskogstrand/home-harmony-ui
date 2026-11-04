@@ -5,6 +5,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import type { NotificationRule } from "../../shared/notifications";
 import { configuredCamera } from "../../shared/cameras";
 import { Button } from "./ui/button";
+import { Switch } from "./ui/switch";
 import { MediaSurface } from "./devices/EntityMedia";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
 
@@ -28,6 +29,8 @@ export function NotificationCameraSettings({ rule, disabled, onChange, active }:
       <option value="person" disabled={!person}>{t("Person snapshot")}{!person ? ` · ${t("Not configured")}` : ""}</option>
     </select></label>
     <p className="page-note">{t("The selected video or person image appears on the notification card and in its larger camera viewer.")}</p>
+    {rule.cameraMedia !== "person" && <div className="notification-toggle"><span>{t("Show last person on card")}</span><Switch aria-label={t("Show last person on card")} checked={!!rule.showPersonSnapshot} disabled={disabled || !person} onCheckedChange={showPersonSnapshot => onChange({ showPersonSnapshot })} /></div>}
+    {rule.cameraMedia !== "person" && <p className="page-note">{t("Show the latest person image over live video on this notification card. Fullscreen live previews always include it when configured.")}</p>}
     {camera && <p className="page-note break-words">{t("Connection: {name} · Source: {source}", { name: connection?.name ?? "Home Assistant", source: camera.source })}</p>}
     {rule.cameraMedia === "person" && !person && <p role="status">{t("Choose a person snapshot in Camera settings.")}</p>}
     <div className="flex flex-wrap gap-2">

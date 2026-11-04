@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { CameraSettings } from "@/components/CameraSettings";
 import { CameraConnections } from "@/components/CameraConnections";
 import { Go2rtcSourcePicker } from "@/components/Go2rtcSourcePicker";
-import { MediaSurface } from "@/components/devices/EntityMedia";
+import { EntityMedia, MediaSurface } from "@/components/devices/EntityMedia";
 import { emptyConfiguration, plannerSettings } from "../../shared/configuration";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
@@ -37,6 +37,34 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
+
+it("shows the last person in expanded live views, but not still previews or suspended feeds", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  const view = render(<MediaSurface camera={camera} expanded />);
+  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toContainElement(screen.getByRole("img", { name: "Latest person snapshot" }));
+  expect(view.container.querySelector("video")).not.toBeNull();
+  view.rerender(<MediaSurface camera={camera} expanded snapshotOnly />);
+  expect(screen.queryByRole("button", { name: "Latest person snapshot" })).not.toBeInTheDocument();
+  view.rerender(<MediaSurface camera={camera} expanded suspended />);
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  view.rerender(<MediaSurface camera={{ ...camera, personSnapshot: { type: "none" } }} expanded />);
+  expect(screen.queryByRole("button", { name: "Latest person snapshot" })).not.toBeInTheDocument();
+});
+
+it("uses a configured HA camera's person source when expanding its device image", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  camera.connectionId = "home-assistant"; camera.source = "camera.example";
+  render(<EntityMedia entity={mocks.app.currentHome.entities.find(item => item.entityId === camera.source)} />);
+  expect(screen.queryByRole("button", { name: "Latest person snapshot" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Expand Example camera" }));
+  const viewer = within(screen.getByRole("dialog"));
+  expect(viewer.getByRole("button", { name: "Latest person snapshot" })).toBeVisible();
+  fireEvent.click(viewer.getByRole("button", { name: "Person snapshot" }));
+  expect(viewer.getByRole("img", { name: "Latest person snapshot" })).toBeVisible();
+  expect(viewer.queryByRole("button", { name: "Latest person snapshot" })).not.toBeInTheDocument();
+});
 
 it.each([
   ["go2rtc", "Live video from go2rtc"],

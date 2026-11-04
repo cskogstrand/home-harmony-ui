@@ -174,6 +174,8 @@ export const nb = {
   "Choose a person snapshot in Camera settings.": "Velg et personbilde i kamerainnstillingene.",
   "Latest person snapshot · may predate this alert": "Siste personbilde · kan være eldre enn dette varselet",
   "Latest person snapshot": "Siste personbilde",
+  "Show last person on card": "Vis siste person på varselkortet",
+  "Show the latest person image over live video on this notification card. Fullscreen live previews always include it when configured.": "Vis siste personbilde over direktestrømmen på dette varselkortet. Forhåndsvisning i fullskjerm viser alltid bildet når det er konfigurert.",
   "Person snapshot": "Personbilde",
   "Camera media": "Kamerainnhold",
   "Camera settings": "Kamerainnstillinger",

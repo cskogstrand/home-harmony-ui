@@ -70,7 +70,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
     <CameraMediaStatus icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }
 
-export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean }) {
+export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false, showPerson = expanded && !snapshotOnly }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean; showPerson?: boolean }) {
   const pageActive = usePageActive();
   const { homeOnline, currentHome } = useApp();
   const shared = useSharedConfiguration();
@@ -120,11 +120,14 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
     {!suspended && reported && (failed || mjpeg) && <Button type="button" variant="outline" onClick={() => { setFailedSrc(""); setSnapshot(false); setMjpeg(false); setRetry(value => value + 1); }}>{t("Retry")}</Button>}
     {!suspended && failed && playerUrl && <a className="text-primary underline underline-offset-4" href={playerUrl} target="_blank" rel="noreferrer">{t("Open in go2rtc (new tab)")}</a>}
+    {showPerson && configured && configured.personSnapshot.type !== "none" && !paused && (seen || expanded) && <CameraPersonSnapshot cameraId={configured.id} overlay />}
   </div>;
 }
 
-export function EntityMedia({ entity, camera }: MediaSource) {
+export function EntityMedia({ entity, camera: suppliedCamera }: MediaSource) {
   const { message: t } = useI18n();
+  const shared = useSharedConfiguration();
+  const camera = suppliedCamera ?? shared?.state.config.settings.cameras.items.find(item => item.connectionId === "home-assistant" && item.source === entity?.entityId);
   const [open, setOpen] = useState(false), [person, setPerson] = useState(false);
   const hasPerson = camera && camera.personSnapshot.type !== "none";
   const name = camera?.name ?? entity?.name ?? "Camera";

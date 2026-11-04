@@ -51,7 +51,7 @@ function NotificationCameraFeed({ item, preview }: { item: HomeNotification; pre
     {preview || item.popup || !visible ? <div className="notification-camera-placeholder"><Camera size={32} aria-hidden="true" /><span>{t(preview ? "Camera preview" : item.popup ? "Open in viewer" : "Stream paused")}</span></div>
       : !selected ? <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>
       : item.rule.cameraMedia === "person" ? <CameraPersonSnapshot key={selected.id} cameraId={selected.id} />
-      : <MediaSurface camera={selected} />}
+      : <MediaSurface camera={selected} showPerson={item.rule.showPersonSnapshot} />}
   </div>;
 }
 

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { SharedConfiguration } from "@/lib/shared-configuration";
 import { dashboardSections, emptyConfiguration, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration, type TimetableSettings } from "../../shared/configuration";
+import { notificationRuleSchema } from "../../shared/notifications";
 
 const response = (status: number, value: unknown) => ({ ok: status === 200, status, json: async () => structuredClone(value) }) as Response;
 const deferred = <T,>() => { let resolve: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve: resolve! }; };
@@ -26,6 +27,20 @@ function server() {
   return { request, start, current: () => config };
 }
 const url = "http://ha.local:8123";
+
+it("shares and restores the optional person inset setting without changing older rules", async () => {
+  const rule = notificationRuleSchema.parse({ id: "example", title: "Example alert", kind: "camera", cameraEntity: "example-camera", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" } });
+  expect(rule.showPersonSnapshot).toBeUndefined();
+  expect(notificationRuleSchema.safeParse({ ...rule, showPersonSnapshot: "true" }).success).toBe(false);
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, notifications: { ...p.notifications, rules: [{ ...rule, showPersonSnapshot: true }] } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.notifications.rules[0].showPersonSnapshot).toBe(true);
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings.notifications.rules[0].showPersonSnapshot).toBe(true);
+});
 
 it("validates, shares and restores per-list display and next-plan range settings", async () => {
   const config = emptyConfiguration();

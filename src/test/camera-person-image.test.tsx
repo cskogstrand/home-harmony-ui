@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { CameraPersonImageProvider } from "@/contexts/CameraPersonImageProvider";
 import { CameraPersonSnapshot } from "@/components/CameraPersonSnapshot";
@@ -94,6 +94,20 @@ it("keeps a cached image on failure, exposes retry, and retries initial failures
   expect(screen.getByRole("status")).toHaveTextContent("Showing the previous image");
   fireEvent.click(screen.getByRole("button", { name: "Retry" })); await flush();
   expect(screen.getByRole("img")).toHaveAttribute("src", "blob:frame-2"); expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+it("shares the overlay image with full viewers and offers status and retry without replacing video", async () => {
+  const overlay = () => <CameraPersonImageProvider><CameraPersonSnapshot cameraId="example-camera" /><CameraPersonSnapshot cameraId="example-camera" overlay /></CameraPersonImageProvider>;
+  const view = render(overlay()); await flush();
+  expect(fetchImage).toHaveBeenCalledOnce();
+  expect(screen.getAllByRole("img").map(image => image.getAttribute("src"))).toEqual(["blob:frame-1", "blob:frame-1"]);
+  fireEvent.click(screen.getByRole("button", { name: "Latest person snapshot" }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("may predate this alert");
+  fetchImage.mockRejectedValueOnce(new Error());
+  updateEntity(); view.rerender(overlay()); await flush();
+  expect(screen.getByRole("dialog")).toHaveTextContent("Showing the previous image");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Retry" })); await flush();
+  expect(screen.getAllByRole("img").every(image => image.getAttribute("src") === "blob:frame-2")).toBe(true);
 });
 
 it("discards old sources and late decodes, releases removed images, and refreshes changed server connections", async () => {

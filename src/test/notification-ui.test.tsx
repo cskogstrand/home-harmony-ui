@@ -520,6 +520,48 @@ it("shows the configured camera feed and fast snapshot on the card without openi
   expect(vi.mocked(playGo2rtcStream).mock.calls[1][2].aborted).toBe(true);
 });
 
+it("saves and reopens the per-rule person inset toggle and disables it without a person source", async () => {
+  mocks.shared.state.config.settings.cameras = cameraSettings();
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Camera and image");
+  const toggle = screen.getByRole("switch", { name: "Show last person on card" });
+  expect(toggle).not.toBeChecked();
+  fireEvent.click(toggle);
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.showPersonSnapshot).toBe(true);
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Camera and image");
+  expect(screen.getByRole("switch", { name: "Show last person on card" })).toBeChecked();
+  fireEvent.change(screen.getByLabelText("Show in notification"), { target: { value: "person" } });
+  expect(screen.queryByRole("switch", { name: "Show last person on card" })).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Show in notification"), { target: { value: "live" } });
+  mocks.shared.state.config.settings.cameras.items[0].personSnapshot = { type: "none" };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  expect(screen.getByRole("switch", { name: "Show last person on card" })).toBeDisabled();
+});
+
+it.each(["section", "banner", "activity", "activity-compact"])("shows optional person insets on %s cards and always in live popups", presentation => {
+  mocks.shared.state.config.settings.cameras = cameraSettings();
+  vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+  const item = { id: "example", rule: cameraRule(), startedAt: 0, popup: false };
+  const props = { condensed: presentation === "banner", activity: presentation.startsWith("activity"), compactActivity: presentation === "activity-compact" };
+  const view = render(<MemoryRouter><NotificationRow item={item} {...props} /></MemoryRouter>);
+  expect(screen.queryByRole("button", { name: "Latest person snapshot" })).not.toBeInTheDocument();
+  view.rerender(<MemoryRouter><NotificationRow item={{ ...item, rule: { ...item.rule, showPersonSnapshot: true } }} {...props} /></MemoryRouter>);
+  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toBeVisible();
+  expect(playGo2rtcStream).toHaveBeenCalledOnce();
+  view.rerender(<MemoryRouter><NotificationRow item={{ ...item, rule: { ...item.rule, showPersonSnapshot: true } }} {...props} preview /></MemoryRouter>);
+  expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  const value = { notifications: [{ ...item, popup: true }], errors: [], camera: vi.fn(), dismiss: vi.fn(), retry: vi.fn() };
+  view.rerender(<MemoryRouter><NotificationContext.Provider value={value}><NotificationCamera /></NotificationContext.Provider></MemoryRouter>);
+  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toBeVisible();
+});
+
 it("shows person images on visible cards and stops them offscreen and in background tabs", () => {
   mocks.shared.state.config.settings.cameras.items[0].personSnapshot = { type: "home-assistant", entity: "image.example_person" };
   let intersect: (entries: { isIntersecting: boolean }[]) => void;
