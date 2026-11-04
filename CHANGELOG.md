@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.9
+
+<!-- release-source: f8b01035f39c992da6bf99e4d279a312e3097f0a -->
+
+- docs: refresh design system reference
+- feat: add camera shortcut to header
+- fix: scale camera insets to video and image
+
 ## 0.10.8
 
 <!-- release-source: d9ca2ce54edccbb69c13907cd8ce093ebdb4209b -->
