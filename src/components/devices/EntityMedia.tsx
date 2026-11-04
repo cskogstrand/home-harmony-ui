@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Entity } from "@/types/api";
-import { go2rtcPlayerUrl, type ConfiguredCamera } from "../../../shared/cameras";
+import { cameraPreviewPath, go2rtcPlayerUrl, type ConfiguredCamera } from "../../../shared/cameras";
 import { useApp } from "@/contexts/AppContext";
 import { usePageActive } from "@/contexts/PageActivityContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -87,7 +87,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const [streamError, setStreamError] = useState("");
   const [snapshot, setSnapshot] = useState(false), [mjpeg, setMjpeg] = useState(false);
   const previewConnection = shared?.state.config.settings.cameras.connections.find(item => item.id === configured?.frigatePreview?.connectionId);
-  const previewSrc = customStream || configured?.frigatePreview ? `/api/cameras/${encodeURIComponent(configured.id)}/snapshot.jpg` : `/api/camera_proxy/${encodeURIComponent(id)}`;
+  const previewSrc = configured ? cameraPreviewPath(configured) : `/api/camera_proxy/${encodeURIComponent(id)}`;
   const sourceKey = JSON.stringify([id, configured?.source, connection?.url, configured?.frigatePreview, previewConnection?.url]);
   const [previousSource, setPreviousSource] = useState(sourceKey);
   if (previousSource !== sourceKey) { setPreviousSource(sourceKey); setMjpeg(false); setSnapshot(false); setFailedSrc(""); }

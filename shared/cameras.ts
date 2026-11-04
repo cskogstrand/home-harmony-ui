@@ -43,6 +43,12 @@ export function go2rtcPlayerUrl(connection: CameraConnection | undefined, source
   if (connection?.type === "go2rtc" && name.safeParse(stream).success) return `${connection.url}/stream.html?${new URLSearchParams({ src: stream })}`;
 }
 
+export function cameraPreviewPath(camera: ConfiguredCamera): string {
+  return camera.connectionId === "home-assistant" && !camera.frigatePreview
+    ? `/api/camera_proxy/${encodeURIComponent(camera.source)}`
+    : `/api/cameras/${encodeURIComponent(camera.id)}/snapshot.jpg`;
+}
+
 export const go2rtcErrors = {
   unreachable: "Home Harmony could not reach go2rtc. Check the connection address.",
   rejected: "go2rtc could not open this stream. Check the stream name and camera.",
