@@ -24,6 +24,8 @@ Connections can be renamed or edited. A connection used by a camera's live video
 6. Optionally open **Person image (optional)** and choose its source independently.
 7. Press **Save camera**, or **Save and test camera** to save and open its live video.
 
+If saving fails, the error identifies the field to correct and keeps your draft. **Frigate latest image** requires both a Frigate connection and a Frigate camera name, independently of the person image. Fill those preview fields or select **Use the video connection**; selecting a valid `camera.*` person image does not complete the startup preview.
+
 Saved cameras group **Preview startup image**, **Watch live stream**, and **Preview person snapshot** (when configured). The startup preview refreshes the same image source used while video connects, without starting video. **Edit** and **Delete** sit beside the camera name.
 
 The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/blob/master/website/api/openapi.yaml). Home Harmony returns stream names only; upstream producer URLs and credentials are not sent to the browser. A failed or empty list does not erase the selected source.
@@ -51,6 +53,8 @@ Browsers do not play RTSP directly. Home Harmony first exchanges receive-only SD
 For the Frigate Home Assistant app, the go2rtc API port may need enabling in its network settings; see [Frigate port access](https://docs.frigate.video/troubleshooting/go2rtc/#home-assistant-and-port-access). Keep the API on a trusted network. When WebRTC fails, Home Harmony tries MSE using the same stream through an authenticated HTTP fMP4 relay. This avoids requiring a direct WebRTC media connection from the browser and carries the upstream codecs without transcoding. It prefers ManagedMediaSource when available, otherwise MediaSource, and requires compatible source codecs. Startup/stall timeouts, old-buffer pruning and cancellation on close bound the player. If both transports fail, a specific error, Retry and **Open in go2rtc (new tab)** are shown. It does not switch to an unrelated HA camera. Cameras using Home Assistant retain its WebRTC/HLS player, MJPEG and labeled still-image fallbacks. Inline previews pause offscreen; live viewers pause in background tabs and stop on close.
 
 ## Person images
+
+The person image has its own source and is viewed as a separate still image. Changing it does not change the live stream or its startup preview, and a failed person image does not fall back to live video or its preview.
 
 - **Person image from Home Assistant:** choose Frigate's `image.example_camera_person`. Older `camera.*` snapshot entities also work. A `sensor.*` or `binary_sensor.*` works only when its `entity_picture` refers to HA's `image_proxy` or `camera_proxy`. A person occupancy/count sensor without a picture is a notification trigger, not an image source. See the [Frigate integration](https://github.com/blakeblackshear/frigate-hass-integration).
 - **Person image directly from Frigate:** select a **Frigate connection** and enter its **Frigate camera name**. Home Harmony requests `/api/<camera>/person/snapshot.jpg`. Enable person tracking and snapshots in Frigate. The camera name can differ from the go2rtc stream name.

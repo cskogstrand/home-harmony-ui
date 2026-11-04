@@ -139,18 +139,70 @@ it.each(["go2rtc", "home-assistant", "frigate"])("previews the %s startup image 
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
 });
 
-it("adds a selected HA camera with a local name and optional person image", () => {
+it.each(["image.example_person", "camera.example"])("adds a selected HA camera with %s as its person image", entity => {
   renderSettings("/settings/cameras?add");
   fireEvent.change(screen.getByLabelText("Camera name"), { target: { value: "Selected camera" } });
   fireEvent.change(screen.getByLabelText("Connection"), { target: { value: "home-assistant" } });
   chooseEntity("Home Assistant camera", "camera.example");
   fireEvent.click(screen.getByText("Person image (optional)"));
   fireEvent.change(screen.getByLabelText("Person snapshot source"), { target: { value: "home-assistant" } });
-  chooseEntity("Person image entity", "image.example_person");
+  chooseEntity("Person image entity", entity);
+  expect(screen.getByRole("button", { name: "Home Assistant camera" })).toHaveTextContent("HA example camera");
+  expect(screen.getByRole("button", { name: "Person image entity" })).toHaveTextContent(entity.startsWith("image.") ? "Example person image" : "HA example camera");
   fireEvent.click(screen.getByRole("button", { name: "Save and test camera" }));
-  expect(mocks.shared.state.config.settings.cameras.items[0]).toMatchObject({ name: "Selected camera", connectionId: "home-assistant", source: "camera.example", personSnapshot: { type: "home-assistant", entity: "image.example_person" } });
+  expect(mocks.shared.state.config.settings.cameras.items[0]).toMatchObject({ name: "Selected camera", connectionId: "home-assistant", source: "camera.example", personSnapshot: { type: "home-assistant", entity } });
   expect(mocks.ha).toHaveBeenCalledWith("camera.example", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
   expect(mocks.go2rtc).not.toHaveBeenCalled();
+});
+
+it.each(["Save camera", "Save and test camera"])("saves a camera.* person image on an existing go2rtc camera using %s", action => {
+  configure();
+  const settings = mocks.shared.state.config.settings.cameras;
+  settings.connections.push({ id: "frigate", name: "Example Frigate", type: "frigate", url: "http://frigate.example:5000" });
+  settings.items[0].frigatePreview = { connectionId: "frigate", camera: "example_entry" };
+  renderSettings("/settings/cameras?camera=example-camera");
+  chooseEntity("Person image entity", "camera.example");
+  fireEvent.click(screen.getByRole("button", { name: action }));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(mocks.shared.state.config.settings.cameras.items[0]).toMatchObject({ connectionId: "example-go2rtc", source: "example", frigatePreview: { connectionId: "frigate", camera: "example_entry" }, personSnapshot: { type: "home-assistant", entity: "camera.example" } });
+});
+
+it.each([
+  [[["Camera name", ""]], "Enter a camera name (1–100 characters)."],
+  [[["Connection", ""]], "Choose Home Assistant or a saved go2rtc connection for live video."],
+  [[["Connection", "home-assistant"]], "Choose a camera.* entity under Home Assistant camera."],
+  [[["Stream", ""]], "Choose a go2rtc stream or enter its name, for example example_camera. URLs must not contain passwords or tokens."],
+  [[["Preview while video connects", "frigate"]], "Choose a Frigate connection for the startup preview, or select Use the video connection."],
+  [[["Preview while video connects", "frigate"], ["Frigate preview connection", "frigate"]], "Enter the Frigate camera name for the startup preview (1–128 characters), for example example_camera."],
+  [[["Person snapshot source", "none"], ["Person snapshot source", "home-assistant"]], "Choose a person image entity: image.*, camera.*, or a sensor with a supported picture."],
+  [[["Person snapshot source", "frigate"]], "Choose a Frigate connection for the person image, or select No person snapshot."],
+  [[["Person snapshot source", "frigate"], ["Frigate connection", "frigate"]], "Enter the Frigate camera name for the person image (1–128 characters), for example example_camera."],
+] as const)("identifies the invalid camera field after %j and preserves the draft", async (changes, message) => {
+  configure();
+  mocks.shared.state.config.settings.cameras.connections.push({ id: "frigate", name: "Example Frigate", type: "frigate", url: "http://frigate.example:5000" });
+  const original = JSON.stringify(mocks.shared.state.config.settings.cameras);
+  renderSettings("/settings/cameras?camera=example-camera");
+  await screen.findByRole("option", { name: "example_sub" });
+  for (const [label, value] of changes) fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(screen.getByRole("alert")).toHaveTextContent(message);
+  expect(screen.getByRole("heading", { name: "Edit camera" })).toBeVisible();
+  expect(JSON.stringify(mocks.shared.state.config.settings.cameras)).toBe(original);
+});
+
+it("explains an incomplete preview in Norwegian without blaming the selected camera.* person image", async () => {
+  configure(); mocks.shared.state.config.settings.language = "nb";
+  renderSettings("/settings/cameras?camera=example-camera");
+  await screen.findByRole("option", { name: "example_sub" });
+  fireEvent.click(screen.getByRole("button", { name: "Bildeentitet for person" }));
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Bildeentitet for person" })).getByRole("button", { name: "HA example camera · camera.example" }));
+  fireEvent.change(screen.getByLabelText("Forhåndsvisning mens video kobler til"), { target: { value: "frigate" } });
+  fireEvent.click(screen.getByRole("button", { name: "Lagre kamera" }));
+  expect(screen.getByRole("alert")).toHaveTextContent("Velg en Frigate-tilkobling for forhåndsvisningen, eller velg Bruk videotilkoblingen.");
+  fireEvent.change(screen.getByLabelText("Forhåndsvisning mens video kobler til"), { target: { value: "video" } });
+  fireEvent.click(screen.getByRole("button", { name: "Lagre kamera" }));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(mocks.shared.state.config.settings.cameras.items[0].personSnapshot).toEqual({ type: "home-assistant", entity: "camera.example" });
 });
 
 it("configures a Frigate preview without changing the video or person image and protects its connection", async () => {

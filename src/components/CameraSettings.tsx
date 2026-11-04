@@ -46,7 +46,22 @@ export function CameraSettings() {
         const existing = current.cameras.items.find(item => item.id === draft.id);
         if (original && JSON.stringify(existing) !== original) throw new Error("This camera changed on another screen. Cancel and reopen it.");
         const result = cameraSettingsSchema.safeParse({ ...current.cameras, items: existing ? current.cameras.items.map(item => item.id === draft.id ? draft : item) : [...current.cameras.items, draft] });
-        if (!result.success) throw new Error("Enter a camera name, choose a connection and source, and check the preview and optional person image.");
+        if (!result.success) {
+          const messages: Record<string, string> = {
+            name: "Enter a camera name (1–100 characters).",
+            connectionId: draft.connectionId === "home-assistant" ? "Choose a camera.* entity under Home Assistant camera." : "Choose Home Assistant or a saved go2rtc connection for live video.",
+            source: draft.connectionId === "home-assistant" ? "Choose a camera.* entity under Home Assistant camera." : "Choose a go2rtc stream or enter its name, for example example_camera. URLs must not contain passwords or tokens.",
+            frigatePreview: "Choose a Frigate connection for the startup preview, or select Use the video connection.",
+            "frigatePreview.connectionId": "Choose a Frigate connection for the startup preview, or select Use the video connection.",
+            "frigatePreview.camera": "Enter the Frigate camera name for the startup preview (1–128 characters), for example example_camera.",
+            personSnapshot: "Choose a Frigate connection for the person image, or select No person snapshot.",
+            "personSnapshot.connectionId": "Choose a Frigate connection for the person image, or select No person snapshot.",
+            "personSnapshot.camera": "Enter the Frigate camera name for the person image (1–128 characters), for example example_camera.",
+            "personSnapshot.entity": "Choose a person image entity: image.*, camera.*, or a sensor with a supported picture.",
+          };
+          const issue = result.error.issues[0];
+          throw new Error(messages[issue.path.slice(2).join(".")] ?? "Camera settings could not be saved. Cancel and reopen the camera, then try again.");
+        }
         return { ...current, cameras: result.data };
       });
       if (watch) setPreview({ id: draft.id, type: "live" });
@@ -103,10 +118,11 @@ export function CameraSettings() {
           </>}
         </div>
         <details open={snapshot.type !== "none" || undefined}><summary className="min-h-11 cursor-pointer py-2">{t("Person image (optional)")}</summary><div className="space-y-4 pt-3">
+          <p className="page-note">{t("Shown separately from live video and its startup preview. Updates to show the latest person snapshot.")}</p>
           <label>{t("Person snapshot source")}<select value={snapshot.type} onChange={event => setDraft({ ...draft, personSnapshot: event.target.value === "frigate" ? { type: "frigate", connectionId: "", camera: "" } : event.target.value === "home-assistant" ? { type: "home-assistant", entity: "" } : { type: "none" } })}><option value="none">{t("No person snapshot")}</option><option value="home-assistant">{t("Person image from Home Assistant")}</option><option value="frigate">{t("Person image directly from Frigate")}</option></select></label>
           {snapshot.type === "home-assistant" && <><EntityPicker label={t("Person image entity")} entities={currentHome.entities.filter(item => ["image", "camera", "sensor", "binary_sensor"].includes(item.domain))} value={snapshot.entity ? `home|${snapshot.entity}` : ""}
             disabledReason={item => !["image", "camera"].includes(item.domain) && !homeAssistantPicturePath(item.attributes.entity_picture) ? t("No image on this sensor. Choose the Frigate person image entity.") : undefined}
-            onChange={value => setDraft({ ...draft, personSnapshot: { type: "home-assistant", entity: value.replace(/^home\|/, "") } })} /><p className="page-note">{t("Choose the person image, usually image.…_person. The occupancy sensor is used later to trigger the notification.")}</p></>}
+            onChange={value => setDraft({ ...draft, personSnapshot: { type: "home-assistant", entity: value.replace(/^home\|/, "") } })} /><p className="page-note">{t("Both image.* and camera.* entities are supported. Choose one showing the person snapshot. Use occupancy sensors to trigger notifications.")}</p></>}
           {snapshot.type === "frigate" && <><label>{t("Frigate connection")}<select value={snapshot.connectionId} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, connectionId: event.target.value } })}><option value="">{t("Choose a connection")}</option>{settings.connections.filter(item => item.type === "frigate").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>{t("Frigate camera name")}<input maxLength={128} value={snapshot.camera} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, camera: event.target.value } })} /></label><p className="page-note">{t("Add a Frigate snapshots connection under Manage connections if it is not listed.")}</p></>}
         </div></details>
       </fieldset>
