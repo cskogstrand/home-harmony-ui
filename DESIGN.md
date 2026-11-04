@@ -26,7 +26,7 @@ colors:
   nav-background: "hsl(216 35% 98%)"
   nav-border: "hsl(0 0% 100%)"
   nav-foreground: "hsl(218 30% 16%)"
-  nav-muted: "hsl(218 17% 36%)"
+  nav-muted: "hsl(218 17% 20%)"
   nav-active: "hsl(213 92% 39%)"
   dark-nav-border: "hsl(215 28% 64%)"
   dark-nav-active: "hsl(211 100% 75%)"
@@ -53,7 +53,7 @@ colors:
   dark-info-foreground: "hsl(202.0 49.5% 19.4%)"
   dark-nav-background: "hsl(220 25% 16%)"
   dark-nav-foreground: "hsl(216 30% 95%)"
-  dark-nav-muted: "hsl(217 20% 80%)"
+  dark-nav-muted: "hsl(217 20% 82%)"
   glass-highlight: "hsl(0 0% 100% / .65)"
   dark-glass-highlight: "hsl(210 40% 88% / .12)"
   glass-shade: "hsl(218 38% 26% / .12)"
@@ -258,9 +258,9 @@ Synthetic-data captures in `.impeccable/review/liquid-glass/` cover desktop, pho
 
 ## Elevation & Depth
 
-Opaque work panels use a thin cool border and tonal separation. Glass adds depth to the floating dock, home selector, settings control, dropdown menus, popovers and dialogs. Its base is a solid navigation fill with restrained inset edges and a soft outer shadow. Header controls use a smaller outer shadow than the dock. Broad specular gradients are omitted to keep labels clear.
+Opaque work panels use a thin cool border and tonal separation. Glass adds depth to the floating dock, camera shortcut, notification bell, settings control, dropdown menus, popovers and dialogs. Its base is a solid navigation fill with restrained inset edges and a soft outer shadow. Header controls use a smaller outer shadow than the dock. Broad specular gradients are omitted to keep labels clear.
 
-Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.72) in light mode and (.78) in dark mode. Menus, popovers and dialogs use denser fills (.82 light, .86 dark), with secondary text using the stronger navigation ink. Modal backdrops dim the page with a black fill at (.35). Browsers without backdrop-filter support retain solid surfaces. Reduced transparency and increased contrast use opaque fills, remove blur and all glass shadows, strengthen the border, and flatten the ambient ground. Increased contrast also outlines selected navigation and segments. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
+Within `@supports`, backdrop filtering adds blur (24px) and saturation (1.45), with fill opacity (.62) in light mode and (.68) in dark mode. Menus, popovers and dialogs use denser fills (.72 light, .76 dark), with secondary text using the stronger navigation ink. Modal backdrops dim the page with a black fill at (.35). Browsers without backdrop-filter support retain solid surfaces. Reduced transparency and increased contrast use opaque fills, remove blur and all glass shadows, strengthen the border, and flatten the ambient ground. Increased contrast also outlines selected navigation and segments. Forced colors use system Canvas and ButtonText without blur; the current dock route and selected segments gain a Highlight outline.
 
 The sidecar records the three soft elevation tokens plus glass and header shadows. Navigation selection uses an opaque secondary fill without another glass layer or shadow. Dialog shells and action rows share one continuous glass surface. Form fields retain their opaque reading surfaces; long editor bodies scroll independently above the actions, without a separate footer fill or divider.
 
@@ -322,7 +322,9 @@ Section titles use `PanelTitle`: a fitting Lucide outline icon at 1.1em and stro
 
 The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue, semibold text and an opaque secondary fill. The large portrait layout emphasizes generous horizontal links. Phone and compact tablet layouts align icons above captions inside an inset floating dock. Focus uses an inset outline in the navigation selection color. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu.
 
-The home selector and settings button share the glass material. Dropdown menus use a denser version with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Menus scroll within Radix's available viewport height so every destination stays reachable in short windows. Dialogs and popovers use that denser material, with reachable close actions and readable fields. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns and dialogs.
+The top-right header places a camera shortcut before the notification bell and settings control. It opens `/cameras` directly from every page, using the shared circular glass surface, a 48px minimum target, and a translated accessible label and hover title.
+
+Header icon controls share the glass material. Dropdown menus use a denser version with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Menus scroll within Radix's available viewport height so every destination stays reachable in short windows. Dialogs and popovers use that denser material, with reachable close actions and readable fields. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns and dialogs.
 
 ### Schedules, lists and controls
 
@@ -362,7 +364,7 @@ On a Home Assistant checkbox click, show a spinner immediately inside that check
 
 Confirmed list changes animate identically for pointer and keyboard input, including Enter to submit an addition or edit. Input method must not suppress the row highlight, entry, exit or coordinated reflow. With reduced motion, remove translation, scaling and spinner rotation; use a static loading glyph with `aria-busy`, and limit check, highlight and exit fades to 160ms. Pending feedback remains available for keyboard users.
 
-Each Home Assistant list has independent, off-by-default **Celebrate completion** and **Celebrate finishing the list** switches under its display settings. The latter celebrates a confirmed final pointer checkmark with three 32-piece confetti waves across that list and a green checkmark / “All done!” banner using the shared Liquid Glass surface, panel opacity, 28px corners and solid accessibility fallbacks. Reuse the 1600ms linear particle flight, stagger waves by 240ms, and fade/scale the banner in over 240ms and out over 160ms using `--ease-out`; this rare delight lasts 2080ms without shifting content or intercepting input. Lists shorter than 280px use a compact checkmark-and-title banner to avoid clipping. The checkmark is 96px, or 64px in compact banners. It draws from left to right with a 1200ms clip reveal after 160ms using the requested `ease-in` timing: slow at the start, accelerating toward the finish. The heading fades and settles from 15% below / 95% scale over 240ms after a 240ms delay using `--ease-out`. Keep the banner above the confetti. Reduced motion shows the complete checkmark and stationary heading for 1600ms, with only the banner’s 160ms fades. Initial loads, remote-only changes, keyboard actions, failures, empty lists and dashboard truncation never trigger a finale. Concurrent completions produce one finale after all pending writes settle; new unfinished items cancel it. Settings sync and travel with configuration backups.
+Each Home Assistant list has independent, off-by-default **Celebrate completion** and **Celebrate finishing the list** switches under its display settings. The latter celebrates a confirmed final pointer checkmark with three 32-piece confetti waves across that list and a green checkmark / “All done!” banner using the shared Liquid Glass surface, panel opacity, 28px corners and solid accessibility fallbacks. Reuse the 1600ms linear particle flight, stagger waves by 240ms, and fade/scale the banner in over 240ms and out over 160ms using `--ease-out`; this rare delight lasts 2080ms without shifting content or intercepting input. Lists shorter than 280px use a compact checkmark-and-title banner to avoid clipping. The checkmark is 96px, or 64px in compact banners. It draws from left to right with an 800ms clip reveal after 60ms using `ease-in` timing: slow at the start, accelerating toward the finish. The heading fades and settles from 15% below / 95% scale over 240ms after a 240ms delay using `--ease-out`. Keep the banner above the confetti. Reduced motion shows the complete checkmark and stationary heading for 1600ms, with only the banner’s 160ms fades. Initial loads, remote-only changes, keyboard actions, failures, empty lists and dashboard truncation never trigger a finale. Concurrent completions produce one finale after all pending writes settle; new unfinished items cancel it. Settings sync and travel with configuration backups.
 
 Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode="popLayout"` for coordinated reflow. Keep forwarded refs on presence children. Animate the panel's separate background surface so text does not stretch; avoid animating row height. CSS owns the highlight and check, and the existing motion-safe spinner utility owns rotation. Sources: [list components](src/components/FamilyLists.tsx), [item diff and feedback lifetime](src/hooks/use-list-item-feedback.ts), and [motion styles](src/afterglow.css).
 
