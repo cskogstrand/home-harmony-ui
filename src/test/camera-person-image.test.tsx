@@ -110,6 +110,19 @@ it("shares the overlay image with full viewers and offers status and retry witho
   expect(screen.getAllByRole("img").every(image => image.getAttribute("src") === "blob:frame-2")).toBe(true);
 });
 
+it("resizes every inset for a camera without discarding or reloading its cached image", async () => {
+  const overlay = () => <CameraPersonImageProvider><CameraPersonSnapshot cameraId="example-camera" overlay /><CameraPersonSnapshot cameraId="example-camera" overlay /></CameraPersonImageProvider>;
+  const view = render(overlay()); await flush();
+  expect(screen.getAllByRole("button", { name: "Latest person snapshot" }).every(button => button.dataset.size === "medium")).toBe(true);
+  for (const size of ["small", "large", "xlarge"]) {
+    mocks.shared.state.config.settings.cameras.items[0].personPipSize = size;
+    view.rerender(overlay()); await flush();
+    expect(screen.getAllByRole("button", { name: "Latest person snapshot" }).every(button => button.dataset.size === size)).toBe(true);
+    expect(screen.getAllByRole("img").every(image => image.getAttribute("src") === "blob:frame-1")).toBe(true);
+  }
+  expect(fetchImage).toHaveBeenCalledOnce(); expect(revoke).not.toHaveBeenCalled();
+});
+
 it("discards old sources and late decodes, releases removed images, and refreshes changed server connections", async () => {
   let finishDecode: () => void;
   decode.mockReturnValueOnce(new Promise<void>(resolve => { finishDecode = resolve; }));

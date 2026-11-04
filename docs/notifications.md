@@ -73,6 +73,8 @@ Camera notification cards show the selected video or person image inline in ever
 
 Under **Camera and image**, enable **Show last person on card** to overlay the configured latest person image on that rule's live notification card. It defaults to off and is saved with the rule, shared across screens and included in configuration backups. Fullscreen live previews always show the inset when a person source is configured. Person-only notifications keep their full image without a duplicate inset. Tap the inset for image status or retry; it may predate the alert.
 
+Change **Person inset size** under the camera's **Person image (optional)** settings. Small, Medium (the original size), Large, and Extra large apply to all notification rules and fullscreen previews using that camera.
+
 ## Connection and privacy
 
 Notifications run while the dashboard is open and connected. They do not send phone push notifications, email, or messages, and cannot catch events while the browser is closed or suspended. Active state/calendar notifications are reconstructed on load; old doorbell events and camera triggers are not replayed on initial load, reconnection or rule edits. Sensor recovery from `unavailable` does not open a camera.

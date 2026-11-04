@@ -16,6 +16,18 @@ it("defaults old backups and round-trips camera sources without storing RTSP hos
   expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
 });
 
+it("round-trips person inset sizes and rejects unsupported sizes without changing older cameras", () => {
+  const config = emptyConfiguration(); config.settings.cameras = cameraSettings();
+  expect(parseConfiguration(JSON.stringify(config)).settings.cameras.items[0].personPipSize).toBeUndefined();
+  for (const size of ["small", "medium", "large", "xlarge"] as const) {
+    config.settings.cameras.items[0].personPipSize = size;
+    expect(parseConfiguration(JSON.stringify(config)).settings.cameras.items[0].personPipSize).toBe(size);
+  }
+  for (const size of ["huge", "", 50, null]) {
+    expect(cameraSettingsSchema.safeParse({ ...config.settings.cameras, items: [{ ...config.settings.cameras.items[0], personPipSize: size }] }).success).toBe(false);
+  }
+});
+
 it("rejects credentials, arbitrary stream URLs, unsafe identifiers and missing servers", () => {
   for (const stream of ["rtsp://user:secret@example.test:8554/cam", "http://example.test/cam", "ffmpeg:example", "../other", "cam?src=other"]) {
     expect(cameraSettingsSchema.safeParse({ go2rtcUrl: "http://example.test", sources: { "camera.example": { stream } } }).success, stream).toBe(false);

@@ -442,6 +442,9 @@
 .smart-entity-media .smart-media-status { position: absolute; top: .5rem; left: .5rem; z-index: 2; width: 44px; height: 44px; min-height: 44px; margin: 0; border-radius: 12px; background: hsl(var(--card)); color: hsl(var(--foreground)); pointer-events: auto; }
 .smart-entity-media .smart-media-status:hover { background: hsl(var(--secondary)); }
 .smart-entity-media .smart-person-pip { position: absolute; top: .5rem; right: .5rem; z-index: 3; display: grid; place-items: center; width: clamp(5rem, 24%, 12rem); aspect-ratio: 4 / 3; max-height: 40%; min-height: 44px; margin: 0; padding: 0; overflow: hidden; border: 2px solid hsl(var(--card)); border-radius: 12px; background: hsl(var(--muted)); color: hsl(var(--foreground)); }
+.smart-entity-media .smart-person-pip[data-size="small"] { width: clamp(3.5rem, 16%, 8rem); max-height: 30%; }
+.smart-entity-media .smart-person-pip[data-size="large"] { width: clamp(6rem, 36%, 24rem); max-height: 60%; }
+.smart-entity-media .smart-person-pip[data-size="xlarge"] { width: clamp(7rem, 48%, 36rem); max-height: 80%; }
 .smart-entity-media .smart-person-pip img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
 .smart-person-pip-error { position: absolute; right: .25rem; bottom: .25rem; background: hsl(var(--card)); border-radius: 50%; }
 .smart-camera-preview > p { padding: 1rem; font-size: .85rem; text-align: center; }

@@ -38,6 +38,20 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.use
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
 
+it("saves the camera's person inset size, uses it in live previews and retains it when reopened", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  renderSettings("/settings/cameras?camera=example-camera");
+  expect(screen.getByLabelText("Person inset size")).toHaveValue("medium");
+  fireEvent.change(screen.getByLabelText("Person inset size"), { target: { value: "xlarge" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save and test camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0].personPipSize).toBe("xlarge");
+  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveAttribute("data-size", "xlarge");
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example camera" }));
+  expect(screen.getByLabelText("Person inset size")).toHaveValue("xlarge");
+  fireEvent.change(screen.getByLabelText("Person snapshot source"), { target: { value: "none" } });
+  expect(screen.queryByLabelText("Person inset size")).not.toBeInTheDocument();
+});
+
 it("shows the last person in expanded live views, but not still previews or suspended feeds", () => {
   configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
   const camera = mocks.shared.state.config.settings.cameras.items[0];

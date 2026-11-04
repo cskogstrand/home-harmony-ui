@@ -56,6 +56,7 @@ export const configuredCameraSchema = z.object({
   id, name: z.string().trim().min(1).max(100), connectionId: z.string().min(1).max(128),
   source: z.string().trim().max(2048).transform(go2rtcStreamName).pipe(name),
   frigatePreview: z.object({ connectionId: id, camera: name }).strict().optional(),
+  personPipSize: z.enum(["small", "medium", "large", "xlarge"]).optional(),
   personSnapshot: z.discriminatedUnion("type", [
     z.object({ type: z.literal("none") }).strict(),
     z.object({ type: z.literal("home-assistant"), entity: imageEntity }).strict(),
