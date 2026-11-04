@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.10.8
+
+<!-- release-source: d9ca2ce54edccbb69c13907cd8ce093ebdb4209b -->
+
+- docs: map agent guides and drop stale audit
+- docs: require main unless branching is requested
+- feat: cache camera still images
+- fix: align person snapshots with camera previews
+- feat: make person inset size configurable
+- feat: add camera still and person preview choices
+- feat: add last-person camera overlays
+- fix: show complete camera frames and images
+- fix: prefetch and cache person snapshots
+- fix: resolve and filter camera entity selections
+- fix: clarify camera validation errors
+- fix: spin the video loading icon
+
 ## 0.10.7
 
 <!-- release-source: 4ff69d526ec5e626a5ad30452f47dd91d27ee85f -->
