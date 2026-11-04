@@ -34,7 +34,7 @@ The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/b
 
 ## Watch cameras and use them in notifications
 
-**Smart home → Cameras** shows only cameras you have added. Each has **Configure camera** and **Use in notification**. The latter starts a camera notification with that camera selected; choose the trigger under **When to show it** before saving.
+Open **Smart home → Cameras**, or use the camera icon in the top-right header beside the notification bell to go directly to `/cameras` from any page. The page shows only cameras you have added. Each has **Configure camera** and **Use in notification**. The latter starts a camera notification with that camera selected; choose the trigger under **When to show it** before saving.
 
 In **Home settings → Notifications → Camera popup → Camera and image**, **Camera** lists your configured cameras, regardless of connection. **Show in notification** offers that camera's live source and its **Person snapshot**, when configured. **Test camera output** previews the choice. **Configure camera (new tab)** keeps the notification draft open while editing the camera. Changing a camera's connection or source applies wherever that camera is used.
 

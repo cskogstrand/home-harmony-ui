@@ -17,7 +17,7 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationBell, NotificationCamera, NotificationList } from "@/components/NotificationCenter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Check, LoaderCircle, Moon, RefreshCw, Settings, TriangleAlert, Wifi, WifiOff, X } from "lucide-react";
+import { Camera, Check, LoaderCircle, Moon, RefreshCw, Settings, TriangleAlert, Wifi, WifiOff, X } from "lucide-react";
 
 export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
@@ -40,6 +40,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   return <div className={`afterglow-app${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <WeatherWidget placement="header" /><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
+        <Link to="/cameras" className="icon-button glass-surface" aria-label={t("Cameras")} title={t("Cameras")}><Camera size={20} aria-hidden="true" /></Link>
         <NotificationBell />
         <div className="relative">
           <DropdownMenu><DropdownMenuTrigger className="icon-button glass-surface" aria-label={t("Open app settings")} title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? t("Household dashboard")}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/settings">{t("All settings")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/appearance">{t("Appearance")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/onboarding">{t("Get started")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/backups">{t("Storage and backups")}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
