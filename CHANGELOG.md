@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.10
+
+<!-- release-source: cf9a0c70d1eaf4a36a063be7200ccf19f121077f -->
+
+- fix: reuse camera playback across views
+
 ## 0.10.9
 
 <!-- release-source: f8b01035f39c992da6bf99e4d279a312e3097f0a -->
