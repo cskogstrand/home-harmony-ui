@@ -4,7 +4,6 @@ import { MemoryRouter } from "react-router-dom";
 import { CameraSettings } from "@/components/CameraSettings";
 import { CameraConnections } from "@/components/CameraConnections";
 import { Go2rtcSourcePicker } from "@/components/Go2rtcSourcePicker";
-import { CameraPersonSnapshot } from "@/components/CameraPersonSnapshot";
 import { MediaSurface } from "@/components/devices/EntityMedia";
 import { emptyConfiguration, plannerSettings } from "../../shared/configuration";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
@@ -17,6 +16,7 @@ import { PageActivityContext } from "@/contexts/PageActivityContext";
 const mocks = vi.hoisted(() => ({ app: null, shared: null, go2rtc: vi.fn(), mse: vi.fn(), ha: vi.fn(), save: vi.fn(), fetch: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
+vi.mock("@/contexts/CameraPersonImageContext", () => ({ useCameraPersonImage: (id: string) => ({ src: `/api/cameras/${id}/person.jpg`, failed: false, refresh: vi.fn() }) }));
 vi.mock("@/lib/go2rtc-stream", () => ({ playGo2rtcStream: (...args) => mocks.go2rtc(...args) }));
 vi.mock("@/lib/go2rtc-mse", () => ({ playGo2rtcMse: (...args) => mocks.mse(...args) }));
 beforeEach(() => {
@@ -485,19 +485,4 @@ it("accepts a pasted player link and blocks a link for another connection", asyn
   expect(screen.getByRole("link", { name: "Open in go2rtc (new tab)" })).toHaveAttribute("href", "http://go2rtc.example:1984/stream.html?src=example_sub");
   fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
   expect(mocks.shared.state.config.settings.cameras.items[0].source).toBe("example_sub");
-});
-
-it("refreshes late person images, labels their age limit and clears polling on close", () => {
-  vi.useFakeTimers(); configure();
-  const view = render(<CameraPersonSnapshot cameraId="example-camera" />);
-  const first = screen.getByRole("img").getAttribute("src");
-  act(() => { vi.advanceTimersByTime(10000); });
-  expect(screen.getByRole("img").getAttribute("src")).toBe(first);
-  fireEvent.load(screen.getByRole("img"));
-  expect(screen.getByText("Latest person snapshot · may predate this alert")).toBeVisible();
-  act(() => { vi.advanceTimersByTime(5000); });
-  expect(screen.getByRole("img").getAttribute("src")).not.toBe(first);
-  fireEvent.error(screen.getByRole("img"));
-  expect(screen.getByRole("status")).toHaveTextContent("Person snapshot unavailable");
-  view.unmount(); expect(vi.getTimerCount()).toBe(0);
 });

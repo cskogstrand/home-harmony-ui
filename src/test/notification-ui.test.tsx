@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {}
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<object>(), useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
+vi.mock("@/contexts/CameraPersonImageContext", () => ({ useCameraPersonImage: (id: string) => ({ src: `/api/cameras/${id}/person.jpg`, failed: false, refresh: vi.fn() }) }));
 vi.mock("@/lib/go2rtc-stream", () => ({ playGo2rtcStream: vi.fn() }));
 
 const setNotifications = vi.fn((_settings: Partial<ReturnType<typeof emptyPlanner>["notifications"]>) => true);

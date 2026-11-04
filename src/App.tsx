@@ -8,6 +8,7 @@ import { AppProvider } from "@/contexts/AppProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { NotificationProvider } from "@/contexts/NotificationProvider";
+import { CameraPersonImageProvider } from "@/contexts/CameraPersonImageProvider";
 import { mainPaths } from "@/lib/navigation";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ const App = () => (
       <TooltipProvider>
         <AppProvider>
           <FamilyProvider>
+            <CameraPersonImageProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -69,7 +71,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </AppLayout></NotificationProvider>
-          </BrowserRouter></FamilyProvider>
+          </BrowserRouter></CameraPersonImageProvider></FamilyProvider>
         </AppProvider>
       </TooltipProvider>
   </QueryClientProvider>

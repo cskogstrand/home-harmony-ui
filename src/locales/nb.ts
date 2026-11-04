@@ -170,6 +170,7 @@ export const nb = {
   "go2rtc unavailable · trying Home Assistant…": "go2rtc er utilgjengelig · prøver Home Assistant…",
   "Live camera · Home Assistant fallback": "Direkte fra kamera · reservekilde fra Home Assistant",
   "Person snapshot unavailable. Check the source in Camera settings.": "Personbildet er utilgjengelig. Sjekk kilden i kamerainnstillingene.",
+  "Could not update the person snapshot. Showing the previous image.": "Kunne ikke oppdatere personbildet. Viser forrige bilde.",
   "Choose a person snapshot in Camera settings.": "Velg et personbilde i kamerainnstillingene.",
   "Latest person snapshot · may predate this alert": "Siste personbilde · kan være eldre enn dette varselet",
   "Latest person snapshot": "Siste personbilde",
