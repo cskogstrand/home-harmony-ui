@@ -65,6 +65,8 @@ Save the camera, then use **Preview person snapshot**. Expanded live viewers sho
 
 Under **Person image (optional)**, choose **Person inset size**: Small, Medium, Large, or Extra large. Medium preserves the original size. The saved choice applies to this camera's fullscreen previews and notification-card insets, adapts to the available space, and keeps the full person image visible. It syncs across screens and travels with configuration backups.
 
+The separate person-image view uses the same frame as live video and still images, keeping the card height stable when switching views. Its top-left status icon opens the image explanation and any retry action without adding a caption below the image. Loading and initial errors remain visible when no image is available.
+
 Configured person images are fetched and decoded when the page's saved settings load, before any camera viewer opens. One decoded image per camera stays in page memory and is shared by settings previews, notification cards and expanded viewers, including after those viewers close. The first page load still waits for the source to respond; later views can show the cached image immediately. Images are not persisted to disk, settings or backups.
 
 Home Assistant WebSocket entity updates refresh this cache even when no viewer is open. Picture sensors also follow updates to their referenced image/camera entity. Updates during a slow request are combined into one follow-up request; downloads never overlap for a camera. The previous image stays visible until its replacement is decoded, and failed refreshes retain it with an explanation and Retry. Requests and decoding time out after 15 seconds.

@@ -47,6 +47,19 @@ it("prefetches on page load and immediately reuses the decoded image across view
   view.unmount(); expect(revoke).toHaveBeenCalledExactlyOnceWith("blob:frame-1"); expect(vi.getTimerCount()).toBe(0);
 });
 
+it("keeps the person-image explanation in the corner status popover instead of a caption row", async () => {
+  render(content(1)); await flush();
+  const label = "Latest person snapshot · may predate this alert";
+  expect(screen.getByRole("img", { name: "Latest person snapshot" })).toBeVisible();
+  expect(screen.queryByText(label)).not.toBeInTheDocument();
+  const status = screen.getByRole("button", { name: label });
+  expect(status.textContent).toBe("");
+  fireEvent.click(status);
+  expect(screen.getByRole("dialog", { name: label })).toHaveTextContent(label);
+  fireEvent.keyDown(screen.getByRole("dialog", { name: label }), { key: "Escape" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
 it("refreshes the cache from HA updates with no viewer and retains the previous frame until decoding finishes", async () => {
   const view = render(content()); await flush();
   updateEntity("sensor.example_other"); view.rerender(content()); await flush();
@@ -91,9 +104,13 @@ it("keeps a cached image on failure, exposes retry, and retries initial failures
   fetchImage.mockResolvedValueOnce(new Response("not an image", { headers: { "Content-Type": "text/html" } }));
   updateEntity(); view.rerender(content(1)); await flush();
   expect(screen.getByRole("img")).toHaveAttribute("src", "blob:frame-1");
-  expect(screen.getByRole("status")).toHaveTextContent("Showing the previous image");
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Could not update the person snapshot. Showing the previous image." }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("Showing the previous image");
   fireEvent.click(screen.getByRole("button", { name: "Retry" })); await flush();
-  expect(screen.getByRole("img")).toHaveAttribute("src", "blob:frame-2"); expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  expect(screen.getByRole("img")).toHaveAttribute("src", "blob:frame-2");
+  expect(screen.getByRole("dialog")).toHaveTextContent("may predate this alert");
+  expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
 });
 
 it("shares the overlay image with full viewers and offers status and retry without replacing video", async () => {

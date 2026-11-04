@@ -430,7 +430,6 @@
 .smart-entity-media > p { padding: 1rem; font-size: .85rem; text-align: center; }
 .smart-entity-media:has(img, video) > p { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .smart-entity-media > button { margin: .5rem; }
-.smart-media-caption { display: block; padding: .4rem .7rem; font-size: .75rem; background: hsl(var(--card)); width: 100%; }
 .smart-camera-player { position: absolute; inset: 0; }
 .smart-entity-media .smart-camera-player video { position: absolute; inset: 0; z-index: 1; height: 100%; background: hsl(var(--muted)); opacity: 0; pointer-events: none; transition: opacity 240ms var(--ease-out); }
 .smart-entity-media .smart-camera-player.is-playing video { opacity: 1; pointer-events: auto; }
