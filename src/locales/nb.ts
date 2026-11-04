@@ -148,7 +148,6 @@ export const nb = {
   "Preview image unavailable. Check the camera connection. Retrying…": "Ventebildet er utilgjengelig. Sjekk kameratilkoblingen. Prøver igjen…",
   "Preview live stream": "Forhåndsvis direktestrøm",
   "Frigate person snapshots normally use image entities. Occupancy and count sensors can trigger notifications, but only sensors with an image can supply a snapshot.": "Personbilder fra Frigate bruker vanligvis bildeentiteter. Tilstedeværelses- og tellesensorer kan utløse varsler, men bare sensorer med et bilde kan levere personbilder.",
-  "No image on this sensor. Choose the Frigate person image entity.": "Sensoren har ikke noe bilde. Velg bildeentiteten for person fra Frigate.",
   "Person image entity": "Bildeentitet for person",
   "Frigate camera name": "Kameranavn i Frigate",
   "Frigate latest person snapshot": "Siste personbilde fra Frigate",

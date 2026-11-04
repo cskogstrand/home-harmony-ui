@@ -36,6 +36,8 @@ export function CameraSettings() {
   }, [params, setParams, shared.state.loaded, settings.items, draft]);
   const connection = settings.connections.find(item => item.id === draft?.connectionId);
   const snapshot = draft?.personSnapshot;
+  const personImageEntities = currentHome.entities.filter(entity => ["image", "camera"].includes(entity.domain)
+    || ["sensor", "binary_sensor"].includes(entity.domain) && homeAssistantPicturePath(entity.attributes.entity_picture));
   const previewCamera = preview && settings.items.find(item => item.id === preview.id);
   const inUse = (id: string) => shared.state.config.settings.notifications.rules.some(rule => rule.kind === "camera" && rule.cameraEntity === id);
   const save = (watch = false) => {
@@ -101,7 +103,9 @@ export function CameraSettings() {
         <label>{t("Connection")}<select value={draft.connectionId} onChange={event => setDraft({ ...draft, connectionId: event.target.value, source: "" })}>
           <option value="">{t("Choose a connection")}</option><option value="home-assistant">Home Assistant</option>{settings.connections.filter(item => item.type === "go2rtc").map(item => <option key={item.id} value={item.id}>{item.name} · go2rtc</option>)}
         </select></label>
-        {draft.connectionId === "home-assistant" && <EntityPicker label={t("Home Assistant camera")} entities={currentHome.entities.filter(entity => entity.domain === "camera")} value={draft.source ? `home|${draft.source}` : ""} onChange={value => setDraft({ ...draft, source: value.replace(/^home\|/, "") })} />}
+        {draft.connectionId === "home-assistant" && <EntityPicker label={t("Home Assistant camera")} entities={currentHome.entities.filter(entity => entity.domain === "camera")}
+          value={currentHome.entities.find(entity => entity.entityId === draft.source)?.preferenceId ?? (draft.source ? `home|${draft.source}` : "")}
+          onChange={value => setDraft({ ...draft, source: currentHome.entities.find(entity => entity.preferenceId === value)?.entityId ?? "" })} />}
         {connection?.type === "go2rtc" && <Go2rtcSourcePicker key={connection.id} connection={connection} value={draft.source} onChange={source => setDraft({ ...draft, source })} />}
         <div className="space-y-4 border-t pt-4">
           <label>{t("Preview while video connects")}<select value={draft.frigatePreview ? "frigate" : "video"} onChange={event => setDraft({ ...draft, frigatePreview: event.target.value === "frigate" ? { connectionId: "", camera: "" } : undefined })}>
@@ -120,9 +124,9 @@ export function CameraSettings() {
         <details open={snapshot.type !== "none" || undefined}><summary className="min-h-11 cursor-pointer py-2">{t("Person image (optional)")}</summary><div className="space-y-4 pt-3">
           <p className="page-note">{t("Shown separately from live video and its startup preview. Updates to show the latest person snapshot.")}</p>
           <label>{t("Person snapshot source")}<select value={snapshot.type} onChange={event => setDraft({ ...draft, personSnapshot: event.target.value === "frigate" ? { type: "frigate", connectionId: "", camera: "" } : event.target.value === "home-assistant" ? { type: "home-assistant", entity: "" } : { type: "none" } })}><option value="none">{t("No person snapshot")}</option><option value="home-assistant">{t("Person image from Home Assistant")}</option><option value="frigate">{t("Person image directly from Frigate")}</option></select></label>
-          {snapshot.type === "home-assistant" && <><EntityPicker label={t("Person image entity")} entities={currentHome.entities.filter(item => ["image", "camera", "sensor", "binary_sensor"].includes(item.domain))} value={snapshot.entity ? `home|${snapshot.entity}` : ""}
-            disabledReason={item => !["image", "camera"].includes(item.domain) && !homeAssistantPicturePath(item.attributes.entity_picture) ? t("No image on this sensor. Choose the Frigate person image entity.") : undefined}
-            onChange={value => setDraft({ ...draft, personSnapshot: { type: "home-assistant", entity: value.replace(/^home\|/, "") } })} /><p className="page-note">{t("Both image.* and camera.* entities are supported. Choose one showing the person snapshot. Use occupancy sensors to trigger notifications.")}</p></>}
+          {snapshot.type === "home-assistant" && <><EntityPicker label={t("Person image entity")} entities={personImageEntities}
+            value={personImageEntities.find(entity => entity.entityId === snapshot.entity)?.preferenceId ?? (snapshot.entity ? `home|${snapshot.entity}` : "")}
+            onChange={value => setDraft({ ...draft, personSnapshot: { type: "home-assistant", entity: personImageEntities.find(entity => entity.preferenceId === value)?.entityId ?? "" } })} /><p className="page-note">{t("Both image.* and camera.* entities are supported. Choose one showing the person snapshot. Use occupancy sensors to trigger notifications.")}</p></>}
           {snapshot.type === "frigate" && <><label>{t("Frigate connection")}<select value={snapshot.connectionId} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, connectionId: event.target.value } })}><option value="">{t("Choose a connection")}</option>{settings.connections.filter(item => item.type === "frigate").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>{t("Frigate camera name")}<input maxLength={128} value={snapshot.camera} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, camera: event.target.value } })} /></label><p className="page-note">{t("Add a Frigate snapshots connection under Manage connections if it is not listed.")}</p></>}
         </div></details>
       </fieldset>

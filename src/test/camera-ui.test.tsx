@@ -25,7 +25,10 @@ beforeEach(() => {
     "camera.example": state("camera.example", "idle", { friendly_name: "HA example camera" }),
     "image.example_person": state("image.example_person", "2026-01-01T00:00:00Z", { friendly_name: "Example person image" }),
     "sensor.example_count": state("sensor.example_count", "1", { friendly_name: "Example count" }),
-  }, emptyRegistries, "home"), homeOnline: true, watchCameraStream: mocks.ha };
+  }, { ...emptyRegistries, entities: [
+    { id: "registered-camera", entity_id: "camera.example" },
+    { id: "registered-person-image", entity_id: "image.example_person" },
+  ] }, "home"), homeOnline: true, watchCameraStream: mocks.ha };
   mocks.shared = { state: { config: emptyConfiguration(), loaded: true, error: "", saving: false }, store: { updateSettings: mocks.save } };
   mocks.save.mockImplementation(change => { mocks.shared.state.config.settings = plannerSettings(change(mocks.shared.state.config.settings)); });
   mocks.fetch.mockResolvedValue({ ok: true, json: async () => ["example", "example_sub"] }); vi.stubGlobal("fetch", mocks.fetch);
@@ -153,6 +156,85 @@ it.each(["image.example_person", "camera.example"])("adds a selected HA camera w
   expect(mocks.shared.state.config.settings.cameras.items[0]).toMatchObject({ name: "Selected camera", connectionId: "home-assistant", source: "camera.example", personSnapshot: { type: "home-assistant", entity } });
   expect(mocks.ha).toHaveBeenCalledWith("camera.example", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
   expect(mocks.go2rtc).not.toHaveBeenCalled();
+});
+
+it("keeps registered camera and person image selections visible when reopening saved settings", () => {
+  configure();
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  camera.connectionId = "home-assistant"; camera.source = "camera.example";
+  renderSettings("/settings/cameras?camera=example-camera");
+  expect(screen.getByRole("button", { name: "Home Assistant camera" })).toHaveTextContent("HA example camera");
+  expect(screen.getByRole("button", { name: "Person image entity" })).toHaveTextContent("Example person image");
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0]).toEqual(camera);
+});
+
+it("retains saved camera and person image IDs when their entities are unavailable", () => {
+  configure(); mocks.app.currentHome = mapHome({}, emptyRegistries, "home");
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  camera.connectionId = "home-assistant"; camera.source = "camera.example";
+  renderSettings("/settings/cameras?camera=example-camera");
+  expect(screen.getByRole("button", { name: "Home Assistant camera" })).toHaveTextContent("Entity unavailable · camera.example");
+  expect(screen.getByRole("button", { name: "Person image entity" })).toHaveTextContent("Entity unavailable · image.example_person");
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0]).toEqual(camera);
+});
+
+it("still saves unregistered Home Assistant camera and person image entities", () => {
+  mocks.app.currentHome = mapHome({
+    "camera.example": state("camera.example", "idle"),
+    "image.example_person": state("image.example_person", "2026-01-01T00:00:00Z"),
+  }, emptyRegistries, "home");
+  renderSettings("/settings/cameras?add");
+  fireEvent.change(screen.getByLabelText("Camera name"), { target: { value: "Example camera" } });
+  fireEvent.change(screen.getByLabelText("Connection"), { target: { value: "home-assistant" } });
+  chooseEntity("Home Assistant camera", "camera.example");
+  fireEvent.click(screen.getByText("Person image (optional)"));
+  fireEvent.change(screen.getByLabelText("Person snapshot source"), { target: { value: "home-assistant" } });
+  chooseEntity("Person image entity", "image.example_person");
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0]).toMatchObject({ source: "camera.example", personSnapshot: { type: "home-assistant", entity: "image.example_person" } });
+});
+
+it.each(["sensor.example_picture", "binary_sensor.example_picture"])("filters person-image choices to supported sources and saves %s", entityId => {
+  configure();
+  const states = {
+    "camera.example": state("camera.example", "idle"),
+    "image.example_person": state("image.example_person", "2026-01-01T00:00:00Z"),
+    "sensor.example_picture": state("sensor.example_picture", "1", { entity_picture: "/api/image_proxy/image.example_person?token=fixture" }),
+    "binary_sensor.example_picture": state("binary_sensor.example_picture", "on", { entity_picture: "/api/camera_proxy/camera.example" }),
+    "sensor.example_count": state("sensor.example_count", "1"),
+    "binary_sensor.example_occupancy": state("binary_sensor.example_occupancy", "on"),
+    "sensor.example_external": state("sensor.example_external", "1", { entity_picture: "https://example.test/person.jpg" }),
+    "light.example": state("light.example", "on", { entity_picture: "/api/image_proxy/image.example_person" }),
+  };
+  mocks.app.currentHome = mapHome(states, { ...emptyRegistries, entities: Object.keys(states).map((entity_id, index) => ({ entity_id, id: `registered-${index}` })) }, "home");
+  renderSettings("/settings/cameras?camera=example-camera");
+  fireEvent.click(screen.getByRole("button", { name: "Person image entity" }));
+  const picker = within(screen.getByRole("dialog", { name: "Person image entity" }));
+  for (const id of ["camera.example", "image.example_person", "sensor.example_picture", "binary_sensor.example_picture"])
+    expect(picker.getByRole("button", { name: name => name.endsWith(` · ${id}`) })).toBeEnabled();
+  for (const id of ["sensor.example_count", "binary_sensor.example_occupancy", "sensor.example_external", "light.example"])
+    expect(picker.queryByRole("button", { name: name => name.endsWith(` · ${id}`) })).not.toBeInTheDocument();
+  fireEvent.change(picker.getByRole("searchbox"), { target: { value: "example_count" } });
+  expect(picker.getByText("No matching entities. Change or clear the filters.")).toBeVisible();
+  fireEvent.change(picker.getByRole("searchbox"), { target: { value: entityId } });
+  fireEvent.click(picker.getByRole("button", { name: name => name.endsWith(` · ${entityId}`) }));
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0].personSnapshot).toEqual({ type: "home-assistant", entity: entityId });
+});
+
+it("keeps an unsupported saved person-image reference visible for replacement", () => {
+  configure();
+  mocks.shared.state.config.settings.cameras.items[0].personSnapshot = { type: "home-assistant", entity: "sensor.example_count" };
+  mocks.app.currentHome.entities.find(entity => entity.entityId === "sensor.example_count").preferenceId = "home|registered-count";
+  renderSettings("/settings/cameras?camera=example-camera");
+  expect(screen.getByRole("button", { name: "Person image entity" })).toHaveTextContent("Entity unavailable · sensor.example_count");
+  fireEvent.click(screen.getByRole("button", { name: "Person image entity" }));
+  expect(screen.getByRole("button", { name: "Entity unavailable · sensor.example_count" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "HA example camera · camera.example" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0].personSnapshot).toEqual({ type: "home-assistant", entity: "camera.example" });
 });
 
 it.each(["Save camera", "Save and test camera"])("saves a camera.* person image on an existing go2rtc camera using %s", action => {
