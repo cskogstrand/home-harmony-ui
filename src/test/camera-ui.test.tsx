@@ -12,6 +12,7 @@ import { chooseEntity } from "./entity-picker-helpers";
 import { cameraSettings } from "./camera-fixtures";
 import Cameras from "@/pages/Cameras";
 import { PageActivityContext } from "@/contexts/PageActivityContext";
+import { CameraPreviewImageContext } from "@/contexts/CameraPreviewImageContext";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null, go2rtc: vi.fn(), mse: vi.fn(), ha: vi.fn(), save: vi.fn(), fetch: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -41,15 +42,78 @@ const configure = () => { mocks.shared.state.config.settings.cameras = cameraSet
 it("saves the camera's person inset size, uses it in live previews and retains it when reopened", () => {
   configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
   renderSettings("/settings/cameras?camera=example-camera");
-  expect(screen.getByLabelText("Person inset size")).toHaveValue("medium");
-  fireEvent.change(screen.getByLabelText("Person inset size"), { target: { value: "xlarge" } });
+  const choices = within(screen.getByRole("group", { name: "Person inset size" }));
+  expect(choices.getAllByRole("button")).toHaveLength(4);
+  expect(choices.getByRole("button", { name: "Medium 24% of video width" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(choices.getByRole("button", { name: "Extra large 48% of video width" }));
   fireEvent.click(screen.getByRole("button", { name: "Save and test camera" }));
   expect(mocks.shared.state.config.settings.cameras.items[0].personPipSize).toBe("xlarge");
   expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveAttribute("data-size", "xlarge");
+  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveStyle({ width: "48%" });
   fireEvent.click(screen.getByRole("button", { name: "Edit Example camera" }));
-  expect(screen.getByLabelText("Person inset size")).toHaveValue("xlarge");
+  expect(screen.getByRole("button", { name: "Extra large 48% of video width" })).toHaveAttribute("aria-pressed", "true");
   fireEvent.change(screen.getByLabelText("Person snapshot source"), { target: { value: "none" } });
-  expect(screen.queryByLabelText("Person inset size")).not.toBeInTheDocument();
+  expect(screen.queryByRole("group", { name: "Person inset size" })).not.toBeInTheDocument();
+});
+
+it.each([
+  [1920, 1080, 1066.6667, 600, 360, 202.5],
+  [1440, 1080, 800, 600, 320, 240],
+  [1080, 1920, 337.5, 600, 135, 240],
+  [3840, 1080, 1600, 450, 360, 101.25],
+])("sizes and positions the inset within a %i × %i video as its frame resizes", (videoWidth, videoHeight, desktopWidth, desktopHeight, phoneWidth, phoneHeight) => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  let resize: (width: number, height: number) => void;
+  const disconnect = vi.fn();
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(callback: ResizeObserverCallback) { resize = (width, height) => callback([{ contentRect: { width, height } } as ResizeObserverEntry], this as unknown as ResizeObserver); }
+    observe() {} disconnect = disconnect;
+  });
+  const view = render(<MediaSurface camera={mocks.shared.state.config.settings.cameras.items[0]} expanded />);
+  const video = view.container.querySelector("video");
+  vi.spyOn(video, "videoWidth", "get").mockReturnValue(videoWidth);
+  vi.spyOn(video, "videoHeight", "get").mockReturnValue(videoHeight);
+  vi.spyOn(video, "readyState", "get").mockReturnValue(4);
+  fireEvent.loadedMetadata(video); fireEvent.playing(video);
+  const bounds = view.container.querySelector<HTMLElement>(".smart-camera-image-bounds");
+  for (const [width, height, imageWidth, imageHeight] of [[1600, 600, desktopWidth, desktopHeight], [360, 240, phoneWidth, phoneHeight]]) {
+    act(() => resize(width, height));
+    expect(parseFloat(bounds.style.width)).toBeCloseTo(imageWidth);
+    expect(parseFloat(bounds.style.height)).toBeCloseTo(imageHeight);
+  }
+  view.unmount(); expect(disconnect).toHaveBeenCalledOnce();
+});
+
+it("follows the displayed preview, live resolution and fallback without using the person image's dimensions", () => {
+  vi.useFakeTimers(); configure();
+  vi.stubGlobal("ResizeObserver", class {
+    constructor(private callback: ResizeObserverCallback) {}
+    observe() { this.callback([{ contentRect: { width: 1600, height: 900 } } as ResizeObserverEntry], this as unknown as ResizeObserver); }
+    disconnect() {}
+  });
+  const camera = mocks.shared.state.config.settings.cameras.items[0];
+  const view = render(<CameraPreviewImageContext.Provider value={{ "/api/cameras/example-camera/snapshot.jpg": { src: "blob:preview", failed: false, refresh: vi.fn(), watch: () => () => {} } }}><MediaSurface camera={camera} expanded /></CameraPreviewImageContext.Provider>);
+  const preview = screen.getByRole("img", { name: "Example camera" });
+  Object.defineProperties(preview, { naturalWidth: { value: 1440 }, naturalHeight: { value: 1080 } });
+  fireEvent.load(preview);
+  const bounds = view.container.querySelector<HTMLElement>(".smart-camera-image-bounds");
+  expect(bounds).toHaveStyle({ width: "1200px", height: "900px" });
+  const video = view.container.querySelector("video");
+  const width = vi.spyOn(video, "videoWidth", "get").mockReturnValue(1080);
+  vi.spyOn(video, "videoHeight", "get").mockReturnValue(1920);
+  vi.spyOn(video, "readyState", "get").mockReturnValue(4);
+  vi.spyOn(video, "paused", "get").mockReturnValue(false);
+  fireEvent.playing(video);
+  expect(bounds).toHaveStyle({ width: "506.25px", height: "900px" });
+  fireEvent.load(preview);
+  const person = screen.getByRole("img", { name: "Latest person snapshot" });
+  Object.defineProperties(person, { naturalWidth: { value: 400 }, naturalHeight: { value: 300 } });
+  fireEvent.load(person);
+  expect(bounds).toHaveStyle({ width: "506.25px", height: "900px" });
+  width.mockReturnValue(1440); fireEvent(video, new Event("resize"));
+  expect(bounds).toHaveStyle({ width: "675px", height: "900px" });
+  act(() => vi.advanceTimersByTime(3000));
+  expect(bounds).toHaveStyle({ width: "1200px", height: "900px" });
 });
 
 it("shows the last person in expanded live views, but not still previews or suspended feeds", () => {

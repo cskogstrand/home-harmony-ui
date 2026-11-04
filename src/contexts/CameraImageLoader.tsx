@@ -6,6 +6,7 @@ export function CameraImageLoader({ src, cacheKey, revision, poll, enabled, publ
   publish: (key: string, image?: CameraImage) => void;
 }) {
   const current = useRef("");
+  const dimensions = useRef<{ width: number; height: number }>();
   const busy = useRef(false), failed = useRef(false), viewers = useRef(0);
   const changed = useRef(false), previousRevision = useRef(revision);
   const [retry, setRetry] = useState(0);
@@ -21,7 +22,7 @@ export function CameraImageLoader({ src, cacheKey, revision, poll, enabled, publ
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     busy.current = true; changed.current = false;
-    publish(cacheKey, { src: current.current, failed: failed.current, refresh, watch });
+    publish(cacheKey, { src: current.current, ...dimensions.current, failed: failed.current, refresh, watch });
     const load = async () => {
       try {
         const response = await fetch(src, { signal: controller.signal, cache: "no-store" });
@@ -38,12 +39,13 @@ export function CameraImageLoader({ src, cacheKey, revision, poll, enabled, publ
         controller.signal.throwIfAborted();
         const previous = current.current;
         current.current = pending; pending = ""; failed.current = false;
-        publish(cacheKey, { src: current.current, failed: false, refresh, watch });
+        dimensions.current = { width: image.naturalWidth, height: image.naturalHeight };
+        publish(cacheKey, { src: current.current, ...dimensions.current, failed: false, refresh, watch });
         if (previous) URL.revokeObjectURL(previous);
       } catch {
         if (!stopped) {
           failed.current = true;
-          publish(cacheKey, { src: current.current, failed: true, refresh, watch });
+          publish(cacheKey, { src: current.current, ...dimensions.current, failed: true, refresh, watch });
         }
       } finally {
         clearTimeout(timeout);

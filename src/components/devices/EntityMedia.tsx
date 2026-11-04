@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { Entity } from "@/types/api";
 import { cameraPreviewPath, go2rtcPlayerUrl, type ConfiguredCamera } from "../../../shared/cameras";
 import { useApp } from "@/contexts/AppContext";
@@ -22,11 +22,19 @@ function MediaImage({ src, name, caption, onError }: { src: string; name: string
   return <><img src={src} alt={name} draggable={false} onLoad={() => setLoaded(true)} onError={onError} />
     {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} icon={VideoOff} />}</>;
 }
-function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void }) {
+function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError, onAspectRatio }: { id: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
   const { watchCameraStream } = useApp();
   const ref = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
   const [transport, setTransport] = useState<"webrtc" | "mse">("webrtc");
+  const updateAspectRatio = useCallback(() => {
+    const video = ref.current;
+    const preview = video?.parentElement.querySelector("img");
+    const width = playing ? video?.videoWidth : preview?.naturalWidth;
+    const height = playing ? video?.videoHeight : preview?.naturalHeight;
+    if (width && height) onAspectRatio(width / height);
+  }, [playing, onAspectRatio]);
+  useLayoutEffect(updateAspectRatio, [updateAspectRatio]);
   useEffect(() => {
     const video = ref.current;
     let stopped = false, lastTime = -1;
@@ -66,7 +74,7 @@ function CameraVideo({ id, name, go2rtc, previewSrc, expanded, onError }: { id: 
   return <><div className={`smart-camera-player${playing ? " is-playing" : ""}`}>
     <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
       status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
-    <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded} />
+    <video ref={ref} aria-label={name} autoPlay muted playsInline controls={expanded} onLoadedMetadata={updateAspectRatio} onResize={updateAspectRatio} />
     <CameraMediaStatus icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }
 
@@ -82,6 +90,8 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const domain = target?.domain ?? "camera";
   const { message: t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
+  const [aspectRatio, setAspectRatio] = useState(16 / 9);
+  const [frameSize, setFrameSize] = useState({ width: 0, height: 0 });
   const [visible, setVisible] = useState(false), [seen, setSeen] = useState(false), [active, setActive] = useState(!document.hidden);
   const [retry, setRetry] = useState(0), [failedSrc, setFailedSrc] = useState("");
   const [streamError, setStreamError] = useState("");
@@ -90,7 +100,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const previewSrc = configured ? cameraPreviewPath(configured) : `/api/camera_proxy/${encodeURIComponent(id)}`;
   const sourceKey = JSON.stringify([id, configured?.source, connection?.url, configured?.frigatePreview, previewConnection?.url]);
   const [previousSource, setPreviousSource] = useState(sourceKey);
-  if (previousSource !== sourceKey) { setPreviousSource(sourceKey); setMjpeg(false); setSnapshot(false); setFailedSrc(""); }
+  if (previousSource !== sourceKey) { setPreviousSource(sourceKey); setMjpeg(false); setSnapshot(false); setFailedSrc(""); setAspectRatio(16 / 9); }
   const camera = domain === "camera";
   const reported = customStream || homeOnline && target && available(target) && (!camera || target.state !== "off");
   const path = camera ? snapshot ? "camera_proxy" : "camera_proxy_stream" : domain === "image" ? "image_proxy" : "media_player_proxy";
@@ -99,6 +109,14 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   const fallback = useCallback((message = "Stream unavailable. Check the camera connection.") => { if (customStream) { setStreamError(message); setFailedSrc(src); } else setMjpeg(true); }, [customStream, src]);
   const playerUrl = configured && go2rtcPlayerUrl(connection, configured.source);
   const paused = !pageActive || suspended || (camera && !snapshot && ((!visible && !expanded) || !active));
+  useLayoutEffect(() => {
+    if (!showPerson) return;
+    const element = ref.current;
+    setFrameSize({ width: element.clientWidth, height: element.clientHeight });
+    const observer = new ResizeObserver(([entry]) => setFrameSize({ width: entry.contentRect.width, height: entry.contentRect.height }));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [showPerson]);
   useEffect(() => {
     if (!globalThis.IntersectionObserver) { setVisible(true); setSeen(true); return; }
     const observer = new IntersectionObserver(([entry]) => { setVisible(entry.isIntersecting); if (entry.isIntersecting) setSeen(true); }, { rootMargin: "100px" });
@@ -110,17 +128,25 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     document.addEventListener("visibilitychange", update);
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
-  return <div ref={ref} className={`smart-entity-media${camera ? " is-camera" : domain === "image" ? " is-map" : ""}`}>
+  const imageHeight = Math.min(frameSize.height, frameSize.width / aspectRatio);
+  return <div ref={ref} className={`smart-entity-media${camera ? " is-camera" : domain === "image" ? " is-map" : ""}`} onLoadCapture={event => {
+    const image = event.target;
+    if (image instanceof HTMLImageElement && !image.closest(".smart-person-pip, .is-playing") && image.naturalWidth && image.naturalHeight) setAspectRatio(image.naturalWidth / image.naturalHeight);
+  }}>
     {reported && (seen || expanded) && !paused && !failed ? snapshotOnly
       ? <div className="smart-camera-player"><CameraStreamPreview key={sourceKey} src={previewSrc} name={name} status="Loading image…" caption="Preview image · refreshes automatically" /></div>
       : camera && !mjpeg
-      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} />
+      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} onAspectRatio={setAspectRatio} />
       : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
     {!suspended && reported && (failed || mjpeg) && <Button type="button" variant="outline" onClick={() => { setFailedSrc(""); setSnapshot(false); setMjpeg(false); setRetry(value => value + 1); }}>{t("Retry")}</Button>}
     {!suspended && failed && playerUrl && <a className="text-primary underline underline-offset-4" href={playerUrl} target="_blank" rel="noreferrer">{t("Open in go2rtc (new tab)")}</a>}
-    {showPerson && configured && configured.personSnapshot.type !== "none" && !paused && (seen || expanded) && <CameraPersonSnapshot cameraId={configured.id} overlay />}
+    {showPerson && configured && configured.personSnapshot.type !== "none" && !paused && (seen || expanded) && <div className="smart-camera-image-bounds" style={{
+      width: frameSize.width ? Math.min(frameSize.width, frameSize.height * aspectRatio) : "100%",
+      height: imageHeight || "100%",
+      "--camera-image-height": `${imageHeight}px`,
+    } as CSSProperties}><CameraPersonSnapshot cameraId={configured.id} overlay /></div>}
   </div>;
 }
 

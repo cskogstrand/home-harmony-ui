@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { CircleAlert, UserRound } from "lucide-react";
 import { CameraMediaStatus } from "./CameraMediaStatus";
+import { cameraPersonPipWidths } from "../../shared/cameras";
 
 export function CameraPersonSnapshot({ cameraId, overlay = false }: { cameraId: string; overlay?: boolean }) {
   const { message: t } = useI18n();
@@ -18,8 +19,12 @@ export function CameraPersonSnapshot({ cameraId, overlay = false }: { cameraId: 
     : image?.failed ? image.src ? "Could not update the person snapshot. Showing the previous image." : "Person snapshot unavailable. Check the source in Camera settings."
     : !image?.src ? "Loading image…" : "Latest person snapshot · may predate this alert";
   if (overlay) return <Popover>
-    <PopoverTrigger asChild><button type="button" className="smart-person-pip" data-size={camera?.personPipSize ?? "medium"} aria-label={t("Latest person snapshot")} title={t(status)}>
-      {configured && image?.src ? <img src={image.src} alt={t("Latest person snapshot")} /> : <UserRound size={24} aria-hidden="true" />}
+    <PopoverTrigger asChild><button type="button" className="smart-person-pip" data-size={camera?.personPipSize ?? "medium"} style={{
+      width: `${cameraPersonPipWidths[camera?.personPipSize ?? "medium"]}%`,
+      // Reserve the inset's margins and border before fitting tall images inside the video.
+      maxWidth: image?.width && image.height ? `calc((var(--camera-image-height) - 1rem - 4px) * ${image.width / image.height} + 4px)` : undefined,
+    }} aria-label={t("Latest person snapshot")} title={t(status)}>
+      {configured && image?.src ? <img src={image.src} width={image.width} height={image.height} alt={t("Latest person snapshot")} /> : <UserRound size={24} aria-hidden="true" />}
       {image?.failed && <CircleAlert className="smart-person-pip-error" size={18} aria-hidden="true" />}
     </button></PopoverTrigger>
     <PopoverContent side="bottom" align="end" className="space-y-2 text-sm" aria-label={t("Latest person snapshot")}>

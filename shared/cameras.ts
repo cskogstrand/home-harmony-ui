@@ -58,6 +58,8 @@ export const go2rtcErrors = {
   playback: "The browser could not play this stream. Check its video codec.",
   signaling: "Could not contact Home Harmony. Check your connection and sign-in.",
 } as const;
+export const cameraPersonPipWidths = { small: 16, medium: 24, large: 36, xlarge: 48 } as const;
+
 export const configuredCameraSchema = z.object({
   id, name: z.string().trim().min(1).max(100), connectionId: z.string().min(1).max(128),
   source: z.string().trim().max(2048).transform(go2rtcStreamName).pipe(name),

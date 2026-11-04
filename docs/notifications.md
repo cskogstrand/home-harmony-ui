@@ -73,7 +73,7 @@ Camera notification cards show the selected video or person image inline in ever
 
 Under **Camera and image**, enable **Show last person on card** to overlay the configured latest person image on that rule's live notification card. It defaults to off and is saved with the rule, shared across screens and included in configuration backups. Fullscreen live previews always show the inset when a person source is configured. Person-only notifications keep their full image without a duplicate inset. Tap the inset for image status or retry; it may predate the alert.
 
-Change **Person inset size** under the camera's **Person image (optional)** settings. Small, Medium (the original size), Large, and Extra large apply to all notification rules and fullscreen previews using that camera.
+Change **Person inset size** under the camera's **Person image (optional)** settings. Illustrated choices show Small (16%), Medium (24%, the default), Large (36%), and Extra large (48%) as a share of the displayed video's width, excluding empty space around it. The same proportions apply to all notification rules and fullscreen previews using that camera. The inset follows the person image's own format without added bars; tall images scale down proportionally when needed to fit inside the video.
 
 ## Connection and privacy
 

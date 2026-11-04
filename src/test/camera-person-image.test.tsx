@@ -131,13 +131,54 @@ it("resizes every inset for a camera without discarding or reloading its cached 
   const overlay = () => <CameraPersonImageProvider><CameraPersonSnapshot cameraId="example-camera" overlay /><CameraPersonSnapshot cameraId="example-camera" overlay /></CameraPersonImageProvider>;
   const view = render(overlay()); await flush();
   expect(screen.getAllByRole("button", { name: "Latest person snapshot" }).every(button => button.dataset.size === "medium")).toBe(true);
-  for (const size of ["small", "large", "xlarge"]) {
+  for (const [size, width] of [["small", "16%"], ["medium", "24%"], ["large", "36%"], ["xlarge", "48%"]]) {
     mocks.shared.state.config.settings.cameras.items[0].personPipSize = size;
     view.rerender(overlay()); await flush();
     expect(screen.getAllByRole("button", { name: "Latest person snapshot" }).every(button => button.dataset.size === size)).toBe(true);
+    for (const button of screen.getAllByRole("button", { name: "Latest person snapshot" })) expect(button).toHaveStyle({ width });
     expect(screen.getAllByRole("img").every(image => image.getAttribute("src") === "blob:frame-1")).toBe(true);
   }
   expect(fetchImage).toHaveBeenCalledOnce(); expect(revoke).not.toHaveBeenCalled();
+});
+
+it("keeps each camera's decoded dimensions with its cached person image", async () => {
+  const settings = mocks.shared.state.config.settings.cameras;
+  settings.items.push({ ...settings.items[0], id: "second-camera", personSnapshot: { type: "home-assistant", entity: "image.second_person" } });
+  vi.stubGlobal("Image", class {
+    src = ""; decode = decode;
+    get naturalWidth() { return this.src === "blob:frame-1" ? 1920 : 1080; }
+    get naturalHeight() { return this.src === "blob:frame-1" ? 1080 : 1920; }
+  });
+  const overlay = () => <CameraPersonImageProvider><CameraPersonSnapshot cameraId="example-camera" overlay /><CameraPersonSnapshot cameraId="second-camera" overlay /></CameraPersonImageProvider>;
+  const view = render(overlay()); await flush();
+  const sizes = () => screen.getAllByRole("img").map(image => [image.getAttribute("width"), image.getAttribute("height")]);
+  expect(sizes()).toEqual([["1920", "1080"], ["1080", "1920"]]);
+  view.rerender(<CameraPersonImageProvider>{null}</CameraPersonImageProvider>); view.rerender(overlay());
+  expect(sizes()).toEqual([["1920", "1080"], ["1080", "1920"]]);
+  expect(fetchImage).toHaveBeenCalledTimes(2);
+});
+
+it("changes the inset format only when the replacement image is decoded and retains it on failure", async () => {
+  vi.stubGlobal("Image", class {
+    src = ""; decode = decode;
+    get naturalWidth() { return this.src === "blob:frame-1" ? 1920 : 1440; }
+    naturalHeight = 1080;
+  });
+  const overlay = () => <CameraPersonImageProvider><CameraPersonSnapshot cameraId="example-camera" overlay /></CameraPersonImageProvider>;
+  const view = render(overlay()); await flush();
+  expect(screen.getByRole("img")).toHaveAttribute("width", "1920");
+  expect(screen.getByRole("img")).toHaveAttribute("height", "1080");
+  let finishDecode: () => void;
+  decode.mockReturnValueOnce(new Promise<void>(resolve => { finishDecode = resolve; }));
+  updateEntity(); view.rerender(overlay()); await flush();
+  expect(screen.getByRole("img")).toHaveAttribute("width", "1920");
+  await act(async () => finishDecode());
+  expect(screen.getByRole("img")).toHaveAttribute("width", "1440");
+  expect(screen.getByRole("img")).toHaveAttribute("height", "1080");
+  fetchImage.mockRejectedValueOnce(new Error()); updateEntity(); view.rerender(overlay()); await flush();
+  expect(screen.getByRole("img")).toHaveAttribute("width", "1440");
+  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveStyle({ width: "24%" });
+  expect(fetchImage).toHaveBeenCalledTimes(3);
 });
 
 it("discards old sources and late decodes, releases removed images, and refreshes changed server connections", async () => {

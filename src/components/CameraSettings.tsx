@@ -4,13 +4,17 @@ import { useApp } from "@/contexts/AppContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { newPlannerId } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { cameraSettingsSchema, go2rtcLink, homeAssistantPicturePath, type ConfiguredCamera } from "../../shared/cameras";
+import { cameraPersonPipWidths, cameraSettingsSchema, go2rtcLink, homeAssistantPicturePath, type ConfiguredCamera } from "../../shared/cameras";
+import { Check, UserRound, Video } from "lucide-react";
 import { EntityPicker } from "./EntityPicker";
 import { Go2rtcSourcePicker } from "./Go2rtcSourcePicker";
 import { Button } from "./ui/button";
 import { MediaSurface } from "./devices/EntityMedia";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
 import { ConfirmDialog } from "./common/ConfirmDialog";
+import "./camera-settings.css";
+
+const personSizes = { small: "Small", medium: "Medium", large: "Large", xlarge: "Extra large" } as const;
 
 export function CameraSettings() {
   const { message: t } = useI18n();
@@ -128,9 +132,15 @@ export function CameraSettings() {
             value={personImageEntities.find(entity => entity.entityId === snapshot.entity)?.preferenceId ?? (snapshot.entity ? `home|${snapshot.entity}` : "")}
             onChange={value => setDraft({ ...draft, personSnapshot: { type: "home-assistant", entity: personImageEntities.find(entity => entity.preferenceId === value)?.entityId ?? "" } })} /><p className="page-note">{t("Both image.* and camera.* entities are supported. Choose one showing the person snapshot. Use occupancy sensors to trigger notifications.")}</p></>}
           {snapshot.type === "frigate" && <><label>{t("Frigate connection")}<select value={snapshot.connectionId} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, connectionId: event.target.value } })}><option value="">{t("Choose a connection")}</option>{settings.connections.filter(item => item.type === "frigate").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>{t("Frigate camera name")}<input maxLength={128} value={snapshot.camera} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, camera: event.target.value } })} /></label><p className="page-note">{t("Add a Frigate snapshots connection under Manage connections if it is not listed.")}</p></>}
-          {snapshot.type !== "none" && <><label>{t("Person inset size")}<select value={draft.personPipSize ?? "medium"} onChange={event => setDraft({ ...draft, personPipSize: event.target.value as ConfiguredCamera["personPipSize"] })}>
-            <option value="small">{t("Small")}</option><option value="medium">{t("Medium")}</option><option value="large">{t("Large")}</option><option value="xlarge">{t("Extra large")}</option>
-          </select></label><p className="page-note">{t("Applies to fullscreen previews and notification cards for this camera.")}</p></>}
+          {snapshot.type !== "none" && <fieldset className="camera-person-size-picker" aria-describedby="camera-person-size-help">
+            <legend>{t("Person inset size")}</legend>
+            <p id="camera-person-size-help" className="page-note">{t("The inset covers this percentage of the video width, including in fullscreen and notification cards.")}</p>
+            <div className="camera-person-size-options">{(Object.keys(personSizes) as (keyof typeof personSizes)[]).map(size => <Button key={size} type="button" variant="outline" className="camera-person-size-option" aria-pressed={(draft.personPipSize ?? "medium") === size} onClick={() => setDraft({ ...draft, personPipSize: size })}>
+              <span className="camera-person-size-example" aria-hidden="true"><Video size={24} /><span style={{ width: `${cameraPersonPipWidths[size]}%` }}><UserRound /></span></span>
+              <span className="camera-person-size-label">{t(personSizes[size])}<Check size={18} aria-hidden="true" className={(draft.personPipSize ?? "medium") === size ? "" : "invisible"} /></span>
+              <span className="camera-person-size-percent">{t("{percent}% of video width", { percent: cameraPersonPipWidths[size] })}</span>
+            </Button>)}</div>
+          </fieldset>}
         </div></details>
       </fieldset>
       {error && <p role="alert" className="text-destructive">{t(error)}</p>}
