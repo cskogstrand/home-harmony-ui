@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.12
+
+<!-- release-source: 46fb25d90e9b181e956206d79ba944134a784079 -->
+
+- feat: clarify settings with cards and icons
+
 ## 0.10.11
 
 <!-- release-source: 83943d18c8ff4891b09c80382a983d27e804ae5e -->
