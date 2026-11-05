@@ -63,13 +63,17 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-test.txt
 ```
 
-Docker must be running with enough disk space, and Poppler must be installed. The signed `public/shortcuts/Upload timetable.shortcut` must be present and committed; see its build command in the [setup guide](../DOCS.md). The script checks the PDF tools and shortcut before changing `VERSION`, with setup instructions if either is missing.
+Docker must be running with enough disk space, Poppler must be installed, and GitHub CLI (`gh`) must be installed and signed in with `gh auth login`. The signed `public/shortcuts/Upload timetable.shortcut` must be present and committed; see its build command in the [setup guide](../DOCS.md). The script checks GitHub CLI, the PDF tools and the shortcut before changing `VERSION`, with setup instructions if anything is missing.
 
 The script patch-bumps `VERSION`, leaving `config.yaml` for CI to promote. It runs the UI, server, release and deploy tests, morning-summary and design checks, TypeScript, lint, production build and Docker smoke test. Only after all checks pass does it commit the version file and push `main`. Automatic bumps require stable `MAJOR.MINOR.PATCH` versions; use the manual release process below for other version changes.
 
-**If any check fails, the original version is restored and nothing is committed or pushed.** Concurrent edits are preserved. If the commit or push fails after testing, inspect the local release commit and finish the push manually; do not run the script again and bump twice. The script never force-pushes or resets your work.
+After pushing, it waits up to 60 seconds for that commit's release workflow to appear, then watches it until completion. Once the workflow succeeds, it pulls `origin/main` with fast-forward only, including the bot's configuration and changelog commit. The script stays running through the image build and publication. If the branch, commit or working tree changes while it waits, it leaves the checkout alone and asks you to pull manually.
 
-`npm run test:deploy` exercises the deploy script with temporary local Git repositories and fake test commands; it never publishes a real release.
+**If any local check fails, the original version is restored and nothing is committed or pushed.** Concurrent edits are preserved. If the commit or push fails after testing, inspect the local release commit and finish the push manually; do not run the script again and bump twice. The script never force-pushes or resets your work.
+
+If workflow discovery, watching or the final pull fails after the push, the release has already been requested. Inspect its GitHub Actions run, fix or retry it as needed, then run `git pull --ff-only origin main` after it succeeds. Do not rerun `deploy.sh` just to sync, because that requests another version.
+
+`npm run test:deploy` exercises the deploy script with temporary local Git repositories and fake test/GitHub CLI commands; it never contacts GitHub or publishes a real release.
 
 ## Publishing an app update
 
@@ -78,7 +82,7 @@ The script patch-bumps `VERSION`, leaving `config.yaml` for CI to promote. It ru
 1. Finish the release changes, use descriptive commit messages, and run the [verification commands](#verification). The workflow generates the changelog.
 2. Increase the plain version in the root `VERSION` file, for example from `0.9.8` to `0.9.9`. Use three numbers without a `v` prefix or prerelease suffix. Commit and push the changes to `main`, or merge a pull request containing the bump. No release tag is needed.
 3. Watch **Publish Home Assistant image** in GitHub Actions. It builds and smoke-tests native AMD64 and ARM64 images from that commit. Inside the build checkout, it sets `config.yaml` to the requested version so the app displays the right version; the published repository configuration stays unchanged.
-4. After pushing the versioned manifest, the workflow downloads both images using an empty Docker configuration to verify anonymous access, architectures, versions and source commit. It then commits the new `config.yaml` version and its `CHANGELOG.md` entry together to current `main`. Home Assistant can now offer the update with matching release notes. Pull the bot commit before your next local push.
+4. After pushing the versioned manifest, the workflow downloads both images using an empty Docker configuration to verify anonymous access, architectures, versions and source commit. It then commits the new `config.yaml` version and its `CHANGELOG.md` entry together to current `main`. Home Assistant can now offer the update with matching release notes. Pull the bot commit before your next local push; `deploy.sh` waits for this workflow and pulls automatically.
 
 Changelog entries list commit subjects since the previous published source commit, excluding merge commits and the automated `chore: release …` version bumps. Changes committed during a build are included in the next release. Each generated section keeps a hidden `release-source` commit marker; preserve it when editing the notes. The workflow requires the previous published version's marker and stops if the new version already has an entry, rather than overwriting handwritten notes. Existing historical notes are preserved.
 

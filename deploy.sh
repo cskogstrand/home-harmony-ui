@@ -8,6 +8,8 @@ fail() { echo "$*" >&2; exit 1; }
 [[ -z $(git status --porcelain) ]] || fail "Commit or stash local changes first."
 git fetch origin main
 git merge-base --is-ancestor FETCH_HEAD HEAD || fail "Pull origin/main before deploying."
+command -v gh >/dev/null 2>&1 || fail "GitHub CLI is required: install gh and run 'gh auth login'."
+gh auth status >/dev/null 2>&1 || fail "Sign in to GitHub CLI with 'gh auth login' before deploying."
 for executable in pdfinfo pdftoppm; do
   "$executable" -v >/dev/null 2>&1 || fail "Poppler is required: run 'brew install poppler' on macOS or install poppler-utils on Linux."
 done
@@ -18,12 +20,15 @@ deploy_head=$(git rev-parse HEAD)
 deploy_backup=$(mktemp)
 deploy_expected=$(mktemp)
 deploy_committing=false
+deploy_pushed=false
 cp "$deploy_file" "$deploy_backup"
 cleanup() {
   deploy_status=$?
   trap - EXIT
   if [[ $deploy_status -ne 0 ]]; then
-    if [[ $deploy_committing == false ]]; then
+    if [[ $deploy_pushed == true ]]; then
+      echo "Release already pushed. Check its workflow, then run 'git pull --ff-only origin main' after it succeeds; do not bump again." >&2
+    elif [[ $deploy_committing == false ]]; then
       # Restore our bump without overwriting a concurrent edit or commit.
       if [[ $(git rev-parse HEAD) == "$deploy_head" ]] && cmp -s "$deploy_file" "$deploy_expected"; then
         cp "$deploy_backup" "$deploy_file"
@@ -78,4 +83,17 @@ deploy_commit=$(git rev-parse HEAD)
 [[ $(git diff --name-only HEAD^ HEAD) == "$deploy_file" ]] || fail "Commit must change only the version file."
 cmp -s "$deploy_file" "$deploy_expected" || fail "Version changed during commit."
 git -c push.followTags=false push origin "$deploy_commit:refs/heads/main"
-echo "Release $deploy_version pushed. Watch its workflow in GitHub Actions."
+deploy_pushed=true
+echo "Release $deploy_version pushed. Waiting for its GitHub Actions workflow."
+deploy_run=
+for ((attempt = 0; attempt < 30; attempt++)); do
+  deploy_run=$(gh run list --workflow publish-image.yml --branch main --event push --commit "$deploy_commit" --json databaseId --jq '.[0].databaseId // empty')
+  [[ -z $deploy_run ]] || break
+  sleep 2
+done
+[[ -n $deploy_run ]] || fail "Release workflow did not appear within 60 seconds."
+gh run watch "$deploy_run" --exit-status --interval 10
+
+[[ $(git branch --show-current) == main && $(git rev-parse HEAD) == "$deploy_commit" && -z $(git status --porcelain) ]] || fail "Checkout changed while waiting; pull origin/main manually when ready."
+git pull --ff-only --no-rebase --no-autostash origin main
+echo "Release workflow completed; main is synced with origin/main."

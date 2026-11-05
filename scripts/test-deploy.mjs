@@ -5,8 +5,9 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 const directory = mkdtempSync(join(tmpdir(), "home-harmony-deploy-"));
-const prerequisites = ["pdfinfo -v", "pdftoppm -v"];
+const prerequisites = ["gh auth status", "pdfinfo -v", "pdftoppm -v"];
 const checks = ["npm run --silent test:silent", "npm run --silent test:server:silent", "npm run --silent test:release", "npm run --silent test:deploy", "node scripts/test-morning-summary.mjs", "python scripts/test-morning-summary-templates.py", "node scripts/check-designs.cjs", "tsc --noEmit -p tsconfig.app.json", "npm run --silent lint", "npm run --silent build", "npm run --silent test:ha-app"];
+const watch = "gh run watch 42 --exit-status --interval 10";
 const write = (file, content, executable = false) => {
   mkdirSync(dirname(file), { recursive: true });
   writeFileSync(file, content, { mode: executable ? 0o755 : 0o644 });
@@ -34,6 +35,37 @@ if (process.env.DEPLOY_TEST_DIRTY === call) fs.writeFileSync('unrelated.txt', 'c
 if (process.env.DEPLOY_TEST_FAIL === call) process.exit(1);
 `;
   write(join(root, "bin/npm"), check("npm"), true);
+  write(join(root, "bin/sleep"), check("sleep"), true);
+  write(join(root, "bin/gh"), check("gh") + `
+const assert = require('node:assert/strict');
+const { execFileSync } = require('node:child_process');
+const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+if (process.argv[2] === 'auth') process.exit(0);
+if (process.argv[3] === 'list') {
+  assert.deepEqual(process.argv.slice(2), ['run', 'list', '--workflow', 'publish-image.yml', '--branch', 'main', '--event', 'push', '--commit', git(process.cwd(), 'rev-parse', 'HEAD'), '--json', 'databaseId', '--jq', '.[0].databaseId // empty']);
+  if (process.env.DEPLOY_TEST_LIST_FAIL) process.exit(1);
+  if (process.env.DEPLOY_TEST_NO_RUN) process.exit(0);
+  if (process.env.DEPLOY_TEST_DELAY_RUN && fs.readFileSync(process.env.DEPLOY_TEST_LOG, 'utf8').split('gh run list').length === 2) process.exit(0);
+  console.log('42');
+} else {
+  assert.deepEqual(process.argv.slice(2), ['run', 'watch', '42', '--exit-status', '--interval', '10']);
+  const remote = git(process.cwd(), 'remote', 'get-url', 'origin');
+  const promotion = remote + '-promotion';
+  git(process.cwd(), 'clone', '--quiet', remote, promotion);
+  fs.writeFileSync(promotion + '/config.yaml', 'version: "0.9.10"\\n');
+  fs.writeFileSync(promotion + '/CHANGELOG.md', '# Changelog\\n\\n## 0.9.10\\n');
+  git(promotion, 'add', 'config.yaml', 'CHANGELOG.md');
+  git(promotion, 'commit', '-m', 'chore: release Home Assistant 0.9.10');
+  git(promotion, 'push', 'origin', 'main');
+  if (process.env.DEPLOY_TEST_LOCAL_COMMIT) {
+    fs.writeFileSync('unrelated.txt', 'concurrent work\\n');
+    git(process.cwd(), 'add', 'unrelated.txt');
+    git(process.cwd(), 'commit', '-m', 'test: concurrent work');
+  }
+  if (process.env.DEPLOY_TEST_SWITCH_BRANCH) git(process.cwd(), 'checkout', '-b', 'other');
+  if (process.env.DEPLOY_TEST_PULL_FAIL) fs.renameSync(remote, remote + '-offline');
+}
+`, true);
   for (const executable of ["pdfinfo", "pdftoppm"]) write(join(root, "bin", executable), check(executable), true);
   write(log, "");
   write(join(cwd, "VERSION"), "0.9.9\n");
@@ -79,14 +111,57 @@ try {
   const result = success.run();
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.equal(readFileSync(join(success.cwd, "VERSION"), "utf8"), "0.9.10\n");
-  assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^", "HEAD"), "VERSION");
+  assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^^", "HEAD^"), "VERSION");
+  assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^", "HEAD"), "CHANGELOG.md\nconfig.yaml");
   assert.equal(success.git(success.cwd, "status", "--porcelain"), "");
   assert.equal(success.git(success.cwd, "rev-parse", "HEAD"), success.git(success.remote, "rev-parse", "main"));
-  assert.equal(readFileSync(join(success.cwd, "config.yaml"), "utf8"), 'version: "0.9.8"\n');
-  assert.deepEqual(success.calls(), [...prerequisites, ...checks, "push"], "Every local check must pass before pushing");
+  assert.equal(readFileSync(join(success.cwd, "config.yaml"), "utf8"), 'version: "0.9.10"\n');
+  const releaseCommit = success.git(success.cwd, "rev-parse", "HEAD^");
+  const list = `gh run list --workflow publish-image.yml --branch main --event push --commit ${releaseCommit} --json databaseId --jq .[0].databaseId // empty`;
+  assert.deepEqual(success.calls(), [...prerequisites, ...checks, "push", list, watch, "push"], "Checks precede the push; sync includes the later workflow commit");
+
+  const auth = fixture("missing-auth");
+  auth.env.DEPLOY_TEST_FAIL = "gh auth status";
+  const authFailure = auth.run();
+  assert.notEqual(authFailure.status, 0);
+  assert.match(authFailure.stderr, /gh auth login/);
+  unchanged(auth);
+
+  const delayed = fixture("delayed-workflow");
+  delayed.env.DEPLOY_TEST_DELAY_RUN = "true";
+  const delayedResult = delayed.run();
+  assert.equal(delayedResult.status, 0, delayedResult.stdout + delayedResult.stderr);
+  assert.equal(delayed.calls().filter(call => call.startsWith("gh run list")).length, 2);
+  assert.equal(delayed.git(delayed.cwd, "rev-parse", "HEAD"), delayed.git(delayed.remote, "rev-parse", "main"));
+
+  for (const mode of ["workflow-failed", "workflow-missing", "workflow-api-failed", "pull-failed", "dirty-while-waiting", "commit-while-waiting", "branch-while-waiting"]) {
+    const stopped = fixture(mode);
+    if (mode === "workflow-failed") stopped.env.DEPLOY_TEST_FAIL = watch;
+    if (mode === "workflow-missing") stopped.env.DEPLOY_TEST_NO_RUN = "true";
+    if (mode === "workflow-api-failed") stopped.env.DEPLOY_TEST_LIST_FAIL = "true";
+    if (mode === "pull-failed") stopped.env.DEPLOY_TEST_PULL_FAIL = "true";
+    if (mode === "dirty-while-waiting") stopped.env.DEPLOY_TEST_DIRTY = watch;
+    if (mode === "commit-while-waiting") stopped.env.DEPLOY_TEST_LOCAL_COMMIT = "true";
+    if (mode === "branch-while-waiting") stopped.env.DEPLOY_TEST_SWITCH_BRANCH = "true";
+    const stoppedResult = stopped.run();
+    assert.notEqual(stoppedResult.status, 0, mode);
+    assert.match(stoppedResult.stderr, /Release already pushed/);
+    assert.doesNotMatch(stoppedResult.stderr, /finish the push manually/);
+    assert.equal(readFileSync(join(stopped.cwd, "VERSION"), "utf8"), "0.9.10\n");
+    assert.equal(readFileSync(join(stopped.cwd, "config.yaml"), "utf8"), 'version: "0.9.8"\n');
+    assert.notEqual(stopped.git(stopped.cwd, "rev-parse", "HEAD"), stopped.head);
+    if (mode === "workflow-missing") {
+      assert.match(stoppedResult.stderr, /did not appear within 60 seconds/);
+      assert.equal(stopped.calls().filter(call => call === "sleep 2").length, 30);
+      assert.ok(!stopped.calls().includes(watch));
+    }
+    if (mode.endsWith("while-waiting")) assert.match(stoppedResult.stderr, /Checkout changed while waiting/);
+    if (["dirty-while-waiting", "commit-while-waiting"].includes(mode)) assert.equal(readFileSync(join(stopped.cwd, "unrelated.txt"), "utf8"), "concurrent work\n");
+    if (mode === "branch-while-waiting") assert.equal(stopped.git(stopped.cwd, "branch", "--show-current"), "other");
+  }
 
   for (const check of ["npm run --silent test:server:silent", "npm run --silent test:ha-app"]) {
-    const failed = fixture(check.replaceAll(" ", "-"));
+    const failed = fixture(check.replace(/[^a-z0-9-]/gi, "-"));
     failed.env.DEPLOY_TEST_FAIL = check;
     const failure = failed.run();
     assert.notEqual(failure.status, 0);
@@ -99,7 +174,7 @@ try {
   const popplerFailure = missingPoppler.run();
   assert.notEqual(popplerFailure.status, 0);
   assert.match(popplerFailure.stderr, /brew install poppler/);
-  assert.deepEqual(missingPoppler.calls(), ["pdfinfo -v"]);
+  assert.deepEqual(missingPoppler.calls(), ["gh auth status", "pdfinfo -v"]);
   unchanged(missingPoppler);
 
   const missingShortcut = fixture("missing-shortcut");
@@ -148,7 +223,7 @@ try {
   assert.match(failure.stderr, /finish the push manually; do not bump again/);
   assert.equal(rejected.git(rejected.remote, "rev-parse", "main"), rejected.head);
   assert.notEqual(rejected.git(rejected.cwd, "rev-parse", "HEAD"), rejected.head, "Keep the local version commit after a failed push");
-  console.log("Deploy checks passed: standalone checkout, patch bump, checks before push, failed-test rollback and Git safeguards.");
+  console.log("Deploy checks passed: patch bump, checks before push, rollback, workflow waiting, post-release sync and concurrent-work safeguards.");
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }
