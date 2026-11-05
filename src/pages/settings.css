@@ -39,6 +39,22 @@
 .settings-control-row > [role="switch"] { flex-shrink: 0; }
 .settings-control-row .page-note { margin-top: .25rem; max-width: 48ch; }
 .settings-preferences .panel-heading { margin-bottom: .25rem; }
+.modal-glass-settings { display: grid; gap: 1rem; }
+.modal-glass-settings .panel-heading { margin-bottom: 0; }
+.modal-glass-settings > button { justify-self: start; }
+.modal-glass-preview { position: relative; isolation: isolate; overflow: hidden; display: grid; place-items: center; min-height: 15rem; padding: 1.25rem; border-radius: 24px; background: hsl(var(--background)); }
+.modal-glass-preview-scene { position: absolute; inset: 1rem; display: grid; gap: .75rem; }
+.modal-glass-preview-scene > span { display: flex; align-items: center; gap: 1rem; padding: .75rem 1rem; border-radius: 14px; background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.modal-glass-preview-scene > span:nth-child(2) { margin-left: 20%; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.modal-glass-preview-scene > span:nth-child(3) { margin-right: 20%; background: hsl(var(--secondary)); }
+.modal-glass-preview-dimmer { position: absolute; inset: 0; }
+.modal-glass-preview-surface { position: relative; width: min(100%, 22rem); padding: 1.5rem; border-radius: 28px; text-align: center; }
+.modal-glass-preview-surface strong { font-size: 1.25rem; font-weight: 600; }
+.modal-glass-preview-surface p { margin-top: .5rem; }
+.modal-glass-controls { display: grid; gap: .5rem; }
+.modal-glass-control > div:first-child { display: flex; justify-content: space-between; gap: 1rem; }
+.modal-glass-control output { font-variant-numeric: tabular-nums; }
+.modal-glass-control [data-disabled] { opacity: .45; }
 .settings-content .palette-fieldset { margin-top: 0; }
 .settings-storage-warning { padding: 1rem 1.25rem; border: 1px solid hsl(var(--warning)); border-radius: 14px; color: hsl(var(--warning)); }
 .settings-related { justify-self: start; min-height: 44px; }

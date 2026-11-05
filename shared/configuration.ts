@@ -3,6 +3,7 @@ import { notificationSettingsSchema } from "./notifications.ts";
 import { cameraSettingsSchema } from "./cameras.ts";
 
 export const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
+export const defaultModalGlass = { modalTransparency: 70, modalBlur: 20, modalSaturation: 150, modalDimming: 20 };
 export function isPlannerDate(value: string | null): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T12:00:00Z`);
@@ -119,6 +120,10 @@ const plannerObjectSchema = z.object({
     colorPalette: z.enum(["pearl", "sage", "sand", "dusk", "mist", "rose", "olive", "clay", "lavender", "seafoam", "honey", "slate"]).default("pearl"),
     compactMode: z.boolean(),
     darkTimetables: z.boolean().default(false),
+    modalTransparency: z.number().int().min(0).max(85).default(defaultModalGlass.modalTransparency),
+    modalBlur: z.number().int().min(8).max(48).default(defaultModalGlass.modalBlur),
+    modalSaturation: z.number().int().min(100).max(200).default(defaultModalGlass.modalSaturation),
+    modalDimming: z.number().int().min(0).max(60).default(defaultModalGlass.modalDimming),
   }).strict().default({ theme: "dark", colorPalette: "pearl", compactMode: false, darkTimetables: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),
   morningSummaryEntity: z.union([memberSchema, z.literal("")]).default("sensor.afterglow_morning_summary"),

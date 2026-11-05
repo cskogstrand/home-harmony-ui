@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import type { Language } from "@/lib/i18n";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ModalGlassSettings } from "@/components/ModalGlassSettings";
 
 const palettes = [
   { value: "pearl", name: "Pearl" },
@@ -34,6 +35,7 @@ export default function UserSettings({ section = "appearance" }: { section?: "ap
       <label className="settings-control-row"><span>{t("Dark timetables")}<span id="dark-timetables-description" className="page-note block">{t("Dark backgrounds for PDF timetables. Linked images keep their colors.")}</span></span><Switch disabled={disabled} checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label={t("Toggle dark timetables")} aria-describedby="dark-timetables-description" /></label>
       <label className="settings-control-row">{t("Compact mode")}<Switch disabled={disabled} checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label={t("Toggle compact mode")} /></label>
     </section>}
+    {section === "appearance" && <ModalGlassSettings disabled={disabled} />}
     {section === "appearance" && <section className="glow-panel">
       <fieldset className="palette-fieldset">
         <legend id="color-palette-label"><span className="panel-title"><Palette className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Color palette")}</span></span></legend>

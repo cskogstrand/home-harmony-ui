@@ -64,6 +64,8 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 ## Household preferences
 
+**Settings → Appearance → Modal glass** controls dialog transparency (0–85%), frost (8–48px), color saturation (100–200%) and background dimming (0–60%). Defaults are 70%, 20px, 150% and 20%. The preview updates while dragging; releasing a slider saves the setting across screens. **Reset glass appearance** restores only these four values. Older settings and backups receive the defaults, and new backups include the choices. Reduced transparency, increased contrast, forced colors and browsers without backdrop filtering retain solid dialog surfaces. Menus, navigation and normal reading panels retain their existing material.
+
 In **Home settings**, choose people visibility and order, calendar assignments, one task and daily-task list per person, and a shared shopping list. Hidden people keep their assignments and timetable files. All people come from Home Assistant; add a person there for shared plans and tasks, then assign its calendars and lists in Home settings. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
 
 Reassign calendars and task lists previously linked to the built-in Everyone person in **Home settings**. Their events and items stay in Home Assistant.

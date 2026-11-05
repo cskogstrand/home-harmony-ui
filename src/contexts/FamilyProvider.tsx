@@ -8,6 +8,7 @@ import { SharedConfigurationProvider } from "./SharedConfigurationProvider";
 import { plannerSettings, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration } from "../../shared/configuration";
 import { memberPalette } from "@/lib/member-colors";
 import { moveSmartHomeCard } from "@/lib/smart-home-cards";
+import { modalGlassProperties } from "@/lib/modal-glass";
 
 export function FamilyProvider({ children }: { children: ReactNode }) {
   return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
@@ -42,6 +43,11 @@ function FamilyStore({ children }: { children: ReactNode }) {
     document.documentElement.style.colorScheme = planner.appearance.theme;
     document.documentElement.dataset.colorPalette = planner.appearance.colorPalette;
   }, [planner.appearance.theme, planner.appearance.colorPalette]);
+  useEffect(() => {
+    const properties = modalGlassProperties(planner.appearance);
+    for (const [name, value] of Object.entries(properties)) document.documentElement.style.setProperty(name, value);
+    return () => { for (const name of Object.keys(properties)) document.documentElement.style.removeProperty(name); };
+  }, [planner.appearance]);
   useEffect(() => {
     document.documentElement.lang = language;
     document.title = t("Afterglow · Family at home");

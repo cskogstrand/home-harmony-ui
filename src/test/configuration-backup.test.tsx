@@ -4,7 +4,7 @@ import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { useFamily } from "@/contexts/FamilyContext";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import UserSettings from "@/pages/UserSettings";
-import { emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shared/configuration";
+import { defaultModalGlass, emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shared/configuration";
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { timeZone: "UTC", entities: [] }, configurationRequest: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
@@ -24,11 +24,24 @@ it("defaults old appearance settings to normal timetables and validates the new 
   expect(() => parseConfiguration(JSON.stringify({ ...old, settings: { ...old.settings, appearance: { ...old.settings.appearance, darkTimetables: "true" } } }))).toThrow();
 });
 
+it("defaults older configurations to lighter modal glass and rejects invalid glass settings", () => {
+  const config = emptyConfiguration();
+  const appearance = { theme: "dark", compactMode: false };
+  const read = (settings = {}) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, appearance: { ...appearance, ...settings } } }));
+  expect(read().settings.appearance).toMatchObject(defaultModalGlass);
+  for (const [key, min, max] of [["modalTransparency", 0, 85], ["modalBlur", 8, 48], ["modalSaturation", 100, 200], ["modalDimming", 0, 60]] as const) {
+    expect(read({ [key]: min }).settings.appearance[key]).toBe(min);
+    expect(read({ [key]: max }).settings.appearance[key]).toBe(max);
+    for (const value of [min - 1, max + 1, min + .5, "20", null]) expect(() => read({ [key]: value })).toThrow();
+  }
+});
+
 const upload = async (contents: string) => {
   const file = Object.assign(new File([contents], "backup.json", { type: "application/json" }), { text: async () => contents });
   await act(async () => fireEvent.change(screen.getByLabelText("Configuration backup file"), { target: { files: [file] } }));
 };
 beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   const storage = new Map<string, string>();
   vi.stubGlobal("localStorage", { get length() { return storage.size; }, key: (i: number) => [...storage.keys()][i], getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   app.homeOnline = true;
@@ -174,5 +187,48 @@ it("keeps a failed palette save as an unsaved draft and blocks further choices u
   expect(document.documentElement).toHaveAttribute("data-color-palette", "sand");
   expect(screen.getByRole("radio", { name: "Sand" })).toBeChecked();
   expect(screen.getByRole("radio", { name: "Dusk" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
+});
+
+it("saves keyboard glass changes, restores them after reload, and resets only glass appearance", async () => {
+  const view = render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  await screen.findByText("Shared configuration saved.");
+  for (const name of ["Transparency", "Frost", "Color saturation", "Background dimming"]) {
+    fireEvent.keyDown(screen.getByRole("slider", { name }), { key: "ArrowRight" });
+    await screen.findByText("Shared configuration saved.");
+  }
+  const saved = parseConfiguration(app.configurationRequest.mock.calls.filter(([method]) => method === "PUT").slice(-1)[0][1]);
+  expect(saved.settings.appearance).toMatchObject({ modalTransparency: 71, modalBlur: 21, modalSaturation: 151, modalDimming: 21 });
+  expect(document.documentElement.style.getPropertyValue("--modal-glass-opacity")).toBe("0.29");
+  expect(document.documentElement.style.getPropertyValue("--modal-glass-blur")).toBe("21px");
+  expect(document.documentElement.style.getPropertyValue("--modal-glass-saturation")).toBe("1.51");
+  expect(document.documentElement.style.getPropertyValue("--modal-backdrop-opacity")).toBe("0.21");
+  saved.settings.appearance.modalDimming = 30;
+  await upload(JSON.stringify(saved));
+  await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
+  expect(screen.getByRole("slider", { name: "Background dimming" })).toHaveAttribute("aria-valuenow", "30");
+  fireEvent.click(screen.getByRole("radio", { name: "Sage" }));
+  await screen.findByText("Shared configuration saved.");
+  view.unmount();
+  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  await screen.findByText("Shared configuration saved.");
+  expect(screen.getByRole("slider", { name: "Transparency" })).toHaveAttribute("aria-valuenow", "71");
+  expect(screen.getByRole("slider", { name: "Frost" })).toHaveAttribute("aria-valuenow", "21");
+  fireEvent.click(screen.getByRole("button", { name: "Reset glass appearance" }));
+  await screen.findByText("Shared configuration saved.");
+  expect(screen.getByRole("slider", { name: "Background dimming" })).toHaveAttribute("aria-valuenow", "20");
+  expect(screen.getByRole("radio", { name: "Sage" })).toBeChecked();
+  expect(document.documentElement).toHaveClass("dark");
+});
+
+it("preserves a failed glass save and disables sliders until recovery", async () => {
+  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  await screen.findByText("Shared configuration saved.");
+  app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  fireEvent.keyDown(screen.getByRole("slider", { name: "Transparency" }), { key: "ArrowRight" });
+  await screen.findByText(/Another screen changed the configuration/);
+  expect(screen.getByRole("slider", { name: "Transparency" })).toHaveAttribute("aria-valuenow", "71");
+  for (const slider of screen.getAllByRole("slider")) expect(slider).toHaveAttribute("data-disabled");
+  expect(screen.getByRole("button", { name: "Reset glass appearance" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
 });
