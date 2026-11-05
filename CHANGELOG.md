@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.11
+
+<!-- release-source: 83943d18c8ff4891b09c80382a983d27e804ae5e -->
+
+- fix: sync main after release workflow
+- feat: add adjustable modal glass
+- feat: add morning summary dialog and controls
+
 ## 0.10.10
 
 <!-- release-source: cf9a0c70d1eaf4a36a063be7200ccf19f121077f -->
