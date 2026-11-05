@@ -31,6 +31,7 @@ const summaryTemplate = config.template.find(template => template.triggers[0].ev
 assert.equal(summaryTemplate.sensor[0].default_entity_id, "sensor.afterglow_morning_summary");
 assert.equal(summaryTemplate.sensor[0].state, "{{ trigger.event.data.date }}");
 assert.equal(summaryTemplate.sensor[0].attributes.message, "{{ trigger.event.data.message }}");
+assert.equal(summaryTemplate.sensor[0].attributes.generated_at, "{{ now().isoformat() }}");
 const settings = config["script morning_summary"].family_timetables.sequence.find(action => action.variables)?.variables.result;
 const timetableScript = config["script morning_summary"].family_timetables;
 const timetableCommand = config.rest_command.family_timetables;

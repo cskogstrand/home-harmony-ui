@@ -65,6 +65,18 @@ For example, publish `icon_name: coffee` in the sensor's attributes to display a
 
 Validate the example YAML offline with `node scripts/test-morning-summary.mjs`. Run `python3 scripts/test-morning-summary-templates.py` with Jinja2 and PyYAML installed to exercise the actual structure, validation and formatting templates with fictional data. Neither check connects to Home Assistant.
 
+### Display and playback placement
+
+In **Today → Customize Today → Morning summary**, enable **Hide morning summary content** to show only the panel heading and playback button. Both grouped messages and the fallback text are hidden; command errors and offline feedback remain visible. The panel still requires a non-empty summary dated today.
+
+Under **Everyone’s day**, enable **Show summary button in Everyone’s day** to add **Show morning summary** at the top right of that section. It opens a modal with the full summary and its playback button, independently of the Morning summary section's visibility and **Hide morning summary content** setting. Opening it never starts playback. Reading remains available without a playback script or enabled helper, and cached summaries can be read offline. Long summaries scroll inside the modal while the heading and actions remain reachable; Escape or Close returns focus to the opening button.
+
+When this option is on, the summary sensor, playback script and playback switch pickers remain accessible under Morning summary even if that section is hidden. The panel and modal use the same selected sensor, script, helper and pending/error state. Missing, empty or other-day summaries hide the panel and the modal button. The existing playback restrictions below apply in both places. Previously saved Everyone’s day playback-button selections now show the modal button instead.
+
+Both options default to off, sync across screens and are included in configuration backups.
+
+The modal footer shows **Last generated** from the sensor's `generated_at` attribute, formatted in the dashboard language and Home Assistant's time zone. This attribute must be an ISO 8601 timestamp with a time-zone offset. The example template sensor records it whenever a summary is published; merge the updated `template` block and reload Template entities to enable it on the next generated summary. Older or custom sensors without a valid `generated_at` show **Last updated** using Home Assistant's `last_updated` instead, since metadata changes or state restoration can also update that timestamp. Missing or invalid timestamps show **Not reported**.
+
 ## Spoken morning summary in Norwegian
 
 The [spoken-summary script](../examples/home-assistant/morning-summary-voice.yaml) reads the selected sensor's `messages` entries with the same `message` fallback, chooses one of five delivery styles, asks an AI Task to rewrite it in natural Norwegian Bokmål, and plays the result through Home Assistant Cloud with [`tts.speak`](https://www.home-assistant.io/actions/tts.speak/). The prompt preserves names, times, responsibilities and reminders while varying the wording. It prioritizes all time details over brevity, uses explicit 24-hour spoken times (16:30 becomes "klokken seksten tretti"), and keeps relative instructions such as "møt tretti minutter før" without calculating new arrival or departure times. Conflicting times must be flagged for clarification. Each invocation generates fresh text; random styles and wording can still repeat. The selected voice stays the same.

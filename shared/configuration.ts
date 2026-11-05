@@ -96,6 +96,8 @@ const plannerObjectSchema = z.object({
       .refine(order => new Set(order).size === order.length, "Dashboard sections must be unique.")
       .transform(order => [...order, ...dashboardSections.filter(section => !order.includes(section))]),
     morningSummary: z.boolean().default(true),
+    hideMorningSummaryContent: z.boolean().default(false),
+    daySummaryPlayback: z.boolean().default(false),
     wasteCollection: z.boolean().default(false),
     nextPlan: z.boolean().default(true),
     nextPlanDays: z.union([z.literal("auto"), z.number().int().min(0).max(90)]).default("auto"),

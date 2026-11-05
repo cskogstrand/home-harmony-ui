@@ -444,7 +444,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
   expect(within(dialog).getByRole("switch", { name: "Waste collection" })).not.toBeChecked();
-  const toggles = within(dialog).getAllByRole("switch").filter(toggle => !["Show tomorrow’s plans", "Waste collection"].includes(toggle.getAttribute("aria-label")));
+  const toggles = within(dialog).getAllByRole("switch").filter(toggle => !["Show tomorrow’s plans", "Waste collection", "Hide morning summary content", "Show summary button in Everyone’s day"].includes(toggle.getAttribute("aria-label")));
   expect(toggles).toHaveLength(8);
   for (const toggle of toggles) { expect(toggle).toBeChecked(); fireEvent.click(toggle); }
   expect(within(dialog).getByRole("switch", { name: "Show tomorrow’s plans" })).toBeDisabled();
@@ -471,7 +471,53 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ order: [...dashboardSections], morningSummary: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ order: [...dashboardSections], morningSummary: false, hideMorningSummaryContent: false, daySummaryPlayback: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+});
+
+it("persists summary display choices and keeps playback configuration accessible with the summary panel hidden", async () => {
+  const today = homeDate(new Date(), "UTC");
+  app.currentHome = mapHome({
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", today, {
+      message: "Example legacy summary.", messages: [{ key: "example", name: "Example group", emoji: "☀️", text: "Example group summary." }],
+    }),
+    "script.morning_summary_voice": state("script.morning_summary_voice", "off"),
+  }, emptyRegistries, "home");
+  app.currentHome.timeZone = "UTC";
+  const first = render(<App />); await saved();
+  expect(screen.getByText("Example group summary.")).toBeVisible();
+  expect(within(screen.getByRole("region", { name: "Everyone’s day" })).queryByRole("button", { name: "Show morning summary" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Hide morning summary content" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Show summary button in Everyone’s day" }));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  const summary = screen.getByRole("region", { name: "Morning summary" });
+  expect(within(summary).getByRole("heading", { name: "Morning summary" })).toBeVisible();
+  expect(within(summary).getByRole("button", { name: "Play summary" })).toBeVisible();
+  expect(within(summary).queryByRole("list")).not.toBeInTheDocument();
+  expect(screen.queryByText("Example group summary.")).not.toBeInTheDocument();
+  expect(screen.queryByText("Example legacy summary.")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Morning summary" }));
+  expect(screen.getByRole("button", { name: "Morning summary sensor" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Playback script" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Playback switch (input_boolean)" })).toBeEnabled();
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  first.unmount();
+  render(<App />); await saved();
+  expect(screen.queryByRole("region", { name: "Morning summary" })).not.toBeInTheDocument();
+  const show = within(screen.getByRole("region", { name: "Everyone’s day" })).getByRole("button", { name: "Show morning summary" });
+  fireEvent.click(show);
+  const modal = screen.getByRole("dialog", { name: "Morning summary" });
+  expect(within(modal).getByText("Example group summary.")).toBeVisible();
+  expect(within(modal).queryByText("Example legacy summary.")).not.toBeInTheDocument();
+  expect(within(modal).getByRole("button", { name: "Play summary" })).toBeDisabled();
+  fireEvent.keyDown(modal, { key: "Escape" });
+  await waitFor(() => expect(show).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  expect(screen.getByRole("switch", { name: "Hide morning summary content" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Show summary button in Everyone’s day" })).toBeChecked();
 });
 
 it("reorders Today sections, preserves hidden positions across reload and resets only the order", async () => {

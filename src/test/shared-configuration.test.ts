@@ -107,6 +107,23 @@ it.each([
   expect(b.getSnapshot().config.settings[field]).toBe("");
 });
 
+it.each(["hideMorningSummaryContent", "daySummaryPlayback"] as const)("defaults older %s settings and shares and restores the choice", async field => {
+  const config = emptyConfiguration();
+  delete config.settings.dashboard[field];
+  expect(parseConfiguration(JSON.stringify(config)).settings.dashboard[field]).toBe(false);
+  for (const value of [null, "true", 1, []]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, [field]: value } } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, [field]: true } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.dashboard[field]).toBe(true);
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings.dashboard[field]).toBe(true);
+});
+
 it("defaults weather to Today and shares and restores the source and placements", async () => {
   const config = emptyConfiguration();
   delete config.settings.weatherEntity;
@@ -185,11 +202,13 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { order, showTomorrow, wasteCollection, nextPlanDays, ...sections } = dashboard;
+  const { order, showTomorrow, wasteCollection, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, ...sections } = dashboard;
   expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
+  expect(hideMorningSummaryContent).toBe(false);
+  expect(daySummaryPlayback).toBe(false);
   expect(Object.values(sections).every(Boolean)).toBe(true);
   const read = (dashboard: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, dashboard } }));
   expect(read({ shopping: false }).settings.dashboard).toEqual({ ...dashboard, shopping: false });

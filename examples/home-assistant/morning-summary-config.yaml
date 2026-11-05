@@ -29,6 +29,7 @@ template:
         attributes:
           # Attributes keep the full summary beyond HA's 255-character state limit.
           message: "{{ trigger.event.data.message }}"
+          generated_at: "{{ now().isoformat() }}"
 
 script morning_summary:
   family_timetables:

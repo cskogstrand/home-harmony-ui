@@ -433,6 +433,119 @@ it.each([
   expect(ha.callService).toHaveBeenCalledTimes(2);
 });
 
+it.each([true, false])("opens the summary from Everyone’s day with the panel enabled=%s and plays only from the dialog", async panelEnabled => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
+  serverConfig.settings.dashboard.morningSummary = panelEnabled;
+  serverConfig.settings.dashboard.hideMorningSummaryContent = true;
+  serverConfig.settings.dashboard.daySummaryPlayback = true;
+  serverConfig.settings.morningSummaryPlaybackEntity = "input_boolean.example_playback";
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  const summaryId = "sensor.afterglow_morning_summary", scriptId = "script.morning_summary_voice";
+  const publish = (date = "2026-10-19", message: unknown = "Example summary.", helper = "on") => act(() => conn.entityCallback?.({
+    ...states,
+    [summaryId]: state(summaryId, date, { message }),
+    [scriptId]: state(scriptId, "off"),
+    "input_boolean.example_playback": state("input_boolean.example_playback", helper),
+  }));
+  publish();
+  const day = await screen.findByRole("region", { name: "Everyone’s day" });
+  const show = within(day).getByRole("button", { name: "Show morning summary" });
+  expect(within(day).queryByRole("button", { name: "Play summary" })).not.toBeInTheDocument();
+  expect(screen.queryByText("Example summary.")).not.toBeInTheDocument();
+  const panelPlay = panelEnabled ? screen.getByRole("button", { name: "Play summary" }) : undefined;
+  publish("2026-10-19", "Example summary.", "off");
+  fireEvent.click(show);
+  const modal = screen.getByRole("dialog", { name: "Morning summary" });
+  expect(within(modal).getByText("Example summary.")).toBeVisible();
+  const play = within(modal).getByRole("button", { name: "Play summary" });
+  expect(play).toBeDisabled();
+  fireEvent.click(play);
+  expect(ha.callService).not.toHaveBeenCalled();
+  publish();
+  const request = deferred<object>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  fireEvent.click(play);
+  if (panelPlay) expect(panelPlay).toBeDisabled();
+  for (const button of screen.getAllByRole("button", { name: "Preparing summary…" })) {
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+  }
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "script", "turn_on", { variables: { summary_entity: summaryId } }, { entity_id: scriptId });
+  await act(async () => request.reject(new Error("Permission denied")));
+  expect(await within(modal).findByRole("alert")).toHaveTextContent("Home Assistant rejected or did not acknowledge the command");
+  expect(play).toBeEnabled();
+  for (const [date, message] of [["2026-10-18", "Old summary."], ["unavailable", "Example summary."], ["2026-10-19", " "], ["2026-10-19", null]]) {
+    publish(date, message);
+    expect(within(day).queryByRole("button", { name: "Show morning summary" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Morning summary" })).not.toBeInTheDocument();
+  }
+  publish();
+  act(() => conn.emit("disconnected"));
+  fireEvent.click(within(day).getByRole("button", { name: "Show morning summary" }));
+  const offlineModal = screen.getByRole("dialog", { name: "Morning summary" });
+  expect(within(offlineModal).getByText("Example summary.")).toBeVisible();
+  expect(within(offlineModal).getByText("Cached summary · Home Assistant is offline.")).toBeVisible();
+  expect(within(offlineModal).getByRole("button", { name: "Play summary" })).toBeDisabled();
+  expect(ha.callService).toHaveBeenCalledTimes(1);
+});
+
+it("opens the summary dialog without a configured playback script", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  serverConfig.settings.dashboard.morningSummary = false;
+  serverConfig.settings.dashboard.daySummaryPlayback = true;
+  serverConfig.settings.morningSummaryScript = "";
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  act(() => conn.entityCallback?.({ ...states,
+    "sensor.afterglow_morning_summary": state("sensor.afterglow_morning_summary", "2026-10-19", { message: "Example summary.", title: "Today's briefing", icon_name: "coffee" }),
+  }));
+  const show = await screen.findByRole("button", { name: "Show morning summary" });
+  fireEvent.click(show);
+  const modal = screen.getByRole("dialog", { name: "Today's briefing" });
+  expect(within(modal).getByText("Example summary.")).toBeVisible();
+  expect(within(modal).getByRole("heading").querySelector("svg")).toHaveClass("lucide-coffee");
+  expect(within(modal).queryByRole("button", { name: "Play summary" })).not.toBeInTheDocument();
+  fireEvent.keyDown(modal, { key: "Escape" });
+  await waitFor(() => expect(show).toHaveFocus());
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["en", "Show morning summary", "Last generated", "Last updated", "Not reported"],
+  ["nb", "Vis morgenoppsummering", "Sist generert", "Sist oppdatert", "Ikke rapportert"],
+] as const)("shows the reported summary generation time in %s and the home time zone", async (language, showLabel, generatedLabel, updatedLabel, missingLabel) => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));
+  serverConfig.settings.language = language;
+  serverConfig.settings.dashboard.daySummaryPlayback = true;
+  render(<App />);
+  await waitFor(() => expect(conn.entityCallback).toBeDefined());
+  const id = "sensor.afterglow_morning_summary";
+  const publish = (generatedAt: unknown, lastUpdated = "2026-10-19T05:45:00Z") => act(() => conn.entityCallback?.({ ...states,
+    [id]: { ...state(id, "2026-10-19", { message: "Example summary.", generated_at: generatedAt }), last_updated: lastUpdated },
+  }));
+  publish("2026-10-19T05:30:00Z");
+  fireEvent.click(await screen.findByRole("button", { name: showLabel }));
+  const modal = screen.getByRole("dialog");
+  expect(within(modal).getByText(new RegExp(`^${generatedLabel}:`))).toHaveTextContent("07:30");
+  expect(modal.querySelector("time")).toHaveAttribute("dateTime", "2026-10-19T05:30:00Z");
+  publish("2026-10-19T08:10:00+02:00");
+  expect(within(modal).getByText(new RegExp(`^${generatedLabel}:`))).toHaveTextContent("08:10");
+  for (const invalid of [undefined, null, "invalid", 42, "2026-10-19T08:10:00"]) {
+    publish(invalid);
+    expect(within(modal).getByText(new RegExp(`^${updatedLabel}:`))).toHaveTextContent("07:45");
+    expect(modal.querySelector("time")).toHaveAttribute("dateTime", "2026-10-19T05:45:00Z");
+  }
+  publish(undefined, "invalid");
+  expect(within(modal).getByText(`${updatedLabel}: ${missingLabel}`)).toBeVisible();
+  expect(modal.querySelector("time")).not.toBeInTheDocument();
+  expect(ha.callService).not.toHaveBeenCalled();
+});
+
 it.each(["", "script.missing", "home|missing", "sensor.afterglow_morning_summary"])("hides summary playback for selection %j without falling back to the default script", async selected => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-19T06:00:00Z"));

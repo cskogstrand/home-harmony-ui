@@ -64,7 +64,11 @@ export function DashboardSettings() {
                 aria-label={t("Move {name} later", { name: t(sectionLabels[key]) })} title={t("Move {name} later", { name: t(sectionLabels[key]) })} onClick={() => moveSection(key, 1)}><ArrowDown aria-hidden="true" /></Button>
             </div>
           </div>
-          {key === "morningSummary" && dashboard.morningSummary && <div className="pb-4">
+          {key === "morningSummary" && (dashboard.morningSummary || dashboard.daySummaryPlayback) && <div className="pb-4">
+            <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 text-sm">
+              <span>{t("Hide morning summary content")}</span><Switch checked={dashboard.hideMorningSummaryContent} onCheckedChange={hideMorningSummaryContent => setDashboard({ hideMorningSummaryContent })}
+                disabled={disabled || !dashboard.morningSummary} aria-label={t("Hide morning summary content")} />
+            </label>
             <EntityPicker label={t("Morning summary sensor")} entities={currentHome.entities.filter(entity => entity.domain === "sensor")}
               value={currentHome.entities.find(entity => entity.entityId === morningSummaryEntity)?.preferenceId ?? morningSummaryEntity}
               onChange={setMorningSummaryEntity} groupByDevice={false} clearLabel={t("Clear selection")}
@@ -112,10 +116,13 @@ export function DashboardSettings() {
             <p id="waste-days-help" className="mt-2 text-sm text-muted-foreground">{t("0–90 days. Use 0 for today only. Hidden when no pickups are due within this window.")}</p>
             <p className="mt-2 text-sm text-muted-foreground">{t("Pickups are marked as picked up at 09:00 in your home’s time zone, based on time only.")}</p>
           </div>}
-          {key === "day" && <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 pl-4 text-sm text-muted-foreground">
+          {key === "day" && <><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 pl-4 text-sm text-muted-foreground">
+            <span>{t("Show summary button in Everyone’s day")}</span><Switch checked={dashboard.daySummaryPlayback} onCheckedChange={daySummaryPlayback => setDashboard({ daySummaryPlayback })}
+              disabled={disabled || !dashboard.day} aria-label={t("Show summary button in Everyone’s day")} />
+          </label><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 pl-4 text-sm text-muted-foreground">
             <span>{t("Show tomorrow’s plans")}</span><Switch checked={dashboard.showTomorrow} onCheckedChange={showTomorrow => setDashboard({ showTomorrow })}
               disabled={!dashboard.day || !shared?.state.loaded || !!shared.state.error} aria-label={t("Show tomorrow’s plans")} />
-          </label>}
+          </label></>}
         </li>)}
       </ol>
       <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>

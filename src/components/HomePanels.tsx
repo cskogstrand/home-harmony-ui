@@ -11,7 +11,7 @@ import { available, supportsAction } from "@/lib/ha-model";
 import type { Entity } from "@/types/api";
 import { CommandFeedback } from "@/components/devices/DeviceControl";
 import { EntityCard } from "@/components/devices/EntityCard";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { EntityPicker } from "./EntityPicker";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -42,10 +42,10 @@ const morningSummaryIcons = new Map<string, LucideIcon>([
   ["mdi:home", House],
 ]);
 
-export function MorningSummary() {
-  const { t } = useI18n();
+export function MorningSummary({ dialogTrigger = false }: { dialogTrigger?: boolean }) {
+  const { t, locale } = useI18n();
   const { currentHome, homeOnline, command, commands, services } = useApp();
-  const { today, morningSummaryEntity, morningSummaryScript, morningSummaryPlaybackEntity } = useFamily();
+  const { today, dashboard, morningSummaryEntity, morningSummaryScript, morningSummaryPlaybackEntity } = useFamily();
   const summary = currentHome.entities.find(entity => entity.preferenceId === morningSummaryEntity || entity.entityId === morningSummaryEntity);
   const script = currentHome.entities.find(entity => entity.domain === "script" && (entity.preferenceId === morningSummaryScript || entity.entityId === morningSummaryScript));
   const playbackSwitch = currentHome.entities.find(entity => entity.domain === "input_boolean" && (entity.preferenceId === morningSummaryPlaybackEntity || entity.entityId === morningSummaryPlaybackEntity));
@@ -57,23 +57,23 @@ export function MorningSummary() {
     return parsed.success ? [parsed.data] : [];
   }) : [];
   if (summary?.state !== today || !messages.length && (typeof message !== "string" || !message.trim())) return null;
+  const generatedAt = z.string().datetime({ offset: true }).safeParse(summary.attributes.generated_at);
+  const timestamp = generatedAt.success ? generatedAt.data : summary.lastUpdated;
+  const generatedDate = timestamp ? new Date(timestamp) : null;
+  const playback = script && <div className="command-controller flex shrink-0" aria-busy={running}>
+    <Button variant="outline" size="sm" className={dialogTrigger ? "min-w-11 w-full" : "min-w-11"} title={running ? t("Preparing summary…") : t("Play summary")} disabled={playbackSwitch?.state !== "on" || !homeOnline || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
+      <Volume2 size={16} aria-hidden="true" /><span className={dialogTrigger ? undefined : "sr-only sm:not-sr-only"}>{running ? t("Preparing summary…") : t("Play summary")}</span>
+    </Button>
+    {!commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
+  </div>;
+  const error = script && commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />;
   const people = currentHome.entities.filter(entity => entity.domain === "person");
   const entityTitle = summary.attributes.title;
   const title = (typeof entityTitle === "string" ? entityTitle.trim() : "") || t("Morning summary");
   const Icon = [summary.attributes.icon_name, summary.attributes.icon]
     .map(icon => typeof icon === "string" ? morningSummaryIcons.get(icon.trim().replace(/^lucide:/, "")) : undefined)
     .find(icon => icon !== undefined) ?? Sunrise;
-  return <section className="glow-panel col-span-full" aria-label={title}>
-    <div className="panel-heading">
-      <PanelTitle icon={Icon}>{title}</PanelTitle>
-      {script && <div className="command-controller shrink-0" aria-busy={running}>
-        <Button variant="outline" size="sm" title={running ? t("Preparing summary…") : t("Play summary")} disabled={playbackSwitch?.state !== "on" || !homeOnline || !available(script) || !supportsAction(script, "turn_on", services) || running} onClick={() => { void command(scriptId, "turn_on", { variables: { summary_entity: summary.entityId } }).catch(() => {}); }}>
-          <Volume2 size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{running ? t("Preparing summary…") : t("Play summary")}</span>
-        </Button>
-        {!commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
-      </div>}
-    </div>
-    {messages.length ? <ul className="space-y-5">{messages.map((entry, index) => {
+  const content = messages.length ? <ul className="space-y-5">{messages.map((entry, index) => {
       const key = entry.key.trim().toLowerCase();
       const exact = people.find(person => person.entityId === `person.${key}`);
       const matches = people.filter(person => person.name.toLowerCase() === key || person.name.toLowerCase().split(/\s+/)[0] === key);
@@ -82,9 +82,32 @@ export function MorningSummary() {
         {person ? <MemberAvatar member={person.preferenceId} /> : <span className="flex h-[44px] w-[44px] shrink-0 items-center justify-center text-2xl" aria-hidden="true">{entry.emoji}</span>}
         <div className="min-w-0 max-w-prose flex-1"><h3 className="break-words font-semibold">{entry.name}</h3><p className="whitespace-pre-wrap break-words leading-relaxed">{entry.text}</p></div>
       </li>;
-    })}</ul> : <p className="whitespace-pre-wrap break-words leading-relaxed">{typeof message === "string" ? message : ""}</p>}
-    {script && commands[scriptId]?.error && <CommandFeedback entityId={scriptId} />}
-    {!homeOnline && <p className="page-note">{t("Cached summary · Home Assistant is offline.")}</p>}
+    })}</ul> : <p className="whitespace-pre-wrap break-words leading-relaxed">{typeof message === "string" ? message : ""}</p>;
+  const offline = !homeOnline && <p className="page-note">{t("Cached summary · Home Assistant is offline.")}</p>;
+  if (dialogTrigger) return <Dialog>
+    <DialogTrigger asChild><Button variant="outline" size="sm" className="min-w-11 shrink-0" title={t("Show morning summary")}>
+      <Icon size={16} aria-hidden="true" /><span className="sr-only sm:not-sr-only">{t("Show morning summary")}</span>
+    </Button></DialogTrigger>
+    <DialogContent className="max-h-[calc(100dvh-24px)] grid-rows-[auto_minmax(0,1fr)_auto]" aria-describedby={undefined}>
+      <DialogHeader><DialogTitle asChild><PanelTitle icon={Icon}>{title}</PanelTitle></DialogTitle></DialogHeader>
+      <div className="min-h-0 overflow-y-auto">{content}</div>
+      <div className="space-y-3">
+        {error}{offline}
+        <DialogFooter><DialogClose asChild><Button variant="ghost">{t("Close")}</Button></DialogClose>{playback}</DialogFooter>
+        <p className="text-xs text-muted-foreground">{t(generatedAt.success ? "Last generated" : "Last updated")}: {generatedDate && Number.isFinite(generatedDate.getTime())
+          ? <time dateTime={timestamp}>{new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: currentHome.timeZone }).format(generatedDate)}</time>
+          : t("Not reported")}</p>
+      </div>
+    </DialogContent>
+  </Dialog>;
+  return <section className="glow-panel col-span-full" aria-label={title}>
+    <div className={`panel-heading${dashboard.hideMorningSummaryContent ? " !mb-0" : ""}`}>
+      <PanelTitle icon={Icon}>{title}</PanelTitle>
+      {playback}
+    </div>
+    {!dashboard.hideMorningSummaryContent && content}
+    {error}
+    {offline}
   </section>;
 }
 export function SceneButtons({ entities }: { entities?: Entity[] }) {
