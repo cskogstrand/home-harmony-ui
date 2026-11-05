@@ -1,6 +1,6 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useRef, useState } from "react";
-import { Copy, Link as LinkIcon, Save } from "lucide-react";
+import { Copy, Link as LinkIcon, Save, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { useFamily, type MemberId } from "@/contexts/FamilyContext";
 import { MemberAvatar } from "@/components/FamilyPlanner";
@@ -26,7 +26,7 @@ export function TimetableAdministration({ child }: { child: MemberId }) {
   const uploadUrl = new URL(uploadPath, window.location.origin).href;
   const uploadReady = shared?.state.loaded && !shared.state.dirty && !shared.state.saving && !shared.state.error;
   useEffect(() => { if (!edit) setUrls(savedUrls); }, [savedUrls, edit]);
-  return <article className="timetable-administration"><div className="school-child"><MemberAvatar member={child} /><h3>{memberName(child)}</h3></div>
+  return <article className="timetable-administration settings-card"><div className="school-child"><MemberAvatar member={child} /><h3>{memberName(child)}</h3></div>
     <TimetableSettings child={child} />
     {timetableSettings[child]?.type !== "calendar" && <><div className="planner-form">
       <label>{t("Upload PDF timetable")}<input aria-label={t("Upload {value1} timetable PDF", { value1: memberName(child) })} type="file" accept="application/pdf,.pdf" disabled={!uploadReady} onChange={event => {
@@ -40,7 +40,7 @@ export function TimetableAdministration({ child }: { child: MemberId }) {
       <p className="muted">{t("PDF · Up to 10 MB and 20 pages. Replaces this person’s timetable on every screen.")}</p>
       {!uploadReady && <p role="status">{t("Wait for shared settings to finish saving before uploading.")}</p>}
       {uploadStatus && <p role="status">{message(uploadStatus)}</p>}
-      {shared?.state.loaded && <details><summary className="text-link">{t("Share from iPhone")}</summary>
+      {shared?.state.loaded && <details><summary className="settings-disclosure"><span className="panel-title"><Smartphone className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Share from iPhone")}</span></span></summary>
         <p>{t("Install the PDF shortcut for {value1}. Copy the Upload URL below, then open the download in Shortcuts and tap Set Up Shortcut / Add Shortcut. iOS requires you to confirm the import.", { value1: memberName(child) })}</p>
         <div className="flex items-end gap-2">
           <label className="min-w-0 flex-1">{t("Upload URL")}<input ref={uploadUrlInput} aria-label={t("{value1} upload URL", { value1: memberName(child) })} readOnly value={uploadUrl} onFocus={event => event.target.select()} /></label>

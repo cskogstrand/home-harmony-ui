@@ -1,3 +1,4 @@
+import { CalendarDays, CalendarX, Clock, MessageSquare, Users, BookOpen } from "lucide-react";
 import { useId } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
@@ -24,7 +25,8 @@ export function TimetableSettings({ child }: { child: string }) {
     setTimetableSettings(child, { calendars: selected });
   };
   const categoryPicker = ([role, label]: readonly [Settings["calendars"][string][number], MessageKey], help: MessageKey) => {
-    return <fieldset className="timetable-category" key={role}><legend>{t(label)}</legend>
+    const Icon = { popupHours: Clock, popupClosures: CalendarX, popupActivities: BookOpen, popupMeetings: Users, popupMessages: MessageSquare }[role] ?? CalendarDays;
+    return <fieldset className="timetable-category" key={role}><legend className="panel-title"><Icon className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t(label)}</span></legend>
       <EntityPicker multiple hideLabel label={t("{category} calendars for {name}", { category: `${t("School day view")} · ${t(label)}`, name: memberName(child) })}
         describedBy={`${helpId}-${role}`} placeholder={t("Choose calendars")} entities={calendars} value={Object.keys(settings.calendars).filter(id => settings.calendars[id].includes(role))}
         getLabel={entity => calendarName(entity.name)} missingLabel={id => t("Unavailable calendar: {calendar}", { calendar: id })} disabledReason={() => homeOnline ? "" : t("Offline")} onChange={ids => setRole(ids, role)} />
@@ -40,11 +42,11 @@ export function TimetableSettings({ child }: { child: string }) {
       <option value="images">{t("PDF / images")}</option><option value="calendar">{t("Calendars")}</option>
     </select></label>
     <p className="muted">{t("Changing type keeps your saved timetable pages and calendar choices.")}</p>
-    {settings.type === "calendar" && <fieldset><legend>{t("Calendar sources")}</legend>
+    {settings.type === "calendar" && <fieldset><legend className="panel-title"><CalendarDays className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Calendar sources")}</span></legend>
       <p className="muted">{t("Choose one or more calendars per category. A calendar can be used in several categories.")}</p>
       {!homeOnline && <p role="status">{t("Connect to Home Assistant to choose calendars.")}</p>}
       {homeOnline && !calendars.length && <p role="status">{t("No calendars available.")}</p>}
-      <fieldset className="timetable-view-settings"><legend>{t("School day view")}</legend>
+      <fieldset className="timetable-view-settings"><legend className="panel-title"><BookOpen className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("School day view")}</span></legend>
         <p className="muted">{t("Choose calendars where their events should appear. This live preview matches School and saves your choices automatically.")}</p>
         <div className="school-card glass-surface timetable-settings-preview">
           <CalendarTimetable child={child} dayView settings={{ ...settings, calendars: Object.fromEntries(Object.entries(settings.calendars)

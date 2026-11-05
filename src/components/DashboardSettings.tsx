@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Settings } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, House, ListChecks, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -10,12 +10,14 @@ import { Switch } from "@/components/ui/switch";
 import { EntityPicker } from "@/components/EntityPicker";
 import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
+import { PanelTitle } from "@/components/PanelTitle";
 import { dashboardSections, type DashboardSection } from "../../shared/configuration";
 
 const sectionLabels = {
   morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
   day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", school: "School", home: "Home favorites",
 } as const;
+const sectionIcons = { morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, school: BookOpen, home: House };
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
@@ -47,24 +49,25 @@ export function DashboardSettings() {
     <DialogTrigger asChild><Button variant="ghost" size="icon" aria-label={t("Customize Today")} title={t("Customize Today")}><Settings aria-hidden="true" /></Button></DialogTrigger>
     <DialogContent className="max-h-[calc(100dvh-24px)] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{t("Customize Today")}</DialogTitle>
+        <DialogTitle asChild><PanelTitle icon={Settings}>{t("Customize Today")}</PanelTitle></DialogTitle>
         <DialogDescription>{t("Choose which sections appear and use the arrows to change their order. Changes are saved automatically and shared across screens.")}</DialogDescription>
       </DialogHeader>
-      <ol ref={sectionsRef} aria-label={t("Section order")} className="min-w-0 divide-y divide-border">
-        {dashboard.order.map((key, index) => <li key={key} data-section={key}>
-          <div className="flex min-h-12 items-center gap-2 py-3">
-            <label className="flex min-w-0 flex-1 cursor-pointer items-center justify-between gap-3">
-              <span className="min-w-0 break-words">{t(sectionLabels[key])}</span><Switch checked={dashboard[key]} onCheckedChange={visible => setDashboard({ [key]: visible })}
-                disabled={disabled} aria-label={t(sectionLabels[key])} />
-            </label>
-            <div className="flex shrink-0">
-              <Button type="button" variant="ghost" size="icon" data-direction={-1} disabled={disabled || index === 0}
-                aria-label={t("Move {name} earlier", { name: t(sectionLabels[key]) })} title={t("Move {name} earlier", { name: t(sectionLabels[key]) })} onClick={() => moveSection(key, -1)}><ArrowUp aria-hidden="true" /></Button>
-              <Button type="button" variant="ghost" size="icon" data-direction={1} disabled={disabled || index === dashboard.order.length - 1}
-                aria-label={t("Move {name} later", { name: t(sectionLabels[key]) })} title={t("Move {name} later", { name: t(sectionLabels[key]) })} onClick={() => moveSection(key, 1)}><ArrowDown aria-hidden="true" /></Button>
+      <ol ref={sectionsRef} aria-label={t("Section order")} className="settings-stack">
+        {dashboard.order.map((key, index) => <li key={key} data-section={key} className="settings-card dashboard-settings-card">
+          <div className="dashboard-settings-heading">
+            <PanelTitle as="h3" icon={sectionIcons[key]} id={`dashboard-setting-${key}`}><label htmlFor={`dashboard-toggle-${key}`} className="cursor-pointer">{t(sectionLabels[key])}</label></PanelTitle>
+            <div className="flex shrink-0 items-center gap-2">
+              <Switch id={`dashboard-toggle-${key}`} checked={dashboard[key]} onCheckedChange={visible => setDashboard({ [key]: visible })}
+                disabled={disabled} aria-labelledby={`dashboard-setting-${key}`} />
+              <div className="flex shrink-0">
+                <Button type="button" variant="ghost" size="icon" data-direction={-1} disabled={disabled || index === 0}
+                  aria-label={t("Move {name} earlier", { name: t(sectionLabels[key]) })} title={t("Move {name} earlier", { name: t(sectionLabels[key]) })} onClick={() => moveSection(key, -1)}><ArrowUp aria-hidden="true" /></Button>
+                <Button type="button" variant="ghost" size="icon" data-direction={1} disabled={disabled || index === dashboard.order.length - 1}
+                  aria-label={t("Move {name} later", { name: t(sectionLabels[key]) })} title={t("Move {name} later", { name: t(sectionLabels[key]) })} onClick={() => moveSection(key, 1)}><ArrowDown aria-hidden="true" /></Button>
+              </div>
             </div>
           </div>
-          {key === "morningSummary" && (dashboard.morningSummary || dashboard.daySummaryPlayback) && <div className="pb-4">
+          {key === "morningSummary" && (dashboard.morningSummary || dashboard.daySummaryPlayback) && <div>
             <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 text-sm">
               <span>{t("Hide morning summary content")}</span><Switch checked={dashboard.hideMorningSummaryContent} onCheckedChange={hideMorningSummaryContent => setDashboard({ hideMorningSummaryContent })}
                 disabled={disabled || !dashboard.morningSummary} aria-label={t("Hide morning summary content")} />
@@ -85,7 +88,7 @@ export function DashboardSettings() {
               disabled={disabled} describedBy="morning-summary-playback-help" />
             <p id="morning-summary-playback-help" className="mt-2 text-sm text-muted-foreground">{t("Play is available only when this helper is on. Without a selection, playback is disabled.")}</p>
           </div>}
-          {key === "nextPlan" && dashboard.nextPlan && <fieldset className="grid min-w-0 gap-3 pb-4" disabled={!shared?.state.loaded || !!shared.state.error}>
+          {key === "nextPlan" && dashboard.nextPlan && <fieldset className="grid min-w-0 gap-3" disabled={!shared?.state.loaded || !!shared.state.error}>
             <label className="grid gap-2 text-sm">{t("Look ahead")}
               <select className="min-w-0 w-full rounded-lg border border-input bg-background p-2" value={dashboard.nextPlanDays === "auto" ? "auto" : "custom"}
                 onChange={event => setDashboard({ nextPlanDays: event.target.value === "auto" ? "auto" : 1 })}>
@@ -101,7 +104,7 @@ export function DashboardSettings() {
             <p className="text-sm text-muted-foreground">{t(dashboard.nextPlanDays === "auto" ? "Checks today, plus tomorrow when Show tomorrow’s plans is enabled." : "0–90 days ahead, including today. Use 0 for today only.")}</p>
             <p className="text-sm text-muted-foreground">{t("Only timed plans count. This controls the “No plans” message; the next plan can still be shown beyond this window.")}</p>
           </fieldset>}
-          {key === "wasteCollection" && dashboard.wasteCollection && <div className="pb-4">
+          {key === "wasteCollection" && dashboard.wasteCollection && <div>
             <EntityPicker label={t("Waste collection calendar")} entities={currentHome.entities.filter(entity => entity.domain === "calendar")}
               value={wasteCalendarEntity} onChange={setWasteCalendarEntity} groupByDevice={false}
               placeholder={t("Choose a calendar")} clearLabel={t("Clear selection")}
@@ -116,10 +119,10 @@ export function DashboardSettings() {
             <p id="waste-days-help" className="mt-2 text-sm text-muted-foreground">{t("0–90 days. Use 0 for today only. Hidden when no pickups are due within this window.")}</p>
             <p className="mt-2 text-sm text-muted-foreground">{t("Pickups are marked as picked up at 09:00 in your home’s time zone, based on time only.")}</p>
           </div>}
-          {key === "day" && <><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 pl-4 text-sm text-muted-foreground">
+          {key === "day" && <><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 text-sm">
             <span>{t("Show summary button in Everyone’s day")}</span><Switch checked={dashboard.daySummaryPlayback} onCheckedChange={daySummaryPlayback => setDashboard({ daySummaryPlayback })}
               disabled={disabled || !dashboard.day} aria-label={t("Show summary button in Everyone’s day")} />
-          </label><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 pl-4 text-sm text-muted-foreground">
+          </label><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 text-sm">
             <span>{t("Show tomorrow’s plans")}</span><Switch checked={dashboard.showTomorrow} onCheckedChange={showTomorrow => setDashboard({ showTomorrow })}
               disabled={!dashboard.day || !shared?.state.loaded || !!shared.state.error} aria-label={t("Show tomorrow’s plans")} />
           </label></>}

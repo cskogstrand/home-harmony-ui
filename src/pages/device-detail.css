@@ -53,7 +53,7 @@
 .device-tools [role="tabpanel"] { margin-top: 1rem; }
 .device-tools-description, .device-tools-empty { color: hsl(var(--muted-foreground)); font-size: .875rem; line-height: 1.6; }
 .device-tools-empty { padding-block: 1rem; }
-.device-tool-setting, .device-tool-reading { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .75rem 1.5rem; padding-block: 1rem; padding-right: 44px; border-bottom: 1px solid hsl(var(--border)); }
+.device-tool-setting, .device-tool-reading { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .75rem 1.5rem; margin-top: 1rem; padding: 1rem; padding-right: 44px; }
 .device-tools article:focus { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 .device-tool-name { display: flex; align-items: center; gap: .65rem; min-width: 0; }
 .device-tool-name > svg { color: hsl(var(--muted-foreground)); }

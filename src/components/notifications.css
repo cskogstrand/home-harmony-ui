@@ -3,7 +3,7 @@
 .notification-presence { display: flow-root; overflow: hidden; }
 .notification-editor-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; min-height: 0; flex: 1; overflow-y: auto; scrollbar-gutter: stable; scroll-padding-block: .25rem; }
 .notification-editor-fields { min-width: 0; padding: .25rem; display: flex; flex-direction: column; gap: .625rem; align-self: start; }
-.notification-editor-section { border: 0; }
+.notification-editor-section.settings-card { padding: 0; }
 .notification-editor-section > [role="region"] { animation: none; transition: none; }
 .notification-section-shell { padding: 0; }
 .notification-editor-section > [aria-hidden="true"] .notification-icon :is(svg, svg *) { animation-play-state: paused !important; }
@@ -13,11 +13,11 @@
 .notification-entity-heading strong { display: block; font-size: .9375rem; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
 .notification-entity-heading .page-note { margin-top: .25rem; font-size: .8125rem; }
 .notification-entity-heading > button { flex-shrink: 0; }
-.notification-editor-section > h3 { position: sticky; top: 0; z-index: 1; background: hsl(var(--nav-background)); border-radius: 14px; }
+.notification-editor-section > h3 { position: sticky; top: 0; z-index: 1; background: hsl(var(--card)); border-radius: 16px; }
 .notification-editor-section > h3 > button { gap: 1rem; min-height: 3.5rem; padding: .875rem 1rem; text-align: left; border-radius: inherit; text-decoration: none; }
 .notification-editor-section > h3 > button[data-state="open"] { background: hsl(var(--muted)); }
 .notification-editor-section > h3 > button:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
-.notification-editor-section-content { display: flex; flex-direction: column; gap: 1rem; padding: 1rem .25rem; }
+.notification-editor-section-content { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; }
 .notification-editor-section .panel-title { font-size: 1.0625rem; font-weight: 600; }
 .notification-preview .panel-title { font-size: 1.25rem; font-weight: 600; }
 @media (hover: hover) {
@@ -128,7 +128,7 @@
   .notification-progress [role="progressbar"] { border: 1px solid CanvasText; }
   .notification-progress [role="progressbar"] > div { background: Highlight; }
 }
-.notification-rule-group { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid hsl(var(--border)); }
+.notification-rule-group { margin-top: .5rem; }
 .notification-rule-group-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .5rem; }
 .notification-rule-group-heading .panel-title { font-size: 1rem; font-weight: 600; }
 .notification-groups { display: grid; gap: 1.5rem; }

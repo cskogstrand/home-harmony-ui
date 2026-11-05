@@ -10,24 +10,25 @@ import { SmartHomeSettings } from "@/components/SmartHomeSettings";
 import { CameraConnections } from "@/components/CameraConnections";
 import { CameraSettings } from "@/components/CameraSettings";
 import { Button } from "@/components/ui/button";
+import { PanelTitle } from "@/components/PanelTitle";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import "./settings.css";
 
 const groups = [
-  { title: "Preferences", items: [
+  { title: "Preferences", icon: SlidersHorizontal, items: [
     { id: "appearance", title: "Appearance", description: "Theme, colors, glass and display density", icon: Palette, content: <UserSettings section="appearance" /> },
     { id: "language", title: "Language", description: "Language for every connected screen", icon: Globe, content: <UserSettings section="language" /> },
     { id: "notifications", title: "Notifications", description: "Alerts, ongoing tasks and camera popups", icon: Bell, content: <NotificationSettings /> },
     { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },
   ] },
-  { title: "Household", items: [
+  { title: "Household", icon: Users, items: [
     { id: "people", title: "People", description: "Visibility, order, colors and timetable access", icon: Users, content: <HomeSettings section="people" /> },
     { id: "calendars", title: "Calendars", description: "Connect calendars to the right people", icon: CalendarDays, content: <HomeSettings section="calendars" /> },
     { id: "lists", title: "To-do lists", description: "Personal tasks, daily lists and shared shopping", icon: ListChecks, content: <HomeSettings section="lists" /> },
     { id: "timetables", title: "Timetables", description: "School calendars, PDF uploads and images", icon: BookOpen, content: <HomeSettings section="timetables" /> },
   ] },
-  { title: "System", items: [
+  { title: "System", icon: Wifi, items: [
     { id: "cameras", title: "Cameras", description: "Add cameras and choose their connections", icon: Camera, content: <CameraSettings /> },
     { id: "camera-connections", title: "Camera connections", description: "Home Assistant, go2rtc and Frigate servers", icon: Wifi, content: <CameraConnections /> },
     { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
@@ -52,9 +53,9 @@ export default function Settings() {
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [section]);
   if (!section && legacySections[hash.slice(1)]) return <Navigate to={`/settings/${legacySections[hash.slice(1)]}${search}`} replace />;
   if (section && !selected) return <Navigate to="/settings" replace />;
-  const menu = <nav className="settings-menu glass-surface" aria-label={t("Settings navigation")}>
-    {groups.map(group => <section className="settings-group" key={group.title} aria-label={message(group.title)}>
-      <h2>{message(group.title)}</h2>
+  const menu = <nav className="settings-menu settings-stack" aria-label={t("Settings navigation")}>
+    {groups.map(group => <section className="settings-group settings-card" key={group.title} aria-label={message(group.title)}>
+      <PanelTitle icon={group.icon}>{message(group.title)}</PanelTitle>
       <ul>{group.items.map(item => <li key={item.id}><Link to={`/settings/${item.id}`} className="settings-row" aria-current={selected?.id === item.id ? "page" : undefined}>
         <item.icon className="settings-row-icon" size={20} strokeWidth={1.8} aria-hidden="true" />
         <span><span className="settings-row-title">{message(item.title)}</span>{!selected && <span className="settings-row-description">{message(item.description)}</span>}</span>
@@ -66,7 +67,7 @@ export default function Settings() {
   return <div className={`settings-page ${selected ? "settings-subpage" : "settings-overview"}`}>
     <div className="settings-intro">
       {selected && <Link to="/settings" className="settings-back"><ArrowLeft size={18} aria-hidden="true" />{t("All settings")}</Link>}
-      <h1 ref={heading} tabIndex={-1}>{selected ? message(selected.title) : t("Settings")}</h1>
+      <PanelTitle as="h1" icon={selected?.icon ?? SlidersHorizontal} ref={heading} tabIndex={-1}>{selected ? message(selected.title) : t("Settings")}</PanelTitle>
       <p className="page-note">{selected ? message(selected.description) : t("Preferences, people and your connected home.")}</p>
       {!selected && <>
         <Link to="/settings/connection" className="settings-home glass-surface">

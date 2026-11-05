@@ -94,7 +94,7 @@ export function NotificationSettings() {
     else setError("The rule could not be saved. Your draft is still here. Check settings storage and retry.");
   };
   const setTriggers = (triggers: NotificationTrigger[]) => setDraft({ ...draft, trigger: triggers[0], additionalTriggers: triggers.length > 1 ? triggers.slice(1) : undefined });
-  return <section className="glow-panel" id="notifications">
+  return <section className="settings-stack" id="notifications">
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Home Harmony is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
@@ -103,7 +103,7 @@ export function NotificationSettings() {
       <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
     </div>
     <DialogContent className="notification-preview-dialog">
-      <DialogHeader><DialogTitle>{t("Preview notification")}</DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle asChild><PanelTitle icon={Eye}>{t("Preview notification")}</PanelTitle></DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
       {previewError && <p role="alert" className="text-destructive">{t("The display choice could not be saved. Check settings storage and try again.")}</p>}
       <div className="notification-preview-collection">
         {!notifications.rules.length && <NotificationPreview presentation={notifications.presentation} />}
@@ -121,12 +121,12 @@ export function NotificationSettings() {
     {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
       const rules = notifications.rules.filter(rule => rule.kind === kind);
       const Icon = icons[kind];
-      return <section key={kind} className="notification-rule-group" aria-label={t(kinds[kind])}>
+      return <section key={kind} className="notification-rule-group settings-card" aria-label={t(kinds[kind])}>
       <div className="notification-rule-group-heading"><PanelTitle as="h3" icon={Icon}>{t(kinds[kind])}</PanelTitle>
         <Button variant="outline" disabled={disabled || notifications.rules.length >= 100} aria-label={t("Add {kind}", { kind: t(kinds[kind]) })} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Plus size={18} aria-hidden="true" />{t("Add notification")}</Button>
       </div>
       {!rules.length && <p className="page-note">{t("No notifications in this group yet.")}</p>}
-      <ul className="divide-y">{rules.map(rule => {
+      <ul className="space-y-3">{rules.map(rule => {
       const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
       const Icon = icons[rule.kind];
       const missing = notificationTriggers(rule).some(trigger => "entity" in trigger && !notificationEntity(entities, trigger.entity)) || (rule.kind === "camera" && !configuredCamera(cameras, rule.cameraEntity));
@@ -143,7 +143,7 @@ export function NotificationSettings() {
     <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor" data-kind={draft?.kind} onOpenAutoFocus={event => {
       if (!draft?.title.trim()) { event.preventDefault(); titleInput.current?.focus(); }
     }}>
-      <DialogHeader><DialogTitle>{t(original ? "Edit notification" : "Add notification")}</DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle asChild><PanelTitle icon={Bell}>{t(original ? "Edit notification" : "Add notification")}</PanelTitle></DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
       {draft && <form ref={editor} className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
         <div className="notification-editor-layout">
         <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="notification-editor-fields">

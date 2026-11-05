@@ -30,7 +30,7 @@ export default function Devices() {
     <div className="device-toolbar">
       <Input aria-label={t("Search devices")} placeholder={t("Search devices, rooms or types…")} value={search} onChange={e => setView(grouping, e.target.value)} />
       <SettingsPopover label={t("Device settings")}>
-        <fieldset className="device-grouping"><legend>{t("Group by")}</legend><div className="filter-row">
+        <fieldset className="device-grouping settings-card"><legend className="panel-title"><Layers3 className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Group by")}</span></legend><div className="filter-row">
           {([ ["room", t("Room")], ["type", t("Device type")], ["none", t("None")] ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={grouping === value} onClick={() => setView(value, search)}>{label}</button>)}
         </div></fieldset>
         {haUrl && <a className="text-link min-h-11" href={`${haUrl}/config/devices/dashboard`} target="_blank" rel="noreferrer">{t("Manage devices in Home Assistant")}</a>}

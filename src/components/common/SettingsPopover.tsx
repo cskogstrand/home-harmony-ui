@@ -2,6 +2,7 @@ import { useId, type ReactNode } from "react";
 import { Settings, X } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
+import { PanelTitle } from "@/components/PanelTitle";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export function SettingsPopover({ label, children, open, onOpenChange, className = "" }: { label: string; children: ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void; className?: string }) {
@@ -11,7 +12,7 @@ export function SettingsPopover({ label, children, open, onOpenChange, className
     <PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="shrink-0" aria-label={label} title={label}><Settings aria-hidden="true" /></Button></PopoverTrigger>
     <PopoverContent align="end" className={`settings-popover ${className}`} aria-labelledby={titleId}>
       <div className="flex items-center justify-between gap-3">
-        <h2 id={titleId} className="text-base font-semibold">{label}</h2>
+        <PanelTitle icon={Settings} id={titleId} className="text-base font-semibold">{label}</PanelTitle>
         <PopoverClose asChild><Button type="button" variant="ghost" size="icon" className="shrink-0" aria-label={t("Close")}><X aria-hidden="true" /></Button></PopoverClose>
       </div>
       {children}

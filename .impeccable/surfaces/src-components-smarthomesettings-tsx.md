@@ -25,11 +25,11 @@ The separate **Danger zone** includes a backup link and a confirmation that clea
 
 THESIS: Build the card you want to see; remove the entity inventory and overlapping visibility rules from the main task.
 
-OWN-WORLD: Preserve Afterglow's Liquid Glass card material, pearl/midnight palette, system typography and blue action controls. Use opaque fields and restrained separators for configuration.
+OWN-WORLD: Preserve Afterglow's Liquid Glass card material, pearl/midnight palette, system typography and blue action controls. Use separate opaque settings cards with icon headings for source and appearance groups.
 
 STORY: Scan your cards, choose Add card, select its type and device, attach sources manually or accept relevant suggestions, inspect the resulting card, and save. Preview controls cannot operate devices. Missing sources stay visible and replaceable.
 
-FIRST VIEWPORT: A compact Your cards heading and Add card action above a flat list. The editor pairs device/source and appearance fields with a separate real card preview; phone layouts stack the preview above the fields. Reset sits below the collection in a clearly separated Danger zone.
+FIRST VIEWPORT: A compact Your cards heading and Add card action above a spaced list of saved-card settings cards. The editor pairs device/source and appearance fields with a separate real card preview; phone layouts stack the preview above the fields. Reset sits below the collection in a clearly separated Danger zone.
 
 FORM: User-directed card-first composition, code-led extension of the existing visual world; no concept roll for this specified arrangement. No shipping raster assets.
 

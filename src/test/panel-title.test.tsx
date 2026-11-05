@@ -15,5 +15,7 @@ describe("PanelTitle", () => {
     expect(ref.current).toBe(heading);
     heading.focus();
     expect(heading).toHaveFocus();
+    rerender(<PanelTitle as="h1" icon={BookOpen}>Settings</PanelTitle>);
+    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
   });
 });

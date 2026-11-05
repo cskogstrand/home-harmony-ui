@@ -5,7 +5,8 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { newPlannerId } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { cameraPersonPipWidths, cameraSettingsSchema, go2rtcLink, homeAssistantPicturePath, type ConfiguredCamera } from "../../shared/cameras";
-import { Check, UserRound, Video } from "lucide-react";
+import { Camera, Check, Image, UserRound, Video } from "lucide-react";
+import { PanelTitle } from "./PanelTitle";
 import { EntityPicker } from "./EntityPicker";
 import { Go2rtcSourcePicker } from "./Go2rtcSourcePicker";
 import { Button } from "./ui/button";
@@ -74,7 +75,7 @@ export function CameraSettings() {
       setDraft(undefined); setError("");
     } catch (error) { setError(error instanceof Error ? error.message : "Camera settings could not be saved. Your draft is still here."); }
   };
-  return <section className="glow-panel space-y-6">
+  return <section className="settings-stack">
     <p className="page-note">{t("Add the cameras you want to use. Each camera has a name, a connection and a video source. Only these cameras appear in Smart home and camera notifications.")}</p>
     <div className="flex flex-wrap gap-2">
       <Button disabled={disabled || !!draft || settings.items.length >= 200} onClick={() => begin({ id: newPlannerId(), name: "", connectionId: "", source: "", personSnapshot: { type: "none" } })}>{t("Add camera")}</Button>
@@ -82,10 +83,10 @@ export function CameraSettings() {
       <Button variant="outline" asChild><Link to="/cameras">{t("Watch cameras")}</Link></Button>
     </div>
     {!settings.items.length && !draft && <p role="status" className="page-note">{t("No cameras added yet. Start with Add camera. Home Assistant is ready to use, or set up a go2rtc connection first.")}</p>}
-    {!draft && <ul className="divide-y">{settings.items.map(camera => <li key={camera.id} className="space-y-3 py-4">
+    {!draft && <ul className="settings-stack">{settings.items.map(camera => <li key={camera.id} className="settings-card space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 basis-48 space-y-1">
-          <h2 className="text-xl font-semibold break-words">{camera.name}</h2>
+          <PanelTitle icon={Camera} className="text-xl font-semibold">{camera.name}</PanelTitle>
           <p className="page-note break-words">{camera.connectionId === "home-assistant" ? "Home Assistant" : settings.connections.find(item => item.id === camera.connectionId)?.name} · {camera.source}</p>
         </div>
         <div className="flex gap-2">
@@ -100,9 +101,10 @@ export function CameraSettings() {
       </div>
       {inUse(camera.id) && <p className="page-note">{t("Used by notifications. Choose another camera in those rules before deleting it.")}</p>}
     </li>)}</ul>}
-    {draft && <form className="planner-form border-t pt-6" onSubmit={event => { event.preventDefault(); save(); }}>
-      <h2 className="text-xl font-semibold">{t(original ? "Edit camera" : "Add camera")}</h2>
-      <fieldset disabled={disabled} className="space-y-4">
+    {draft && <form className="planner-form" onSubmit={event => { event.preventDefault(); save(); }}>
+      <PanelTitle icon={Camera} className="text-xl font-semibold">{t(original ? "Edit camera" : "Add camera")}</PanelTitle>
+      <fieldset disabled={disabled} className="settings-stack">
+        <div className="settings-card space-y-4"><PanelTitle as="h3" icon={Video}>{t("Live camera")}</PanelTitle>
         <label>{t("Camera name")}<input autoFocus maxLength={100} value={draft.name} onChange={event => setDraft({ ...draft, name: event.target.value })} /></label>
         <label>{t("Connection")}<select value={draft.connectionId} onChange={event => setDraft({ ...draft, connectionId: event.target.value, source: "" })}>
           <option value="">{t("Choose a connection")}</option><option value="home-assistant">Home Assistant</option>{settings.connections.filter(item => item.type === "go2rtc").map(item => <option key={item.id} value={item.id}>{item.name} · go2rtc</option>)}
@@ -111,8 +113,9 @@ export function CameraSettings() {
           value={currentHome.entities.find(entity => entity.entityId === draft.source)?.preferenceId ?? (draft.source ? `home|${draft.source}` : "")}
           onChange={value => setDraft({ ...draft, source: currentHome.entities.find(entity => entity.preferenceId === value)?.entityId ?? "" })} />}
         {connection?.type === "go2rtc" && <Go2rtcSourcePicker key={connection.id} connection={connection} value={draft.source} onChange={source => setDraft({ ...draft, source })} />}
-        <div className="space-y-4 border-t pt-4">
-          <label>{t("Preview while video connects")}<select value={draft.frigatePreview ? "frigate" : "video"} onChange={event => setDraft({ ...draft, frigatePreview: event.target.value === "frigate" ? { connectionId: "", camera: "" } : undefined })}>
+        </div>
+        <div className="settings-card space-y-4"><PanelTitle as="h3" icon={Image}>{t("Preview while video connects")}</PanelTitle>
+          <label><span className="sr-only">{t("Preview while video connects")}</span><select value={draft.frigatePreview ? "frigate" : "video"} onChange={event => setDraft({ ...draft, frigatePreview: event.target.value === "frigate" ? { connectionId: "", camera: "" } : undefined })}>
             <option value="video">{t("Use the video connection")}</option><option value="frigate">{t("Frigate latest image")}</option>
           </select></label>
           <p className="page-note">{t("Show updating images immediately while live video connects. This also applies to camera notifications.")}</p>
@@ -125,7 +128,7 @@ export function CameraSettings() {
             {!settings.connections.some(item => item.type === "frigate") && <Link className="text-primary underline" to="/settings/camera-connections" target="_blank" rel="noreferrer">{t("Add a Frigate connection (new tab)")}</Link>}
           </>}
         </div>
-        <details open={snapshot.type !== "none" || undefined}><summary className="min-h-11 cursor-pointer py-2">{t("Person image (optional)")}</summary><div className="space-y-4 pt-3">
+        <details className="settings-card" open={snapshot.type !== "none" || undefined}><summary className="settings-disclosure"><span className="panel-title"><UserRound className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Person image (optional)")}</span></span></summary><div className="space-y-4 pt-3">
           <p className="page-note">{t("Shown separately from live video and its startup preview. Updates to show the latest person snapshot.")}</p>
           <label>{t("Person snapshot source")}<select value={snapshot.type} onChange={event => setDraft({ ...draft, personSnapshot: event.target.value === "frigate" ? { type: "frigate", connectionId: "", camera: "" } : event.target.value === "home-assistant" ? { type: "home-assistant", entity: "" } : { type: "none" } })}><option value="none">{t("No person snapshot")}</option><option value="home-assistant">{t("Person image from Home Assistant")}</option><option value="frigate">{t("Person image directly from Frigate")}</option></select></label>
           {snapshot.type === "home-assistant" && <><EntityPicker label={t("Person image entity")} entities={personImageEntities}
@@ -133,7 +136,7 @@ export function CameraSettings() {
             onChange={value => setDraft({ ...draft, personSnapshot: { type: "home-assistant", entity: personImageEntities.find(entity => entity.preferenceId === value)?.entityId ?? "" } })} /><p className="page-note">{t("Both image.* and camera.* entities are supported. Choose one showing the person snapshot. Use occupancy sensors to trigger notifications.")}</p></>}
           {snapshot.type === "frigate" && <><label>{t("Frigate connection")}<select value={snapshot.connectionId} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, connectionId: event.target.value } })}><option value="">{t("Choose a connection")}</option>{settings.connections.filter(item => item.type === "frigate").map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label>{t("Frigate camera name")}<input maxLength={128} value={snapshot.camera} onChange={event => setDraft({ ...draft, personSnapshot: { ...snapshot, camera: event.target.value } })} /></label><p className="page-note">{t("Add a Frigate snapshots connection under Manage connections if it is not listed.")}</p></>}
           {snapshot.type !== "none" && <fieldset className="camera-person-size-picker" aria-describedby="camera-person-size-help">
-            <legend>{t("Person inset size")}</legend>
+            <legend><span className="panel-title"><UserRound className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Person inset size")}</span></span></legend>
             <p id="camera-person-size-help" className="page-note">{t("The inset covers this percentage of the video width, including in fullscreen and notification cards.")}</p>
             <div className="camera-person-size-options">{(Object.keys(personSizes) as (keyof typeof personSizes)[]).map(size => <Button key={size} type="button" variant="outline" className="camera-person-size-option" aria-pressed={(draft.personPipSize ?? "medium") === size} onClick={() => setDraft({ ...draft, personPipSize: size })}>
               <span className="camera-person-size-example" aria-hidden="true"><Video size={24} /><span style={{ width: `${cameraPersonPipWidths[size]}%` }}><UserRound /></span></span>
@@ -146,7 +149,7 @@ export function CameraSettings() {
       {error && <p role="alert" className="text-destructive">{t(error)}</p>}
       <div className="flex flex-wrap gap-2"><Button type="submit" disabled={disabled}>{t("Save camera")}</Button><Button type="button" variant="outline" disabled={disabled} onClick={() => save(true)}>{t("Save and test camera")}</Button><Button type="button" variant="outline" onClick={() => { setDraft(undefined); setError(""); }}>{t("Cancel")}</Button></div>
     </form>}
-    {previewCamera && !draft && <div className="space-y-3 border-t pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{previewCamera.name}</h2><Button variant="outline" onClick={() => setPreview(undefined)}>{t("Close preview")}</Button></div>
+    {previewCamera && !draft && <div className="settings-card space-y-3"><div className="flex flex-wrap items-center justify-between gap-2"><PanelTitle icon={Camera} className="font-semibold">{previewCamera.name}</PanelTitle><Button variant="outline" onClick={() => setPreview(undefined)}>{t("Close preview")}</Button></div>
       {preview.type === "snapshot" && <p className="page-note">{t("This image is shown while the live stream connects.")}</p>}
       {shared.state.error ? <p role="status">{t("Camera settings could not be saved. Check settings storage and retry.")}</p> : shared.state.saving || shared.state.dirty ? <p role="status">{t("Saving camera settings before opening the stream…")}</p> : preview.type === "person" ? <CameraPersonSnapshot cameraId={previewCamera.id} /> : <MediaSurface key={preview.type} camera={previewCamera} expanded snapshotOnly={preview.type === "snapshot"} />}
     </div>}

@@ -444,7 +444,8 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
   expect(within(dialog).getByRole("switch", { name: "Waste collection" })).not.toBeChecked();
-  const toggles = within(dialog).getAllByRole("switch").filter(toggle => !["Show tomorrow’s plans", "Waste collection", "Hide morning summary content", "Show summary button in Everyone’s day"].includes(toggle.getAttribute("aria-label")));
+  const toggles = ["Morning summary", "Next family plan", "Everyone’s day", "Everyone’s week", "Daily rhythm", "Shopping", "School", "Home favorites"]
+    .map(name => within(dialog).getByRole("switch", { name }));
   expect(toggles).toHaveLength(8);
   for (const toggle of toggles) { expect(toggle).toBeChecked(); fireEvent.click(toggle); }
   expect(within(dialog).getByRole("switch", { name: "Show tomorrow’s plans" })).toBeDisabled();
@@ -525,6 +526,11 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
   const rows = () => within(dialog).getByRole("list", { name: "Section order" });
+  for (const row of within(rows()).getAllByRole("listitem")) {
+    const heading = within(row).getByRole("heading", { level: 3 });
+    expect(heading.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(within(row).getByRole("switch", { name: heading.textContent })).toHaveAttribute("aria-labelledby", heading.id);
+  }
   expect(within(dialog).getByRole("button", { name: "Move Morning summary earlier" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Move Home favorites later" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();

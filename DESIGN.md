@@ -98,6 +98,7 @@ rounded:
   field: "14px"
   event: "8px"
   panel: "24px"
+  settings: "16px"
   dock: "999px"
   pill: "50px"
   capsule: "999px"
@@ -169,6 +170,11 @@ components:
     textColor: "{colors.foreground}"
     rounded: "{rounded.panel}"
     padding: "{spacing.panel}"
+  settings-card:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.settings}"
+    padding: "{spacing.medium}"
 ---
 
 # Design System: Afterglow
@@ -179,7 +185,7 @@ components:
 
 Liquid Glass inspired controls float over a readable household board. Cool pearl ground, white work surfaces and blue actions keep the light theme crisp; midnight ground and pale blue actions carry the same hierarchy in dark mode. A softly illuminated rim and restrained shadow distinguish navigation from the content underneath.
 
-The interface retains aligned rows, clear dividers and opaque reading surfaces. Apple system typography leads the existing font stack, with self-hosted Public Sans as the fallback. Density changes with the available space; touch actions, readable labels and explicit states remain visible.
+The interface retains aligned rows and opaque reading surfaces. Independent settings groups use separate cards with icon headings; related content rows can use dividers within their shared surface. Apple system typography leads the existing font stack, with self-hosted Public Sans as the fallback. Density changes with the available space; touch actions, readable labels and explicit states remain visible.
 
 **Key Characteristics:**
 
@@ -316,7 +322,13 @@ Person and device filters use outlined pills; selected filters switch to the pri
 
 Work panels use the opaque card fill, a border at reduced opacity and panel spacing from the shared shell. Panel headings align titles with actions and wrap when needed. Repeated favorite devices use dividers within a shared panel rather than another nested card around each control.
 
-Section titles use `PanelTitle`: a fitting Lucide outline icon at 1.1em and stroke weight 1.8, followed by the existing heading text with a .6em gap. Icons inherit the palette's primary color without a badge, shadow or extra glass layer. They are decorative to assistive technology; the text retains the accessible name and heading level. `PanelHeading` requires an explicit icon and keeps its actions separate, wrapping when space is tight. Device type icons and person avatars remain the identity for their own cards. Dates, item titles, form labels and navigation group labels retain their quieter hierarchy.
+Section titles use `PanelTitle`: a fitting Lucide outline icon at 1.1em and stroke weight 1.8, followed by the existing heading text with a .6em gap. Icons inherit the palette's primary color without a badge, shadow or extra glass layer. They are decorative to assistive technology; the text retains the accessible name and heading level. `PanelHeading` requires an explicit icon and keeps its actions separate, wrapping when space is tight. Device type icons and person avatars remain the identity for their own cards. Dates, item titles and form labels retain their quieter hierarchy. Settings page titles, navigation group headings, dialog titles and configuration section headings use the same icon treatment; person avatars retain the identity of person-specific cards.
+
+Settings and customization views use separate opaque cards for independent configuration groups instead of divider-only sections. Reuse `settings-card` (card fill, full border, 16px corners and 1rem padding) with `settings-stack` (1rem gaps). Today has one card per reorderable section, with its heading icon, visibility switch and arrows together; controls wrap below the heading on phones. Settings navigation groups, household assignments, cameras/connections, notification groups and accordion sections, Smart home source/appearance groups and device settings follow this grouping. Keep related fields within their card and avoid an extra outer panel around a stack of cards. Existing appearance and backup panels retain their established card surfaces. Settings cards stay opaque in both themes and strengthen their border for increased contrast and forced colors.
+
+Settings card headings use 1.125rem semibold text; Today's reorderable section headings use 1rem to leave room for their controls. Keep the semantic heading level and visible text when adding an icon. A visibility switch takes its accessible name from that text, and clicking its associated label toggles it.
+
+**The Settings Grouping Rule.** Give each independent settings or customization group an opaque card and a meaningful heading icon. Keep related fields together, preserve visible heading text and separate cards with space instead of relying on divider lines.
 
 ### Navigation and transient menus
 

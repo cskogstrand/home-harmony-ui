@@ -163,6 +163,19 @@
 .panel-title { display: flex; align-items: center; gap: .6em; min-width: 0; }
 .panel-title > span { min-width: 0; overflow-wrap: anywhere; }
 .panel-title-icon { width: 1.1em; height: 1.1em; flex: 0 0 auto; color: hsl(var(--primary)); }
+.settings-disclosure { min-height: 44px; cursor: pointer; font-weight: 600; }
+.settings-disclosure > .panel-title, .todo-display-settings > summary > .panel-title { display: inline-flex; vertical-align: middle; }
+.settings-stack { display: grid; gap: 1rem; min-width: 0; }
+.settings-card { min-width: 0; padding: 1rem; border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); }
+.settings-card > .panel-title { font-size: 1.125rem; font-weight: 600; }
+fieldset.settings-card > legend { float: left; width: 100%; margin-bottom: 1rem; }
+fieldset.settings-card > legend + * { clear: both; }
+.dashboard-settings-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; min-height: 44px; }
+.dashboard-settings-heading > .panel-title { flex: 1 1 12rem; font-size: 1rem; font-weight: 600; }
+.dashboard-settings-card > :not(:first-child) { margin-top: 1rem; }
+@media (prefers-contrast: more), (forced-colors: active) {
+  .settings-card { border-color: currentColor; }
+}
 .panel-heading > .panel-title { flex: 1 1 auto; }
 .panel-heading > .text-link { flex-shrink: 0; }
 .panel-heading h2, .glow-panel > .panel-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -.02em; line-height: 1.35; }
@@ -340,8 +353,7 @@
 .timetable-dialog { max-width: 1100px; }
 .timetable-dialog .timetable-image { max-height: 65dvh; object-fit: contain; }
 .school-preview-calendar { grid-column: 1 / -1; }
-.timetable-administration { padding-block: 1.5rem; }
-.timetable-administration + .timetable-administration { border-top: 1px solid hsl(var(--border)); }
+.timetable-administration { padding: 1rem; }
 .timetable-administration h3 { font-weight: 600; font-size: 1.125rem; }
 .timetable-administration .planner-form { margin-block: 1rem; }
 .calendar-timetable { container: timetable / inline-size; min-width: 0; }

@@ -15,7 +15,7 @@
 
 Home Assistant owns your people, events, lists and devices. Afterglow stores dashboard preferences and uploaded timetables; the HA token stays on the server.
 
-Use the settings cog on Today (I dag) to show, hide or reorder sections with the up/down arrows. The order is saved across screens and included in backups. Reset section order restores the original order without changing visibility.
+Use the settings cog on Today (I dag) to show, hide or reorder sections with the up/down arrows. Settings and customization groups use separate cards with heading icons for easier scanning. The order is saved across screens and included in backups. Reset section order restores the original order without changing visibility.
 
 Under **Settings → Appearance**, adjust dialog transparency, frost, color saturation and background dimming with a live preview. Dialogs use a lighter glass fill by default; accessibility preferences retain solid surfaces. Glass settings are shared across screens and included in backups.
 

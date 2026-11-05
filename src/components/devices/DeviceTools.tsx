@@ -1,3 +1,4 @@
+import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useState } from "react";
 import { Activity, CheckCircle2, CircleAlert, ExternalLink, Info, SlidersHorizontal } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
@@ -39,7 +40,7 @@ export function DeviceTools({ device, entities, configuration, diagnostics, targ
     ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: currentHome.timeZone }).format(new Date(entity.lastUpdated)) : t("Not reported");
   const settings = (items: Entity[]) => items.map(entity => {
     const Icon = cardDesignFor(entity.domain)?.icon ?? SlidersHorizontal;
-    return <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-setting">
+    return <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-setting settings-card">
     <div className="device-tool-name"><Icon size={16} aria-hidden="true" /><h3>{entity.name}</h3></div>
     <DeviceControl entity={entity} setting />
     <EntityDetails entity={entity} icon />
@@ -61,12 +62,12 @@ export function DeviceTools({ device, entities, configuration, diagnostics, targ
       </TabsContent>
       <TabsContent value="diagnostics">
         <div className="device-tools-status"><StatusIcon size={18} aria-hidden="true" /><div><strong>{message(status)}</strong><p>{t("Reported by Home Assistant")}</p></div></div>
-        {diagnosticReadings.map(entity => <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-reading">
+        {diagnosticReadings.map(entity => <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-reading settings-card">
           <div className="device-tool-name"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-4 w-4" /><h3>{entity.name}</h3></div>
           <strong>{homeOnline ? entityStateLabel(entity, language) : t("Offline")}{homeOnline && available(entity) && typeof entity.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : ""}</strong>
           <p className="device-tool-updated">{t("Last updated")}: {updated(entity)}</p><EntityDetails entity={entity} icon />
         </article>)}
-        {!!diagnosticActions.length && <section className="device-tools-actions" aria-label={t("Maintenance")}><h3>{t("Maintenance")}</h3>{settings(diagnosticActions)}</section>}
+        {!!diagnosticActions.length && <section className="device-tools-actions" aria-label={t("Maintenance")}><PanelTitle as="h3" icon={SlidersHorizontal}>{t("Maintenance")}</PanelTitle>{settings(diagnosticActions)}</section>}
         {!diagnostics.length && <p className="device-tools-empty">{t("No diagnostic readings or maintenance actions are exposed for this device.")}</p>}
       </TabsContent>
       <TabsContent value="about">

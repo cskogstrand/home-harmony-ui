@@ -1,7 +1,7 @@
 import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useRef, useState } from "react";
 import { Link, useBeforeUnload, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2, Eye, TriangleAlert, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2, Eye, TriangleAlert, SlidersHorizontal, Sparkles, Palette, Plug } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -73,7 +73,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
       <div className="smart-type-tools"><label className="smart-type-search"><Search size={18} aria-hidden="true" /><Input aria-label={t("Search card types")} type="search" placeholder={t("Search card types")} value={search} onChange={event => setSearch(event.target.value)} /></label>
         <label className="smart-type-all"><input type="checkbox" checked={showAll} onChange={event => setShowAll(event.target.checked)} />{t("Show all types")}</label>
       </div>
-      <div className="smart-type-catalog">{[...new Set(types.map(type => type.group))].map(group => <section key={group}><h3>{t(group)}</h3><div className="smart-type-grid">{types.filter(design => design.group === group).map(design => {
+      <div className="smart-type-catalog">{[...new Set(types.map(type => type.group))].map(group => <section key={group} className="settings-card"><PanelTitle as="h3" icon={cardDesigns.find(type => type.group === group)!.icon}>{t(group)}</PanelTitle><div className="smart-type-grid">{types.filter(design => design.group === group).map(design => {
         const count = entities.filter(entity => design.domains.includes(entity.domain)).length;
         return <button className="smart-type-choice" key={design.id} disabled={disabled} onClick={() => chooseType(design)}><design.icon size={23} strokeWidth={1.7} aria-hidden="true" /><span><strong>{t(design.subtitle)}</strong><small>{count ? t("{count} available", { count }) : t("No matching entities")}</small></span><ChevronRight size={16} aria-hidden="true" /></button>;
       })}</div></section>)}</div>
@@ -83,7 +83,8 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
       <p className="page-note smart-builder-help">{t("Choose your sources and see the resulting card. Suggestions are added only when you choose them.")}</p>
       <div className="smart-compose">
         <div className="smart-compose-fields">
-              <div ref={mainSources} className="smart-source-slot planner-form">
+              <div ref={mainSources} className="smart-source-slot settings-card planner-form">
+                <PanelTitle as="h3" icon={Plug}>{t("Main entity")}</PanelTitle>
                 <label className="smart-card-device">{t("Device")}<select value={selectedDevice ?? ""} disabled={disabled} onChange={event => { setDevice(event.target.value); if (draft.linkedEntities.length) setOtherOpen(true); change({ mainEntity: "" }); }}>
                   <option value="" disabled>{t("Choose a device")}</option>
                   {devices.map(device => <option key={device.id} value={device.id}>{deviceName(device, language)}</option>)}
@@ -91,23 +92,24 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
                 </select></label>
                 <EntityPicker label={t("Main entity")} ariaLabel={t("Main entity")} groupByDevice={false} entities={deviceCandidates} value={draft.mainEntity} disabled={disabled || selectedDevice === undefined} onChange={selectMain} />
                 <p>{t("This entity supplies the card’s main controls and state.")}</p>
-                {suggestedMain && <div className="smart-suggestions"><h3>{t("Recommended main entity")}</h3><Button type="button" variant="outline" disabled={disabled} onClick={() => { selectMain(suggestedMain.preferenceId); mainSources.current?.querySelector("button")?.focus(); }}>{t("Use {name}", { name: suggestedMain.name })}</Button></div>}
+                {suggestedMain && <div className="smart-suggestions"><PanelTitle as="h3" icon={Sparkles}>{t("Recommended main entity")}</PanelTitle><Button type="button" variant="outline" disabled={disabled} onClick={() => { selectMain(suggestedMain.preferenceId); mainSources.current?.querySelector("button")?.focus(); }}>{t("Use {name}", { name: suggestedMain.name })}</Button></div>}
                 {!candidates.length && <p role="status">{t(homeOnline ? "No matching entities. Choose another card type or check Home Assistant." : "Connect to Home Assistant to choose an entity.")}</p>}
               </div>
-              <div ref={supportingSources} className="smart-source-slot smart-source-supporting planner-form"><EntityPicker multiple label={t("Supporting entities")} ariaLabel={t("Supporting entities")} groupByDevice={false} placeholder={t("Add readings, controls or images")} entities={deviceSupporting} value={localLinks} disabled={disabled || selectedDevice === undefined} onChange={linkedEntities => change({ linkedEntities: [...linkedEntities, ...otherLinks] })} />
+              <div ref={supportingSources} className="smart-source-slot settings-card planner-form"><PanelTitle as="h3" icon={Layers3}>{t("Supporting entities")}</PanelTitle><EntityPicker multiple label={t("Supporting entities")} ariaLabel={t("Supporting entities")} groupByDevice={false} placeholder={t("Add readings, controls or images")} entities={deviceSupporting} value={localLinks} disabled={disabled || selectedDevice === undefined} onChange={linkedEntities => change({ linkedEntities: [...linkedEntities, ...otherLinks] })} />
                 <p>{t("Only entities from the selected device are shown.")}</p>
-                {!!suggestions.length && <section className="smart-suggestions" aria-label={t("Suggested for this card")}><h3>{t("Suggested for this card")}</h3><p>{t("Based on the card type and this device’s reported entities.")}</p>
+                {!!suggestions.length && <section className="smart-suggestions" aria-label={t("Suggested for this card")}><PanelTitle as="h3" icon={Sparkles}>{t("Suggested for this card")}</PanelTitle><p>{t("Based on the card type and this device’s reported entities.")}</p>
                   {suggestions.map(({ entity, reason }) => <button type="button" key={entity.preferenceId} className="smart-suggestion" disabled={disabled} aria-label={t("Add {name}", { name: entity.name })} onClick={() => { change({ linkedEntities: [...draft.linkedEntities, entity.preferenceId] }); supportingSources.current?.querySelector("button")?.focus(); }}><span><strong>{entity.name}</strong><small>{t(reason)}</small></span><Plus size={18} aria-hidden="true" /></button>)}
                 </section>}
-                <details className="smart-other-entities" open={otherOpen} onToggle={event => setOtherOpen(event.currentTarget.open)}><summary>{t("Add entities from other devices")}</summary>
+                <details className="smart-other-entities" open={otherOpen} onToggle={event => setOtherOpen(event.currentTarget.open)}><summary className="settings-disclosure"><span className="panel-title"><Plus className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Add entities from other devices")}</span></span></summary>
                   <EntityPicker multiple label={t("Entities from other devices")} placeholder={t("Add readings, controls or images")} entities={supporting.filter(entity => !onDevice(entity))} value={otherLinks} disabled={disabled || selectedDevice === undefined} onChange={linkedEntities => change({ linkedEntities: [...localLinks, ...linkedEntities] })} />
                   <p>{t("Include extra readings, controls or standalone entities on this card.")}</p>
                 </details>
               </div>
-        <form id="smart-card-form" className="smart-compose-options planner-form" onSubmit={event => {
+        <form id="smart-card-form" className="smart-compose-options settings-card planner-form" onSubmit={event => {
             event.preventDefault();
             if (!disabled && draft.mainEntity && saveSmartHomeCard({ ...draft, title: draft.title.trim(), group: draft.group.trim() })) onClose();
           }}>
+          <PanelTitle as="h3" icon={Palette}>{t("Appearance")}</PanelTitle>
           <label>{t("Card name")}<Input value={draft.title} maxLength={100} placeholder={main?.name || t(design.subtitle)} disabled={disabled} onChange={event => change({ title: event.target.value })} /></label>
           <label>{t("Card type")}<select value={draft.type} disabled={disabled} onChange={event => {
             const type = cardDesigns.find(design => design.id === event.target.value)!;
@@ -152,11 +154,11 @@ export function SmartHomeSettings() {
       <section className="smart-collection" aria-label={t("Your cards")}>
         <div className="smart-builder-heading"><div><PanelTitle icon={Layers3}>{t("Your cards")}</PanelTitle><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button className="mobile-icon-button" disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add card")}</span></Button></div>
         {!!selectedId && <p role="status">{t("This card no longer exists. Choose another or add a new one.")}</p>}
-        {cards.length ? <ul className="smart-card-list">{cards.map(card => <li key={card.id}><button onClick={() => open(card.id)} className="smart-card-row"><span className="smart-card-row-icon glass-surface"><card.design.icon size={22} strokeWidth={1.7} aria-hidden="true" /></span><span className="smart-card-row-copy"><strong>{card.title || card.main?.name || t(card.design.subtitle)}</strong><small>{[t(card.design.subtitle), card.group, t(card.linkedEntities.length ? "{count} entities" : "1 entity", { count: card.linkedEntities.length + 1 })].filter(Boolean).join(" · ")}</small>{!card.main && <small className="smart-card-missing">{t("Main entity unavailable · choose a replacement")}</small>}</span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
+        {cards.length ? <ul className="smart-card-list">{cards.map(card => <li key={card.id} className="settings-card"><button onClick={() => open(card.id)} className="smart-card-row"><span className="smart-card-row-icon glass-surface"><card.design.icon size={22} strokeWidth={1.7} aria-hidden="true" /></span><span className="smart-card-row-copy"><strong>{card.title || card.main?.name || t(card.design.subtitle)}</strong><small>{[t(card.design.subtitle), card.group, t(card.linkedEntities.length ? "{count} entities" : "1 entity", { count: card.linkedEntities.length + 1 })].filter(Boolean).join(" · ")}</small>{!card.main && <small className="smart-card-missing">{t("Main entity unavailable · choose a replacement")}</small>}</span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
           : <div className="smart-collection-empty"><Layers3 size={38} strokeWidth={1.4} aria-hidden="true" /><h3>{t("A place for the things you use")}</h3><p>{t("Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.")}</p></div>}
         <div className="smart-collection-links"><Link className="text-link" to="/home">{t("Open Smart home")}<ArrowUpRight size={16} aria-hidden="true" /></Link>{!!cards.length && <span>{t("Reorder cards and groups from Configure on Smart home.")}</span>}</div>
       </section>
-      <section className="smart-danger" aria-labelledby="smart-danger-title"><PanelTitle id="smart-danger-title" icon={TriangleAlert}>{t("Danger zone")}</PanelTitle><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
+      <section className="smart-danger settings-card" aria-labelledby="smart-danger-title"><PanelTitle id="smart-danger-title" icon={TriangleAlert}>{t("Danger zone")}</PanelTitle><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
     </>}
     <div className="smart-settings-status"><p role="status">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
       {!homeOnline && <p>{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
