@@ -6,10 +6,11 @@ import { Fragment, useState, type ReactNode } from "react";
 import type { DashboardSection } from "../../shared/configuration";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
-import { ArrowUpRight, CalendarDays, CalendarClock, BookOpen } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CalendarClock, BookOpen, ChevronDown } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
 import { EventDescription } from "@/components/EventDescription";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ListPanel } from "@/components/FamilyLists";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
@@ -52,17 +53,19 @@ export default function Dashboard() {
   const sections: Record<DashboardSection, ReactNode> = {
     morningSummary: dashboard.morningSummary && <MorningSummary />,
     wasteCollection: dashboard.wasteCollection && <WasteCollection />,
-    nextPlan: dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
-      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle></div>
+    nextPlan: dashboard.nextPlan && <Collapsible key={`${next?.id}:${dashboard.hideNextPlanDescription}`} defaultOpen={!dashboard.hideNextPlanDescription} asChild><section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
+      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle>
+        {next?.note && <CollapsibleTrigger asChild><Button type="button" variant="ghost" size="icon" className="group shrink-0" aria-label={t("Show or hide description")} title={t("Show or hide description")}><ChevronDown aria-hidden="true" className="group-data-[state=open]:rotate-180" /></Button></CollapsibleTrigger>}
+      </div>
       {next ? <><button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
         <div className="next-event-copy">
           <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge></div>
           <small>{[next.todo && t("Task"), memberName(next.member), next.location].filter(Boolean).join(" · ")}</small>
         </div>
         <div className="next-event-time"><time>{eventTimeLabel(next)}</time><small>{next.date === today ? t("Today") : dateLabel(next.date)}</small></div>
-      </button>{next.note && <EventDescription value={next.note} />}</> :
+      </button>{next.note && <CollapsibleContent><EventDescription value={next.note} /></CollapsibleContent>}</> :
         <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
-    </section>,
+    </section></Collapsible>,
     day: dashboard.day && <FamilyDay data={data} onEdit={openEvent} />,
     week: dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
       <div className="panel-heading calendar-panel-heading"><PanelTitle icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><CalendarViewControls /></div>

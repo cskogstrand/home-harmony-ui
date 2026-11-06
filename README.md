@@ -25,6 +25,8 @@ Unfinished to-dos with due dates appear under their assigned person in the month
 
 Calendar and Everyone’s day keep their last loaded plans during background refreshes and temporary connection failures. Loading text is reserved for the first fetch; connection errors still appear. Changing the selected home, calendar sources or date range clears unrelated cached calendar data. This cache lives only in memory.
 
+Next family plan shows formatted descriptions beneath the event. Its heading chevron expands or collapses the description without opening the calendar dialog. Under **Customize Today → Next family plan**, **Hide description by default** chooses the initial state; descriptions stay visible by default for existing setups. This preference syncs across screens and is included in backups. Manual toggles apply only on this screen to the current event; the next event or a changed default uses the saved preference. Events without descriptions have no chevron.
+
 Today, Calendar, Lists, School and Smart home preload shortly after startup and stay mounted while you navigate. Their loaded data, filters and drafts remain in memory, and the main navigation remembers the selected calendar date/view and list tab. Background pages keep receiving data updates; their dialogs are hidden and camera streams pause. Reloading the app resets this page state.
 
 ## Get started

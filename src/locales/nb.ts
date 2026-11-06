@@ -920,6 +920,8 @@ export const nb = {
   "New {value1} task": "Ny {value1}-oppgave",
   "Next 7 days": "Neste 7 dager",
   "Next family plan": "Neste familieplan",
+  "Hide description by default": "Skjul beskrivelsen som standard",
+  "Show or hide description": "Vis eller skjul beskrivelsen",
   "No more plans today.": "Ingen flere planer i dag.",
   "No plans today or tomorrow.": "Ingen planer i dag eller i morgen.",
   "No plans in the next {days} days.": "Ingen planer de neste {days} dagene.",

@@ -101,6 +101,7 @@ const plannerObjectSchema = z.object({
     daySummaryPlayback: z.boolean().default(false),
     wasteCollection: z.boolean().default(false),
     nextPlan: z.boolean().default(true),
+    hideNextPlanDescription: z.boolean().default(false),
     nextPlanDays: z.union([z.literal("auto"), z.number().int().min(0).max(90)]).default("auto"),
     day: z.boolean().default(true),
     showTomorrow: z.boolean().default(false),

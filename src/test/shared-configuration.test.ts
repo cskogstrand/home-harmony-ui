@@ -131,7 +131,7 @@ it.each([
   expect(b.getSnapshot().config.settings[field]).toBe("");
 });
 
-it.each(["hideMorningSummaryContent", "daySummaryPlayback"] as const)("defaults older %s settings and shares and restores the choice", async field => {
+it.each(["hideMorningSummaryContent", "daySummaryPlayback", "hideNextPlanDescription"] as const)("defaults older %s settings and shares and restores the choice", async field => {
   const config = emptyConfiguration();
   delete config.settings.dashboard[field];
   expect(parseConfiguration(JSON.stringify(config)).settings.dashboard[field]).toBe(false);
@@ -226,13 +226,14 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { order, showTomorrow, wasteCollection, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, ...sections } = dashboard;
+  const { order, showTomorrow, wasteCollection, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
   expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
   expect(hideMorningSummaryContent).toBe(false);
   expect(daySummaryPlayback).toBe(false);
+  expect(hideNextPlanDescription).toBe(false);
   expect(Object.values(sections).every(Boolean)).toBe(true);
   const read = (dashboard: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...oldSettings, dashboard } }));
   expect(read({ shopping: false }).settings.dashboard).toEqual({ ...dashboard, shopping: false });

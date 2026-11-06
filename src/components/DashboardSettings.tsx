@@ -89,6 +89,10 @@ export function DashboardSettings() {
             <p id="morning-summary-playback-help" className="mt-2 text-sm text-muted-foreground">{t("Play is available only when this helper is on. Without a selection, playback is disabled.")}</p>
           </div>}
           {key === "nextPlan" && dashboard.nextPlan && <fieldset className="grid min-w-0 gap-3" disabled={!shared?.state.loaded || !!shared.state.error}>
+            <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 text-sm">
+              <span>{t("Hide description by default")}</span><Switch checked={dashboard.hideNextPlanDescription} onCheckedChange={hideNextPlanDescription => setDashboard({ hideNextPlanDescription })}
+                disabled={disabled} aria-label={t("Hide description by default")} />
+            </label>
             <label className="grid gap-2 text-sm">{t("Look ahead")}
               <select className="min-w-0 w-full rounded-lg border border-input bg-background p-2" value={dashboard.nextPlanDays === "auto" ? "auto" : "custom"}
                 onChange={event => setDashboard({ nextPlanDays: event.target.value === "auto" ? "auto" : 1 })}>

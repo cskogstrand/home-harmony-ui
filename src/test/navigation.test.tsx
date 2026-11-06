@@ -72,7 +72,7 @@ it.each([
   expect(await within(next).findByRole("heading", { level: 3, name: "Example activity" })).toBeVisible();
   expect(within(next).queryByText(/^(No (more )?plans|Ingen (flere )?planer)/)).not.toBeInTheDocument();
   expect(next.querySelector(".next-plan-countdown")?.textContent ?? null).toBe(countdown);
-  expect(within(next).getAllByRole("button")).toHaveLength(1);
+  expect(within(next).getAllByRole("button")).toHaveLength(2);
   const plan = within(next).getByRole("button", { name: /Example activity/ });
   expect(plan.style.getPropertyValue("--member")).toBe("#a5c9bd");
   expect(within(plan).getByText(countdown, { selector: ".next-plan-countdown" })).toBeVisible();
@@ -103,6 +103,52 @@ it("formats Home Assistant descriptions in the next plan and calendar dialog wit
   expect(dialog.querySelector("strong")).toHaveTextContent("Bring supplies");
   expect(dialog.querySelector("script")).toBeNull();
   expect(dialog).not.toHaveTextContent("<p>");
+});
+
+it.each(["en", "nb"] as const)("toggles next-plan descriptions locally and applies the shared default in %s", async language => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
+  settings.settings.language = language;
+  settings.settings.dashboard.hideNextPlanDescription = true;
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  let event = { uid: "example", summary: "Example reservation", start: "2026-10-28T16:00:00Z", end: "2026-10-28T17:00:00Z", description: '<p><a href="https://example.com/booking">Booking details</a></p>' };
+  const receivers = new Set<(events: typeof event[]) => void>();
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => { receivers.add(receive); receive([event]); });
+  const update = (changes: Partial<typeof event>) => act(() => { event = { ...event, ...changes }; receivers.forEach(receive => receive([event])); });
+  render(<App />); await pageReady();
+  const next = () => screen.getByRole("region", { name: language === "nb" ? "Neste familieplan" : "Next family plan" });
+  const toggle = () => within(next()).getByRole("button", { name: language === "nb" ? "Vis eller skjul beskrivelsen" : "Show or hide description" });
+  await within(next()).findByRole("button", { name: /Example reservation/ });
+  expect(toggle()).toHaveAttribute("aria-expanded", "false");
+  expect(document.getElementById(toggle().getAttribute("aria-controls")!)).not.toBeVisible();
+  expect(within(next()).queryByRole("link", { name: "Booking details" })).not.toBeInTheDocument();
+  const writes = () => app.configurationRequest.mock.calls.filter(([method]) => method === "PUT").length;
+  const before = writes();
+  fireEvent.click(toggle());
+  expect(toggle()).toHaveAttribute("aria-expanded", "true");
+  expect(within(next()).getByRole("link", { name: "Booking details" })).toBeVisible();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(writes()).toBe(before);
+  update({ summary: "Updated reservation" });
+  expect(toggle()).toHaveAttribute("aria-expanded", "true");
+  update({ uid: "next-example", summary: "Next reservation" });
+  expect(toggle()).toHaveAttribute("aria-expanded", "false");
+
+  fireEvent.click(screen.getByRole("button", { name: language === "nb" ? "Tilpass I dag" : "Customize Today" }));
+  const defaultToggle = screen.getByRole("switch", { name: language === "nb" ? "Skjul beskrivelsen som standard" : "Hide description by default" });
+  expect(defaultToggle).toBeChecked();
+  fireEvent.click(defaultToggle);
+  await waitFor(() => expect(settings.settings.dashboard.hideNextPlanDescription).toBe(false));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  expect(toggle()).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(toggle());
+  expect(toggle()).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(within(next()).getByRole("button", { name: /Next reservation/ }));
+  expect(within(screen.getByRole("dialog", { name: "Next reservation" })).getByRole("link", { name: "Booking details" })).toBeVisible();
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  update({ uid: "no-description", description: "" });
+  expect(within(next()).getAllByRole("button")).toHaveLength(1);
 });
 
 it.each(["ongoing", "loading", "failed", "offline"])("does not claim quiet days with %s calendar data", async mode => {
@@ -496,7 +542,7 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ order: [...dashboardSections], morningSummary: false, hideMorningSummaryContent: false, daySummaryPlayback: false, wasteCollection: false, nextPlan: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ order: [...dashboardSections], morningSummary: false, hideMorningSummaryContent: false, daySummaryPlayback: false, wasteCollection: false, nextPlan: false, hideNextPlanDescription: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
 });
 
 it("persists summary display choices and keeps playback configuration accessible with the summary panel hidden", async () => {
