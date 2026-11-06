@@ -342,6 +342,11 @@
 .dg-compact .dg-form textarea { min-height: 88px; }
 .dg-card.dg-supercompact { padding: .75rem; border-radius: 16px; }
 .dg-supercompact .dg-card-header { min-height: 44px; margin-bottom: .25rem; gap: .5rem; }
+.dg-supercompact[data-card-kind="scene"] { flex-direction: row; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.dg-supercompact[data-card-kind="scene"] > .dg-card-header { flex: 1; min-width: 0; margin-bottom: 0; }
+.dg-supercompact[data-card-kind="scene"] > .dg-card-body { flex: 0 1 auto; align-items: flex-end; }
+.dg-supercompact[data-card-kind="scene"] > :is(.smart-card-readings, .smart-supporting-media, .dg-card-footer) { flex-basis: 100%; }
+.dg-supercompact[data-card-kind="scene"] .dg-readout strong { font-size: .875rem; }
 .dg-supercompact:has(.dg-adjust-trigger) .dg-card-header { padding-right: 48px; }
 .dg-supercompact[data-card-kind] .dg-card-body { display: flex; align-items: stretch; gap: .5rem; }
 .dg-supercompact .dg-readout strong { font-size: 1.6rem; letter-spacing: -.02em; }

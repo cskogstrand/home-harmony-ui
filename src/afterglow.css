@@ -672,8 +672,6 @@ fieldset.settings-card > legend + * { clear: both; }
 .portrait-board > .home-favorites { grid-column: 1 / -1; }
 .favorite-heading-actions { display: flex; align-items: center; gap: 20px; margin-left: auto; }
 .favorite-heading-actions .text-link { min-height: 48px; font-size: 0.875rem; }
-.home-favorites .scene-buttons { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 10px; margin-top: 16px; }
-.home-favorites .scene-buttons button { flex-direction: row; font-size: 0.9375rem; padding: 12px; }
 .favorite-picker-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .favorite-picker-footer > span { margin-right: auto; color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .device-details summary { cursor: pointer; min-height: 48px; padding-block: 10px; }
@@ -750,9 +748,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .family-week-table .event-button strong { font-size: .9375rem; }
 .family-week-table .event-time { font-size: .875rem; }
 .week-add-plan { font-size: .8125rem; min-height: 48px; }
-.favorite-devices .home-device { background: transparent; border: 0; border-radius: 0; padding: 1rem 0; }
 .favorite-devices { gap: 1.5rem; }
-.favorite-devices .home-device + .home-device { border-left: 1px solid hsl(var(--border)); padding-left: 1.5rem; }
 .smart-more { margin-left: auto; }
 .smart-more > button { display: inline-flex; align-items: center; gap: .5rem; min-height: 48px; padding: .65rem .8rem; font-size: .9375rem; border-radius: 999px; color: hsl(var(--muted-foreground)); }
 .smart-more > button[data-active="true"] { color: hsl(var(--primary)); background: hsl(var(--secondary)); }
@@ -808,7 +804,6 @@ fieldset.settings-card > legend + * { clear: both; }
   .school-preview > div:first-child, .list-progress, .list-identity > div > span, .home-device-title small, .device-range > span { font-size: .9rem; }
   .home-device-title h3, .scene-buttons button, .home-favorites .scene-buttons button, .toggle-line { font-size: 1rem; }
   .favorite-devices { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
-  .favorite-devices .home-device + .home-device { padding-left: 1rem; }
   .school-preview .timetable-image { max-height: 200px; }
   .school-strip { gap: 1rem; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -825,7 +820,6 @@ fieldset.settings-card > legend + * { clear: both; }
   .smart-summary > a > svg:last-child { display: none; }
   .school-cards { grid-template-columns: 1fr; }
   .favorite-devices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .favorite-devices .home-device + .home-device { border-left: 0; padding-left: 0; }
   .family-dock a { display: grid; grid-template-rows: 22px 1fr; justify-items: center; align-items: start; gap: .25rem; padding: .5rem .15rem; font-size: .75rem; line-height: 1.2; min-height: 64px; text-align: center; }
   .family-dock a svg { width: 22px; height: 22px; }
 }
@@ -890,7 +884,6 @@ fieldset.settings-card > legend + * { clear: both; }
   .smart-summary span { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .smart-summary strong { margin-top: 0; }
   .scene-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .favorite-devices .home-device + .home-device { border-top: 1px solid hsl(var(--border)); }
   .favorite-heading-actions { gap: .75rem; flex-wrap: wrap; }
   .favorite-heading-actions .text-link { font-size: .8125rem; }
   .compact-mode { --panel-space: .75rem; }

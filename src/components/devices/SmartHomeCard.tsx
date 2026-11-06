@@ -38,7 +38,7 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
       {readings.map(item => ["sensor", "binary_sensor", "device_tracker", "event"].includes(item.domain) ? <div className="smart-reading" key={item.preferenceId}><span>{item.name}</span><strong>{homeOnline ? entityStateLabel(item, language) : t("Offline")}{homeOnline && available(item) && typeof item.attributes.unit_of_measurement === "string" ? ` ${item.attributes.unit_of_measurement}` : ""}</strong></div>
         : <details className="smart-reading-details" key={item.preferenceId}><summary>{item.name}</summary><CardPresentation.Provider value={{ variant: "Compact", title: item.name, tint: design.tint, visible: true }}><DeviceControl entity={item} /><EntityFacts entity={item} /></CardPresentation.Provider></details>)}
     </div>}
-    {entity && !detail && <EntityFacts entity={entity} />}
+    {entity && !detail && !(entity.domain === "scene" && density === "supercompact") && <EntityFacts entity={entity} />}
     {entity && !preview && ["sensor", "air_quality"].includes(entity.domain) && <EntityHistory entity={entity} />}
   </CardFrame>;
 }

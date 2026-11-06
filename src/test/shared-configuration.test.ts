@@ -28,6 +28,30 @@ function server() {
 }
 const url = "http://ha.local:8123";
 
+it("defaults, validates, shares and restores favorite groups", async () => {
+  const config = emptyConfiguration();
+  delete config.settings.homeEntityGroups;
+  delete config.settings.homeGroups;
+  expect(parseConfiguration(JSON.stringify(config)).settings.homeEntityGroups).toEqual({});
+  expect(parseConfiguration(JSON.stringify(config)).settings.homeGroups).toEqual([]);
+  for (const homeEntityGroups of [null, [], { "home|example": 1 }, { "home|example": "x".repeat(81) }, { constructor: "Example" }]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, homeEntityGroups } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  const homeEntityGroups = { "home|example": "Example group" };
+  const homeGroups = ["Example group", "Empty group"];
+  for (const invalid of [null, {}, [1], [" "], ["x".repeat(81)]]) expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, homeGroups: invalid } }))).toThrow();
+  a.updateSettings(p => ({ ...p, homeEntities: ["home|example"], homeEntityGroups, homeGroups }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.homeEntityGroups).toEqual(homeEntityGroups);
+  expect(backup.settings.homeGroups).toEqual(homeGroups);
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings.homeEntityGroups).toEqual(homeEntityGroups);
+  expect(a.getSnapshot().config.settings.homeGroups).toEqual(homeGroups);
+});
+
 it("shares and restores the optional person inset setting without changing older rules", async () => {
   const rule = notificationRuleSchema.parse({ id: "example", title: "Example alert", kind: "camera", cameraEntity: "example-camera", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" } });
   expect(rule.showPersonSnapshot).toBeUndefined();

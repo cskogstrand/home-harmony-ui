@@ -65,7 +65,7 @@ interface FamilyContextValue extends FamilyState {
   isMemberVisible: (id: MemberId) => boolean;
   setMemberVisible: (id: MemberId, visible: boolean) => void;
   setMemberColor: (id: MemberId, color: string) => boolean;
-  setHomeEntities: (ids: string[]) => boolean;
+  setHomeEntities: (ids: string[], groups: Planner["homeEntityGroups"], groupNames: string[]) => boolean;
   saveSmartHomeCard: (card: DeviceCardSettings) => boolean;
   removeSmartHomeCard: (id: string) => boolean;
   clearSmartHome: () => boolean;

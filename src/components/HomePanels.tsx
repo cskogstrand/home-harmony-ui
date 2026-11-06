@@ -1,5 +1,4 @@
 import { PanelTitle } from "@/components/PanelTitle";
-import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { z } from "zod";
@@ -10,10 +9,10 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
 import type { Entity } from "@/types/api";
 import { CommandFeedback } from "@/components/devices/DeviceControl";
-import { EntityCard } from "@/components/devices/EntityCard";
+import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
+import { FavoritePicker } from "@/components/FavoritePicker";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { EntityPicker } from "./EntityPicker";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberAvatar, PanelHeading } from "./FamilyPlanner";
 
@@ -123,38 +122,22 @@ export function SceneButtons({ entities }: { entities?: Entity[] }) {
 export function HomeFavorites() {
   const { t } = useI18n();
   const { currentHome, haUrl } = useApp();
-  const { homeEntities, setHomeEntities } = useFamily();
+  const { homeEntities, homeEntityGroups, homeGroups, setHomeEntities } = useFamily();
   const [open, setOpen] = useState(false);
   const defaults = [...currentHome.entities.filter(e => ["light", "climate", "switch"].includes(e.domain)).slice(0, 3), ...currentHome.entities.filter(e => e.domain === "scene").slice(0, 4)].map(e => e.preferenceId);
   const selected = homeEntities ?? defaults;
   const entities = selected.flatMap(id => currentHome.entities.find(e => e.preferenceId === id) ?? []);
-  const [sceneId, setSceneId] = useState<string>();
-  const scenes = entities.filter(e => e.domain === "scene");
+  const groups = [...new Set(entities.map(entity => homeEntityGroups[entity.preferenceId] || ""))];
   const missing = selected.length - entities.length;
   return <section className="glow-panel home-favorites" aria-label={t("Home favorites")}>
-    <div className="panel-heading"><PanelTitle icon={Heart}>{t("Just right at home")}</PanelTitle><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="ghost" size="icon" disabled={!haUrl} aria-label={t("Customize home favorites")} title={t("Customize home favorites")}><Settings aria-hidden="true" /></Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle asChild><PanelTitle icon={House}>{t("Make home yours")}</PanelTitle></DialogTitle><DialogDescription>{t("Choose your dashboard favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} onSave={ids => { if (setHomeEntities(ids)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
-    {!!entities.length && <div className="favorite-devices">{entities.filter(e => e.domain !== "scene").map(entity => <EntityCard key={entity.entityId} entity={entity} />)}</div>}
-    {!!scenes.length && <SceneButtons entities={scenes} />}
+    <div className="panel-heading"><PanelTitle icon={Heart}>{t("Just right at home")}</PanelTitle><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="ghost" size="icon" disabled={!haUrl} aria-label={t("Customize home favorites")} title={t("Customize home favorites")}><Settings aria-hidden="true" /></Button></DialogTrigger><DialogContent className="favorite-dialog"><DialogHeader><DialogTitle asChild><PanelTitle icon={House}>{t("Make home yours")}</PanelTitle></DialogTitle><DialogDescription>{t("Browse card types, then choose what belongs in your favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} groups={homeEntityGroups} savedGroups={homeGroups} onSave={(ids, groups, groupNames) => { if (setHomeEntities(ids, groups, groupNames)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
+    {groups.map(group => <div className="favorite-group" key={group}>
+      {(group || groups.length > 1) && <h3>{group || t("Ungrouped")}</h3>}
+      <div className="favorite-devices">{entities.filter(entity => (homeEntityGroups[entity.preferenceId] || "") === group).map(entity => <SmartHomeCard key={entity.entityId} entity={entity} />)}</div>
+    </div>)}
     {!selected.length && haUrl && <p className="empty-note">{t("No favorites selected.")}</p>}
     {!!missing && <p className="muted">{t(missing === 1 ? "{count} saved favorite is unavailable." : "{count} saved favorites are unavailable.", { count: missing })}</p>}
   </section>;
-}
-function FavoritePicker({ selected, onSave, onCancel }: { selected: string[]; onSave: (ids: string[]) => void; onCancel: () => void }) {
-  const { t } = useI18n();
-  const { currentHome } = useApp();
-  const [draft, setDraft] = useState(selected);
-  const [removal, setRemoval] = useState<{ ids: string[]; description: Message }>();
-  return <>
-    <EntityPicker multiple label={t("Available favorites")} placeholder={t("Choose your dashboard favorites.")} entities={currentHome.entities} value={draft}
-      missingLabel={id => t("Remove unavailable favorite {value1}", { value1: id })} onChange={ids => {
-        const removed = draft.find(id => !ids.includes(id));
-        if (!removed) { setDraft(ids); return; }
-        const entity = currentHome.entities.find(entity => entity.preferenceId === removed);
-        setRemoval({ ids, description: msg(entity ? "Remove “{name}” from your favorites selection? Save favorites to apply this change." : "Remove unavailable favorite “{name}” from your selection? Save favorites to apply this change.", { name: entity?.name ?? removed.slice(removed.indexOf("|") + 1) }) });
-      }} />
-    <div className="favorite-picker-footer"><span>{t("{count} selected", { count: draft.length })}</span><Button variant="ghost" disabled={!draft.length} onClick={() => setRemoval({ ids: [], description: msg("Clear all favorites from your selection? Save favorites to apply this change to the dashboard.") })}>{t("Clear all")}</Button><Button variant="ghost" onClick={onCancel}>{t("Cancel")}</Button><Button onClick={() => onSave(draft)}>{t("Save favorites")}</Button></div>
-    {removal && <ConfirmDialog open onOpenChange={open => { if (!open) setRemoval(undefined); }} title={t("Remove favorites?")} description={removal.description} confirmLabel={t("Remove favorites")} destructive onConfirm={() => setDraft(removal.ids)} />}
-  </>;
 }
 export function VehicleCard() {
   const { t } = useI18n();

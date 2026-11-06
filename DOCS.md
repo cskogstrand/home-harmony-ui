@@ -87,13 +87,15 @@ Calendar integrations and to-do lists stay in HA. The app uses reported capabili
 | Data | Location |
 | --- | --- |
 | Home Assistant URL/token, dashboard password, server port and data directory | Server environment; `.env` for manual deployment; HAOS Configuration tab for the app |
-| People visibility/order, timetable toggles and references, calendar/list assignments, favorites, appearance, language and selected alarm | `DATA_DIR/settings.yaml` |
+| People visibility/order, timetable toggles and references, calendar/list assignments, favorites and their groups, appearance, language and selected alarm | `DATA_DIR/settings.yaml` |
 | Uploaded timetable PDFs and rendered pages | `DATA_DIR/timetables/<person_name>/<upload_id>/` |
 | Calendar events, to-do items, people and device state | Home Assistant |
 
 `DATA_DIR` defaults to `./data` for Node/Vite and `/data` in the container. One server owns one household and one data directory. Phones, tablets and hallway screens must connect to that server. Settings refresh within five seconds while a screen is active; browser background throttling can delay refresh until it wakes. Settings and saved timetable pages remain available when HA is offline. HA controls, calendar events and list contents require HA to be online.
 
 Settings saves validate the complete document, check its revision, write a temporary file, sync it and rename it atomically. Simultaneous stale writes are rejected. The unsaved draft stays in memory: keep that screen open, export it if needed, then use **App preferences → Load shared version**. Failed writes are not automatically replayed. **Retry storage** retries a failed save.
+
+Favorite group names are stored in `settings.homeGroups`, including groups with no assigned cards. Assignments are stored in `settings.homeEntityGroups`, keyed by the same stable preference IDs as the selected favorites. Older settings and backups default to an empty name list and assignment map; the editor also includes names from existing assignments. Saving favorites updates the selection, names and assignments together, removing assignments for deselected cards. Removing a group leaves its cards ungrouped. Exports and imports preserve all three fields.
 
 **Language:** choose English or Norsk bokmål under **App preferences → Language**. The choice is stored as `settings.language` (`en` or `nb`) and applies to every screen connected to this server, including dates, numbers and app messages. Existing settings and backups without this field default to English. Home Assistant names, calendar/list content and generated summaries retain their original text; speech language is configured in Home Assistant. Language is included in settings backups. Older app releases reject the new field, so keep a pre-upgrade backup if you need to downgrade.
 

@@ -111,6 +111,8 @@ const plannerObjectSchema = z.object({
     home: z.boolean().default(true),
   }).strict().default({}),
   homeEntities: z.array(memberSchema).optional(),
+  homeEntityGroups: z.record(keySchema, z.string().trim().max(80)).default({}),
+  homeGroups: z.array(z.string().trim().min(1).max(80)).default([]),
   smartHome: smartHomeSchema.default({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: z.record(keySchema, memberColorSchema).default({}),

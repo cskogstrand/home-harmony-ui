@@ -95,7 +95,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     },
     setMemberVisible: (id, visible) => setPlanner(p => ({ ...p, hiddenMembers: [...p.hiddenMembers.filter(member => member !== id), ...(visible ? [] : [id])] })),
     setMemberColor: (id, color) => setPlanner(p => ({ ...p, memberColors: { ...p.memberColors, [id]: color } })),
-    setHomeEntities: ids => setPlanner(p => ({ ...p, homeEntities: [...new Set(ids)] })),
+    setHomeEntities: (ids, groups, groupNames) => setPlanner(p => ({ ...p, homeEntities: [...new Set(ids)], homeEntityGroups: Object.fromEntries(ids.filter(id => groups[id]?.trim()).map(id => [id, groups[id].trim()])), homeGroups: [...new Set(groupNames.map(name => name.trim()).filter(Boolean))] })),
     saveSmartHomeCard: card => setPlanner(p => ({ ...p, smartHome: { layout: p.smartHome.layout.some(item => item.id === card.id)
       ? p.smartHome.layout.map(item => item.id === card.id ? card : item) : [...p.smartHome.layout, card] } })),
     removeSmartHomeCard: id => setPlanner(p => ({ ...p, smartHome: { layout: p.smartHome.layout.filter(card => card.id !== id) } })),

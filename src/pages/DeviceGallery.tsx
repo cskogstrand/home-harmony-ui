@@ -194,7 +194,9 @@ function PresenceDemo() {
 
 function SceneDemo() {
   const { message: t } = useI18n();
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
   const [scene, setScene] = useState("Unwind"), [active, setActive] = useState(false);
+  if (superCompact) return <Action label={active ? "Scene applied" : "Apply demo scene"} compactIcon={active ? Check : Play} onClick={() => setActive(true)}><Play size={17} /></Action>;
   return <><div className="dg-scene-orbs" data-scene={scene} aria-hidden="true"><i /><i /><i /></div><Segments label="Demo scene" options={["Unwind", "Focus", "Good night"]} value={scene} set={v => { setScene(v); setActive(false); }} /><p>{t(scene === "Unwind" ? "Warm lights · quiet music · blinds half open" : scene === "Focus" ? "Cool light · brighter desk · music paused" : "Lights off · doors locked · quiet home")}</p><Action primary onClick={() => setActive(true)}><Sparkles size={17} />{t(active ? "Scene applied" : "Apply demo scene")}</Action><More><p>{t("Scene and script actions are momentary. Scripts may also expose fields and a running state.")}</p></More></>;
 }
 
@@ -315,7 +317,7 @@ function DemoCard({ example, variant, visible, status, retry }: { example: Examp
   const { message: t } = useI18n();
   const Content = example.content;
   const disabled = status !== "Ready";
-  return <CardFrame design={example} title={t(compact ? example.subtitle : example.title)} subtitle={!compact ? t(example.subtitle) : undefined} variant={variant} visible={visible} disabled={disabled} demo footer={!compact ? example.domains.join(" · ") : undefined}>
+  return <CardFrame design={example} title={t(example.id === "scene" && variant === "Super compact" ? "Unwind" : compact ? example.subtitle : example.title)} subtitle={!compact ? t(example.subtitle) : undefined} variant={variant} visible={visible} disabled={disabled} demo footer={!compact ? example.domains.join(" · ") : undefined}>
     <div className={`dg-card-body ${disabled ? "dg-disabled" : ""}`} aria-busy={status === "Waiting"}><Content /></div>
     {disabled && <div className="dg-state-message" role={status === "Command failed" ? "alert" : "status"}><strong>{t(status)}</strong><p>{t(status === "Unavailable" ? "Device unavailable. Controls keep their last known values." : status === "Waiting" ? "Waiting for the demo device to respond." : "The demo command failed. Your settings are unchanged.")}</p><Button variant="outline" onClick={retry}>{t(status === "Command failed" ? "Retry demo" : "Restore demo")}</Button></div>}
   </CardFrame>;

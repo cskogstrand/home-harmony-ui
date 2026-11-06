@@ -171,6 +171,7 @@ beforeEach(() => {
   vi.stubGlobal("localStorage", { get length() { return storage.size; }, key: (i: number) => [...storage.keys()][i], getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => storage.set(key, value), removeItem: (key: string) => storage.delete(key) });
   sessionStorage.clear();
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  Element.prototype.scrollIntoView = vi.fn();
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   window.history.replaceState(null, "", "/");
   conn = new FakeConnection();
@@ -748,13 +749,13 @@ it("closes an alarm confirmation if the selected alarm changes", async () => {
 it("uses reported state throughout navigation and disables stale controls in the UI", async () => {
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<StrictMode><App /></StrictMode>);
-  const toggle = await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  const toggle = await screen.findByRole("button", { name: "Toggle Living Room Light" });
   await waitFor(() => expect(toggle).not.toBeDisabled());
   fireEvent.click(toggle);
   await waitFor(() => expect(ha.callService).toHaveBeenCalledOnce());
-  expect(toggle).toBeChecked(); // No optimistic physical state.
+  expect(toggle).toHaveAttribute("aria-pressed", "true"); // No optimistic physical state.
   act(() => conn.entityCallback?.({ ...states, "light.living": state("light.living", "off", states["light.living"].attributes) }));
-  expect(toggle).not.toBeChecked();
+  expect(toggle).toHaveAttribute("aria-pressed", "false");
   fireEvent.click(screen.getByRole("link", { name: "Living Room Light details" }));
   expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
   expect(window.location.hash).toBe("#light.living");
@@ -1377,47 +1378,73 @@ it("keeps dimmers on the family dashboard, including off lights without a bright
   expect(slider).toHaveAttribute("aria-valuenow", "1");
   fireEvent.keyDown(slider, { key: "ArrowRight" });
   await waitFor(() => expect(ha.callService).toHaveBeenCalledWith(conn, "light", "turn_on", { brightness: 5 }, { entity_id: "light.living" }));
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).not.toBeChecked();
+  expect(screen.getByRole("button", { name: "Toggle Living Room Light" })).toHaveAttribute("aria-pressed", "false");
   act(() => conn.entityCallback?.({ ...states, "light.living": { ...off, attributes: { ...off.attributes, supported_color_modes: ["onoff"] } } }));
   expect(screen.queryByRole("slider", { name: "Living Room Light brightness" })).not.toBeInTheDocument();
   act(() => conn.entityCallback?.({ ...states, "light.living": { ...off, state: "unavailable" } }));
   expect(screen.getByRole("slider", { name: "Living Room Light brightness" })).toHaveAttribute("data-disabled");
 });
 
-it("saves selected devices, sensors and scenes, survives renames and respects an empty selection", async () => {
+it("saves grouped favorites, preserves groups through renames and cancel, and clears removed assignments", async () => {
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   const view = render(<App />);
-  await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  await screen.findByRole("button", { name: "Toggle Living Room Light" });
   fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
-  fireEvent.click(screen.getByRole("button", { name: "Available favorites" }));
+  fireEvent.click(screen.getByRole("button", { name: "Choose favorites: Light" }));
   fireEvent.click(screen.getByRole("button", { name: /All entities/ }));
   fireEvent.change(screen.getByRole("searchbox", { name: "Search devices and entities" }), { target: { value: "Living Room" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "Living Room Light" }));
-  fireEvent.change(screen.getByRole("searchbox", { name: "Search devices and entities" }), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Sensor \d+ available/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Choose favorites: Sensor" }));
+  fireEvent.click(screen.getByRole("button", { name: /All entities/ }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Power" }));
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.click(screen.getByRole("button", { name: /^Scene \d+ available/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Choose favorites: Scene" }));
   fireEvent.click(screen.getByRole("checkbox", { name: "Evening" }));
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  const addGroup = (name: string) => {
+    fireEvent.change(screen.getByRole("textbox", { name: "New group name" }), { target: { value: name } });
+    fireEvent.click(screen.getByRole("button", { name: "Add group" }));
+  };
+  const chooseGroup = (card: string, group: string) => {
+    fireEvent.click(screen.getByRole("button", { name: `Card group for ${card}` }));
+    fireEvent.click(screen.getByRole("option", { name: group }));
+  };
+  addGroup("  Example group  ");
+  addGroup("Empty example");
+  chooseGroup("Living Room Light", "Example group");
+  chooseGroup("Evening", "Example group");
   fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
   const favorites = () => within(screen.getByRole("region", { name: "Home favorites" }));
-  expect(favorites().getAllByRole("article")).toHaveLength(2);
+  expect(favorites().getAllByRole("article")).toHaveLength(3);
   expect(favorites().getByRole("button", { name: "Activate Evening" })).toBeInTheDocument();
+  expect(favorites().getByRole("heading", { name: "Example group" }).parentElement.querySelectorAll("article")).toHaveLength(2);
+  expect(favorites().getByRole("heading", { name: "Ungrouped" }).parentElement.querySelectorAll("article")).toHaveLength(1);
   const saved = JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!);
   expect(saved.homeEntities).toEqual(["home|stable-light", "home|stable-sensor", "home|scene.evening"]);
+  expect(saved.homeEntityGroups).toEqual({ "home|stable-light": "Example group", "home|scene.evening": "Example group" });
+  expect(saved.homeGroups).toEqual(["Example group", "Empty example"]);
   fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
+  addGroup("Unsaved group");
+  chooseGroup("Living Room Light", "Unsaved group");
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  expect(favorites().getAllByRole("article")).toHaveLength(2);
+  expect(favorites().getAllByRole("article")).toHaveLength(3);
+  expect(favorites().queryByRole("heading", { name: "Unsaved group" })).not.toBeInTheDocument();
   view.unmount();
   conn = new FakeConnection();
   conn.sendMessagePromise.mockImplementation(async ({ type }) => ({ "config/area_registry/list": registries.areas, "config/device_registry/list": registries.devices, "config/entity_registry/list": registries.entities.map(e => e.id === "stable-light" ? { ...e, name: "Sofa light" } : e) })[type]);
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   render(<App />);
-  await screen.findByRole("switch", { name: "Toggle Sofa light" });
-  expect(favorites().getAllByRole("article")).toHaveLength(2);
-  expect(favorites().queryByRole("switch", { name: "Toggle Charger power" })).not.toBeInTheDocument();
+  await screen.findByRole("button", { name: "Toggle Sofa light" });
+  expect(within(favorites().getByRole("heading", { name: "Example group" }).parentElement).getByRole("article", { name: "Sofa light" })).toBeInTheDocument();
+  expect(favorites().getAllByRole("article")).toHaveLength(3);
+  expect(favorites().queryByRole("button", { name: "Toggle Charger power" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   await confirmAction("Remove favorites");
@@ -1425,6 +1452,8 @@ it("saves selected devices, sensors and scenes, survives renames and respects an
   expect(favorites().queryByRole("article")).not.toBeInTheDocument();
   expect(favorites().queryByRole("button", { name: "Activate Evening" })).not.toBeInTheDocument();
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).homeEntities).toEqual([]);
+  expect(serverConfig.settings.homeEntityGroups).toEqual({});
+  expect(serverConfig.settings.homeGroups).toEqual(["Example group", "Empty example"]);
   expect(JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!).events).toEqual(saved.events);
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Smart home" }));
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Today" }));
@@ -1457,7 +1486,7 @@ it("offers temperature, mode and blind controls without duplicating raw state la
 it("shows spinners on busy device and scene controls, clears them on completion, and keeps errors", async () => {
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  const toggle = await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  const toggle = await screen.findByRole("button", { name: "Toggle Living Room Light" });
   await waitFor(() => expect(toggle).toBeEnabled());
   const request = deferred<unknown>();
   vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
@@ -1471,13 +1500,13 @@ it("shows spinners on busy device and scene controls, clears them on completion,
   expect(controller).toHaveAttribute("aria-busy", "false");
   expect(within(controller as HTMLElement).queryByRole("status")).not.toBeInTheDocument();
   expect(toggle).toBeEnabled();
-  expect(toggle).toBeChecked(); // Service acceptance still does not invent a physical state change.
+  expect(toggle).toHaveAttribute("aria-pressed", "true"); // Service acceptance still does not invent a physical state change.
   expect(screen.queryByText(/Sending…|Request sent/)).not.toBeInTheDocument();
   const rejected = deferred<unknown>();
   vi.mocked(ha.callService).mockReturnValueOnce(rejected.promise);
   const scene = screen.getByRole("button", { name: "Activate Evening" });
   fireEvent.click(scene);
-  fireEvent.click(screen.getByRole("button", { name: "Activate scene" }));
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }));
   const sceneController = scene.closest(".command-controller")!;
   expect(sceneController).toHaveAttribute("aria-busy", "true");
   expect(within(sceneController as HTMLElement).getByRole("status", { hidden: true }).querySelector(".animate-spin")).toBeInTheDocument();
@@ -2249,7 +2278,7 @@ it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation fr
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(ha.callService).not.toHaveBeenCalled();
   fireEvent.click(activate);
-  await confirmAction(path.includes("/devices") ? "Confirm" : "Activate scene");
+  await confirmAction(path === "/moods" ? "Activate scene" : "Confirm");
   expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "scene", "turn_on", {}, { entity_id: "scene.evening" });
 });
 
@@ -2276,11 +2305,11 @@ it("confirms door and gate movement while keeping Stop immediate", async () => {
 it("keeps favorites intact when individual or bulk removal is canceled", async () => {
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  await screen.findByRole("switch", { name: "Toggle Living Room Light" });
+  await screen.findByRole("button", { name: "Toggle Living Room Light" });
   fireEvent.click(screen.getByRole("button", { name: "Customize home favorites" }));
   const checkbox = () => {
-    if (!screen.queryByRole("dialog", { name: "Available favorites" })) {
-      fireEvent.click(screen.getByRole("button", { name: "Available favorites" }));
+    if (!screen.queryByRole("dialog", { name: "Choose favorites: Light" })) {
+      fireEvent.click(screen.getByRole("button", { name: "Choose favorites: Light" }));
       fireEvent.click(screen.getByRole("button", { name: /All entities/ }));
     }
     return screen.getByRole("checkbox", { name: "Living Room Light" });
@@ -2297,7 +2326,7 @@ it("keeps favorites intact when individual or bulk removal is canceled", async (
   expect(checkbox()).not.toBeChecked();
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
   fireEvent.click(screen.getByRole("button", { name: "Save favorites" }));
-  expect(screen.queryByRole("switch", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Toggle Living Room Light" })).not.toBeInTheDocument();
 });
 
 it("lists devices once, searches their metadata and child readings, and keeps standalone controls secondary", async () => {

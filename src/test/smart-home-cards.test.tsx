@@ -89,6 +89,26 @@ it("maps library aliases consistently and keeps unknown domains usable", () => {
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
+it("keeps scene cards minimal while preserving confirmation, pending, errors and offline state", async () => {
+  const scene = cardEntity("scene", "unknown");
+  const view = open(scene);
+  expect(screen.queryByText("Scene")).not.toBeInTheDocument();
+  expect(screen.queryByText("Details")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: `Activate ${scene.name}` }));
+  expect(mocks.command).not.toHaveBeenCalled();
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }));
+  await waitFor(() => expect(mocks.command).toHaveBeenCalledExactlyOnceWith(scene.entityId, "turn_on", undefined));
+  for (const state of ["pending", "error", "offline", "unavailable"]) {
+    mocks.app.homeOnline = state !== "offline";
+    mocks.app.commands = { [scene.entityId]: { pending: state === "pending", error: state === "error" ? "Command failed" : undefined } };
+    view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={{ ...scene, state: state === "unavailable" ? "unavailable" : "unknown" }} /></TooltipProvider></MemoryRouter>);
+    if (state === "error") expect(screen.getByRole("alert")).toHaveTextContent("Command failed");
+    else expect(screen.getByRole("button", { name: `Activate ${scene.name}` })).toBeDisabled();
+    if (state === "offline") expect(screen.getByText("Offline")).toBeVisible();
+    if (state === "unavailable") expect(screen.getByText("Unavailable")).toBeVisible();
+  }
+});
+
 it("renders the shared media transport, committed volume and extra controls in every card size", () => {
   mocks.app.services = cardServices;
   const media = mediaEntity();
