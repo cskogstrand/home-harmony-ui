@@ -17,6 +17,7 @@ import { timetableImagePath } from "../../shared/timetables";
 import { CalendarTimetable } from "./CalendarTimetable";
 import { EntityPicker } from "./EntityPicker";
 import { memberColorForeground } from "@/lib/member-colors";
+import { EventDescription } from "./EventDescription";
 
 export function PageHeading({ context, title, description, children }: { context?: string; title: string; description?: string; children?: ReactNode }) {
   return <header className="page-heading"><div><h1>{title}</h1>{context && <p className="page-context">{context}</p>}{description && <p>{description}</p>}</div>{children}</header>;
@@ -135,14 +136,14 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
   if (event?.todo) return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent>
     <DialogHeader><DialogTitle>{event.title}</DialogTitle><DialogDescription>{t("Task")} · {memberName(event.member)}</DialogDescription></DialogHeader>
     <div className="dialog-form-body space-y-3 break-words"><p>{t("Due date")}: {dateLabel(event.date)}{!event.allDay && ` · ${event.time}`}</p>
-      {event.note && <p className="whitespace-pre-wrap">{event.note}</p>}
+      {event.note && <EventDescription value={event.note} />}
       <Link className="text-link" to={`/lists?tab=${event.todo.kind}`} onClick={() => onOpenChange(false)}>{t("Open to-do list")}</Link>
     </div>
   </DialogContent></Dialog>;
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />{t("Delete")}</Button>;
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent>
     <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription className={editingUnsupported ? "sr-only" : undefined}>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
-    {readOnly ? <div className="space-y-3 break-words"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <p className="whitespace-pre-wrap">{event.note}</p>}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}
+    {readOnly ? <div className="dialog-form-body space-y-3 break-words"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <EventDescription value={event.note} />}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}
       {editingUnsupported && <Popover><PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("Editing unavailable")}><PencilOff size={18} aria-hidden="true" /></Button></PopoverTrigger>
         <PopoverContent side="top" align="end" className="max-w-[calc(100vw-2rem)] text-sm" aria-label={t("Editing unavailable")}>{readOnlyReason}</PopoverContent>
       </Popover>}
@@ -159,6 +160,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
       {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p></>}
       {remote && !editingRemote && <><EntityPicker label={t("Calendar")} placeholder={t("Choose a calendar")} entities={calendars} value={calendar?.preferenceId ?? ""} disabled={busy} disabledReason={entity => !writable.includes(entity) ? t("Read-only or unavailable") : ""} onChange={value => { setCalendarId(value); setError(""); }} />
         {homeOnline && !writable.length && <p role="status">{t("No writable calendar is available for {value1}. Assign a calendar that supports creating events in ", { value1: memberName(draft.member) })}<Link className="text-link" to="/settings/calendars">{t("Home settings")}</Link>.</p>}</>}
+      {editingRemote && draft.note && <EventDescription value={draft.note} />}
       <details className="optional-fields"><summary>{t("Location and notes")}</summary><div className="planner-form"><label>{t("Where?")}<input maxLength={editingRemote ? undefined : 150} value={draft.location} placeholder={t("Add a place")} onChange={e => setDraft({ ...draft, location: e.target.value })} /></label>
       <label>{t("A little reminder")}<textarea maxLength={editingRemote ? undefined : 200} value={draft.note} placeholder={t("Who’s driving? What should we bring?")} onChange={e => setDraft({ ...draft, note: e.target.value })} /></label></div></details>
       </div>

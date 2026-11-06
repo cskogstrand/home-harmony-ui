@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, CalendarDays, CalendarClock, BookOpen } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { EventEditor, EventButton, MemberAvatar, SchoolPreview } from "@/components/FamilyPlanner";
+import { EventDescription } from "@/components/EventDescription";
 import { ListPanel } from "@/components/FamilyLists";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { HomeFavorites, MorningSummary } from "@/components/HomePanels";
@@ -53,13 +54,13 @@ export default function Dashboard() {
     wasteCollection: dashboard.wasteCollection && <WasteCollection />,
     nextPlan: dashboard.nextPlan && <section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
       <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle></div>
-      {next ? <button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
+      {next ? <><button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
         <div className="next-event-copy">
           <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge></div>
-          <small>{[next.todo && t("Task"), memberName(next.member), next.location, next.note].filter(Boolean).join(" · ")}</small>
+          <small>{[next.todo && t("Task"), memberName(next.member), next.location].filter(Boolean).join(" · ")}</small>
         </div>
         <div className="next-event-time"><time>{eventTimeLabel(next)}</time><small>{next.date === today ? t("Today") : dateLabel(next.date)}</small></div>
-      </button> :
+      </button>{next.note && <EventDescription value={next.note} />}</> :
         <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
     </section>,
     day: dashboard.day && <FamilyDay data={data} onEdit={openEvent} />,

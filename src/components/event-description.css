@@ -1,0 +1,8 @@
+.event-description { min-width: 0; overflow-wrap: anywhere; line-height: 1.5; }
+.event-description-plain, .event-description pre { white-space: pre-wrap; }
+.event-description :where(p, div, ul, ol, blockquote, pre) + :where(p, div, ul, ol, blockquote, pre) { margin-block-start: .65em; }
+.event-description ul { list-style: disc; padding-inline-start: 1.5em; }
+.event-description ol { list-style: decimal; padding-inline-start: 1.5em; }
+.event-description a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: .2em; }
+.event-description a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.next-chapter > .event-description { margin: .5rem .25rem 0 1rem; font-size: .875rem; color: hsl(var(--muted-foreground)); }

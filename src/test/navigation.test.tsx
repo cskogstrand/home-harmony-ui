@@ -76,9 +76,33 @@ it.each([
   const plan = within(next).getByRole("button", { name: /Example activity/ });
   expect(plan.style.getPropertyValue("--member")).toBe("#a5c9bd");
   expect(within(plan).getByText(countdown, { selector: ".next-plan-countdown" })).toBeVisible();
-  expect(within(plan).getByText("Example person · Example location · Example reminder")).toBeVisible();
+  expect(within(plan).getByText("Example person · Example location")).toBeVisible();
+  expect(within(next).getByText("Example reminder")).toBeVisible();
   fireEvent.click(within(plan).getByText("17:00 – 18:00"));
   expect(screen.getByRole("dialog", { name: "Example activity" })).toBeVisible();
+});
+
+it("formats Home Assistant descriptions in the next plan and calendar dialog with separate links", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T10:00:00Z"));
+  app.currentHome = mapHome({ "person.example": state("person.example", "home", { friendly_name: "Example person" }), "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  settings.settings.calendarMembers = { "home|calendar.example": "home|person.example" };
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
+    { summary: "Example reservation", start: "2026-10-28T16:00:00Z", end: "2026-10-28T17:00:00Z", description: '<p>Example details<br><strong>Bring supplies</strong></p><p><a href="https://example.com/booking">Booking details</a></p><script>alert(1)</script>' },
+  ]));
+  render(<App />); await pageReady();
+  const next = screen.getByRole("region", { name: "Next family plan" });
+  const link = await within(next).findByRole("link", { name: "Booking details" });
+  expect(link.closest("button")).toBeNull();
+  fireEvent.click(link);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(next.querySelector("strong")).toHaveTextContent("Bring supplies");
+  fireEvent.click(within(next).getByRole("button", { name: /Example reservation/ }));
+  const dialog = screen.getByRole("dialog", { name: "Example reservation" });
+  expect(within(dialog).getByRole("link", { name: "Booking details" })).toHaveAttribute("href", "https://example.com/booking");
+  expect(dialog.querySelector("strong")).toHaveTextContent("Bring supplies");
+  expect(dialog.querySelector("script")).toBeNull();
+  expect(dialog).not.toHaveTextContent("<p>");
 });
 
 it.each(["ongoing", "loading", "failed", "offline"])("does not claim quiet days with %s calendar data", async mode => {
