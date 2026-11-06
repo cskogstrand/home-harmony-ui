@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.13
+
+<!-- release-source: 1404c836d20e539ee80222b1d982dde81fab186c -->
+
+- feat: toggle next-plan descriptions
+- feat: add grouped favorites with shared cards
+- fix: render safe calendar HTML descriptions
+
 ## 0.10.12
 
 <!-- release-source: 46fb25d90e9b181e956206d79ba944134a784079 -->
