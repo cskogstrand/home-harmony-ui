@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.14
+
+<!-- release-source: 6546d5529f2a3717350269476edf3f5bc331cb71 -->
+
+- feat: enlarge scene card activation buttons
+
 ## 0.10.13
 
 <!-- release-source: 1404c836d20e539ee80222b1d982dde81fab186c -->
