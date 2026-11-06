@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, SlidersHorizontal, X, type LucideIcon } from "lucide-react";
+import { ChevronDown, Play, SlidersHorizontal, Sparkles, X, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -7,6 +7,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CardDisabled, CardPresentation } from "./card-presentation";
+
+export function SceneAction({ onClick }: { onClick: () => void }) {
+  const disabled = useContext(CardDisabled);
+  const { title } = useContext(CardPresentation);
+  const { t } = useI18n();
+  return <Button type="button" className="dg-scene-action" variant="ghost" disabled={disabled} aria-label={t("Activate {value1}", { value1: title })} onClick={onClick}>
+    <Sparkles aria-hidden="true" /><span>{title}</span><Play aria-hidden="true" />
+  </Button>;
+}
 
 export function Action({ children, onClick, label, pressed, disabled, primary = false, compactIcon: Icon }: { children: ReactNode; onClick: () => void; label?: string; pressed?: boolean; disabled?: boolean; primary?: boolean; compactIcon?: LucideIcon }) {
   const blocked = useContext(CardDisabled);

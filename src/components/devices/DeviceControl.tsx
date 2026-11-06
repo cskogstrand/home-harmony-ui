@@ -1,4 +1,4 @@
-import { Action, Choice, More, Range, Readout } from "./CardControls";
+import { Action, Choice, More, Range, Readout, SceneAction } from "./CardControls";
 import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard } from "./CardLayouts";
 import { DomainCardContent } from "./DomainCardContent";
 import { AlarmCardControls } from "./AlarmCardControls";
@@ -144,7 +144,7 @@ export function DeviceControl({ entity, card = false, setting = false }: { entit
       <div className="device-actions">{(["lock", "unlock"] as const).filter(action => supports(action) && !(entity.state === "locked" && action === "lock") && !(entity.state === "unlocked" && action === "unlock")).map(action => <Button key={action} variant="outline" disabled={disabled || ["locking", "unlocking", "opening"].includes(entity.state)} aria-label={`${message(humanizeState(action))} ${entity.name}`} onClick={() => setLockAction(action)}>{action === "lock" ? <Lock size={16} /> : <Unlock size={16} />}{message(humanizeState(action))}</Button>)}</div>
       {lockAction && <PinPadModal open disabled={disabled || !supports(lockAction)} onOpenChange={open => { if (!open) setLockAction(undefined); }} title={`${message(humanizeState(lockAction))} ${entity.name}`} description={needsCode(entity, lockAction) ? t("Enter your code to continue.") : t("Confirm to continue.")} codeRequired={needsCode(entity, lockAction)} numeric={entity.attributes.code_format === "number"} onSubmit={code => command(entity.entityId, lockAction, undefined, code)} />}
     </>}
-    {entity.domain === "scene" && supports("turn_on") && <Button disabled={disabled} variant="outline" size={card && variant === "Super compact" ? "icon" : "default"} aria-label={t("Activate {value1}", { value1: entity.name })} title={t("Activate {value1}", { value1: entity.name })} onClick={() => send("turn_on")}><Play size={16} aria-hidden="true" />{(!card || variant !== "Super compact") && t("Activate")}</Button>}
+    {entity.domain === "scene" && supports("turn_on") && (card && variant === "Super compact" ? <SceneAction onClick={() => send("turn_on")} /> : <Button disabled={disabled} variant="outline" aria-label={t("Activate {value1}", { value1: entity.name })} title={t("Activate {value1}", { value1: entity.name })} onClick={() => send("turn_on")}><Play size={16} aria-hidden="true" />{t("Activate")}</Button>)}
     {entity.domain === "alarm_control_panel" && <Link className="text-link" to="/alarm">{t("Manage alarm")}</Link>}
     <CommandFeedback entityId={entity.entityId} />
     {confirmation && <ConfirmDialog open onOpenChange={open => { if (!open) setConfirmation(undefined); }} title={confirmation.title} description={confirmation.description} destructive={entity.domain === "automation" || entity.domain === "climate"} disabled={disabled || !supports(confirmation.action)} onConfirm={() => command(entity.entityId, confirmation.action, confirmation.value)} />}

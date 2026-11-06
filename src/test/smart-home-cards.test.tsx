@@ -94,6 +94,8 @@ it("keeps scene cards minimal while preserving confirmation, pending, errors and
   const view = open(scene);
   expect(screen.queryByText("Scene")).not.toBeInTheDocument();
   expect(screen.queryByText("Details")).not.toBeInTheDocument();
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: `Activate ${scene.name}` })).toHaveTextContent(scene.name);
   fireEvent.click(screen.getByRole("button", { name: `Activate ${scene.name}` }));
   expect(mocks.command).not.toHaveBeenCalled();
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }));
@@ -107,6 +109,28 @@ it("keeps scene cards minimal while preserving confirmation, pending, errors and
     if (state === "offline") expect(screen.getByText("Offline")).toBeVisible();
     if (state === "unavailable") expect(screen.getByText("Unavailable")).toBeVisible();
   }
+});
+
+it("uses the scene card's custom name in its inert preview and keeps unsupported scenes named", () => {
+  const scene = cardEntity("scene", "unknown");
+  const view = render(<MemoryRouter><SmartHomeCard entity={scene} title="Example evening" preview /></MemoryRouter>);
+  const action = screen.getByRole("button", { name: "Activate Example evening" });
+  expect(action).toHaveTextContent("Example evening");
+  expect(action).toBeDisabled();
+  fireEvent.click(action);
+  expect(mocks.command).not.toHaveBeenCalled();
+  mocks.app.services = {};
+  view.rerender(<MemoryRouter><SmartHomeCard entity={scene} /></MemoryRouter>);
+  expect(screen.getByRole("heading", { name: scene.name })).toBeVisible();
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
+});
+
+it.each(["compact", "original"] as const)("keeps %s scenes named without linking to device details", density => {
+  const scene = cardEntity("scene", "unknown");
+  open(scene, density);
+  expect(screen.getByRole("heading", { name: scene.name })).toBeVisible();
+  expect(screen.getByRole("button", { name: `Activate ${scene.name}` })).toHaveTextContent("Activate");
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
 });
 
 it("renders the shared media transport, committed volume and extra controls in every card size", () => {

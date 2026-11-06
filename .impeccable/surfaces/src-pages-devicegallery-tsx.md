@@ -7,7 +7,7 @@ related_targets: ["src/components/devices/device-cards.css","src/components/devi
 
 # Device card gallery
 
-Today's favorites reuse this library's super compact cards and use inert previews in the type chooser. Super compact scene cards reduce to a horizontal name/icon/action row without a redundant Scene label or facts disclosure, while preserving command confirmation and offline/pending/error feedback. The gallery demonstrates the same compact scene form.
+Today's favorites reuse this library's super compact cards and use inert previews in the type chooser. Super compact scene cards use a full-width glass activation button at least 4.5rem high, with the wrapping card name and scene/play icons inside. They omit a separate heading, redundant Scene label and facts disclosure. Scene cards do not link to device details; command confirmation and offline/pending/error feedback remain. Unsupported scenes retain a named heading. The gallery demonstrates the same shared scene button.
 
 Smart home editing extension: **Configure** reveals inline size/group fields and drag handles beside keyboard/touch move buttons. Cards can move within or between named groups while room filters stay available; moves preserve filtered-out cards, and previews are inert during editing. A new group is saved once a card is assigned. Shared settings retain order and composition. Height alignment is computed independently for each rendered grid row. Media transport fills its card width with spaced controls; camera/image previews open in a viewport-wide dialog with 16px side gutters, sharing one live player with the inline preview and returning focus on close. This remains an Operate extension of the existing card system, with no new visual world or assets.
 

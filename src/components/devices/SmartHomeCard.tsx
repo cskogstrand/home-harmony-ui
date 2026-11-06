@@ -26,7 +26,7 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
   const supporting = entities.filter(item => item.preferenceId !== entity?.preferenceId);
   const media = supporting.filter(item => ["image", "camera"].includes(item.domain));
   const readings = supporting.filter(item => !["image", "camera"].includes(item.domain));
-  return <CardFrame design={design} title={title || entity?.name || t(design.subtitle)} subtitle={area?.name} to={!preview && !detail && entity ? entityDetailPath(entity) : undefined} id={detail ? entity?.entityId : undefined} tabIndex={detail ? -1 : undefined} variant={cardVariants[density]} disabled={preview} footer={detail && entity ? <EntityDetails entity={entity} /> : undefined}>
+  return <CardFrame design={design} title={title || entity?.name || t(design.subtitle)} subtitle={area?.name} to={!preview && !detail && entity && entity.domain !== "scene" ? entityDetailPath(entity) : undefined} id={detail ? entity?.entityId : undefined} tabIndex={detail ? -1 : undefined} variant={cardVariants[density]} disabled={preview} footer={detail && entity ? <EntityDetails entity={entity} /> : undefined}>
     {!entity ? <div className="smart-card-unassigned"><design.icon size={32} aria-hidden="true" /><p>{t(preview ? "Choose a main entity to preview this card." : "The main entity is unavailable.")}</p>{editTo && <Link className="text-link" to={editTo}>{t("Edit card")}</Link>}</div> : <>
     {entity.domain === "weather" ? <WeatherCard entity={entity} /> : ["camera", "image"].includes(entity.domain) ? <EntityMedia key={entity.entityId} entity={entity} /> : <>
       {entity.domain === "media_player" && typeof entity.attributes.entity_picture === "string" && <EntityMedia entity={entity} />}

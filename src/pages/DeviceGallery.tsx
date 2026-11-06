@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Action, Range, Segments, Choice, Toggle, More, Readout } from "@/components/devices/CardControls";
+import { Action, Range, Segments, Choice, Toggle, More, Readout, SceneAction } from "@/components/devices/CardControls";
 import { CardDisabled as DemoDisabled, CardPresentation, cardVariants, type CardVariant as Variant } from "@/components/devices/card-presentation";
 import { CardFrame } from "@/components/devices/CardFrame";
 import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard, FanCard, HumidityCard, WaterHeaterCard, RobotCard, ValveCard } from "@/components/devices/CardLayouts";
@@ -196,7 +196,7 @@ function SceneDemo() {
   const { message: t } = useI18n();
   const superCompact = useContext(CardPresentation).variant === "Super compact";
   const [scene, setScene] = useState("Unwind"), [active, setActive] = useState(false);
-  if (superCompact) return <Action label={active ? "Scene applied" : "Apply demo scene"} compactIcon={active ? Check : Play} onClick={() => setActive(true)}><Play size={17} /></Action>;
+  if (superCompact) return <><SceneAction onClick={() => setActive(true)} />{active && <p role="status">{t("Scene applied")}</p>}</>;
   return <><div className="dg-scene-orbs" data-scene={scene} aria-hidden="true"><i /><i /><i /></div><Segments label="Demo scene" options={["Unwind", "Focus", "Good night"]} value={scene} set={v => { setScene(v); setActive(false); }} /><p>{t(scene === "Unwind" ? "Warm lights · quiet music · blinds half open" : scene === "Focus" ? "Cool light · brighter desk · music paused" : "Lights off · doors locked · quiet home")}</p><Action primary onClick={() => setActive(true)}><Sparkles size={17} />{t(active ? "Scene applied" : "Apply demo scene")}</Action><More><p>{t("Scene and script actions are momentary. Scripts may also expose fields and a running state.")}</p></More></>;
 }
 

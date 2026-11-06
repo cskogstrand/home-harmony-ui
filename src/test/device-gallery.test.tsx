@@ -123,6 +123,12 @@ it.each(["Compact", "Super compact"])("keeps %s icon actions named and risky com
   expect(card("switch", variant).queryByRole("switch", { name: "Outlet power" })).not.toBeInTheDocument();
   fireEvent.click(card("switch", variant).getByRole("button", { name: "Toggle demo outlet" }));
   expect(card("switch", variant).getByText("Off · no power draw")).toBeVisible();
+  if (variant === "Super compact") {
+    const scene = card("scene", variant).getByRole("button", { name: "Activate Unwind" });
+    expect(scene).toHaveTextContent("Unwind");
+    fireEvent.click(scene);
+    expect(card("scene", variant).getByRole("status")).toHaveTextContent("Scene applied");
+  }
   fireEvent.click(card("lock", variant).getByRole("button", { name: "Unlock demo door" }));
   expect(card("lock", variant).getByText("Locked")).toBeVisible();
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Confirm" })); });
