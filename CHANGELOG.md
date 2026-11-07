@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.15
+
+<!-- release-source: 81f46bdc569e64cc7b85c9a76aec1557d9d8ca19 -->
+
+- fix: make device cards follow the palette
+
 ## 0.10.14
 
 <!-- release-source: 6546d5529f2a3717350269476edf3f5bc331cb71 -->
