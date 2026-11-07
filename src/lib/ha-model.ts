@@ -97,7 +97,8 @@ const actionServices: Partial<Record<EntityAction, string>> = {
 const deviceFeatures: Record<string, Partial<Record<EntityAction, number>>> = {
   media_player: { media_pause: 1, media_seek: 2, volume_set: 4, volume_mute: 8, media_previous_track: 16, media_next_track: 32,
     turn_on: 128, turn_off: 256, volume_up: 1024, volume_down: 1024, select_source: 2048, media_stop: 4096,
-    media_play: 16384, shuffle_set: 32768, select_sound_mode: 65536, repeat_set: 262144 },
+    media_play: 16384, shuffle_set: 32768, select_sound_mode: 65536, repeat_set: 262144,
+    play_media: 512, clear_playlist: 8192, join: 524288, unjoin: 524288 },
   climate: { set_humidity: 4, set_fan_mode: 8, set_preset_mode: 16, set_swing_mode: 32 },
   fan: { set_percentage: 1, oscillate: 2, set_direction: 4, set_preset_mode: 8, turn_off: 16, turn_on: 32 },
   humidifier: { set_mode: 1 },
@@ -113,6 +114,8 @@ const optionAttributes: Partial<Record<EntityAction, string>> = {
 };
 export function supportsAction(entity: Entity, action: EntityAction, services: HassServices) {
   const { domain, attributes: a } = entity;
+  if (["play_queue", "remove_from_queue", "set_sleep_timer", "clear_sleep_timer"].includes(action))
+    return domain === "media_player" && entity.integration === "sonos" && !!services.sonos?.[action];
   if (domain === "calendar" && action === "update_event") return feature(entity, 4);
   if (domain === "calendar" && action === "delete_event") return feature(entity, 2);
   const service = actionServices[action] ?? action;
@@ -153,6 +156,25 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   let service: string = actionServices[action] ?? action;
   const data: Record<string, unknown> = {};
   const a = entity.attributes;
+  if (action === "play_media") {
+    const parsed = z.object({ media_content_id: z.string().min(1).max(8192), media_content_type: z.string().min(1).max(256), enqueue: z.enum(["replace", "next", "add", "play"]).optional() }).strict().safeParse(value);
+    if (!parsed.success) throw new Error("Choose valid media to play.");
+    if (parsed.data.enqueue && parsed.data.enqueue !== "replace" && !feature(entity, 2097152)) throw new Error("This player does not support adding to the queue.");
+    Object.assign(data, parsed.data);
+  }
+  if (action === "join") {
+    const parsed = z.array(z.string().regex(/^media_player\.[a-z0-9_]+$/)).min(1).max(64).safeParse(value);
+    if (!parsed.success || parsed.data.includes(entity.entityId) || new Set(parsed.data).size !== parsed.data.length) throw new Error("Choose valid speakers to group.");
+    data.group_members = parsed.data;
+  }
+  if (["play_queue", "remove_from_queue", "set_sleep_timer", "clear_sleep_timer"].includes(action)) {
+    if (action !== "clear_sleep_timer") {
+      const parsed = z.number().int().min(0).max(action === "set_sleep_timer" ? 86399 : Number.MAX_SAFE_INTEGER).safeParse(value);
+      if (!parsed.success) throw new Error("Value is outside the supported range.");
+      data[action === "set_sleep_timer" ? "sleep_time" : "queue_position"] = parsed.data;
+    }
+    return { domain: "sonos", service: action, data, target: { entity_id: entity.entityId } };
+  }
   if (entity.domain === "script" && action === "turn_on" && value !== undefined) {
     const parsed = z.object({ variables: z.record(z.unknown()) }).strict().safeParse(value);
     if (!parsed.success) throw new Error("Choose valid script variables.");

@@ -22,6 +22,7 @@ Home Assistant owns people, calendars, to-do items, device state and permissions
 
 - Preserve existing routes, calendar views, people assignments, list editing, timetable upload and paging, favorites, scenes and device controls.
 - Preserve light/dark themes, compact mode, offline feedback, save-conflict recovery and capability-aware controls.
+- Sonos has a dedicated now-playing-first page with automatic native-integration discovery, grouping, balanced group volume, favorites, playlists, queues and supported speaker settings. Home Assistant remains the source of truth.
 - Never insert private household information or credentials into source, examples or screenshots. Preview data must be explicitly fictional.
 - Physical commands are never replayed automatically. Failed writes retain drafts and destructive actions retain confirmation.
 

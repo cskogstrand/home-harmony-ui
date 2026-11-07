@@ -1,7 +1,7 @@
 import { isHomeSection, mainPagePath } from "@/lib/navigation";
 import { useI18n } from "@/hooks/use-i18n";
 import { Link, useLocation, type Location } from "react-router-dom";
-import { Camera, House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown } from "lucide-react";
+import { Music2, Camera, House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const mainItems = [
@@ -18,6 +18,7 @@ export function MainNav({ locations = {} }: { locations?: Record<string, Locatio
 }
 const smartItems = [
   { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },
+  { path: "/sonos", label: "Sonos", icon: Music2 },
   { path: "/devices", label: "Devices", icon: Lightbulb }, { path: "/cameras", label: "Cameras", icon: Camera }, { path: "/moods", label: "Scenes", icon: Sparkles },
   { path: "/alarm", label: "Security", icon: Shield },
 ];

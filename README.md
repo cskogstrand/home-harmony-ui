@@ -11,6 +11,7 @@
 - **Plan together** — a family calendar, daily tasks and a shared shopping list.
 - **Keep school close** — PDF timetables or Home Assistant calendars, with iPhone uploads.
 - **Control your home** — lights, climate, scenes and other Home Assistant devices.
+- **Listen together** — a dedicated Sonos page with playback, room grouping, group and room volume, favorites, playlists and queue controls.
 - **Share across screens** — one server keeps preferences and timetables in sync. English and Norwegian Bokmål, light and dark themes.
 
 Home Assistant owns your people, events, lists and devices. Afterglow stores dashboard preferences and uploaded timetables; the HA token stays on the server.
@@ -64,6 +65,7 @@ Use a trusted LAN/VPN or an HTTPS reverse proxy. Anyone with dashboard access ca
 | [Morning summaries](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/morning-summary.md) | Optional Home Assistant automation, phone notifications and spoken summaries |
 | [Notifications](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/notifications.md) | Ongoing tasks, state and calendar alerts, and doorbell camera popups |
 | [Cameras](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/cameras.md) | Named cameras, reusable connections, live video and person snapshots for notifications |
+| [Sonos](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/sonos.md) | Playback, grouped rooms, volume, favorites, playlists, queues and sound settings |
 | [Development and releases](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/development.md) | Node 24+ setup, verification commands and image publishing |
 
 For local development, configure `.env` as above, then run `npm ci` and `npm run dev`. Open port **8080**. PDF conversion also needs [Poppler](https://github.com/cskogstrand/home-harmony-ui/blob/main/docs/development.md#local-development-and-node-deployment).

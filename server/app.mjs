@@ -149,7 +149,8 @@ export async function createAppHandler({ dataDir, distDir, homeAssistantUrl, hom
         return;
       }
       const hls = /^\/api\/hls\/[a-f0-9]+\/(?:(?:master_)?playlist\.m3u8|init\.mp4|segment\/\d+(?:\.\d+)?\.m4s)$/.test(pathname);
-      if ((hls || /^\/api\/(camera_proxy(?:_stream)?\/camera|image_proxy\/image|media_player_proxy\/media_player)\.[a-z0-9_]+$/.test(pathname)) && request.method === "GET") {
+      const mediaArtwork = /^\/api\/media_player_proxy\/media_player\.[a-z0-9_]+\/browse_media\/[^/]+\/[^/]+$/.test(pathname);
+      if ((hls || mediaArtwork || /^\/api\/(camera_proxy(?:_stream)?\/camera|image_proxy\/image|media_player_proxy\/media_player)\.[a-z0-9_]+$/.test(pathname)) && request.method === "GET") {
         if (hls && [...url.searchParams].some(([key, value]) => !(["_HLS_msn", "_HLS_part"].includes(key) ? /^\d+$/.test(value) : key === "_HLS_skip" && /^(YES|v2)$/.test(value)))) throw failure(400, "Invalid stream parameters.");
         const controller = new AbortController();
         const close = () => controller.abort();

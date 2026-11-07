@@ -212,6 +212,8 @@ The labeled radio choices show the current mode's actual background, card and pr
 
 Device card icons, controls, sliders, selected segments, control popovers and decorative illustrations use the selected palette's primary, accent and surface tokens. Card rims and shadows use the shared glass tokens. Card types have no separate fixed color categories. Light-color controls and color-picker samples retain their actual hues; light previews mix any supplied lamp color into the current card surface, with palette-colored controls and text. Without a supplied light color, the preview uses the palette's primary color. Semantic status colors and configured person colors remain independent of the palette.
 
+Shared range thumbs and filled tracks fall back to the palette's primary color outside device cards; thumb borders fall back to the opaque card surface. Loading device-card styles must not make Sonos sliders transparent.
+
 ### Primary
 
 - **Action blue** (`primary`): primary buttons, links, selected filters, current-day emphasis and focus.
@@ -257,6 +259,8 @@ The shared header, main content and footer are centered within a maximum width (
 The weekly grid uses horizontal overflow when necessary, with a sticky person column. Its usual minimum width is (840px), reduced to (760px) in wide landscape and removed for the large portrait layout. Multi-day events remain aligned across dates. Content below the viewport stays reachable by scrolling.
 
 Calendar timetables use five equal weekday columns. At a container width of (620px) or less, days stack with dates beside their events in flexible one-to-two columns. Full-width messages remain beneath the week.
+
+Sonos puts now playing beside a compact Rooms summary from (1100px), with both cards sharing the row height and the music library below. Room names are bounded to three lines; individual volumes and grouping open shared Liquid Glass dialogs with independently scrolling bodies and reachable action footers. Large groups do not add inline controls or grow the Rooms card. Narrower screens stack these panels; phones at (699px) or less place compact square artwork (96px) beside the room and track metadata, then span seeking, transport and group volume across the panel. Speaker destinations and the secondary Smart home navigation scroll horizontally on phones. Favorites use four columns, reducing to two on phones; room and speaker-setting rows become single-column. The large portrait layout retains the shared enlarged reading scale and full-size controls.
 
 The dock is centered within the page gutters, capped at (1000px), or (1328px) on large portrait screens. Its bottom margin is (1rem) plus the safe-area inset; phones use (.75rem) plus the inset. App bottom padding reserves (8rem) plus the inset, reduced to (7rem) on phones. Links are at least (56px) high by default, (72px) on large portrait displays and (64px) on phones. Recurring action controls use a (48px) minimum where explicitly styled; portrait event and list rows reach (64px). Compact mode reduces panel gaps and padding while retaining usable control targets.
 
@@ -338,9 +342,15 @@ Settings card headings use 1.125rem semibold text; Today's reorderable section h
 
 The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue, semibold text and an opaque secondary fill. The large portrait layout emphasizes generous horizontal links. Phone and compact tablet layouts align icons above captions inside an inset floating dock. Focus uses an inset outline in the navigation selection color. Smart-home navigation is a wrapping secondary row; less frequent destinations live in the labeled menu.
 
-The top-right header places a camera shortcut before the notification bell and settings control. It opens `/cameras` directly from every page, using the shared circular glass surface, a 48px minimum target, and a translated accessible label and hover title.
+The top-right header places Sonos and camera shortcuts before the notification bell and settings control. They open `/sonos` and `/cameras` directly from every page, using the shared circular glass surface, a 48px minimum target, and translated accessible labels and hover titles. Sonos uses the existing Lucide music-note icon. Below (380px), the brand keeps its moon home link and hides its wordmark so the four controls retain their full touch targets.
 
 Header icon controls share the glass material. Dropdown menus use a denser version with an inset margin (.5rem); menu rows have soft corners (14px), at least (48px) height and visible focus. Menus scroll within Radix's available viewport height so every destination stays reachable in short windows. Popovers use that denser material; dialogs use the configurable lighter glass, with reachable close actions and readable fields. Reduced-transparency, contrast and forced-colors preferences apply to the shared material, including nested dropdowns and dialogs.
+
+### Sonos
+
+`/sonos` leads with the selected playback destination, reported artwork and track, then transport and group volume. Now playing and Rooms are a scoped glass exception: both reuse the existing shared glass surface and panel opacity, without new material tokens. The library and expandable speaker settings use opaque work panels. Favorites use square (1:1) artwork tiles to preserve album and playlist covers; browsing, playlists and the queue use readable rows. Room names, group membership and unavailable states remain explicit. The source picker preserves the reported streaming source even when it is absent from selectable inputs. The group editor opens a dialog with labeled selection rows; destructive queue changes use the shared confirmation dialog and reject a queue that has changed since confirmation opened.
+
+Playback retains a prominent (64px) primary control with Lucide transport icons; sliders keep (44px) interaction height, and group choices pair (24px) square checkboxes with (56px) labeled rows. Phone artwork compacts without shrinking the controls. Selected destinations and library views expose pressed state; the playing queue row exposes current state. Shared focus, reduced-motion, opaque reduced-transparency and contrast fallbacks remain in force, while forced colors outline selected states. Reported artwork has a neutral icon fallback; no shipping raster assets are added. Sources: [Sonos page](src/pages/Sonos.tsx), [library](src/components/sonos/SonosLibrary.tsx), [styles](src/pages/sonos.css), [surface evidence](.impeccable/surfaces/src-pages-sonos-tsx.md).
 
 ### Schedules, lists and controls
 

@@ -892,6 +892,7 @@ fieldset.settings-card > legend + * { clear: both; }
 
 @media (max-width: 379px) {
   .app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+  .app-header .brand > span:last-child { display: none; }
   .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
 }
 

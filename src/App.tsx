@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 
 const DeviceGallery = lazy(() => import("./pages/DeviceGallery"));
 const Cameras = lazy(() => import("./pages/Cameras"));
+const Sonos = lazy(() => import("./pages/Sonos"));
 const Devices = lazy(() => import("./pages/Devices"));
 const DeviceDetail = lazy(() => import("./pages/DeviceDetail"));
 const EntityDetail = lazy(() => import("./pages/EntityDetail"));
@@ -48,6 +49,7 @@ const App = () => (
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/device-gallery" element={<DeviceGallery />} />
                 <Route path="/cameras" element={<Cameras />} />
+                <Route path="/sonos" element={<Sonos />} />
                 <Route path="/devices" element={<Devices />} />
                 <Route path="/devices/:deviceId" element={<DeviceDetail />} />
                 <Route path="/entities/:entityId" element={<EntityDetail />} />

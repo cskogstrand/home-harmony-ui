@@ -73,8 +73,8 @@
 .dg-range output { font-weight: 600; font-variant-numeric: tabular-nums; }
 .dg-range > [data-orientation] { height: 32px; }
 .dg-range [data-orientation] > span:first-child { height: 10px; background: hsl(var(--secondary)); }
-.dg-range [data-orientation] > span:first-child > span { background: var(--dg-accent); }
-.dg-range [role="slider"] { width: 24px; height: 24px; border: 3px solid var(--dg-surface); background: var(--dg-accent); box-shadow: 0 1px 6px hsl(var(--glass-shade)); }
+.dg-range [data-orientation] > span:first-child > span { background: var(--dg-accent, hsl(var(--primary))); }
+.dg-range [role="slider"] { width: 24px; height: 24px; border: 3px solid var(--dg-surface, hsl(var(--card))); background: var(--dg-accent, hsl(var(--primary))); box-shadow: 0 1px 6px hsl(var(--glass-shade)); }
 .dg-toggle { display: flex; align-items: center; justify-content: space-between; gap: .75rem; font-size: .875rem; min-height: 44px; }
 .dg-choice { display: flex; align-items: center; gap: .75rem; justify-content: space-between; min-width: 0; font-size: .8rem; }
 .dg-choice > span { max-width: 45%; }

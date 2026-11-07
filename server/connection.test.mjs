@@ -195,7 +195,7 @@ test("rejects malformed socket messages without crashing the dashboard", { timeo
 
 test("proxies only authenticated HA media routes without forwarding query credentials", async t => {
   const app = await fixture(t);
-  for (const path of ["/api/camera_proxy/camera.example", "/api/camera_proxy_stream/camera.example", "/api/image_proxy/image.example", "/api/media_player_proxy/media_player.example"]) {
+  for (const path of ["/api/camera_proxy/camera.example", "/api/camera_proxy_stream/camera.example", "/api/image_proxy/image.example", "/api/media_player_proxy/media_player.example", "/api/media_player_proxy/media_player.example/browse_media/album/A%3AALBUM%2Fexample"]) {
     assert.equal((await fetch(`${app.url}${path}`)).status, 401);
     const result = await fetch(`${app.url}${path}?token=caller-token&url=https://example.invalid`, { headers });
     assert.equal(result.status, 200);
@@ -205,8 +205,8 @@ test("proxies only authenticated HA media routes without forwarding query creden
     assert.equal((await fetch(`${app.url}${path}`, { headers: { ...headers, Origin: "https://example.invalid" } })).status, 403);
     assert.equal((await fetch(`${app.url}${path}`, { method: "POST", headers })).status, 404);
   }
-  for (const path of ["/api/image_proxy/sensor.example", "/api/camera_proxy/http:example", "/api/camera_proxy/camera.example/extra"]) assert.equal((await fetch(`${app.url}${path}`, { headers })).status, 404);
-  assert.equal(app.requests.length, 4);
+  for (const path of ["/api/image_proxy/sensor.example", "/api/camera_proxy/http:example", "/api/camera_proxy/camera.example/extra", "/api/media_player_proxy/sensor.example/browse_media/album/example", "/api/media_player_proxy/media_player.example/browse_media/album/example/extra"]) assert.equal((await fetch(`${app.url}${path}`, { headers })).status, 404);
+  assert.equal(app.requests.length, 5);
 });
 
 test("rejects media failures, redirects and active content", async t => {

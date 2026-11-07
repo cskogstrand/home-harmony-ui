@@ -11,6 +11,7 @@ import { PinPadModal } from "@/components/devices/PinPadModal";
 import { config, registries, services, states as deviceStates, state, user } from "./ha-fixtures";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { timetableUploadPath } from "../../shared/timetables";
+import { musicFolder, sonosEntities, sonosServices } from "./sonos-fixtures";
 
 const states: HassEntities = { "person.everyone": state("person.everyone", "home", { friendly_name: "Everyone" }), ...deviceStates };
 
@@ -2546,4 +2547,81 @@ it("requests only one sensor's history, validates data and rejects responses aft
   const pending = client.entityHistory("sensor.example", 7, controller.signal);
   client.disconnect(); result.resolve({ "sensor.example": [] });
   await expect(pending).rejects.toThrow("History request cancelled");
+});
+
+const connectedSonosClient = async () => {
+  const entities = sonosEntities();
+  vi.mocked(ha.getServices).mockResolvedValue(sonosServices);
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
+    "config/area_registry/list": [], "config/device_registry/list": [],
+    "config/entity_registry/list": entities.map(entity => ({ id: entity.preferenceId, entity_id: entity.entityId, platform: "sonos" })),
+  })[type]);
+  const client = await connectedClient();
+  conn.entityCallback(Object.fromEntries(entities.map(entity => [entity.entityId, state(entity.entityId, entity.state, entity.attributes)])));
+  return client;
+};
+it("reads and validates the Sonos media browser and native queue response", async () => {
+  const client = await connectedSonosClient();
+  conn.sendMessagePromise.mockResolvedValueOnce(musicFolder());
+  expect(await client.browseMedia("media_player.lounge", { media_content_type: "favorites", media_content_id: "" })).toEqual(musicFolder());
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "media_player/browse_media", entity_id: "media_player.lounge", media_content_type: "favorites", media_content_id: "" });
+  const queue = [{ media_title: "Example track", media_content_id: "example" }];
+  conn.sendMessagePromise.mockResolvedValueOnce({ response: { "media_player.lounge": queue } });
+  expect(await client.sonosQueue("media_player.lounge")).toEqual(queue);
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "call_service", domain: "sonos", service: "get_queue", target: { entity_id: "media_player.lounge" }, return_response: true });
+  conn.sendMessagePromise.mockResolvedValueOnce({ children: [{ title: 42 }] });
+  await expect(client.browseMedia("media_player.lounge")).rejects.toThrow("Music could not be loaded");
+  conn.sendMessagePromise.mockResolvedValueOnce({ response: { "media_player.lounge": [{ media_title: 42 }] } });
+  await expect(client.sonosQueue("media_player.lounge")).rejects.toThrow("queue could not be loaded");
+  const reads = conn.sendMessagePromise.mock.calls.length;
+  await expect(client.browseMedia("media_player.terrace")).rejects.toThrow();
+  await expect(client.sonosQueue("sensor.not_a_speaker")).rejects.toThrow();
+  expect(conn.sendMessagePromise).toHaveBeenCalledTimes(reads);
+});
+it("discards Sonos browser and queue responses after connection loss", async () => {
+  const client = await connectedSonosClient();
+  const media = deferred<unknown>(), queue = deferred<unknown>();
+  conn.sendMessagePromise.mockImplementationOnce(() => media.promise).mockImplementationOnce(() => queue.promise);
+  const browsing = client.browseMedia("media_player.lounge"), reading = client.sonosQueue("media_player.lounge");
+  const assertions = Promise.all([expect(browsing).rejects.toThrow("Music could not be loaded"), expect(reading).rejects.toThrow("queue could not be loaded")]);
+  conn.emit("disconnected");
+  media.resolve(musicFolder()); queue.resolve({ response: { "media_player.lounge": [] } });
+  await assertions;
+});
+it("validates live grouping targets before sending and routes native queue actions", async () => {
+  const client = await connectedSonosClient();
+  await expect(client.command("media_player.lounge", "join", ["media_player.missing"])).rejects.toThrow("unavailable");
+  await expect(client.command("media_player.lounge", "join", ["media_player.terrace"])).rejects.toThrow("unavailable");
+  expect(ha.callService).not.toHaveBeenCalled();
+  await client.command("media_player.lounge", "join", ["media_player.studio"]);
+  expect(ha.callService).toHaveBeenLastCalledWith(conn, "media_player", "join", { group_members: ["media_player.studio"] }, { entity_id: "media_player.lounge" });
+  await client.command("media_player.lounge", "play_queue", 0);
+  expect(ha.callService).toHaveBeenLastCalledWith(conn, "sonos", "play_queue", { queue_position: 0 }, { entity_id: "media_player.lounge" });
+  conn.emit("disconnected");
+  await expect(client.command("media_player.lounge", "play_queue", 1)).rejects.toThrow("paused");
+  expect(ha.callService).toHaveBeenCalledTimes(2);
+});
+
+it("keeps grouping pending beyond 15 seconds until HA confirms and does not resend", async () => {
+  const client = await connectedSonosClient();
+  vi.useFakeTimers();
+  try {
+    const request = deferred<unknown>();
+    vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+    const command = client.command("media_player.lounge", "join", ["media_player.studio"]);
+    await vi.advanceTimersByTimeAsync(31000);
+    expect(client.getSnapshot().commands["media_player.lounge"]).toEqual({ pending: true });
+    request.resolve(undefined);
+    await command;
+    expect(client.getSnapshot().commands["media_player.lounge"].pending).toBe(false);
+    expect(ha.callService).toHaveBeenCalledTimes(1);
+  } finally { vi.useRealTimers(); }
+});
+
+it("preserves the HA grouping failure reason and leaves normal command errors unchanged", async () => {
+  const client = await connectedSonosClient();
+  vi.mocked(ha.callService).mockRejectedValue({ code: "home_assistant_error", message: "Example speaker did not respond" });
+  await expect(client.command("media_player.lounge", "join", ["media_player.studio"])).rejects.toThrow("Home Assistant could not change the group: Example speaker did not respond");
+  await expect(client.command("media_player.lounge", "volume_set", .2)).rejects.toThrow("Home Assistant rejected or did not acknowledge");
+  expect(ha.callService).toHaveBeenCalledTimes(2);
 });

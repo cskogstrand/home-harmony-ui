@@ -6,8 +6,10 @@ import {
   Auth, type Connection, type HassConfig, type HassServices, type HassUser,
 } from "home-assistant-js-websocket";
 import type { CalendarEvent, EntityAction, EntityStates, Registries, TodoItem } from "@/types/api";
-import { available, emptyRegistries, entityCommand, mapHome } from "./ha-model";
+import { available, emptyRegistries, entityCommand, feature, mapHome, supportsAction } from "./ha-model";
+import { mediaBrowserSchema, sonosQueueSchema, type MediaItem } from "./sonos";
 import { playCameraStream } from "./camera-stream";
+import { MessageError } from "./i18n";
 import type { NotificationEvent } from "./notifications";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
@@ -196,19 +198,30 @@ export class HomeAssistantClient {
     if ((item !== undefined && status?.items ? status.items[item] : status)?.pending) throw new Error("A command is already pending for this entity.");
     try {
       if (!conn?.connected || !this.fresh || this.snapshot.status !== "connected") throw new Error("Controls are paused until fresh Home Assistant state arrives.");
-      const entity = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities.find(e => e.entityId === entityId);
+      const entities = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities;
+      const entity = entities.find(e => e.entityId === entityId);
       if (!entity) throw new Error("This entity no longer exists.");
       const command = entityCommand(entity, action, this.snapshot.services, value, code);
+      if (action === "join" && (command.data.group_members as string[]).some(id => {
+        const member = entities.find(item => item.entityId === id);
+        return !member || !available(member) || member.integration !== entity.integration || !supportsAction(member, "join", this.snapshot.services);
+      })) throw new Error("A selected speaker is unavailable or cannot join this group.");
       setCommand({ pending: true });
       try {
         // Never suspend/queue/retry physical commands. The library rejects in-flight calls on loss.
         await bounded(action === "update_event" || action === "delete_event"
           ? conn.sendMessagePromise({ type: action === "delete_event" ? "calendar/event/delete" : "calendar/event/update", entity_id: entityId, ...command.data })
-          : callService(conn, command.domain, command.service, command.data, command.target));
+          : callService(conn, command.domain, command.service, command.data, command.target),
+        // Sonos waits up to 30 seconds for topology after each speaker joins.
+        action === "join" ? 45000 * (command.data.group_members as string[]).length : action === "unjoin" ? 45000 : 15000);
       } catch (error) {
         if (action === "create_event") throw new Error("Home Assistant could not confirm the save. Check the calendar before trying again to avoid duplicates.");
         if (action === "update_event") throw new Error("Home Assistant could not confirm the update. Check the calendar and your permissions before trying again.");
         if (action === "delete_event") throw new Error("Home Assistant could not confirm the deletion. Check the calendar and your permissions before trying again.");
+        if (["join", "unjoin"].includes(action) && error !== ERR_CONNECTION_LOST && conn.connected) {
+          if (error && typeof error === "object" && "message" in error && typeof error.message === "string" && error.message !== "Request timed out") throw new MessageError("Home Assistant could not change the group: {reason}", { reason: error.message.slice(0, 500) });
+          throw new Error("Home Assistant did not confirm the group change. Check the group in Sonos before trying again.");
+        }
         throw new Error(error === ERR_CONNECTION_LOST || !conn.connected
           ? "Connection lost. The command outcome is unknown; it will not be replayed. Check reported state before trying again."
           : "Home Assistant rejected or did not acknowledge the command. Check permissions, the required code and reported state before trying again.");
@@ -219,6 +232,29 @@ export class HomeAssistantClient {
       setCommand({ pending: false, error: (error as Error).message });
       throw error;
     }
+  };
+  browseMedia = async (entityId: string, item?: Pick<MediaItem, "media_content_id" | "media_content_type">) => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    try {
+      const entity = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities.find(e => e.entityId === entityId);
+      if (!conn?.connected || this.snapshot.status !== "connected" || !entity || !available(entity) || entity.domain !== "media_player" || !feature(entity, 131072)) throw new Error();
+      const media = item && z.object({ media_content_id: z.string().max(8192), media_content_type: z.string().min(1).max(256) }).parse(item);
+      const result = await bounded(conn.sendMessagePromise({ type: "media_player/browse_media", entity_id: entityId, ...media }));
+      if (generation !== this.generation || epoch !== this.epoch || !conn.connected) throw new Error();
+      return mediaBrowserSchema.parse(result);
+    } catch { throw new Error("Music could not be loaded. Check the connection and try again."); }
+  };
+  sonosQueue = async (entityId: string) => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    try {
+      const entity = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities.find(e => e.entityId === entityId);
+      if (!conn?.connected || this.snapshot.status !== "connected" || !entity || !available(entity) || entity.domain !== "media_player" || entity.integration !== "sonos" || !this.snapshot.services.sonos?.get_queue) throw new Error();
+      const result = await bounded(conn.sendMessagePromise({ type: "call_service", domain: "sonos", service: "get_queue", target: { entity_id: entityId }, return_response: true }));
+      if (generation !== this.generation || epoch !== this.epoch || !conn.connected) throw new Error();
+      const queue = z.object({ response: z.record(sonosQueueSchema) }).parse(result).response[entityId];
+      if (!queue) throw new Error();
+      return queue;
+    } catch { throw new Error("The queue could not be loaded. Check the connection and try again."); }
   };
   todoItems = async (entityId: string): Promise<TodoItem[]> => {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;
