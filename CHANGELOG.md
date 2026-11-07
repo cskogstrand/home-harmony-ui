@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.16
+
+<!-- release-source: 2a15effeff6e575f9fbd3739a57ea35404b120e8 -->
+
+- feat: add dedicated Sonos controller
+
 ## 0.10.15
 
 <!-- release-source: 81f46bdc569e64cc7b85c9a76aec1557d9d8ca19 -->
