@@ -7,7 +7,7 @@ related_targets: ["src/components/devices/device-cards.css","src/components/devi
 
 # Device card gallery
 
-Today's favorites reuse this library's super compact cards and use inert previews in the type chooser. Super compact scene cards use a full-width glass activation button at least 4.5rem high, with the wrapping card name and scene/play icons inside. They omit a separate heading, redundant Scene label and facts disclosure. Scene cards do not link to device details; command confirmation and offline/pending/error feedback remain. Unsupported scenes retain a named heading. The gallery demonstrates the same shared scene button.
+Today's favorites reuse this library's super compact cards and use inert previews in the type chooser. Super compact scene cards use a full-width glass activation button at least 4.5rem high, with the wrapping card name and scene/play icons inside. Its background and icons follow the selected palette's primary color in light and dark mode, with regular foreground text and a stronger tint on hover. They omit a separate heading, redundant Scene label and facts disclosure. Scene cards do not link to device details; command confirmation and offline/pending/error feedback remain. Unsupported scenes retain a named heading. The gallery demonstrates the same shared scene button.
 
 Smart home editing extension: **Configure** reveals inline size/group fields and drag handles beside keyboard/touch move buttons. Cards can move within or between named groups while room filters stay available; moves preserve filtered-out cards, and previews are inert during editing. A new group is saved once a card is assigned. Shared settings retain order and composition. Height alignment is computed independently for each rendered grid row. Media transport fills its card width with spaced controls; camera/image previews open in a viewport-wide dialog with 16px side gutters, sharing one live player with the inline preview and returning focus on close. This remains an Operate extension of the existing card system, with no new visual world or assets.
 
@@ -19,7 +19,7 @@ Live controls use reported Home Assistant capabilities and command confirmation.
 
 THESIS: A tactile device collection where the control explains the device; avoid identical icon-and-toggle cards.
 
-OWN-WORLD: Extend Afterglow's pearl/midnight system typography and blue actions. The gallery and Smart home cards use illuminated glass rims and restrained device-specific color. Solid text surfaces and accessibility fallbacks preserve readability.
+OWN-WORLD: Extend Afterglow's system typography and selected palette. The gallery and Smart home cards use shared glass rims, palette-colored controls and illustrations, with actual lamp colors and semantic status colors preserved. Card types do not introduce fixed accent colors. Solid text surfaces and accessibility fallbacks preserve readability.
 
 STORY: In the gallery, enter from settings, explore by family, operate primary controls, expand secondary capabilities, and try unavailable/error states. Gallery data is fictional; reset restores the collection. On Smart home, scan named groups, operate the main entity, and expand supporting controls or history as needed.
 

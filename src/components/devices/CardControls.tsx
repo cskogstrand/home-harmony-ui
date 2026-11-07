@@ -61,13 +61,13 @@ export function Toggle({ label, on, set }: { label: string; on: boolean; set: (o
 
 export function More({ children, label = "More controls" }: { children: ReactNode; label?: string }) {
   const { message: t } = useI18n();
-  const { variant, visible, title, tint } = useContext(CardPresentation);
+  const { variant, visible, title } = useContext(CardPresentation);
   const compact = variant !== "Original";
   const [open, setOpen] = useState(false);
   useEffect(() => { if (!visible) setOpen(false); }, [visible]);
   if (variant === "Super compact") return <Popover open={open && visible} onOpenChange={setOpen}>
     <PopoverTrigger asChild><Button type="button" variant="ghost" className="dg-adjust-trigger" aria-label={t(label)} title={t(label)}><SlidersHorizontal size={18} aria-hidden="true" /></Button></PopoverTrigger>
-    <PopoverContent align="end" className={`device-gallery dg-card dg-compact dg-control-popover dg-${tint ?? "blue"}`} aria-label={t("{name} controls", { name: title })}>
+    <PopoverContent align="end" className="device-gallery dg-card dg-compact dg-control-popover" aria-label={t("{name} controls", { name: title })}>
       <div className="dg-popover-heading"><strong>{title}</strong><Button type="button" variant="ghost" size="icon" aria-label={t("Close controls")} onClick={() => setOpen(false)}><X size={18} /></Button></div>
       <div className="dg-popover-controls">{children}</div>
     </PopoverContent>

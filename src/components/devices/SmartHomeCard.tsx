@@ -21,7 +21,7 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
 }) {
   const { currentHome, homeOnline } = useApp();
   const { message: t, language } = useI18n();
-  const design = chosenDesign ?? cardDesignFor(entity?.domain ?? "") ?? { id: entity?.domain ?? "unknown", title: "", subtitle: entity?.domain ?? "Entity", group: "", domains: [], icon: Radio, tint: "blue" };
+  const design = chosenDesign ?? cardDesignFor(entity?.domain ?? "") ?? { id: entity?.domain ?? "unknown", title: "", subtitle: entity?.domain ?? "Entity", group: "", domains: [], icon: Radio };
   const area = currentHome.areas.find(area => area.id === entity?.areaId && area.id !== "unassigned");
   const supporting = entities.filter(item => item.preferenceId !== entity?.preferenceId);
   const media = supporting.filter(item => ["image", "camera"].includes(item.domain));
@@ -36,7 +36,7 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
     {media.map(item => <div className="smart-supporting-media" key={item.preferenceId}><h3>{item.name}</h3><EntityMedia entity={item} /></div>)}
     {!!readings.length && <div className="smart-card-readings" aria-label={t("Supporting entities")}>
       {readings.map(item => ["sensor", "binary_sensor", "device_tracker", "event"].includes(item.domain) ? <div className="smart-reading" key={item.preferenceId}><span>{item.name}</span><strong>{homeOnline ? entityStateLabel(item, language) : t("Offline")}{homeOnline && available(item) && typeof item.attributes.unit_of_measurement === "string" ? ` ${item.attributes.unit_of_measurement}` : ""}</strong></div>
-        : <details className="smart-reading-details" key={item.preferenceId}><summary>{item.name}</summary><CardPresentation.Provider value={{ variant: "Compact", title: item.name, tint: design.tint, visible: true }}><DeviceControl entity={item} /><EntityFacts entity={item} /></CardPresentation.Provider></details>)}
+        : <details className="smart-reading-details" key={item.preferenceId}><summary>{item.name}</summary><CardPresentation.Provider value={{ variant: "Compact", title: item.name, visible: true }}><DeviceControl entity={item} /><EntityFacts entity={item} /></CardPresentation.Provider></details>)}
     </div>}
     {entity && !detail && !(entity.domain === "scene" && density === "supercompact") && <EntityFacts entity={entity} />}
     {entity && !preview && ["sensor", "air_quality"].includes(entity.domain) && <EntityHistory entity={entity} />}

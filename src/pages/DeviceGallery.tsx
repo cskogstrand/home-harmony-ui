@@ -3,6 +3,7 @@ import { useContext, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Activity, Flame, House, LocateFixed, Snowflake, Sun, Volume2, ArrowDown, ArrowLeft, ArrowUp, AudioLines, Blinds, CalendarDays, Camera, Check, ChevronDown, ChevronLeft, ChevronRight, CircleHelp, CloudSun, Droplets, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Minus, Pause, Play, Plus, Power, Radio, RotateCcw, Search, Send, ShieldCheck, Siren, Sparkles, Square, Unlock, Upload, CircleDot as Vacuum, Wand2, Wind, Zap } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
+import { memberColorForeground } from "@/lib/member-colors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -33,7 +34,7 @@ function LightDemo() {
   const [on, setOn] = useState(true), [brightness, setBrightness] = useState(72), [kelvin, setKelvin] = useState(2700), [color, setColor] = useState("#ffc978"), [mode, setMode] = useState("White"), [effect, setEffect] = useState("None");
   const disabled = useContext(DemoDisabled);
   const colorControls = <><Segments label="Light color mode" options={["White", "Color"]} value={mode} set={setMode} />
-    {mode === "White" ? <Range label="Warmth" value={kelvin} set={setKelvin} min={2200} max={6500} step={100} unit=" K" /> : <div className="dg-colors">{["#ffc978", "#ff9b9b", "#c2abff", "#8cbfff", "#90dccc"].map(c => <button key={c} disabled={disabled} style={{ background: c }} aria-label={`${t("Set color")} ${c}`} aria-pressed={color === c} onClick={() => setColor(c)}>{color === c && <Check size={20} />}</button>)}<label className="dg-custom-color"><span className="sr-only">{t("Custom color")}</span><input type="color" disabled={disabled} value={color} onChange={e => setColor(e.target.value)} /></label></div>}</>;
+    {mode === "White" ? <Range label="Warmth" value={kelvin} set={setKelvin} min={2200} max={6500} step={100} unit=" K" /> : <div className="dg-colors">{["#ffc978", "#ff9b9b", "#c2abff", "#8cbfff", "#90dccc"].map(c => <button key={c} disabled={disabled} style={{ background: c, color: memberColorForeground(c) }} aria-label={`${t("Set color")} ${c}`} aria-pressed={color === c} onClick={() => setColor(c)}>{color === c && <Check size={20} />}</button>)}<label className="dg-custom-color"><span className="sr-only">{t("Custom color")}</span><input type="color" disabled={disabled} value={color} onChange={e => setColor(e.target.value)} /></label></div>}</>;
   return <LightCard value={on ? `${brightness}%` : t("Off")} caption={t(compact ? (on ? "On" : "Off") : mode === "White" ? "A little warmth goes a long way." : "A color for every mood.")} color={mode === "White" ? `hsl(${35 + (kelvin - 2200) / 90} 85% ${70 + (kelvin - 2200) / 180}%)` : color} strength={on ? brightness / 100 : 0}
     power={<Action label="Toggle demo light" pressed={on} onClick={() => setOn(!on)}><Power size={20} /></Action>}
     brightness={<Range label="Brightness" icon={Sun} value={brightness} min={1} set={v => { setBrightness(v); setOn(true); }} />}>

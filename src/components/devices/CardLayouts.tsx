@@ -8,7 +8,7 @@ import { CardPresentation } from "./card-presentation";
 export function LightCard({ value, caption, color, strength, power, brightness, children }: {
   value: string; caption: string; color?: string; strength: number; power?: ReactNode; brightness?: ReactNode; children?: ReactNode;
 }) {
-  return <><div className="dg-light-well" style={{ "--lamp-color": color ?? "#ffc978", "--lamp-strength": strength } as CSSProperties}>
+  return <><div className="dg-light-well" style={{ "--lamp-color": color ?? "hsl(var(--primary))", "--lamp-strength": strength } as CSSProperties}>
     <Lightbulb size={54} strokeWidth={1.1} aria-hidden="true" /><div><strong>{value}</strong><span>{caption}</span></div>{power}
   </div>{brightness}{children}</>;
 }

@@ -202,7 +202,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .greeting-bottom > span { color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .avatar-group { display: flex; padding-left: 5px; }
 .avatar-group .member-avatar { margin-left: -5px; box-shadow: 0 0 0 3px hsl(var(--background)); }
-.member-avatar { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: #213331; font-size: 0.875rem; font-weight: 600; }
+.member-avatar { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--foreground)); font-size: 0.875rem; font-weight: 600; }
 .member-avatar.small { width: 29px; height: 29px; font-size: 0.75rem; }
 .next-chapter { grid-column: 1 / -1; }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: hsl(var(--primary)); }
