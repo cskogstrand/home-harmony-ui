@@ -6,7 +6,7 @@ import { usePageActive } from "@/contexts/PageActivityContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { Button } from "@/components/ui/button";
-import { Expand, LoaderCircle, Video, VideoOff } from "lucide-react";
+import { Expand, Image, LoaderCircle, UserRound, Video, VideoOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { shareCameraStream } from "@/lib/shared-camera-stream";
@@ -161,10 +161,10 @@ export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices =
   const name = camera?.name ?? entity?.name ?? "Camera";
   const opener = useRef<HTMLButtonElement>(null);
   const expandable = !!camera || ["camera", "image"].includes(entity?.domain);
-  const choices = (hasPerson || showImageChoices) && <div className="flex flex-wrap gap-2" role="group" aria-label={t("Camera media")}>
-    <Button variant={selected === "live" ? "default" : "outline"} aria-pressed={selected === "live"} onClick={() => setMedia("live")}>{t("Live camera")}</Button>
-    {showImageChoices && <Button variant={selected === "snapshot" ? "default" : "outline"} aria-pressed={selected === "snapshot"} onClick={() => setMedia("snapshot")}>{t("Still image")}</Button>}
-    {hasPerson && <Button variant={selected === "person" ? "default" : "outline"} aria-pressed={selected === "person"} onClick={() => setMedia("person")}>{t("Person snapshot")}</Button>}
+  const choices = (hasPerson || showImageChoices) && <div className="flex flex-wrap gap-2 [&>button]:h-auto [&>button]:min-h-11 [&>button]:max-w-full [&>button]:whitespace-normal" role="group" aria-label={t("Camera media")}>
+    <Button variant={selected === "live" ? "default" : "outline"} aria-pressed={selected === "live"} onClick={() => setMedia("live")}><Video aria-hidden="true" />{t("Live camera")}</Button>
+    {showImageChoices && <Button variant={selected === "snapshot" ? "default" : "outline"} aria-pressed={selected === "snapshot"} onClick={() => setMedia("snapshot")}><Image aria-hidden="true" />{t("Still image")}</Button>}
+    {hasPerson && <Button variant={selected === "person" ? "default" : "outline"} aria-pressed={selected === "person"} onClick={() => setMedia("person")}><UserRound aria-hidden="true" />{t("Person snapshot")}</Button>}
   </div>;
   return <Dialog open={open} onOpenChange={setOpen}>
     {showImageChoices && choices}

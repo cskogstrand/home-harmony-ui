@@ -28,13 +28,15 @@ If saving fails, the error identifies the field to correct and keeps your draft.
 
 Saved cameras group **Preview startup image**, **Watch live stream**, and **Preview person snapshot** (when configured). The startup preview refreshes the same image source used while video connects, without starting video. **Edit** and **Delete** sit beside the camera name.
 
-On **Smart home → Cameras**, each camera offers **Live camera**, **Still image**, and **Person snapshot** when a person source is configured. The still view refreshes the configured startup image from Frigate or the video connection without opening a live stream. Each camera keeps its own selection. Expand any view to see the same selected media in the larger viewer; switching views stops the previous live stream or still-image polling.
+On **Smart home → Cameras**, each camera offers **Live camera**, **Still image**, and **Person snapshot** when a person source is configured, with video, image and person icons. The still view refreshes the configured startup image from Frigate or the video connection without opening a live stream. Each camera keeps its own selection. Expand any view to see the same selected media in the larger viewer; switching views stops the previous live stream or still-image polling.
+
+Open **Display settings** beside the page actions to choose **Cameras per row** from four illustrated options. Each shows a miniature camera page with its heading, camera cards, view controls and video areas, with a visible label for one to four cameras across. The selected layout has a checkmark and outline. The default is 2; older settings or backups with five columns become four. The choice saves automatically, syncs across screens and is included in configuration backups. Screens narrower than 1024 CSS pixels keep one column for readable controls.
 
 The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/blob/master/website/api/openapi.yaml). Home Harmony returns stream names only; upstream producer URLs and credentials are not sent to the browser. A failed or empty list does not erase the selected source.
 
 ## Watch cameras and use them in notifications
 
-Open **Smart home → Cameras**, or use the camera icon in the top-right header beside the notification bell to go directly to `/cameras` from any page. The page shows only cameras you have added. Each has **Configure camera** and **Use in notification**. The latter starts a camera notification with that camera selected; choose the trigger under **When to show it** before saving.
+Open **Smart home → Cameras**, or use the camera icon in the top-right header beside the notification bell to go directly to `/cameras` from any page. The page shows only cameras you have added. Each camera has a **Configure camera** gear at the top right of its card. Create camera notifications under **Home settings → Notifications**.
 
 In **Home settings → Notifications → Camera popup → Camera and image**, **Camera** lists your configured cameras, regardless of connection. **Show in notification** offers that camera's live source and its **Person snapshot**, when configured. **Test camera output** previews the choice. **Configure camera (new tab)** keeps the notification draft open while editing the camera. Changing a camera's connection or source applies wherever that camera is used.
 

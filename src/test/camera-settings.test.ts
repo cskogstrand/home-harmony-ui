@@ -6,7 +6,7 @@ import { emptyConfiguration, parseConfiguration } from "../../shared/configurati
 it("defaults old backups and round-trips camera sources without storing RTSP hosts", () => {
   const config = emptyConfiguration();
   delete config.settings.cameras;
-  expect(parseConfiguration(JSON.stringify(config)).settings.cameras).toEqual({ connections: [], items: [] });
+  expect(parseConfiguration(JSON.stringify(config)).settings.cameras).toEqual({ columns: 2, connections: [], items: [] });
   config.settings.cameras = cameraSettingsSchema.parse({ go2rtcUrl: "http://go2rtc.example:1984/", frigateUrl: "http://frigate.example:5000/", sources: {
     "camera.example": { stream: "rtsp://frigate.example:8554/example_camera", personSnapshot: { type: "frigate", camera: "example_camera" } },
     "camera.second": { personSnapshot: { type: "home-assistant", entity: "image.example_person" } },
@@ -14,6 +14,23 @@ it("defaults old backups and round-trips camera sources without storing RTSP hos
   expect(config.settings.cameras.items[0].source).toBe("example_camera");
   expect(config.settings.cameras.connections[0].url).toBe("http://go2rtc.example:1984");
   expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+});
+
+it("defaults older camera layouts to two columns, preserves one to four and migrates five to four", () => {
+  const config = emptyConfiguration(); config.settings.cameras = cameraSettings();
+  const { columns: _columns, ...olderSettings } = config.settings.cameras;
+  expect(cameraSettingsSchema.parse(olderSettings).columns).toBe(2);
+  for (const columns of [1, 2, 3, 4]) {
+    config.settings.cameras.columns = columns;
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+  }
+  config.settings.cameras.columns = 5;
+  const migrated = parseConfiguration(JSON.stringify(config));
+  expect(migrated.settings.cameras).toEqual({ ...config.settings.cameras, columns: 4 });
+  expect(parseConfiguration(JSON.stringify(migrated))).toEqual(migrated);
+  for (const columns of [0, 6, 2.5, "3", null]) {
+    expect(cameraSettingsSchema.safeParse({ ...config.settings.cameras, columns }).success).toBe(false);
+  }
 });
 
 it("round-trips person inset sizes and rejects unsupported sizes without changing older cameras", () => {

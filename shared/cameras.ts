@@ -72,6 +72,8 @@ export const configuredCameraSchema = z.object({
   ]).default({ type: "none" }),
 }).strict();
 const settingsSchema = z.object({
+  // Preserve settings and backups that used the retired five-column layout.
+  columns: z.number().int().min(1).max(5).default(2).transform(columns => Math.min(columns, 4)),
   connections: z.array(cameraConnectionSchema).max(100).default([]),
   items: z.array(configuredCameraSchema).max(200).default([]),
 }).strict().superRefine((settings, ctx) => {

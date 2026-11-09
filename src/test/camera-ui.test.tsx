@@ -200,6 +200,44 @@ it("does not add discovered HA cameras to the camera page or settings", () => {
   expect(screen.queryByLabelText("Home Assistant camera")).not.toBeInTheDocument();
 });
 
+it("opens camera configuration from its heading and saves the camera column choice without restarting video", () => {
+  configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
+  const page = <MemoryRouter><Cameras /></MemoryRouter>;
+  const view = render(page);
+  const card = screen.getByRole("region", { name: "Example camera" });
+  const configureLink = within(card).getByRole("link", { name: "Configure Example camera" });
+  expect(configureLink).toHaveAttribute("href", "/settings/cameras?camera=example-camera");
+  expect(configureLink.parentElement).toContainElement(within(card).getByRole("heading", { name: "Example camera" }));
+  expect(screen.queryByRole("link", { name: "Use in notification" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Display settings" }));
+  const choices = () => within(screen.getByRole("group", { name: "Cameras per row" }));
+  expect(choices().getAllByRole("button")).toHaveLength(4);
+  expect(choices().queryByRole("button", { name: "5 cameras per row" })).not.toBeInTheDocument();
+  expect(choices().getByRole("button", { name: "2 cameras per row" })).toHaveAttribute("aria-pressed", "true");
+  for (const columns of [1, 2, 3, 4]) {
+    const name = columns === 1 ? "1 camera per row" : `${columns} cameras per row`;
+    fireEvent.click(choices().getByRole("button", { name }));
+    expect(mocks.shared.state.config.settings.cameras.columns).toBe(columns);
+    view.rerender(<MemoryRouter><Cameras /></MemoryRouter>);
+    expect(choices().getByRole("button", { name })).toHaveAttribute("aria-pressed", "true");
+    expect(card.parentElement).toHaveClass(`lg:grid-cols-${columns}`);
+  }
+  expect(mocks.go2rtc).toHaveBeenCalledOnce();
+  view.unmount();
+  render(page);
+  fireEvent.click(screen.getByRole("button", { name: "Display settings" }));
+  expect(choices().getByRole("button", { name: "4 cameras per row" })).toHaveAttribute("aria-pressed", "true");
+});
+
+it.each(["loading", "error"])("disables camera layout changes while shared settings are %s", status => {
+  mocks.shared.state.loaded = status !== "loading";
+  mocks.shared.state.error = status === "error" ? "Save conflict" : "";
+  render(<MemoryRouter><Cameras /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Display settings" }));
+  const choices = within(screen.getByRole("group", { name: "Cameras per row" }));
+  for (const button of choices.getAllByRole("button")) expect(button).toBeDisabled();
+});
+
 it.each(["go2rtc", "home-assistant", "frigate"])("switches each camera page preview between video, its %s still and the configured person image", async source => {
   configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
   const cameras = mocks.shared.state.config.settings.cameras.items;

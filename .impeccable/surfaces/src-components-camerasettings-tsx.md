@@ -19,7 +19,7 @@ OWN-WORLD: Preserve Afterglow's dark surfaces, existing glow panels, rounded con
 
 STORY: Set up a server once; add a camera; choose Home Assistant or a saved go2rtc connection and its source; view that same named camera in Smart home or select it in a notification.
 
-FIRST VIEWPORT: Camera overview offers Add camera and Manage cameras. The empty state explains creation and links connections. The camera editor requires name and connection, then reveals the appropriate source picker. Person snapshots are optional and collapsed until configured.
+FIRST VIEWPORT: Camera overview offers Add camera, Manage cameras and Display settings. The saved Cameras per row choice uses four detailed miniature pages showing 1–4 camera cards (default 2), including page heading, card headings, view controls and video areas. Choices use the same illustrated two-column pattern as notification presentation, with visible labels, a checkmark and selected outline. Older five-column settings become four. Screens below 1024 CSS pixels keep one column. Each card puts its configuration gear beside its name; live, still and person choices pair icons with labels. Notification creation lives in notification settings. The empty state explains creation and links connections. The camera editor requires name and connection, then reveals the appropriate source picker. Person snapshots are optional and collapsed until configured.
 
 FORM: User-directed, code-led workflow. Signature interaction is choosing a connection to reveal its stream list or HA camera picker. Preserve existing motion and reduced-motion behavior. seed: none (user pinned the workflow; existing visual world retained).
 
@@ -28,6 +28,8 @@ FINISH: A standalone go2rtc camera works without an HA camera entity. Only creat
 ## Delivery evidence
 
 The finished flow reuses the settings shell, glow panels, planner fields, shared buttons, confirmation dialogs and media viewer. No new design tokens or visual-system rules were introduced; PRODUCT.md and DESIGN.md remain authoritative.
+
+Camera-layout diagrams scale their internal corners to 2px for text marks and 4px for miniature cards and video areas. Their full-size option buttons retain the existing 16px radius.
 
 Player links can supply a connection address or a camera stream, with mismatched servers rejected. go2rtc playback falls back from WebRTC to the authenticated HTTP MSE relay and offers a specific error, Retry and the upstream player when playback fails. Setup and notification guidance lives in docs/cameras.md and docs/notifications.md.
 
