@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.17
+
+<!-- release-source: 0b4b77cd7fe9f0fac16216ea1185074bd9b33226 -->
+
+- style: remove redundant Sonos headings
+- feat: put Sonos playback first
+- feat: add draggable camera person insets
+- fix: patch Vite security vulnerabilities
+- feat: add illustrated camera layout settings
+
 ## 0.10.16
 
 <!-- release-source: 2a15effeff6e575f9fbd3739a57ea35404b120e8 -->
