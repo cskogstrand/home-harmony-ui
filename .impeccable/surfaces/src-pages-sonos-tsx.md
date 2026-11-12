@@ -12,21 +12,25 @@ Mode: Operate. Dedicated controller for native Home Assistant Sonos players, inc
 
 ## Direction contract
 
-THESIS: Make the destination as obvious as the music. Now playing, rooms and library share one page; grouping never hides the current playback destination.
+THESIS: The player is the main surface. Choose a destination, open the common library to find music, then return to playback.
 
-OWN-WORLD: Inherit Afterglow's pearl/midnight surfaces, system typography, blue actions and shared Liquid Glass controls. Artwork is real reported content. Dense library rows retain a solid reading surface.
+OWN-WORLD: Inherit Afterglow's pearl/midnight surfaces, system typography, blue actions and shared Liquid Glass controls. Artwork is real reported content. Library rows retain an opaque reading surface inside the modal.
 
-STORY: Pick a room, see its group and music, choose a favorite or browse playlists, then adjust the group's balance or individual speakers. Secondary sound settings expand inline.
+STORY: Pick a room or group, choose music in **Your music**, and return to the player when playback succeeds. The library remembers its place. Group controls and speaker settings appear only when opened.
 
-FIRST VIEWPORT: Room selector under the page title. Large square artwork and transport controls lead the wide left panel; a bounded room summary occupies the right panel at the same height. Individual volumes and grouping open scrollable shared glass dialogs. The library begins below. On phones, compact square artwork sits beside room and track metadata, with full-width seeking, transport and group volume below; rooms and library follow at readable sizes. Speaker destinations and the secondary navigation scroll horizontally.
+FIRST VIEWPORT: Group-aware destinations precede a single centered player. Cover, track, transport and group volume lead. Three actions open **Your music**, **Group settings** and **Speaker settings**. Short desktop windows constrain cover size; phones put the cover beside the track with full-width controls below. The music modal fills the available height minus a small outer margin.
 
-FORM: Code-led now-playing-first composition within the user-pinned Apple Liquid Glass world. User confirmed now playing first, with rooms and music library alongside. seed:0dda1bae7db7cfa1. Signature interaction: the group level moves the room sliders together, while confirmed state remains authoritative. No new raster assets.
+FORM: Code-led player composition within the user-pinned Apple Liquid Glass world. The November 12 follow-up explicitly prioritizes the player, a modal library and modal settings. seed:0dda1bae7db7cfa1. Signature interaction: group volume shifts room levels together, while confirmed state remains authoritative. No new raster assets.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 ## Built surface
 
-Now playing and Rooms reuse the shared Liquid Glass surface and panel opacity as a local exception; the library and expandable speaker settings remain opaque. The shared palette, typography, materials and accessibility fallbacks are unchanged. A top-right header Sonos shortcut opens `/sonos` beside the camera, bell and settings controls, using the same circular glass surface, music-note icon and accessible label/title. Below 380px, the header keeps the moon home link and hides its wordmark so all four controls retain 48px targets. The compact Rooms card shares the now-playing row height, with bounded names and modal volume/group controls that return focus to their opener. At widths below 1100px the panels stack; at 699px or less, artwork becomes 96px beside metadata, favorites use two columns and room/settings rows use one. Transport retains its 64px primary action, ranges retain 44px interaction height, and group choices pair 24px checkboxes with 56px labeled rows. Shared focus and reduced-motion behavior apply; reduced transparency and contrast retain solid glass surfaces, and forced colors outline selected destinations, views, transport modes and the current queue track.
+Now playing reuses the shared Liquid Glass surface and panel opacity. One destination represents each reported group, with a checkmark and state/track preview. The library modal preserves its view, folder, filter and item limit across dismissal and room changes, but rereads content for the current coordinator. Queue tracks, queue filters and confirmations reset on coordinator changes, and stale reads/actions are guarded. Successful replacement playback dismisses the modal; errors remain visible there. Browsing and queue polling pause while it is closed.
+
+Group settings shows per-room volume, group mute and room selection directly in one scrolling body, with no internal pages or tabs. Volume commands are immediate; grouping remains a draft until Apply. The source picker is inside speaker settings with the physical speaker selector, sound controls and sleep timer. All three dialogs reuse shared focus handling and glass presentation. Their bodies scroll within viewport bounds.
+
+Favorites use two columns of rows with 64px square thumbnails, reducing to one on phones. Breadcrumbs offer direct ancestor navigation, and **Change room** dismisses the modal and focuses the destination selector. The header Sonos shortcut, shared shell and main dock remain unchanged.
 
 ## Finish evidence — 2026-11-07
 
@@ -42,3 +46,14 @@ Now playing and Rooms reuse the shared Liquid Glass surface and panel opacity as
 ## Compact rooms follow-up — 2026-11-07
 
 The room card summarizes membership instead of repeating each volume slider. Individual volume/mute controls and group editing use the shared dialog, with fixed header/footer and a scrolling body. Browser checks cover two and sixteen speakers, equal card heights, phone/desktop scrolling, speaker targeting, focus return and page overflow. 134 focused Sonos/session tests, TypeScript, lint and build passed. The command wait now accommodates Sonos topology updates, and grouping errors retain HA’s reason. The exact household failure could not be confirmed: the read-only HA log request failed with EHOSTUNREACH. No live grouping or speaker changes were issued.
+
+## Player and modal navigation — 2026-11-12
+
+The earlier library-first layout was superseded by the user's player-first direction. Two bounded visual batches covered the player and modal layouts; the final batch included the combined group controls and taller library.
+
+- Fictional-fixture checks covered 1440 × 1000 desktop, 1440 × 2560 portrait, 900px tablet, 390px and 320px phones, English/Norwegian, light/dark themes, missing artwork, offline speakers, sixteen destinations and a large group. No page overflow or browser runtime errors were observed. Short-window and phone covers were reduced after the first pass to keep playback controls higher on the page.
+- The music modal fills the viewport minus a small outer margin. Browser assertions checked its bounds, dismissal focus, preserved filter, Change room focus, successful playback and coordinator targeting. Group checks confirmed that volume and selection are in the same dialog, large groups scroll inside the modal, room volumes target their own speaker, and source changes still target the coordinator.
+- Final local captures are in `.impeccable/review/sonos-player/`. Their speakers, music and geometric test cover are fictional; they are review artifacts, not runtime assets. Older captures in `sonos-navigation` describe the superseded layout.
+- 33 focused Sonos/UI/localization tests, TypeScript, lint and production build passed after the modal changes. The existing bundle-size advisory remains. The design detector reported no anti-patterns in the three source files and eight token advisories: existing checkbox/calc-derived radii and the documented local text sizes. This source-only scan is not a contrast audit.
+- Final disposition: ship for this local change. The shared shell still requires page scrolling on short viewports; the portrait layout keeps the complete player and its actions visible. No dependency, server API, shared design token or shipping raster was added.
+- Real Sonos hardware, household Home Assistant, physical touchscreen, deployment and non-Chrome browsers were not exercised.

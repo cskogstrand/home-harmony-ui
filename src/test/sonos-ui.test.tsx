@@ -8,7 +8,10 @@ import { MessageError } from "@/lib/i18n";
 const mocks = vi.hoisted(() => ({ app: null }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
 const mount = () => render(<MemoryRouter initialEntries={["/sonos?player=media_player.kitchen"]}><Sonos /></MemoryRouter>);
+const openMusic = () => fireEvent.click(screen.getByRole("button", { name: "Your music" }));
+const openGroup = () => fireEvent.click(screen.getByRole("button", { name: "Group settings" }));
 beforeEach(() => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   mocks.app = { currentHome: { entities: sonosEntities(), areas: [], devices: [] }, homeOnline: true, connectionStatus: "connected", services: sonosServices, commands: {},
     command: vi.fn().mockResolvedValue(undefined), browseMedia: vi.fn().mockResolvedValue(musicFolder()), sonosQueue: vi.fn().mockResolvedValue([{ media_title: "Demo first", media_artist: "Example band", media_content_id: "first" }, { media_title: "Demo second", media_content_id: "second" }]) };
@@ -16,22 +19,24 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 it("controls the coordinator when a follower is selected, with per-room volume targets", async () => {
   mount();
-  await screen.findByRole("button", { name: "Play Sunday selections" });
   fireEvent.click(screen.getByRole("button", { name: "Pause" }));
   await waitFor(() => expect(mocks.app.command).toHaveBeenCalledWith("media_player.lounge", "media_pause", undefined));
   await act(async () => {});
   expect(screen.queryByRole("slider", { name: "Volume for Demo kitchen" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Room volumes" }));
+  openGroup();
   fireEvent.keyDown(screen.getByRole("slider", { name: "Volume for Demo kitchen" }), { key: "ArrowRight" });
   await waitFor(() => expect(mocks.app.command).toHaveBeenCalledWith("media_player.kitchen", "volume_set", .41));
   await act(async () => {});
   fireEvent.click(screen.getByRole("button", { name: "Done" }));
-  fireEvent.click(screen.getByRole("button", { name: "Play Sunday selections" }));
+  openMusic();
+  fireEvent.click(await screen.findByRole("button", { name: "Play Sunday selections" }));
   await waitFor(() => expect(mocks.app.command).toHaveBeenCalledWith("media_player.lounge", "play_media", { media_content_id: "FV:2/1", media_content_type: "favorite_item_id", enqueue: "replace" }));
 });
 it("groups only after Apply, keeps the coordinator selected and disables unavailable speakers", async () => {
-  mount(); await screen.findByRole("button", { name: "Play Sunday selections" });
-  fireEvent.click(screen.getByRole("button", { name: "Edit group" }));
+  mount(); openGroup();
+  expect(screen.getByRole("slider", { name: "Volume for Demo kitchen" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Edit group" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Apply group" })).toBeDisabled();
   expect(screen.getByRole("checkbox", { name: /Demo lounge/ })).toBeDisabled();
   expect(screen.getByRole("checkbox", { name: /Demo terrace/ })).toBeDisabled();
   fireEvent.click(screen.getByRole("checkbox", { name: "Demo kitchen" }));
@@ -42,7 +47,7 @@ it("groups only after Apply, keeps the coordinator selected and disables unavail
 });
 it("reports partial group-volume failures and never retries commands", async () => {
   mocks.app.command.mockImplementation(async id => { if (id === "media_player.kitchen") throw new Error("failed"); });
-  mount(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  mount();
   fireEvent.keyDown(screen.getByRole("slider", { name: "Group volume" }), { key: "ArrowRight" });
   await screen.findByRole("alert");
   expect(mocks.app.command.mock.calls).toEqual([["media_player.lounge", "volume_set", .21], ["media_player.kitchen", "volume_set", .41]]);
@@ -50,9 +55,8 @@ it("reports partial group-volume failures and never retries commands", async () 
 });
 it("keeps failed group edits and the HA error visible inside the dialog without retrying", async () => {
   mocks.app.command.mockRejectedValue(new MessageError("Home Assistant could not change the group: {reason}", { reason: "Example speaker did not respond" }));
-  mount(); await screen.findByRole("button", { name: "Play Sunday selections" });
-  fireEvent.click(screen.getByRole("button", { name: "Edit group" }));
-  const dialog = screen.getByRole("dialog", { name: "Edit group" });
+  mount(); openGroup();
+  const dialog = screen.getByRole("dialog", { name: "Group settings" });
   fireEvent.click(within(dialog).getByRole("checkbox", { name: "Demo studio" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Apply group" }));
   await waitFor(() => expect(within(dialog).getByRole("alert")).toHaveTextContent("Example speaker did not respond"));
@@ -60,13 +64,13 @@ it("keeps failed group edits and the HA error visible inside the dialog without 
   expect(mocks.app.command.mock.calls).toEqual([["media_player.lounge", "join", ["media_player.studio"]]]);
 });
 it("browses playlists with the native library ID and suppresses queueing favorites that ignore enqueue", async () => {
-  mount(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  mount(); openMusic(); await screen.findByRole("button", { name: "Play Sunday selections" });
   expect(screen.queryByRole("button", { name: "Queue options for Sunday selections" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Playlists" }));
   await waitFor(() => expect(mocks.app.browseMedia).toHaveBeenLastCalledWith("media_player.lounge", { media_content_type: "playlist", media_content_id: "A:PLAYLISTS" }));
 });
 it("renders supplied favorite artwork and falls back only when the image fails", async () => {
-  mount();
+  mount(); openMusic();
   const favorite = await screen.findByRole("button", { name: "Play Sunday selections" });
   const image = favorite.querySelector("img");
   expect(image).toHaveAttribute("src", "https://images.example.invalid/playlist.jpg");
@@ -79,7 +83,8 @@ it("shows the coordinator's streaming source even when only hardware inputs are 
   mocks.app.currentHome.entities[0].attributes.source = "Spotify";
   mocks.app.currentHome.entities[1].attributes.source = "TV";
   mount();
-  await screen.findByRole("button", { name: "Play Sunday selections" });
+  expect(screen.queryByRole("combobox", { name: "Source" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Speaker settings" }));
   const source = screen.getByRole("combobox", { name: "Source" });
   expect(source).toHaveDisplayValue("Spotify");
   expect(within(source).getByRole("option", { name: "Spotify" })).toBeDisabled();
@@ -88,23 +93,23 @@ it("shows the coordinator's streaming source even when only hardware inputs are 
   await waitFor(() => expect(mocks.app.command).toHaveBeenCalledWith("media_player.lounge", "select_source", "TV"));
 });
 it("requires confirmation for queue deletion and rejects changed queue positions", async () => {
-  mount(); await screen.findByRole("button", { name: "Queue" });
+  mount(); openMusic(); await screen.findByRole("button", { name: "Queue" });
   fireEvent.click(screen.getByRole("button", { name: "Queue" }));
   await screen.findByRole("button", { name: "Play Demo second" });
   fireEvent.click(screen.getByRole("button", { name: "Remove Demo second from queue" }));
   expect(mocks.app.command).not.toHaveBeenCalled();
   mocks.app.sonosQueue.mockResolvedValueOnce([{ media_title: "Changed", media_content_id: "changed" }]);
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Remove track" }));
-  await screen.findByText("The queue changed. Check the updated tracks and try again.");
+  await within(await screen.findByRole("dialog", { name: "Your music" })).findByText("The queue changed. Check the updated tracks and try again.");
   expect(mocks.app.command).not.toHaveBeenCalled();
 });
 it("plays queue items with zero-based service indices", async () => {
-  mount(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
+  mount(); openMusic(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
   fireEvent.click(await screen.findByRole("button", { name: "Play Demo second" }));
   await waitFor(() => expect(mocks.app.command).toHaveBeenCalledWith("media_player.lounge", "play_queue", 1));
 });
 it.each(["Remove track", "Clear queue"])("keeps %s tied to the queue shown when confirmation opened", async action => {
-  const view = mount(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
+  const view = mount(); openMusic(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
   await screen.findByRole("button", { name: "Play Demo second" });
   fireEvent.click(screen.getByRole("button", { name: action === "Remove track" ? "Remove Demo second from queue" : "Clear queue" }));
   mocks.app.sonosQueue.mockResolvedValue([{ media_title: "Changed first", media_content_id: "new-first" }, { media_title: "Changed second", media_content_id: "new-second" }]);
@@ -114,20 +119,132 @@ it.each(["Remove track", "Clear queue"])("keeps %s tied to the queue shown when 
   const confirm = within(screen.getByRole("alertdialog")).getByRole("button", { name: action });
   await waitFor(() => expect(confirm).not.toBeDisabled());
   fireEvent.click(confirm);
-  await screen.findByText("The queue changed. Check the updated tracks and try again.");
+  await within(await screen.findByRole("dialog", { name: "Your music" })).findByText("The queue changed. Check the updated tracks and try again.");
   expect(mocks.app.command).not.toHaveBeenCalled();
 });
 it("keeps an active music tab usable when selected again", async () => {
-  mount(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  mount(); openMusic(); await screen.findByRole("button", { name: "Play Sunday selections" });
   fireEvent.click(screen.getByRole("button", { name: "Favorites" }));
   expect(screen.getByRole("button", { name: "Play Sunday selections" })).not.toBeDisabled();
+});
+it("shows each group once and keeps the shared library filter when choosing another room", async () => {
+  mount(); openMusic(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  fireEvent.click(screen.getByRole("button", { name: "Change room" }));
+  const rooms = within(screen.getByRole("region", { name: "Choose a speaker" }));
+  expect(rooms.getAllByRole("button")).toHaveLength(3);
+  expect(rooms.getByRole("button", { name: /Demo lounge \+ Demo kitchen/ })).toHaveAttribute("aria-pressed", "true");
+  openMusic();
+  await screen.findByRole("button", { name: "Play Sunday selections" });
+  fireEvent.change(screen.getByRole("textbox", { name: "Filter favorites" }), { target: { value: "Sunday" } });
+  fireEvent.click(screen.getByRole("button", { name: "Change room" }));
+  fireEvent.click(rooms.getByRole("button", { name: /Demo studio/ }));
+  openMusic();
+  await waitFor(() => expect(mocks.app.browseMedia).toHaveBeenLastCalledWith("media_player.studio", { media_content_type: "favorites", media_content_id: "" }));
+  expect(screen.getByRole("textbox", { name: "Filter favorites" })).toHaveValue("Sunday");
+  expect(screen.queryByRole("button", { name: "Play Evening radio" })).not.toBeInTheDocument();
+  expect(mocks.app.command).not.toHaveBeenCalled();
+  fireEvent.click(await screen.findByRole("button", { name: "Play Sunday selections" }));
+  await waitFor(() => expect(mocks.app.command).toHaveBeenCalledWith("media_player.studio", "play_media", expect.any(Object)));
+});
+it("preserves a nested collection across rooms and offers a direct route to its root", async () => {
+  const folder = { title: "Example collection", media_content_type: "album", media_content_id: "example:album", can_play: true, can_expand: true };
+  mocks.app.browseMedia.mockImplementation(async (_id, target) => target?.media_content_id === folder.media_content_id ? musicFolder(folder.title) : { ...musicFolder(), children: [folder] });
+  mount(); openMusic(); fireEvent.click(await screen.findByRole("button", { name: "Browse Example collection" }));
+  await screen.findByRole("button", { name: "Play Sunday selections" });
+  fireEvent.change(screen.getByRole("textbox", { name: "Filter this folder" }), { target: { value: "Sunday" } });
+  fireEvent.click(screen.getByRole("button", { name: "Change room" }));
+  fireEvent.click(within(screen.getByRole("region", { name: "Choose a speaker" })).getByRole("button", { name: /Demo studio/ }));
+  openMusic();
+  await waitFor(() => expect(mocks.app.browseMedia).toHaveBeenLastCalledWith("media_player.studio", folder));
+  expect(screen.getByRole("textbox", { name: "Filter this folder" })).toHaveValue("Sunday");
+  const breadcrumb = within(screen.getByRole("navigation", { name: "Music location" }));
+  expect(breadcrumb.getByText("Example collection")).toHaveAttribute("aria-current", "page");
+  fireEvent.click(breadcrumb.getByRole("button", { name: "Favorites" }));
+  await screen.findByRole("button", { name: "Browse Example collection" });
+  expect(screen.getByRole("textbox", { name: "Filter favorites" })).toHaveValue("");
+});
+it("clears the previous queue and ignores its late response after changing rooms", async () => {
+  let resolveOld: (items: { media_title: string }[]) => void;
+  mocks.app.sonosQueue.mockImplementation(id => id === "media_player.lounge" ? new Promise(resolve => { resolveOld = resolve; }) : Promise.resolve([{ media_title: "Studio track" }]));
+  mount(); openMusic(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
+  await waitFor(() => expect(mocks.app.sonosQueue).toHaveBeenCalledWith("media_player.lounge"));
+  fireEvent.change(screen.getByRole("textbox", { name: "Filter queue" }), { target: { value: "old filter" } });
+  fireEvent.click(screen.getByRole("button", { name: "Change room" }));
+  fireEvent.click(within(screen.getByRole("region", { name: "Choose a speaker" })).getByRole("button", { name: /Demo studio/ }));
+  openMusic();
+  await screen.findByRole("button", { name: "Play Studio track" });
+  expect(screen.getByRole("textbox", { name: "Filter queue" })).toHaveValue("");
+  expect(screen.getByText("Queue for Demo studio")).toBeInTheDocument();
+  await act(async () => resolveOld([{ media_title: "Old room track" }]));
+  expect(screen.queryByRole("button", { name: "Play Old room track" })).not.toBeInTheDocument();
+});
+it("dismisses a queue confirmation when the selected room moves into another group", async () => {
+  const view = mount(); openMusic(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
+  await screen.findByRole("button", { name: "Play Demo second" });
+  fireEvent.click(screen.getByRole("button", { name: "Clear queue" }));
+  expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  mocks.app.currentHome.entities[1].attributes.group_members = ["media_player.studio", "media_player.kitchen"];
+  view.rerender(<MemoryRouter initialEntries={["/sonos?player=media_player.kitchen"]}><Sonos /></MemoryRouter>);
+  await waitFor(() => expect(mocks.app.sonosQueue).toHaveBeenLastCalledWith("media_player.studio"));
+  expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  expect(mocks.app.command).not.toHaveBeenCalled();
+});
+it("keeps individual speaker settings reachable inside a grouped destination", async () => {
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "Speaker settings" }));
+  fireEvent.change(screen.getByRole("combobox", { name: "Speaker" }), { target: { value: "media_player.lounge" } });
+  expect(screen.getByRole("combobox", { name: "Speaker" })).toHaveValue("media_player.lounge");
+  expect(screen.getByRole("dialog", { name: "Speaker settings" })).toBeInTheDocument();
+  expect(mocks.app.command).not.toHaveBeenCalled();
+});
+it("does not apply a pending queue action after its room changes", async () => {
+  mount(); openMusic(); fireEvent.click(screen.getByRole("button", { name: "Queue" }));
+  await screen.findByRole("button", { name: "Play Demo second" });
+  let resolveQueue: (items: { media_title: string }[]) => void;
+  mocks.app.sonosQueue.mockImplementationOnce(() => new Promise(resolve => { resolveQueue = resolve; }));
+  fireEvent.click(screen.getByRole("button", { name: "Play Demo second" }));
+  fireEvent.click(screen.getByRole("button", { name: "Change room" }));
+  fireEvent.click(within(screen.getByRole("region", { name: "Choose a speaker" })).getByRole("button", { name: /Demo studio/ }));
+  openMusic();
+  await waitFor(() => expect(mocks.app.sonosQueue).toHaveBeenLastCalledWith("media_player.studio"));
+  await act(async () => resolveQueue([{ media_title: "Old queue" }]));
+  expect(mocks.app.command).not.toHaveBeenCalled();
+  expect(screen.queryByText("Old queue")).not.toBeInTheDocument();
+});
+it("keeps the player visible and preserves the library filter when reopening its modal", async () => {
+  mount();
+  expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+  expect(screen.getByRole("slider", { name: "Group volume" })).toBeInTheDocument();
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(mocks.app.browseMedia).not.toHaveBeenCalled();
+  openMusic(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  fireEvent.change(screen.getByRole("textbox", { name: "Filter favorites" }), { target: { value: "Sunday" } });
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  openMusic(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  expect(screen.getByRole("textbox", { name: "Filter favorites" })).toHaveValue("Sunday");
+  fireEvent.click(screen.getByRole("button", { name: "Clear filter" }));
+  expect(screen.getByRole("textbox", { name: "Filter favorites" })).toHaveFocus();
+  expect(mocks.app.command).not.toHaveBeenCalled();
+});
+it("returns to the player after successful music selection but keeps failed playback in the modal", async () => {
+  mocks.app.command.mockRejectedValueOnce(new Error("Example playback failed"));
+  mount(); openMusic(); await screen.findByRole("button", { name: "Play Sunday selections" });
+  fireEvent.click(screen.getByRole("button", { name: "Play Sunday selections" }));
+  const dialog = screen.getByRole("dialog", { name: "Your music" });
+  await waitFor(() => expect(within(dialog).getByRole("alert")).toHaveTextContent("Example playback failed"));
+  fireEvent.click(screen.getByRole("button", { name: "Play Sunday selections" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  expect(screen.getByRole("button", { name: "Your music" })).toHaveFocus();
 });
 it("disables commands offline, preserves known rooms, and explains an empty installation", async () => {
   mocks.app.homeOnline = false;
   const view = mount();
   expect(screen.getByRole("button", { name: "Pause" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Edit group" })).toBeDisabled();
   expect(screen.getByRole("slider", { name: "Group volume" })).toHaveAttribute("data-disabled");
+  openGroup();
+  expect(screen.getByRole("button", { name: "Apply group" })).toBeDisabled();
+  expect(screen.getByRole("checkbox", { name: "Demo studio" })).toBeDisabled();
   expect(mocks.app.browseMedia).not.toHaveBeenCalled();
   view.unmount(); mocks.app.homeOnline = true; mocks.app.currentHome.entities = [];
   mount(); expect(screen.getByRole("heading", { name: "Bring your rooms to life" })).toBeInTheDocument();

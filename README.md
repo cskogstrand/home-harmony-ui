@@ -11,7 +11,7 @@
 - **Plan together** — a family calendar, daily tasks and a shared shopping list.
 - **Keep school close** — PDF timetables or Home Assistant calendars, with iPhone uploads.
 - **Control your home** — lights, climate, scenes and other Home Assistant devices.
-- **Listen together** — a dedicated Sonos page with playback, room grouping, group and room volume, favorites, playlists and queue controls.
+- **Listen together** — a dedicated Sonos player with grouped room selection and a shared music library in **Your music**. Open group and speaker settings when needed; keep your library folder and filter when switching rooms.
 - **Share across screens** — one server keeps preferences and timetables in sync. English and Norwegian Bokmål, light and dark themes.
 
 Home Assistant owns your people, events, lists and devices. Afterglow stores dashboard preferences and uploaded timetables; the HA token stays on the server.
