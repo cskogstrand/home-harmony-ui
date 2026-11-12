@@ -3,7 +3,6 @@
 .sonos-page h2 { font-size: 1.25rem; line-height: 1.35; font-weight: 600; letter-spacing: -.02em; }
 .sonos-caption { color: hsl(var(--muted-foreground)); font-size: .875rem; line-height: 1.5; }
 .sonos-destination-section { min-width: 0; }
-.sonos-destination-section h2 { margin-bottom: .75rem; }
 .sonos-destinations { display: flex; gap: .75rem; overflow-x: auto; padding: .25rem .25rem .5rem; }
 .sonos-destinations button { display: flex; align-items: center; gap: .75rem; padding: .75rem 1rem; min-height: 72px; width: 19rem; max-width: 85%; flex-shrink: 0; border: 1px solid hsl(var(--border)); border-radius: 16px; background: hsl(var(--card)); text-align: left; }
 .sonos-destinations button > span { flex: 1; min-width: 0; }
@@ -15,15 +14,13 @@
 .sonos-destinations button[aria-pressed="true"] > svg { color: hsl(var(--primary)); }
 .sonos-destinations svg { flex-shrink: 0; }
 .sonos-player { width: 100%; max-width: 72rem; margin-inline: auto; padding: 2rem; border-radius: 24px; min-width: 0; --glass-opacity: var(--glass-panel-opacity); }
-.sonos-player-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
-.sonos-status { display: inline-flex; align-items: center; gap: .4rem; font-size: .875rem; }
 .sonos-player-main { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); gap: 3rem; align-items: center; }
 .sonos-artwork { aspect-ratio: 1; border-radius: 16px; overflow: hidden; background: hsl(var(--secondary)); box-shadow: 0 12px 24px hsl(var(--glass-shade)); }
 .sonos-artwork img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sonos-artwork-empty { height: 100%; display: flex; align-items: center; justify-content: center; color: hsl(var(--muted-foreground)); }
 .sonos-artwork-empty svg { width: 35%; height: 35%; }
 .sonos-track { min-width: 0; }
-.sonos-track h3 { margin-top: .75rem; font-size: 2.25rem; line-height: 1.2; font-weight: 600; letter-spacing: -.03em; overflow-wrap: anywhere; text-wrap: balance; }
+.sonos-track h2 { margin-top: .75rem; font-size: 2.25rem; line-height: 1.2; font-weight: 600; letter-spacing: -.03em; overflow-wrap: anywhere; text-wrap: balance; }
 .sonos-artist { margin-top: .75rem; color: hsl(var(--muted-foreground)); overflow-wrap: anywhere; line-height: 1.5; }
 .sonos-track-info > .sonos-caption { margin-top: .5rem; overflow-wrap: anywhere; }
 .sonos-playing-in { display: flex; align-items: center; gap: .45rem; font-size: .875rem; overflow-wrap: anywhere; }
@@ -128,29 +125,27 @@
 .sonos-media-open:disabled, .sonos-queue button:disabled { opacity: .6; }
 @media (min-width: 700px) and (max-height: 1100px) {
   .sonos-player { padding: 1.5rem; }
-  .sonos-player-heading { margin-bottom: 1rem; }
   .sonos-player-main { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: 2rem; }
-  .sonos-track h3 { font-size: 2rem; }
+  .sonos-track h2 { font-size: 2rem; }
   .sonos-progress, .sonos-transport, .sonos-group-volume { margin-top: .75rem; }
   .sonos-player-actions { margin-top: 1rem; padding-top: 1rem; }
 }
 @media (max-width: 899px) {
   .sonos-player { padding: 1.5rem; }
   .sonos-player-main { gap: 1.5rem; }
-  .sonos-track h3 { font-size: 1.8rem; }
+  .sonos-track h2 { font-size: 1.8rem; }
 }
 @media (max-width: 699px) {
   .app-main:has(.sonos-page) > .smart-nav { flex-wrap: nowrap; overflow-x: auto; }
   .app-main:has(.sonos-page) > .smart-nav > * { flex-shrink: 0; white-space: nowrap; }
   .sonos-page { gap: 1rem; }
   .sonos-player { padding: 1.25rem; }
-  .sonos-player-heading { margin-bottom: 1.5rem; }
   .sonos-player-main { grid-template-columns: 96px minmax(0, 1fr); gap: 1rem; }
   .sonos-artwork { width: 100%; }
   .sonos-track { display: contents; }
   .sonos-progress, .sonos-live, .sonos-transport, .sonos-group-volume { grid-column: 1 / -1; margin-top: 0; }
   .sonos-playing-in { font-size: .75rem; }
-  .sonos-track h3 { font-size: 1.25rem; margin-top: .5rem; }
+  .sonos-track h2 { font-size: 1.25rem; margin-top: .5rem; }
   .sonos-artist { font-size: .875rem; margin-top: .5rem; }
   .sonos-player-actions { grid-template-columns: minmax(0, 1fr); gap: .25rem; margin-top: 1.5rem; padding-top: 1rem; }
   .sonos-player-actions > button { min-height: 48px; }

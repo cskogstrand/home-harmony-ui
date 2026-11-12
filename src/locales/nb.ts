@@ -1,6 +1,5 @@
 export const nb = {
   "Sonos": "Sonos",
-  "Listen in": "Lytt i",
   "Change room": "Bytt rom",
   "Group settings": "Gruppeinnstillinger",
   "Rooms in group": "Rom i gruppen",

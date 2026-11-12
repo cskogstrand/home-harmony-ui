@@ -26,7 +26,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Built surface
 
-Now playing reuses the shared Liquid Glass surface and panel opacity. One destination represents each reported group, with a checkmark and state/track preview. The library modal preserves its view, folder, filter and item limit across dismissal and room changes, but rereads content for the current coordinator. Queue tracks, queue filters and confirmations reset on coordinator changes, and stale reads/actions are guarded. Successful replacement playback dismisses the modal; errors remain visible there. Browsing and queue polling pause while it is closed.
+The player reuses the shared Liquid Glass surface and panel opacity. The visible Listen in / Now playing headings and duplicate playback-state badge are removed; named regions remain available to assistive technology, and the track title is the player heading. One destination represents each reported group, with a checkmark and state/track preview. The library modal preserves its view, folder, filter and item limit across dismissal and room changes, but rereads content for the current coordinator. Queue tracks, queue filters and confirmations reset on coordinator changes, and stale reads/actions are guarded. Successful replacement playback dismisses the modal; errors remain visible there. Browsing and queue polling pause while it is closed.
 
 Group settings shows per-room volume, group mute and room selection directly in one scrolling body, with no internal pages or tabs. Volume commands are immediate; grouping remains a draft until Apply. The source picker is inside speaker settings with the physical speaker selector, sound controls and sleep timer. All three dialogs reuse shared focus handling and glass presentation. Their bodies scroll within viewport bounds.
 
@@ -57,3 +57,7 @@ The earlier library-first layout was superseded by the user's player-first direc
 - 33 focused Sonos/UI/localization tests, TypeScript, lint and production build passed after the modal changes. The existing bundle-size advisory remains. The design detector reported no anti-patterns in the three source files and eight token advisories: existing checkbox/calc-derived radii and the documented local text sizes. This source-only scan is not a contrast audit.
 - Final disposition: ship for this local change. The shared shell still requires page scrolling on short viewports; the portrait layout keeps the complete player and its actions visible. No dependency, server API, shared design token or shipping raster was added.
 - Real Sonos hardware, household Home Assistant, physical touchscreen, deployment and non-Chrome browsers were not exercised.
+
+## Heading cleanup — 2026-11-12
+
+Removed the visible room-selector heading, now-playing heading and repeated player-state badge. Accessible region names remain; the track is an h2 without a visual type change. A single fixture-browser batch at 1440 × 1000, 1440 × 2560 and 390 × 844 confirmed the removals, the named player region, playback control and no horizontal overflow or runtime errors. The player starts higher on all three layouts. Captures are in `.impeccable/review/sonos-player/no-headings-*.png`. The 33 focused Sonos/UI/localization tests, TypeScript and lint passed. No real speaker commands were issued.

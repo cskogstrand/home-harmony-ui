@@ -6,7 +6,7 @@ Open the **Sonos music-note shortcut** in the top-right header, beside the camer
 
 ## Listen
 
-Choose a room or group under **Listen in**. Rooms playing together appear as one destination, with their reported track and playback state. Selecting a destination only changes what you control; it does not move or start music. The selected speaker stays in the page URL. For grouped speakers, playback, music selection, the queue and sleep timers target the reported group coordinator.
+Choose a room or group at the top of the page. Rooms playing together appear as one destination, with their reported track and playback state. Selecting a destination only changes what you control; it does not move or start music. The selected speaker stays in the page URL. For grouped speakers, playback, music selection, the queue and sleep timers target the reported group coordinator.
 
 The player is the main surface: artwork, track details, transport and group volume stay visible. **Your music**, **Group settings** and **Speaker settings** open separate dialogs. The music dialog uses almost the full available screen height and names its playback destination; **Change room** closes it and focuses the room selector without losing your place in the library.
 

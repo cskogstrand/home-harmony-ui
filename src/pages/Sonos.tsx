@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AudioLines, Check, CirclePause, Disc3, Link2, Music2, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SlidersHorizontal, Speaker, Square, Timer, Volume2, VolumeX } from "lucide-react";
+import { AudioLines, Check, Disc3, Link2, Music2, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SlidersHorizontal, Speaker, Square, Timer, Volume2, VolumeX } from "lucide-react";
 import type { Entity, EntityAction } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -41,7 +41,6 @@ export default function Sonos() {
       <Button asChild variant="outline"><Link to="/integrations">{t("Integrations")}</Link></Button>
     </section> : <>
       <section id="sonos-rooms" tabIndex={-1} className="sonos-destination-section" aria-label={t("Choose a speaker")}>
-        <h2>{t("Listen in")}</h2>
         <div className="sonos-destinations" role="group" aria-label={t("Rooms")}>
           {destinations.map(({ player, members }) => <button type="button" key={player.entityId} aria-pressed={members.some(member => member.entityId === selected.entityId)} onClick={() => selectPlayer(player.entityId)}>
             {player.state === "playing" ? <AudioLines size={20} aria-hidden="true" /> : <Speaker size={20} aria-hidden="true" />}
@@ -123,7 +122,7 @@ function SonosSession({ selected, players, selectPlayer }: { selected: Entity; p
 
 function SonosPlayer({ player, members, disabled, send, children }: { player: Entity; members: Entity[]; disabled: boolean; send: (action: EntityAction, value?: unknown) => void; children: ReactNode }) {
   const { services } = useApp();
-  const { message: t, language } = useI18n();
+  const { message: t } = useI18n();
   const [now, setNow] = useState(Date.now());
   const [failedArt, setFailedArt] = useState("");
   useEffect(() => {
@@ -143,12 +142,11 @@ function SonosPlayer({ player, members, disabled, send, children }: { player: En
   const PlaybackIcon = playing ? playbackAction === "media_pause" ? Pause : Square : Play;
   const repeat = typeof a.repeat === "string" ? a.repeat : "off";
   return <>
-    <div className="sonos-player-heading"><h2>{t("Now playing")}</h2><span className="sonos-status">{playing ? <AudioLines size={17} aria-hidden="true" /> : <CirclePause size={17} aria-hidden="true" />}{entityStateLabel(player, language)}</span></div>
     <div id="sonos-player-main" className="sonos-player-main">
       <div className="sonos-artwork">{art && failedArt !== art ? <img src={art} alt={t("Album artwork")} onError={() => setFailedArt(art)} /> : <div className="sonos-artwork-empty"><Disc3 size={64} strokeWidth={1} aria-hidden="true" /></div>}</div>
       <div className="sonos-track">
         <div className="sonos-track-info"><div className="sonos-playing-in"><Speaker size={16} aria-hidden="true" /><span>{members.map(member => member.name).join(" + ")}</span></div>
-        <h3>{title}</h3><p className="sonos-artist">{subtitle || t("Choose something from your music library.")}</p>
+        <h2>{title}</h2><p className="sonos-artist">{subtitle || t("Choose something from your music library.")}</p>
         {typeof a.media_playlist === "string" && <p className="sonos-caption">{a.media_playlist}</p>}</div>
         {duration && duration > 0 && position !== undefined ? <div className="sonos-progress"><Range label="Track position" ariaLabel={t("Track position")} value={Math.floor(position)} min={0} max={duration} unit=" s" commitOnly disabled={disabled || !supports("media_seek")} set={value => send("media_seek", value)} /><div aria-hidden="true"><span>{mediaTime(position)}</span><span>{mediaTime(duration)}</span></div></div> : <p className="sonos-caption sonos-live">{typeof a.media_channel === "string" ? a.media_channel : ""}</p>}
         <div className="sonos-transport" role="group" aria-label={t("Playback controls")}>
