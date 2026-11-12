@@ -135,7 +135,7 @@ it("resizes every inset for a camera without discarding or reloading its cached 
     mocks.shared.state.config.settings.cameras.items[0].personPipSize = size;
     view.rerender(overlay()); await flush();
     expect(screen.getAllByRole("button", { name: "Latest person snapshot" }).every(button => button.dataset.size === size)).toBe(true);
-    for (const button of screen.getAllByRole("button", { name: "Latest person snapshot" })) expect(button).toHaveStyle({ width });
+    for (const button of screen.getAllByRole("button", { name: "Latest person snapshot" })) expect(button.parentElement).toHaveStyle({ width });
     expect(screen.getAllByRole("img").every(image => image.getAttribute("src") === "blob:frame-1")).toBe(true);
   }
   expect(fetchImage).toHaveBeenCalledOnce(); expect(revoke).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ it("changes the inset format only when the replacement image is decoded and reta
   expect(screen.getByRole("img")).toHaveAttribute("height", "1080");
   fetchImage.mockRejectedValueOnce(new Error()); updateEntity(); view.rerender(overlay()); await flush();
   expect(screen.getByRole("img")).toHaveAttribute("width", "1440");
-  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveStyle({ width: "24%" });
+  expect(screen.getByRole("button", { name: "Latest person snapshot" }).parentElement).toHaveStyle({ width: "24%" });
   expect(fetchImage).toHaveBeenCalledTimes(3);
 });
 

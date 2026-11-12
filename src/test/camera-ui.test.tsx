@@ -49,7 +49,7 @@ it("saves the camera's person inset size, uses it in live previews and retains i
   fireEvent.click(screen.getByRole("button", { name: "Save and test camera" }));
   expect(mocks.shared.state.config.settings.cameras.items[0].personPipSize).toBe("xlarge");
   expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveAttribute("data-size", "xlarge");
-  expect(screen.getByRole("button", { name: "Latest person snapshot" })).toHaveStyle({ width: "48%" });
+  expect(screen.getByRole("button", { name: "Latest person snapshot" }).parentElement).toHaveStyle({ width: "48%" });
   fireEvent.click(screen.getByRole("button", { name: "Edit Example camera" }));
   expect(screen.getByRole("button", { name: "Extra large 48% of video width" })).toHaveAttribute("aria-pressed", "true");
   fireEvent.change(screen.getByLabelText("Person snapshot source"), { target: { value: "none" } });
@@ -80,6 +80,7 @@ it.each([
     act(() => resize(width, height));
     expect(parseFloat(bounds.style.width)).toBeCloseTo(imageWidth);
     expect(parseFloat(bounds.style.height)).toBeCloseTo(imageHeight);
+    expect(parseFloat(bounds.style.getPropertyValue("--camera-image-bottom-gap"))).toBeCloseTo((height - imageHeight) / 2);
   }
   view.unmount(); expect(disconnect).toHaveBeenCalledOnce();
 });

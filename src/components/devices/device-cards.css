@@ -444,8 +444,31 @@
 .smart-entity-media .smart-camera-preview img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .smart-entity-media .smart-media-status { position: absolute; top: .5rem; left: .5rem; z-index: 2; width: 44px; height: 44px; min-height: 44px; margin: 0; border-radius: 12px; background: hsl(var(--card)); color: hsl(var(--foreground)); pointer-events: auto; }
 .smart-entity-media .smart-media-status:hover { background: hsl(var(--secondary)); }
-.smart-camera-image-bounds { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; }
-.smart-entity-media .smart-person-pip { position: absolute; top: .5rem; right: .5rem; display: grid; place-items: center; aspect-ratio: 4 / 3; min-height: 0; max-height: calc(100% - 1rem); margin: 0; padding: 0; border: 2px solid hsl(var(--card)); border-radius: 12px; background: hsl(var(--muted)); color: hsl(var(--foreground)); pointer-events: auto; }
+.smart-camera-image-bounds { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3; pointer-events: none; overflow: clip; }
+/* shortcut: native controls expose no layout box; reserve 3rem until the player has custom controls. */
+.smart-entity-media:has(.smart-camera-player.is-playing video[controls]) .smart-camera-image-bounds {
+  --camera-controls-clearance: max(0px, 3rem - var(--camera-image-bottom-gap, 0px));
+}
+.smart-entity-media:hover:has(.smart-camera-player.is-playing video[controls]) .smart-camera-image-bounds,
+.smart-entity-media:has(.smart-camera-player.is-playing video[controls]:focus-visible) .smart-camera-image-bounds {
+  --camera-controls-offset: var(--camera-controls-clearance);
+}
+.smart-person-inset { position: absolute; top: .5rem; right: .5rem; max-height: calc(100% - 1rem); translate: 0 0; transition: translate 240ms var(--ease-out); }
+.smart-person-inset[data-corner$="left"] { right: auto; left: .5rem; }
+.smart-person-inset[data-corner^="bottom"] { --camera-person-clearance: var(--camera-controls-clearance, 0px); top: auto; bottom: .5rem; max-height: calc(100% - 1rem - var(--camera-person-clearance)); translate: 0 calc(-1 * var(--camera-controls-offset, 0px)); }
+.smart-person-inset[data-edge="right"] { right: auto; left: calc(100% - 12px); }
+.smart-person-inset[data-edge="left"] { left: auto; right: calc(100% - 12px); }
+@media (prefers-reduced-motion: reduce) {
+  .smart-person-inset { transition: none; }
+}
+.smart-entity-media .smart-person-pip { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; min-height: 0; max-height: inherit; margin: 0; padding: 0; border: 2px solid hsl(var(--card)); border-radius: 12px; background: hsl(var(--muted)); color: hsl(var(--foreground)); pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+.smart-entity-media .smart-person-pip[data-dragging] { cursor: grabbing; }
+.smart-entity-media .smart-person-pip[aria-hidden="true"] { pointer-events: none; }
+.smart-person-restore { position: absolute; top: 50%; right: 100%; translate: 0 -50%; min-width: 44px; height: 44px; padding: .5rem; border-radius: 999px 0 0 999px; color: hsl(var(--nav-foreground)); pointer-events: auto; }
+.smart-person-restore[data-edge="left"] { right: auto; left: 100%; border-radius: 0 999px 999px 0; }
+.smart-person-restore[data-edge="left"] > svg:first-child { transform: rotate(180deg); }
+.smart-person-pip:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.smart-entity-media:has(.smart-camera-image-bounds [data-corner="top-left"]) .smart-media-status { left: auto; right: .5rem; }
 .smart-entity-media .smart-person-pip:has(img) { aspect-ratio: auto; max-height: none; }
 /* Extend the touch target without enlarging the image beyond its video-width percentage. */
 .smart-person-pip::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: max(100%, 44px); height: max(100%, 44px); }

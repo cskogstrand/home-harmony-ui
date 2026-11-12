@@ -145,6 +145,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
       width: frameSize.width ? Math.min(frameSize.width, frameSize.height * aspectRatio) : "100%",
       height: imageHeight || "100%",
       "--camera-image-height": `${imageHeight}px`,
+      "--camera-image-bottom-gap": `${(frameSize.height - imageHeight) / 2}px`,
     } as CSSProperties}><CameraPersonSnapshot cameraId={configured.id} overlay /></div>}
   </div>;
 }
