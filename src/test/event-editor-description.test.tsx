@@ -13,6 +13,19 @@ vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOr
 }) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
+it("keeps normalized waste dates read-only even when the source supports editing", () => {
+  const event: FamilyEvent = { id: "pickup", title: "Paper", date: "2026-10-28", time: "00:00", allDay: true, wasteCollection: true, member: "example", location: "", note: "",
+    calendarId: "calendar.example", calendarEvent: { uid: "pickup", summary: "Paper", start: "2026-10-28T01:00:00Z", end: "2026-10-31T23:00:00Z" },
+  };
+  render(<MemoryRouter><EventEditor open onOpenChange={() => {}} onSaved={() => {}} event={event} /></MemoryRouter>);
+  expect(screen.getByRole("dialog")).toHaveTextContent("Waste collections use the collection date only.");
+  expect(screen.getByRole("heading", { name: "Paper" }).querySelector(".lucide-newspaper")).toBeInTheDocument();
+  expect(screen.queryByLabelText("What’s happening?")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Save plan" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  expect(app.command).not.toHaveBeenCalled();
+});
+
 it("previews an editable description while saving its original HTML unchanged", async () => {
   const description = '<p style="color:red">Example <strong>reservation</strong></p><p><a href="https://example.com/booking">Booking details</a></p>';
   const event: FamilyEvent = { id: "example", title: "Example reservation", date: "2026-10-28", time: "16:00", member: "example", location: "Example venue", note: description,

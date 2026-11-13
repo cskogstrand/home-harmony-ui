@@ -18,6 +18,8 @@ import { CalendarTimetable } from "./CalendarTimetable";
 import { EntityPicker } from "./EntityPicker";
 import { memberColorForeground } from "@/lib/member-colors";
 import { EventDescription } from "./EventDescription";
+import { isWasteCollected } from "@/lib/waste-collection";
+import { WasteTypeIcons } from "./WasteCollection";
 
 export function PageHeading({ context, title, description, children }: { context?: string; title: string; description?: string; children?: ReactNode }) {
   return <header className="page-heading"><div><h1>{title}</h1>{context && <p className="page-context">{context}</p>}{description && <p>{description}</p>}</div>{children}</header>;
@@ -42,20 +44,20 @@ export function PanelHeading({ title, icon, to, label = "View all" }: { title: s
 }
 export function EventButton({ event, onClick, showDate = false, showMember = false, hideMember = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; showMember?: boolean; hideMember?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
   const { t, dateLabel, eventTimeLabel } = useI18n();
-  const { memberName, memberColor } = useFamily();
+  const { memberName, memberColor, today, time } = useFamily();
   const span = event.calendarSpan;
   const dates = span && span.firstDay !== span.lastDay ? `${dateLabel(span.firstDay)} – ${dateLabel(span.lastDay)}` : dateLabel(event.date, { weekday: "short", day: "numeric" });
   const details = [!hideMember && (showMember || !event.location) && memberName(event.member), event.location].filter(Boolean).join(" · ");
   return <button type="button" className={`event-button press-feedback${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} style={{ "--member": memberColor(event.member) } as React.CSSProperties} onClick={onClick}>
-    <div className="event-title"><strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>{event.todo && <ListTodo size={16} role="img" aria-label={t("Task")} />}</div>
-    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{eventTimeLabel(event)}</time></div>
+    <div className="event-title"><strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title || (event.wasteCollection && t("Waste collection"))}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>{event.todo && <ListTodo size={16} role="img" aria-label={t("Task")} />}{event.wasteCollection && <WasteTypeIcons title={event.title} size={16} />}</div>
+    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{event.wasteCollection ? t(isWasteCollected(event.date, today, time) ? "Picked up today" : "Waste collection") : eventTimeLabel(event)}</time></div>
     {details && <small>{details}</small>}
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}
   </button>;
 }
 export function EventEditor({ open, onOpenChange, onSaved, event, date, member }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved: () => void; event?: FamilyEvent; date?: string; member?: MemberId }) {
   const { t, message, dateLabel, eventTimeLabel } = useI18n();
-  const { today, saveEvent, deleteEvent, memberName, members, calendarMembers, connectedPlanner } = useFamily();
+  const { today, time, saveEvent, deleteEvent, memberName, members, calendarMembers, connectedPlanner } = useFamily();
   const defaultMember = member ?? members[0]?.id ?? "";
   const { haUrl, currentHome, homeOnline, services, command, commands } = useApp();
   const [draft, setDraft] = useState<FamilyEvent | null>(null);
@@ -68,7 +70,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
   const busy = saving || deleting;
   const [error, setError] = useState<Message>("");
   const wasOpen = useRef(false);
-  const source = event?.calendarEvent;
+  const source = event?.wasteCollection ? undefined : event?.calendarEvent;
   const editingRemote = !!event?.calendarId;
   useEffect(() => {
     if (open && !wasOpen.current) {
@@ -86,13 +88,14 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
   const editingUnsupported = editingRemote && !!calendar && !supportsAction(calendar, "update_event", services);
   // ponytail: change individual occurrences; series edits/deletions need an explicit scope selector.
   const readOnlyReason = !editingRemote ? ""
+    : event.wasteCollection ? t("Waste collections use the collection date only. Edit them in the source calendar.")
     : !calendar ? t("This calendar is no longer available in Home Assistant.")
     : editingUnsupported ? t("Home Assistant’s integration for this calendar does not support editing existing events. Edit them in the source calendar.")
     : !source?.uid ? t("Home Assistant did not provide the event ID needed to save changes. Edit this event in the source calendar.")
     : source.rrule && !source.recurrence_id ? t("Home Assistant did not identify this occurrence of the recurring event. Edit it in the source calendar.")
     : "";
   const readOnly = !!readOnlyReason;
-  const deletable = !!event && (!editingRemote || !!calendar && supportsAction(calendar, "delete_event", services) && !!source?.uid && (!source.rrule || !!source.recurrence_id));
+  const deletable = !!event && !event.wasteCollection && (!editingRemote || !!calendar && supportsAction(calendar, "delete_event", services) && !!source?.uid && (!source.rrule || !!source.recurrence_id));
   const canDelete = deletable && !busy && (!editingRemote || homeOnline && available(calendar) && !commands[calendar.entityId]?.pending);
   const canSave = !!draft?.member && !busy && !confirmDelete && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
   const save = async () => {
@@ -142,9 +145,9 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
   </DialogContent></Dialog>;
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />{t("Delete")}</Button>;
   return <Dialog open={open} onOpenChange={value => { if (!busy) onOpenChange(value); }}><DialogContent>
-    <DialogHeader><DialogTitle>{editingRemote ? event.title : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription className={editingUnsupported ? "sr-only" : undefined}>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
-    {readOnly ? <div className="dialog-form-body space-y-3 break-words"><p>{dateLabel(event.date)} · {eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <EventDescription value={event.note} />}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}
-      {editingUnsupported && <Popover><PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("Editing unavailable")}><PencilOff size={18} aria-hidden="true" /></Button></PopoverTrigger>
+    <DialogHeader><DialogTitle className={event?.wasteCollection ? "flex items-start gap-2" : undefined}>{event?.wasteCollection && <WasteTypeIcons title={event.title} />}{editingRemote ? event.title || (event.wasteCollection && t("Waste collection")) : event ? t("A moment in your week") : t("Make a little plan")}</DialogTitle><DialogDescription className={editingUnsupported && !event.wasteCollection ? "sr-only" : undefined}>{readOnlyReason || (remote ? t("Save to Home Assistant and its connected calendar. Times use {timeZone}.", { timeZone: currentHome.timeZone }) : t("Saved to the family calendar on this screen."))}</DialogDescription></DialogHeader>
+    {readOnly ? <div className="dialog-form-body space-y-3 break-words"><p>{dateLabel(event.date)} · {event.wasteCollection ? t(isWasteCollected(event.date, today, time) ? "Picked up today" : "Waste collection") : eventTimeLabel(event)} · {memberName(event.member)}</p>{event.location && <p>{event.location}</p>}{event.note && <EventDescription value={event.note} />}<a className="text-link" href={`${haUrl}/calendar`} target="_blank" rel="noreferrer">{t("Open calendar in Home Assistant")}</a><div className="form-actions">{deleteButton}
+      {editingUnsupported && !event.wasteCollection && <Popover><PopoverTrigger asChild><Button type="button" variant="ghost" size="icon" className="text-muted-foreground" aria-label={t("Editing unavailable")}><PencilOff size={18} aria-hidden="true" /></Button></PopoverTrigger>
         <PopoverContent side="top" align="end" className="max-w-[calc(100vw-2rem)] text-sm" aria-label={t("Editing unavailable")}>{readOnlyReason}</PopoverContent>
       </Popover>}
     </div></div> : draft && <form onSubmit={e => { e.preventDefault(); void save(); }}><fieldset className="planner-form" disabled={busy} aria-busy={busy}>

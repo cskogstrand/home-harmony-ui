@@ -3,6 +3,7 @@ import { addDays, homeDate, isPlannerDate, sortEvents, weekStart, type FamilyEve
 import { calendarBoundary, calendarDateValue, calendarTimeInput } from "./ha-model";
 import type { CalendarEvent, TodoItem } from "@/types/api";
 import { todoDueInput } from "./todo-items";
+import { wasteCollectionDate } from "./waste-collection";
 
 export type CalendarView = "month" | "week" | "day";
 
@@ -55,6 +56,14 @@ export function weekEventRows(events: FamilyEvent[], start: string) {
     else rows.push([span]);
   }
   return rows;
+}
+
+export function wasteCalendarPlans(event: CalendarEvent, calendarId: string, member: string, start: string, end: string, timeZone: string, index: number): FamilyEvent[] {
+  const date = wasteCollectionDate(event, timeZone);
+  if (date < start || date >= end) return [];
+  return [{ id: JSON.stringify([calendarId, event.uid ?? index, event.recurrence_id ?? "", calendarDateValue(event.start)]),
+    calendarId, calendarEvent: event, wasteCollection: true, member, date, allDay: true, time: "00:00",
+    title: event.summary, location: event.location ?? "", note: event.description ?? "" }];
 }
 
 // Expand only the visible range; HA end dates/times are exclusive, including midnight.

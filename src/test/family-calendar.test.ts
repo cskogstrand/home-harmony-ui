@@ -1,7 +1,25 @@
 import { expect, it } from "vitest";
-import { calendarPlans, calendarRange, moveCalendarDate, todoPlans, uniqueCalendarPlans, weekEventRows } from "@/lib/family-calendar";
+import { calendarPlans, calendarRange, moveCalendarDate, todoPlans, uniqueCalendarPlans, wasteCalendarPlans, weekEventRows } from "@/lib/family-calendar";
 import { addDays, eventTimeLabel, weekNumber } from "@/contexts/FamilyContext";
 import type { CalendarEvent, TodoItem } from "@/types/api";
+
+it.each([
+  ["2026-10-25", "2026-10-29", "2026-10-25"],
+  [{ date: "2026-10-25" }, { date: "2026-10-25" }, "2026-10-25"],
+  [{ dateTime: "2026-10-24T22:30:00Z" }, { dateTime: "2026-10-26T23:00:00Z" }, "2026-10-25"],
+  ["2026-10-25T23:30:00Z", "2026-10-25T23:30:00Z", "2026-10-26"],
+] as const)("shows a waste collection once on its local start date, ignoring its end: %j", (start, end, date) => {
+  const event = { uid: "example-pickup", summary: "Paper", start, end, description: "Example collection notes" };
+  const plans = wasteCalendarPlans(event, "calendar.example", "example", "2026-10-25", "2026-10-28", "Europe/Oslo", 0);
+  expect(plans).toHaveLength(1);
+  expect(plans[0]).toMatchObject({ member: "example", date, allDay: true, time: "00:00", wasteCollection: true, title: "Paper", note: event.description });
+  expect(plans[0].calendarEvent).toBe(event);
+  expect(plans[0].endTime).toBeUndefined();
+  expect(plans[0].calendarSpan).toBeUndefined();
+  expect(wasteCalendarPlans(event, "calendar.example", "example", "2026-10-24", date, "Europe/Oslo", 0)).toEqual([]);
+  expect(wasteCalendarPlans(event, "calendar.example", "example", addDays(date, 1), "2026-11-01", "Europe/Oslo", 0)).toEqual([]);
+  expect(wasteCalendarPlans(event, "calendar.example", "example", date, addDays(date, 1), "Europe/Oslo", 0)[0].id).toBe(plans[0].id);
+});
 
 it("places only unfinished dated to-dos within the visible range, in the home time zone", () => {
   const items: TodoItem[] = [

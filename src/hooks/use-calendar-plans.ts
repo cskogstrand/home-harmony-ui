@@ -3,7 +3,7 @@ import { useI18n } from "./use-i18n";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, sortEvents } from "@/contexts/FamilyContext";
 import { calendarBoundary } from "@/lib/ha-model";
-import { calendarPlans } from "@/lib/family-calendar";
+import { calendarPlans, wasteCalendarPlans } from "@/lib/family-calendar";
 import type { CalendarEvent } from "@/types/api";
 import { useCalendarTodos } from "./use-calendar-todos";
 
@@ -11,7 +11,7 @@ import { useCalendarTodos } from "./use-calendar-todos";
 export function useCalendarPlans(start: string, end: string) {
   const { t } = useI18n();
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
-  const { events, calendarMembers, members, compareMembers, isMemberVisible } = useFamily();
+  const { events, calendarMembers, members, compareMembers, isMemberVisible, wasteCalendarEntity } = useFamily();
   const localEvents = events.filter(event => isMemberVisible(event.member));
   const [refresh, setRefresh] = useState(0);
   const todos = useCalendarTodos(start, end, refresh);
@@ -47,7 +47,9 @@ export function useCalendarPlans(start: string, end: string) {
   }, [homeOnline, calendarIds, requestKey, start, end, currentHome.timeZone, watchCalendarEvents, refresh]);
   const remote = result.key === requestKey ? result.events.flatMap(({ event, calendar }, index) => {
     const entity = selected.find(e => e.entityId === calendar);
-    return entity ? calendarPlans(event, calendar, calendarMembers[entity.preferenceId], start, end, currentHome.timeZone, index) : [];
+    if (!entity) return [];
+    const plans = entity.preferenceId === wasteCalendarEntity ? wasteCalendarPlans : calendarPlans;
+    return plans(event, calendar, calendarMembers[entity.preferenceId], start, end, currentHome.timeZone, index);
   }) : [];
   // Local plans remain reachable when their HA person is removed or has not loaded yet.
   const people = [...members, ...[...new Set(localEvents.map(e => e.member))]

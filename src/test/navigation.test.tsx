@@ -43,6 +43,67 @@ const saved = async () => {
   await pageReady();
 };
 
+it("assigns waste collections to an active person and shows the same single collection date in Calendar and Everyone’s day", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-24T07:00:00Z"));
+  settings.settings.language = "nb";
+  settings.settings.wasteCalendarEntity = "home|calendar.example_waste";
+  settings.settings.dashboard.showTomorrow = true;
+  settings.settings.hiddenMembers = ["home|person.hidden"];
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Eksempelperson" }),
+    "person.other": state("person.other", "home", { friendly_name: "Annen eksempelperson" }),
+    "person.hidden": state("person.hidden", "home", { friendly_name: "Skjult eksempelperson" }),
+    "calendar.example_waste": state("calendar.example_waste", "off", { friendly_name: "Eksempel på tømmekalender", supported_features: 7 }),
+  }, emptyRegistries, "home");
+  app.currentHome.timeZone = "Europe/Oslo";
+  app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
+    { uid: "example-pickup", summary: "Mat- og Restavfall", start: "2026-10-23T22:30:00Z", end: "2026-10-27T12:00:00Z", description: "Fiktiv tømmeoppføring" },
+  ]));
+  window.history.replaceState(null, "", "/settings/calendars");
+  render(<App />);
+  const selector = await screen.findByRole("combobox", { name: "Vis tømmevarsler for" });
+  await waitFor(() => expect(selector).toBeEnabled());
+  expect(within(selector).queryByRole("option", { name: "Skjult eksempelperson" })).not.toBeInTheDocument();
+  fireEvent.change(selector, { target: { value: "home|person.example" } });
+  await waitFor(() => expect(settings.settings.calendarMembers["home|calendar.example_waste"]).toBe("home|person.example"));
+  fireEvent.click(screen.getByRole("link", { name: "I dag" }));
+  const day = await screen.findByRole("region", { name: "Dagen vår" });
+  const dayCollection = await within(day).findByRole("button", { name: /Mat- og Restavfall.*Tømt i dag/ });
+  expect(dayCollection.querySelectorAll(".waste-collection-icons svg")).toHaveLength(2);
+  expect(dayCollection.querySelector(".lucide-apple")).toBeInTheDocument();
+  expect(dayCollection.querySelector(".lucide-trash2")).toBeInTheDocument();
+  expect(within(day).getAllByRole("button", { name: /Mat- og Restavfall/ })).toHaveLength(1);
+  expect(within(day).getByRole("region", { name: "I morgen" })).not.toHaveTextContent("Mat- og Restavfall");
+  const people = within(day).getAllByRole("group", { name: "Annen eksempelperson" });
+  people.forEach(person => expect(person).not.toHaveTextContent("Mat- og Restavfall"));
+  fireEvent.click(screen.getByRole("link", { name: "Kalender" }));
+  const collection = await screen.findByRole("button", { name: /Mat- og Restavfall.*Tømt i dag/ });
+  expect(collection.querySelectorAll(".waste-collection-icons svg")).toHaveLength(2);
+  expect(screen.getAllByRole("button", { name: /Mat- og Restavfall/ })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Måned" }));
+  const monthCollection = screen.getByRole("button", { name: /Mat- og Restavfall.*Tømt i dag/ });
+  expect(monthCollection.querySelectorAll(".waste-collection-icons svg")).toHaveLength(2);
+  fireEvent.click(monthCollection);
+  const dialog = await screen.findByRole("dialog");
+  expect(dialog).toHaveTextContent("Tømmevarsler bruker bare tømmedatoen");
+  expect(dialog).toHaveTextContent("Tømt i dag");
+  expect(dialog.querySelectorAll(".waste-collection-icons svg")).toHaveLength(2);
+  expect(dialog).not.toHaveTextContent("00:30");
+  expect(within(dialog).queryByRole("button", { name: "Lagre plan" })).not.toBeInTheDocument();
+  expect(within(dialog).queryByRole("button", { name: "Slett" })).not.toBeInTheDocument();
+});
+
+it.each(["unconfigured", "missing", "offline"])("disables the waste person selector when its source is %s", async condition => {
+  if (condition !== "unconfigured") settings.settings.wasteCalendarEntity = "home|calendar.missing";
+  if (condition === "offline") app.homeOnline = false;
+  window.history.replaceState(null, "", "/settings/calendars");
+  render(<App />);
+  await saved();
+  expect(screen.getByRole("combobox", { name: "Show waste collections for" })).toBeDisabled();
+  expect(screen.getByText(condition === "unconfigured" ? "Choose a waste collection calendar in Customize Today." : "Waste collection calendar unavailable. Check the calendar or choose another in Customize Today.")).toBeInTheDocument();
+});
+
 it.each([
   ["en", "2026-10-28", "auto", false, "Today"],
   ["en", "2026-10-29", "auto", true, "Tomorrow"],

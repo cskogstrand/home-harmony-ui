@@ -8,6 +8,7 @@ import type { CalendarEvent } from "@/types/api";
 
 const mocks = vi.hoisted(() => ({ app: { currentHome: null, homeOnline: true, haUrl: "http://ha.example", watchCalendarEvents: vi.fn() }, family: {
   members: [{ id: "example" }], calendarMembers: { "home|calendar.example": "example", "home|calendar.other": "example" }, events: [],
+  wasteCalendarEntity: "",
   compareMembers: () => 0, isMemberVisible: () => true,
 } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -17,11 +18,37 @@ vi.mock("@/hooks/use-calendar-todos", () => ({ useCalendarTodos: () => ({ events
 const event = (summary: string): CalendarEvent => ({ summary, start: { date: "2026-10-29" }, end: { date: "2026-10-30" } });
 const receive = (call: number, events: CalendarEvent[] | null) => act(() => mocks.app.watchCalendarEvents.mock.calls[call][4](events));
 beforeEach(() => {
+  mocks.family.members = [{ id: "example" }];
+  mocks.family.calendarMembers = { "home|calendar.example": "example", "home|calendar.other": "example" };
+  mocks.family.wasteCalendarEntity = "";
   mocks.app.homeOnline = true; mocks.app.haUrl = "http://ha.example";
   mocks.app.watchCalendarEvents.mockReset();
   mocks.app.currentHome = mapHome(Object.fromEntries(["example", "other"].map(id => [`calendar.${id}`, state(`calendar.${id}`, "off")])), emptyRegistries, "home");
 });
 afterEach(cleanup);
+
+it("normalizes only the chosen waste source, follows its person assignment and stops showing hidden or unassigned collections", () => {
+  mocks.app.currentHome.timeZone = "Europe/Oslo";
+  mocks.family.wasteCalendarEntity = "home|calendar.example";
+  const collection = { ...event("Paper"), start: "2026-10-28T23:30:00Z", end: "2026-10-31T12:00:00Z" };
+  mocks.app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([collection]));
+  const { result, rerender } = renderHook(() => useCalendarPlans("2026-10-29", "2026-11-01"));
+  expect(mocks.app.watchCalendarEvents).toHaveBeenCalledTimes(2);
+  expect(result.current.events.filter(plan => plan.wasteCollection)).toMatchObject([{ date: "2026-10-29", allDay: true, member: "example" }]);
+  expect(result.current.events.filter(plan => !plan.wasteCollection)).toHaveLength(3);
+  mocks.family.members.push({ id: "other" });
+  mocks.family.calendarMembers["home|calendar.example"] = "other";
+  rerender();
+  expect(result.current.events.filter(plan => plan.wasteCollection)).toMatchObject([{ member: "other" }]);
+  expect(mocks.app.watchCalendarEvents).toHaveBeenCalledTimes(2);
+  mocks.family.members = [{ id: "example" }];
+  rerender();
+  expect(result.current.events.some(plan => plan.wasteCollection)).toBe(false);
+  mocks.family.members.push({ id: "other" });
+  delete mocks.family.calendarMembers["home|calendar.example"];
+  rerender();
+  expect(result.current.events.some(plan => plan.wasteCollection)).toBe(false);
+});
 
 it("keeps all calendars visible through partial refreshes and transient errors, then accepts deletions", () => {
   const { result } = renderHook(() => useCalendarPlans("2026-10-29", "2026-10-30"));

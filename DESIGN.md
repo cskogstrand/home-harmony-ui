@@ -372,6 +372,8 @@ Editable lists have a filled plus button with a 56px minimum touch target. Gener
 
 Calendars, waste collections and lists update automatically without routine refresh buttons. Failed loads show an outlined Retry beside the error. Lists also reread every minute while online and idle to catch changes without entity updates; reads pause during pending writes and loads. The app-update banner retains its explicit Refresh app action.
 
+Calendar settings include a Waste collection card with a labeled active-person selector and the source calendar's name. It reuses the existing person assignment and is unavailable until a waste source is configured and settings are loaded. Waste entries use the normal person-colored calendar surface, the same waste-type icons as the Today panel and a date-only label; today's label becomes **Picked up today** at 09:00 in the home's time zone. Their source end never creates a multi-day span. Calendar and Everyone’s day share this rendering, and the existing detail dialog shows the collection date and source description without edit or delete controls.
+
 Motion confirms pointer actions: controls press over 120ms, switches move over 160ms, menus open from their trigger over 180ms, and centered dialogs open and close over 240ms. List composers fade in over 160ms. Keyboard control and overlay transitions stay immediate. List-change feedback follows the rules below. Reduced-motion settings replace overlay movement with a 160ms fade. Do not add motion to imply a device command succeeded before the state confirms it.
 
 ### List motion

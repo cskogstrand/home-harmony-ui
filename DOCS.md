@@ -70,6 +70,10 @@ In **Home settings**, choose people visibility and order, calendar assignments, 
 
 Reassign calendars and task lists previously linked to the built-in Everyone person in **Home settings**. Their events and items stay in Home Assistant.
 
+**Settings → Calendars → Waste collection** lets you choose an active person for the waste calendar already selected in **Customize Today → Waste collection**. Pickups appear in that person's calendar and **Everyone’s day**, even when the separate Waste collection panel is hidden. This uses the normal calendar assignment, so existing assignments are reflected here, changing the person moves the calendar, and **No person selected** unlinks it. Hidden people keep their assignment but their pickups stay hidden. The assignment syncs across screens and is included in configuration backups.
+
+Waste pickups use only the event's start date in the home's time zone, ignoring its start time and end. Each appears once as a date-only entry, including in month, week and day views. At 09:00, today's entries say **Picked up today**, based on time only, and remain visible for that day. The same waste-type icons as the Today panel appear in calendar entries and their details, including multiple icons for combined pickups. Titles and descriptions stay as supplied by the calendar; open an entry for details and edit it in its source calendar. Calendar views follow the visible date range; the separate panel's days-ahead and three-pickup limit do not restrict them.
+
 **Smart home visibility** keeps new devices and entities hidden until enabled. Existing selections are retained on the first complete Home Assistant sync after upgrading. Light cards offer brightness from 1–100%, plus color, color temperature, white mode and effects when supported; use the toggle to turn a light off.
 
 Selected entities from the same device share a card. In **Smart home visibility**, choose its **Main entity**, **Card size** and **Card group**, or explicitly link an image/map, maintenance sensor or other entity from another device. Choosing a main entity enables it; other entities appear only when enabled or explicitly linked.

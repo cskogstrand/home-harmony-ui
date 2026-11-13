@@ -5,7 +5,8 @@ import { differenceInCalendarDays, parseISO } from "date-fns";
 import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { available, calendarBoundary, calendarTimeInput } from "@/lib/ha-model";
+import { available, calendarBoundary } from "@/lib/ha-model";
+import { isWasteCollected, wasteCollectionDate } from "@/lib/waste-collection";
 import type { CalendarEvent } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import "./waste-collection.css";
@@ -22,6 +23,12 @@ const wasteIconRules: [RegExp, LucideIcon][] = [
   [/\b(ee[\s-]*avfall|elektronikk|elektrisk(?:[\s-]*avfall)?|electronics?|e[\s-]*waste)\b/iu, PlugZap],
   [/\b(tekstil(?:er)?|klær|toey|tøy|textiles?|clothes|clothing)\b/iu, Shirt],
 ];
+
+export function WasteTypeIcons({ title, size = 20 }: { title: string; size?: number }) {
+  const icons = wasteIconRules.filter(([pattern]) => pattern.test(title)).map(([, icon]) => icon);
+  if (!icons.length) icons.push(Trash2);
+  return <span className="waste-collection-icons" aria-hidden="true">{icons.map((Icon, index) => <Icon key={index} size={size} />)}</span>;
+}
 
 export function WasteCollection() {
   const { t, dateLabel } = useI18n();
@@ -47,7 +54,7 @@ export function WasteCollection() {
   }, [ready, entityId, from, to, key, watchCalendarEvents]);
   const events = ready && result?.key === key ? result.events : undefined;
   const collections = (events ?? []).map(event => {
-    const start = calendarTimeInput(event.start, currentHome.timeZone);
+    const start = wasteCollectionDate(event, currentHome.timeZone);
     return { event, start, daysAway: differenceInCalendarDays(parseISO(start.slice(0, 10)), parseISO(today)) };
   }).filter(({ daysAway }) => daysAway >= 0 && daysAway <= wasteCollectionDays)
     .sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
@@ -66,10 +73,8 @@ export function WasteCollection() {
       {events === null && <Button variant="outline" onClick={() => setRefresh(value => value + 1)}>{t("Retry")}</Button>}
     </div> : <ul className="waste-collection-list">
       {collections.map(({ event, start, daysAway }, index) => {
-        const icons = wasteIconRules.filter(([pattern]) => pattern.test(event.summary)).map(([, icon]) => icon);
-        if (!icons.length) icons.push(Trash2);
         const date = start.slice(0, 10);
-        const pickedUp = daysAway === 0 && time >= "09:00";
+        const pickedUp = isWasteCollected(date, today, time);
         const label = pickedUp ? t("Picked up today") : daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway });
         return <li key={`${start}:${event.uid ?? index}`} className="waste-collection-item" data-state={pickedUp ? "collected" : daysAway === 0 ? "today" : daysAway === 1 ? "tomorrow" : "upcoming"}>
           <time dateTime={date} className="waste-collection-date" aria-label={dateLabel(date, { day: "numeric", month: "long", year: "numeric" })}>
@@ -77,7 +82,7 @@ export function WasteCollection() {
             <strong aria-hidden="true">{dateLabel(date, { day: "numeric" })}</strong>
           </time>
           <div className="waste-collection-copy">
-            <h3><span className="waste-collection-icons" aria-hidden="true">{icons.map((Icon, iconIndex) => <Icon key={iconIndex} size={20} />)}</span><span>{event.summary || t("Waste collection")}</span></h3>
+            <h3><WasteTypeIcons title={event.summary} /><span>{event.summary || t("Waste collection")}</span></h3>
             <p className="waste-collection-countdown">{pickedUp && <Check size={17} aria-hidden="true" />}{label}</p>
           </div>
         </li>;

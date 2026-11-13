@@ -2,7 +2,7 @@ import { msg, type Message } from "@/lib/i18n";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp, X, CloudSun, Wifi, Users, BookOpen, CalendarDays, ListChecks, House, Eye, SlidersHorizontal } from "lucide-react";
+import { ArrowDown, ArrowUp, X, CloudSun, Wifi, Users, BookOpen, CalendarDays, ListChecks, House, Eye, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, type TodoListKind } from "@/contexts/FamilyContext";
 import { PanelTitle } from "@/components/PanelTitle";
@@ -20,9 +20,12 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 export default function HomeSettings({ section }: { section: "connection" | "people" | "timetables" | "calendars" | "lists" | "weather" }) {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
-  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, todoLists, setTodoList, setTodoListDisplay, weatherEntity, setWeatherEntity, weatherTemperatureEntity, setWeatherTemperatureEntity, weatherPlacement, setWeatherPlacement } = useFamily();
+  const { allMembers: members, memberName, moveMember, compareMembers, isMemberVisible, setMemberVisible, hasTimetable, setTimetableEnabled, calendarMembers, setCalendarMember, wasteCalendarEntity, todoLists, setTodoList, setTodoListDisplay, weatherEntity, setWeatherEntity, weatherTemperatureEntity, setWeatherTemperatureEntity, weatherPlacement, setWeatherPlacement } = useFamily();
   const shared = useSharedConfiguration();
   const calendars = currentHome.entities.filter(e => e.domain === "calendar");
+  const wasteCalendar = calendars.find(calendar => calendar.preferenceId === wasteCalendarEntity);
+  const wasteMember = calendarMembers[wasteCalendarEntity] ?? "";
+  const activeMembers = members.filter(person => isMemberVisible(person.id));
   const lists = currentHome.entities.filter(e => e.domain === "todo");
   const listPeople = [...members, ...[...new Set(Object.values(todoLists).filter(assigned => assigned.kind !== "shopping").map(assigned => assigned.member))]
     .filter(id => id !== "everyone" && !members.some(person => person.id === id)).map(id => ({ id, name: t("Person unavailable") }))].sort((a, b) => compareMembers(a.id, b.id));
@@ -117,6 +120,19 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     {section === "calendars" && <section className="settings-stack" id="family-calendar"><PanelHeading icon={CalendarDays} title={t("People and calendars")} />
       {!homeOnline && <p role="status">{t("Calendars unavailable while offline.")}</p>}
       {homeOnline && !calendars.length && <p className="empty-note">{t("No calendars available.")}</p>}
+      <div className="settings-card space-y-3">
+        <PanelTitle as="h3" icon={Trash2}>{t("Waste collection")}</PanelTitle>
+        <p id="waste-person-help" className="text-sm text-muted-foreground">{t("Show waste collections for this person in Calendar and Everyone’s day, using the same dates as Waste collection on Today.")}</p>
+        <label className="planner-form">{t("Show waste collections for")}
+          <select value={wasteMember} aria-describedby="waste-person-help" disabled={!homeOnline || !wasteCalendar || !shared?.state.loaded || !!shared.state.error}
+            onChange={event => changeCalendar(wasteCalendarEntity, event.target.value)}>
+            <option value="">{t("No person selected")}</option>
+            {activeMembers.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
+            {wasteMember && !activeMembers.some(person => person.id === wasteMember) && <option value={wasteMember} disabled>{memberName(wasteMember)} · {t("Hidden")}</option>}
+          </select>
+        </label>
+        <p className="text-sm text-muted-foreground">{wasteCalendar ? t("Calendar: {value1}", { value1: wasteCalendar.name }) : t(wasteCalendarEntity ? "Waste collection calendar unavailable. Check the calendar or choose another in Customize Today." : "Choose a waste collection calendar in Customize Today.")}</p>
+      </div>
       {!!calendars.length && <div className="settings-stack">{members.map(person => {
         const selected = calendars.filter(calendar => calendarMembers[calendar.preferenceId] === person.id);
         const available = calendars.filter(calendar => calendarMembers[calendar.preferenceId] !== person.id);
