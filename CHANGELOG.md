@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.20
+
+<!-- release-source: f37d05b674e646e191d608633d3cccf8baa1cc01 -->
+
+- fix: avoid premature HA command timeouts
+- fix: hide mini player on Sonos page
+- feat: add Sonos mini player with auto-hide
+
 ## 0.10.18
 
 <!-- release-source: 39393c2d1718d20b00d5e160b9cb99c342d058b5 -->
