@@ -777,6 +777,63 @@ it("does not clear the pending guard when a duplicate action is rejected", async
   await first;
   expect(ha.callService).toHaveBeenCalledOnce();
 });
+it.each([
+  ["scene.evening", "scene", undefined],
+  ["scene.evening", "scene", "eva"],
+  ["script.example", "script", undefined],
+  ["switch.charger", "switch", "eva"],
+])("waits for slow %s commands from %s/%s without resending", async (entityId, domain, platform) => {
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, script: { turn_on: { fields: {} } } });
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
+    "config/area_registry/list": registries.areas,
+    "config/device_registry/list": registries.devices,
+    "config/entity_registry/list": [...registries.entities, { id: "slow-command", entity_id: entityId, platform }],
+  })[type]);
+  const client = await connectedClient();
+  conn.entityCallback?.({ ...states, [entityId]: state(entityId, "off") });
+  vi.useFakeTimers();
+  const request = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  const command = client.command(entityId, "turn_on");
+  await vi.advanceTimersByTimeAsync(95000);
+  expect(client.getSnapshot().commands[entityId]).toEqual({ pending: true });
+  await expect(client.command(entityId, "turn_on")).rejects.toThrow("already pending");
+  request.resolve({});
+  await command;
+  expect(client.getSnapshot().commands[entityId]).toEqual({ pending: false, message: "Request accepted. The reading below is reported by Home Assistant." });
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, domain, "turn_on", {}, { entity_id: entityId });
+});
+it.each([["scene.evening", 120000], ["light.living", 15000]])("reports an unknown outcome when %s exceeds its %s ms limit", async (entityId, timeout) => {
+  const client = await connectedClient();
+  vi.useFakeTimers();
+  const request = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  const command = client.command(entityId, "turn_on");
+  const rejected = expect(command).rejects.toThrow("It may still be running or already complete");
+  await vi.advanceTimersByTimeAsync(timeout - 1);
+  expect(client.getSnapshot().commands[entityId]).toEqual({ pending: true });
+  await vi.advanceTimersByTimeAsync(1);
+  await rejected;
+  expect(client.getSnapshot().commands[entityId]).toEqual({ pending: false, error: expect.stringContaining("Check its state before trying again") });
+  request.resolve({});
+  conn.emit("disconnected"); conn.emit("ready"); conn.entityCallback?.({ ...states });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(ha.callService).toHaveBeenCalledOnce();
+});
+it.each([
+  { code: "timeout", message: "Service call timed out" },
+  { code: "home_assistant_error", message: "Eva accepted the command but did not confirm it within 60 seconds" },
+  { code: "home_assistant_error", message: "Eva accepted the command but did not confirm it within 30 seconds" },
+])("distinguishes an upstream confirmation timeout from a rejected command: $message", async error => {
+  const client = await connectedClient();
+  vi.mocked(ha.callService).mockRejectedValueOnce(error);
+  await expect(client.command("scene.evening", "turn_on")).rejects.toThrow("It may still be running or already complete");
+  vi.mocked(ha.callService).mockRejectedValueOnce({ code: "home_assistant_error", message: "Eva could not complete the command" });
+  await expect(client.command("scene.evening", "turn_on")).rejects.toThrow("Home Assistant rejected");
+  vi.mocked(ha.callService).mockImplementationOnce(async () => { conn.emit("disconnected"); throw ha.ERR_CONNECTION_LOST; });
+  await expect(client.command("scene.evening", "turn_on")).rejects.toThrow("Connection lost");
+  expect(ha.callService).toHaveBeenCalledTimes(3);
+});
 it.each([false, true])("guards to-do commands per item and retains errors across concurrent results (failure first: %s)", async failureFirst => {
   const client = await connectedClient();
   act(() => conn.entityCallback?.({ ...states, "todo.example": state("todo.example", "2", { supported_features: 7 }) }));
@@ -2281,6 +2338,21 @@ it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation fr
   fireEvent.click(activate);
   await confirmAction(path === "/moods" ? "Activate scene" : "Confirm");
   expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "scene", "turn_on", {}, { entity_id: "scene.evening" });
+});
+
+it.each(["en", "nb"])("shows an unconfirmed scene outcome in the confirmation dialog in %s", async language => {
+  seedSettings({ language });
+  window.history.replaceState(null, "", "/devices/scene.evening");
+  vi.mocked(ha.callService).mockRejectedValueOnce({ code: "home_assistant_error", message: "Eva accepted the command but did not confirm it within 60 seconds" });
+  render(<App />);
+  const activate = await screen.findByRole("button", { name: language === "nb" ? "Aktiver Evening" : "Activate Evening" });
+  await waitFor(() => expect(activate).toBeEnabled());
+  fireEvent.click(activate);
+  await confirmAction(language === "nb" ? "Bekreft" : "Confirm");
+  expect(within(screen.getByRole("alertdialog")).getByRole("alert")).toHaveTextContent(language === "nb"
+    ? "Den kan fortsatt kjøre eller allerede være fullført. Kontroller status før du prøver igjen."
+    : "It may still be running or already complete. Check its state before trying again.");
+  expect(ha.callService).toHaveBeenCalledOnce();
 });
 
 it("confirms door and gate movement while keeping Stop immediate", async () => {

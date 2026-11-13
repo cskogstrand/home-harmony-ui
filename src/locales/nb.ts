@@ -1558,6 +1558,7 @@ export const nb = {
   "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server.": "Home Assistant avviste serverens tilgangstoken. Oppdater det i HAOS-konfigurasjonen eller .env og start serveren på nytt.",
   "Cannot connect to Home Assistant through the dashboard server. Check the dashboard server logs and its configured Home Assistant URL, port and network connection.": "Kan ikke koble til Home Assistant gjennom serveren. Kontroller serverloggene og konfigurert Home Assistant-adresse, port og nettverksforbindelse.",
   "Request timed out": "Forespørselen tok for lang tid",
+  "Home Assistant has not confirmed the command. It may still be running or already complete. Check its state before trying again.": "Home Assistant har ikke bekreftet kommandoen. Den kan fortsatt kjøre eller allerede være fullført. Kontroller status før du prøver igjen.",
   "Metadata updates unavailable; reconnect to refresh names and capabilities.": "Oppdatering av enhetsinformasjon er utilgjengelig. Koble til igjen for å oppdatere navn og funksjoner.",
   "Home Assistant 2023.9 or newer is required.": "Home Assistant 2023.9 eller nyere kreves.",
   "Home Assistant configuration could not be loaded. Check permissions and reconnect.": "Kunne ikke laste Home Assistant-konfigurasjonen. Kontroller tilgangene og koble til igjen.",

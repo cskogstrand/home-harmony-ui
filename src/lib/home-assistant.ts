@@ -206,14 +206,17 @@ export class HomeAssistantClient {
         const member = entities.find(item => item.entityId === id);
         return !member || !available(member) || member.integration !== entity.integration || !supportsAction(member, "join", this.snapshot.services);
       })) throw new Error("A selected speaker is unavailable or cannot join this group.");
+      // Eva can spend 30 seconds sending a command, then 60 seconds confirming a scene.
+      let timeout = entity.integration === "eva" || ["scene", "script"].includes(entity.domain) ? 120000 : 15000;
+      // Sonos waits up to 30 seconds for topology after each speaker joins.
+      if (action === "join") timeout = 45000 * (command.data.group_members as string[]).length;
+      else if (action === "unjoin") timeout = 45000;
       setCommand({ pending: true });
       try {
         // Never suspend/queue/retry physical commands. The library rejects in-flight calls on loss.
         await bounded(action === "update_event" || action === "delete_event"
           ? conn.sendMessagePromise({ type: action === "delete_event" ? "calendar/event/delete" : "calendar/event/update", entity_id: entityId, ...command.data })
-          : callService(conn, command.domain, command.service, command.data, command.target),
-        // Sonos waits up to 30 seconds for topology after each speaker joins.
-        action === "join" ? 45000 * (command.data.group_members as string[]).length : action === "unjoin" ? 45000 : 15000);
+          : callService(conn, command.domain, command.service, command.data, command.target), timeout);
       } catch (error) {
         if (action === "create_event") throw new Error("Home Assistant could not confirm the save. Check the calendar before trying again to avoid duplicates.");
         if (action === "update_event") throw new Error("Home Assistant could not confirm the update. Check the calendar and your permissions before trying again.");
@@ -222,6 +225,14 @@ export class HomeAssistantClient {
           if (error && typeof error === "object" && "message" in error && typeof error.message === "string" && error.message !== "Request timed out") throw new MessageError("Home Assistant could not change the group: {reason}", { reason: error.message.slice(0, 500) });
           throw new Error("Home Assistant did not confirm the group change. Check the group in Sonos before trying again.");
         }
+        if (conn.connected && error && typeof error === "object" && (
+          "code" in error && error.code === "timeout"
+          || "message" in error && typeof error.message === "string" && (
+            error.message === "Request timed out"
+            // shortcut: Eva exposes this timeout as text; use a dedicated error code when available.
+            || /^Eva accepted the command but did not confirm it within \d+ seconds$/.test(error.message)
+          )
+        )) throw new Error("Home Assistant has not confirmed the command. It may still be running or already complete. Check its state before trying again.");
         throw new Error(error === ERR_CONNECTION_LOST || !conn.connected
           ? "Connection lost. The command outcome is unknown; it will not be replayed. Check reported state before trying again."
           : "Home Assistant rejected or did not acknowledge the command. Check permissions, the required code and reported state before trying again.");
