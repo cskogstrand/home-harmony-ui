@@ -1,10 +1,11 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useMotionInput } from "@/hooks/use-motion-input";
 import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, type Location } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
 import { MainPages } from "./MainPages";
+import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { PageContent } from "@/components/common/PageContent";
 import { isHomeSection, isMainPage, mainPagePath } from "@/lib/navigation";
@@ -21,6 +22,12 @@ import { Camera, Check, LoaderCircle, Moon, Music2, RefreshCw, Settings, Triangl
 
 export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
+  const dock = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new ResizeObserver(([entry]) => document.documentElement.style.setProperty("--app-dock-height", `${entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height}px`));
+    if (dock.current) observer.observe(dock.current);
+    return () => { observer.disconnect(); document.documentElement.style.removeProperty("--app-dock-height"); };
+  }, []);
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
   const { currentUser, homeOnline } = useApp();
@@ -70,7 +77,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       </PageErrorBoundary>
     </main>
     <footer className="app-footer"><span>{t("Version {value1}", { value1: appVersion })}</span></footer>
-    <MainNav locations={locations} />
+    <div className="app-dock" ref={dock}><SonosMiniPlayer /><MainNav locations={locations} /></div>
     <NotificationCamera />
   </div>;
 }

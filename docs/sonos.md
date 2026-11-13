@@ -4,6 +4,14 @@
 
 Open the **Sonos music-note shortcut** in the top-right header, beside the camera button, or **Smart home → Sonos** (`/sonos`). The page discovers `media_player` entities registered by Home Assistant's native Sonos integration, including IKEA Symfonisk. Speaker names alone do not identify a Sonos player. Enable the integration and its entities in Home Assistant first; no extra Sonos login or card installation is needed.
 
+## Playback across the dashboard
+
+When a native Sonos group plays a source other than TV, one mini player appears above bottom navigation on every screen except settings, user settings and onboarding. It offers previous/next, play/pause and balanced group volume. When the last music group pauses or stops, **Hides in 10 s** counts down beside the room selector before the mini player disappears. Playback in any eligible group cancels the countdown. Opening the full player keeps it available; closing it starts a fresh ten seconds if nothing is playing. Old paused or idle sessions alone do not summon it. TV, an unavailable speaker and an offline Home Assistant connection hide it immediately.
+
+Open the mini player's room dropdown to choose a destination. Each option names its rooms, track and playback state; the selected stopped group remains available during the countdown. A visible **playing separately** count identifies multiple independent groups; the menu repeats that count. Choosing a destination only changes which group the controls target; it does not join groups or move music. The mini player follows the navigation dock's rounded shape, with circular artwork, a prominent play/pause button and inline volume.
+
+**Open full player** opens the same player used on the Sonos page in a dialog, including **Your music**, **Group settings** and **Speaker settings**. Closing it returns focus to the expand button. The dock animates the mini player's arrival and departure, respects reduced motion, and reserves enough page space to keep the bottom content reachable.
+
 ## Listen
 
 Choose a room or group at the top of the page. Rooms playing together appear as one destination, with their reported track and playback state. Selecting a destination only changes what you control; it does not move or start music. The selected speaker stays in the page URL. For grouped speakers, playback, music selection, the queue and sleep timers target the reported group coordinator.

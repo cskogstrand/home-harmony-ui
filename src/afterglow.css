@@ -10,7 +10,7 @@
   [role="dialog"] > button:last-child { min-width: 48px; min-height: 48px; top: 8px; right: 8px; display: grid; place-items: center; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 }
-.afterglow-app { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; --car-fill: hsl(var(--card)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(8rem + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); background-size: 100% 100svh; background-repeat: no-repeat; }
+.afterglow-app { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; --car-fill: hsl(var(--card)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); background-size: 100% 100svh; background-repeat: no-repeat; }
 
 .palette-fieldset { min-width: 0; padding-block: 1rem; border-block: 1px solid hsl(var(--border) / .6); }
 .palette-fieldset legend { float: left; width: 100%; margin-bottom: .5rem; }
@@ -145,7 +145,9 @@
 .app-header, .app-main, .app-footer { padding-left: var(--gutter-left); padding-right: var(--gutter-right); }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 14px 20px; border-radius: 12px; }
 .skip-link:focus { top: 12px; }
-.family-dock { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); left: var(--gutter-left); right: var(--gutter-right); margin-inline: auto; max-width: 1000px; display: flex; padding: .5rem; gap: .5rem; border-radius: 999px; z-index: 40; }
+.app-dock { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); left: var(--gutter-left); right: var(--gutter-right); margin-inline: auto; max-width: 1000px; display: flex; flex-direction: column; gap: .75rem; z-index: 40; pointer-events: none; }
+.app-dock > * { pointer-events: auto; }
+.family-dock { display: flex; padding: .5rem; gap: .5rem; border-radius: 999px; }
 .family-dock a { min-width: 0; min-height: 56px; flex: 1; display: flex; align-items: center; justify-content: center; gap: .65rem; padding: .85rem .6rem; font-size: .9375rem; font-weight: 500; color: hsl(var(--nav-muted)); border-radius: 999px; }
 .family-dock a svg { flex-shrink: 0; }
 .family-dock a:hover { color: hsl(var(--nav-foreground)); background: hsl(var(--nav-foreground) / .06); }
@@ -786,7 +788,8 @@ fieldset.settings-card > legend + * { clear: both; }
   .calendar-panel-heading { gap: .5rem; margin-bottom: .5rem; }
   .family-week > .page-note { margin-bottom: .25rem; }
   .greeting h1 { font-size: 2.2rem; }
-  .family-dock { max-width: 1328px; padding: .6rem; }
+  .app-dock { max-width: 1328px; }
+  .family-dock { padding: .6rem; }
   .family-dock a { min-height: 72px; font-size: 1.1rem; }
   .family-dock a svg { width: 28px; height: 28px; }
   .panel-heading h2 { font-size: 1.4rem; }
@@ -825,7 +828,7 @@ fieldset.settings-card > legend + * { clear: both; }
 }
 
 @media (max-width: 699px) {
-  .afterglow-app { --space: 1rem; --panel-space: 1rem; padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
+  .afterglow-app { --space: 1rem; --panel-space: 1rem; }
   .app-header { padding-block: .75rem; gap: .5rem; min-height: 72px; }
   .brand { font-size: 1.25rem; gap: .3rem; }
   .brand-mark { width: 28px; }
@@ -859,7 +862,8 @@ fieldset.settings-card > legend + * { clear: both; }
   .family-day-mobile-person { display: flex; }
   .family-day-column-lines { display: none; }
   .family-lane { border-left: 0; padding-left: 0; }
-  .family-dock { bottom: calc(.75rem + env(safe-area-inset-bottom)); left: max(.75rem, env(safe-area-inset-left)); right: max(.75rem, env(safe-area-inset-right)); border-radius: 34px; padding: .35rem; gap: .15rem; }
+  .app-dock { bottom: calc(.75rem + env(safe-area-inset-bottom)); left: max(.75rem, env(safe-area-inset-left)); right: max(.75rem, env(safe-area-inset-right)); }
+  .family-dock { border-radius: 34px; padding: .35rem; gap: .15rem; }
   .family-dock a { font-size: .6875rem; border-radius: 27px; }
   input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 1rem; }
   .page-heading { flex-wrap: wrap; gap: .75rem; }

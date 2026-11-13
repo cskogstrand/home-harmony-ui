@@ -17,7 +17,7 @@ const tabs = ["Favorites", "Playlists", "Browse music", "Queue"] as const;
 type Tab = typeof tabs[number];
 const queueKey = (items: SonosQueueItem[]) => JSON.stringify(items);
 
-export function SonosLibrary({ player, destination, disabled, commandError, run, revision }: { player: Entity; destination: string; disabled: boolean; commandError: Message; run: SonosRun; revision: number }) {
+export function SonosLibrary({ player, destination, disabled, commandError, run, revision, onChangeRoom }: { player: Entity; destination: string; disabled: boolean; commandError: Message; run: SonosRun; revision: number; onChangeRoom?: () => void }) {
   const { browseMedia, sonosQueue, command, services, homeOnline } = useApp();
   const { message: t } = useI18n();
   const [visible, setVisible] = useState(false);
@@ -103,7 +103,8 @@ export function SonosLibrary({ player, destination, disabled, commandError, run,
     <DialogContent className="sonos-library-dialog" onOpenAutoFocus={event => { event.preventDefault(); filterInput.current?.focus(); }} onCloseAutoFocus={event => {
       if (returnToRooms.current) {
         event.preventDefault(); returnToRooms.current = false;
-        const rooms = document.getElementById("sonos-rooms"); rooms?.focus(); rooms?.scrollIntoView({ block: "nearest" });
+        if (onChangeRoom) onChangeRoom();
+        else { const rooms = document.getElementById("sonos-rooms"); rooms?.focus(); rooms?.scrollIntoView({ block: "nearest" }); }
       }
     }}>
     <DialogHeader><DialogTitle>{t("Your music")}</DialogTitle><DialogDescription>{t(tab === "Queue" ? "Queue for {name}" : "Play on {name}", { name: destination })}</DialogDescription></DialogHeader>

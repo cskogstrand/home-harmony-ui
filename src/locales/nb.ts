@@ -1,5 +1,11 @@
 export const nb = {
   "Sonos": "Sonos",
+  "Sonos mini player": "Sonos-minispiller",
+  "Sonos player": "Sonos-spiller",
+  "Open full player": "Åpne stor spiller",
+  "{count} groups playing separately": "{count} grupper spiller hver for seg",
+  "{count} playing separately": "{count} spiller hver for seg",
+  "Hides in {seconds} s": "Skjules om {seconds} s",
   "Change room": "Bytt rom",
   "Group settings": "Gruppeinnstillinger",
   "Rooms in group": "Rom i gruppen",

@@ -15,6 +15,7 @@ vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: ()
 vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));
 
 beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   shared.enabled = true;
   shared.online = true;
   shared.availableVersion = undefined;
@@ -22,7 +23,7 @@ beforeEach(() => {
   shared.state = { loaded: true, dirty: false, saving: false, error: "", timetableError: null };
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const layout = () => <MemoryRouter><AppLayout /></MemoryRouter>;
 
 it.each(["banner", "section", "activity"])("places the notification %s only on the chosen main pages and preserves the header bell", presentation => {

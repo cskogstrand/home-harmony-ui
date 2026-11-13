@@ -19,6 +19,16 @@ export function sonosGroup(player: Entity, players: Entity[]) {
   const coordinator = ids[0] ? players.find(item => item.entityId === ids[0]) : player;
   return { coordinator, members: ids.length ? ids.flatMap(id => players.find(item => item.entityId === id) ?? []) : [player] };
 }
+export function sonosDestinations(players: Entity[]) {
+  const seen = new Set<string>();
+  return players.flatMap(player => {
+    const group = sonosGroup(player, players);
+    const groupId = stringValues(player.attributes.group_members)[0] ?? player.entityId;
+    if (seen.has(groupId)) return [];
+    seen.add(groupId);
+    return [{ player: group.coordinator ?? player, members: group.members, coordinator: group.coordinator }];
+  });
+}
 export const volumePercent = (entity: Entity) => {
   const value = numberValue(entity.attributes.volume_level);
   return value === undefined ? undefined : Math.round(Math.max(0, Math.min(1, value)) * 100);

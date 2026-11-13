@@ -427,7 +427,7 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 
-  html { scroll-padding-bottom: calc(8rem + env(safe-area-inset-bottom)); scrollbar-color: hsl(var(--input)) hsl(var(--background)); }
+  html { scroll-padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); scrollbar-color: hsl(var(--input)) hsl(var(--background)); }
   ::selection { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
   input, textarea { caret-color: hsl(var(--primary)); }
   input::placeholder, textarea::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }
