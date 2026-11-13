@@ -25,8 +25,8 @@ export function SonosMiniPlayer() {
   const selected = destination?.members.find(member => member.entityId === selectedId) ?? destination?.player;
   // Only a playing group summons the mini; retain the current room during the dismissal countdown.
   useEffect(() => { setSelectedId(selected?.entityId); }, [selected?.entityId]);
-  const settings = /^\/(settings(?:\/|$)|user-settings(?:\/|$)|onboarding(?:\/|$))/i.test(pathname);
-  const visible = !settings && homeOnline && !!selected;
+  const hiddenRoute = /^\/(settings|user-settings|onboarding|sonos)(?:\/|$)/i.test(pathname);
+  const visible = !hiddenRoute && homeOnline && !!selected;
   useEffect(() => { if (!visible) setExpanded(false); }, [visible]);
   const countingDown = !!selected && playing.length === 0 && !expanded;
   useEffect(() => {

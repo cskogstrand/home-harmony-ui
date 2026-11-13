@@ -68,7 +68,7 @@ THESIS: Keep immediate Sonos playback controls within reach above the shared doc
 
 OWN-WORLD: Extend the existing pearl/midnight Liquid Glass control layer, shared buttons, ranges and dialog. No new palette, font, dependency or artwork.
 
-STORY: Music starts the mini player. When no music group is playing, a ten-second countdown keeps pause/stop resumable before hiding it. Opening the full player suspends dismissal. TV, unavailable playback, offline state and settings hide it immediately. One room selector names each group's track; an explicit count calls out multiple groups playing separately.
+STORY: Music starts the mini player. When no music group is playing, a ten-second countdown keeps pause/stop resumable before hiding it. Opening the full player suspends dismissal. TV, unavailable playback, offline state, settings and the dedicated Sonos page hide it immediately. One room selector names each group's track; an explicit count calls out multiple groups playing separately.
 
 FIRST VIEWPORT: A dock-width surface above navigation contains room selection and expand, then artwork, track, previous/pause/next and balanced group volume. Phones place transport and volume beneath the track. Expand opens the same session and player used by the dedicated Sonos page, with its library and settings.
 

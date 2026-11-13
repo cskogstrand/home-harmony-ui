@@ -6,7 +6,7 @@ import { musicFolder, sonosEntities, sonosServices, speaker } from "./sonos-fixt
 
 const mocks = vi.hoisted(() => ({ app: null }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
-const content = (path = "/") => <MemoryRouter initialEntries={[path]}><SonosMiniPlayer /><Link to="/settings/appearance">Settings route</Link><Link to="/calendar">Calendar route</Link></MemoryRouter>;
+const content = (path = "/") => <MemoryRouter initialEntries={[path]}><SonosMiniPlayer /><Link to="/settings/appearance">Settings route</Link><Link to="/calendar">Calendar route</Link><Link to="/sonos">Sonos route</Link></MemoryRouter>;
 const openRooms = () => fireEvent.keyDown(within(mini()).getByRole("button", { name: "Choose a speaker" }), { key: "Enter" });
 const mini = () => screen.getByRole("region", { name: "Sonos mini player" });
 beforeEach(() => {
@@ -17,12 +17,12 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-it.each(["/", "/calendar", "/lists", "/school", "/home", "/cameras", "/sonos", "/devices/example", "/notifications"])("shows playback on %s", path => {
+it.each(["/", "/calendar", "/lists", "/school", "/home", "/cameras", "/devices/example", "/notifications"])("shows playback on %s", path => {
   render(content(path));
   expect(mini()).toBeVisible();
   expect(mocks.app.browseMedia).not.toHaveBeenCalled();
 });
-it.each(["/settings", "/settings/appearance", "/user-settings", "/onboarding"])("omits playback from settings route %s", path => {
+it.each(["/settings", "/settings/appearance", "/user-settings", "/onboarding", "/sonos", "/sonos/", "/sonos?player=media_player.studio"])("omits playback from excluded route %s", path => {
   render(content(path)); expect(screen.queryByRole("region")).not.toBeInTheDocument();
 });
 it("uses the coordinator source to exclude TV, not the track title or a follower's stale source", async () => {
@@ -150,6 +150,10 @@ it("preserves selection across navigation, hides on settings, and never replays 
   openRooms();
   fireEvent.click(screen.getByRole("menuitemradio", { name: /Demo studio/ }));
   fireEvent.click(screen.getByRole("link", { name: "Settings route" }));
+  await waitFor(() => expect(screen.queryByRole("region", { name: "Sonos mini player" })).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole("link", { name: "Calendar route" }));
+  expect(within(mini()).getByRole("button", { name: "Choose a speaker" })).toHaveTextContent("Demo studio");
+  fireEvent.click(screen.getByRole("link", { name: "Sonos route" }));
   await waitFor(() => expect(screen.queryByRole("region", { name: "Sonos mini player" })).not.toBeInTheDocument());
   fireEvent.click(screen.getByRole("link", { name: "Calendar route" }));
   expect(within(mini()).getByRole("button", { name: "Choose a speaker" })).toHaveTextContent("Demo studio");
