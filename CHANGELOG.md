@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.18
+
+<!-- release-source: 39393c2d1718d20b00d5e160b9cb99c342d058b5 -->
+
+- feat: show waste pickups in family calendars
+
 ## 0.10.17
 
 <!-- release-source: 0b4b77cd7fe9f0fac16216ea1185074bd9b33226 -->
