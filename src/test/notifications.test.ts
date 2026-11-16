@@ -35,6 +35,15 @@ describe("notification configuration", () => {
     expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
     expect(rule().cameraEntity).toBe("");
   });
+  it("round-trips camera placement and preserves the default for older rules", () => {
+    const config = emptyConfiguration();
+    for (const cameraPlacement of ["footer", "right"] as const) {
+      config.settings.notifications.rules = [rule({ cameraEntity: "example-camera", cameraPlacement })];
+      expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    }
+    expect(rule().cameraPlacement).toBeUndefined();
+    expect(notificationRuleSchema.safeParse({ ...rule(), cameraPlacement: "left" }).success).toBe(false);
+  });
   it("migrates single readings, preserves multiple selections and honors explicit clearing", () => {
     const { detailEntities: _details, ...legacy } = rule();
     const migrated = notificationRuleSchema.parse({ ...legacy, detailEntity: "home|sensor.remaining" });

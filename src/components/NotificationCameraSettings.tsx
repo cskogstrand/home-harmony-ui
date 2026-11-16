@@ -30,6 +30,11 @@ export function NotificationCameraSettings({ rule, disabled, onChange, active }:
       <option value="person" disabled={!person}>{t("Person snapshot")}{!person ? ` · ${t("Not configured")}` : ""}</option>
     </select></label>
     <p className="page-note">{t("The selected video or person image appears on the notification card and in its larger camera viewer.")}</p>
+    <label>{t("Camera placement")}<select value={rule.cameraPlacement ?? "footer"} disabled={disabled || !camera} onChange={event => onChange({ cameraPlacement: event.target.value as NotificationRule["cameraPlacement"] })}>
+      <option value="footer">{t("At the bottom")}</option>
+      <option value="right">{t("Right reading")}</option>
+    </select></label>
+    <p className="page-note">{t("Right reading shows a compact camera beside the readings in activity cards. Other styles keep the camera below the readings.")}</p>
     {rule.cameraMedia !== "person" && <div className="notification-toggle"><span>{t("Show last person on card")}</span><Switch aria-label={t("Show last person on card")} checked={!!rule.showPersonSnapshot} disabled={disabled || !person} onCheckedChange={showPersonSnapshot => onChange({ showPersonSnapshot })} /></div>}
     {rule.cameraMedia !== "person" && <p className="page-note">{t("Show the latest person image over live video on this notification card. Fullscreen live previews always include it when configured.")}</p>}
     {camera && <p className="page-note break-words">{t("Connection: {name} · Source: {source}", { name: connection?.name ?? "Home Assistant", source: camera.source })}</p>}

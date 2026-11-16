@@ -360,6 +360,53 @@ it("retains an unavailable task camera until it is replaced or removed", async (
   expect(setNotifications.mock.lastCall[0].rules[0].cameraEntity).toBe("");
 });
 
+it("previews, saves and reopens compact camera placement without starting video", async () => {
+  const rule = { ...cameraRule(), kind: "ongoing" as const, presentation: "activity-compact" as const };
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Camera and image");
+  expect(screen.getByLabelText("Camera placement")).toHaveValue("footer");
+  fireEvent.change(screen.getByLabelText("Camera placement"), { target: { value: "right" } });
+  const preview = screen.getByRole("region", { name: "Notification preview" });
+  expect(within(preview).getByText("Camera preview").closest('[data-placement="right"]')).not.toBeNull();
+  expect(within(preview).getByRole("button", { name: "Show camera" })).toBeDisabled();
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  expect(playGo2rtcStream).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.cameraPlacement).toBe("right");
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Camera and image");
+  expect(screen.getByLabelText("Camera placement")).toHaveValue("right");
+  fireEvent.change(screen.getByLabelText("Camera placement"), { target: { value: "footer" } });
+  expect(screen.getByText("Camera preview").closest('[data-placement="right"]')).toBeNull();
+});
+
+it.each(["section", "banner", "activity", "activity-compact"])("places one camera beside preserved readings only in activity cards (%s)", presentation => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", cameraPlacement: "right",
+    detailEntities: ["home|camera.example"],
+    entityDisplay: [{ entity: "home|binary_sensor.example", placement: "left", name: "Task state" }, { entity: "home|camera.example", placement: "right", name: "Camera state" }],
+  });
+  const view = render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} preview activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} /></MemoryRouter>);
+  expect(view.container.querySelectorAll(".notification-camera-feed")).toHaveLength(1);
+  expect(!!screen.getByText("Camera preview").closest('[data-placement="right"]')).toBe(presentation.startsWith("activity"));
+  expect(view.container.querySelector('[data-placement="left"]')).toHaveTextContent("Task state");
+  expect(view.container.querySelector('[data-placement="right"]')).toHaveTextContent("Camera state");
+});
+
+it("shows a person snapshot in the right camera slot without starting video", () => {
+  mocks.shared.state.config.settings.cameras = cameraSettings();
+  const rule = { ...cameraRule(), cameraPlacement: "right" as const, cameraMedia: "person" as const };
+  render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} activity /></MemoryRouter>);
+  expect(screen.getByRole("img").closest('[data-placement="right"]')).not.toBeNull();
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  expect(playGo2rtcStream).not.toHaveBeenCalled();
+});
+
 it("offers configured cameras and allows clearing the optional reading", async () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add Camera popup" }));
@@ -730,7 +777,7 @@ it("shares one camera through popup close/reopen and stops it when the alert exp
 it.each(["section", "banner", "activity", "activity-compact"] as const)("shows a task camera in %s until the task ends, with a manually opened shared viewer", async presentation => {
   vi.useFakeTimers();
   vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
-  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", icon: "printer_3d", presentation }] };
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", icon: "printer_3d", cameraPlacement: "right", presentation }] };
   mocks.app.currentHome = home("on");
   const content = () => <MemoryRouter><NotificationProvider><NotificationList presentation={presentation} /><NotificationCamera /></NotificationProvider></MemoryRouter>;
   const view = render(content());

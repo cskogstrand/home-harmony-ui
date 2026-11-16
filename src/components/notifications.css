@@ -60,6 +60,12 @@
 .notification-activity-readings > [data-placement="left"] { grid-column: 1; grid-row: 1; }
 .notification-activity-readings > [data-placement="right"] { grid-column: 2; grid-row: 1; border-left: 1px solid hsl(var(--border)); padding-left: 1rem; }
 .notification-activity-readings > div > div { display: flex; flex-direction: column; gap: .25rem; }
+.notification-activity-readings .notification-camera-side { gap: 0; }
+.notification-camera-side .notification-camera-feed { margin-top: 0; }
+.notification-camera-side .notification-camera-placeholder { min-height: 4rem; }
+.notification-camera-side .smart-media-status,
+.notification-camera-side .smart-media-status:hover { background: transparent; }
+.notification-camera-side .smart-media-status > svg { box-sizing: content-box; padding: 4px; border-radius: 6px; background: hsl(var(--card)); }
 .notification-activity-readings strong { color: hsl(var(--primary)); font-size: 1.5rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; overflow-wrap: anywhere; }
 .notification-activity-readings small { font-size: .875rem; }
 .notification-activity-readings span { font-size: .875rem; }

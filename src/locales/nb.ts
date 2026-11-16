@@ -2253,6 +2253,8 @@ export const nb = {
   "Under the title": "Under tittelen",
   "Left reading": "Venstre måling",
   "Right reading": "Høyre måling",
+  "Camera placement": "Kameraplassering",
+  "Right reading shows a compact camera beside the readings in activity cards. Other styles keep the camera below the readings.": "Høyre måling viser kameraet kompakt ved siden av målingene i aktivitetskort. I andre visninger ligger kameraet under målingene.",
   "At the bottom": "Nederst",
   "{name}: display name": "{name}: visningsnavn",
   "{name}: placement": "{name}: plassering",

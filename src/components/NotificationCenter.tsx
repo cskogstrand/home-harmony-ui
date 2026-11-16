@@ -32,7 +32,7 @@ export function NotificationBell() {
   </Link><span role="status" aria-atomic="true" className="sr-only">{titles ? t("Active notifications: {titles}", { titles }) : notifications.length ? "" : t("No active notifications")}</span></>;
 }
 
-function NotificationCameraFeed({ item, preview }: { item: HomeNotification; preview: boolean }) {
+function NotificationCameraFeed({ item, preview, compact = false }: { item: HomeNotification; preview: boolean; compact?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const selected = configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
@@ -48,7 +48,7 @@ function NotificationCameraFeed({ item, preview }: { item: HomeNotification; pre
     return () => { observer?.disconnect(); document.removeEventListener("visibilitychange", update); };
   }, [preview]);
   return <div ref={ref} className="notification-camera-feed">
-    {preview || !visible ? <div className="notification-camera-placeholder"><Camera size={32} aria-hidden="true" /><span>{t(preview ? "Camera preview" : "Stream paused")}</span></div>
+    {preview || !visible ? <div className="notification-camera-placeholder"><Camera size={compact ? 24 : 32} aria-hidden="true" /><span className={compact ? "sr-only" : undefined}>{t(preview ? "Camera preview" : "Stream paused")}</span></div>
       : !selected ? <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>
       : item.rule.cameraMedia === "person" ? <CameraPersonSnapshot key={selected.id} cameraId={selected.id} />
       : <MediaSurface camera={selected} showPerson={item.rule.showPersonSnapshot} />}
@@ -63,6 +63,9 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   const readings = notificationReadings(item.rule).map(reading => ({ ...reading, position: reading.placement === "auto" ? reading.defaultPlacement : reading.placement }))
     .filter(reading => reading.position !== "hidden" && !(condensed && reading.placement === "auto" && reading.position === "subtitle"));
   const at = (position: string) => readings.filter(reading => reading.position === position);
+  const showCamera = item.rule.kind === "camera" || item.rule.kind === "ongoing" && !!item.rule.cameraEntity;
+  const cameraOnRight = showCamera && activity && item.rule.cameraPlacement === "right";
+  const cameraContent = showCamera && <><NotificationCameraFeed item={item} preview={preview} compact={cameraOnRight} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>;
   const time = new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, hour: "2-digit", minute: "2-digit" });
   const renderReading = (reading: typeof readings[number], prominent = false) => {
     const entity = notificationEntity(entities, reading.entity);
@@ -81,13 +84,16 @@ export function NotificationRow({ item, condensed = false, activity = false, com
       {!condensed && item.eventTitle && <p className="text-sm text-muted-foreground">{item.rule.title} · {t(item.eventStart > Date.now() ? "Starts at {time}" : "Started at {time}", { time: time.format(item.eventStart) })}</p>}
       {!condensed && item.rule.message && <p className="text-sm">{item.rule.message}</p>}
       {!!at("subtitle").length && <div data-placement="subtitle" className="text-muted-foreground">{at("subtitle").map(reading => renderReading(reading))}</div>}
-      {(at("left").length > 0 || at("right").length > 0) && <div className={activity ? "notification-activity-readings" : ""}>
-        {(["left", "right"] as const).map(position => at(position).length > 0 && <div key={position} data-placement={position}>{at(position).map(reading => renderReading(reading, activity))}</div>)}
+      {(at("left").length > 0 || at("right").length > 0 || cameraOnRight) && <div className={activity ? "notification-activity-readings" : ""}>
+        {(["left", "right"] as const).map(position => (at(position).length > 0 || position === "right" && cameraOnRight) && <div key={position} data-placement={position}>
+          {position === "right" && cameraOnRight && <div className="notification-camera-side">{cameraContent}</div>}
+          {at(position).map(reading => renderReading(reading, activity))}
+        </div>)}
       </div>}
       {readings.some(reading => !notificationEntity(entities, reading.entity)) && <p className="text-sm text-muted-foreground">{t("Some additional readings are unavailable")}</p>}
       {item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} />}
       {!!at("footer").length && <div data-placement="footer" className="notification-reading-footer">{at("footer").map(reading => renderReading(reading))}</div>}
-      {(item.rule.kind === "camera" || item.rule.kind === "ongoing" && item.rule.cameraEntity) && <><NotificationCameraFeed item={item} preview={preview} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>}
+      {!cameraOnRight && cameraContent}
     </div>
     {item.rule.kind !== "ongoing" && <Button type="button" disabled={preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>}
   </li>;
