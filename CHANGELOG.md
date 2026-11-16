@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.22
+
+<!-- release-source: b919da415925ff36c5c2670c838cf9ee463521e6 -->
+
+- feat: add compact camera placement in alerts
+
 ## 0.10.21
 
 <!-- release-source: 0bb495177314abab45736c80f2b6473a59635e9b -->
