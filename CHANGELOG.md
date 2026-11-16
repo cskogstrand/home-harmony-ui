@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.21
+
+<!-- release-source: 0bb495177314abab45736c80f2b6473a59635e9b -->
+
+- feat: add printer icon and task camera feeds
+
 ## 0.10.20
 
 <!-- release-source: f37d05b674e646e191d608633d3cccf8baa1cc01 -->
