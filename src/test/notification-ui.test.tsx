@@ -223,7 +223,7 @@ it("offers a translated, selectable icon for every device family and preserves f
   for (const button of choices.getAllByRole("button")) expect(button).toBeDisabled();
 });
 
-it.each([["vacuum", "Robot vacuum"], ["lawn_mower", "Robot lawn mower"]] as const)("previews, saves and reopens the %s icon", async (icon, label) => {
+it.each([["vacuum", "Robot vacuum"], ["lawn_mower", "Robot lawn mower"], ["printer_3d", "3D printer"]] as const)("previews, saves and reopens the %s icon", async (icon, label) => {
   const rule = { ...cameraRule(), kind: "ongoing" as const, presentation: "activity" as const };
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
   const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
@@ -316,6 +316,48 @@ it("configures ongoing tasks with a stable entity reference", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example wash", kind: "ongoing", trigger: expect.objectContaining({ entity: "home|binary_sensor.example", value: "on" }) })] });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("saves, reopens and removes an optional task camera without starting a stream in the preview", async () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", cameraEntity: "", icon: "printer_3d" });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Camera and image");
+  expect(screen.getByLabelText("Camera (optional)")).toHaveDisplayValue("No camera");
+  fireEvent.change(screen.getByLabelText("Camera (optional)"), { target: { value: "example-camera" } });
+  expect(screen.getByText("Camera preview")).toBeVisible();
+  expect(screen.getByRole("button", { name: "Show camera" })).toBeDisabled();
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  expect(playGo2rtcStream).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved).toMatchObject({ kind: "ongoing", icon: "printer_3d", cameraEntity: "example-camera", cameraMedia: "live" });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Camera and image");
+  expect(screen.getByLabelText("Camera (optional)")).toHaveValue("example-camera");
+  fireEvent.change(screen.getByLabelText("Camera (optional)"), { target: { value: "" } });
+  expect(screen.queryByText("Camera preview")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].cameraEntity).toBe("");
+});
+
+it("retains an unavailable task camera until it is replaced or removed", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", cameraEntity: "missing-camera" }] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  expect(screen.getByText("A selected entity is unavailable. Edit this rule to choose a replacement.")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  expect(screen.getByRole("alert")).toHaveTextContent("Choose a camera you have added in Camera settings.");
+  await openEditorSection("Camera and image");
+  expect(screen.getByLabelText("Camera (optional)")).toHaveDisplayValue("Unavailable camera");
+  fireEvent.change(screen.getByLabelText("Camera (optional)"), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].cameraEntity).toBe("");
 });
 
 it("offers configured cameras and allows clearing the optional reading", async () => {
@@ -685,6 +727,36 @@ it("shares one camera through popup close/reopen and stops it when the alert exp
   expect(signal.aborted).toBe(true);
 });
 
+it.each(["section", "banner", "activity", "activity-compact"] as const)("shows a task camera in %s until the task ends, with a manually opened shared viewer", async presentation => {
+  vi.useFakeTimers();
+  vi.stubGlobal("fetch", vi.fn().mockReturnValue(new Promise(() => {})));
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", icon: "printer_3d", presentation }] };
+  mocks.app.currentHome = home("on");
+  const content = () => <MemoryRouter><NotificationProvider><NotificationList presentation={presentation} /><NotificationCamera /></NotificationProvider></MemoryRouter>;
+  const view = render(content());
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(watchCameraStream).toHaveBeenCalledOnce();
+  const signal = watchCameraStream.mock.calls[0][2] as AbortSignal;
+  const video = screen.getByRole("listitem").querySelector("video");
+  expect(video).not.toBeNull();
+  act(() => { vi.advanceTimersByTime(11000); });
+  expect(signal.aborted).toBe(false);
+  fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("Closes when this task ends.");
+  expect(screen.getByRole("dialog").querySelector("video")).toBe(video);
+  fireEvent.click(screen.getByRole("button", { name: "Close camera" }));
+  act(() => { vi.advanceTimersByTime(0); });
+  expect(signal.aborted).toBe(false);
+  expect(screen.getByRole("listitem").querySelector("video")).toBe(video);
+  fireEvent.click(screen.getByRole("button", { name: "Show camera" }));
+  expect(watchCameraStream).toHaveBeenCalledOnce();
+  mocks.app.currentHome = home("off");
+  view.rerender(content());
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+  expect(signal.aborted).toBe(true);
+});
+
 it("cleans up event subscriptions and alerts when notifications are switched off", () => {
   const rule = notificationRuleSchema.parse({ ...cameraRule(), trigger: { type: "ha-event", eventType: "example_event", filters: { action: "pressed" } } });
   mocks.family.notifications = { enabled: true, rules: [rule] };
@@ -902,7 +974,7 @@ it("previews every saved rule and saves display choices independently without re
   await waitFor(() => expect(second.getByRole("button", { name: "Banner" })).toBeVisible());
   fireEvent.click(second.getByRole("button", { name: "Banner" }));
   expect(setNotifications).toHaveBeenLastCalledWith({ rules: updated.map(rule => rule.id === "second" ? { ...rule, presentation: "banner" } : rule) });
-  expect(dialog.getByRole("button", { name: "Show camera" })).toBeDisabled();
+  for (const button of dialog.getAllByRole("button", { name: "Show camera" })) expect(button).toBeDisabled();
   expect(dialog.getByRole("button", { name: "Dismiss Example current" })).toBeDisabled();
 });
 

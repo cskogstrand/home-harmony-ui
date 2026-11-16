@@ -17,6 +17,12 @@ const RobotMower = createLucideIcon("RobotMower", [
   ["path", { d: "m10 11 4 4m0-4-4 4", key: "blade", className: "notification-rotor" }],
   ["path", { d: "m7 22 1-2 1 2m6 0 1-2 1 2", key: "grass" }],
 ]);
+const Printer3D = createLucideIcon("Printer3D", [
+  ["path", { d: "M4 19V3h16v16M4 7h16", key: "frame" }],
+  ["path", { d: "M10 7v3l2 2 2-2V7", key: "nozzle" }],
+  ["path", { d: "M9 19v-4h6v4", key: "print" }],
+  ["rect", { x: "2", y: "19", width: "20", height: "3", rx: "1", key: "bed" }],
+]);
 
 const notificationIconOptions: Record<string, { icon: LucideIcon; label: string; group: string; motion?: string }> = {
   ...Object.fromEntries(cardDesigns.map(design => [design.id, { icon: design.icon, label: design.subtitle, group: design.group }])),
@@ -29,6 +35,7 @@ const notificationIconOptions: Record<string, { icon: LucideIcon; label: string;
   charging: { icon: PlugZap, label: "Charging", group: "Appliances" },
   vacuum: { icon: RobotVacuum, label: "Robot vacuum", group: "Appliances", motion: "vacuum" },
   lawn_mower: { icon: RobotMower, label: "Robot lawn mower", group: "Appliances", motion: "mower" },
+  printer_3d: { icon: Printer3D, label: "3D printer", group: "Appliances" },
   dryer: { icon: WashingMachine, label: "Dryer", group: "Appliances", motion: "washing" },
   oven: { icon: PanelTop, label: "Oven", group: "Appliances", motion: "heat" },
   refrigerator: { icon: Refrigerator, label: "Refrigerator", group: "Appliances" },

@@ -87,7 +87,7 @@ export function NotificationRow({ item, condensed = false, activity = false, com
       {readings.some(reading => !notificationEntity(entities, reading.entity)) && <p className="text-sm text-muted-foreground">{t("Some additional readings are unavailable")}</p>}
       {item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} />}
       {!!at("footer").length && <div data-placement="footer" className="notification-reading-footer">{at("footer").map(reading => renderReading(reading))}</div>}
-      {item.rule.kind === "camera" && <><NotificationCameraFeed item={item} preview={preview} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>}
+      {(item.rule.kind === "camera" || item.rule.kind === "ongoing" && item.rule.cameraEntity) && <><NotificationCameraFeed item={item} preview={preview} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>}
     </div>
     {item.rule.kind !== "ongoing" && <Button type="button" disabled={preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>}
   </li>;
@@ -151,7 +151,7 @@ export function NotificationCamera() {
   const { message: t } = useI18n();
   const { currentHome } = useApp();
   const { notifications, camera } = useNotifications();
-  const item = notifications.find(item => item.popup && item.rule.kind === "camera");
+  const item = notifications.find(item => item.popup && (item.rule.kind === "camera" || item.rule.kind === "ongoing" && item.rule.cameraEntity));
   const shared = useSharedConfiguration();
   const selectedCamera = item && configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
   const seconds = item?.expiresAt === undefined ? undefined : Math.max(0, Math.ceil((item.expiresAt - Date.now()) / 1000));
@@ -164,8 +164,8 @@ export function NotificationCamera() {
       else document.querySelector<HTMLElement>("#main-content")?.focus();
     }}>
       <DialogHeader><div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1"><DialogTitle>{item?.rule.title}</DialogTitle>
-        <p role={countdown ? "timer" : undefined} aria-live="off" className="text-sm tabular-nums text-muted-foreground">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t("Closes automatically when this alert expires.")}</p>
-      </div><DialogDescription>{item?.rule.message || t(item?.rule.cameraMedia === "person" ? "Person snapshot" : "Live camera alert")}</DialogDescription></DialogHeader>
+        <p role={countdown ? "timer" : undefined} aria-live="off" className="text-sm tabular-nums text-muted-foreground">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t(item?.rule.kind === "ongoing" ? "Closes when this task ends." : "Closes automatically when this alert expires.")}</p>
+      </div><DialogDescription>{item?.rule.message || t(item?.rule.cameraMedia === "person" ? "Person snapshot" : item?.rule.kind === "ongoing" ? "Live camera" : "Live camera alert")}</DialogDescription></DialogHeader>
       {selectedCamera ? item.rule.cameraMedia === "person"
         ? <CameraPersonSnapshot key={item.id} cameraId={selectedCamera.id} />
         : <MediaSurface key={`${item.id}-${selectedCamera.id}`} camera={selectedCamera} expanded />

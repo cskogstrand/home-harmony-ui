@@ -77,7 +77,7 @@ export function NotificationSettings() {
     return <EntityPicker label={t(label)} entities={choices} value={value} onChange={update} disabled={disabled} />;
   };
   const save = () => {
-    if (draft.kind === "camera" && !configuredCamera(cameras, draft.cameraEntity)) { setOpenSections(sections => [...new Set([...sections, "camera"])]); setError("Choose a camera you have added in Camera settings."); return; }
+    if ((draft.kind === "camera" || draft.kind === "ongoing" && draft.cameraEntity) && !configuredCamera(cameras, draft.cameraEntity)) { setOpenSections(sections => [...new Set([...sections, "camera"])]); setError("Choose a camera you have added in Camera settings."); return; }
     const current = notifications.rules.find(rule => rule.id === draft.id);
     if (original && JSON.stringify(current) !== original) { setError("This rule changed on another screen. Cancel and reopen it before saving."); return; }
     let triggers: NotificationTrigger[];
@@ -129,7 +129,7 @@ export function NotificationSettings() {
       <ul className="space-y-3">{rules.map(rule => {
       const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
       const Icon = icons[rule.kind];
-      const missing = notificationTriggers(rule).some(trigger => "entity" in trigger && !notificationEntity(entities, trigger.entity)) || (rule.kind === "camera" && !configuredCamera(cameras, rule.cameraEntity));
+      const missing = notificationTriggers(rule).some(trigger => "entity" in trigger && !notificationEntity(entities, trigger.entity)) || ((rule.kind === "camera" || rule.kind === "ongoing" && rule.cameraEntity) && !configuredCamera(cameras, rule.cameraEntity));
       return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
         <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}{notificationTriggers(rule).length > 1 && <> · {t("{count} triggers", { count: notificationTriggers(rule).length })}</>}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
         <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
@@ -155,7 +155,7 @@ export function NotificationSettings() {
         </select></label>
         <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
         </NotificationEditorSection>
-        {draft.kind === "camera" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
+        {draft.kind !== "current" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
           <NotificationCameraSettings rule={draft} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
         </NotificationEditorSection>}
         <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>

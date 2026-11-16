@@ -29,6 +29,12 @@ describe("notification configuration", () => {
     config.settings.notifications.rules = notificationIcons.map(icon => rule({ id: `example-${icon}`, icon, animateIcon: false }));
     expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
   });
+  it("preserves an optional ongoing camera and printer icon through configuration backups", () => {
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = [rule({ icon: "printer_3d", cameraEntity: "example-camera", cameraMedia: "live" })];
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    expect(rule().cameraEntity).toBe("");
+  });
   it("migrates single readings, preserves multiple selections and honors explicit clearing", () => {
     const { detailEntities: _details, ...legacy } = rule();
     const migrated = notificationRuleSchema.parse({ ...legacy, detailEntity: "home|sensor.remaining" });

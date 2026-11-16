@@ -18,8 +18,9 @@ export function NotificationCameraSettings({ rule, disabled, onChange, active }:
   const person = camera && camera.personSnapshot.type !== "none";
   const connection = settings?.connections.find(item => item.id === camera?.connectionId);
   return <>
-    <label>{t("Camera")}<select value={rule.cameraEntity} disabled={disabled} onChange={event => { setPreview(false); onChange({ cameraEntity: event.target.value, cameraMedia: "live" }); }}>
-      <option value="">{t("Choose a camera")}</option>
+    {rule.kind === "ongoing" && <p className="page-note">{t("Optionally show a camera while this task is running. The larger viewer opens only when you choose Show camera.")}</p>}
+    <label>{t(rule.kind === "ongoing" ? "Camera (optional)" : "Camera")}<select value={rule.cameraEntity} disabled={disabled} onChange={event => { setPreview(false); onChange({ cameraEntity: event.target.value, cameraMedia: "live" }); }}>
+      <option value="">{t(rule.kind === "ongoing" ? "No camera" : "Choose a camera")}</option>
       {rule.cameraEntity && !camera && <option value={rule.cameraEntity}>{t("Unavailable camera")}</option>}
       {settings?.items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
     </select></label>

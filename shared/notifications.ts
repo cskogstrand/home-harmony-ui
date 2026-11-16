@@ -18,7 +18,7 @@ const notificationProgressSchema = z.object({
 });
 export const notificationIcons = [
   "default", "washing", "dishes", "cleaning", "cooking", "charging", "timer",
-  "vacuum", "lawn_mower", "dryer", "oven", "refrigerator", "freezer",
+  "vacuum", "lawn_mower", "printer_3d", "dryer", "oven", "refrigerator", "freezer",
   "light", "climate", "cover", "media_player", "lock", "switch", "fan", "humidifier", "water_heater",
   "alarm_control_panel", "siren", "valve", "camera", "remote", "image", "sensor", "air_quality", "binary_sensor",
   "weather", "event", "presence", "scene", "script", "automation", "counter", "number", "select", "text",

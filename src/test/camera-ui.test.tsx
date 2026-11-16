@@ -6,6 +6,7 @@ import { CameraConnections } from "@/components/CameraConnections";
 import { Go2rtcSourcePicker } from "@/components/Go2rtcSourcePicker";
 import { EntityMedia, MediaSurface } from "@/components/devices/EntityMedia";
 import { emptyConfiguration, plannerSettings } from "../../shared/configuration";
+import { notificationRuleSchema } from "../../shared/notifications";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { chooseEntity } from "./entity-picker-helpers";
@@ -38,6 +39,22 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
+
+it("protects cameras used by ongoing tasks, including assignments made during deletion confirmation", () => {
+  configure();
+  const view = renderSettings();
+  fireEvent.click(screen.getByRole("button", { name: "Delete Example camera" }));
+  mocks.shared.state.config.settings.notifications.rules = [notificationRuleSchema.parse({
+    id: "example-print", title: "Example print", kind: "ongoing", cameraEntity: "example-camera",
+    trigger: { type: "state", entity: "home|sensor.example", operator: "eq", value: "printing" },
+  })];
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+  expect(mocks.shared.state.config.settings.cameras.items).toHaveLength(1);
+  expect(screen.getByRole("alert")).toHaveTextContent("Used by notifications.");
+  view.unmount();
+  renderSettings();
+  expect(screen.getByRole("button", { name: "Delete Example camera" })).toBeDisabled();
+});
 
 it("saves the camera's person inset size, uses it in live previews and retains it when reopened", () => {
   configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));

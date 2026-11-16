@@ -44,7 +44,7 @@ export function CameraSettings() {
   const personImageEntities = currentHome.entities.filter(entity => ["image", "camera"].includes(entity.domain)
     || ["sensor", "binary_sensor"].includes(entity.domain) && homeAssistantPicturePath(entity.attributes.entity_picture));
   const previewCamera = preview && settings.items.find(item => item.id === preview.id);
-  const inUse = (id: string) => shared.state.config.settings.notifications.rules.some(rule => rule.kind === "camera" && rule.cameraEntity === id);
+  const inUse = (id: string) => shared.state.config.settings.notifications.rules.some(rule => rule.kind !== "current" && rule.cameraEntity === id);
   const save = (watch = false) => {
     try {
       shared.store.updateSettings(current => {
@@ -155,7 +155,7 @@ export function CameraSettings() {
     </div>}
     <ConfirmDialog open={!!remove} onOpenChange={open => { if (!open) setRemove(undefined); }} title="Delete camera?" description="This removes the camera from Home Harmony. Its connection and the camera itself are unchanged." confirmLabel="Delete" destructive disabled={disabled || !!remove && inUse(remove.id)} onConfirm={() => {
       shared.store.updateSettings(current => {
-        if (current.notifications.rules.some(rule => rule.kind === "camera" && rule.cameraEntity === remove.id)) throw new Error("Used by notifications. Choose another camera in those rules before deleting it.");
+        if (current.notifications.rules.some(rule => rule.kind !== "current" && rule.cameraEntity === remove.id)) throw new Error("Used by notifications. Choose another camera in those rules before deleting it.");
         return { ...current, cameras: { ...current.cameras, items: current.cameras.items.filter(item => item.id !== remove.id) } };
       });
     }} />
