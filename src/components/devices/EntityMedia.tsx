@@ -139,7 +139,8 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
       : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
-    {!suspended && reported && (failed || mjpeg) && <Button type="button" variant="outline" onClick={() => { setFailedSrc(""); setSnapshot(false); setMjpeg(false); setRetry(value => value + 1); }}>{t("Retry")}</Button>}
+    {/* A working MJPEG fallback already shows the picture; its status icon explains the missing video. */}
+    {!suspended && reported && failed && <Button type="button" variant="outline" onClick={() => { setFailedSrc(""); setSnapshot(false); setMjpeg(false); setRetry(value => value + 1); }}>{t("Retry")}</Button>}
     {!suspended && failed && playerUrl && <a className="text-primary underline underline-offset-4" href={playerUrl} target="_blank" rel="noreferrer">{t("Open in go2rtc (new tab)")}</a>}
     {showPerson && configured && configured.personSnapshot.type !== "none" && !paused && (seen || expanded) && <div className="smart-camera-image-bounds" style={{
       width: frameSize.width ? Math.min(frameSize.width, frameSize.height * aspectRatio) : "100%",

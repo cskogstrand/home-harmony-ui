@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { useI18n } from "@/hooks/use-i18n";
+import { useI18n, useRememberLanguage } from "@/hooks/use-i18n";
 import { useApp } from "./AppContext";
 import { FamilyContext, homeDate, weekStart, type FamilyState, type FamilyMember, type MemberId } from "./FamilyContext";
 import { useSharedConfiguration } from "./SharedConfigurationContext";
@@ -15,6 +15,7 @@ export function FamilyProvider({ children }: { children: ReactNode }) {
 }
 function FamilyStore({ children }: { children: ReactNode }) {
   const { t, message, language } = useI18n();
+  useRememberLanguage();
   const { currentHome } = useApp();
   const shared = useSharedConfiguration();
   const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
