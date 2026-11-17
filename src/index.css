@@ -263,6 +263,8 @@
     --pending: 36.6 89.8% 26.9%;
     --radius: 16px;
     --radius-event: 8px;
+    --radius-calendar-event: 12px;
+    --radius-favorite: 20px;
     --radius-field: 14px;
     --radius-inset: 16px;
     --radius-menu: 22px;

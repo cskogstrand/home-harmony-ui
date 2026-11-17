@@ -26,7 +26,7 @@
 .calendar-month-date:hover, .calendar-month-event:hover, .calendar-month-more:hover { background: hsl(var(--secondary)); }
 .calendar-month-count { display: none; }
 .calendar-month-events { display: grid; gap: .125rem; }
-.calendar-month-event { display: flex; align-items: center; gap: .375rem; min-height: 44px; min-width: 0; padding: .375rem; border-radius: 8px; text-align: left; font-size: .875rem; }
+.calendar-month-event { display: flex; align-items: center; gap: .375rem; min-height: 44px; min-width: 0; padding: .375rem; border-radius: var(--radius-calendar-event); text-align: left; font-size: .875rem; }
 .calendar-event-dot { flex-shrink: 0; width: .5rem; height: .5rem; border-radius: 50%; background: var(--member); }
 .calendar-month-event > span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-month-event > time { margin-left: auto; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; font-size: .75rem; }

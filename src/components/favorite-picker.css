@@ -40,7 +40,7 @@
 .favorite-group-popover [cmdk-item] svg { width: 18px; height: 18px; flex-shrink: 0; color: hsl(var(--primary)); }
 .favorite-group-popover [cmdk-list] { max-height: min(18rem, calc(var(--radix-popover-content-available-height) - 5rem)); scrollbar-width: thin; scrollbar-color: hsl(var(--input)) transparent; }
 .favorite-card-settings button { flex-shrink: 0; }
-.favorite-unavailable { display: flex; align-items: center; gap: .75rem; padding: 1rem; border-radius: 16px; }
+.favorite-unavailable { display: flex; align-items: center; gap: .75rem; padding: 1rem; border-radius: var(--radius-favorite); }
 .favorite-unavailable svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
 .favorite-unavailable strong { overflow-wrap: anywhere; }
 .favorite-unavailable p { margin-top: .25rem; color: hsl(var(--muted-foreground)); font-size: .875rem; }

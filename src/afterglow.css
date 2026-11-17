@@ -232,7 +232,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .lane-heading strong { font-weight: 500; }
 .lane-heading > span:last-child { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
 .family-day-mobile-person { display: none; }
-.event-button { --event-tint: 30%; --event-surface: color-mix(in srgb, var(--member) var(--event-tint), hsl(var(--card))); --event-ink: color-mix(in srgb, var(--member) 20%, hsl(var(--foreground))); position: relative; width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: .25rem; min-height: 48px; padding: .75rem .75rem .75rem 1rem; border: 1px solid transparent; border-radius: var(--radius-event); background: var(--event-surface); color: var(--event-ink); text-align: left; }
+.event-button { --event-tint: 30%; --event-surface: color-mix(in srgb, var(--member) var(--event-tint), hsl(var(--card))); --event-ink: color-mix(in srgb, var(--member) 20%, hsl(var(--foreground))); position: relative; width: 100%; display: flex; flex-direction: column; align-items: stretch; gap: .25rem; min-height: 48px; padding: .75rem .75rem .75rem 1rem; border: 1px solid transparent; border-radius: var(--radius-calendar-event); background: var(--event-surface); color: var(--event-ink); text-align: left; }
 .dark .event-button { --event-tint: 18%; }
 /* The calendar-color marker identifies ownership; the event itself stays opaque. */
 .event-button::before { content: ""; position: absolute; inset: .5rem auto .5rem .35rem; width: 3px; border-radius: var(--radius-capsule); background: color-mix(in srgb, var(--member) 75%, var(--event-ink)); }
@@ -492,6 +492,7 @@ fieldset.settings-card > legend + * { clear: both; }
 }
 .home-favorites { display: flex; flex-direction: column; }
 .favorite-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+:is(.favorite-devices, .favorite-selected-preview, .favorite-type-preview) :is(.dg-card.dg-supercompact, .dg-card .dg-scene-action) { border-radius: var(--radius-favorite); }
 .control-stack { display: flex; flex-direction: column; gap: 11px; width: 100%; }
 .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; font-size: 0.9375rem; }
 .device-range { display: block; width: 100%; }

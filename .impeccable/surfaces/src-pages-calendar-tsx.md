@@ -7,7 +7,7 @@ related_targets: ["src/pages/calendar.css","src/components/FamilyCalendar.tsx","
 
 # Calendar
 
-Mode: Operate. Extend the existing calendar in Afterglow's visual system.
+Mode: Operate. Extend the existing calendar in Afterglow's visual system. Shared event buttons and month event entries use 12px corners; outer panels remain 24px.
 
 ## Direction contract
 
