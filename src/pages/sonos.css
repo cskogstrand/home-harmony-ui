@@ -196,8 +196,6 @@
   .sonos-track h2 { font-size: 1.8rem; }
 }
 @media (max-width: 699px) {
-  .app-main:has(.sonos-page) > .smart-nav { flex-wrap: nowrap; overflow-x: auto; }
-  .app-main:has(.sonos-page) > .smart-nav > * { flex-shrink: 0; white-space: nowrap; }
   .sonos-page { gap: 1rem; }
   .sonos-player { padding: 1.25rem; }
   .sonos-player-main { grid-template-columns: 96px minmax(0, 1fr); gap: 1rem; }

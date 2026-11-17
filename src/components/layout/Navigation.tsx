@@ -1,7 +1,8 @@
 import { isHomeSection, mainPagePath } from "@/lib/navigation";
+import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { Link, useLocation, type Location } from "react-router-dom";
-import { Music2, Camera, House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown } from "lucide-react";
+import { Music2, Camera, House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown, ExternalLink } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const mainItems = [
@@ -29,6 +30,7 @@ const moreItems = [
   { path: "/settings", label: "Home settings", icon: Settings },
 ];
 export function SmartHomeNav() {
+  const { haUrl } = useApp();
   const { t, message } = useI18n();
   const { pathname } = useLocation();
   const active = (path: string) => pathname === path || pathname.startsWith(`${path}/`) || path === "/devices" && pathname.startsWith("/entities/");
@@ -37,7 +39,7 @@ export function SmartHomeNav() {
     {smartItems.map(item => <Link key={item.path} to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>)}
     <div className="smart-more"><DropdownMenu>
       <DropdownMenuTrigger data-active={!!selectedMore}>{selectedMore ? message(selectedMore.label) : t("More controls")}<ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="smart-menu">{moreItems.map(item => <DropdownMenuItem asChild key={item.path}><Link to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link></DropdownMenuItem>)}</DropdownMenuContent>
+      <DropdownMenuContent align="end" className="smart-menu">{moreItems.map(item => <DropdownMenuItem asChild key={item.path}>{haUrl && ["/history", "/integrations"].includes(item.path) ? <a href={`${haUrl}${item.path === "/history" ? "/history" : "/config/integrations"}`} target="_blank" rel="noreferrer"><item.icon size={18} aria-hidden="true" />{message(item.label)}<span className="text-xs">{t("Home Assistant")}</span><ExternalLink size={14} aria-label={t("Opens in a new tab")} /></a> : <Link to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>}</DropdownMenuItem>)}</DropdownMenuContent>
     </DropdownMenu></div>
   </nav>;
 }

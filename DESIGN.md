@@ -429,3 +429,5 @@ Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode
 - **Don't** describe CSS blur and specular edges as native optical refraction.
 
 Shared device sliders retain a 44px interaction height and enlarged thumb hit area at every density. Device metadata uses at least .875rem; headings use 1.0625rem or the established hierarchy. Appearance and Language use the same 16px settings surfaces and 1rem padding as other settings.
+
+Smart home navigation uses one horizontally scrollable row on phones on every route. All destinations remain available. Activity and Integrations open their named Home Assistant destinations in a new tab; legacy routes still work. Your cards always exposes Add card. Arrange cards changes order, groups and sizes; Edit cards opens the card editor.

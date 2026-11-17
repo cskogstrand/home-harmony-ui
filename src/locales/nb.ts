@@ -1,4 +1,7 @@
 export const nb = {
+  "Arrange cards": "Ordne kort",
+  "Edit cards": "Rediger kort",
+  "Opens in a new tab": "Åpnes i en ny fane",
   "Sonos": "Sonos",
   "Sonos mini player": "Sonos-minispiller",
   "Sonos player": "Sonos-spiller",

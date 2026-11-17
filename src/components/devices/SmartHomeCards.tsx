@@ -40,7 +40,7 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
   const drag = useCardDrag(editing && !disabled, move);
   return <>
     {editing && <div className="smart-editor-toolbar">
-      <div><strong>{t("Configure cards")}</strong><p>{t("Drag cards to reorder or move between groups. You can also use the move buttons and group menu.")}</p></div>
+      <div><strong>{t("Arrange cards")}</strong><p>{t("Drag cards to reorder or move between groups. You can also use the move buttons and group menu.")}</p></div>
       <form className="smart-new-group" onSubmit={event => { event.preventDefault(); const name = newGroup.trim(); if (name && !disabled) { setEmptyGroups(current => [...new Set([...current, name])]); setNewGroup(""); setAnnouncement(t("Group ready. Move a card into {group} to save it.", { group: name })); } }}>
         <Input aria-label={t("New group name")} placeholder={t("New group name")} value={newGroup} maxLength={80} disabled={disabled} onChange={event => setNewGroup(event.target.value)} />
         <Button className="mobile-icon-button" type="submit" variant="outline" disabled={disabled || !newGroup.trim()}><Plus size={17} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add group")}</span></Button>

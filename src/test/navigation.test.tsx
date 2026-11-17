@@ -518,9 +518,9 @@ it("configures card order across room filters, size and grouping on Smart home a
   settings.settings.smartHome.layout = ["alpha", "beta", "gamma"].map(name => configuredCard(`home|${name}`, "light", { group: "Comfort" }));
   window.history.replaceState(null, "", "/home");
   const view = render(<App />); await saved();
-  expect(screen.queryByRole("button", { name: "Configure" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Arrange cards" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
-  fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+  fireEvent.click(screen.getByRole("button", { name: "Arrange cards" }));
   expect(screen.queryByRole("dialog", { name: "Smart home settings" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Example room A" }));
   fireEvent.click(screen.getByRole("button", { name: "Move Example gamma earlier" })); await saved();
@@ -544,9 +544,9 @@ it("keeps layout edits visible on a save conflict and blocks further moves", asy
   settings.settings.smartHome.layout = [configuredCard("home|light.example")];
   window.history.replaceState(null, "", "/home");
   render(<App />); await saved();
-  expect(screen.queryByRole("button", { name: "Configure" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Arrange cards" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
-  fireEvent.click(screen.getByRole("button", { name: "Configure" }));
+  fireEvent.click(screen.getByRole("button", { name: "Arrange cards" }));
   expect(screen.queryByRole("dialog", { name: "Smart home settings" })).not.toBeInTheDocument();
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
   fireEvent.change(screen.getByRole("combobox", { name: "Card size for Example lamp" }), { target: { value: "original" } });
@@ -1336,7 +1336,7 @@ it("navigates with empty HA data and shows the server-managed connection", async
   expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
   await navigate("Smart home");
-  for (const [link, heading] of [["Devices", "Devices"], ["Cameras", "Cameras"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"], ["Activity", "History"], ["Integrations", "Integrations"]]) {
+  for (const [link, heading] of [["Devices", "Devices"], ["Cameras", "Cameras"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"]]) {
     const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
     const direct = nav.queryByRole("link", { name: link });
     if (direct) fireEvent.click(direct);
@@ -1346,6 +1346,19 @@ it("navigates with empty HA data and shows the server-managed connection", async
     }
     expect(await screen.findByRole("heading", { level: 1, name: heading })).toBeInTheDocument();
   }
+});
+
+it("opens HA tools directly and keeps Add card visible with existing cards", async () => {
+  app.currentHome = cardEditorHome();
+  settings.settings.smartHome.layout = [configuredCard("home|light.example")];
+  window.history.replaceState(null, "", "/home");
+  render(<App />); await saved();
+  expect(screen.getByRole("link", { name: "Add card" })).toHaveAttribute("href", "/settings/smart-home?card=new");
+  fireEvent.keyDown(screen.getByRole("button", { name: "More controls" }), { key: "Enter" });
+  const activity = await screen.findByRole("menuitem", { name: /Activity Home Assistant/ });
+  expect(activity).toHaveAttribute("href", "http://ha.local:8123/history");
+  expect(activity).toHaveAttribute("target", "_blank");
+  expect(screen.getByRole("menuitem", { name: /Integrations Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/integrations");
 });
 
 it("shares people visibility, order and timetable preferences with another screen", async () => {
