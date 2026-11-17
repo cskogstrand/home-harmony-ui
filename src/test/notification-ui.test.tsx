@@ -270,15 +270,15 @@ it("pauses icon loops offscreen and in hidden tabs and cleans up when animation 
   hidden.mockRestore();
 });
 
-it.each(["Ongoing tasks", "Current alerts", "Camera popup"])("opens the relevant sections and focuses the title for a new %s", async kind => {
+it.each(["Ongoing tasks", "Current alerts", "Camera popup"])("opens the source first for a new %s", async kind => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: `Add ${kind}` }));
   const dialog = within(screen.getByRole("dialog", { name: "Add notification" }));
-  await waitFor(() => expect(dialog.getByLabelText("Title")).toHaveFocus());
-  expect(dialog.getAllByRole("button", { expanded: true })).toEqual([dialog.getByRole("button", { name: "Notification content" }), ...(kind === "Camera popup" ? [dialog.getByRole("button", { name: "Camera and image" })] : [])]);
-  expect(dialog.getByRole("button", { name: "When to show it" })).toHaveAttribute("aria-expanded", "false");
+  await waitFor(() => expect(dialog.getByRole("button", { name: "When to show it" })).toHaveFocus());
+  expect(dialog.getAllByRole("button", { expanded: true })).toEqual([dialog.getByRole("button", { name: "When to show it" }), dialog.getByRole("button", { name: "Notification content" }), ...(kind === "Camera popup" ? [dialog.getByRole("button", { name: "Camera and image" })] : [])]);
+  expect(dialog.getByRole("button", { name: "When to show it" })).toHaveAttribute("aria-expanded", "true");
   fireEvent.change(dialog.getByLabelText("Title"), { target: { value: "Example task" } });
-  expect(dialog.getByLabelText("Title")).toHaveFocus();
+  expect(dialog.getByRole("button", { name: "When to show it" })).toHaveFocus();
   expect(dialog.getByRole("button", { name: "Notification content" })).toHaveAttribute("aria-expanded", "true");
 });
 
@@ -286,8 +286,8 @@ it("treats a whitespace-only title as unset when opening an existing draft", asy
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), title: "   " }] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: /^Edit\s*$/ }));
-  await waitFor(() => expect(screen.getByLabelText("Title")).toHaveFocus());
-  expect(within(screen.getByRole("dialog")).getAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Notification content" }), screen.getByRole("button", { name: "Camera and image" })]);
+  await waitFor(() => expect(screen.getByRole("button", { name: "When to show it" })).toHaveFocus());
+  expect(within(screen.getByRole("dialog")).getAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "When to show it" }), screen.getByRole("button", { name: "Notification content" }), screen.getByRole("button", { name: "Camera and image" })]);
 });
 
 it("announces incoming titles and same-count replacements without repeating sensor readings", () => {
@@ -1241,10 +1241,10 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   const content = screen.getByRole("button", { name: "Notification content" });
   const trigger = screen.getByRole("button", { name: "When to show it" });
   const readings = screen.getByRole("button", { name: "Entities and readings" });
-  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Camera and image" })]);
-  expect(content).toHaveFocus();
+  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "When to show it" }), screen.getByRole("button", { name: "Camera and image" })]);
+  expect(trigger).toHaveFocus();
   expect(content).toHaveAttribute("aria-expanded", "false");
-  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(readings).toHaveAttribute("aria-expanded", "false");
   await openEditorSection("Notification content");
   await openEditorSection("When to show it");
@@ -1269,7 +1269,7 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   expect(screen.getByRole("alert")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
-  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "Camera and image" })]);
+  expect(within(screen.getByRole("dialog")).queryAllByRole("button", { expanded: true })).toEqual([screen.getByRole("button", { name: "When to show it" }), screen.getByRole("button", { name: "Camera and image" })]);
   expect(screen.getByLabelText("Title")).not.toHaveFocus();
 });
 

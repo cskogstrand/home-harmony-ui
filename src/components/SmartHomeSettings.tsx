@@ -8,7 +8,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { smartHomeCards } from "@/lib/smart-home-cards";
 import { recommendedMainEntity, recommendedSupportingEntities } from "@/lib/smart-home-recommendations";
-import { deviceName, smartHomeEntities } from "@/lib/device-model";
+import { deviceChoiceLabel, deviceName, smartHomeEntities } from "@/lib/device-model";
 import type { Entity } from "@/types/api";
 import { EntityPicker } from "./EntityPicker";
 import { Input } from "@/components/ui/input";
@@ -87,7 +87,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
                 <PanelTitle as="h3" icon={Plug}>{t("Main entity")}</PanelTitle>
                 <label className="smart-card-device">{t("Device")}<select value={selectedDevice ?? ""} disabled={disabled} onChange={event => { setDevice(event.target.value); if (draft.linkedEntities.length) setOtherOpen(true); change({ mainEntity: "" }); }}>
                   <option value="" disabled>{t("Choose a device")}</option>
-                  {devices.map(device => <option key={device.id} value={device.id}>{deviceName(device, language)}</option>)}
+                  {devices.map(device => <option key={device.id} value={device.id}>{deviceChoiceLabel(device, currentHome, language)}</option>)}
                   {candidates.some(entity => !entity.device) && <option value="none">{t("Without a device")}</option>}
                 </select></label>
                 <EntityPicker label={t("Main entity")} ariaLabel={t("Main entity")} groupByDevice={false} entities={deviceCandidates} value={draft.mainEntity} disabled={disabled || selectedDevice === undefined} onChange={selectMain} />

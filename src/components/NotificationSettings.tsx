@@ -60,7 +60,7 @@ export function NotificationSettings() {
   const cameras = shared?.state.config.settings.cameras;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
-    setOpenSections([...(rule.title.trim() ? [] : ["content"]), ...(rule.kind === "camera" ? ["camera"] : [])]);
+    setOpenSections(["trigger", ...(rule.title.trim() ? [] : ["content"]), ...(rule.kind === "camera" ? ["camera"] : [])]);
     setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError("");
     setFilters(notificationTriggers(rule).map(trigger => trigger.type === "ha-event" ? JSON.stringify(trigger.filters, null, 2) : "{}"));
   };
@@ -96,7 +96,7 @@ export function NotificationSettings() {
   const setTriggers = (triggers: NotificationTrigger[]) => setDraft({ ...draft, trigger: triggers[0], additionalTriggers: triggers.length > 1 ? triggers.slice(1) : undefined });
   return <section className="settings-stack" id="notifications">
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
-    <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Home Harmony is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
+    <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Afterglow is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
     <Dialog open={previewOpen} onOpenChange={open => { setPreviewOpen(open); setPreviewError(false); }}>
     <div className="notification-settings-toolbar">
@@ -141,26 +141,12 @@ export function NotificationSettings() {
     })}</ul></section>;
     })}
     <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor" data-kind={draft?.kind} onOpenAutoFocus={event => {
-      if (!draft?.title.trim()) { event.preventDefault(); titleInput.current?.focus(); }
+      event.preventDefault(); editor.current?.querySelector<HTMLButtonElement>('[data-section="trigger"] > h3 > button')?.focus();
     }}>
       <DialogHeader><DialogTitle asChild><PanelTitle icon={Bell}>{t(original ? "Edit notification" : "Add notification")}</PanelTitle></DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
       {draft && <form ref={editor} className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
         <div className="notification-editor-layout">
         <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="notification-editor-fields">
-        <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
-        <label>{t("Title")}<input ref={titleInput} required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
-        <label>{t("Message (optional)")}<textarea maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
-        <label>{t("Show on")}<select value={draft.pages ?? notifications.pages} disabled={disabled} onChange={event => setDraft({ ...draft, pages: event.target.value as NotificationRule["pages"] })}>
-          <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
-        </select></label>
-        <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
-        </NotificationEditorSection>
-        {draft.kind !== "current" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
-          <NotificationCameraSettings rule={draft} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
-        </NotificationEditorSection>}
-        <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>
-          <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />
-        </NotificationEditorSection>
         <NotificationEditorSection value="trigger" title={t("When to show it")} icon={Zap} open={openSections.includes("trigger")}>
         <p className="page-note">{t("Any trigger can show this notification. Camera and event triggers share one cooldown.")}</p>
         {notificationTriggers(draft).map((trigger, index, triggers) => {
@@ -201,12 +187,26 @@ export function NotificationSettings() {
         }}><Plus size={18} aria-hidden="true" />{t("Add trigger")}</Button>
         {notificationTriggers(draft).length >= MAX_NOTIFICATION_TRIGGERS && <p className="page-note">{t("Choose up to {count} triggers.", { count: MAX_NOTIFICATION_TRIGGERS })}</p>}
         </NotificationEditorSection>
+        <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
+        <label>{t("Title")}<input ref={titleInput} required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
+        <label>{t("Message (optional)")}<textarea maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
+        <label>{t("Show on")}<select value={draft.pages ?? notifications.pages} disabled={disabled} onChange={event => setDraft({ ...draft, pages: event.target.value as NotificationRule["pages"] })}>
+          <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
+        </select></label>
+        <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
+        </NotificationEditorSection>
+        {draft.kind !== "current" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
+          <NotificationCameraSettings rule={draft} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
+        </NotificationEditorSection>}
         <NotificationEditorSection value="readings" title={t("Entities and readings")} icon={Gauge} open={openSections.includes("readings")}>
             <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={changes => setDraft({ ...draft, ...changes })} onEditUsage={editUsage} />
           </NotificationEditorSection>
         {draft.kind === "ongoing" && <NotificationEditorSection value="progress" title={t("Progress")} icon={ChartNoAxesColumnIncreasing} open={openSections.includes("progress")}>
           <NotificationProgressSettings rule={draft} entities={selectable} disabled={disabled} onChange={progress => setDraft({ ...draft, progress })} />
         </NotificationEditorSection>}
+        <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>
+          <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />
+        </NotificationEditorSection>
         <NotificationEditorSection value="appearance" title={t("Icon and animation")} icon={Palette} open={openSections.includes("appearance")}>
           <NotificationIconPicker rule={draft} disabled={disabled} onChange={icon => setDraft({ ...draft, icon })} />
           {draft.kind === "ongoing" && <div className="notification-toggle"><span>{t("Animate activity icon")}</span><Switch aria-label={t("Animate activity icon")} checked={draft.animateIcon !== false} disabled={disabled} onCheckedChange={animateIcon => setDraft({ ...draft, animateIcon })} /></div>}

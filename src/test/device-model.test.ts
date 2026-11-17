@@ -1,6 +1,6 @@
 import { configuredCard } from "./device-card-fixtures";
 import { expect, it } from "vitest";
-import { deviceDetailSections, deviceGroups, deviceName, deviceReadingsLabel, entityDetailPath, deviceSections, deviceType, smartHomeEntities } from "@/lib/device-model";
+import { deviceChoiceLabel, deviceDetailSections, deviceGroups, deviceName, deviceReadingsLabel, entityDetailPath, deviceSections, deviceType, smartHomeEntities } from "@/lib/device-model";
 import { mapHome } from "@/lib/ha-model";
 import { registries, states } from "./ha-fixtures";
 
@@ -144,4 +144,15 @@ it("keeps safety readings visible while moving uncategorized maintenance to tool
   expect(sections.readings).toEqual([entities[3]]);
   expect(sections.controls).toEqual([entities[4]]);
   expect(Object.values(sections).flat()).toHaveLength(entities.length);
+});
+
+it("disambiguates duplicate device names with room and model, and IDs only as a last resort", () => {
+  const home = mapHome({}, { areas: [{ area_id: "one", name: "Example room" }], entities: [], devices: [
+    { id: "a", name: "Example device", area_id: "one", model: "Model A" },
+    { id: "b", name: "Example device", model: "Model B" },
+  ] }, "home");
+  expect(deviceChoiceLabel(home.devices[0], home)).toBe("Example device · Example room · Model A");
+  expect(deviceChoiceLabel(home.devices[1], home)).toBe("Example device · Model B");
+  home.devices[1] = { ...home.devices[0], id: "b" };
+  expect(deviceChoiceLabel(home.devices[1], home)).toBe("Example device · Example room · Model A · b");
 });

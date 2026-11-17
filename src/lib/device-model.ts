@@ -10,6 +10,15 @@ export function smartHomeEntities(entities: Entity[], settings?: Planner["smartH
 }
 
 export const deviceName = (device: PhysicalDevice, language: Language = "en") => device.name_by_user || device.name || device.model || createI18n(language).t("Unnamed device");
+export function deviceChoiceLabel(device: PhysicalDevice, home: Home, language: Language = "en") {
+  const name = deviceName(device, language);
+  const peers = home.devices.filter(item => deviceName(item, language) === name);
+  if (peers.length < 2) return name;
+  const detail = (item: PhysicalDevice) => [home.areas.find(area => area.id === item.area_id)?.name, item.model].filter(Boolean).join(" · ");
+  const context = detail(device);
+  return [name, context, peers.filter(item => detail(item) === context).length > 1 ? device.id : ""].filter(Boolean).join(" · ");
+}
+
 export const entityDetailPath = (entity: Entity) => entity.device
   ? `/devices/${encodeURIComponent(entity.device.id)}#${encodeURIComponent(entity.entityId)}`
   : `/entities/${encodeURIComponent(entity.entityId)}`;

@@ -74,7 +74,7 @@
 .smart-builder-actions > span { flex: 1; font-size: .875rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
 .smart-settings :is(input, select) { caret-color: hsl(var(--primary)); }
 .smart-settings :is(button, a, input, select, summary):focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
-@media (max-width: 1100px) { .smart-compose { grid-template-columns: 1fr; } .smart-compose-preview { grid-row: 1; position: static; } .smart-compose-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) { .smart-compose { grid-template-columns: 1fr; } .smart-compose-preview { grid-row: auto; position: static; } .smart-compose-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   .smart-type-grid { grid-template-columns: 1fr; }
   .smart-danger > div { align-items: flex-start; flex-direction: column; gap: 1rem; }
