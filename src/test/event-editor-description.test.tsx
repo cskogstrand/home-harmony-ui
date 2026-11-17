@@ -7,11 +7,21 @@ import type { FamilyEvent } from "@/contexts/FamilyContext";
 const app = vi.hoisted(() => ({ haUrl: "https://ha.example", homeOnline: true, services: {}, commands: {}, command: vi.fn().mockResolvedValue(undefined), currentHome: {
   timeZone: "UTC", areas: [], devices: [], entities: [{ entityId: "calendar.example", preferenceId: "home|calendar.example", name: "Example calendar", domain: "calendar", state: "off", attributes: { supported_features: 4 } }],
 } }));
+const saveEvent = vi.hoisted(() => vi.fn().mockReturnValue(true));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/FamilyContext")>(), useFamily: () => ({
-  today: "2026-10-28", time: "10:05", members: [{ id: "example", name: "Example person" }], memberName: () => "Example person", connectedPlanner: true, calendarMembers: { "home|calendar.example": "example" },
+  today: "2026-10-28", time: "10:05", members: [{ id: "example", name: "Example person" }], memberName: () => "Example person", connectedPlanner: true, calendarMembers: { "home|calendar.example": "example" }, saveEvent,
 }) }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+
+it("preserves the duration when moving a future local plan's start time", () => {
+  const event: FamilyEvent = { id: "example", title: "Example plan", date: "2026-11-02", time: "09:00", endTime: "10:00", member: "example", location: "", note: "" };
+  render(<MemoryRouter><EventEditor open onOpenChange={() => {}} onSaved={() => {}} event={event} /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText("Time"), { target: { value: "09:30" } });
+  expect(screen.getByLabelText("End time (optional)")).toHaveValue("10:30");
+  fireEvent.click(screen.getByRole("button", { name: "Save plan" }));
+  expect(saveEvent).toHaveBeenCalledWith({ ...event, time: "09:30", endTime: "10:30" });
+});
 
 it("keeps normalized waste dates read-only even when the source supports editing", () => {
   const event: FamilyEvent = { id: "pickup", title: "Paper", date: "2026-10-28", time: "00:00", allDay: true, wasteCollection: true, member: "example", location: "", note: "",

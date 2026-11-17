@@ -10,12 +10,15 @@ import { Button } from "@/components/ui/button";
 export default function Onboarding() {
   const { t } = useI18n();
   const { haUrl, homeOnline, currentHome } = useApp();
-  const { members, calendarMembers, todoLists, timetables, timetableSettings, hasTimetable } = useFamily();
+  const { members, calendarMembers, todoLists, timetables, timetableSettings, hasTimetable, isMemberVisible } = useFamily();
   const complete = {
     connection: homeOnline,
     people: members.length > 0,
     calendars: currentHome.entities.some(entity => entity.domain === "calendar" && members.some(person => person.id === calendarMembers[entity.preferenceId])),
-    lists: currentHome.entities.some(entity => entity.domain === "todo" && todoLists[entity.preferenceId]),
+    lists: currentHome.entities.some(entity => {
+      const list = entity.domain === "todo" && todoLists[entity.preferenceId];
+      return list && (list.kind === "shopping" || isMemberVisible(list.member));
+    }),
     timetables: members.some(person => hasTimetable(person.id) && (timetables[person.id]?.length || timetableSettings[person.id]?.type === "calendar")),
   };
   const steps = [

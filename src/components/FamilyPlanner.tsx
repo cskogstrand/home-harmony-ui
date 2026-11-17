@@ -81,7 +81,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
       const end = source && calendarTimeInput(source.end, currentHome.timeZone);
       const initial = newPlanTimes(date ?? today, today, time ?? "09:00");
       setDraft(event ? { ...event, ...(start && { date: start.slice(0, 10), time: start.slice(11) || "00:00" }) } : { id: newPlannerId(), title: "", date: initial.start.date, time: initial.start.time, member: defaultMember, location: "", note: "" });
-      setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : initial.end.date); setEndTime(end?.slice(11) || event?.endTime || (!event && haUrl ? initial.end.time : "")); setError("");
+      setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : event?.date ?? initial.end.date); setEndTime(end?.slice(11) || event?.endTime || (!event && haUrl ? initial.end.time : "")); setError("");
     }
     wasOpen.current = open;
   }, [open, event, source, date, today, time, defaultMember, currentHome.timeZone, haUrl]);

@@ -1329,6 +1329,25 @@ it("keeps onboarding available without a Home Assistant connection", async () =>
   expect(screen.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
 });
 
+it.each([
+  { kind: "tasks" as const, member: "home|person.hidden", complete: false },
+  { kind: "tasks" as const, member: "home|person.visible", complete: true },
+  { kind: "shopping" as const, member: "everyone", complete: true },
+])("counts only visible lists toward setup: $kind / $member", async ({ kind, member, complete }) => {
+  settings.settings.hiddenMembers = ["home|person.hidden"];
+  settings.settings.todoLists = { "home|todo.example": { kind, member } };
+  app.currentHome = mapHome({
+    "person.visible": state("person.visible", "home", { friendly_name: "Example person" }),
+    "person.hidden": state("person.hidden", "home", { friendly_name: "Hidden example person" }),
+    "todo.example": state("todo.example", "0", { friendly_name: "Example list" }),
+  }, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/onboarding");
+  render(<App />); await saved();
+  const listStep = screen.getByRole("heading", { name: "4. Choose lists" }).closest("li");
+  expect(within(listStep).queryByText("Complete") !== null).toBe(complete);
+  expect(screen.getByText(`${complete ? 3 : 2} of 4 setup steps complete`)).toBeInTheDocument();
+});
+
 it("navigates with empty HA data and shows the server-managed connection", async () => {
   app.currentHome = mapHome({}, emptyRegistries, "home");
   render(<App />); await saved();
