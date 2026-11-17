@@ -29,8 +29,10 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
   return <CardFrame design={design} title={title || entity?.name || t(design.subtitle)} subtitle={area?.name} to={!preview && !detail && entity && entity.domain !== "scene" ? entityDetailPath(entity) : undefined} id={detail ? entity?.entityId : undefined} tabIndex={detail ? -1 : undefined} variant={cardVariants[density]} disabled={preview} footer={detail && entity ? <EntityDetails entity={entity} /> : undefined}>
     {!entity ? <div className="smart-card-unassigned"><design.icon size={32} aria-hidden="true" /><p>{t(preview ? "Choose a main entity to preview this card." : "The main entity is unavailable.")}</p>{editTo && <Link className="text-link" to={editTo}>{t("Edit card")}</Link>}</div> : <>
     {entity.domain === "weather" ? <WeatherCard entity={entity} /> : ["camera", "image"].includes(entity.domain) ? <EntityMedia key={entity.entityId} entity={entity} /> : <>
-      {entity.domain === "media_player" && typeof entity.attributes.entity_picture === "string" && <EntityMedia entity={entity} />}
-      <DeviceControl entity={entity} card />
+      {entity.domain === "media_player" ? <div className="smart-player">
+        {typeof entity.attributes.entity_picture === "string" && <EntityMedia entity={entity} />}
+        <DeviceControl entity={entity} card />
+      </div> : <DeviceControl entity={entity} card />}
     </>}
     </>}
     {media.map(item => <div className="smart-supporting-media" key={item.preferenceId}><h3>{item.name}</h3><EntityMedia entity={item} /></div>)}

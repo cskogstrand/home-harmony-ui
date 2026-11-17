@@ -536,3 +536,10 @@
 @media (max-width: 699px) { .smart-card-edit-fields select, .smart-new-group input { font-size: 1rem; } }
 
 .smart-card-unassigned { display: grid; justify-items: center; gap: .75rem; padding: 1.5rem 1rem; text-align: center; color: hsl(var(--muted-foreground)); font-size: .875rem; }
+
+.smart-player { min-width: 0; }
+.dg-compact .smart-player:has(> .smart-media-preview) { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: start; gap: .75rem; }
+.dg-compact .smart-player > .smart-media-preview { width: 64px; }
+.dg-compact .smart-player .smart-entity-media { width: 64px; min-height: 64px; height: 64px; margin: 0; border-radius: var(--radius-event); }
+.dg-compact .smart-player .smart-entity-media > img { width: 100%; height: 100%; object-fit: contain; }
+.dg-compact .smart-player:has(> .smart-media-preview) .dg-vinyl { display: none; }
