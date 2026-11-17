@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.10.25
+
+<!-- release-source: 61fb6222fa124ab12fb38955b0d19a450273f210 -->
+
+- docs: align guidance with updated controls
+- test: verify updated interaction flows
+- fix: keep compact states readable
+- fix: handle planner and setup edge cases
+- fix: use Afterglow in user-facing copy
+- fix: guide setup with a progress checklist
+- fix: group energy readings by device
+- fix: prioritize camera viewing and status
+- fix: make alarm actions explicit
+- fix: keep compact media controls in view
+- fix: improve phone calendar and list controls
+- feat: improve calendar event creation
+- fix: clarify setting scope and save feedback
+- fix: separate alerts from device diagnostics
+- fix: put editor tasks before previews
+- fix: prioritize everyday room controls
+- fix: simplify navigation and card discovery
+- style: unify shapes and touch targets
+
 ## 0.10.24
 
 <!-- release-source: ed1766edf09d732ac9a736b63398b7f7c4028a0a -->
