@@ -431,6 +431,8 @@
 .smart-card-group-title > span { color: hsl(var(--muted-foreground)); font-size: .875rem; font-weight: 400; }
 .smart-entity-media { position: relative; min-height: 10rem; margin-bottom: .75rem; background: hsl(var(--muted)); border-radius: 12px; overflow: hidden; display: grid; place-items: center; }
 .smart-entity-media :is(img, video, canvas) { display: block; width: 100%; height: auto; object-fit: contain; }
+/* A light backing shows dark models through transparent image pixels in either theme. */
+.smart-entity-media[data-trim-transparent] > img { background: hsl(0 0% 96%); }
 .smart-entity-media.is-camera { width: 100%; aspect-ratio: 16 / 9; }
 .smart-entity-media.is-camera > img { position: absolute; inset: 0; height: 100%; }
 .smart-entity-media > p { padding: 1rem; font-size: .875rem; text-align: center; }

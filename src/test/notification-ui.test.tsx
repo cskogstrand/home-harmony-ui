@@ -460,6 +460,7 @@ it("selects, previews, saves, reopens and removes an image independently of the 
   chooseEntity("Image (optional)", "image.example");
   const preview = screen.getByRole("region", { name: "Notification preview" });
   expect(within(preview).getByText("Image preview").closest('[data-placement="left"]')).not.toBeNull();
+  expect(within(preview).queryByRole("button", { name: "Expand Example model" })).not.toBeInTheDocument();
   expect(within(preview).getByText("Camera preview").closest('[data-placement="right"]')).not.toBeNull();
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
   expect(watchCameraStream).not.toHaveBeenCalled();
@@ -495,10 +496,42 @@ it.each(["section", "banner", "activity", "activity-compact"])("shows one image 
   const view = render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} /></MemoryRouter>);
   expect(view.container.querySelectorAll(".notification-camera-feed")).toHaveLength(1);
   expect(view.container.querySelectorAll(".notification-image-feed")).toHaveLength(1);
+  expect(screen.getByRole("button", { name: "Expand Example model" })).toBeEnabled();
   expect(!!screen.getByRole("img", { name: "Example model" }).closest('[data-placement="left"]')).toBe(presentation.startsWith("activity"));
   expect(!!view.container.querySelector(".notification-camera-feed").closest('[data-placement="right"]')).toBe(presentation.startsWith("activity"));
   expect(view.container.querySelector('[data-placement="left"]')).toHaveTextContent("Task state");
   expect(watchCameraStream).toHaveBeenCalledTimes(1);
+});
+
+it("opens the notification image in the shared viewer, updates it and returns focus on close", async () => {
+  const crop = vi.spyOn(imageTrimming, "trimTransparentImage").mockReturnValue("data:image/png;base64,cropped");
+  try {
+    const currentHome = home();
+    currentHome.entities.push(...mapHome({ "image.example": state("image.example", "2026-10-24T12:00:00Z", { friendly_name: "Example model" }) }, emptyRegistries, "home").entities);
+    mocks.app.currentHome = currentHome;
+    const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", imageEntity: "home|image.example" });
+    const content = () => <MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} activity /></MemoryRouter>;
+    const view = render(content());
+    const opener = screen.getByRole("button", { name: "Expand Example model" });
+    opener.focus();
+    fireEvent.click(opener);
+    const dialog = screen.getByRole("dialog", { name: "Example model" });
+    const image = within(dialog).getByRole("img", { name: "Example model" });
+    expect(image).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example?"));
+    expect(image.parentElement).toHaveAttribute("data-trim-transparent");
+    fireEvent.load(image);
+    expect(image).toHaveAttribute("src", "data:image/png;base64,cropped");
+    currentHome.entities.find(entity => entity.domain === "image").lastUpdated = "2026-10-24T13:00:00Z";
+    view.rerender(content());
+    expect(within(dialog).getByRole("img")).toHaveAttribute("src", expect.stringContaining(encodeURIComponent("2026-10-24T13:00:00Z")));
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() => expect(opener).toHaveFocus());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(opener);
+    view.unmount();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(watchCameraStream).toHaveBeenCalledTimes(1);
+  } finally { crop.mockRestore(); }
 });
 
 it("updates an image with its entity and keeps missing or failed images recoverable", () => {

@@ -138,7 +138,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
   const imageHeight = Math.min(frameSize.height, frameSize.width / aspectRatio);
-  return <div ref={ref} className={`smart-entity-media${camera ? " is-camera" : domain === "image" ? " is-map" : ""}`} onLoadCapture={event => {
+  return <div ref={ref} className={`smart-entity-media${camera ? " is-camera" : domain === "image" ? " is-map" : ""}`} data-trim-transparent={trimTransparent && domain === "image" || undefined} onLoadCapture={event => {
     const image = event.target;
     if (image instanceof HTMLImageElement && !image.closest(".smart-person-pip, .is-playing") && image.naturalWidth && image.naturalHeight) setAspectRatio(image.naturalWidth / image.naturalHeight);
   }}>
@@ -161,7 +161,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   </div>;
 }
 
-export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices = false }: MediaSource & { showImageChoices?: boolean }) {
+export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices = false, trimTransparent = false }: MediaSource & { showImageChoices?: boolean; trimTransparent?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const camera = suppliedCamera ?? shared?.state.config.settings.cameras.items.find(item => item.connectionId === "home-assistant" && item.source === entity?.entityId);
@@ -180,14 +180,14 @@ export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices =
   </div>;
   return <Dialog open={open} onOpenChange={setOpen}>
     <div className="smart-media-preview">
-      {preview === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open && (preview !== selected || !camera && entity?.domain !== "camera")} snapshotOnly={preview === "snapshot"} />}
+      {preview === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open && (preview !== selected || !camera && entity?.domain !== "camera")} snapshotOnly={preview === "snapshot"} trimTransparent={trimTransparent} />}
       {expandable && <button ref={opener} type="button" className="smart-media-open" aria-label={t("Expand {name}", { name })} onClick={() => setOpen(true)}><span><Expand size={18} /></span></button>}
     </div>
     {showImageChoices && choices}
     {expandable && <DialogContent className="smart-media-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>
       <DialogHeader><DialogTitle>{name}</DialogTitle></DialogHeader>
       {choices}
-      {selected === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={selected} entity={entity} camera={camera} expanded snapshotOnly={selected === "snapshot"} />}
+      {selected === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={selected} entity={entity} camera={camera} expanded snapshotOnly={selected === "snapshot"} trimTransparent={trimTransparent} />}
     </DialogContent>}
   </Dialog>;
 }

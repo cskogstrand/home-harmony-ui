@@ -15,7 +15,7 @@ import { available, entityStateLabel } from "@/lib/ha-model";
 import { matchesState, notificationEntity, notificationReadings, type HomeNotification } from "@/lib/notifications";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
-import { MediaSurface } from "./devices/EntityMedia";
+import { EntityMedia, MediaSurface } from "./devices/EntityMedia";
 import type { Entity } from "@/types/api";
 import type { NotificationPresentation } from "../../shared/notifications";
 import { NotificationIcon } from "./NotificationIcon";
@@ -70,7 +70,7 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   const cameraContent = showCamera && <><NotificationCameraFeed item={item} preview={preview} compact={cameraPosition !== "footer"} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>;
   const imageContent = item.rule.imageEntity && <div className="notification-image-feed">
     {preview ? <div className="notification-camera-placeholder"><Image size={imagePosition === "footer" ? 32 : 24} aria-hidden="true" /><span className={imagePosition === "footer" ? undefined : "sr-only"}>{t("Image preview")}</span></div>
-      : image?.domain === "image" ? <MediaSurface key={image.preferenceId} entity={image} trimTransparent />
+      : image?.domain === "image" ? <EntityMedia key={image.preferenceId} entity={image} trimTransparent />
       : <p role="status">{t("Image unavailable. Choose another image in notification settings.")}</p>}
   </div>;
   const hasColumn = (position: "left" | "right") => at(position).length > 0 || showCamera && cameraPosition === position || !!imageContent && imagePosition === position;
