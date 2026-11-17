@@ -256,7 +256,7 @@ The shared header, main content and footer are centered within a maximum width (
 | Width ≤800px | Device rows put controls below the title and retain readable metadata. |
 | Width ≤699px | Gutters and panels use 1rem; the board and primary grids stack; navigation floats within .75rem side margins, with icons above labels. |
 
-The weekly grid uses horizontal overflow when necessary, with a sticky person column. Its usual minimum width is (840px), reduced to (760px) in wide landscape and removed for the large portrait layout. Multi-day events remain aligned across dates. Content below the viewport stays reachable by scrolling.
+The weekly grid uses horizontal overflow when necessary, with a sticky person column. Its usual minimum width is (840px), reduced to (760px) in wide landscape and removed for the large portrait layout. Multi-day events remain aligned across dates. Event text breaks only between words or at hyphenation points in the document language. Week-grid event titles clamp at four lines; the event dialog shows the full title. Each empty week cell has an icon-only add button whose accessible label names the person and date. Content below the viewport stays reachable by scrolling.
 
 Calendar timetables use five equal weekday columns. At a container width of (620px) or less, days stack with dates beside their events in flexible one-to-two columns. Full-width messages remain beneath the week.
 

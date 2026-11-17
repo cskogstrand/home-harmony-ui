@@ -19,7 +19,7 @@ STORY: Switch the visible period, move backward or forward, jump to a date or re
 
 FIRST VIEWPORT: Calendar heading and Add a plan action above a compact toolbar. Date navigation leads, month/week/day segments follow, then person filters. A seven-column month grid shows short event previews on wide screens and readable day counts on phones. Tapping a day opens a chronological agenda with all-day events separated from timed plans.
 
-FORM: Local extension, code-led; no concept roll required. Week is the default. URL state preserves view and date; shared dashboard layout preferences keep their existing purpose. Include loading, unavailable and empty states, keyboard focus, English/Norwegian, both themes and portrait/phone sizing.
+FORM: Local extension, code-led; no concept roll required. Week is the default; phones up to 699px wide open on Day unless the URL names a view or week. URL state preserves view and date; shared dashboard layout preferences keep their existing purpose. Include loading, unavailable and empty states, keyboard focus, English/Norwegian, both themes and portrait/phone sizing.
 
 Event descriptions in Next family plan and the shared calendar dialog support paragraphs, line breaks, lists, basic emphasis and absolute HTTP(S), email and phone links. Only known formatting elements and validated link destinations are rebuilt; source styles, event handlers, scripts, images and embedded content never enter the page. Plain text retains its line breaks. Descriptions sit beneath the next-plan button so links remain separate keyboard and touch targets. Long dialog content scrolls. Editable Home Assistant events show a formatted preview while retaining the original description in the notes field and save payload.
 

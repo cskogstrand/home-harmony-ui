@@ -236,13 +236,13 @@ fieldset.settings-card > legend + * { clear: both; }
 .dark .event-button { --event-tint: 18%; }
 /* The calendar-color marker identifies ownership; the event itself stays opaque. */
 .event-button::before { content: ""; position: absolute; inset: .5rem auto .5rem .35rem; width: 3px; border-radius: 999px; background: color-mix(in srgb, var(--member) 75%, var(--event-ink)); }
-.event-button strong { display: block; font-size: .9375rem; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+.event-button strong { display: block; font-size: .9375rem; line-height: 1.3; font-weight: 600; overflow-wrap: break-word; hyphens: auto; }
 .event-button strong svg { display: inline; vertical-align: -.1em; }
 .event-title { display: flex; align-items: flex-start; gap: .5rem; }
 .event-title > strong { flex: 1; min-width: 0; }
 .event-title > svg { flex-shrink: 0; margin-top: .1rem; }
 .event-time { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .5rem; font-size: .8125rem; line-height: 1.4; font-variant-numeric: tabular-nums; }
-.event-button small { display: block; font-size: .75rem; line-height: 1.4; overflow-wrap: anywhere; color: color-mix(in srgb, var(--event-ink) 85%, var(--event-surface)); }
+.event-button small { display: block; font-size: .75rem; line-height: 1.4; overflow-wrap: break-word; hyphens: auto; color: color-mix(in srgb, var(--event-ink) 85%, var(--event-surface)); }
 .family-lane .event-button { margin-bottom: .5rem; }
 @media (hover: hover) { .event-button:hover { background: color-mix(in srgb, var(--event-ink) 8%, var(--event-surface)); } }
 @media (prefers-contrast: more) { .event-button { border-color: currentColor; } }
@@ -655,7 +655,9 @@ fieldset.settings-card > legend + * { clear: both; }
 .family-week-table .event-continues-after { border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
 .family-week-table .event-button small { display: none; }
 .week-add-plan { display: flex; width: 100%; align-items: center; justify-content: center; gap: 5px; min-height: 48px; color: hsl(var(--muted-foreground)); font-size: 0.75rem; border-radius: 8px; }
-.week-add-plan:hover { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
+.week-add-plan:hover, .week-add-plan:focus-visible { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
+/* Long homework stays scannable in the grid; the event dialog shows the full title. */
+.family-week-table .event-button strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
 
 /* Capability-aware home controls and dashboard favorites. */
 .home-device .control-stack { margin-top: auto; }

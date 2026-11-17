@@ -24,7 +24,9 @@ export default function Calendar() {
   const [params, setParams] = useSearchParams();
   const selected = params.get("date"), selectedWeek = params.get("week"), selectedView = params.get("view");
   const validDate = isPlannerDate(selected) ? selected : null;
-  const view: CalendarView = selectedView === "month" || selectedView === "day" || selectedView === "week" ? selectedView : validDate ? "day" : "week";
+  // Phones open on the day: a seven-column week only fits there with sideways scrolling.
+  const phone = window.matchMedia?.("(max-width: 699px)").matches;
+  const view: CalendarView = selectedView === "month" || selectedView === "day" || selectedView === "week" ? selectedView : validDate || phone && !isPlannerDate(selectedWeek) ? "day" : "week";
   const date = validDate ?? (isPlannerDate(selectedWeek) ? selectedWeek : today);
   const { start, end } = calendarRange(date, view, isPlannerDate(selectedWeek) ? "today" : calendar.startDay);
   const data = useCalendarPlans(start, end);
