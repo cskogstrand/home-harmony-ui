@@ -17,6 +17,7 @@ import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { notificationIcons, notificationRuleSchema } from "../../shared/notifications";
 import { state } from "./ha-fixtures";
 import { playGo2rtcStream } from "@/lib/go2rtc-stream";
+import * as imageTrimming from "@/lib/trim-transparent-image";
 
 const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {} as Record<string, unknown>, shared: { state: { loaded: true, error: "", config: undefined as ReturnType<typeof emptyConfiguration> } } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -518,6 +519,32 @@ it("updates an image with its entity and keeps missing or failed images recovera
   view.rerender(content());
   expect(screen.getByText("Image unavailable. Choose another image in notification settings.")).toBeVisible();
   expect(watchCameraStream).not.toHaveBeenCalled();
+});
+
+it("trims a notification image once per source and falls back if its cropped image cannot load", () => {
+  const crop = vi.spyOn(imageTrimming, "trimTransparentImage").mockReturnValue("data:image/png;base64,cropped");
+  try {
+    const currentHome = mapHome({ "image.example": state("image.example", "2026-10-24T12:00:00Z", { friendly_name: "Example model" }) }, emptyRegistries, "home");
+    mocks.app.currentHome = currentHome;
+    const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", cameraEntity: "", imageEntity: "home|image.example" });
+    const content = () => <MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} activity /></MemoryRouter>;
+    const view = render(content());
+    const image = screen.getByRole("img", { name: "Example model" });
+    const original = image.getAttribute("src");
+    fireEvent.load(image);
+    expect(image).toHaveAttribute("src", "data:image/png;base64,cropped");
+    fireEvent.load(image);
+    expect(crop).toHaveBeenCalledTimes(1);
+    fireEvent.error(image);
+    expect(image).toHaveAttribute("src", original);
+    fireEvent.load(image);
+    expect(crop).toHaveBeenCalledTimes(1);
+    currentHome.entities[0].lastUpdated = "2026-10-24T13:00:00Z";
+    view.rerender(content());
+    fireEvent.load(screen.getByRole("img", { name: "Example model" }));
+    expect(crop).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole("img", { name: "Example model" })).toHaveAttribute("src", "data:image/png;base64,cropped");
+  } finally { crop.mockRestore(); }
 });
 
 it("offers configured cameras and allows clearing the optional reading", async () => {
