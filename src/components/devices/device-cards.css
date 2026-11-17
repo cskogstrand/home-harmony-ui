@@ -4,8 +4,8 @@
   --dg-surface: hsl(var(--card));
   --dg-line: hsl(var(--border) / .65);
   color: var(--dg-ink);
-  gap: 0;
 }
+.device-gallery { gap: 0; }
 :is(.device-gallery, .device-card-designs) ::selection { background: hsl(var(--primary) / .22); }
 :is(.device-gallery, .device-card-designs) :is(button, input, select, textarea, summary, a):focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 4px; }
 :is(.device-gallery, .device-card-designs) :is(input, select, textarea) { caret-color: hsl(var(--primary)); }
@@ -542,6 +542,10 @@
 .dg-compact .smart-player > .smart-media-preview { width: 64px; }
 .dg-compact .smart-player .smart-entity-media { width: 64px; min-height: 64px; height: 64px; margin: 0; border-radius: var(--radius-event); }
 .dg-compact .smart-player .smart-entity-media > img { width: 100%; height: 100%; object-fit: contain; }
+.dg-compact .smart-player:has(.smart-entity-media:not(:has(img))) { grid-template-columns: minmax(0, 1fr); }
+.dg-compact .smart-player > .smart-media-preview:has(.smart-entity-media:not(:has(img))) { width: 100%; }
+.dg-compact .smart-player .smart-entity-media:not(:has(img)) { display: flex; justify-content: space-between; width: 100%; height: auto; }
+.dg-compact .smart-player .smart-entity-media > p { padding: .25rem; }
 .dg-compact .smart-player:has(> .smart-media-preview) .dg-vinyl { display: none; }
 
 .smart-entity-media .smart-media-status.has-label { width: auto; max-width: calc(100% - 4rem); padding-inline: .75rem; gap: .5rem; border-radius: var(--radius-field); font-size: .875rem; }
