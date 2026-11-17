@@ -334,7 +334,7 @@ it("keeps one camera player through state updates, expansion and closing", async
   expect(screen.queryByText("Live camera")).not.toBeInTheDocument();
   Object.defineProperty(video, "readyState", { value: 4 });
   video.currentTime = .5; fireEvent.timeUpdate(video);
-  expect(screen.getByRole("button", { name: "Live camera" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Live" })).toBeVisible();
   expect(screen.getByRole("img", { name: entity.name })).toBe(preview);
   expect(fetchPreview.mock.calls[0][1].signal.aborted).toBe(true);
   view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={{ ...entity, state: "streaming" }} /></TooltipProvider></MemoryRouter>);

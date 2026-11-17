@@ -327,9 +327,9 @@ it.each(["shopping", "tasks", "daily", "homework", "school"] as const)("updates 
   expect(two).toBeEnabled();
   if (surface !== "homework" && surface !== "school") {
     expect(screen.getByRole("button", { name: "Edit Example task" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Remove Example task" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Actions for Example task" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Edit Second task" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Remove Second task" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Actions for Second task" })).toBeEnabled();
   }
   fireEvent.click(two);
   fireEvent.click(one);
