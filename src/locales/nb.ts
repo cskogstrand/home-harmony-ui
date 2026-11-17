@@ -1,4 +1,6 @@
 export const nb = {
+  "{unavailable} unavailable · {unknown} unknown": "{unavailable} utilgjengelige · {unknown} ukjente",
+  "Unknown means no value has been reported. Unavailable means Home Assistant cannot currently read the entity.": "Ukjent betyr at ingen verdi er rapportert. Utilgjengelig betyr at Home Assistant ikke kan lese enheten akkurat nå.",
   "Home Assistant": "Home Assistant",
   "Advanced": "Avansert",
   "Device settings and diagnostics. Everyday controls are shown above.": "Enhetsinnstillinger og diagnostikk. Daglige kontroller vises over.",

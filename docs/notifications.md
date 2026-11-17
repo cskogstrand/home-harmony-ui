@@ -90,3 +90,5 @@ Notifications run while the dashboard is open and connected. They do not send ph
 Alert content, dismissals and camera views remain in this browser session. Reloading clears dismissals. Home Assistant events, event history and camera images are not written to settings storage. go2rtc cameras use authenticated signaling with an HTTP MSE fallback; Home Assistant cameras retain their video, MJPEG and labeled snapshot fallbacks. Background tabs pause live playback. Connection loss clears active alerts and stops camera playback.
 
 Choose devices from your own Home Assistant instance in the editor. Keep real household identifiers and event filters out of repository examples and screenshots.
+
+The Notifications page keeps household alerts first. Device availability is a collapsed diagnostic summary with separate unknown and unavailable counts, grouped by physical device or integration. Expanding a group reveals its entity links. Offline status is explicitly marked as cached.
