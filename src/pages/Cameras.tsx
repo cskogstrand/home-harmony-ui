@@ -6,6 +6,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { PageHeading } from "@/components/FamilyPlanner";
 import { Button } from "@/components/ui/button";
 import { EntityMedia } from "@/components/devices/EntityMedia";
+import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import { SettingsPopover } from "@/components/common/SettingsPopover";
 import "@/components/camera-settings.css";
 
@@ -23,8 +24,10 @@ export default function Cameras() {
     <PageHeading title={t("Cameras")} description={t("Your cameras, ready to watch or use in notifications.")}>
       <div className="flex flex-wrap items-center gap-2">
         <Button asChild><Link to="/settings/cameras?add">{t("Add camera")}</Link></Button>
-        <Button variant="outline" asChild><Link to="/settings/cameras">{t("Manage cameras")}</Link></Button>
-        <SettingsPopover label={t("Display settings")} className="camera-layout-popover">
+        <SettingsPopover label={t("Camera settings")} className="camera-layout-popover">
+          <SharedSettingsStatus />
+          <Link className="text-link min-h-11" to="/settings/cameras">{t("Manage cameras")}</Link>
+          <Link className="text-link min-h-11" to="/settings/camera-connections">{t("Manage connections")}</Link>
           <fieldset disabled={!shared.state.loaded || !!shared.state.error}>
             <legend className="font-medium">{t("Cameras per row")}</legend>
             <div className="grid grid-cols-2 gap-3 mt-3">{[1, 2, 3, 4].map(columns => {
@@ -52,7 +55,7 @@ export default function Cameras() {
     {!settings.items.length && <section className="glow-panel space-y-3"><Camera size={28} aria-hidden="true" /><h2 className="text-xl font-semibold">{t("No cameras added yet")}</h2><p className="page-note">{t("Add a camera and choose its connection. Home Assistant cameras are available to select, but are not added automatically.")}</p><Button variant="outline" asChild><Link to="/settings/camera-connections">{t("Manage connections")}</Link></Button></section>}
     <div className={`grid grid-cols-1 gap-6 ${columnClasses[settings.columns - 1]}`}>{settings.items.map(camera => <section key={camera.id} className="glow-panel min-w-0 space-y-4" aria-label={camera.name}>
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0"><h2 className="text-xl font-semibold break-words">{camera.name}</h2><p className="page-note break-words">{camera.connectionId === "home-assistant" ? "Home Assistant" : settings.connections.find(item => item.id === camera.connectionId)?.name} · {camera.source}</p></div>
+        <div className="min-w-0"><h2 className="text-xl font-semibold break-words">{camera.name}</h2></div>
         <Button variant="ghost" size="icon" className="shrink-0" asChild><Link to={`/settings/cameras?camera=${encodeURIComponent(camera.id)}`} aria-label={t("Configure {name}", { name: camera.name })} title={t("Configure camera")}><Settings aria-hidden="true" /></Link></Button>
       </div>
       <EntityMedia camera={camera} showImageChoices />

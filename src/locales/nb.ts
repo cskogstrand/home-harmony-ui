@@ -1,4 +1,6 @@
 export const nb = {
+  "Current state": "Nåværende status",
+  "Live": "Direkte",
   "Arm home": "Slå på hjemmemodus",
   "Arm away": "Slå på bortemodus",
   "Arm night": "Slå på nattmodus",

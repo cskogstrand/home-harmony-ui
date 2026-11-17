@@ -307,7 +307,7 @@ it("falls back from camera video to MJPEG and snapshots and permits retry after 
   const snapshot = screen.getByRole("img");
   expect(snapshot).toHaveAttribute("src", expect.stringContaining("/api/camera_proxy/camera.example"));
   fireEvent.load(snapshot);
-  expect(screen.getByRole("button", { name: "Snapshot · live stream unavailable" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Still image" })).toBeVisible();
   fireEvent.error(snapshot);
   expect(screen.getByText("Image unavailable")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Retry" }));

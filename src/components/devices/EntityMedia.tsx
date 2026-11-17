@@ -15,11 +15,11 @@ import { CameraStreamPreview } from "@/components/CameraStreamPreview";
 import { CameraMediaStatus } from "@/components/CameraMediaStatus";
 
 type MediaSource = { entity?: Entity; camera?: ConfiguredCamera };
-function MediaImage({ src, name, caption, onError }: { src: string; name: string; caption?: string; onError: () => void }) {
+function MediaImage({ src, name, caption, shortLabel, onError }: { src: string; name: string; caption?: string; shortLabel?: string; onError: () => void }) {
   const { message: t } = useI18n();
   const [loaded, setLoaded] = useState(false);
   return <><img src={src} alt={name} draggable={false} onLoad={() => setLoaded(true)} onError={onError} />
-    {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} icon={VideoOff} />}</>;
+    {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} shortLabel={shortLabel} icon={VideoOff} />}</>;
 }
 function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, onError, onAspectRatio }: { id: string; sourceKey: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
   const { watchCameraStream } = useApp();
@@ -74,7 +74,7 @@ function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, onErro
     <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
       status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
     <div ref={ref} />
-    <CameraMediaStatus icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
+    <CameraMediaStatus shortLabel={playing ? "Live" : "Connecting…"} icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }
 
 export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false, showPerson = expanded && !snapshotOnly }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean; showPerson?: boolean }) {
@@ -133,10 +133,10 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     if (image instanceof HTMLImageElement && !image.closest(".smart-person-pip, .is-playing") && image.naturalWidth && image.naturalHeight) setAspectRatio(image.naturalWidth / image.naturalHeight);
   }}>
     {reported && (seen || expanded) && !paused && !failed ? snapshotOnly
-      ? <div className="smart-camera-player"><CameraStreamPreview key={sourceKey} src={previewSrc} name={name} status="Loading image…" caption="Preview image · refreshes automatically" /></div>
+      ? <div className="smart-camera-player"><CameraStreamPreview key={sourceKey} src={previewSrc} name={name} status="Loading image…" caption="Preview image · refreshes automatically" shortLabel="Still image" /></div>
       : camera && !mjpeg
       ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} sourceKey={sourceKey} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} onAspectRatio={setAspectRatio} />
-      : <MediaImage key={src} src={src} name={name} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
+      : <MediaImage key={src} src={src} name={name} shortLabel={camera ? snapshot ? "Still image" : "Camera preview" : undefined} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}
     {/* A working MJPEG fallback already shows the picture; its status icon explains the missing video. */}
@@ -169,11 +169,11 @@ export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices =
     {hasPerson && <Button variant={selected === "person" ? "default" : "outline"} aria-pressed={selected === "person"} onClick={() => setMedia("person")}><UserRound aria-hidden="true" />{t("Person snapshot")}</Button>}
   </div>;
   return <Dialog open={open} onOpenChange={setOpen}>
-    {showImageChoices && choices}
     <div className="smart-media-preview">
       {preview === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open && (preview !== selected || !camera && entity?.domain !== "camera")} snapshotOnly={preview === "snapshot"} />}
       {expandable && <button ref={opener} type="button" className="smart-media-open" aria-label={t("Expand {name}", { name })} onClick={() => setOpen(true)}><span><Expand size={18} /></span></button>}
     </div>
+    {showImageChoices && choices}
     {expandable && <DialogContent className="smart-media-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>
       <DialogHeader><DialogTitle>{name}</DialogTitle></DialogHeader>
       {choices}

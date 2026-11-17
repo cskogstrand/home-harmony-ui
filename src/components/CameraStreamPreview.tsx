@@ -5,7 +5,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { CameraPreviewImageContext } from "@/contexts/CameraPreviewImageContext";
 
 // A decoded frame stays visible while the next request loads; never queue snapshots.
-export function CameraStreamPreview({ src, name, status, active = true, caption = "Snapshot preview · connecting video…" }: { src: string; name: string; status: string; active?: boolean; caption?: string }) {
+export function CameraStreamPreview({ src, name, status, active = true, shortLabel, caption = "Snapshot preview · connecting video…" }: { src: string; name: string; status: string; active?: boolean; shortLabel?: string; caption?: string }) {
   const { message: t } = useI18n();
   const cache = useContext(CameraPreviewImageContext);
   // The shared cache owns configured sources even before the first frame is ready.
@@ -59,7 +59,7 @@ export function CameraStreamPreview({ src, name, status, active = true, caption 
   const image = cached ? cache[src]?.src : frame;
   const unavailable = cached ? cache[src]?.failed : failed;
   return <div className="smart-camera-preview">
-    {image ? <><img src={image} alt={name} draggable={false} />{caption && <CameraMediaStatus label={caption} icon={ImageIcon} />}</>
+    {image ? <><img src={image} alt={name} draggable={false} />{caption && <CameraMediaStatus label={caption} shortLabel={shortLabel} icon={ImageIcon} />}</>
       : <p role="status">{t(unavailable ? "Preview image unavailable. Check the camera connection. Retrying…" : status)}</p>}
   </div>;
 }

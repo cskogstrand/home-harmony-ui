@@ -445,3 +445,5 @@ Phone list tabs stay on one scrollable row with their label and count together. 
 Compact and super compact media cards use a 64px artwork thumbnail beside track information and transport. Original cards retain large artwork. Supporting camera/image sources keep their normal viewing area.
 
 Alarm actions name their result (Arm home/away/night), including the primary card action and confirmation title. Current state is labeled separately. Capability checks, pending states and code/confirmation requirements remain in force.
+
+Camera overview keeps Add camera beside a single Camera settings control, puts media choices below the picture, and leaves transport/source identifiers in settings. Playback status uses short visible labels with detailed popovers; person-inset status remains an icon.
