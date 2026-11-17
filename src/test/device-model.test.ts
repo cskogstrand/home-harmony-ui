@@ -128,3 +128,20 @@ it("groups each device once by its own room or type, with fallback groups last",
   expect(deviceSections(devices, home.areas, "none")).toEqual([{ id: "all", name: "All devices", devices }]);
   expect(deviceSections([], home.areas, "room")).toEqual([]);
 });
+
+it("keeps safety readings visible while moving uncategorized maintenance to tools", () => {
+  const base = mapHome(states, registries, "test").entities[0];
+  const entities = [
+    { ...base, entityId: "button.example_identify", domain: "button", name: "Identify" },
+    { ...base, entityId: "sensor.example_next_hop", domain: "sensor", name: "nextHop" },
+    { ...base, entityId: "select.example_display_unit", domain: "select", name: "displayUnit" },
+    { ...base, entityId: "binary_sensor.smoke", domain: "binary_sensor", category: "diagnostic", attributes: { device_class: "smoke" } },
+    { ...base, entityId: "button.example_goodnight", domain: "button", name: "Goodnight" },
+  ];
+  const sections = deviceDetailSections(entities);
+  expect(sections.diagnostics).toEqual(entities.slice(0, 2));
+  expect(sections.configuration).toEqual([entities[2]]);
+  expect(sections.readings).toEqual([entities[3]]);
+  expect(sections.controls).toEqual([entities[4]]);
+  expect(Object.values(sections).flat()).toHaveLength(entities.length);
+});

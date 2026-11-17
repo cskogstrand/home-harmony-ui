@@ -907,3 +907,6 @@ fieldset.settings-card > legend + * { clear: both; }
 .settings-popover .calendar-segment { display: flex; flex-wrap: wrap; }
 .settings-popover .calendar-segment button { flex: 1; white-space: normal; }
 .settings-popover .filter-row { margin: 0; }
+
+.room-advanced > summary { display: flex; align-items: center; gap: .5rem; min-height: 48px; cursor: pointer; font-weight: 600; }
+.room-advanced > summary span { color: hsl(var(--muted-foreground)); font-weight: 400; }

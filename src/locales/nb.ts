@@ -1,4 +1,5 @@
 export const nb = {
+  "Device settings and diagnostics. Everyday controls are shown above.": "Enhetsinnstillinger og diagnostikk. Daglige kontroller vises over.",
   "Arrange cards": "Ordne kort",
   "Edit cards": "Rediger kort",
   "Opens in a new tab": "Åpnes i en ny fane",

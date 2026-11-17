@@ -40,6 +40,15 @@ export function deviceType(entities: Entity[]) {
   return primary.some(entity => ["sensor", "binary_sensor"].includes(entity.domain)) ? "Sensors" : "Other";
 }
 
+// Some integrations omit entity_category for maintenance entities.
+function maintenanceSection(entity: Entity): "configuration" | "diagnostics" | undefined {
+  if (entity.category === "config") return "configuration";
+  if (entity.category === "diagnostic" || entity.domain === "update") return "diagnostics";
+  const labels = [entity.name, entity.entityId.split(".")[1] ?? ""].map(value => value.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase().replace(/[ -]+/g, "_"));
+  if (labels.some(value => /(?:^|_)(identify|restart|reboot|firmware|firmware_version|next_hop|linkquality|link_quality|rssi|lqi)$/.test(value))) return "diagnostics";
+  if (labels.some(value => /(?:^|_)(display_unit|calibration|sensitivity|threshold)$/.test(value))) return "configuration";
+}
+
 export function deviceDetailSections(entities: Entity[]) {
   const hasMainControl = entities.some(entity => !entity.category && deviceTypes.has(entity.domain) && entity.domain !== "switch");
   const sections: Record<"primary" | "readings" | "controls" | "configuration" | "diagnostics", Entity[]> = {
@@ -47,13 +56,12 @@ export function deviceDetailSections(entities: Entity[]) {
   };
   for (const entity of entities) {
     const reading = ["sensor", "binary_sensor", "event", "device_tracker"].includes(entity.domain);
-    const usefulDiagnostic = reading && ["battery", "problem", "tamper", "safety"].includes(String(entity.attributes.device_class));
-    const section = entity.category === "config" ? "configuration"
-      : entity.category === "diagnostic" && !usefulDiagnostic ? "diagnostics"
-      : reading ? "readings"
+    const usefulDiagnostic = reading && ["battery", "problem", "tamper", "safety", "smoke", "gas", "carbon_monoxide", "moisture", "heat"].includes(String(entity.attributes.device_class));
+    const section = usefulDiagnostic ? "readings"
+      : maintenanceSection(entity) ?? (reading ? "readings"
       : entity.domain === "switch" && hasMainControl ? "controls"
       : deviceTypes.has(entity.domain) || ["lawn_mower", "siren", "image", "weather", "air_quality"].includes(entity.domain) ? "primary"
-      : "controls";
+      : "controls");
     sections[section].push(entity);
   }
   return sections;
