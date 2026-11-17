@@ -17,6 +17,9 @@ describe("HA mapping", () => {
     expect(entity("light.living").preferenceId).toBe("http://ha.local:8123|stable-light");
     const renamed = mapHome({ "light.renamed": state("light.renamed", "off") }, { ...registries, entities: [{ ...registries.entities[0], entity_id: "light.renamed" }] }, "http://ha.local:8123");
     expect(renamed.entities[0].preferenceId).toBe(entity("light.living").preferenceId);
+    const device = registries.devices[0];
+    const doubled = mapHome({ "light.living": state("light.living", "off", { friendly_name: `${device.name}  ${device.name}` }) }, { ...registries, entities: [{ ...registries.entities[0], name: undefined }] }, "home");
+    expect(doubled.entities[0].name).toBe(device.name);
   });
   it("retains unknown, unavailable, missing, units and null values without inventing metadata", () => {
     expect(entity("sensor.power")).toMatchObject({ state: "unknown", attributes: { unit_of_measurement: "W" } });

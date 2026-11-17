@@ -45,6 +45,13 @@ export default function Dashboard() {
   const upcoming = events.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
   const next = upcoming.find(e => !e.allDay);
   const daysAway = next ? differenceInCalendarDays(parseISO(next.date), parseISO(today)) : 0;
+  const minutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5));
+  const minutesAway = next && daysAway === 0 ? minutes(next.time) - minutes(time) : undefined;
+  const countdown = minutesAway === undefined ? daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })
+    : minutesAway <= 0 ? t("Now")
+    : minutesAway < 60 ? t("In {minutes} min", { minutes: minutesAway })
+    : minutesAway % 60 ? t("In {hours} h {minutes} min", { hours: Math.floor(minutesAway / 60), minutes: minutesAway % 60 })
+    : t("In {hours} h", { hours: minutesAway / 60 });
   const quietDays = !data.loading && !data.errors.length && (!connectedPlanner || homeOnline)
     && !events.some(e => !e.allDay && e.date >= today && e.date < planEnd
       && (e.date > today || e.continues || (e.endTime ?? e.time) >= time));
@@ -59,10 +66,10 @@ export default function Dashboard() {
       </div>
       {next ? <><button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
         <div className="next-event-copy">
-          <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway })}</Badge></div>
+          <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{countdown}</Badge></div>
           <small>{[next.todo && t("Task"), memberName(next.member), next.location].filter(Boolean).join(" · ")}</small>
         </div>
-        <div className="next-event-time"><time>{eventTimeLabel(next)}</time><small>{next.date === today ? t("Today") : dateLabel(next.date)}</small></div>
+        <div className="next-event-time"><time>{eventTimeLabel(next)}</time>{daysAway > 1 && <small>{dateLabel(next.date)}</small>}</div>
       </button>{next.note && <CollapsibleContent><EventDescription value={next.note} /></CollapsibleContent>}</> :
         <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
     </section></Collapsible>,

@@ -57,7 +57,7 @@ export function TimetableSettings({ child }: { child: string }) {
             </>,
             activities: categoryPicker(["popupActivities", "Activities"], "The selected day's activities appear here."),
             meetings: categoryPicker(["popupMeetings", "Meetings"], "Meetings appear here and add a count to the weekday tabs."),
-            messages: categoryPicker(["popupMessages", "Messages (Pedagogy)"], "The selected day's messages appear below the schedule."),
+            messages: categoryPicker(["popupMessages", "Messages"], "The selected day's messages appear below the schedule."),
           }} />
         </div>
       </fieldset>

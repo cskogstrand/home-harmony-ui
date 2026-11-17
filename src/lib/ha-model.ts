@@ -76,9 +76,12 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     const area = entry?.area_id ?? device?.area_id;
     const areaId = areas.has(area) ? area : "unassigned";
     if (!areas.has(areaId)) areas.set(areaId, { id: areaId, name: "Unassigned", entities: [] });
+    const name = entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1));
+    const deviceLabel = (device?.name_by_user || device?.name)?.trim();
     const entity: Entity = {
       entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain: id.split(".")[0],
-      name: entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)),
+      // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
+      name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
       state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
       lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
     };

@@ -35,7 +35,7 @@ export function CalendarTimetable({ child, settings, dayView = false, sourceCont
   const messages = dayView ? [] : timetableMessages(sources, today, currentHome.timeZone, child);
   const popupGroups = [
     ["activities", "Activities", ["popupActivities"]], ["meetings", "Meetings", ["popupMeetings"]],
-    ["messages", "Messages (Pedagogy)", ["popupMessages"]],
+    ["messages", "Messages", ["popupMessages"]],
   ] as const;
   const selectedPopupGroups = popupGroups.filter(([, , roles]) => Object.values(settings.calendars).some(selected => roles.some(role => selected.includes(role))));
   const displayedPopupGroups: readonly (typeof popupGroups)[number][] = sourceControls ? popupGroups : selectedPopupGroups;

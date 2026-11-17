@@ -1481,7 +1481,7 @@ it("saves grouped favorites, preserves groups through renames and cancel, and cl
   expect(favorites().getAllByRole("article")).toHaveLength(3);
   expect(favorites().getByRole("button", { name: "Activate Evening" })).toBeInTheDocument();
   expect(favorites().getByRole("heading", { name: "Example group" }).parentElement.querySelectorAll("article")).toHaveLength(2);
-  expect(favorites().getByRole("heading", { name: "Ungrouped" }).parentElement.querySelectorAll("article")).toHaveLength(1);
+  expect(favorites().getByRole("heading", { name: "Other" }).parentElement.querySelectorAll("article")).toHaveLength(1);
   const saved = JSON.parse(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })!);
   expect(saved.homeEntities).toEqual(["home|stable-light", "home|stable-sensor", "home|scene.evening"]);
   expect(saved.homeEntityGroups).toEqual({ "home|stable-light": "Example group", "home|scene.evening": "Example group" });
@@ -2025,7 +2025,8 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   expect(screen.getByText("No timetable yet.")).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Add timetable images" })).not.toBeInTheDocument();
   await navigate("Today");
-  expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable", "Enlarge Morgan’s timetable"]);
+  expect(screen.getAllByRole("button", { name: /Enlarge .* timetable/ }).map(button => button.getAttribute("aria-label"))).toEqual(["Enlarge Riley’s timetable"]);
+  expect(screen.getByRole("link", { name: "Add a timetable" })).toHaveAttribute("href", "/settings/timetables");
   await waitFor(() => expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent("Shared settings saved."));
   restored.unmount();
   render(<App />);

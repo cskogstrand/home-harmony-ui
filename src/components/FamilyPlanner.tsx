@@ -6,6 +6,7 @@ import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2, P
 import { PanelTitle } from "./PanelTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
@@ -197,7 +198,7 @@ function TimetableImage({ imageUrl, alt }: { imageUrl?: string; alt: string }) {
   }, [selectedUrl, privateImage, storageRequest]);
   const src = privateImage ? loaded?.url === selectedUrl ? loaded.src : undefined : selectedUrl;
   if (privateImage && !failed && !src) return <div className="image-unavailable" role="status"><p>{t("Loading timetable…")}</p></div>;
-  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? t("The timetable image couldn’t load.") : t("No timetable yet.")}</p><small>{privateImage ? t("Reconnect or reload to try again.") : imageUrl ? t("Check its URL in Settings → Timetables.") : t("Add one in Settings → Timetables.")}</small></div> :
+  return !imageUrl || failed ? <div className="image-unavailable" role="status"><ImageOff /><p>{imageUrl ? t("The timetable image couldn’t load.") : t("No timetable yet.")}</p>{privateImage ? <small>{t("Reconnect or reload to try again.")}</small> : <Link className={buttonVariants({ variant: "outline" })} to="/settings/timetables">{t(imageUrl ? "Check timetable settings" : "Add a timetable")}<ArrowUpRight aria-hidden="true" /></Link>}</div> :
     <img className={`timetable-image${privateImage && appearance.darkTimetables ? " timetable-image-dark" : ""}`} src={src} alt={alt} draggable={false} onError={() => setFailed(true)} />;
 }
 function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId; startIndex?: number; onEnlarge?: (page: number) => void }) {
@@ -220,7 +221,7 @@ function TimetablePages({ child, startIndex = 0, onEnlarge }: { child: MemberId;
   const renderPage = (url: string | undefined, index: number) => {
     const pageLabel = pages.length > 1 ? t(", page {page} of {total}", { page: index + 1, total: pages.length }) : "";
     const image = <TimetableImage imageUrl={url} alt={t(timetableSettings[child]?.education === "kindergarten" ? "{value1}’s kindergarten timetable{value2}" : "{value1}’s school timetable{value2}", { value1: memberName(child), value2: pageLabel })} />;
-    return onEnlarge ? <button className="timetable-page" onClick={() => onEnlarge(index)} tabIndex={pages.length <= 1 || page === index ? 0 : -1} aria-label={t("Enlarge {value1}’s timetable{value2}", { value1: memberName(child), value2: pageLabel })}>{image}</button> : image;
+    return onEnlarge && url ? <button className="timetable-page" onClick={() => onEnlarge(index)} tabIndex={pages.length <= 1 || page === index ? 0 : -1} aria-label={t("Enlarge {value1}’s timetable{value2}", { value1: memberName(child), value2: pageLabel })}>{image}</button> : image;
   };
   if (pages.length <= 1) return renderPage(pages[0], 0);
   return <Carousel ref={carousel} tabIndex={0} className="timetable-carousel" aria-label={t("{value1}’s timetable pages", { value1: memberName(child) })} opts={{ startIndex }} setApi={setApi}>

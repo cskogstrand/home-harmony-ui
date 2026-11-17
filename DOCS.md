@@ -113,7 +113,7 @@ The server reads `settings.yaml` at startup. Stop it before editing the file man
 
 Enable a person's timetable in **Home settings**, then choose **School or kindergarten** and **Timetable type** under **Settings → Timetables**. School is the default; Kindergarten changes that person's week heading and timetable descriptions in both languages. **PDF / images** keeps the existing uploaded pages; **Calendars** reads selected Home Assistant calendars. Switching types preserves both saved pages and calendar choices, and the dashboard shows the same type.
 
-**School day view** contains a live preview of the actual School timetable. Choose calendars where their content should appear: opening hours and closures in the heading, Activities and Meetings in their sections, and Messages (Pedagogy) underneath. Short hints explain each picker. Changes update the preview immediately and save automatically. All sections stay visible before calendars are selected or while Home Assistant is offline; live events require a connection.
+**School day view** contains a live preview of the actual School timetable. Choose calendars where their content should appear: opening hours and closures in the heading, Activities and Meetings in their sections, and Messages underneath. Short hints explain each picker. Changes update the preview immediately and save automatically. All sections stay visible before calendars are selected or while Home Assistant is offline; live events require a connection.
 
 One set of five calendar selections supplies School, the weekly timetable on **Today** and its day dialogs. Each category accepts multiple calendars, and a calendar can belong to several categories. There is no separate dashboard mapping.
 
@@ -123,7 +123,7 @@ One set of five calendar selections supplies School, the weekly timetable on **T
 | Meetings | Meeting section and positive counts on weekday tabs. | Combined with Activities in each weekday. |
 | Opening hours | Hours in the heading and weekday tabs. | Hours beneath each day heading. |
 | Closure days | Closed status replaces opening hours. | Marks the day closed and hides opening hours. |
-| Messages (Pedagogy) | Full-width messages for the selected day below its schedule. | Messages beneath the week. |
+| Messages | Full-width messages for the selected day below its schedule. | Messages beneath the week. |
 
 Existing School day selections become the shared mapping and take precedence over old separate dashboard assignments. Configurations with only weekly assignments migrate into the matching categories; **Daily events** becomes **Activities**. Saved timetable pages are unaffected.
 

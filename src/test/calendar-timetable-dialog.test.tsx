@@ -255,7 +255,7 @@ it("keeps messages from a shared calendar when opening hours must be hidden", ()
   fireEvent.click(screen.getByRole("button", { name: "View activities for Monday, 19 October 2026" }));
   const dialog = within(screen.getByRole("dialog"));
   expect(within(dialog.getByRole("region", { name: "Opening hours / Closed" })).queryByText("Example activity")).not.toBeInTheDocument();
-  expect(within(dialog.getByRole("region", { name: "Messages (Pedagogy)" })).getByText("Example activity")).toBeVisible();
+  expect(within(dialog.getByRole("region", { name: "Messages" })).getByText("Example activity")).toBeVisible();
 });
 
 it("puts opening hours and closure status in the header, retaining notes behind Details", () => {

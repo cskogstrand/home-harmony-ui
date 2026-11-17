@@ -51,8 +51,8 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
     <p className="sr-only" role="status" aria-live="polite">{announcement}</p>
     <div className={`smart-card-groups${editing ? " is-editing" : ""}`}>{groups.map(group => {
       const members = visible.filter(card => card.group === group);
-      return <section key={group} data-smart-group={editing ? group : undefined} aria-label={group || t("Ungrouped")}>
-        {(editing || group || groups.length > 1) && <h3 className="smart-card-group-title">{group || t("Ungrouped")}<span>{members.length}</span></h3>}
+      return <section key={group} data-smart-group={editing ? group : undefined} aria-label={group || t(editing ? "Ungrouped" : "Other")}>
+        {(editing || group || groups.length > 1) && <h3 className="smart-card-group-title">{group || t(editing ? "Ungrouped" : "Other")}<span>{members.length}</span></h3>}
         <CardGroup>{members.map((card, index) => <div key={card.id} data-smart-card={card.id} className={`smart-card-item${drag.dragging?.id === card.id ? " is-dragging" : ""}${drag.dragging?.target?.beforeId === card.id ? " is-drop-target" : ""}`}>
           {editing && <div className="smart-card-editor planner-form" aria-label={t("Configure {name}", { name: card.name })}>
             <div className="smart-card-move">
