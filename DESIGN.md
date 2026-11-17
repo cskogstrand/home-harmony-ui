@@ -449,3 +449,5 @@ Alarm actions name their result (Arm home/away/night), including the primary car
 Camera overview keeps Add camera beside a single Camera settings control, puts media choices below the picture, and leaves transport/source identifiers in settings. Playback status uses short visible labels with detailed popovers; person-inset status remains an icon.
 
 Energy readings group by physical device, with standalone readings grouped by integration. Power, energy and cost are named separately and retain their reported units. Energy shows an authoritative last-reset timestamp when provided; otherwise the reporting period is explicitly unknown. No daily totals are inferred or added across overlapping meters.
+
+Onboarding is a task checklist: completed connection, people and assignment steps collapse, while a single Continue setup action leads to the next unfinished basic step. Optional timetables never block finishing the basic setup.

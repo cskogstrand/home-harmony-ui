@@ -1,4 +1,7 @@
 export const nb = {
+  "{done} of {total} setup steps complete": "{done} av {total} oppsettstrinn fullført",
+  "Continue setup": "Fortsett oppsett",
+  "Your household basics are ready. Timetables are optional.": "Grunnoppsettet er klart. Timeplaner er valgfrie.",
   "Other readings": "Andre målinger",
   "Power now": "Effekt nå",
   "Energy reading": "Energimåling",

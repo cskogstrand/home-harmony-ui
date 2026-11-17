@@ -216,3 +216,5 @@ Settings pages and calendar layout controls show both their shared scope and cur
 New calendar plans can be All day. The shown end date is inclusive; the app sends the following day as Home Assistant’s exclusive `end_date`, following the [calendar create action](https://www.home-assistant.io/actions/calendar.create_event/). Timed plans default to the next half hour today or 09:00 on another selected date, for one hour. Changing the start preserves the wall-clock duration, including overnight plans. Times use the home timezone; nonexistent daylight-saving times are rejected before sending. Existing unsupported calendar edits remain read-only.
 
 To remove a list item, open its three-dot action menu, choose Remove and confirm. Empty list and calendar views link to their setup pages.
+
+Get started reports progress from the live household and saved assignments. Completed steps collapse but can be reopened. Continue setup links to the next incomplete basic step; school timetables remain optional.

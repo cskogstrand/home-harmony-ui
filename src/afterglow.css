@@ -916,3 +916,9 @@ fieldset.settings-card > legend + * { clear: both; }
 .settings-advanced > summary { display: flex; align-items: center; min-height: 48px; cursor: pointer; font-weight: 600; }
 
 @media (width <= 359px) { .list-add-button { width: 56px; padding-inline: 0; } }
+
+.setup-next { display: grid; justify-items: start; gap: .5rem; }
+.setup-step > details > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 48px; cursor: pointer; }
+.setup-step > details > summary .panel-title { margin: 0; }
+.setup-step-state { display: flex; align-items: center; gap: .5rem; flex-shrink: 0; color: hsl(var(--muted-foreground)); font-size: .875rem; }
+.setup-step > details[open] > div { padding-top: 1rem; }

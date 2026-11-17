@@ -1274,9 +1274,13 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   expect(screen.getByRole("list", { name: "Household setup" }).children).toHaveLength(5);
   expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
+  expect(document.querySelector("#people details")).not.toHaveAttribute("open");
+  fireEvent.click(document.querySelector("#people summary"));
   expect(screen.getByRole("link", { name: "Add people in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/person");
   expect(screen.getByText(/Daily lists need a Home Assistant automation/)).toBeInTheDocument();
   for (const [label, section, anchor] of [["Connection settings", "connection", "connection"], ["Choose people", "people", "people-order"], ["Choose calendars", "calendars", "family-calendar"], ["Choose lists", "lists", "family-lists"], ["Configure timetables", "timetables", "timetables"]]) {
+    const step = document.querySelector(`#${section} details`);
+    if (step && !step.hasAttribute("open")) fireEvent.click(step.querySelector("summary"));
     fireEvent.click(screen.getByRole("link", { name: label }));
     expect(window.location.pathname).toBe(`/settings/${section}`);
     expect(window.location.hash).toBe("");
