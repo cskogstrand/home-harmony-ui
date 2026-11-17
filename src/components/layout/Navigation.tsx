@@ -16,14 +16,13 @@ export function MainNav({ locations = {} }: { locations?: Record<string, Locatio
   const { pathname } = useLocation();
   return <nav className="family-dock glass-surface" aria-label={t("Main navigation")}>{mainItems.map(item => <Link className="press-feedback" to={locations[item.path] ?? item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : mainPagePath(pathname) === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.8} aria-hidden="true" /><span>{message(item.label)}</span></Link>)}</nav>;
 }
-// Five everyday destinations; browsing and administration live under More.
 const smartItems = [
-  { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/sonos", label: "Sonos", icon: Music2 },
-  { path: "/cameras", label: "Cameras", icon: Camera }, { path: "/moods", label: "Scenes", icon: Sparkles },
+  { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },
+  { path: "/sonos", label: "Sonos", icon: Music2 },
+  { path: "/devices", label: "Devices", icon: Lightbulb }, { path: "/cameras", label: "Cameras", icon: Camera }, { path: "/moods", label: "Scenes", icon: Sparkles },
   { path: "/alarm", label: "Security", icon: Shield },
 ];
 const moreItems = [
-  { path: "/areas", label: "Areas", icon: DoorOpen }, { path: "/devices", label: "Devices", icon: Lightbulb },
   { path: "/energy", label: "Car & energy", icon: Zap }, { path: "/zones", label: "Zones", icon: MapPin },
   { path: "/automations", label: "Automations", icon: Workflow }, { path: "/notifications", label: "Alerts", icon: Bell },
   { path: "/history", label: "Activity", icon: Clock }, { path: "/integrations", label: "Integrations", icon: Package },
@@ -37,7 +36,7 @@ export function SmartHomeNav() {
   return <nav className="smart-nav" aria-label={t("Smart home navigation")}>
     {smartItems.map(item => <Link key={item.path} to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>)}
     <div className="smart-more"><DropdownMenu>
-      <DropdownMenuTrigger data-active={!!selectedMore}>{selectedMore ? message(selectedMore.label) : t("More")}<ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>
+      <DropdownMenuTrigger data-active={!!selectedMore}>{selectedMore ? message(selectedMore.label) : t("More controls")}<ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="smart-menu">{moreItems.map(item => <DropdownMenuItem asChild key={item.path}><Link to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link></DropdownMenuItem>)}</DropdownMenuContent>
     </DropdownMenu></div>
   </nav>;
