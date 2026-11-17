@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.26
+
+<!-- release-source: cc5ab9818c6d3e5a8c62662282c52e41a6b88365 -->
+
+- fix: repair notification images and validation
+- style: soften favorite and calendar corners
+
 ## 0.10.25
 
 <!-- release-source: 61fb6222fa124ab12fb38955b0d19a450273f210 -->
