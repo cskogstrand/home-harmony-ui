@@ -36,7 +36,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
   const changeList = (kind: TodoListKind, person: { id: string; name: string }, list: string, selected: string) => {
     if (list === selected) return;
     const assigned = todoLists[list];
-    const onConfirm = () => setTodoList(kind, person.id, list);
+    const onConfirm = () => setTodoList(kind, person.id, list, selected);
     if (!selected && !assigned) { onConfirm(); return; }
     const listName = (id: string) => lists.find(item => item.preferenceId === id)?.name ?? msg("Unavailable list");
     setConfirmation({ title: list ? msg("Change to-do list?") : msg("Unlink to-do list?"), confirmLabel: list ? msg("Change list") : msg("Unlink list"), requiresConnection: true, onConfirm,
@@ -49,13 +49,16 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     setConfirmation({ title: member ? msg("Move calendar?") : msg("Unlink calendar?"), confirmLabel: member ? msg("Move calendar") : msg("Unlink calendar"), requiresConnection: true,
       description: msg("{value1} “{value2}” from {value3}{value4}? Events stay in the source calendar.", { value1: member ? msg("Move") : msg("Unlink"), value2: name, value3: memberMessage(previous), value4: member ? msg(" to {name}", { name: memberMessage(member) }) : "" }), onConfirm: () => setCalendarMember(id, member) });
   };
-  const listSelector = (kind: TodoListKind, person: { id: string; name: string }) => {
-    const selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "";
+  const shoppingLists = Object.keys(todoLists).filter(id => todoLists[id].kind === "shopping");
+  const household = { id: "everyone", name: t("Household") };
+  const listSelector = (kind: TodoListKind, person: { id: string; name: string }, selected = Object.keys(todoLists).find(id => todoLists[id].kind === kind && todoLists[id].member === person.id) ?? "") => {
     const display = todoLists[selected]?.display ?? defaultTodoDisplay;
-    const label = kind === "shopping" ? t("Shared shopping list") : t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name });
-    return <div className="min-w-0 flex-[1_1_12rem]">
-      <EntityPicker label={t(listLabels[kind])} ariaLabel={label}
-        entities={lists} value={selected} disabled={!homeOnline} emptyActionLabel={t("Add list")} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
+    const label = kind !== "shopping" ? t("{list} for {name}", { list: msg(listLabels[kind]), name: person.name })
+      : selected ? lists.find(list => list.preferenceId === selected)?.name ?? t("Unavailable list") : t("Add shopping list");
+    return <div className="min-w-0 flex-[1_1_12rem]" key={selected || kind}>
+      <EntityPicker label={kind === "shopping" ? label : t(listLabels[kind])} hideLabel={kind === "shopping"} ariaLabel={label}
+        entities={kind === "shopping" ? lists.filter(entity => entity.preferenceId === selected || !shoppingLists.includes(entity.preferenceId)) : lists} value={selected} disabled={!homeOnline}
+        emptyActionLabel={t(kind === "shopping" ? "Add shopping list" : "Add list")} placeholder={t("No list selected")} clearLabel={t("No list selected")} onChange={value => changeList(kind, person, value, selected)}
         getDescription={list => { const assigned = todoLists[list.preferenceId]; return assigned && list.preferenceId !== selected ? t(" — move from {value1} ({value2})", { value1: memberMessage(assigned.member, assigned.kind), value2: msg(listLabels[assigned.kind]) }) : ""; }} />
       {selected && <details className="todo-display-settings" key={selected}>
         <summary aria-label={t("Display settings for {list}", { list: label })}><span className="panel-title"><SlidersHorizontal className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Display settings")}</span></span></summary>
@@ -157,7 +160,11 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
         <PanelTitle as="h3" icon={Users} className="w-full">{person.name}</PanelTitle>
         <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}{listSelector("homework", person)}</div>
       </div>)}
-      <div className="settings-card">{listSelector("shopping", { id: "everyone", name: t("Household") })}</div>
+      <section className="settings-card grid gap-3" aria-label={t("Shopping lists")}>
+        <PanelTitle as="h3" icon={ListChecks}>{t("Shopping lists")}</PanelTitle>
+        {shoppingLists.map(id => listSelector("shopping", household, id))}
+        {listSelector("shopping", household, "")}
+      </section>
     </section>}
     {section === "connection" && <section className="glow-panel"><PanelHeading icon={House} title={t("Your instance")} /><dl className="device-readings"><div><dt>{t("Name")}</dt><dd>{currentHome.name}</dd></div><div><dt>{t("Signed in as")}</dt><dd>{currentUser?.name ?? t("Not signed in")}</dd></div><div><dt>{t("HA access")}</dt><dd>{currentUser ? currentUser.is_owner ? t("Owner") : currentUser.is_admin ? t("Administrator") : t("User") : "—"}</dd></div><div><dt>{t("Physical devices")}</dt><dd>{currentHome.devices.length}</dd></div><div><dt>{t("Entities")}</dt><dd>{currentHome.entities.length}</dd></div></dl>{haUrl && <a className="text-link" href={`${haUrl}/config`} target="_blank" rel="noreferrer">{t("Open Home Assistant settings")}</a>}</section>}
     {confirmation && <ConfirmDialog open onOpenChange={open => { if (!open) setConfirmation(undefined); }} {...confirmation} destructive disabled={confirmation.requiresConnection && !homeOnline} />}

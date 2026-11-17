@@ -23,10 +23,3 @@ export function moveSmartHomeCard(settings: Planner["smartHome"], id: string, gr
   layout.splice(before, 0, { ...card, group });
   return { layout };
 }
-
-// Compare natural heights within actual grid rows, never previously stretched heights.
-export function rowCardHeights(cards: { top: number; height: number }[]) {
-  const tallest = new Map<number, number>();
-  cards.forEach(({ top, height }) => tallest.set(top, Math.max(tallest.get(top) ?? 0, height)));
-  return cards.map(({ top, height }) => height > tallest.get(top)! / 2 ? tallest.get(top)! : height);
-}

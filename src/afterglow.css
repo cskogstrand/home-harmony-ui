@@ -199,9 +199,9 @@ fieldset.settings-card > legend + * { clear: both; }
 .today-weather[data-weather-condition="unavailable"] .weather-copy strong { font-size: 1.25rem; }
 .clock-block > span { font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 19px; }
 .greeting { min-width: 0; }
+.today-title { display: flex; align-items: center; gap: .5rem; }
+.today-title h1 { margin: 0; }
 .greeting h1 { font-size: 2.25rem; font-weight: 600; letter-spacing: -.025em; margin: 0 0 .5rem; line-height: 1.2; }
-.greeting-bottom { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: .75rem; }
-.greeting-bottom > span { color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .avatar-group { display: flex; padding-left: 5px; }
 .avatar-group .member-avatar { margin-left: -5px; box-shadow: 0 0 0 3px hsl(var(--background)); }
 .member-avatar { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: hsl(var(--foreground)); font-size: 0.875rem; font-weight: 600; }
@@ -250,10 +250,10 @@ fieldset.settings-card > legend + * { clear: both; }
 .event-button.next-event { --event-surface: hsl(var(--card)); flex-direction: row; flex-wrap: wrap; align-items: center; gap: .75rem 1.5rem; padding: .25rem .25rem .25rem 1rem; }
 .next-event-copy { display: flex; flex-direction: column; gap: .25rem; flex: 1 1 16rem; min-width: 0; }
 .next-event-title { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; }
-.next-event h3 { font-size: 1rem; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+.next-event h3 { font-size: 1.75rem; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
 .next-event small { font-size: .875rem; }
 .next-event-time { display: flex; flex-direction: column; gap: .25rem; max-width: 100%; margin-left: auto; text-align: right; }
-.next-event-time time { font-size: 1rem; line-height: 1.4; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.next-event-time time { font-size: 1.375rem; line-height: 1.4; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .list-panel { position: relative; isolation: isolate; display: flex; flex-direction: column; background: transparent; border-color: transparent; }
 .list-panel-surface { position: absolute; inset: -1px; z-index: -1; pointer-events: none; background: hsl(var(--card)); border: 1px solid hsl(var(--border) / .45); }
 .checklist { position: relative; margin-top: 2px; flex: 1; }
@@ -268,8 +268,8 @@ fieldset.settings-card > legend + * { clear: both; }
 .check-row label { flex-shrink: 0; min-width: 48px; justify-content: center; }
 .check-row .edit-item { flex: 1; min-width: 0; align-self: stretch; text-align: left; }
 .check-row .edit-item:disabled, .completing button:disabled { opacity: 1; }
-.check-row input { position: absolute; opacity: 0; width: 25px; height: 25px; }
-.check-mark { flex-shrink: 0; width: 22px; height: 22px; border: 1px solid hsl(var(--muted-foreground) / .5); border-radius: 7px; display: grid; place-items: center; }
+.check-row input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: inherit; }
+.check-mark { pointer-events: none; flex-shrink: 0; width: 22px; height: 22px; border: 1px solid hsl(var(--muted-foreground) / .5); border-radius: 7px; display: grid; place-items: center; }
 .check-mark svg { grid-area: 1 / 1; }
 .check-mark .check-icon { opacity: 0; transition: opacity 450ms var(--ease-out); }
 .check-row input:focus-visible + .check-mark { outline: 2px solid hsl(var(--primary)); outline-offset: 3px; }
@@ -316,6 +316,12 @@ fieldset.settings-card > legend + * { clear: both; }
 .todo-celebration i:nth-child(3n) { background: hsl(var(--warning)); }
 .todo-celebration-reduced i { width: 28px; height: 28px; margin: -14px; border: 2px solid hsl(var(--primary)); border-radius: 9px; background: transparent; }
 .household-list { position: relative; }
+.list-source-picker { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; color: hsl(var(--muted-foreground)); }
+.list-source-picker select { min-width: 0; max-width: 100%; min-height: 48px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: .5rem .75rem; }
+.shopping-destinations > li { display: flex; align-items: center; gap: 1rem; border-top: 1px solid hsl(var(--border)); }
+.shopping-destination { display: grid; flex: 1; min-width: 0; min-height: 52px; align-content: center; padding-block: .65rem; overflow-wrap: anywhere; }
+.shopping-destination small { font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.shopping-destination:hover strong { text-decoration: underline; }
 .todo-celebration-list { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; overflow: clip; border-radius: var(--radius-inset); container: todo-finale / size; }
 .todo-celebration-list i { top: 0; left: 0; width: 10px; height: 18px; }
 .todo-celebration-list i:nth-child(4n) { width: 12px; height: 12px; border-radius: 50%; }
@@ -491,7 +497,17 @@ fieldset.settings-card > legend + * { clear: both; }
   .timetable-day[aria-current="date"], .timetable-day-tab[data-state="active"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 .home-favorites { display: flex; flex-direction: column; }
-.favorite-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+/* Keep the source order and center the last line, including rows with device cards. */
+.favorite-group, .scene-panel { container-type: inline-size; }
+.favorite-devices, .scene-buttons { --columns: 1; --tile-gap: 1rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--tile-gap); }
+:is(.favorite-devices, .scene-buttons) > * { --tile-width: calc((100% + var(--tile-gap)) / var(--columns) - var(--tile-gap)); flex: 0 0 var(--tile-width); min-width: 0; }
+@container (min-width: 19rem) {
+  .scene-buttons, .favorite-devices:where(:not(:has(> :not([data-card-kind="scene"])))) { --columns: 2; }
+}
+@container (min-width: 29rem) { .favorite-devices, .scene-buttons { --columns: 2; } }
+@container (min-width: 43rem) { .favorite-devices, .scene-buttons { --columns: 3; } }
+@container (min-width: 58rem) { .favorite-devices, .scene-buttons { --columns: 4; } }
+@container (min-width: 43rem) { .favorite-devices > [data-card-kind="weather"] { flex-basis: calc(2 * var(--tile-width) + var(--tile-gap)); } }
 :is(.favorite-devices, .favorite-selected-preview, .favorite-type-preview) :is(.dg-card.dg-supercompact, .dg-card .dg-scene-action) { border-radius: var(--radius-favorite); }
 .control-stack { display: flex; flex-direction: column; gap: 11px; width: 100%; }
 .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; font-size: 0.9375rem; }
@@ -505,9 +521,12 @@ fieldset.settings-card > legend + * { clear: both; }
 .temperature-control strong { font-size: 1.6875rem; font-weight: 400; }
 .temperature-control small { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
 .sensor-state { font-size: 0.9375rem; color: hsl(var(--muted-foreground)); }
-.scene-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-.scene-buttons button { display: flex; align-items: center; justify-content: center; gap: 9px; background: hsl(var(--secondary) / .6); border: 1px solid transparent; padding: 16px 12px; border-radius: var(--radius-field); font-size: 0.875rem; }
+.scene-buttons button { min-height: 3.5rem; overflow-wrap: anywhere; display: flex; align-items: center; justify-content: center; gap: 9px; background: hsl(var(--secondary) / .6); border: 1px solid transparent; padding: 16px 12px; border-radius: var(--radius-field); font-size: 0.875rem; }
 .scene-buttons svg { color: hsl(var(--primary)); flex-shrink: 0; }
+.scene-buttons, .favorite-devices:where(:not(:has(> :not([data-card-kind="scene"])))) { align-items: stretch; }
+.scene-buttons > .command-controller { display: flex; flex-direction: column; }
+.scene-buttons button { flex: 1; }
+.favorite-devices > [data-card-kind="scene"] :is(.dg-card, .dg-scene-action) { height: 100%; }
 .scene-buttons button:hover, .scene-buttons button[aria-pressed="true"] { border-color: hsl(var(--primary) / .7); background: hsl(var(--primary) / .15); }
 .attention-link { margin-top: 18px; display: flex; gap: 8px; align-items: center; font-size: 0.8125rem; color: hsl(var(--warning)); min-height: 32px; }
 .attention-link > svg:last-child { margin-left: auto; }
@@ -728,7 +747,6 @@ fieldset.settings-card > legend + * { clear: both; }
 @media (max-width: 600px) {
   .home-device-grid { grid-template-columns: 1fr; }
   .favorite-heading-actions { gap: 14px; flex-wrap: wrap; }
-  .favorite-devices { grid-template-columns: 1fr; }
 }
 
 /* Shared reading order and density, from the portrait board to a phone. */
@@ -738,7 +756,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .school-preview .timetable-image { max-height: 280px; object-fit: contain; }
 .school-card .school-preview .timetable-image { max-height: none; }
 .school-card .timetable-pages > [aria-hidden="true"] { height: 0; overflow: hidden; }
-.household-list + .household-list { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid hsl(var(--border)); }
+.household-list:not([hidden]) ~ .household-list:not([hidden]) { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid hsl(var(--border)); }
 .page-heading > div, .panel-heading > h2 { min-width: 0; overflow-wrap: anywhere; }
 .page-heading p { max-width: 65ch; }
 .text-link { font-size: .875rem; }
@@ -753,7 +771,6 @@ fieldset.settings-card > legend + * { clear: both; }
 .family-week-table .event-button strong { font-size: .9375rem; }
 .family-week-table .event-time { font-size: .875rem; }
 .week-add-plan { font-size: .8125rem; min-height: 48px; }
-.favorite-devices { gap: 1.5rem; }
 .smart-more { margin-left: auto; }
 .smart-more > button { display: inline-flex; align-items: center; gap: .5rem; min-height: 48px; padding: .65rem .8rem; font-size: .9375rem; border-radius: var(--radius-capsule); color: hsl(var(--muted-foreground)); }
 .smart-more > button[data-active="true"] { color: hsl(var(--primary)); background: hsl(var(--secondary)); }
@@ -809,7 +826,6 @@ fieldset.settings-card > legend + * { clear: both; }
   .member-avatar.small { width: 36px; height: 36px; font-size: .75rem; }
   .school-preview > div:first-child, .list-progress, .list-identity > div > span, .home-device-title small, .device-range > span { font-size: .9rem; }
   .home-device-title h3, .scene-buttons button, .home-favorites .scene-buttons button, .toggle-line { font-size: 1rem; }
-  .favorite-devices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 1rem; }
   .school-preview .timetable-image { max-height: 200px; }
   .school-strip { gap: 1rem; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -825,7 +841,6 @@ fieldset.settings-card > legend + * { clear: both; }
   .smart-summary > a { padding-block: 1rem; }
   .smart-summary > a > svg:last-child { display: none; }
   .school-cards { grid-template-columns: 1fr; }
-  .favorite-devices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .family-dock a { display: grid; grid-template-rows: 22px 1fr; justify-items: center; align-items: start; gap: .25rem; padding: .5rem .15rem; font-size: .75rem; line-height: 1.2; min-height: 64px; text-align: center; }
   .family-dock a svg { width: 22px; height: 22px; }
 }
@@ -844,17 +859,17 @@ fieldset.settings-card > legend + * { clear: both; }
   .app-main { padding-top: 1rem; }
   .portrait-board, .calendar-lanes, .school-cards, .energy-layout, .energy-devices, .smart-bottom { grid-template-columns: 1fr; }
   .portrait-board, .planner-page { gap: 1rem; }
-  .ambient-heading { gap: .5rem; align-items: start; flex-wrap: wrap; }
+  .ambient-heading { gap: .25rem; align-items: start; flex-wrap: wrap; padding-block: 0; }
   .ambient-clock { font-size: 3.25rem; }
-  .ambient-glance:has(.today-weather) { width: 100%; margin-top: .75rem; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
-  .today-weather { min-height: 88px; max-width: 100%; margin-left: auto; padding: .5rem .375rem; gap: .5rem; }
+  .ambient-glance:has(.today-weather) { min-width: 0; max-width: 100%; margin: 0; justify-content: flex-start; flex-wrap: wrap; gap: .75rem; }
+  .today-weather { min-height: 64px; max-width: 100%; margin-left: auto; padding: .5rem .375rem; gap: .5rem; }
   .today-weather .weather-symbol > svg { width: 40px; height: 40px; }
   .today-weather .weather-copy strong { font-size: 1.8rem; }
   .today-weather .weather-copy > span { font-size: .75rem; }
-  .greeting h1 { font-size: 1.5rem; }
-  .greeting > p { font-size: .875rem; }
-  .greeting-bottom { margin-top: .5rem; }
-  .greeting .member-avatar.small { width: 25px; height: 25px; font-size: .625rem; }
+  .greeting { display: flex; width: 100%; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+  .greeting h1 { margin: 0; font-size: 1.5rem; }
+  .greeting > p { margin: 0; font-size: .875rem; }
+  .next-event h3 { font-size: 1.375rem; }
   .next-event-copy { flex-basis: 100%; }
   .next-event-time { margin-left: 0; text-align: left; }
   .mobile-icon-button { width: 48px; min-width: 48px; min-height: 48px; flex-shrink: 0; padding-inline: 0; }
@@ -887,14 +902,13 @@ fieldset.settings-card > legend + * { clear: both; }
   .smart-nav a, .smart-more > button { font-size: .8125rem; padding: .5rem; }
   .smart-nav a svg { width: 16px; }
   .smart-more { margin-left: 0; }
-  .smart-summary, .home-device-grid, .favorite-devices { grid-template-columns: 1fr; }
   .smart-summary { gap: 0; }
   .smart-summary span { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .smart-summary strong { margin-top: 0; }
-  .scene-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .favorite-heading-actions { gap: .75rem; flex-wrap: wrap; }
   .favorite-heading-actions .text-link { font-size: .8125rem; }
   .compact-mode { --panel-space: .75rem; }
+  .smart-summary, .home-device-grid { grid-template-columns: 1fr; }
   .compact-mode .ambient-clock { font-size: 3rem; }
 }
 

@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { emptyPlanner, plannerSchema } from "../../shared/configuration";
-import { moveSmartHomeCard, rowCardHeights, smartHomeCards } from "@/lib/smart-home-cards";
+import { moveSmartHomeCard, smartHomeCards } from "@/lib/smart-home-cards";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { configuredCard } from "./device-card-fixtures";
@@ -32,14 +32,6 @@ it("keeps missing or incompatible sources editable and resolves renamed entities
   expect(cards[0].main).toBeUndefined();
   expect(cards[0].linkedEntities).toEqual(["missing", ids[1]]);
   expect(smartHomeCards(home.entities, settings)[1].main).toBeUndefined();
-});
-
-it("equalizes strictly above half the tallest natural height in each row, never across rows", () => {
-  expect(rowCardHeights([100, 150, 151, 300].map(height => ({ top: 0, height })))).toEqual([100, 150, 300, 300]);
-  expect(rowCardHeights([{ top: 0, height: 400 }, { top: 0, height: 250 }, { top: 416, height: 210 }, { top: 416, height: 230 }])).toEqual([400, 400, 230, 230]);
-  expect(rowCardHeights([{ top: 0, height: 400 }, { top: 416, height: 250 }])).toEqual([400, 250]);
-  expect(rowCardHeights([100, 120].map(height => ({ top: 0, height })))).toEqual([120, 120]);
-  expect(rowCardHeights([])).toEqual([]);
 });
 
 it("reorders and regroups without changing filtered-out cards or card details", () => {

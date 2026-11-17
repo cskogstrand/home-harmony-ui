@@ -68,7 +68,11 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 **Settings → Appearance → Advanced appearance → Modal glass** controls dialog transparency (0–85%), frost (8–48px), color saturation (100–200%) and background dimming (0–60%). Defaults are 70%, 20px, 150% and 20%. The preview updates while dragging; releasing a slider saves the setting across screens. **Reset glass appearance** restores only these four values. Older settings and backups receive the defaults, and new backups include the choices. Reduced transparency, increased contrast, forced colors and browsers without backdrop filtering retain solid dialog surfaces. Menus, navigation and normal reading panels retain their existing material.
 
-In **Home settings**, choose people visibility and order, calendar assignments, one task and daily-task list per person, and a shared shopping list. Hidden people keep their assignments and timetable files. All people come from Home Assistant; add a person there for shared plans and tasks, then assign its calendars and lists in Home settings. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
+In **Home settings**, choose who appears on the board and in what order. Link each person’s calendars, tasks, daily tasks and homework, and choose which shopping lists the household shares. Hidden people keep their assignments and timetable files. All people come from Home Assistant; add a person there for shared plans and tasks, then assign its calendars and lists in Home settings. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.
+
+**Settings → To-do lists → Shopping lists** lets you connect another Home Assistant list with **Add shopping list**. Each list has its own **Display settings**, including sort order and completed-item visibility. To unlink a list, open its picker, choose **No list selected** and confirm **Unlink list**. Its items stay in Home Assistant.
+
+With multiple shopping lists, Today shows up to three named lists and their reported outstanding counts. Tap a name to open the list or its plus button to start adding there. With a single list, Today shows up to three items in total. **Lists → Shopping** gives access to every linked list. The **List** selector changes the destination for item suggestions, edits, completion and reopening.
 
 Reassign calendars and task lists previously linked to the built-in Everyone person in **Home settings**. Their events and items stay in Home Assistant.
 
@@ -156,7 +160,7 @@ data/
 
 The folder name is the person's HA entity-name slug, not their display name; duplicate display names therefore cannot collide. Upload IDs allow atomic replacement and keep earlier files available for settings-backup restores. Old uploads are retained; disk usage grows until unused upload folders are removed manually. Stop the server and verify references/backups before removing files.
 
-External image URLs remain supported, one per line in page order. Swipe or use arrows between pages; tap to enlarge. Disabling a timetable hides it without removing its files or URLs.
+External image URLs remain supported, one per line in page order. Swipe or use the arrows to change pages. Tap a page to enlarge it. Closing the viewer returns keyboard focus to the control that opened that child’s timetable. Disabling a timetable hides it without removing its files or URLs.
 
 ## Share a PDF from iPhone
 

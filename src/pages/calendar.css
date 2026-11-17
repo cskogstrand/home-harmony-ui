@@ -38,11 +38,11 @@
 .calendar-agenda-group > div { display: grid; gap: .75rem; }
 .calendar-agenda-empty { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 4rem 1rem; text-align: center; color: hsl(var(--muted-foreground)); }
 @media (max-width: 699px) {
-  .calendar-navigation { grid-template-columns: auto minmax(0, 1fr); gap: .75rem; }
-  .calendar-date-navigation { display: grid; grid-column: 1 / -1; width: 100%; grid-template-columns: auto minmax(0, 1fr) auto; }
+  .calendar-navigation { display: flex; }
+  .calendar-date-navigation { display: grid; width: 100%; grid-template-columns: auto minmax(0, 1fr) auto; }
   .calendar-date-navigation .calendar-period { justify-content: center; text-align: center; }
   .calendar-period > span { font-size: 1rem; }
-  .calendar-view-switch { width: 100%; }
+  .calendar-view-switch { flex: 1 1 max-content; flex-wrap: wrap; }
   .calendar-view-switch > button { flex: 1; }
   .calendar-filter-bar > .filter-row { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: .25rem; }
   .calendar-filter-bar > .filter-row > button { flex-shrink: 0; min-height: 48px; }

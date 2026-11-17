@@ -1,9 +1,9 @@
 import { notificationTriggers } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, motion, useIsPresent, useReducedMotion } from "framer-motion";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion, useIsPresent } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import { Bell, Camera, Image, ListChecks, X } from "lucide-react";
+import { Bell, Camera, ChevronDown, Image, ListChecks, X } from "lucide-react";
 import { configuredCamera } from "../../shared/cameras";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
@@ -11,6 +11,7 @@ import { useNotifications } from "@/contexts/NotificationContext";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { available, entityStateLabel } from "@/lib/ha-model";
 import { matchesState, notificationEntity, notificationReadings, type HomeNotification } from "@/lib/notifications";
 import { Button } from "./ui/button";
@@ -27,7 +28,7 @@ export function NotificationBell() {
   const { message: t } = useI18n();
   const { notifications, errors } = useNotifications();
   const titles = notifications.filter(item => item.rule.kind !== "camera").map(item => item.eventTitle || item.rule.title).join(", ");
-  return <><Link to="/notifications" className="icon-button glass-surface relative" aria-label={t("Notifications: {count} active", { count: notifications.length })}>
+  return <><Link id="notification-bell" to="/notifications" className="icon-button glass-surface relative" aria-label={t("Notifications: {count} active", { count: notifications.length })}>
     <Bell size={20} aria-hidden="true" />{(notifications.length > 0 || errors.length > 0) && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length || "!"}</span>}
   </Link><span role="status" aria-atomic="true" className="sr-only">{titles ? t("Active notifications: {titles}", { titles }) : notifications.length ? "" : t("No active notifications")}</span></>;
 }
@@ -55,6 +56,18 @@ function NotificationCameraFeed({ item, preview, compact = false }: { item: Home
   </div>;
 }
 
+function restoreAlertFocus(container: HTMLElement | null) {
+  if (container?.contains(document.activeElement)) document.getElementById("notification-bell")?.focus({ preventScroll: true });
+}
+
+function useAlertFocusOnRemoval() {
+  const element = useRef<HTMLElement | null>(null);
+  return useCallback((node: HTMLElement | null) => {
+    if (!node) restoreAlertFocus(element.current);
+    element.current = node;
+  }, []);
+}
+
 export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, preview = false, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; preview?: boolean; entities?: Entity[] }) {
   const { message: t, language, locale } = useI18n();
   const { currentHome } = useApp();
@@ -63,6 +76,7 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   const readings = notificationReadings(item.rule).map(reading => ({ ...reading, position: reading.placement === "auto" ? reading.defaultPlacement : reading.placement }))
     .filter(reading => reading.position !== "hidden" && !(condensed && reading.placement === "auto" && reading.position === "subtitle"));
   const at = (position: string) => readings.filter(reading => reading.position === position);
+  const row = useAlertFocusOnRemoval();
   const showCamera = item.rule.kind === "camera" || item.rule.kind === "ongoing" && !!item.rule.cameraEntity;
   const cameraPosition = activity ? item.rule.cameraPlacement ?? "footer" : "footer";
   const imagePosition = activity ? item.rule.imagePlacement ?? "left" : "footer";
@@ -86,9 +100,13 @@ export function NotificationRow({ item, condensed = false, activity = false, com
     const hideName = activity && reading.hideName;
     return prominent ? <div key={key}><span className={hideName ? "sr-only" : undefined}>{name}</span><strong>{value}{unit && <small>{unit}</small>}</strong></div> : <p key={key} className="text-sm">{hideName ? <span className="sr-only">{name}: </span> : `${name} · `}{value}{unit}</p>;
   };
-  return <li className={activity ? `notification-activity${compactActivity ? " notification-activity-compact" : ""}` : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0"}>
-    <NotificationIcon rule={item.rule} animate={activity && item.rule.kind === "ongoing"} />
-    <div className="min-w-0 flex-1 break-words"><strong className="block">{item.eventTitle || item.rule.title}</strong>
+  const icon = <NotificationIcon rule={item.rule} animate={activity && item.rule.kind === "ongoing"} />;
+  const dismissAction = item.rule.kind !== "ongoing" && <Button type="button" disabled={preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>;
+  const title = <strong className="block">{item.eventTitle || item.rule.title}</strong>;
+  return <li ref={row} className={activity ? `notification-activity${compactActivity ? " notification-activity-compact" : ""}` : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0"}>
+    {!activity && icon}
+    <div className="notification-body min-w-0 flex-1 break-words">
+      {activity ? <div className="notification-activity-heading">{title}{icon}{dismissAction}</div> : title}
       {!condensed && item.eventTitle && <p className="text-sm text-muted-foreground">{item.rule.title} · {t(item.eventStart > Date.now() ? "Starts at {time}" : "Started at {time}", { time: time.format(item.eventStart) })}</p>}
       {!condensed && item.rule.message && <p className="text-sm">{item.rule.message}</p>}
       {!!at("subtitle").length && <div data-placement="subtitle" className="text-muted-foreground">{at("subtitle").map(reading => renderReading(reading))}</div>}
@@ -100,23 +118,24 @@ export function NotificationRow({ item, condensed = false, activity = false, com
         </div>)}
       </div>}
       {readings.some(reading => !notificationEntity(entities, reading.entity)) && <p className="text-sm text-muted-foreground">{t("Some additional readings are unavailable")}</p>}
-      {item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} />}
-      {!!at("footer").length && <div data-placement="footer" className="notification-reading-footer">{at("footer").map(reading => renderReading(reading))}</div>}
       {imagePosition === "footer" && imageContent}
       {cameraPosition === "footer" && cameraContent}
+      {!!at("footer").length && <div data-placement="footer" className="notification-reading-footer">{at("footer").map(reading => renderReading(reading))}</div>}
+      {item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} />}
     </div>
-    {item.rule.kind !== "ongoing" && <Button type="button" disabled={preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>}
+    {!activity && dismissAction}
   </li>;
 }
 
 function NotificationPresence({ children }: { children: ReactNode }) {
   const present = useIsPresent();
-  const reducedMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { ref.current?.toggleAttribute("inert", !present); }, [present]);
+  useLayoutEffect(() => {
+    if (!present) restoreAlertFocus(ref.current);
+    ref.current?.toggleAttribute("inert", !present);
+  }, [present]);
   return <motion.div className="notification-presence" ref={ref} aria-hidden={!present || undefined}
-    initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-    transition={{ height: { duration: reducedMotion ? 0 : .25, delay: reducedMotion && !present ? .16 : 0, ease: [.77, 0, .175, 1] }, opacity: { duration: .16 } }}>
+    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .16 }}>
     {children}
   </motion.div>;
 }
@@ -125,6 +144,31 @@ export function NotificationList({ compact = false, presentation = "section" }: 
   const { message: t } = useI18n();
   const { notifications: settings } = useFamily();
   const { pathname } = useLocation();
+  const phone = useIsMobile();
+  const slot = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const node = slot.current;
+    if (!node || !window.ResizeObserver) return;
+    let { height, bottom } = node.getBoundingClientRect();
+    const onScroll = () => {
+      const bounds = node.getBoundingClientRect();
+      if (bounds.height === height) bottom = bounds.bottom;
+    };
+    const observer = new ResizeObserver(() => {
+      const bounds = node.getBoundingClientRect();
+      // Only compensate the part of an offscreen resize the browser did not already anchor.
+      const change = bounds.height - height;
+      const shift = bounds.bottom - bottom;
+      if (bottom <= 0 && window.scrollY > 0 && change * shift > 0) {
+        window.scrollBy(0, Math.sign(shift) * Math.min(Math.abs(change), Math.abs(shift)));
+      }
+      height = bounds.height;
+      bottom = node.getBoundingClientRect().bottom;
+    });
+    observer.observe(node);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { observer.disconnect(); window.removeEventListener("scroll", onScroll); };
+  }, [compact, pathname]);
   const { notifications: allNotifications, errors, retry } = useNotifications();
   const notifications = allNotifications.filter(item => !compact || pathname === "/" || (item.rule.pages ?? settings.pages) === "main");
   const shown = !compact || notifications.length > 0 || errors.length > 0;
@@ -136,20 +180,24 @@ export function NotificationList({ compact = false, presentation = "section" }: 
     { kind: "current", title: "Current alerts", icon: Bell },
     { kind: "camera", title: "Camera popup", icon: Camera },
   ] as const;
-  const ordered = groups.flatMap(group => notifications.filter(item => item.rule.kind === group.kind));
-  const heading = compact && <div className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link></div>;
+  const bannerItems = banner ? [...groups].reverse().flatMap(group => notifications.filter(item => item.rule.kind === group.kind)).slice(0, 3) : [];
+  const summarize = compact && phone && notifications.length > 0 && !errors.length && notifications.every(item => item.rule.kind === "ongoing");
+  const [expanded, setExpanded] = useState(false);
+  const summaryRef = useAlertFocusOnRemoval();
+  const headingRef = useAlertFocusOnRemoval();
+  const heading = compact && !summarize && <div ref={headingRef} className={`${banner ? "ml-auto" : "mb-3 justify-between"} flex flex-wrap items-center gap-2`}><PanelTitle icon={Bell} className={banner ? "sr-only" : "font-semibold"}>{t("Happening now")}</PanelTitle><Link className="text-link text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link></div>;
   const content = <section className={banner ? "mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2" : sectionFrame ? "glow-panel mb-5" : "notification-activities mb-5"} aria-label={t("Active notifications")}>
     {!banner && heading}
     {!!errors.length && <div role="status" className="mb-3 w-full"><p>{t("Some notification sources could not be loaded. Check the Home Assistant connection and permissions.")}</p><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>}
     {!notifications.length && !errors.length && <p className="empty-note">{t("Nothing needs your attention right now.")}</p>}
-    {banner ? <ul className="flex min-w-0 flex-1 basis-72 flex-wrap gap-x-5 gap-y-2">{ordered.slice(0, 3).map(item => <NotificationRow key={item.id} item={item} condensed />)}</ul> : <div className="notification-groups">
+    {banner ? <ul className="flex min-w-0 flex-1 basis-72 flex-wrap gap-x-5 gap-y-2">{bannerItems.map(item => <NotificationRow key={item.id} item={item} condensed />)}</ul> : <div className="notification-groups">
       {groups.map(group => {
         const items = notifications.filter(item => item.rule.kind === group.kind);
         const banners = compact ? items.filter(item => style(item) === "banner") : [];
         const sections = items.filter(item => style(item) === "section" || (!compact && style(item) === "banner"));
         const cards = items.filter(item => ["activity", "activity-compact"].includes(style(item)));
         return items.length > 0 && <section key={group.kind} className="min-w-0" aria-label={t(group.title)}>
-          <PanelTitle as="h3" icon={group.icon} className="mb-3 text-sm font-semibold text-muted-foreground">{t(group.title)}</PanelTitle>
+          <PanelTitle as="h3" icon={group.icon} className={compact && notifications.every(item => item.rule.kind === group.kind) ? "sr-only" : "mb-3 text-sm font-semibold text-muted-foreground"}>{t(group.title)}</PanelTitle>
           <div className="notification-group-styles">
             {!!banners.length && <ul className="notification-banner-list">{banners.slice(0, 3).map(item => <NotificationRow key={item.id} item={item} condensed />)}</ul>}
             {!!sections.length && <ul className={sectionFrame ? "" : "notification-section-list"}>{(compact ? sections.slice(0, 3) : sections).map(item => <NotificationRow key={item.id} item={item} />)}</ul>}
@@ -160,7 +208,15 @@ export function NotificationList({ compact = false, presentation = "section" }: 
     </div>}
     {banner && heading}
   </section>;
-  return compact ? <AnimatePresence initial={false}>{shown && <NotificationPresence key="notifications">{content}</NotificationPresence>}</AnimatePresence> : content;
+  return compact ? <div ref={slot} className="notification-slot"><AnimatePresence initial={false}>{shown && <NotificationPresence key="notifications">
+    {summarize && <div ref={summaryRef} className="notification-summary">
+      <button type="button" aria-expanded={expanded} aria-controls="ongoing-alert-details" onClick={() => setExpanded(!expanded)}>
+        <ListChecks aria-hidden="true" /><span><strong>{t("Ongoing tasks")}</strong><small>{notifications.slice(0, 3).map(item => item.rule.title).join(" · ")}</small></span><ChevronDown aria-hidden="true" />
+      </button>
+      <Link className="text-link" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link>
+    </div>}
+    <div id="ongoing-alert-details" hidden={summarize && !expanded}>{(!summarize || expanded) && content}</div>
+  </NotificationPresence>}</AnimatePresence></div> : content;
 }
 
 export function NotificationCamera() {

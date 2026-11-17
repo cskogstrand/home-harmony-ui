@@ -108,10 +108,12 @@ function FamilyStore({ children }: { children: ReactNode }) {
       if (member) calendarMembers[calendar] = member; else delete calendarMembers[calendar];
       return { ...p, calendarMembers };
     }),
-    setTodoList: (kind, member, list) => setPlanner(p => {
-      // Shopping keeps its shared storage key; it has no person assignment.
+    setTodoList: (kind, member, list, previous) => setPlanner(p => {
       const owner = kind === "shopping" ? "everyone" : member;
-      const todoLists = Object.fromEntries(Object.entries(p.todoLists).filter(([id, assigned]) => id !== list && !(assigned.kind === kind && assigned.member === owner)));
+      const todoLists = Object.fromEntries(Object.entries(p.todoLists).filter(([id, assigned]) => {
+        if (assigned.kind !== kind) return true;
+        return kind === "shopping" ? id !== previous : assigned.member !== member;
+      }));
       if (list) todoLists[list] = { ...p.todoLists[list], kind, member: owner };
       return { ...p, todoLists };
     }),

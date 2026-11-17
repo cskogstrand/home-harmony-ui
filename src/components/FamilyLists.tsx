@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useI18n } from "@/hooks/use-i18n";
@@ -19,6 +19,7 @@ import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { defaultTodoDisplay } from "../../shared/configuration";
 import { TodoCelebration } from "./TodoCelebration";
+import { usePageActive } from "@/contexts/PageActivityContext";
 
 const listIcons = { daily: ListChecks, shopping: ShoppingBasket, tasks: ClipboardList, homework: BookOpen };
 const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks", homework: "Homework" };
@@ -123,19 +124,41 @@ function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; 
 export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number }) {
   const { t, message } = useI18n();
   const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
-  const { haUrl, homeOnline } = useApp();
+  const { haUrl, homeOnline, currentHome, services } = useApp();
+  const [params, setParams] = useSearchParams();
   if (!connectedPlanner && kind !== "homework") return <LayoutGroup><LocalListPanel kind={kind} limit={limit} /></LayoutGroup>;
   const lists = Object.entries(todoLists).filter(([, assigned]) => assigned.kind === kind && (kind === "shopping" || isMemberVisible(assigned.member)))
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
+  const source = (id: string) => currentHome.entities.find(entity => entity.domain === "todo" && entity.preferenceId === id);
+  const sourceName = (id: string) => source(id)?.name ?? `${t("List unavailable")} · ${id.split("|").pop()}`;
+  const selected = limit ? undefined : params.get("list") || (kind === "shopping" ? lists[0]?.[0] : undefined);
+  const missing = !!selected && !lists.some(([id]) => id === selected);
+  const summary = kind === "shopping" && !!limit && lists.length > 1;
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
     <ListPanelSurface />
     <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
     {!lists.length && <div className="empty-note"><p>{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p><Link className="text-link mt-3" to={homeOnline ? "/settings/lists" : "/settings/connection"}>{t(homeOnline ? "Choose lists" : "Connection settings")}</Link></div>}
-    {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} />)}
+    {summary ? <ul className="shopping-destinations">{lists.slice(0, limit).map(([id]) => {
+      const entity = source(id);
+      const online = homeOnline && entity && available(entity);
+      const to = `/lists?${new URLSearchParams({ tab: kind, list: id })}`;
+      return <li key={id}><Link className="shopping-destination" to={to}><strong>{sourceName(id)}</strong>
+        <small>{online && /^\d+$/.test(entity.state) ? t("{count} to pick up", { count: entity.state }) : t("Count unavailable")}</small></Link>
+        {online && supportsAction(entity, "add_item", services) && <Button asChild size="icon" variant="outline"><Link to={to} state={{ addToList: id }} aria-label={t("Add to {list}", { list: sourceName(id) })}><Plus aria-hidden="true" /></Link></Button>}
+      </li>;
+    })}</ul> : <>
+      {missing && !!lists.length && <p className="page-note" role="status">{t("This list is no longer linked. Choose a list to continue.")}</p>}
+      {!limit && (lists.length > 1 || (missing && !!lists.length)) && <label className="list-source-picker">{t("List")}<select value={selected || ""} onChange={event => setParams(event.target.value ? { tab: kind, list: event.target.value } : { tab: kind })}>
+        {missing && <option value={selected} disabled>{t("List unavailable")}</option>}
+        {kind !== "shopping" && <option value="">{t("All lists")}</option>}
+        {lists.map(([id]) => <option key={id} value={id}>{sourceName(id)}</option>)}
+      </select></label>}
+      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} hidden={!!selected && id !== selected} />)}
+    </>}
   </article></LayoutGroup>;
 }
 
-export function HomeAssistantList({ preferenceId, member, kind, limit, school = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; school?: boolean }) {
+export function HomeAssistantList({ preferenceId, member, kind, limit, school = false, hidden = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; school?: boolean; hidden?: boolean }) {
   const { t, message, locale } = useI18n();
   const { currentHome, haUrl, homeOnline, todoItems, command, commands, services } = useApp();
   const { memberName, todoLists } = useFamily();
@@ -161,6 +184,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
   }, [online, entityId, haUrl, versions]);
   const [result, setResult] = useState<{ key: string; entityId?: string; items: TodoItem[]; error?: string }>({ key: "", items: [] });
   const [adding, setAdding] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pageActive = usePageActive();
+  const input = useRef<HTMLInputElement>(null);
   const [addingItem, setAddingItem] = useState<string>();
   const [editing, setEditing] = useState<TodoItem>();
   const [removing, setRemoving] = useState<TodoItem>();
@@ -227,6 +254,13 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     && !(action === "add_item" && addingItem)
     && !(status?.pending && !status.items) && !changes.current.has(item) && !status?.items?.[item]?.pending && !heldCompletions.has(item)
     && supportsAction(entity, action, services);
+  const quickAdd = !limit && !hidden && pageActive && location.state?.addToList === preferenceId && can("add_item");
+  useEffect(() => {
+    if (!quickAdd) return;
+    setAdding(true);
+    input.current?.focus();
+    navigate(location.pathname + location.search + location.hash, { replace: true, state: null });
+  }, [quickAdd, location, navigate]);
   const change = async (action: TodoAction, value: { item: string; status?: string; rename?: string; due_date?: string | null; due_datetime?: string | null; description?: string }, completion?: TodoCompletion) => {
     if (changes.current.has(value.item)) return false;
     const source = versions.source;
@@ -299,19 +333,20 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     if (item) ordered.splice(index, 0, item);
   }
   const shown = limit ? ordered.slice(0, limit) : ordered;
+  const shownCompleted = limit && kind === "shopping" ? completedBelow.slice(0, limit - shown.length) : completedBelow;
   const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
     pending={pendingItems.includes(item.uid) || status?.items?.[item.uid]?.pending} disabled={!can("update_item", item.uid)} removeDisabled={!can("remove_item", item.uid)}
     onToggle={checkbox => void toggle(item, checkbox)}
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
-  return <section role="group" aria-label={kind === "shopping" ? t("Shared shopping list") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
+  return <section hidden={hidden} role="group" aria-label={kind === "shopping" ? entity?.name ?? t("List unavailable") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
     {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
-        <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div>{kind !== "shopping" && <h3>{memberName(member)}</h3>}<span>{entity?.name ?? t("List unavailable")}</span></div></div>
+        <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
         {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
       </div>
       {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
-        <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
+        <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input ref={input} aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{addingItem ? t("Saving…") : t("Add")}</Button>
         <details className="todo-add-details"><summary>{t("Due date and description")}</summary>{entity && <TodoItemFields entity={entity} value={details} onChange={setDetails} disabled={!can("add_item")} />}</details>
         {addError && <p role="alert">{message(addError)}</p>}
@@ -324,7 +359,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
         {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
         <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletions.size && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
-        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(display.completed === "under" || display.completed === "collapsed") && !!completedBelow.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={display.completed === "under"}>{completedBelow.map(row)}</CompletedItems>}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(display.completed === "under" || display.completed === "collapsed") && !!shownCompleted.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={display.completed === "under"}>{shownCompleted.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}

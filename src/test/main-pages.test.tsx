@@ -36,7 +36,7 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  await screen.findByRole("heading", { level: 1, name: name === "Today" ? "Good to be home." : name });
+  await screen.findByRole("heading", { level: 1, name });
 };
 
 it.each(["/School/", "/school/"])("keeps main routes working at %s", async path => {
@@ -131,6 +131,27 @@ it("retains the selected list and an unfinished input without putting background
   expect(window.location.search).toBe("?tab=tasks");
   expect(screen.getByRole("textbox", { name: "New item in Example list" })).toBe(input);
   expect(input).toHaveValue("Unfinished example");
+});
+
+it("opens a named shopping composer from Today and retains its destination and draft across pages", async () => {
+  const shops = { groceries: "Groceries", weekend: "Weekend shop", pantry: "Pantry", picnic: "Picnic" };
+  app.currentHome = mapHome(Object.fromEntries(Object.entries(shops).map(([id, name]) => [
+    `todo.${id}`, state(`todo.${id}`, "2", { friendly_name: name, supported_features: 1 }),
+  ])), emptyRegistries, "home");
+  config.settings.todoLists = Object.fromEntries(Object.keys(shops).map(id => [`home|todo.${id}`, { kind: "shopping", member: "everyone" }]));
+  window.history.replaceState(null, "", "/");
+  render(<App />);
+  const add = await screen.findByRole("link", { name: "Add to Weekend shop" });
+  expect(screen.getAllByText("2 to pick up")).toHaveLength(3);
+  expect(screen.queryByRole("link", { name: "Add to Picnic" })).toBeNull();
+  fireEvent.click(add);
+  const input = await screen.findByRole("textbox", { name: "New item in Weekend shop" });
+  expect(input).toHaveFocus();
+  fireEvent.change(input, { target: { value: "Picnic bread" } });
+  await navigate("School");
+  await navigate("Lists");
+  expect(new URLSearchParams(window.location.search).get("list")).toBe("home|todo.weekend");
+  expect(screen.getByRole("textbox", { name: "New item in Weekend shop" })).toHaveValue("Picnic bread");
 });
 
 it("hides an open page dialog during navigation and restores its draft when returning", async () => {

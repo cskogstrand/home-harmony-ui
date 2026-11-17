@@ -1,4 +1,12 @@
 export const nb = {
+  "Shopping lists": "Handlelister",
+  "List": "Liste",
+  "All lists": "Alle lister",
+  "This list is no longer linked. Choose a list to continue.": "Denne listen er ikke lenger tilknyttet. Velg en liste for å fortsette.",
+  "Add shopping list": "Legg til handleliste",
+  "Add to {list}": "Legg til i {list}",
+  "{count} to pick up": "{count} å handle",
+  "Count unavailable": "Antall utilgjengelig",
   "Complete": "Fullført",
   "{done} of {total} setup steps complete": "{done} av {total} oppsettstrinn fullført",
   "Continue setup": "Fortsett oppsett",

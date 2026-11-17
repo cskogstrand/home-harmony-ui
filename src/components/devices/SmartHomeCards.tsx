@@ -10,7 +10,6 @@ import { cardDensitySchema } from "../../../shared/configuration";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cardVariants } from "./card-presentation";
-import { CardGroup } from "./CardGroup";
 import { SmartHomeCard } from "./SmartHomeCard";
 
 export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typeof smartHomeCards>; area: string; editing: boolean }) {
@@ -53,7 +52,7 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
       const members = visible.filter(card => card.group === group);
       return <section key={group} data-smart-group={editing ? group : undefined} aria-label={group || t(editing ? "Ungrouped" : "Other")}>
         {(editing || group || groups.length > 1) && <h3 className="smart-card-group-title">{group || t(editing ? "Ungrouped" : "Other")}<span>{members.length}</span></h3>}
-        <CardGroup>{members.map((card, index) => <div key={card.id} data-smart-card={card.id} className={`smart-card-item${drag.dragging?.id === card.id ? " is-dragging" : ""}${drag.dragging?.target?.beforeId === card.id ? " is-drop-target" : ""}`}>
+        <div className="smart-device-grid">{members.map((card, index) => <div key={card.id} data-smart-card={card.id} className={`smart-card-item${drag.dragging?.id === card.id ? " is-dragging" : ""}${drag.dragging?.target?.beforeId === card.id ? " is-drop-target" : ""}`}>
           {editing && <div className="smart-card-editor planner-form" aria-label={t("Configure {name}", { name: card.name })}>
             <div className="smart-card-move">
               <button type="button" className="smart-drag-handle" tabIndex={-1} aria-hidden="true" title={t("Drag to move")} disabled={disabled}
@@ -73,7 +72,7 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
             <Link className="text-link" to={`/settings/smart-home?card=${encodeURIComponent(card.id)}`}>{t("Edit card")}</Link>
           </div>}
           <div className="smart-card-preview" ref={node => { if (node) node.inert = editing; }}><SmartHomeCard entity={card.main} entities={card.entities} title={card.name} design={card.design} density={card.density} preview={editing} editTo={`/settings/smart-home?card=${encodeURIComponent(card.id)}`} /></div>
-        </div>)}</CardGroup>
+        </div>)}</div>
         {editing && <div className={`smart-group-drop${drag.dragging?.target?.group === group && !drag.dragging.target.beforeId ? " is-drop-target" : ""}`}>
           {t(members.length ? "Drop here to place at the end" : "Drop a card here, or choose this group from a card’s menu")}
         </div>}

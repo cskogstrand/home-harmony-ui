@@ -2,12 +2,14 @@ import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testi
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
+import { SmartHomeCards } from "@/components/devices/SmartHomeCards";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cardDesigns, cardDesignFor } from "@/components/devices/card-designs";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
+import { smartHomeCards } from "@/lib/smart-home-cards";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { services, state } from "./ha-fixtures";
-import { cardEntity, cardServices, mediaEntity } from "./device-card-fixtures";
+import { cardEntity, cardServices, configuredCard, mediaEntity } from "./device-card-fixtures";
 
 const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn(), camera: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -109,6 +111,27 @@ it("keeps scene cards minimal while preserving confirmation, pending, errors and
     if (state === "offline") expect(screen.getByText("Offline")).toBeVisible();
     if (state === "unavailable") expect(screen.getByText("Unavailable")).toBeVisible();
   }
+});
+
+it("keeps a media card mounted and in saved order as its neighboring scene changes density", () => {
+  const scene = cardEntity("scene", "on"), media = mediaEntity();
+  const entities = [scene, media];
+  mocks.app.currentHome.entities = entities;
+  const show = (density: "supercompact" | "compact") => {
+    const cards = smartHomeCards(entities, { layout: [
+      configuredCard(scene.preferenceId, "scene", { density }),
+      configuredCard(media.preferenceId, "media_player", { density: "original" }),
+    ] });
+    return <MemoryRouter><TooltipProvider><SmartHomeCards cards={cards} area="all" editing={false} /></TooltipProvider></MemoryRouter>;
+  };
+  const view = render(show("supercompact"));
+  const [sceneFrame, mediaFrame] = screen.getAllByRole("article");
+  expect(sceneFrame).toHaveAttribute("data-variant", "Super compact");
+  expect(mediaFrame).toHaveAttribute("data-variant", "Original");
+  view.rerender(show("compact"));
+  expect(screen.getAllByRole("article")[0]).toHaveAttribute("data-variant", "Compact");
+  expect(screen.getAllByRole("article")[1]).toBe(mediaFrame);
+  expect(mocks.command).not.toHaveBeenCalled();
 });
 
 it("uses the scene card's custom name in its inert preview and keeps unsupported scenes named", () => {

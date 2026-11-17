@@ -154,7 +154,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
     <DialogHeader><DialogTitle>{event.title}</DialogTitle><DialogDescription>{t("Task")} · {memberName(event.member)}</DialogDescription></DialogHeader>
     <div className="dialog-form-body space-y-3 break-words"><p>{t("Due date")}: {dateLabel(event.date)}{!event.allDay && ` · ${event.time}`}</p>
       {event.note && <EventDescription value={event.note} />}
-      <Link className="text-link" to={`/lists?tab=${event.todo.kind}`} onClick={() => onOpenChange(false)}>{t("Open to-do list")}</Link>
+      <Link className="text-link" to={`/lists?${new URLSearchParams({ tab: event.todo.kind, list: event.todo.list })}`} onClick={() => onOpenChange(false)}>{t("Open to-do list")}</Link>
     </div>
   </DialogContent></Dialog>;
   const deleteButton = deletable && <Button type="button" variant="ghost" disabled={!canDelete || confirmDelete} onClick={() => { setError(""); setConfirmDelete(true); }}><Trash2 size={16} />{t("Delete")}</Button>;
@@ -247,10 +247,15 @@ export function SchoolPreview({ child, dayView = false }: { child: MemberId; day
   const { t } = useI18n();
   const { memberName, connectedPlanner, timetableSettings } = useFamily();
   const [openPage, setOpenPage] = useState<number | null>(null);
+  const opener = useRef<HTMLElement>(null);
+  const enlarge = (page: number) => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setOpenPage(page);
+  };
   const settings = timetableSettings[child];
   const calendar = settings?.type === "calendar";
   return <><div className={`school-preview${calendar ? " school-preview-calendar" : ""}`}>
     <div><MemberAvatar member={child} small /><strong>{memberName(child)}</strong>{!connectedPlanner && ["emma", "leo"].includes(child) && <span>{child === "emma" ? t("Year 5") : t("Year 2")}</span>}<Maximize2 size={16} /></div>
-    {calendar ? <><CalendarTimetable child={child} settings={settings} dayView={dayView} />{!dayView && <Button variant="outline" className="mt-3" onClick={() => setOpenPage(0)}><Maximize2 size={16} />{t("Expand timetable")}</Button>}</> : <TimetablePages child={child} onEnlarge={setOpenPage} />}
-  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog"><DialogHeader><DialogTitle>{t(settings?.education === "kindergarten" ? "{value1}’s kindergarten week" : "{value1}’s school week", { value1: memberName(child) })}</DialogTitle><DialogDescription>{calendar ? t("Live calendars from Home Assistant. Change sources in Settings → Timetables.") : t("Saved timetable pages. Update them in Settings → Timetables.")}</DialogDescription></DialogHeader>{calendar ? <div className="timetable-dialog-scroll"><CalendarTimetable child={child} settings={settings} /></div> : <TimetablePages child={child} startIndex={openPage ?? 0} />}</DialogContent></Dialog></>;
+    {calendar ? <><CalendarTimetable child={child} settings={settings} dayView={dayView} />{!dayView && <Button variant="outline" className="mt-3" onClick={() => enlarge(0)}><Maximize2 size={16} />{t("Expand timetable")}</Button>}</> : <TimetablePages child={child} onEnlarge={enlarge} />}
+  </div><Dialog open={openPage !== null} onOpenChange={open => { if (!open) setOpenPage(null); }}><DialogContent className="timetable-dialog" onCloseAutoFocus={event => { if (opener.current?.isConnected) { event.preventDefault(); opener.current.focus({ preventScroll: true }); } }}><DialogHeader><DialogTitle>{t(settings?.education === "kindergarten" ? "{value1}’s kindergarten week" : "{value1}’s school week", { value1: memberName(child) })}</DialogTitle><DialogDescription>{calendar ? t("Live calendars from Home Assistant. Change sources in Settings → Timetables.") : t("Saved timetable pages. Update them in Settings → Timetables.")}</DialogDescription></DialogHeader>{calendar ? <div className="timetable-dialog-scroll"><CalendarTimetable child={child} settings={settings} /></div> : <TimetablePages child={child} startIndex={openPage ?? 0} />}</DialogContent></Dialog></>;
 }

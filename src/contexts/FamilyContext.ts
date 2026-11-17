@@ -73,7 +73,7 @@ interface FamilyContextValue extends FamilyState {
   setSmartHomeCardDensity: (id: string, density: CardDensity) => boolean;
   moveSmartHomeCard: (id: string, group: string, beforeId?: string) => boolean;
   setCalendarMember: (calendar: string, member: string) => void;
-  setTodoList: (kind: TodoListKind, member: MemberId, list: string) => void;
+  setTodoList: (kind: TodoListKind, member: MemberId, list: string, previous: string) => void;
   setTodoListDisplay: (list: string, display: Partial<TodoDisplay>) => boolean;
   saveEvent: (event: FamilyEvent) => boolean;
   deleteEvent: (id: string) => boolean;

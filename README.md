@@ -4,11 +4,11 @@
 
 ![Afterglow dashboard with family plans, tasks and home controls](https://raw.githubusercontent.com/cskogstrand/home-harmony-ui/main/docs/images/dashboard.png)
 
-*Current app with fictional demo data.*
+*Example dashboard with fictional data.*
 
 ## At a glance
 
-- **Plan together** — a family calendar, daily tasks and a shared shopping list.
+- **Plan together** — a family calendar, daily tasks and named household shopping lists.
 - **Keep school close** — PDF timetables or Home Assistant calendars, with iPhone uploads.
 - **Control your home** — lights, climate, scenes and other Home Assistant devices.
 - **Listen together** — a dedicated Sonos player with grouped room selection and a shared music library in **Your music**. Open group and speaker settings when needed; keep your library folder and filter when switching rooms.
@@ -22,15 +22,15 @@ Home favorites on Today reuse Smart home's compact device cards. In **Make home 
 
 Under **Settings → Appearance**, adjust dialog transparency, frost, color saturation and background dimming with a live preview. Dialogs use a lighter glass fill by default; accessibility preferences retain solid surfaces. Glass settings are shared across screens and included in backups.
 
-Unfinished to-dos with due dates appear under their assigned person in the month, week and day calendars, including Today’s calendar previews. A small task icon distinguishes them from calendar events. Date-only deadlines appear as all-day items; timed deadlines use the home’s time zone. Open a task for its details and a link to its list. Completed tasks, undated tasks and the shared shopping list stay out of the calendar.
+Unfinished to-dos with due dates appear under their assigned person in the month, week and day calendars, including Today’s calendar previews. A small task icon distinguishes them from calendar events. Date-only deadlines appear as all-day items; timed deadlines use the home’s time zone. Choose **Open to-do list** in a dated task to open its assigned list. The calendar excludes completed tasks, undated tasks and shopping items.
 
 Calendar and Everyone’s day keep their last loaded plans during background refreshes and temporary connection failures. Loading text is reserved for the first fetch; connection errors still appear. Changing the selected home, calendar sources or date range clears unrelated cached calendar data. This cache lives only in memory.
 
-The shared board shows household facts, not setup gaps. Everyone’s day leaves out people with no calendar or to-do list selected (showing everyone only when nobody has one yet), and labels an empty day **Free**. Online, Smart home summarizes only the lighting, climate and security devices the home has; offline, every tile stays with its offline label. A connected home shows only the Lists tabs that have lists selected. Next family plan counts down to a plan later today. A missing timetable links straight to Settings → Timetables.
+The shared board shows household facts, not setup gaps. Everyone’s day leaves out people with no calendar or to-do list selected (showing everyone only when nobody has one yet), and labels an empty day **Free**. Online, Smart home summarizes only the lighting, climate and security devices the home has; offline, every tile stays with its offline label. A connected home shows only the Lists tabs that have lists selected. Next family plan shows the activity, person, time and countdown. **Open calendar** takes you to that day. A missing timetable links straight to Settings → Timetables.
 
 Next family plan shows formatted descriptions beneath the event. Its heading chevron expands or collapses the description without opening the calendar dialog. Under **Customize Today → Next family plan**, **Hide description by default** chooses the initial state; descriptions stay visible by default for existing setups. This preference syncs across screens and is included in backups. Manual toggles apply only on this screen to the current event; the next event or a changed default uses the saved preference. Events without descriptions have no chevron.
 
-Today, Calendar, Lists, School and Smart home preload shortly after startup and stay mounted while you navigate. Their loaded data, filters and drafts remain in memory, and the main navigation remembers the selected calendar date/view and list tab. Background pages keep receiving data updates; their dialogs are hidden and camera streams pause. Reloading the app resets this page state.
+Today, Calendar, Lists, School and Smart home preload shortly after startup and stay mounted while you navigate. Their loaded data, filters and drafts remain in memory, and the main navigation remembers the selected calendar date, view, list tab and list. Background pages keep receiving data updates while dialogs are hidden and camera streams pause. Reloading clears in-memory drafts. The current URL retains a directly selected date, view or list.
 
 ## Get started
 

@@ -62,6 +62,7 @@ export default function Dashboard() {
     wasteCollection: dashboard.wasteCollection && <WasteCollection />,
     nextPlan: dashboard.nextPlan && <Collapsible key={`${next?.id}:${dashboard.hideNextPlanDescription}`} defaultOpen={!dashboard.hideNextPlanDescription} asChild><section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
       <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle>
+        <Link className="text-link" to={`/calendar?date=${next?.date ?? today}&view=day`}>{t("Open calendar")}<ArrowUpRight size={16} aria-hidden="true" /></Link>
         {next?.note && <CollapsibleTrigger asChild><Button type="button" variant="ghost" size="icon" className="group shrink-0" aria-label={t("Show or hide description")} title={t("Show or hide description")}><ChevronDown aria-hidden="true" className="group-data-[state=open]:rotate-180" /></Button></CollapsibleTrigger>}
       </div>
       {next ? <><button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
@@ -97,7 +98,9 @@ export default function Dashboard() {
   };
   return <div className="portrait-board">
     <header className="ambient-heading">
-      <div className="greeting"><h1>{t("Good to be home.")}</h1><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p><div className="greeting-bottom"><div className="avatar-group">{members.map(m => <MemberAvatar member={m.id} key={m.id} small />)}</div>{needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}<DashboardSettings /></div></div>
+      <div className="greeting"><div className="today-title"><h1>{t("Today")}</h1><DashboardSettings /></div><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p>
+        {needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}
+      </div>
       <div className="ambient-glance"><time className="ambient-clock">{time}</time><WeatherWidget placement="today" /></div>
     </header>
     {!dashboard.order.some(key => dashboard[key]) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}

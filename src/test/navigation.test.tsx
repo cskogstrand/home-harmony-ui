@@ -132,6 +132,7 @@ it.each([
   expect(await within(next).findByRole("heading", { level: 3, name: "Example activity" })).toBeVisible();
   expect(within(next).queryByText(/^(No (more )?plans|Ingen (flere )?planer)/)).not.toBeInTheDocument();
   expect(next.querySelector(".next-plan-countdown")?.textContent ?? null).toBe(countdown);
+  expect(within(next).getByRole("link", { name: language === "nb" ? "Åpne kalender" : "Open calendar" })).toHaveAttribute("href", `/calendar?date=${date}&view=day`);
   expect(within(next).getAllByRole("button")).toHaveLength(2);
   const plan = within(next).getByRole("button", { name: /Example activity/ });
   expect(plan.style.getPropertyValue("--member")).toBe("#a5c9bd");
@@ -452,7 +453,7 @@ it("uses only Home Assistant people and lets old shared assignments move to a re
   expect(screen.queryByRole("button", { name: "Add calendar for Everyone" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Tasks for Everyone" })).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "To-do lists for Person unavailable" })).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Shared shopping list" })).toHaveTextContent("Shopping");
+  expect(screen.getByRole("button", { name: "Shopping" })).toHaveTextContent("Shopping");
   await navigate("Calendar");
   expect(screen.getAllByRole("rowheader")).toHaveLength(1);
   expect(screen.getByRole("rowheader", { name: "Example person" })).toBeInTheDocument();
@@ -1351,7 +1352,7 @@ it.each([
 it("navigates with empty HA data and shows the server-managed connection", async () => {
   app.currentHome = mapHome({}, emptyRegistries, "home");
   render(<App />); await saved();
-  expect(screen.getByRole("heading", { level: 1, name: "Good to be home." })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 1, name: "Today" })).toBeInTheDocument();
   expect(screen.getByRole("contentinfo")).toHaveTextContent("Version 9.8.7");
   await navigate("Smart home");
   fireEvent.click(screen.getByRole("button", { name: "Smart home settings" }));
@@ -1417,11 +1418,15 @@ it("navigates timetable pages with arrows and keyboard and enlarges the selected
   fireEvent.keyDown(carousel, { key: "ArrowLeft" });
   expect(within(carousel).getByText("Page 1 of 2")).toBeInTheDocument();
   fireEvent.keyDown(carousel, { key: "ArrowRight" });
-  fireEvent.click(within(carousel).getByRole("button", { name: "Enlarge Emma’s timetable, page 2 of 2" }));
+  const opener = within(carousel).getByRole("button", { name: "Enlarge Emma’s timetable, page 2 of 2" });
+  act(() => opener.focus());
+  fireEvent.click(opener);
   const dialog = within(screen.getByRole("dialog", { name: "Emma’s school week" }));
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 2 of 2" })).toHaveAttribute("src", "/second.svg");
   fireEvent.click(dialog.getByRole("button", { name: "Previous timetable page" }));
   expect(dialog.getByRole("img", { name: "Emma’s school timetable, page 1 of 2" })).toHaveAttribute("src", "/first.svg");
+  fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+  await waitFor(() => expect(opener).toHaveFocus());
 });
 
 it("offers the signed iOS shortcut and copies each person's upload destination", async () => {
@@ -1931,7 +1936,7 @@ it.each(["month", "week", "day"])("includes assigned dated tasks in the %s calen
   fireEvent.click(screen.getByRole("button", { name: /Example deadline/ }));
   const details = within(screen.getByRole("dialog", { name: "Example deadline" }));
   expect(details.getByText("Example task details")).toBeVisible();
-  expect(details.getByRole("link", { name: "Open to-do list" })).toHaveAttribute("href", "/lists?tab=tasks");
+  expect(details.getByRole("link", { name: "Open to-do list" })).toHaveAttribute("href", "/lists?tab=tasks&list=home%7Ctodo.example");
   expect(details.queryByRole("button", { name: /Save|Delete/ })).not.toBeInTheDocument();
   expect(settings.settings).not.toHaveProperty("events");
 });

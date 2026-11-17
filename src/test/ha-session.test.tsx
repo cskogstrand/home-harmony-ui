@@ -56,7 +56,7 @@ const connectedClient = async () => {
 const confirmAction = async (name: string) => { await act(async () => { fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name })); }); };
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
-  await screen.findByRole("heading", { level: 1, name: name === "Today" ? "Good to be home." : name });
+  await screen.findByRole("heading", { level: 1, name });
 };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
 
@@ -1802,7 +1802,7 @@ it("keeps shopping usable without people and hides tasks assigned to the removed
   window.history.replaceState(null, "", "/lists");
   render(<App />);
   expect(await screen.findByRole("checkbox", { name: "Milk" })).toBeInTheDocument();
-  expect(screen.getByRole("group", { name: "Shared shopping list" }).querySelector(".member-avatar")).toBeNull();
+  expect(screen.getByRole("group", { name: "Shopping" }).querySelector(".member-avatar")).toBeNull();
   expect(screen.getByRole("button", { name: "Shopping 1" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
   expect(screen.getByText("No lists selected.")).toBeInTheDocument();
@@ -1812,7 +1812,7 @@ it("keeps shopping usable without people and hides tasks assigned to the removed
 it("assigns one task and daily list per person plus shared shopping, moves selections and restores them", async () => {
   const instance = "http://ha.local:8123";
   const household = { ...states, "person.morgan": state("person.morgan", "home", { friendly_name: "Morgan" }),
-    ...Object.fromEntries(["family", "personal", "daily", "routine", "shopping"].map(id => [`todo.${id}`, state(`todo.${id}`, "0", { friendly_name: id })])),
+    ...Object.fromEntries(["family", "personal", "daily", "routine", "shopping", "weekend"].map(id => [`todo.${id}`, state(`todo.${id}`, "0", { friendly_name: id })])),
   };
   vi.mocked(ha.subscribeEntities).mockImplementation((connection, callback) => {
     (connection as unknown as FakeConnection).entityCallback = callback;
@@ -1832,12 +1832,14 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
   await choose("Tasks for Morgan", "personal");
   await choose("Daily tasks for Everyone", "daily");
   await choose("Daily tasks for Morgan", "routine");
-  await choose("Shared shopping list", "shopping");
+  await choose("Add shopping list", "shopping");
+  await choose("Add shopping list", "weekend");
   expect(savedSettings().todoLists).toEqual({
     [`home|todo.family`]: { kind: "tasks", member: "home|person.everyone" },
     [`home|todo.personal`]: { kind: "tasks", member: `home|person.morgan` },
     [`home|todo.daily`]: { kind: "daily", member: "home|person.everyone" },
     [`home|todo.routine`]: { kind: "daily", member: `home|person.morgan` },
+    [`home|todo.weekend`]: { kind: "shopping", member: "everyone" },
     [`home|todo.shopping`]: { kind: "shopping", member: "everyone" },
   });
   await choose("Tasks for Morgan", "family");
@@ -1866,7 +1868,8 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
   const restored = render(<App />);
   await waitFor(() => expect(select("Tasks for Everyone")).toBeEnabled());
   expect(select("Daily tasks for Morgan")).toHaveTextContent("routine");
-  expect(select("Shared shopping list")).toHaveTextContent("shopping");
+  expect(select("shopping")).toHaveTextContent("shopping");
+  expect(select("weekend")).toHaveTextContent("weekend");
   act(() => conn.emit("disconnected"));
   expect(select("Tasks for Everyone")).toBeDisabled();
   restored.unmount();
@@ -1874,7 +1877,13 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
   vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
   render(<App />);
   await waitFor(() => expect(select("Tasks for Everyone")).toHaveTextContent("family"));
-  expect(select("Shared shopping list")).toHaveTextContent("shopping");
+  expect(select("shopping")).toHaveTextContent("shopping");
+  expect(select("weekend")).toHaveTextContent("weekend");
+  await choose("weekend", "");
+  await confirmAction("Unlink list");
+  expect(savedSettings().todoLists["home|todo.weekend"]).toBeUndefined();
+  expect(savedSettings().todoLists["home|todo.shopping"]).toBeDefined();
+  expect(ha.callService).not.toHaveBeenCalled();
 });
 
 it("uses saved people order for connected lists and retains missing people across screens", async () => {
@@ -1900,7 +1909,7 @@ it("uses saved people order for connected lists and retains missing people acros
   expect(order()).toEqual([personId("everyone"), personId("riley"), personId("morgan")]);
   const listOrder = (kind: string) => screen.getAllByRole("group", { name: new RegExp(` ${kind}$`) }).map(group => group.getAttribute("aria-label"));
   await navigate("Today");
-  await screen.findByRole("heading", { level: 1, name: "Good to be home." });
+  await screen.findByRole("heading", { level: 1, name: "Today" });
   expect(screen.getAllByRole("rowheader").map(row => row.textContent)).toEqual(["EEveryone", "RRiley", "MMorgan"]);
   expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
   await navigate("Lists");
@@ -2126,7 +2135,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(milk.parentElement.querySelector(".lucide-loader-circle")).not.toBeInTheDocument();
   await waitFor(() => expect(milk).not.toBeInTheDocument());
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  const shopping = within(screen.getByRole("group", { name: "Shared shopping list" }));
+  const shopping = within(screen.getByRole("group", { name: "shopping" }));
   await shopping.findByText("Completed (1)");
   expect(shopping.getByText("Completed (1)").closest("details")).not.toHaveAttribute("open");
   fireEvent.click(shopping.getByText("Completed (1)"));

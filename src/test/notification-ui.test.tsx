@@ -1232,6 +1232,28 @@ it.each(["section", "activity"] as const)("groups ongoing, current and camera no
   expect(within(screen.getByRole("region", { name: "Current alerts" })).getByRole("button", { name: "Edit Example current" })).toBeVisible();
 });
 
+it("summarizes phone background jobs and keeps current alerts and source errors visible", () => {
+  vi.stubGlobal("innerWidth", 390);
+  const ongoing = { ...cameraRule(), kind: "ongoing" as const, title: "Print job" };
+  const current = { ...cameraRule(), id: "door", kind: "current" as const, title: "Open door" };
+  const show = (rules: (typeof ongoing | typeof current)[], errors: string[] = []) => <MemoryRouter><NotificationContext.Provider value={{
+    notifications: rules.map(rule => ({ id: rule.id, rule, startedAt: 0, popup: false })),
+    errors, dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn(),
+  }}><NotificationBell /><NotificationList compact presentation="banner" /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(show([ongoing]));
+  const toggle = screen.getByRole("button", { name: /Ongoing tasks.*Print job/ });
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByRole("button", { name: "Show camera" })).toBeNull();
+  fireEvent.click(toggle);
+  expect(screen.getByRole("button", { name: "Show camera" })).toBeVisible();
+  toggle.focus();
+  view.rerender(show([ongoing, { ...ongoing, id: "wash" }, { ...ongoing, id: "dry" }, current]));
+  expect(screen.getByText("Open door")).toBeVisible();
+  expect(screen.getByRole("link", { name: "Notifications: 4 active" })).toHaveFocus();
+  view.rerender(show([ongoing], ["Source unavailable"]));
+  expect(screen.getByRole("button", { name: "Retry" })).toBeVisible();
+});
+
 it("simulates an attribute and a total state on the same entity without corrupting either source", () => {
   mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "90", { remaining: 30 }) }, emptyRegistries, "home");
   const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", progress: {

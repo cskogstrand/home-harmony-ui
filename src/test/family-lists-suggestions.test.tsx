@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { ListPanel } from "@/components/FamilyLists";
 import type { ListItem } from "@/contexts/FamilyContext";
@@ -7,13 +7,14 @@ import type { Entity } from "@/types/api";
 import { state } from "./ha-fixtures";
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { entities: [] as Entity[] }, commands: {} as Record<string, { pending: boolean }>, services: { todo: { add_item: { fields: {} }, update_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }));
-const family = vi.hoisted(() => ({ connectedPlanner: true, todoLists: { "home|todo.shopping": { kind: "shopping", member: "everyone" } }, items: [] as ListItem[], today: "2026-01-01", compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Everyone", memberColor: () => "#c4d5a3", members: [], allMembers: [], addItem: vi.fn(), toggleItem: vi.fn() }));
+const family = vi.hoisted(() => ({ connectedPlanner: true, todoLists: {} as Record<string, { kind: "shopping"; member: string }>, items: [] as ListItem[], today: "2026-01-01", compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Everyone", memberColor: () => "#c4d5a3", members: [], allMembers: [], addItem: vi.fn(), toggleItem: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/FamilyContext")>(), useFamily: () => family }));
 
 beforeEach(() => {
   vi.resetAllMocks();
   app.commands = {};
+  family.todoLists = { "home|todo.shopping": { kind: "shopping", member: "everyone" } };
   app.currentHome.entities = [{ ...state("todo.shopping", "1", { supported_features: 5 }), entityId: "todo.shopping", preferenceId: "home|todo.shopping", domain: "todo", name: "Shopping", areaId: "unassigned" }];
   family.items = [
     { id: "active", text: "Milk", kind: "shopping", member: "everyone", done: false },
@@ -26,6 +27,41 @@ beforeEach(() => {
   family.toggleItem.mockReturnValue(true);
 });
 afterEach(cleanup);
+
+it("keeps the quick-add draft, suggestions and item UID with their selected shopping list", async () => {
+  const weekend = "home|todo.weekend";
+  family.todoLists[weekend] = { kind: "shopping", member: "everyone" };
+  family.connectedPlanner = true;
+  app.currentHome.entities.push({ ...app.currentHome.entities[0], entityId: "todo.weekend", preferenceId: weekend, name: "Weekend shop" });
+  app.todoItems.mockImplementation(async id => [{ uid: "shared-uid", summary: id === "todo.weekend" ? "Weekend milk" : "Oat milk", status: "completed" }]);
+  app.command.mockResolvedValue(undefined);
+  render(<MemoryRouter initialEntries={[{ pathname: "/lists", search: "?tab=shopping&list=home%7Ctodo.weekend", state: { addToList: weekend } }]}><ListPanel kind="shopping" /></MemoryRouter>);
+  const input = await screen.findByRole("textbox", { name: "New item in Weekend shop" });
+  expect(input).toHaveFocus();
+  fireEvent.change(input, { target: { value: "milk" } });
+  const picker = screen.getByRole("combobox", { name: "List" });
+  fireEvent.change(picker, { target: { value: "home|todo.shopping" } });
+  fireEvent.click(screen.getByRole("button", { name: "Add item" }));
+  const other = screen.getByRole("textbox", { name: "New item in Shopping" });
+  expect(other).toHaveValue("");
+  fireEvent.change(other, { target: { value: "milk" } });
+  expect(within(screen.getByRole("group", { name: "Existing items" })).getByRole("button", { name: "Oat milk" })).toBeEnabled();
+  fireEvent.change(picker, { target: { value: weekend } });
+  expect(input).toHaveValue("milk");
+  const suggestions = within(screen.getByRole("group", { name: "Existing items" }));
+  expect(suggestions.queryByText("Oat milk")).toBeNull();
+  await act(async () => fireEvent.click(suggestions.getByRole("button", { name: "Weekend milk" })));
+  expect(app.command).toHaveBeenCalledExactlyOnceWith("todo.weekend", "update_item", { item: "shared-uid", status: "needs_action" });
+});
+
+it("requires a new destination when opening a link to a removed shopping list", async () => {
+  family.connectedPlanner = true;
+  render(<MemoryRouter initialEntries={["/lists?tab=shopping&list=removed"]}><ListPanel kind="shopping" /></MemoryRouter>);
+  expect(screen.getByText(/This list is no longer linked/)).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Add item" })).toBeNull();
+  fireEvent.change(screen.getByRole("combobox", { name: "List" }), { target: { value: "home|todo.shopping" } });
+  expect(await screen.findByRole("checkbox", { name: "Milk" })).toBeVisible();
+});
 
 async function openSuggestions() {
   const view = render(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
