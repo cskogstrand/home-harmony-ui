@@ -13,11 +13,13 @@ export const feature = (entity: Entity, flag: number) => ((numberValue(entity.at
 export const humanizeState = (value: string) => value.replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
 // HA interprets these wall-clock times in its configured timezone, not the browser's.
 const calendarTime = z.string().datetime({ local: true, precision: 0 }).regex(/T\d{2}:\d{2}:\d{2}$/);
-const newCalendarEvent = z.object({
-  summary: z.string().trim().min(1).max(100),
-  start_date_time: calendarTime, end_date_time: calendarTime,
-  location: z.string().max(150), description: z.string().max(200),
-}).refine(event => event.end_date_time > event.start_date_time);
+const newCalendarEventDetails = z.object({
+  summary: z.string().trim().min(1).max(100), location: z.string().max(150), description: z.string().max(200),
+});
+const newCalendarEvent = z.union([
+  newCalendarEventDetails.extend({ start_date_time: calendarTime, end_date_time: calendarTime }).strict().refine(event => event.end_date_time > event.start_date_time),
+  newCalendarEventDetails.extend({ start_date: z.string().date(), end_date: z.string().date() }).strict().refine(event => event.end_date > event.start_date),
+]);
 const eventTime = z.union([z.string().date(), z.string().datetime({ offset: true })]);
 const calendarEventIdentity = z.object({
   uid: z.string().min(1), recurrence_id: z.string().min(1).optional(),
@@ -306,11 +308,11 @@ export function calendarTimeInput(value: CalendarEvent["start"], timeZone: strin
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
 }
 
-export function calendarTimeValue(original: CalendarEvent["start"], input: string, timeZone: string) {
+export function calendarTimeValue(original: CalendarEvent["start"] | undefined, input: string, timeZone: string) {
   if (!input.includes("T")) return input;
   const local = input.length === 16 ? `${input}:00` : input;
   // Preserve the original instant when clocks repeat an hour at the end of DST.
-  if (local === calendarTimeInput(original, timeZone)) return new Date(calendarDateValue(original)).toISOString();
+  if (original && local === calendarTimeInput(original, timeZone)) return new Date(calendarDateValue(original)).toISOString();
   const value = calendarBoundary(local.slice(0, 10), timeZone, local.slice(11));
   if (calendarTimeInput(value, timeZone) !== local) throw new MessageError("This time does not exist in {timeZone}. Choose another time.", { timeZone });
   return value;

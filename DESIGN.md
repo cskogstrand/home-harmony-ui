@@ -437,3 +437,5 @@ Area detail reuses compact SmartHomeCard controls and DeviceReading status. Main
 Editors place required fields before previews on phones. Notification setup starts with the trigger/source/condition, then message and presentation choices. Save and Cancel stay reachable outside the scrolling notification fields. Card selection distinguishes duplicate device names by room and model.
 
 Settings surface shared scope and save feedback in the content area. Appearance follows theme, palette, density and timetable choices, then a collapsed Advanced appearance disclosure. Calendar distinguishes local view/person filters from shared layout settings.
+
+The plan editor exposes All day for new Home Assistant events, explains inclusive end dates, and preserves duration when the start changes. New timed plans use the next half hour today, or 09:00 on another date.

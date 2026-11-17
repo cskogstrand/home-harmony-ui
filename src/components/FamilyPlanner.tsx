@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2, PencilOff, ListTodo, type LucideIcon } from "lucide-react";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { newPlanTimes, shiftedPlanEnd } from "@/lib/calendar-editor";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -77,11 +79,12 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
     if (open && !wasOpen.current) {
       const start = source && calendarTimeInput(source.start, currentHome.timeZone);
       const end = source && calendarTimeInput(source.end, currentHome.timeZone);
-      setDraft(event ? { ...event, ...(start && { date: start.slice(0, 10), time: start.slice(11) || "00:00" }) } : { id: newPlannerId(), title: "", date: date ?? today, time: "16:00", member: defaultMember, location: "", note: "" });
-      setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : date ?? today); setEndTime(end?.slice(11) || event?.endTime || (!event && haUrl ? "17:00" : "")); setError("");
+      const initial = newPlanTimes(date ?? today, today, time ?? "09:00");
+      setDraft(event ? { ...event, ...(start && { date: start.slice(0, 10), time: start.slice(11) || "00:00" }) } : { id: newPlannerId(), title: "", date: initial.start.date, time: initial.start.time, member: defaultMember, location: "", note: "" });
+      setConfirmDelete(false); setCalendarId(""); setEndDate(end ? event.allDay ? addDays(end, -1) : end.slice(0, 10) : initial.end.date); setEndTime(end?.slice(11) || event?.endTime || (!event && haUrl ? initial.end.time : "")); setError("");
     }
     wasOpen.current = open;
-  }, [open, event, source, date, today, defaultMember, currentHome.timeZone, haUrl]);
+  }, [open, event, source, date, today, time, defaultMember, currentHome.timeZone, haUrl]);
   const remote = editingRemote || connectedPlanner && !event;
   const calendars = currentHome.entities.filter(e => e.domain === "calendar" && calendarMembers[e.preferenceId] === draft?.member);
   const writable = calendars.filter(e => available(e) && supportsAction(e, "create_event", services));
@@ -99,6 +102,11 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
   const deletable = !!event && !event.wasteCollection && (!editingRemote || !!calendar && supportsAction(calendar, "delete_event", services) && !!source?.uid && (!source.rrule || !!source.recurrence_id));
   const canDelete = deletable && !busy && (!editingRemote || homeOnline && available(calendar) && !commands[calendar.entityId]?.pending);
   const canSave = !!draft?.member && !busy && !confirmDelete && !readOnly && (!remote || homeOnline && !!calendar && available(calendar) && (editingRemote || writable.includes(calendar)) && !commands[calendar.entityId]?.pending);
+  const moveStart = (date: string, time: string) => {
+    const end = shiftedPlanEnd(draft.date, draft.allDay ? "00:00" : draft.time, endDate, draft.allDay ? "00:00" : endTime, date, draft.allDay ? "00:00" : time);
+    if (end) { setEndDate(end.date); if (!draft.allDay) setEndTime(end.time); }
+    setDraft({ ...draft, date, time });
+  };
   const save = async () => {
     if (!draft?.title.trim() || !canSave) return;
     setError("");
@@ -106,8 +114,13 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
       if (endTime && endTime <= draft.time) { setError("End time must be after the start time."); return; }
       if (saveEvent({ ...draft, endTime: endTime || undefined })) onOpenChange(false); return;
     }
+    if (draft.allDay ? endDate < draft.date : `${endDate}T${endTime}` <= `${draft.date}T${draft.time}`) { setError("End date and time must be after the start."); return; }
     setSaving(true);
     try {
+      if (!draft.allDay) {
+        calendarTimeValue(source?.start, `${draft.date}T${draft.time}`, currentHome.timeZone);
+        calendarTimeValue(source?.end, `${endDate}T${endTime}`, currentHome.timeZone);
+      }
       if (editingRemote) await command(calendar.entityId, "update_event", {
         uid: source.uid, ...(source.recurrence_id && { recurrence_id: source.recurrence_id }),
         event: {
@@ -117,7 +130,7 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
         },
       });
       else await command(calendar.entityId, "create_event", {
-        summary: draft.title, start_date_time: `${draft.date}T${draft.time}:00`, end_date_time: `${endDate}T${endTime}:00`,
+        summary: draft.title, ...(draft.allDay ? { start_date: draft.date, end_date: addDays(endDate, 1) } : { start_date_time: `${draft.date}T${draft.time}:00`, end_date_time: `${endDate}T${endTime}:00` }),
         location: draft.location, description: draft.note,
       });
       onSaved();
@@ -155,10 +168,11 @@ export function EventEditor({ open, onOpenChange, onSaved, event, date, member }
       <div className="planner-form dialog-form-body">
       {remote && !homeOnline && <p className="form-notice" role="status">{t("Connect to Home Assistant to save this plan.")} <Link className="text-link" to="/settings/connection">{t("Connection settings")}</Link></p>}
       {source?.recurrence_id && <p>{t("Only this occurrence will be changed.")}</p>}
+      {!event && remote && <label className="settings-control-row">{t("All day")}<Switch checked={!!draft.allDay} onCheckedChange={allDay => { setDraft({ ...draft, allDay }); if (allDay) setEndDate(draft.date); else if (endDate === draft.date && endTime <= draft.time) setEndDate(addDays(draft.date, 1)); }} /></label>}
       {draft.allDay && <p>{t("All-day event. End date is the last day included.")}</p>}
       <label>{t("What’s happening?")}<input autoFocus required maxLength={editingRemote ? undefined : 100} value={draft.title} placeholder={t("Dinner with grandparents")} onChange={e => setDraft({ ...draft, title: e.target.value })} /></label>
-      <div className="form-row"><label>{t("Date")}<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => { if (endDate === draft.date) setEndDate(e.target.value); setDraft({ ...draft, date: e.target.value }); }} /></label>
-        {!draft.allDay && <label>{t("Time")}<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => setDraft({ ...draft, time: e.target.value })} /></label>}</div>
+      <div className="form-row"><label>{t("Date")}<input type="date" required min="2000-01-01" max="2100-12-31" value={draft.date} onChange={e => moveStart(e.target.value, draft.time)} /></label>
+        {!draft.allDay && <label>{t("Time")}<input type="time" required step={editingRemote ? 1 : 60} value={draft.time} onChange={e => moveStart(draft.date, e.target.value)} /></label>}</div>
       <div className="form-row">{remote && <label>{t("End date")}<input type="date" required min={draft.date} max="2100-12-31" value={endDate} onChange={e => setEndDate(e.target.value)} /></label>}{!draft.allDay && <label>{t("End time{value1}", { value1: remote ? "" : t(" (optional)") })}<input type="time" required={remote} step={editingRemote ? 1 : 60} value={endTime} onChange={e => setEndTime(e.target.value)} /></label>}</div>
       <label>{t("Who’s going?")}<select required disabled={editingRemote} value={draft.member} onChange={e => { setDraft({ ...draft, member: e.target.value as MemberId }); setCalendarId(""); setError(""); }}><MemberOptions />{draft.member && !members.some(m => m.id === draft.member) && <option value={draft.member}>{memberName(draft.member)}</option>}</select></label>
       {editingRemote && <><p>{t("Calendar: {value1}", { value1: calendar?.name })}</p></>}

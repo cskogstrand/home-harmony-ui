@@ -1,4 +1,5 @@
 export const nb = {
+  "End date and time must be after the start.": "Sluttdato og -tid må være etter starten.",
   "Display options": "Visningsvalg",
   "Advanced appearance": "Avansert utseende",
   "View and person filters apply to this screen only.": "Visning og personfilter gjelder bare denne skjermen.",

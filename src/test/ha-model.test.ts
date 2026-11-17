@@ -123,6 +123,11 @@ describe("HA commands", () => {
     for (const invalid of [null, { ...value, summary: " " }, { ...value, start_date_time: "2026-02-30T12:00:00" }, { ...value, end_date_time: value.start_date_time }, { ...value, end_date_time: "2026-10-25T22:00:00" }, { ...value, start_date_time: "2026-10-25T23:30:00Z" }]) {
       expect(() => entityCommand(calendar, "create_event", services, invalid)).toThrow("valid dates and times");
     }
+    const allDay = { summary: "Example day", start_date: "2026-11-17", end_date: "2026-11-18", location: "", description: "" };
+    expect(entityCommand(calendar, "create_event", services, allDay).data).toEqual(allDay);
+    for (const invalid of [{ ...allDay, end_date: allDay.start_date }, { ...allDay, start_date: "2026-02-30" }, { ...allDay, start_date_time: value.start_date_time }]) {
+      expect(() => entityCommand(calendar, "create_event", services, invalid)).toThrow("valid dates and times");
+    }
     expect(supportsAction({ ...calendar, attributes: { supported_features: 2 } }, "create_event", services)).toBe(false);
     expect(supportsAction(calendar, "create_event", {})).toBe(false);
     expect(() => entityCommand({ ...calendar, state: "unavailable" }, "create_event", services, value)).toThrow("available");
