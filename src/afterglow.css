@@ -491,7 +491,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .timetable-day[aria-current="date"], .timetable-day-tab[data-state="active"] { outline: 2px solid Highlight; outline-offset: -2px; }
 }
 .home-favorites { display: flex; flex-direction: column; }
-.favorite-devices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.favorite-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 14px; }
 .control-stack { display: flex; flex-direction: column; gap: 11px; width: 100%; }
 .toggle-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; font-size: 0.9375rem; }
 .device-range { display: block; width: 100%; }
@@ -808,7 +808,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .member-avatar.small { width: 36px; height: 36px; font-size: .75rem; }
   .school-preview > div:first-child, .list-progress, .list-identity > div > span, .home-device-title small, .device-range > span { font-size: .9rem; }
   .home-device-title h3, .scene-buttons button, .home-favorites .scene-buttons button, .toggle-line { font-size: 1rem; }
-  .favorite-devices { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+  .favorite-devices { grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr)); gap: 1rem; }
   .school-preview .timetable-image { max-height: 200px; }
   .school-strip { gap: 1rem; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
