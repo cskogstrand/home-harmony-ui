@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.27
+
+<!-- release-source: 565b7d9ed8c12909367f8ee9a7d17171b91366fc -->
+
+- fix: trim transparent notification image borders
+- fix: remove camera status text beside icons
+- test: use jsdom storage in Vitest
+
 ## 0.10.26
 
 <!-- release-source: cc5ab9818c6d3e5a8c62662282c52e41a6b88365 -->
