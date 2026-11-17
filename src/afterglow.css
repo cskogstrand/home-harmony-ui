@@ -835,7 +835,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .brand { font-size: 1.25rem; gap: .3rem; }
   .brand-mark { width: 28px; }
   .header-actions .hub-state { display: none; }
-  .header-actions { gap: 0; }
+  .header-actions { gap: .375rem; }
   .app-header:has(.header-weather) { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .app-header:has(.header-weather) .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
   .header-weather { grid-column: 2; grid-row: 2; justify-self: end; max-width: 10rem; }

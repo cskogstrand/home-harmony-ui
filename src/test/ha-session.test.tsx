@@ -2425,7 +2425,7 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   fireEvent.click(screen.getByRole("link", { name: "Charger power details" }));
   expect(await screen.findByRole("heading", { level: 1, name: "Charger power" })).toBeInTheDocument();
   expect(window.location.pathname).toBe("/entities/switch.charger");
-  expect(screen.getByRole("link", { name: "Devices" })).toHaveAttribute("aria-current", "page");
+  expect(within(screen.getByRole("navigation", { name: "Smart home navigation" })).getByRole("button", { name: "Devices" })).toHaveAttribute("data-active", "true");
   expect(screen.getByRole("switch", { name: "Toggle Charger power" })).toBeEnabled();
   fireEvent.click(screen.getByRole("link", { name: "Back to devices" }));
   expect(screen.getByRole("textbox", { name: "Search devices" })).toHaveValue("charger");

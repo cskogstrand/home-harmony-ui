@@ -734,6 +734,7 @@ export const nb = {
   "Sage": "Salvie",
   "Slate": "Skifer",
   "Location and notes": "Sted og notater",
+  "More": "Mer",
   "More controls": "Flere kontroller",
   "{temperature} {unit} inside": "{temperature} {unit} inne",
   " · Read-only or unavailable": " · Skrivebeskyttet eller utilgjengelig",

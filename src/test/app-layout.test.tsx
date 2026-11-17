@@ -113,7 +113,7 @@ it("offers an update without reloading until the user chooses to refresh", () =>
 
 it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device section on %s", path => {
   render(<MemoryRouter initialEntries={[path]}><SmartHomeNav /></MemoryRouter>);
-  expect(screen.getByRole("link", { name: "Devices" })).toHaveAttribute("aria-current", "page");
+  expect(screen.getByRole("button", { name: "Devices" })).toHaveAttribute("data-active", "true");
   fireEvent.click(screen.getByRole("link", { name: "Overview" }));
   expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
 });

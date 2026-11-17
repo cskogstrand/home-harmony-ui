@@ -2,7 +2,7 @@
 
 [← Overview](../README.md) · [Connection help](../DOCS.md#access-and-the-home-assistant-connection)
 
-Open the **Sonos music-note shortcut** in the top-right header, beside the camera button, or **Smart home → Sonos** (`/sonos`). The page discovers `media_player` entities registered by Home Assistant's native Sonos integration, including IKEA Symfonisk. Speaker names alone do not identify a Sonos player. Enable the integration and its entities in Home Assistant first; no extra Sonos login or card installation is needed.
+Open **Smart home → Sonos** (`/sonos`), or the mini player while music plays. The page discovers `media_player` entities registered by Home Assistant's native Sonos integration, including IKEA Symfonisk. Speaker names alone do not identify a Sonos player. Enable the integration and its entities in Home Assistant first; no extra Sonos login or card installation is needed.
 
 ## Playback across the dashboard
 
