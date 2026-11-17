@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.24
+
+<!-- release-source: ed1766edf09d732ac9a736b63398b7f7c4028a0a -->
+
+- Revert "fix: trim navigation to everyday destinations"
+- fix: start in the saved language and drop needless retry
+- fix: trim navigation to everyday destinations
+- fix: let device cards use the board width
+- fix: make the calendar week readable on the wall display
+- fix: clarify board labels and names
+- feat: hide setup gaps from the shared board
+
 ## 0.10.23
 
 <!-- release-source: 32fb62113b7dbf0bfb4b1205d6f6f43c1b120a6c -->
