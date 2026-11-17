@@ -454,7 +454,7 @@ export const nb = {
   "A place for the things you use": "Plass til det du bruker",
   "Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.": "Start med et lys, en termostat eller et annet kort du trenger. Koble til entiteter og se kortet ta form.",
   "Open Smart home": "Åpne Smarthjem",
-  "Reorder cards and groups from Configure on Smart home.": "Endre rekkefølge og grupper via Konfigurer på Smarthjem.",
+  "Reorder cards and groups from Arrange cards on Smart home.": "Endre rekkefølge og grupper via Ordne kort på Smarthjem.",
   "Danger zone": "Faresone",
   "Start from an empty dashboard": "Start med et tomt dashbord",
   "Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.": "Fjern alle kort og grupper på Smarthjem. Favoritter på I dag og enheter i Home Assistant beholdes.",
