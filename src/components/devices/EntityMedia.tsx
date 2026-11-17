@@ -72,7 +72,7 @@ function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, onErro
   }, [video, transport]);
   return <><div className={`smart-camera-player${playing ? " is-playing" : ""}`}>
     <CameraStreamPreview src={previewSrc} name={name} active={!playing} caption=""
-      status={transport === "mse" ? "Trying video through Home Harmony…" : "Loading video…"} />
+      status={transport === "mse" ? "Trying video through Afterglow…" : "Loading video…"} />
     <div ref={ref} />
     <CameraMediaStatus shortLabel={playing ? "Live" : "Connecting…"} icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }

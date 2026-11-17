@@ -74,7 +74,7 @@ it.each(["development", "production"])("uses shared storage by default in %s and
 it("rejects an invalid backup before confirmation and never sends it to storage", async () => {
   mount(); await screen.findByText("Shared configuration saved.");
   await upload(JSON.stringify({ ...backup(), access_token: "fixture-secret" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("not a valid Home Harmony");
+  expect(screen.getByRole("alert")).toHaveTextContent("not a valid Afterglow");
   expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   expect(app.configurationRequest.mock.calls.some(([method]) => method === "PUT")).toBe(false);
 });

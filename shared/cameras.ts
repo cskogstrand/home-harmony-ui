@@ -50,13 +50,13 @@ export function cameraPreviewPath(camera: ConfiguredCamera): string {
 }
 
 export const go2rtcErrors = {
-  unreachable: "Home Harmony could not reach go2rtc. Check the connection address.",
+  unreachable: "Afterglow could not reach go2rtc. Check the connection address.",
   rejected: "go2rtc could not open this stream. Check the stream name and camera.",
   invalid: "The server did not return a WebRTC answer. Check the go2rtc address.",
   connection: "WebRTC could not connect. Check go2rtc's WebRTC port and network settings.",
   unsupported: "This browser does not support WebRTC.",
   playback: "The browser could not play this stream. Check its video codec.",
-  signaling: "Could not contact Home Harmony. Check your connection and sign-in.",
+  signaling: "Could not contact Afterglow. Check your connection and sign-in.",
 } as const;
 export const cameraPersonPipWidths = { small: 16, medium: 24, large: 36, xlarge: 48 } as const;
 

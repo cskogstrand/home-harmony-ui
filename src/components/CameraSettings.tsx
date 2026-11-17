@@ -153,7 +153,7 @@ export function CameraSettings() {
       {preview.type === "snapshot" && <p className="page-note">{t("This image is shown while the live stream connects.")}</p>}
       {shared.state.error ? <p role="status">{t("Camera settings could not be saved. Check settings storage and retry.")}</p> : shared.state.saving || shared.state.dirty ? <p role="status">{t("Saving camera settings before opening the stream…")}</p> : preview.type === "person" ? <CameraPersonSnapshot cameraId={previewCamera.id} /> : <MediaSurface key={preview.type} camera={previewCamera} expanded snapshotOnly={preview.type === "snapshot"} />}
     </div>}
-    <ConfirmDialog open={!!remove} onOpenChange={open => { if (!open) setRemove(undefined); }} title="Delete camera?" description="This removes the camera from Home Harmony. Its connection and the camera itself are unchanged." confirmLabel="Delete" destructive disabled={disabled || !!remove && inUse(remove.id)} onConfirm={() => {
+    <ConfirmDialog open={!!remove} onOpenChange={open => { if (!open) setRemove(undefined); }} title="Delete camera?" description="This removes the camera from Afterglow. Its connection and the camera itself are unchanged." confirmLabel="Delete" destructive disabled={disabled || !!remove && inUse(remove.id)} onConfirm={() => {
       shared.store.updateSettings(current => {
         if (current.notifications.rules.some(rule => rule.kind !== "current" && rule.cameraEntity === remove.id)) throw new Error("Used by notifications. Choose another camera in those rules before deleting it.");
         return { ...current, cameras: { ...current.cameras, items: current.cameras.items.filter(item => item.id !== remove.id) } };

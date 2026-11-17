@@ -170,5 +170,5 @@ export const plannerSettings = (planner: unknown): Planner => plannerObjectSchem
 export function parseConfiguration(text: string): Configuration {
   if (new TextEncoder().encode(text).length > MAX_CONFIG_BYTES) throw new Error("The backup exceeds the 2 MB limit.");
   try { return configurationSchema.parse(JSON.parse(text)); }
-  catch { throw new Error("This is not a valid Home Harmony settings backup (version 3)."); }
+  catch { throw new Error("This is not a valid Afterglow settings backup (version 3)."); }
 }
