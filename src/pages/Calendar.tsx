@@ -2,7 +2,7 @@ import { calendarRange, moveCalendarDate, uniqueCalendarPlans, type CalendarView
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -87,6 +87,7 @@ export default function Calendar() {
       {view === "week" && calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === today ? "today-outline" : ""} onClick={() => openDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long" })}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={visible.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
       <HomeAssistantCalendar data={data} />
       {homeOnline && !data.loading && !data.errors.length && unavailable && <p className="page-note" role="status">{unavailable}</p>}
+      {homeOnline && !calendars.length && !hasLists && <Link className="text-link" to="/settings/calendars">{t("Choose calendars")}</Link>}
       <p className="calendar-local-note page-note">{t("View and person filters apply to this screen only.")}</p>
     </section>
     {view === "month" ? <CalendarMonth date={date} start={start} end={end} events={visible} unavailable={unavailable} onDay={openDay} onEdit={openEvent} /> :

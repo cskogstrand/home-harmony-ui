@@ -439,3 +439,5 @@ Editors place required fields before previews on phones. Notification setup star
 Settings surface shared scope and save feedback in the content area. Appearance follows theme, palette, density and timetable choices, then a collapsed Advanced appearance disclosure. Calendar distinguishes local view/person filters from shared layout settings.
 
 The plan editor exposes All day for new Home Assistant events, explains inclusive end dates, and preserves duration when the start changes. New timed plans use the next half hour today, or 09:00 on another date.
+
+Phone list tabs stay on one scrollable row with their label and count together. Add item/task labels remain visible from 360px. Row deletion lives in the named action menu and retains confirmation and capability checks. Phone calendar person filters use compact horizontal avatar chips; portrait keeps the larger avatars. Empty lists and calendars link directly to setup.

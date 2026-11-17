@@ -45,7 +45,10 @@
   .calendar-view-switch { width: 100%; }
   .calendar-view-switch > button { flex: 1; }
   .calendar-filter-bar > .filter-row { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: .25rem; }
-  .calendar-filter-bar > .filter-row > button { flex-shrink: 0; }
+  .calendar-filter-bar > .filter-row > button { flex-shrink: 0; min-height: 48px; }
+  .calendar-filter-bar .calendar-member-filter { flex-direction: row; padding: .375rem .75rem; gap: .5rem; border-radius: var(--radius-capsule); white-space: nowrap; }
+  .calendar-member-filter .member-avatar { width: 32px; height: 32px; font-size: .875rem; }
+  .calendar-local-note { font-size: .875rem; }
   .calendar-page .family-week-table { min-width: 1100px; }
   .calendar-month { padding: .375rem; }
   .calendar-month-day { min-height: 5rem; padding: .125rem; }

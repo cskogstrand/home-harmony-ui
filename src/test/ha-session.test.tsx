@@ -2187,13 +2187,15 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   fireEvent.click(shared.getByRole("button", { name: "Save item to family" }));
   expect(await shared.findByRole("checkbox", { name: "Fix bike" })).toBeInTheDocument();
   expect(ha.callService).toHaveBeenLastCalledWith(conn, "todo", "add_item", { item: "Fix bike" }, { entity_id: "todo.family" });
-  fireEvent.click(shared.getByRole("button", { name: "Remove Fix bike" }));
+  fireEvent.keyDown(shared.getByRole("button", { name: "Actions for Fix bike" }), { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Remove Fix bike" }));
   expect(lists["todo.family"].some(item => item.summary === "Fix bike")).toBe(true);
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(lists["todo.family"].some(item => item.summary === "Fix bike")).toBe(true);
   const bike = shared.getByRole("checkbox", { name: "Fix bike" });
   expect(bike.closest(".check-row-shell")).not.toHaveAttribute("aria-hidden");
-  fireEvent.click(shared.getByRole("button", { name: "Remove Fix bike" }));
+  fireEvent.keyDown(shared.getByRole("button", { name: "Actions for Fix bike" }), { key: "Enter" });
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Remove Fix bike" }));
   const deletion = deferred<unknown>();
   vi.mocked(ha.callService).mockReturnValueOnce(deletion.promise);
   fireEvent.click(screen.getByRole("button", { name: "Remove item" }));
@@ -2293,7 +2295,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
   render(<App />);
   expect(await screen.findByRole("checkbox", { name: "Read only item" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Edit Read only item" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Remove Read only item" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Actions for Read only item" })).toBeDisabled();
   expect(screen.getByText("This list is read-only.")).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: "Add task" })).toHaveLength(3);
   screen.getAllByRole("button", { name: "Add task" }).forEach(button => expect(button).toBeDisabled());
@@ -2432,7 +2434,7 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "" } });
   fireEvent.click(screen.getByRole("link", { name: "Multi sensor details" }));
   expect(window.location.pathname).toBe("/devices/physical-1");
-  expect(screen.getByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { level: 1, name: "Multi sensor" })).toBeInTheDocument();
   expect(document.querySelector(".device-page .device-symbol svg")).toHaveClass("lucide-lightbulb");
   expect(screen.getByRole("link", { name: "Hall" })).toHaveAttribute("href", "/areas/hall");
   expect(screen.getAllByRole("article")).toHaveLength(2);
