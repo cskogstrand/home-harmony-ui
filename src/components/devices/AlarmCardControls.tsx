@@ -17,7 +17,7 @@ export function AlarmCardControls({ entity }: { entity: Entity }) {
   const disarm = entity.state !== "disarmed" && supportsAction(entity, "alarm_disarm", services);
   return <>
     {!disarm && mode && <label className="dg-choice"><span>{t("Arm mode")}</span><select disabled={disabled} value={mode.action} onChange={event => setSelected(event.target.value as AlarmAction)}>{modes.map(mode => <option key={mode.action} value={mode.action}>{message(mode.label)}</option>)}</select></label>}
-    {(disarm || mode) && <Action primary onClick={() => setAction(disarm ? "alarm_disarm" : mode.action)}>{t(disarm ? "Disarm" : "Arm alarm")}</Action>}
+    {(disarm || mode) && <Action primary onClick={() => setAction(disarm ? "alarm_disarm" : mode.action)}>{disarm ? t("Disarm") : message(mode.label)}</Action>}
     {supportsAction(entity, "alarm_trigger", services) && <More><Action onClick={() => setAction("alarm_trigger")}>{t("Trigger")}</Action></More>}
     {action && <PinPadModal key={`${entity.entityId}:${action}`} open onOpenChange={open => { if (!open) setAction(undefined); }}
       title={`${action === "alarm_disarm" ? t("Disarm") : message(alarmModes.find(mode => mode.action === action)?.label)} · ${entity.name}`}

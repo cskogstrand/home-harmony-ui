@@ -1,4 +1,10 @@
 export const nb = {
+  "Arm home": "Slå på hjemmemodus",
+  "Arm away": "Slå på bortemodus",
+  "Arm night": "Slå på nattmodus",
+  "Arm vacation": "Slå på feriemodus",
+  "Arm custom bypass": "Slå på med valgte unntak",
+  "Alarm actions": "Alarmhandlinger",
   "Actions for {name}": "Handlinger for {name}",
   "End date and time must be after the start.": "Sluttdato og -tid må være etter starten.",
   "Display options": "Visningsvalg",

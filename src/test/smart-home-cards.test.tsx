@@ -264,7 +264,7 @@ it("keeps alarm arming behind the existing code confirmation", async () => {
   const alarm = cardEntity("alarm_control_panel", "disarmed", { supported_features: 3, code_format: "number", code_arm_required: true });
   open(alarm);
   fireEvent.change(screen.getByRole("combobox", { name: "Arm mode" }), { target: { value: "alarm_arm_away" } });
-  fireEvent.click(screen.getByRole("button", { name: "Arm alarm" }));
+  fireEvent.click(screen.getByRole("button", { name: "Arm away" }));
   expect(mocks.command).not.toHaveBeenCalled();
   expect(screen.getByRole("button", { name: "Confirm" })).toBeDisabled();
   fireEvent.change(screen.getByLabelText("Code"), { target: { value: "1234" } });

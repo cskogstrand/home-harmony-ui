@@ -54,11 +54,11 @@ export function entityStateLabel(entity: Entity, language: Language = "en") {
   return [...known, "playing", "paused", "docked", "cleaning", "mowing", "returning"].includes(entity.state) ? message(humanizeState(entity.state)) : humanizeState(entity.state);
 }
 export const alarmModes: { action: AlarmAction; label: string; flag: number }[] = [
-  { action: "alarm_arm_home", label: "Home", flag: 1 },
-  { action: "alarm_arm_away", label: "Away", flag: 2 },
-  { action: "alarm_arm_night", label: "Night", flag: 4 },
-  { action: "alarm_arm_vacation", label: "Vacation", flag: 32 },
-  { action: "alarm_arm_custom_bypass", label: "Custom bypass", flag: 16 },
+  { action: "alarm_arm_home", label: "Arm home", flag: 1 },
+  { action: "alarm_arm_away", label: "Arm away", flag: 2 },
+  { action: "alarm_arm_night", label: "Arm night", flag: 4 },
+  { action: "alarm_arm_vacation", label: "Arm vacation", flag: 32 },
+  { action: "alarm_arm_custom_bypass", label: "Arm custom bypass", flag: 16 },
   { action: "alarm_trigger", label: "Trigger", flag: 8 },
 ];
 export const needsCode = (entity: Entity, action: EntityAction) => !!entity.attributes.code_format &&

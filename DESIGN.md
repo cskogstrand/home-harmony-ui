@@ -443,3 +443,5 @@ The plan editor exposes All day for new Home Assistant events, explains inclusiv
 Phone list tabs stay on one scrollable row with their label and count together. Add item/task labels remain visible from 360px. Row deletion lives in the named action menu and retains confirmation and capability checks. Phone calendar person filters use compact horizontal avatar chips; portrait keeps the larger avatars. Empty lists and calendars link directly to setup.
 
 Compact and super compact media cards use a 64px artwork thumbnail beside track information and transport. Original cards retain large artwork. Supporting camera/image sources keep their normal viewing area.
+
+Alarm actions name their result (Arm home/away/night), including the primary card action and confirmation title. Current state is labeled separately. Capability checks, pending states and code/confirmation requirements remain in force.
