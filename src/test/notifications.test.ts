@@ -37,12 +37,26 @@ describe("notification configuration", () => {
   });
   it("round-trips camera placement and preserves the default for older rules", () => {
     const config = emptyConfiguration();
-    for (const cameraPlacement of ["footer", "right"] as const) {
+    for (const cameraPlacement of ["footer", "left", "right"] as const) {
       config.settings.notifications.rules = [rule({ cameraEntity: "example-camera", cameraPlacement })];
       expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
     }
     expect(rule().cameraPlacement).toBeUndefined();
-    expect(notificationRuleSchema.safeParse({ ...rule(), cameraPlacement: "left" }).success).toBe(false);
+    expect(notificationRuleSchema.safeParse({ ...rule(), cameraPlacement: "subtitle" }).success).toBe(false);
+  });
+  it("round-trips separate image and camera placements and rejects invalid image sources", () => {
+    const config = emptyConfiguration();
+    for (const imagePlacement of ["footer", "left", "right"] as const) {
+      config.settings.notifications.rules = [rule({ imageEntity: "home|image.example", imagePlacement, cameraEntity: "example-camera", cameraPlacement: "right" })];
+      expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    }
+    expect(rule().imageEntity).toBeUndefined();
+    expect(rule().imagePlacement).toBeUndefined();
+    expect(rule({ imageEntity: "" }).imageEntity).toBe("");
+    for (const imageEntity of [null, "home|sensor.example", "https://example.com/image.jpg", "home|image.example?token=example", "home|image.example/extra", "x".repeat(513)]) {
+      expect(notificationRuleSchema.safeParse({ ...rule(), imageEntity }).success).toBe(false);
+    }
+    expect(notificationRuleSchema.safeParse({ ...rule(), imagePlacement: "subtitle" }).success).toBe(false);
   });
   it("migrates single readings, preserves multiple selections and honors explicit clearing", () => {
     const { detailEntities: _details, ...legacy } = rule();
