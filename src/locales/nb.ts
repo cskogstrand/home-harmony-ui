@@ -1,4 +1,10 @@
 export const nb = {
+  "Other readings": "Andre målinger",
+  "Power now": "Effekt nå",
+  "Energy reading": "Energimåling",
+  "Cost reading": "Kostnadsmåling",
+  "Last reset: {date}": "Sist nullstilt: {date}",
+  "Reporting period not provided by Home Assistant.": "Home Assistant oppgir ingen måleperiode.",
   "Current state": "Nåværende status",
   "Live": "Direkte",
   "Arm home": "Slå på hjemmemodus",
