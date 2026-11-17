@@ -5,7 +5,7 @@ import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { DoorOpen, ArrowUpRight } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { PageHeading } from "@/components/FamilyPlanner";
-import { available, numberValue } from "@/lib/ha-model";
+import { available } from "@/lib/ha-model";
 import { deviceDetailSections, smartHomeEntities } from "@/lib/device-model";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 import { DeviceReading } from "@/components/devices/DeviceReading";
@@ -31,7 +31,7 @@ export default function Areas() {
       const entities = [...everyday.primary, ...everyday.controls, ...everyday.readings];
       const lights = entities.filter(entity => entity.domain === "light");
       const lightsOn = lights.filter(entity => entity.state === "on").length;
-      const temperature = entities.find(entity => available(entity) && entity.attributes.device_class === "temperature" && numberValue(entity.state) !== undefined);
+      const temperature = entities.find(entity => available(entity) && entity.attributes.device_class === "temperature" && entity.state.trim() !== "" && Number.isFinite(Number(entity.state)));
       const count = new Set(entities.map(entity => entity.device?.id ?? entity.entityId)).size;
       return <Link key={room.id} to={`/areas/${encodeURIComponent(room.id)}`} className="glow-panel space-y-3"><PanelTitle icon={DoorOpen}>{room.id === "unassigned" ? t("Unassigned") : room.name}</PanelTitle>
         <p>{!homeOnline ? t("Offline") : [lights.length ? t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn }) : "", temperature ? `${temperature.state} ${temperature.attributes.unit_of_measurement ?? ""}`.trim() : ""].filter(Boolean).join(" · ") || t(count === 1 ? "{count} device" : "{count} devices", { count })}</p><ArrowUpRight aria-hidden="true" />

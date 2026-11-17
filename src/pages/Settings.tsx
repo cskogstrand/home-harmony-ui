@@ -11,6 +11,7 @@ import { CameraConnections } from "@/components/CameraConnections";
 import { CameraSettings } from "@/components/CameraSettings";
 import { Button } from "@/components/ui/button";
 import { PanelTitle } from "@/components/PanelTitle";
+import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import "./settings.css";
@@ -85,6 +86,7 @@ export default function Settings() {
         <p>{shared.state.error ? message(shared.state.error) : t("Shared settings are not saved yet.")}</p>
         <Link className="text-link" to="/settings/backups">{t("Storage and backups")}</Link>
       </div>}
+      <SharedSettingsStatus />
       {selected.content}
       {section === "people" && <Link className="settings-related text-link" to="/settings/timetables">{t("Configure timetables")}<ChevronRight size={17} aria-hidden="true" /></Link>}
     </div>}

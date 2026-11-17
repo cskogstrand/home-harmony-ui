@@ -6,6 +6,7 @@ import { CalendarDays, Columns3, Table2, Plus } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 import { Button } from "./ui/button";
+import { SharedSettingsStatus } from "./common/SharedSettingsStatus";
 import { SettingsPopover } from "./common/SettingsPopover";
 
 export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
@@ -15,6 +16,7 @@ export function CalendarViewControls({ onChange }: { onChange?: (settings: Parti
   return <div className="calendar-view-controls">
     <span className="calendar-current-week">{t("Today · Week {value1}", { value1: weekNumber(today) })}</span>
     <SettingsPopover label={t("Calendar settings")}>
+      <SharedSettingsStatus />
       <fieldset className="settings-card"><legend className="panel-title text-sm font-semibold"><Table2 className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Calendar layout")}</span></legend><div className="calendar-segment">
         <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />{t("Weekly grid")}</button>
         <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />{t("By person")}</button>
