@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createI18n, MessageError, msg } from "@/lib/i18n";
 import { nb } from "@/locales/nb";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
@@ -82,11 +82,8 @@ describe("device readings", () => {
 it("uses this screen's remembered language until shared settings load", async () => {
   const { renderHook } = await import("@testing-library/react");
   const { useI18n } = await import("@/hooks/use-i18n");
-  const stored = new Map<string, string>();
-  vi.stubGlobal("localStorage", { getItem: (key: string) => stored.get(key) ?? null });
-  stored.set("afterglow-language", "nb");
+  localStorage.setItem("afterglow-language", "nb");
   expect(renderHook(() => useI18n()).result.current.language).toBe("nb");
-  stored.clear();
+  localStorage.removeItem("afterglow-language");
   expect(renderHook(() => useI18n()).result.current.language).toBe("en");
-  vi.unstubAllGlobals();
 });

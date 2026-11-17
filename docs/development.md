@@ -43,6 +43,8 @@ Server tests require Poppler and permission to open local test ports. The contai
 
 For compact output, use `npm run --silent test:silent` and `npm run --silent test:server:silent`. Passing tests show dots; failures retain their details. `deploy.sh` uses these commands automatically.
 
+Vitest disables Node's native Web Storage in test workers so browser tests use jsdom's in-memory `localStorage` and `sessionStorage`. This avoids `--localstorage-file` warnings on Node 25+ without suppressing other warnings.
+
 `npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, changelog generation and Home Assistant version slicing, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
 
 ## Deploying this repository

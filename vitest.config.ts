@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    // Use jsdom storage instead of Node's file-backed Web Storage.
+    execArgv: ["--no-experimental-webstorage"],
     // Concurrent app renders compete with cold route imports on busy machines.
     maxWorkers: 2,
     testTimeout: 15_000,
