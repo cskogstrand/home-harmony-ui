@@ -14,12 +14,16 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   const { homeOnline, currentHome } = useApp();
   const { today, calendarMembers, todoLists, dashboard } = useFamily();
   const days = dashboard.showTomorrow ? [today, addDays(today, 1)] : [today];
+  const hasSources = (id: string) => Object.values(calendarMembers).includes(id) || Object.values(todoLists).some(list => list.kind !== "shopping" && list.member === id);
+  // People without calendars or lists stay off the shared board; Settings explains that gap. Fall back to everyone so a fresh setup still shows why the board is empty.
+  const configured = data.people.filter(person => hasSources(person.id));
+  const people = configured.length ? configured : data.people;
   return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
     <div className="panel-heading"><PanelTitle icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
     <HomeAssistantCalendar data={data} />
     <div className="family-day-board relative mt-4">
-    <div className="family-lanes family-day-column-lines" aria-hidden="true">{data.people.map(person => <span key={person.id} />)}</div>
-    <div className="family-lanes family-day-people">{data.people.map(person => <div className="family-lane" key={person.id}>
+    <div className="family-lanes family-day-column-lines" aria-hidden="true">{people.map(person => <span key={person.id} />)}</div>
+    <div className="family-lanes family-day-people">{people.map(person => <div className="family-lane" key={person.id}>
       <div className="lane-heading"><MemberAvatar member={person.id} /><strong>{person.name}</strong></div>
     </div>)}</div>
     <div className="mt-4 space-y-6">{days.map(date => {
@@ -28,7 +32,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
         <h3 className={dashboard.showTomorrow ? "mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-medium" : "sr-only"}>
           <span>{label}</span><time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { day: "numeric", month: "short" })}</time>
         </h3>
-        <div className="family-lanes">{data.people.map(person => {
+        <div className="family-lanes">{people.map(person => {
           const personal = uniqueCalendarPlans(data.events.filter(event => event.member === person.id && event.date === date));
           const calendars = Object.keys(calendarMembers).filter(id => calendarMembers[id] === person.id);
           const hasLists = Object.values(todoLists).some(list => list.kind !== "shopping" && list.member === person.id);
@@ -42,8 +46,9 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
             <div className="lane-heading family-day-mobile-person"><MemberAvatar member={person.id} small /><h4>{person.name}</h4></div>
             {personal.map(event => <EventButton key={event.id} event={event} hideMember onClick={() => onEdit(event)} />)}
             {!personal.length && (unavailableMessage ? <p className="empty-note">{unavailableMessage}</p> :
-              <div className="flex flex-1 items-center justify-center py-5 text-muted-foreground" role="img" aria-label={t(date === today ? "No plans today." : "No plans tomorrow.")}>
+              <div className="flex flex-1 flex-col items-center justify-center gap-1 py-5 text-muted-foreground" role="img" aria-label={t(date === today ? "No plans today." : "No plans tomorrow.")}>
                 <Armchair className="size-10" strokeWidth={1.5} aria-hidden="true" />
+                <span className="text-sm">{t("Free")}</span>
               </div>)}
             {!!personal.length && missing && <p className="empty-note">{person.name}: {t("Some calendars could not be loaded.")}</p>}
           </div>;

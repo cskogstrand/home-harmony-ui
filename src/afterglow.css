@@ -576,7 +576,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .smart-nav a[aria-current="page"] { color: hsl(var(--primary)); background: hsl(var(--secondary)); }
 .connection-pill { display: flex; align-items: center; gap: 9px; color: hsl(var(--primary)); font-size: 0.875rem; white-space: nowrap; }
 .connection-pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.smart-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.smart-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 16px; }
 .smart-summary > a { display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid hsl(var(--border)); padding: 1.5rem 0; }
 .smart-summary > a > svg:first-child { color: hsl(var(--primary)); }
 .smart-summary span { flex: 1; font-size: 0.8125rem; color: hsl(var(--muted-foreground)); }

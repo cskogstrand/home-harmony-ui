@@ -75,8 +75,7 @@ it("assigns waste collections to an active person and shows the same single coll
   expect(dayCollection.querySelector(".lucide-trash2")).toBeInTheDocument();
   expect(within(day).getAllByRole("button", { name: /Mat- og Restavfall/ })).toHaveLength(1);
   expect(within(day).getByRole("region", { name: "I morgen" })).not.toHaveTextContent("Mat- og Restavfall");
-  const people = within(day).getAllByRole("group", { name: "Annen eksempelperson" });
-  people.forEach(person => expect(person).not.toHaveTextContent("Mat- og Restavfall"));
+  expect(within(day).queryByRole("group", { name: "Annen eksempelperson" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Kalender" }));
   const collection = await screen.findByRole("button", { name: /Mat- og Restavfall.*Tømt i dag/ });
   expect(collection.querySelectorAll(".waste-collection-icons svg")).toHaveLength(2);
@@ -932,7 +931,7 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   app.watchCalendarEvents.mockImplementation((id, _from, _to, _signal, receive) => receive(events[id] ?? []));
   render(<App />); await saved();
   const day = within(screen.getByRole("region", { name: "Everyone’s day" }));
-  expect(day.getAllByRole("group").map(group => group.getAttribute("aria-label"))).toEqual(["Everyone", "Example B", "Example A", "Example C"]);
+  expect(day.getAllByRole("group").map(group => group.getAttribute("aria-label"))).toEqual(["Everyone", "Example B", "Example A"]);
   const person = within(day.getByRole("group", { name: "Example A" }));
   expect(person.getAllByRole("button").map(button => button.querySelector("strong")?.textContent)).toEqual(["Overnight example", "Early example", "Later example"]);
   expect(person.getByRole("button", { name: /Early example/ })).toHaveTextContent("00:15 – 00:25");
@@ -946,7 +945,7 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   const emptyToday = day.getByRole("group", { name: "Example B" });
   expect(within(emptyToday).getByRole("img", { name: "No plans today." })).toBeInTheDocument();
   expect(within(emptyToday).queryByRole("button")).not.toBeInTheDocument();
-  expect(day.getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars or to-do lists selected");
+  expect(day.queryByRole("group", { name: "Example C" })).not.toBeInTheDocument();
   expect(app.watchCalendarEvents.mock.calls.map(([id]) => id).sort()).toEqual(["calendar.a", "calendar.b", "calendar.extra", "calendar.shared"]);
   expect(day.queryByRole("button", { name: /Refresh|Retry/ })).not.toBeInTheDocument();
   expect(day.queryByRole("link", { name: "Open calendar" })).not.toBeInTheDocument();
@@ -963,7 +962,7 @@ it.each(["today", "monday"] as const)("groups today's assigned calendar events b
   const emptyTomorrow = within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example B" });
   expect(within(emptyTomorrow).getByRole("img", { name: "No plans tomorrow." })).toBeInTheDocument();
   expect(within(emptyTomorrow).queryByRole("button")).not.toBeInTheDocument();
-  expect(within(day.getByRole("region", { name: "Tomorrow" })).getByRole("group", { name: "Example C" })).toHaveTextContent("No calendars or to-do lists selected");
+  expect(within(day.getByRole("region", { name: "Tomorrow" })).queryByRole("group", { name: "Example C" })).not.toBeInTheDocument();
 });
 
 it.each([
