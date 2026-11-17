@@ -166,13 +166,14 @@ it.each([
   ["go2rtc", "Live video from go2rtc"],
   ["mse", "Live video from go2rtc · MSE"],
   ["ha", "Live camera"],
-])("shows plain %s playback status with technical details on demand", (transport, label) => {
+])("shows icon-only %s playback status with technical details on demand", (transport, label) => {
   configure(); mocks.fetch.mockReturnValue(new Promise(() => {}));
   const camera = mocks.shared.state.config.settings.cameras.items[0];
   if (transport === "ha") { camera.connectionId = "home-assistant"; camera.source = "camera.example"; }
   if (transport === "mse") mocks.go2rtc.mockImplementation((_id, _video, _signal, failed) => failed());
   const view = render(<MediaSurface camera={camera} expanded />);
   expect(screen.getByRole("button", { name: "Connecting…" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Connecting…" }).textContent).toBe("");
   expect(screen.getByRole("button", { name: "Connecting…" }).querySelector("svg")).toHaveClass("motion-safe:animate-spin");
   expect(screen.queryByText("Snapshot preview · connecting video…")).not.toBeInTheDocument();
   const video = view.container.querySelector("video");
@@ -180,7 +181,7 @@ it.each([
   fireEvent.playing(video);
   const status = screen.getByRole("button", { name: "Live" });
   expect(status.querySelector("svg")).not.toHaveClass("motion-safe:animate-spin");
-  expect(status).toHaveTextContent("Live");
+  expect(status.textContent).toBe("");
   expect(screen.queryByText(label)).not.toBeInTheDocument();
   fireEvent.click(status);
   expect(screen.getByRole("dialog", { name: label })).toHaveTextContent(label);

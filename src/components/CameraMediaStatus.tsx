@@ -9,9 +9,8 @@ export function CameraMediaStatus({ label, shortLabel, icon: Icon, children }: {
   const text = t(label);
   return <Popover>
     <PopoverTrigger asChild>
-      <Button type="button" variant="secondary" size="icon" className={`smart-media-status${shortLabel ? " has-label" : ""}`} aria-label={shortLabel ? t(shortLabel) : text} title={text}>
+      <Button type="button" variant="secondary" size="icon" className="smart-media-status" aria-label={shortLabel ? t(shortLabel) : text} title={text}>
         <Icon size={18} aria-hidden="true" className={Icon === LoaderCircle ? "motion-safe:animate-spin" : undefined} />
-        {shortLabel && <span>{t(shortLabel)}</span>}
       </Button>
     </PopoverTrigger>
     <PopoverContent side="bottom" align="start" className="text-sm" aria-label={text}><p>{text}</p>{children && <div className="mt-2">{children}</div>}</PopoverContent>
