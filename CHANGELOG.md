@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.23
+
+<!-- release-source: 32fb62113b7dbf0bfb4b1205d6f6f43c1b120a6c -->
+
+- feat: show images beside notification cameras
+- fix: clarify readings and shrink camera status
+
 ## 0.10.22
 
 <!-- release-source: b919da415925ff36c5c2670c838cf9ee463521e6 -->
