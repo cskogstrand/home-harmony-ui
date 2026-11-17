@@ -8,10 +8,10 @@
 .settings-menu { min-width: 0; }
 .settings-group { padding: .5rem; }
 .settings-group > .panel-title { padding: .75rem 1rem; font-size: .9375rem; font-weight: 600; }
-.settings-row { display: flex; align-items: center; gap: 1rem; padding: .875rem 1rem; min-height: 48px; border-radius: 14px; }
+.settings-row { display: flex; align-items: center; gap: 1rem; padding: .875rem 1rem; min-height: 48px; border-radius: var(--radius-field); }
 .settings-row > span { flex: 1; min-width: 0; }
 .settings-row-title { display: block; font-size: .9375rem; font-weight: 500; }
-.settings-row-description { display: block; margin-top: .2rem; font-size: .8125rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+.settings-row-description { display: block; margin-top: .2rem; font-size: .875rem; line-height: 1.5; color: hsl(var(--muted-foreground)); }
 .settings-row :is(.settings-row-title, .settings-row-description) { overflow-wrap: anywhere; }
 .settings-row-icon, .settings-chevron { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
 .settings-row:hover, .settings-home:hover { background-color: hsl(var(--secondary)); }
@@ -19,21 +19,21 @@
 .settings-row[aria-current="page"] .settings-row-icon { color: inherit; }
 .settings-row[aria-current="page"] .settings-row-title { font-weight: 600; }
 .settings-row:focus-visible, .settings-home:focus-visible, .settings-back:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
-.settings-home { display: flex; align-items: center; gap: 1rem; margin-top: 2rem; padding: 1.25rem; border-radius: 24px; }
+.settings-home { display: flex; align-items: center; gap: 1rem; margin-top: 2rem; padding: 1.25rem; border-radius: var(--radius-panel); }
 .settings-home > svg { flex-shrink: 0; }
 .settings-home > span { flex: 1; min-width: 0; }
 .settings-home strong { display: block; font-size: .9375rem; overflow-wrap: anywhere; }
-.settings-home > span > span { display: flex; align-items: center; gap: .4rem; margin-top: .35rem; font-size: .8125rem; color: hsl(var(--muted-foreground)); }
-.settings-intro .settings-shared-note { margin: 1rem 0 1.5rem; font-size: .8125rem; }
+.settings-home > span > span { display: flex; align-items: center; gap: .4rem; margin-top: .35rem; font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.settings-intro .settings-shared-note { margin: 1rem 0 1.5rem; font-size: .875rem; }
 .settings-subpage { grid-template-columns: 15.5rem minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 1.5rem 2rem; }
 .settings-subpage .settings-menu { grid-column: 1; grid-row: 1 / 3; position: sticky; top: 1rem; max-height: calc(100dvh - 10rem); overflow-y: auto; }
 .settings-subpage .settings-row { gap: .75rem; padding: .65rem .75rem; }
 .settings-subpage .settings-group > .panel-title { padding-inline: .75rem; }
 .settings-subpage .settings-chevron { display: none; }
 .settings-subpage .settings-intro { grid-column: 2; }
-.settings-back { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; margin-bottom: .75rem; color: hsl(var(--primary)); font-size: .875rem; border-radius: 14px; }
+.settings-back { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; margin-bottom: .75rem; color: hsl(var(--primary)); font-size: .875rem; border-radius: var(--radius-field); }
 .settings-content { display: grid; gap: 1rem; min-width: 0; grid-column: 2; }
-.settings-content > .glow-panel { min-width: 0; }
+.settings-content > :is(.glow-panel, .settings-card) { min-width: 0; }
 .settings-control-row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 60px; padding-block: 1rem; }
 .settings-control-row + .settings-control-row { margin-top: .5rem; }
 .settings-control-row > [role="switch"] { flex-shrink: 0; }
@@ -43,13 +43,13 @@
 .modal-glass-settings { display: grid; gap: 1rem; }
 .modal-glass-settings .panel-heading { margin-bottom: 0; }
 .modal-glass-settings > button { justify-self: start; }
-.modal-glass-preview { position: relative; isolation: isolate; overflow: hidden; display: grid; place-items: center; min-height: 15rem; padding: 1.25rem; border-radius: 24px; background: hsl(var(--background)); }
+.modal-glass-preview { position: relative; isolation: isolate; overflow: hidden; display: grid; place-items: center; min-height: 15rem; padding: 1.25rem; border-radius: var(--radius-panel); background: hsl(var(--background)); }
 .modal-glass-preview-scene { position: absolute; inset: 1rem; display: grid; gap: .75rem; }
-.modal-glass-preview-scene > span { display: flex; align-items: center; gap: 1rem; padding: .75rem 1rem; border-radius: 14px; background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.modal-glass-preview-scene > span { display: flex; align-items: center; gap: 1rem; padding: .75rem 1rem; border-radius: var(--radius-field); background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
 .modal-glass-preview-scene > span:nth-child(2) { margin-left: 20%; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 .modal-glass-preview-scene > span:nth-child(3) { margin-right: 20%; background: hsl(var(--secondary)); }
 .modal-glass-preview-dimmer { position: absolute; inset: 0; }
-.modal-glass-preview-surface { position: relative; width: min(100%, 22rem); padding: 1.5rem; border-radius: 28px; text-align: center; }
+.modal-glass-preview-surface { position: relative; width: min(100%, 22rem); padding: 1.5rem; border-radius: var(--radius-dialog); text-align: center; }
 .modal-glass-preview-surface strong { font-size: 1.25rem; font-weight: 600; }
 .modal-glass-preview-surface p { margin-top: .5rem; }
 .modal-glass-controls { display: grid; gap: .5rem; }
@@ -57,7 +57,7 @@
 .modal-glass-control output { font-variant-numeric: tabular-nums; }
 .modal-glass-control [data-disabled] { opacity: .45; }
 .settings-content .palette-fieldset { margin-top: 0; }
-.settings-storage-warning { padding: 1rem 1.25rem; border: 1px solid hsl(var(--warning)); border-radius: 14px; color: hsl(var(--warning)); }
+.settings-storage-warning { padding: 1rem 1.25rem; border: 1px solid hsl(var(--warning)); border-radius: var(--radius-field); color: hsl(var(--warning)); }
 .settings-related { justify-self: start; min-height: 44px; }
 .settings-content .device-readings dd { min-width: 0; overflow-wrap: anywhere; }
 @media (width <= 999px) {
@@ -78,3 +78,5 @@
 @media (prefers-contrast: more), (forced-colors: active) {
   .settings-row[aria-current="page"] { outline: 2px solid; outline-offset: -2px; }
 }
+
+.settings-content .palette-fieldset { padding-block: 0; border: 0; }

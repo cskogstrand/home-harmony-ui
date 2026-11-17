@@ -261,7 +261,16 @@
     --online: 145.0 43.5% 27.1%;
     --offline: 146.7 8.3% 42.7%;
     --pending: 36.6 89.8% 26.9%;
-    --radius: 1rem;
+    --radius: 16px;
+    --radius-event: 8px;
+    --radius-field: 14px;
+    --radius-inset: 16px;
+    --radius-menu: 22px;
+    --radius-panel: 24px;
+    --radius-dialog: 28px;
+    --radius-capsule: 999px;
+    --radius-phone-dock: 34px;
+    --radius-phone-destination: 27px;
     --nav-background: 216 35% 98%;
     --nav-border: 0 0% 100%;
     --nav-foreground: 218 30% 16%;
