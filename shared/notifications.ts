@@ -65,7 +65,8 @@ export const notificationRuleSchema = z.object({
   cameraEntity: z.string().max(512).default(""),
   cameraMedia: z.enum(["live", "person"]).optional(),
   cameraPlacement: z.enum(["footer", "left", "right"]).optional(),
-  imageEntity: z.string().max(512).regex(/^(?:[^|]+\|image\.[a-z0-9_]+)?$/).optional(),
+  // Entity preferences use registry IDs when available, not necessarily image.* IDs.
+  imageEntity: z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/).optional(),
   imagePlacement: z.enum(["footer", "left", "right"]).optional(),
   showPersonSnapshot: z.boolean().optional(),
   durationSeconds: z.number().int().min(10).max(3600).default(60),

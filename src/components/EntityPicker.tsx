@@ -13,6 +13,7 @@ import "./entity-picker.css";
 type EntityPickerProps = {
   entities: Entity[];
   label: string;
+  name?: string;
   ariaLabel?: string;
   placeholder?: string;
   emptyActionLabel?: string;
@@ -92,7 +93,7 @@ export function EntityPicker(props: EntityPickerProps) {
     {!props.hideLabel && <label htmlFor={id}>{label}</label>}
     {/* Let the portaled results own their scroll lock inside a parent dialog. */}
     <Popover modal open={open} onOpenChange={value => { setOpen(value); if (value) { setSearch(""); setDevice(undefined); } }}>
-      <PopoverTrigger asChild><Button id={id} type="button" variant={showAdd ? "ghost" : "outline"} disabled={disabled} aria-label={ariaLabel} aria-describedby={[props.describedBy, `${id}-selection`].filter(Boolean).join(" ")} className={`entity-picker-trigger${showAdd ? " entity-picker-add" : ""}`}>
+      <PopoverTrigger asChild><Button id={id} name={props.name} type="button" variant={showAdd ? "ghost" : "outline"} disabled={disabled} aria-label={ariaLabel} aria-describedby={[props.describedBy, `${id}-selection`].filter(Boolean).join(" ")} className={`entity-picker-trigger${showAdd ? " entity-picker-add" : ""}`}>
         {showAdd && <Plus size={16} aria-hidden="true" />}<span id={`${id}-selection`}>{showAdd ? props.emptyActionLabel : selectionNames.length > 2 ? t("{count} selected", { count: selectionNames.length }) : selectionNames.length ? selectionNames.join(", ") : props.placeholder ?? t("Choose an entity")}</span>{!showAdd && <ChevronDown size={16} className="shrink-0" aria-hidden="true" />}
       </Button></PopoverTrigger>
       <PopoverContent align="start" collisionPadding={12} className="entity-picker-popover" aria-label={ariaLabel} onOpenAutoFocus={event => { event.preventDefault(); input.current?.focus(); }}>

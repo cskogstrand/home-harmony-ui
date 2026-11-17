@@ -1,3 +1,4 @@
+import type { ZodIssue } from "zod";
 import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
@@ -154,3 +155,6 @@ export class NotificationEngine {
     return this.list();
   }
 }
+
+const sections: Record<string, string> = { title: "content", message: "content", pages: "content", presentation: "presentation", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+export const notificationIssueSection = (issue: ZodIssue) => sections[issue.path[0]] ?? "content";

@@ -241,3 +241,10 @@
 .availability-group > summary { padding-block: .75rem; min-height: 48px; cursor: pointer; font-weight: 500; overflow-wrap: anywhere; }
 .availability-group li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 48px; font-size: .875rem; }
 .availability-group li > span { color: hsl(var(--muted-foreground)); }
+
+/* A light backing shows dark models through transparent image pixels in either theme. */
+.notification-image-feed img { background: hsl(0 0% 96%); }
+.notification-editor [aria-invalid="true"] { border-color: hsl(var(--destructive)); outline: 2px solid hsl(var(--destructive)); outline-offset: 2px; }
+.notification-editor-section:has([aria-invalid="true"]) { border-color: hsl(var(--destructive)); }
+.notification-validation-errors { color: color-mix(in srgb, hsl(var(--destructive)) 90%, hsl(var(--foreground))); max-height: 30dvh; overflow-y: auto; flex-shrink: 0; }
+.notification-validation-errors button { justify-content: flex-start; height: auto; min-height: 44px; padding: .25rem 0; color: inherit; white-space: normal; text-align: left; overflow-wrap: anywhere; }

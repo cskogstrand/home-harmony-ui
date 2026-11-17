@@ -10,6 +10,7 @@ Arrow keys move through results; Tab reaches the other controls. Enter activates
 
 `src/components/EntityPicker.tsx` accepts the eligible `entities`, a translated `label`, stable `Entity.preferenceId` values, and an `onChange` callback. Supply `multiple` with an array for multi-selection. The caller keeps ownership of eligibility, saving and confirmations.
 
+- `name` identifies the field for form validation and error links.
 - `placeholder`, `ariaLabel`, `hideLabel` and `describedBy` adapt the field to its surrounding form.
 - `clearLabel` offers an explicit empty choice for optional single selections.
 - `getLabel` and `getDescription` add contextual names or assignment information.

@@ -50,10 +50,12 @@ describe("notification configuration", () => {
       config.settings.notifications.rules = [rule({ imageEntity: "home|image.example", imagePlacement, cameraEntity: "example-camera", cameraPlacement: "right" })];
       expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
     }
+    config.settings.notifications.rules = [rule({ imageEntity: "home|stable-image-registry-id" })];
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
     expect(rule().imageEntity).toBeUndefined();
     expect(rule().imagePlacement).toBeUndefined();
     expect(rule({ imageEntity: "" }).imageEntity).toBe("");
-    for (const imageEntity of [null, "home|sensor.example", "https://example.com/image.jpg", "home|image.example?token=example", "home|image.example/extra", "x".repeat(513)]) {
+    for (const imageEntity of [null, "home|", "home|extra|image.example", "https://example.com/image.jpg", "home|image.example?token=example", "home|image.example/extra", "x".repeat(513)]) {
       expect(notificationRuleSchema.safeParse({ ...rule(), imageEntity }).success).toBe(false);
     }
     expect(notificationRuleSchema.safeParse({ ...rule(), imagePlacement: "subtitle" }).success).toBe(false);

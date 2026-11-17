@@ -100,11 +100,53 @@ it("retains invalid additional trigger drafts and opens their section on save", 
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).not.toHaveBeenCalled();
   expect(screen.getByRole("alert")).toHaveTextContent("Event filters must be a JSON object");
+  expect(second.getByLabelText(/^Event data filters/)).toHaveAttribute("aria-invalid", "true");
+  fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: /Trigger 2.*Event data filters/ }));
+  await waitFor(() => expect(second.getByLabelText(/^Event data filters/)).toHaveFocus());
   expect(second.getByLabelText(/^Event data filters/)).toHaveValue("{");
   fireEvent.click(screen.getByRole("button", { name: "Remove trigger 2" }));
   expect(screen.queryByRole("button", { name: /Remove trigger/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications.mock.lastCall[0].rules[0].additionalTriggers).toBeUndefined();
+});
+
+it("links each validation error to its marked field and opens collapsed sections", async () => {
+  const currentHome = home();
+  currentHome.entities.push(...mapHome({ "image.example": state("image.example", "2026-10-24T12:00:00Z") }, emptyRegistries, "home").entities);
+  mocks.app.currentHome = currentHome;
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", imageEntity: "home|binary_sensor.example", trigger: { type: "state", entity: "home|binary_sensor.example", attribute: "", operator: "gt", value: "not-a-number" } }] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Notification content");
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Notification content" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  await screen.findByRole("button", { name: "Image (optional)" });
+  for (const field of [screen.getByLabelText("Title"), screen.getByRole("button", { name: "Image (optional)" })]) {
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(field.getAttribute("aria-describedby").split(" ").some(id => document.getElementById(id)?.closest('[role="alert"]'))).toBe(true);
+  }
+  expect(screen.getByRole("button", { name: "Notification content" })).toHaveAttribute("aria-expanded", "true");
+  const alert = within(screen.getByRole("alert"));
+  expect(alert.getByRole("button", { name: /Title: Enter a value/ })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Notification content" }));
+  await waitFor(() => expect(screen.getByLabelText("Title")).not.toBeVisible());
+  fireEvent.click(alert.getByRole("button", { name: /Title: Enter a value/ }));
+  await waitFor(() => expect(screen.getByLabelText("Title")).toHaveFocus());
+  fireEvent.click(alert.getByRole("button", { name: /Image \(optional\): Choose an image entity/ }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Image (optional)" })).toHaveFocus());
+  chooseEntity("Image (optional)", "image.example");
+  fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Example print" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(screen.getByLabelText("Value")).toHaveAttribute("aria-invalid", "true");
+  fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: /Trigger 1.*Value: Enter a numeric threshold/ }));
+  await waitFor(() => expect(screen.getByLabelText("Value")).toHaveFocus());
+  fireEvent.change(screen.getByLabelText("Value"), { target: { value: "5" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ title: "Example print", imageEntity: "home|image.example" });
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(document.querySelector('[aria-invalid="true"]')).toBeNull();
 });
 
 it("limits trigger count and translates the camera trigger controls", async () => {
@@ -408,7 +450,7 @@ it("shows a person snapshot in the right camera slot without starting video", ()
 });
 
 it("selects, previews, saves, reopens and removes an image independently of the camera", async () => {
-  mocks.app.currentHome = mapHome({ "image.example": state("image.example", "2026-10-24T12:00:00Z", { friendly_name: "Example model" }) }, emptyRegistries, "home");
+  mocks.app.currentHome = mapHome({ "image.example": state("image.example", "2026-10-24T12:00:00Z", { friendly_name: "Example model" }) }, { ...emptyRegistries, entities: [{ id: "stable-image-registry-id", entity_id: "image.example" }] }, "home");
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", presentation: "activity-compact", cameraPlacement: "right" }] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
@@ -429,7 +471,7 @@ it("selects, previews, saves, reopens and removes an image independently of the 
   expect(within(preview).getByText("Camera preview").closest('[data-placement="left"]')).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
-  expect(saved).toMatchObject({ imageEntity: "home|image.example", imagePlacement: "right", cameraEntity: "example-camera", cameraPlacement: "left" });
+  expect(saved).toMatchObject({ imageEntity: "home|stable-image-registry-id", imagePlacement: "right", cameraEntity: "example-camera", cameraPlacement: "left" });
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
   view.rerender(content());
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
@@ -979,7 +1021,8 @@ it("suggests the numeric trigger and threshold, rejects an empty range, and lets
   fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "80" } });
   fireEvent.click(screen.getByRole("button", { name: "Progress" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
-  expect(screen.getByRole("alert")).toHaveTextContent("Check progress");
+  expect(screen.getByRole("alert")).toHaveTextContent("End / total value: Progress start and end must be different.");
+  expect(screen.getByLabelText("End / total value")).toHaveAttribute("aria-invalid", "true");
   expect(screen.getByRole("button", { name: "Progress" })).toHaveAttribute("aria-expanded", "true");
   expect(setNotifications).not.toHaveBeenCalled();
   await openEditorSection("Progress");
