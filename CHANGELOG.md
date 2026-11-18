@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.29
+
+<!-- release-source: 58884f6aa0b3d5e74f91e7698e01c66dd0f7e942 -->
+
+- feat: add configurable homework panel to Today
+- feat: add list icon picker and smooth list changes
+- chore: upgrade jsdom and preserve label spacing
+- feat: add avatar filters and tap-to-open media
+
 ## 0.10.28
 
 <!-- release-source: 51eeace4c340b4277feaed8504bade42ad1b58cd -->
