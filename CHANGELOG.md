@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.28
+
+<!-- release-source: 51eeace4c340b4277feaed8504bade42ad1b58cd -->
+
+- feat: improve family board and shopping lists
+- feat: open notification images in viewer
+
 ## 0.10.27
 
 <!-- release-source: 565b7d9ed8c12909367f8ee9a7d17171b91366fc -->
