@@ -233,11 +233,13 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { order, showTomorrow, wasteCollection, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
+  const { order, showTomorrow, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
   expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
+  expect(homework).toBe(false);
+  expect(homeworkOptions).toEqual({ period: "through-today", includeUndated: true, showCompleted: false, action: "check" });
   expect(hideMorningSummaryContent).toBe(false);
   expect(daySummaryPlayback).toBe(false);
   expect(hideNextPlanDescription).toBe(false);
@@ -246,7 +248,9 @@ it("preserves the current dashboard for older backups and validates section choi
   expect(read({ shopping: false }).settings.dashboard).toEqual({ ...dashboard, shopping: false });
   const { day: _day, ...oldDashboard } = sections;
   expect(read({ ...oldDashboard, week: false }).settings.dashboard).toEqual({ ...dashboard, week: false });
-  for (const invalid of [{ shopping: "false" }, { showTomorrow: "true" }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
+  const oldOrder = [...dashboardSections].reverse().filter(key => key !== "homework");
+  expect(read({ order: oldOrder }).settings.dashboard.order).toEqual([...oldOrder, "homework"]);
+  for (const invalid of [{ shopping: "false" }, { showTomorrow: "true" }, { homeworkOptions: { action: "edit" } }, { homeworkOptions: { period: "week" } }, { homeworkOptions: { showCompleted: "yes" } }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
 });
 
 it("defaults missing section order and rejects duplicate or unknown sections", () => {

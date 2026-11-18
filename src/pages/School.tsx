@@ -1,4 +1,6 @@
 import { HomeworkList } from "@/components/HomeworkList";
+import { ListPanel } from "@/components/FamilyLists";
+import { Link, useSearchParams } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useFamily } from "@/contexts/FamilyContext";
@@ -7,6 +9,11 @@ import { PageHeading, SchoolPreview, MemberAvatar } from "@/components/FamilyPla
 export default function School() {
   const { t } = useI18n();
   const { members, hasTimetable, timetableSettings } = useFamily();
+  const [params] = useSearchParams();
+  if (params.get("tab") === "homework") return <div className="planner-page">
+    <PageHeading title={t("School")}><Link className="text-link" to="/school">{t("Timetables")}</Link></PageHeading>
+    <section className="glow-panel list-viewport"><ListPanel kind="homework" /></section>
+  </div>;
   const people = members.filter(member => hasTimetable(member.id));
   return <div className="planner-page"><PageHeading title={t("School")} />
     {!people.length && <section className="glow-panel"><p>{t("No timetables enabled.")}</p><p className="muted">{t("Enable and configure timetables in Settings → Timetables.")}</p></section>}

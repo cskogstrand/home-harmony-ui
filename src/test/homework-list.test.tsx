@@ -137,6 +137,25 @@ it("keeps Home Assistant order for homework unless sorting is selected", async (
   expect(screen.getAllByRole("checkbox").map(row => row.getAttribute("aria-label"))).toEqual(["Z task", "A task"]);
 });
 
+it("checks homework by UID on Today and can reopen a completed row even when the full list hides it", async () => {
+  const display = { ...defaultTodoDisplay, completed: "hide" as const };
+  mocks.family.todoLists["home|todo.homework"].display = display;
+  let status: TodoItem["status"] = "needs_action";
+  mocks.app.todoItems.mockImplementation(async () => [{ ...item("work-1", mocks.family.today, status), summary: "Read a chapter" }]);
+  mocks.app.command.mockImplementation(async (_entity, _service, data) => { status = data.status; });
+  const renderPanel = (showCompleted: boolean) => <MemoryRouter><ListPanel kind="homework" homeworkPreview={{ period: "today", action: "check", includeUndated: true, showCompleted }} /></MemoryRouter>;
+  const view = render(renderPanel(false));
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Read a chapter" }));
+  expect(mocks.app.command).toHaveBeenCalledExactlyOnceWith("todo.homework", "update_item", { item: "work-1", status: "completed" });
+  expect(await screen.findByText("No unfinished homework.")).toBeInTheDocument();
+  expect(screen.queryByRole("checkbox", { name: "Read a chapter" })).toBeNull();
+  view.rerender(renderPanel(true));
+  const completed = await screen.findByRole("checkbox", { name: "Read a chapter", checked: true });
+  fireEvent.click(completed);
+  expect(mocks.app.command).toHaveBeenLastCalledWith("todo.homework", "update_item", { item: "work-1", status: "needs_action" });
+  expect(await screen.findByRole("checkbox", { name: "Read a chapter", checked: false })).toBeEnabled();
+});
+
 it("shows the empty state, read-only rows, unavailable state and recoverable errors", async () => {
   const view = show();
   expect(await screen.findByText("No homework.")).toBeVisible();

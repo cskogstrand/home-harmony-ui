@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, House, ListChecks, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, House, ListChecks, NotebookPen, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -11,13 +11,13 @@ import { EntityPicker } from "@/components/EntityPicker";
 import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
 import { PanelTitle } from "@/components/PanelTitle";
-import { dashboardSections, type DashboardSection } from "../../shared/configuration";
+import { dashboardSections, type DashboardHomeworkOptions, type DashboardSection } from "../../shared/configuration";
 
 const sectionLabels = {
   morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
-  day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", school: "School", home: "Home favorites",
+  day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites",
 } as const;
-const sectionIcons = { morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, school: BookOpen, home: House };
+const sectionIcons = { morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, homework: NotebookPen, school: BookOpen, home: House };
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
@@ -25,6 +25,7 @@ export function DashboardSettings() {
   const { currentHome } = useApp();
   const shared = useSharedConfiguration();
   const disabled = !shared?.state.loaded || !!shared.state.error;
+  const setHomeworkOptions = (patch: Partial<DashboardHomeworkOptions>) => setDashboard({ homeworkOptions: { ...dashboard.homeworkOptions, ...patch } });
   const sectionsRef = useRef<HTMLOListElement>(null);
   const [announcement, setAnnouncement] = useState("");
   const moveSection = (key: DashboardSection, direction: -1 | 1) => {
@@ -123,6 +124,26 @@ export function DashboardSettings() {
             <p id="waste-days-help" className="mt-2 text-sm text-muted-foreground">{t("0–90 days. Use 0 for today only. Hidden when no pickups are due within this window.")}</p>
             <p className="mt-2 text-sm text-muted-foreground">{t("Pickups are marked as picked up at 09:00 in your home’s time zone, based on time only.")}</p>
           </div>}
+          {key === "homework" && dashboard.homework && <fieldset className="planner-form" disabled={disabled} aria-labelledby="dashboard-setting-homework">
+            <label>{t("Due date")}<select value={dashboard.homeworkOptions.period} onChange={event => setHomeworkOptions({ period: event.target.value as DashboardHomeworkOptions["period"] })}>
+              <option value="through-today">{t("Through today")}</option>
+              <option value="through-tomorrow">{t("Through tomorrow")}</option>
+              <option value="today">{t("Due today only")}</option>
+              <option value="tomorrow">{t("Due tomorrow only")}</option>
+              <option value="all">{t("All homework")}</option>
+            </select></label>
+            <div className="flex min-h-12 items-center justify-between gap-4 text-sm">
+              <label htmlFor="homework-include-undated">{t("Include homework without a due date")}</label>
+              <Switch id="homework-include-undated" checked={dashboard.homeworkOptions.includeUndated} onCheckedChange={includeUndated => setHomeworkOptions({ includeUndated })} disabled={disabled} />
+            </div>
+            <div className="flex min-h-12 items-center justify-between gap-4 text-sm">
+              <label htmlFor="homework-show-completed">{t("Show completed homework")}</label>
+              <Switch id="homework-show-completed" checked={dashboard.homeworkOptions.showCompleted} onCheckedChange={showCompleted => setHomeworkOptions({ showCompleted })} disabled={disabled} />
+            </div>
+            <label>{t("Homework action")}<select value={dashboard.homeworkOptions.action} onChange={event => setHomeworkOptions({ action: event.target.value as DashboardHomeworkOptions["action"] })}>
+              <option value="check">{t("Check off on Today")}</option><option value="lists">{t("Open in Lists")}</option><option value="school">{t("Open in School")}</option>
+            </select></label>
+          </fieldset>}
           {key === "day" && <><label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 text-sm">
             <span>{t("Show summary button in Everyone’s day")}</span><Switch checked={dashboard.daySummaryPlayback} onCheckedChange={daySummaryPlayback => setDashboard({ daySummaryPlayback })}
               disabled={disabled || !dashboard.day} aria-label={t("Show summary button in Everyone’s day")} />

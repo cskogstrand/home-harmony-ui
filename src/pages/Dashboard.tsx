@@ -93,6 +93,7 @@ export default function Dashboard() {
     </section>,
     daily: dashboard.daily && <ListPanel kind="daily" limit={3} />,
     shopping: dashboard.shopping && <ListPanel kind="shopping" limit={3} />,
+    homework: dashboard.homework && <ListPanel kind="homework" homeworkPreview={dashboard.homeworkOptions} />,
     school: dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>,
     home: dashboard.home && <HomeFavorites />,
   };

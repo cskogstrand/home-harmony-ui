@@ -90,8 +90,15 @@ export const todoDisplaySchema = z.object({
 }).strict();
 export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
-export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "school", "home"] as const;
+export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
 export type DashboardSection = typeof dashboardSections[number];
+const dashboardHomeworkSchema = z.object({
+  period: z.enum(["through-today", "through-tomorrow", "today", "tomorrow", "all"]).default("through-today"),
+  includeUndated: z.boolean().default(true),
+  showCompleted: z.boolean().default(false),
+  action: z.enum(["check", "lists", "school"]).default("check"),
+}).strict();
+export type DashboardHomeworkOptions = z.infer<typeof dashboardHomeworkSchema>;
 const plannerObjectSchema = z.object({
   cameras: cameraSettingsSchema.default({}),
   notifications: notificationSettingsSchema.default({}),
@@ -116,6 +123,8 @@ const plannerObjectSchema = z.object({
     week: z.boolean().default(true),
     daily: z.boolean().default(true),
     shopping: z.boolean().default(true),
+    homework: z.boolean().default(false),
+    homeworkOptions: dashboardHomeworkSchema.default({}),
     school: z.boolean().default(true),
     home: z.boolean().default(true),
   }).strict().default({}),

@@ -603,7 +603,83 @@ it("hides each Today section, persists the choices and keeps hidden content avai
   await saved();
   expect(screen.getByRole("heading", { name: "Shopping" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "Everyone’s week" })).not.toBeInTheDocument();
-  expect(settings.settings.dashboard).toEqual({ order: [...dashboardSections], morningSummary: false, hideMorningSummaryContent: false, daySummaryPlayback: false, wasteCollection: false, nextPlan: false, hideNextPlanDescription: false, nextPlanDays: "auto", day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+  expect(settings.settings.dashboard).toEqual({ ...emptyConfiguration().settings.dashboard, morningSummary: false, nextPlan: false, day: false, showTomorrow: true, week: false, daily: false, shopping: true, school: false, home: false });
+});
+
+it("saves homework filters and opens the full homework list in Lists or School without a timetable", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T12:00:00Z"));
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example student" }),
+    "todo.example": state("todo.example", "3", { supported_features: 127 }),
+  }, emptyRegistries, "home");
+  app.currentHome.timeZone = "Europe/Oslo";
+  settings.settings.todoLists = { "home|todo.example": { kind: "homework", member: "home|person.example" } };
+  app.todoItems.mockResolvedValue([
+    { uid: "overdue", summary: "Finish a sketch", status: "needs_action", due: "2026-10-20" },
+    { uid: "today", summary: "Read a chapter", status: "needs_action", due: "2026-10-28" },
+    { uid: "tomorrow", summary: "Practise fractions", status: "needs_action", due: "2026-10-28T23:30:00Z" },
+    { uid: "done", summary: "Draw a map", status: "completed", due: "2026-10-29" },
+    { uid: "later", summary: "Plan a project", status: "needs_action", due: "2026-10-29T23:00:00Z" },
+    { uid: "undated", summary: "Read a poem", status: "needs_action" },
+  ]);
+  const first = render(<App />); await saved();
+  const customize = () => {
+    fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+    return within(screen.getByRole("dialog"));
+  };
+  const closeSettings = () => fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  fireEvent.click(customize().getByRole("switch", { name: "Homework" }));
+  closeSettings();
+  const panel = () => within(document.querySelector<HTMLElement>(".portrait-board .list-homework")!);
+  expect(await panel().findByRole("checkbox", { name: "Read a chapter" })).toBeVisible();
+  expect(panel().getByRole("checkbox", { name: "Finish a sketch" })).toBeVisible();
+  expect(panel().getByRole("checkbox", { name: "Read a poem" })).toBeVisible();
+  expect(panel().getByText("No due date")).toBeVisible();
+  expect(panel().getAllByRole("checkbox")).toHaveLength(3);
+  let dialog = customize();
+  fireEvent.click(dialog.getByRole("switch", { name: "Include homework without a due date" }));
+  fireEvent.change(dialog.getByLabelText("Due date"), { target: { value: "today" } });
+  closeSettings();
+  expect(panel().getByRole("checkbox", { name: "Read a chapter" })).toBeVisible();
+  expect(panel().getAllByRole("checkbox")).toHaveLength(1);
+  dialog = customize();
+  fireEvent.change(dialog.getByLabelText("Due date"), { target: { value: "tomorrow" } });
+  closeSettings();
+  expect(panel().getByRole("checkbox", { name: "Practise fractions" })).toBeVisible();
+  expect(panel().getAllByRole("checkbox")).toHaveLength(1);
+  dialog = customize();
+  fireEvent.change(dialog.getByLabelText("Due date"), { target: { value: "through-tomorrow" } });
+  fireEvent.click(dialog.getByRole("switch", { name: "Show completed homework" }));
+  fireEvent.change(dialog.getByLabelText("Homework action"), { target: { value: "school" } });
+  closeSettings(); await saved();
+  first.unmount();
+  render(<App />); await saved();
+  expect(await panel().findByText("Practise fractions")).toBeVisible();
+  expect(panel().getByText("Draw a map")).toBeVisible();
+  expect(panel().queryByText("Read a poem")).toBeNull();
+  expect(panel().getByText("Read a chapter")).toBeVisible();
+  expect(panel().getByText("Finish a sketch")).toBeVisible();
+  expect(panel().queryByText("Plan a project")).toBeNull();
+  expect(panel().queryByRole("checkbox")).toBeNull();
+  fireEvent.click(panel().getByRole("link", { name: "Open in School" }));
+  expect(await screen.findByRole("heading", { level: 1, name: "School" })).toBeVisible();
+  expect(await screen.findByRole("checkbox", { name: "Read a poem" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Timetables" })).toHaveAttribute("href", "/school");
+  await navigate("Today");
+  dialog = customize();
+  fireEvent.change(dialog.getByLabelText("Due date"), { target: { value: "all" } });
+  fireEvent.click(dialog.getByRole("switch", { name: "Include homework without a due date" }));
+  fireEvent.click(dialog.getByRole("switch", { name: "Show completed homework" }));
+  fireEvent.change(dialog.getByLabelText("Homework action"), { target: { value: "lists" } });
+  closeSettings();
+  expect(panel().getByText("Read a poem")).toBeVisible();
+  expect(panel().queryByRole("checkbox")).toBeNull();
+  await waitFor(() => expect(panel().queryByText("Draw a map")).toBeNull());
+  fireEvent.click(panel().getByRole("link", { name: "Open in Lists" }));
+  expect(await screen.findByRole("heading", { level: 1, name: "Lists" })).toBeVisible();
+  expect(screen.getByRole("button", { name: /Homework/, pressed: true })).toBeVisible();
+  expect(await screen.findByRole("checkbox", { name: "Read a poem" })).toBeVisible();
 });
 
 it("persists summary display choices and keeps playback configuration accessible with the summary panel hidden", async () => {
@@ -669,7 +745,7 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
   await waitFor(() => expect(within(dialog).getByRole("switch", { name: "Shopping" })).toHaveFocus());
   expect(rows().firstElementChild).toHaveAttribute("data-section", "shopping");
-  expect(within(dialog).getByText("Moved Shopping to position 1 of 9.")).toBeInTheDocument();
+  expect(within(dialog).getByText(`Moved Shopping to position 1 of ${dashboardSections.length}.`)).toBeInTheDocument();
   fireEvent.click(within(dialog).getByRole("button", { name: "Move Shopping later" }));
   await waitFor(() => expect(within(dialog).getByRole("button", { name: "Move Shopping later" })).toHaveFocus());
   fireEvent.click(within(dialog).getByRole("switch", { name: "Shopping" }));

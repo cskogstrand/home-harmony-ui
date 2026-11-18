@@ -8,7 +8,7 @@ import { AnimatePresence, LayoutGroup, motion, useIsPresent, usePresenceData, us
 import { Check, LoaderCircle, Plus, X, ClipboardList, ShoppingBasket, ListChecks, BookOpen, MoreHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
+import { useFamily, addDays, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
 import type { Entity, TodoAction, TodoItem } from "@/types/api";
 import { todoDetailChanges, todoDueInput, todoDueTimestamp, type TodoDetails } from "@/lib/todo-items";
@@ -19,12 +19,16 @@ import { ShoppingListAvatar } from "./ShoppingListIcon";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { defaultTodoDisplay } from "../../shared/configuration";
+import { defaultTodoDisplay, type DashboardHomeworkOptions } from "../../shared/configuration";
 import { TodoCelebration } from "./TodoCelebration";
 import { usePageActive } from "@/contexts/PageActivityContext";
 
 const listIcons = { daily: ListChecks, shopping: ShoppingBasket, tasks: ClipboardList, homework: BookOpen };
 const listTitles = { daily: "Daily rhythm", shopping: "Shopping", tasks: "Family tasks", homework: "Homework" };
+const homeworkTitles = {
+  "through-today": "Homework due by today", "through-tomorrow": "Homework due by tomorrow",
+  today: "Homework due today", tomorrow: "Homework due tomorrow", all: "All homework",
+} as const;
 const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
 type ListPresence = { itemIds: string[]; completedIds: string[] };
@@ -36,9 +40,9 @@ function ListPanelSurface() {
 }
 const CheckRow = forwardRef<HTMLDivElement, {
   id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
-  feedback?: ItemFeedback; pending?: boolean; due?: TodoItem["due"]; description?: TodoItem["description"];
-  onToggle: (checkbox: HTMLInputElement) => void; onEdit?: () => void; onRemove?: () => void;
-}>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, due, description, onToggle, onEdit, onRemove }, ref) {
+  feedback?: ItemFeedback; pending?: boolean; due?: TodoItem["due"]; showUndated?: boolean; description?: TodoItem["description"];
+  onToggle?: (checkbox: HTMLInputElement) => void; onEdit?: () => void; onRemove?: () => void;
+}>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, due, showUndated, description, onToggle, onEdit, onRemove }, ref) {
   const { t } = useI18n();
   const descriptionId = useId();
   const present = useIsPresent();
@@ -59,10 +63,12 @@ const CheckRow = forwardRef<HTMLDivElement, {
     <motion.div className={`check-row ${complete || completing ? "complete" : ""} ${completing ? "completing" : ""}`} data-feedback={feedback}
       initial={false} animate={{ transform: feedback === "edited" && !reduceMotion ? "translateX(12px)" : "translateX(0px)" }}
       transition={reduceMotion ? { duration: 0 } : rowTransition}>
-      <label><input type="checkbox" aria-label={text} aria-describedby={description ? descriptionId : undefined} aria-busy={busy} checked={complete || completing} disabled={disabled || busy || !present} onChange={event => onToggle(event.currentTarget)} /><span className="check-mark" aria-hidden="true"><Check size={16} className="check-icon" />{busy && <LoaderCircle size={16} className="motion-safe:animate-spin" />}</span></label>
+      {onToggle ? <label><input type="checkbox" aria-label={text} aria-describedby={description ? descriptionId : undefined} aria-busy={busy} checked={complete || completing} disabled={disabled || busy || !present} onChange={event => onToggle(event.currentTarget)} /><span className="check-mark" aria-hidden="true"><Check size={16} className="check-icon" />{busy && <LoaderCircle size={16} className="motion-safe:animate-spin" />}</span></label>
+        : complete && <><Check size={16} aria-hidden="true" /><span className="sr-only">{t("Done")}</span></>}
       {onEdit ? <button className="edit-item" aria-label={t("Edit {value1}", { value1: text })} aria-describedby={description ? descriptionId : undefined} disabled={disabled || !present} onClick={onEdit}>{content}{member && <MemberAvatar member={member} small />}</button>
         : <span className="edit-item">{content}</span>}
       {due && <TodoDueLabel due={due} complete={complete || !!completing} />}
+      {showUndated && <span className="todo-due">{t("No due date")}</span>}
       {onRemove && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" disabled={removeDisabled || !present} aria-label={t("Actions for {name}", { name: text })}><MoreHorizontal size={18} aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={onRemove} className="text-destructive"><Trash2 size={16} aria-hidden="true" />{t("Remove {value1}", { value1: text })}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
     </motion.div>
   </motion.div>;
@@ -123,7 +129,7 @@ function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; 
     }}><span className={selected === name ? "opacity-0" : undefined}>{name}</span>{selected === name && <LoaderCircle size={16} className="suggestion-spinner motion-safe:animate-spin" aria-hidden="true" />}</button>)}
   </div>;
 }
-export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number }) {
+export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions }) {
   const { t, message } = useI18n();
   const { connectedPlanner, todoLists, allMembers, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline, currentHome, services } = useApp();
@@ -133,14 +139,19 @@ export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number 
     .sort(([, a], [, b]) => compareMembers(a.member, b.member));
   const source = (id: string) => currentHome.entities.find(entity => entity.domain === "todo" && entity.preferenceId === id);
   const sourceName = (id: string) => source(id)?.name ?? `${t("List unavailable")} · ${id.split("|").pop()}`;
-  const selected = limit ? undefined : params.get("list") || (kind === "shopping" ? lists[0]?.[0] : undefined);
+  const preview = !!limit || !!homeworkPreview;
+  const selected = preview ? undefined : params.get("list") || (kind === "shopping" ? lists[0]?.[0] : undefined);
   const missing = !!selected && !lists.some(([id]) => id === selected);
   const summary = kind === "shopping" && !!limit && lists.length > 1;
-  const showFilters = !limit && (lists.length > 1 || (missing && lists.length > 0));
+  const showFilters = !preview && (lists.length > 1 || (missing && lists.length > 0));
   const selectList = (id: string) => setParams(id ? { tab: kind, list: id } : { tab: kind });
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
-    {!!limit && <ListPanelSurface />}
-    <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
+    {preview && <ListPanelSurface />}
+    {homeworkPreview ? <PanelHeading icon={listIcons.homework}
+      title={t(homeworkTitles[homeworkPreview.period])}
+      to={homeworkPreview.action === "lists" ? "/lists?tab=homework" : homeworkPreview.action === "school" ? "/school?tab=homework" : undefined}
+      label={t(homeworkPreview.action === "school" ? "Open in School" : "Open in Lists")} />
+      : <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />}
     {!lists.length && <div className="empty-note"><p>{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p><Link className="text-link mt-3" to={homeOnline ? "/settings/lists" : "/settings/connection"}>{t(homeOnline ? "Choose lists" : "Connection settings")}</Link></div>}
     {summary ? <ul className="shopping-destinations">{lists.slice(0, limit).map(([id]) => {
       const entity = source(id);
@@ -162,16 +173,18 @@ export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number 
         <option value="">{t("All lists")}</option>
         {lists.map(([id]) => <option key={id} value={id}>{sourceName(id)}</option>)}
       </select></label>)}
-      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} hidden={!!selected && id !== selected} />)}
+      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} homeworkPreview={homeworkPreview} hidden={!!selected && id !== selected} />)}
     </>}
   </article></LayoutGroup>;
 }
 
-export function HomeAssistantList({ preferenceId, member, kind, limit, school = false, hidden = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; school?: boolean; hidden?: boolean }) {
+export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkPreview, school = false, hidden = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions; school?: boolean; hidden?: boolean }) {
   const { t, message, locale } = useI18n();
   const { currentHome, haUrl, homeOnline, todoItems, command, commands, services } = useApp();
-  const { memberName, todoLists } = useFamily();
+  const { memberName, todoLists, today } = useFamily();
   const display = todoLists[preferenceId]?.display ?? defaultTodoDisplay;
+  const readOnly = !!homeworkPreview && homeworkPreview.action !== "check";
+  const completedMode = homeworkPreview ? (homeworkPreview.showCompleted ? "inline" : "hide") : display.completed;
   const entity = currentHome.entities.find(e => e.domain === "todo" && e.preferenceId === preferenceId);
   const entityId = entity?.entityId;
   const online = homeOnline && !!entity && available(entity);
@@ -259,7 +272,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     const timer = setInterval(() => setRefresh(n => n + 1), 60000);
     return () => clearInterval(timer);
   }, [online, busy]);
-  const can = (action: TodoAction, item?: string) => (editable || action === "update_item") && online && hasResult && !result.error
+  const can = (action: TodoAction, item?: string) => !readOnly && (editable || action === "update_item") && online && hasResult && !result.error
     && !(action === "add_item" && addingItem)
     && !(status?.pending && !status.items) && !changes.current.has(item) && !status?.items?.[item]?.pending && !heldCompletions.has(item)
     && supportsAction(entity, action, services);
@@ -328,24 +341,36 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     }
     setText(""); setDetails({ due: "", description: "" }); setAdding(false);
   };
-  const sorted = [...items];
+  const period = homeworkPreview?.period ?? "all";
+  const cutoff = period === "tomorrow" || period === "through-tomorrow" ? addDays(today, 1) : today;
+  const includeEarlier = period === "through-today" || period === "through-tomorrow";
+  const sorted = homeworkPreview ? items.filter(item => {
+    if (!item.due) return homeworkPreview.includeUndated;
+    if (period === "all") return true;
+    const date = todoDueInput(item.due, currentHome.timeZone).slice(0, 10);
+    return !!date && (includeEarlier ? date <= cutoff : date === cutoff);
+  }) : [...items];
   if (display.sort === "alphabetical") sorted.sort((a, b) => a.summary.localeCompare(b.summary, locale));
   if (display.sort === "due-date") sorted.sort((a, b) => todoDueTimestamp(a.due, currentHome.timeZone) - todoDueTimestamp(b.due, currentHome.timeZone) || a.summary.localeCompare(b.summary, locale));
   const completed = sorted.filter(item => item.status === "completed");
   const completedBelow = completed.filter(item => !heldCompletions.has(item.uid));
   const presence: ListPresence = { itemIds: items.map(item => item.uid), completedIds: completed.map(item => item.uid) };
   const pending = sorted.filter(item => item.status !== "completed");
-  const ordered = (display.completed === "inline" ? sorted : pending).filter(item => !heldCompletions.has(item.uid));
+  const ordered = (completedMode === "inline" ? sorted : pending).filter(item => !heldCompletions.has(item.uid));
   // Keep clicked rows in place even if Home Assistant moves completed items first.
   for (const [id, { index }] of [...heldCompletions].sort(([, a], [, b]) => a.index - b.index)) {
-    const item = items.find(item => item.uid === id);
+    const item = sorted.find(item => item.uid === id);
     if (item) ordered.splice(index, 0, item);
   }
   const shown = limit ? ordered.slice(0, limit) : ordered;
   const shownCompleted = limit && kind === "shopping" ? completedBelow.slice(0, limit - shown.length) : completedBelow;
+  const emptyMessage = kind === "homework"
+    ? completed.length ? "No unfinished homework." : "No homework."
+    : items.length ? "All done." : "This list is empty.";
   const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
+    showUndated={!!homeworkPreview && !item.due && (period !== "all" || display.showDueDate)}
     pending={pendingItems.includes(item.uid) || status?.items?.[item.uid]?.pending} disabled={!can("update_item", item.uid)} removeDisabled={!can("remove_item", item.uid)}
-    onToggle={checkbox => void toggle(item, checkbox)}
+    onToggle={readOnly ? undefined : checkbox => void toggle(item, checkbox)}
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
   return <section hidden={hidden} role="group" aria-label={kind === "shopping" ? entity?.name ?? t("List unavailable") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
@@ -365,10 +390,10 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
       {hasResult && (result.error ? <div className="space-y-2"><p role="alert">{message(result.error)}</p><Button variant="outline" disabled={busy} onClick={() => setRefresh(n => n + 1)}>{t("Retry")}</Button></div> : <>
-        {!school && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
+        {!school && !homeworkPreview && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
-        <AnimatePresence initial={false} mode="popLayout">{!pending.length && !heldCompletions.size && <ListEmptyNote key="empty" text={kind === "homework" ? t("No homework.") : items.length ? t("All done.") : t("This list is empty.")} />}</AnimatePresence>
-        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(display.completed === "under" || display.completed === "collapsed") && !!shownCompleted.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={display.completed === "under"}>{shownCompleted.map(row)}</CompletedItems>}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout">{(homeworkPreview ? !shown.length : !pending.length && !heldCompletions.size) && <ListEmptyNote key="empty" text={t(emptyMessage)} />}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(completedMode === "under" || completedMode === "collapsed") && !!shownCompleted.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={completedMode === "under"}>{shownCompleted.map(row)}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}
