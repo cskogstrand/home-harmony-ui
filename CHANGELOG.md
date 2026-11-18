@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.32
+
+<!-- release-source: 82006369e23729df42c8b01e159efd8d03560f1c -->
+
+- feat: pair TeslaMate readings with Tesla commands
+
 ## 0.10.31
 
 <!-- release-source: cd9e74b7fed7ec00f8b2a20b32b6608eacd8884a -->
