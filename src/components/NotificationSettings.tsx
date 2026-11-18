@@ -38,7 +38,8 @@ const newTrigger = (type: NotificationTrigger["type"]): NotificationTrigger => {
 
 export function NotificationSettings() {
   const { message: t } = useI18n();
-  const { notifications, setNotifications } = useFamily();
+  const { notifications, setNotifications, appearance } = useFamily();
+  const boardSpacing = `board-spacing${appearance.compactMode ? " compact-mode" : ""}`;
   const [params, setParams] = useSearchParams();
   const requestedCamera = params.get("camera");
   const { currentHome, homeOnline } = useApp();
@@ -117,7 +118,7 @@ export function NotificationSettings() {
     <div className="notification-settings-toolbar">
       <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
     </div>
-    <DialogContent className="notification-preview-dialog">
+    <DialogContent className={`notification-preview-dialog ${boardSpacing}`}>
       <DialogHeader><DialogTitle asChild><PanelTitle icon={Eye}>{t("Preview notification")}</PanelTitle></DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
       {previewError && <p role="alert" className="text-destructive">{t("The display choice could not be saved. Check settings storage and try again.")}</p>}
       <div className="notification-preview-collection">
@@ -155,7 +156,7 @@ export function NotificationSettings() {
       </li>;
     })}</ul></section>;
     })}
-    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className="notification-editor" data-kind={draft?.kind} onOpenAutoFocus={event => {
+    <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className={`notification-editor ${boardSpacing}`} data-kind={draft?.kind} onOpenAutoFocus={event => {
       event.preventDefault(); editor.current?.querySelector<HTMLButtonElement>('[data-section="trigger"] > h3 > button')?.focus();
     }}>
       <DialogHeader><DialogTitle asChild><PanelTitle icon={Bell}>{t(original ? "Edit notification" : "Add notification")}</PanelTitle></DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
@@ -233,7 +234,7 @@ export function NotificationSettings() {
           <label>{t("Cooldown (seconds)")}<input name="cooldownSeconds" type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>
         </div></NotificationEditorSection>}
         </Accordion>
-        <NotificationPreview key={draft.id} rule={draft} presentation={notifications.presentation} />
+        <NotificationPreview key={draft.id} editing rule={draft} presentation={notifications.presentation} />
         </div>
         {!!issues.length && <NotificationValidationErrors issues={issues} editor={editor} openSection={section => setOpenSections(sections => [...new Set([...sections, section])])} />}
         {error && <p role="alert" className="text-destructive">{t(error)}</p>}

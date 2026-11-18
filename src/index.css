@@ -243,6 +243,7 @@
     --secondary-foreground: 218 30% 16%;
     --muted: 216 22% 92%;
     --muted-foreground: 218 14% 40%;
+    --board-muted-foreground: var(--muted-foreground);
     --accent: 212 65% 92%;
     --accent-foreground: 213 92% 32%;
     --destructive: 0.0 56.1% 44.7%;

@@ -8,6 +8,7 @@ export interface HomeNotification {
   rule: NotificationRule;
   startedAt: number;
   expiresAt?: number;
+  calendarEntity?: string;
   eventTitle?: string;
   eventStart?: number;
   popup: boolean;
@@ -15,6 +16,10 @@ export interface HomeNotification {
 }
 export interface NotificationEvent { event_type: string; data: Record<string, unknown> }
 export const notificationEntity = (entities: Entity[], id: string) => entities.find(entity => entity.preferenceId === id);
+
+export function showsOngoingSummary(items: HomeNotification[], phone: boolean, errors: string[]) {
+  return phone && items.length > 0 && !errors.length && items.every(item => item.rule.kind === "ongoing");
+}
 
 export function notificationReadings(rule: NotificationRule) {
   const readings: (NotificationEntityDisplay & { roles: string[]; defaultPlacement: NotificationEntityDisplay["placement"] })[] = [];
@@ -145,7 +150,7 @@ export class NotificationEngine {
             if (!(now >= start - trigger.leadMinutes * 60000 && now < end)) continue;
             const id = JSON.stringify([rule.id, trigger.entity, event.uid ?? event.summary, event.recurrence_id, from]);
             observation.calendarIds.add(id);
-            if (rule.kind === "current") this.entries.set(id, { id, rule, startedAt: now, popup: false, ...this.entries.get(id), eventTitle: event.summary, eventStart: start });
+            if (rule.kind === "current") this.entries.set(id, { id, rule, startedAt: now, popup: false, ...this.entries.get(id), calendarEntity: trigger.entity, eventTitle: event.summary, eventStart: start });
           }
         }
       });

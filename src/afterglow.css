@@ -10,7 +10,8 @@
   [role="dialog"] > button:last-child { min-width: 48px; min-height: 48px; top: 8px; right: 8px; display: grid; place-items: center; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 }
-.afterglow-app { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; --car-fill: hsl(var(--card)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); background-size: 100% 100svh; background-repeat: no-repeat; }
+.board-spacing { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; }
+.afterglow-app { --car-fill: hsl(var(--card)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); background: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); background-size: 100% 100svh; background-repeat: no-repeat; }
 
 .palette-fieldset { min-width: 0; padding-block: 1rem; border-block: 1px solid hsl(var(--border) / .6); }
 .palette-fieldset legend { float: left; width: 100%; margin-bottom: .5rem; }
@@ -140,9 +141,10 @@
 .hub-state svg { color: hsl(var(--primary)); }
 .icon-button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; min-width: 48px; border-radius: 50%; }
 .icon-button:hover { background: hsl(var(--secondary)); }
-.app-main { max-width: 1600px; padding: 1.5rem var(--space) 0; margin-inline: auto; }
+.app-main, .notification-editor { max-width: 1600px; }
+.app-main { padding: 1.5rem var(--space) 0; margin-inline: auto; }
 .app-footer { max-width: 1600px; padding: 20px var(--space) 0; margin: auto; display: flex; justify-content: space-between; gap: 12px; color: hsl(var(--muted-foreground)); font-size: 0.8125rem; }
-.app-header, .app-main, .app-footer { padding-left: var(--gutter-left); padding-right: var(--gutter-right); }
+.app-header, .app-main, .app-footer, .notification-editor { padding-left: var(--gutter-left); padding-right: var(--gutter-right); }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 14px 20px; border-radius: 12px; }
 .skip-link:focus { top: 12px; }
 .app-dock { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); left: var(--gutter-left); right: var(--gutter-right); margin-inline: auto; max-width: 1000px; display: flex; flex-direction: column; gap: .75rem; z-index: 40; pointer-events: none; }
@@ -809,7 +811,7 @@ fieldset.settings-card > legend + * { clear: both; }
 
 @media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
   html { font-size: 20px; }
-  .afterglow-app { --space: 2.8rem; --panel-space: 1.2rem; }
+  .board-spacing { --space: 2.8rem; --panel-space: 1.2rem; }
   .app-header { padding-block: 1rem; }
   .app-main { padding-top: 1.2rem; }
   .portrait-board { gap: 1rem; }
@@ -844,7 +846,7 @@ fieldset.settings-card > legend + * { clear: both; }
 }
 
 @media (max-width: 999px) {
-  .afterglow-app { --space: 1.5rem; }
+  .board-spacing { --space: 1.5rem; }
   .header-actions { gap: .5rem; }
   .hub-state > span { display: none; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -859,7 +861,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .filter-row.avatar-filters { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: .25rem; }
   .avatar-filters > .avatar-filter { flex-direction: row; padding: .375rem .75rem; border-radius: var(--radius-capsule); }
   .avatar-filter .member-avatar { width: 32px; height: 32px; font-size: .875rem; }
-  .afterglow-app { --space: 1rem; --panel-space: 1rem; }
+  .board-spacing { --space: 1rem; --panel-space: 1rem; }
   .app-header { padding-block: .75rem; gap: .5rem; min-height: 72px; }
   .brand { font-size: 1.25rem; gap: .3rem; }
   .brand-mark { width: 28px; }

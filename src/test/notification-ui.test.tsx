@@ -202,7 +202,10 @@ it("starts a camera rule from its shortcut, names the go2rtc output and tests li
   fireEvent.click(dialog.getByRole("button", { name: "Test camera output" }));
   expect(playGo2rtcStream).toHaveBeenCalledWith("example-camera", expect.any(HTMLVideoElement), expect.any(AbortSignal), expect.any(Function));
   const signal = vi.mocked(playGo2rtcStream).mock.calls[0][2];
+  expect(playGo2rtcStream).toHaveBeenCalledOnce();
   fireEvent.click(dialog.getByRole("button", { name: "Camera and image" }));
+  expect(signal.aborted).toBe(false);
+  fireEvent.click(dialog.getByRole("switch", { name: "Use sample data" }));
   expect(signal.aborted).toBe(true);
   await openEditorSection("Camera and image");
   fireEvent.change(dialog.getByLabelText("Show in notification"), { target: { value: "person" } });
@@ -361,7 +364,7 @@ it("configures ongoing tasks with a stable entity reference", async () => {
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
 
-it("saves, reopens and removes an optional task camera without starting a stream in the preview", async () => {
+it("saves, reopens and removes an optional task camera with the live source in the preview", async () => {
   const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", cameraEntity: "", icon: "printer_3d" });
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
@@ -370,9 +373,10 @@ it("saves, reopens and removes an optional task camera without starting a stream
   await openEditorSection("Camera and image");
   expect(screen.getByLabelText("Camera (optional)")).toHaveDisplayValue("No camera");
   fireEvent.change(screen.getByLabelText("Camera (optional)"), { target: { value: "example-camera" } });
-  expect(screen.getByText("Camera preview")).toBeVisible();
+  const preview = screen.getByRole("region", { name: "Notification preview" });
+  expect(preview.querySelector("video")).not.toBeNull();
   expect(screen.getByRole("button", { name: "Show camera" })).toBeDisabled();
-  expect(watchCameraStream).not.toHaveBeenCalled();
+  expect(watchCameraStream).toHaveBeenCalledOnce();
   expect(playGo2rtcStream).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
@@ -383,7 +387,7 @@ it("saves, reopens and removes an optional task camera without starting a stream
   await openEditorSection("Camera and image");
   expect(screen.getByLabelText("Camera (optional)")).toHaveValue("example-camera");
   fireEvent.change(screen.getByLabelText("Camera (optional)"), { target: { value: "" } });
-  expect(screen.queryByText("Camera preview")).not.toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Notification preview" }).querySelector(".notification-camera-feed")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications.mock.lastCall[0].rules[0].cameraEntity).toBe("");
 });
@@ -393,6 +397,7 @@ it("retains an unavailable task camera until it is replaced or removed", async (
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   expect(screen.getByText("A selected entity is unavailable. Edit this rule to choose a replacement.")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByRole("status")).toHaveTextContent("Camera unavailable");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).not.toHaveBeenCalled();
   expect(screen.getByRole("alert")).toHaveTextContent("Choose a camera you have added in Camera settings.");
@@ -403,7 +408,7 @@ it("retains an unavailable task camera until it is replaced or removed", async (
   expect(setNotifications.mock.lastCall[0].rules[0].cameraEntity).toBe("");
 });
 
-it("previews, saves and reopens compact camera placement without starting video", async () => {
+it("previews, saves and reopens compact camera placement using the same video as the card", async () => {
   const rule = { ...cameraRule(), kind: "ongoing" as const, presentation: "activity-compact" as const };
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
@@ -413,9 +418,9 @@ it("previews, saves and reopens compact camera placement without starting video"
   expect(screen.getByLabelText("Camera placement")).toHaveValue("footer");
   fireEvent.change(screen.getByLabelText("Camera placement"), { target: { value: "right" } });
   const preview = screen.getByRole("region", { name: "Notification preview" });
-  expect(within(preview).getByText("Camera preview").closest('[data-placement="right"]')).not.toBeNull();
+  expect(within(preview).getByRole("button", { name: "Show camera" }).closest('[data-placement="right"]')).not.toBeNull();
   expect(within(preview).getByRole("button", { name: "Show camera" })).toBeDisabled();
-  expect(watchCameraStream).not.toHaveBeenCalled();
+  expect(watchCameraStream).toHaveBeenCalled();
   expect(playGo2rtcStream).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
@@ -426,7 +431,7 @@ it("previews, saves and reopens compact camera placement without starting video"
   await openEditorSection("Camera and image");
   expect(screen.getByLabelText("Camera placement")).toHaveValue("right");
   fireEvent.change(screen.getByLabelText("Camera placement"), { target: { value: "footer" } });
-  expect(screen.getByText("Camera preview").closest('[data-placement="right"]')).toBeNull();
+  expect(screen.getByRole("button", { name: "Show camera" }).closest('[data-placement="right"]')).toBeNull();
 });
 
 it.each(["section", "banner", "activity", "activity-compact"])("places one camera beside preserved readings only in activity cards (%s)", presentation => {
@@ -434,7 +439,7 @@ it.each(["section", "banner", "activity", "activity-compact"])("places one camer
     detailEntities: ["home|camera.example"],
     entityDisplay: [{ entity: "home|binary_sensor.example", placement: "left", name: "Task state" }, { entity: "home|camera.example", placement: "right", name: "Camera state" }],
   });
-  const view = render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} preview activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} /></MemoryRouter>);
+  const view = render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} preview="sample" activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} /></MemoryRouter>);
   expect(view.container.querySelectorAll(".notification-camera-feed")).toHaveLength(1);
   expect(!!screen.getByText("Camera preview").closest('[data-placement="right"]')).toBe(presentation.startsWith("activity"));
   expect(view.container.querySelector('[data-placement="left"]')).toHaveTextContent("Task state");
@@ -451,7 +456,7 @@ it("shows a person snapshot in the right camera slot without starting video", ()
 });
 
 it("selects, previews, saves, reopens and removes an image independently of the camera", async () => {
-  mocks.app.currentHome = mapHome({ "image.example": state("image.example", "2026-10-24T12:00:00Z", { friendly_name: "Example model" }) }, { ...emptyRegistries, entities: [{ id: "stable-image-registry-id", entity_id: "image.example" }] }, "home");
+  mocks.app.currentHome = mapHome({ "camera.example": state("camera.example", "idle"), "image.example": state("image.example", "2026-10-24T12:00:00Z", { friendly_name: "Example model" }) }, { ...emptyRegistries, entities: [{ id: "stable-image-registry-id", entity_id: "image.example" }] }, "home");
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [{ ...cameraRule(), kind: "ongoing", presentation: "activity-compact", cameraPlacement: "right" }] };
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
@@ -459,18 +464,21 @@ it("selects, previews, saves, reopens and removes an image independently of the 
   await openEditorSection("Camera and image");
   chooseEntity("Image (optional)", "image.example");
   const preview = screen.getByRole("region", { name: "Notification preview" });
-  expect(within(preview).getByText("Image preview").closest('[data-placement="left"]')).not.toBeNull();
-  expect(within(preview).queryByRole("button", { name: "Expand Example model" })).not.toBeInTheDocument();
-  expect(within(preview).getByText("Camera preview").closest('[data-placement="right"]')).not.toBeNull();
-  expect(screen.queryByRole("img")).not.toBeInTheDocument();
-  expect(watchCameraStream).not.toHaveBeenCalled();
+  expect(within(preview).getByRole("img", { name: "Example model" }).closest('[data-placement="left"]')).not.toBeNull();
+  const expand = within(preview).getByRole("button", { name: "Expand Example model" });
+  expect(expand).toBeDisabled();
+  fireEvent.click(expand);
+  expect(screen.queryByRole("dialog", { name: "Example model" })).not.toBeInTheDocument();
+  expect(within(preview).getByRole("button", { name: "Show camera" }).closest('[data-placement="right"]')).not.toBeNull();
+  expect(within(preview).getByRole("img", { name: "Example model" })).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example?"));
+  expect(watchCameraStream).toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Test image output" }));
-  expect(screen.getByRole("img", { name: "Example model" })).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example?"));
+  expect(within(screen.getByRole("region", { name: "Camera and image" })).getByRole("img", { name: "Example model" })).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.example?"));
   fireEvent.click(screen.getByRole("button", { name: "Close image preview" }));
   fireEvent.change(screen.getByLabelText("Image placement"), { target: { value: "right" } });
   fireEvent.change(screen.getByLabelText("Camera placement"), { target: { value: "left" } });
-  expect(within(preview).getByText("Image preview").closest('[data-placement="right"]')).not.toBeNull();
-  expect(within(preview).getByText("Camera preview").closest('[data-placement="left"]')).not.toBeNull();
+  expect(within(preview).getByRole("img", { name: "Example model" }).closest('[data-placement="right"]')).not.toBeNull();
+  expect(within(preview).getByRole("button", { name: "Show camera" }).closest('[data-placement="left"]')).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
   expect(saved).toMatchObject({ imageEntity: "home|stable-image-registry-id", imagePlacement: "right", cameraEntity: "example-camera", cameraPlacement: "left" });
@@ -822,7 +830,7 @@ it.each(["section", "banner", "activity", "activity-compact"])("shows optional p
   view.rerender(<MemoryRouter><NotificationRow item={{ ...item, rule: { ...item.rule, showPersonSnapshot: true } }} {...props} /></MemoryRouter>);
   expect(screen.getByRole("button", { name: "Latest person snapshot" })).toBeVisible();
   expect(playGo2rtcStream).toHaveBeenCalledOnce();
-  view.rerender(<MemoryRouter><NotificationRow item={{ ...item, rule: { ...item.rule, showPersonSnapshot: true } }} {...props} preview /></MemoryRouter>);
+  view.rerender(<MemoryRouter><NotificationRow item={{ ...item, rule: { ...item.rule, showPersonSnapshot: true } }} {...props} preview="sample" /></MemoryRouter>);
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
   const value = { notifications: [{ ...item, popup: true }], errors: [], camera: vi.fn(), dismiss: vi.fn(), retry: vi.fn() };
   view.rerender(<MemoryRouter><NotificationContext.Provider value={value}><NotificationCamera /></NotificationContext.Provider></MemoryRouter>);
@@ -847,6 +855,45 @@ it("shows person images on visible cards and stops them offscreen and in backgro
   fireEvent(document, new Event("visibilitychange"));
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
   hidden.mockRestore(); view.unmount(); expect(disconnect).toHaveBeenCalledOnce();
+});
+
+it.each(["section", "banner", "activity", "activity-compact"] as const)("renders the edited alert in the board's %s layout, including its neighbors and active calendar occurrence", presentation => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "current", presentation, trigger: { type: "calendar", entity: "home|calendar.example", leadMinutes: 5 } });
+  const event = { id: "occurrence", rule, startedAt: 0, eventStart: Date.now(), eventTitle: "Example appointment", calendarEntity: "home|calendar.example", popup: false };
+  const neighbor = { id: "another", rule: { ...rule, id: "another", title: "Another alert" }, startedAt: 0, popup: false };
+  const value = { notifications: [neighbor, event], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const content = (draft = rule) => <MemoryRouter><NotificationContext.Provider value={value}>
+    <NotificationList compact presentation="section" />
+    <NotificationPreview editing rule={draft} presentation="section" />
+  </NotificationContext.Provider></MemoryRouter>;
+  const view = render(content());
+  const preview = within(screen.getByRole("region", { name: "Notification preview" }));
+  const [live, edited] = screen.getAllByText("Example appointment", { selector: "li strong" }).map(title => title.closest("li"));
+  expect(edited.className).toBe(live.className);
+  expect(edited.parentElement.className).toBe(live.parentElement.className);
+  expect(edited.closest("section[aria-label='Active notifications']").className).toBe(live.closest("section[aria-label='Active notifications']").className);
+  expect(edited.textContent).toBe(live.textContent);
+  if (presentation === "section") expect(preview.queryByText("Another alert")).not.toBeInTheDocument();
+  else expect(preview.getByText("Another alert", { selector: "li strong" })).toBeVisible();
+  const dismiss = preview.getByRole("button", { name: "Dismiss Example appointment" });
+  expect(dismiss).toBeDisabled();
+  fireEvent.click(dismiss);
+  expect(value.dismiss).not.toHaveBeenCalled();
+  fireEvent.click(preview.getByRole("switch", { name: "Use sample data" }));
+  expect(preview.queryByText("Example appointment")).not.toBeInTheDocument();
+  fireEvent.click(preview.getByRole("switch", { name: "Use sample data" }));
+  view.rerender(content({ ...rule, title: "Draft title", trigger: { type: "calendar", entity: "home|calendar.other", leadMinutes: 5 } }));
+  expect(preview.getByText("Draft title", { selector: "li strong" })).toBeVisible();
+  expect(preview.queryByText("Example appointment")).not.toBeInTheDocument();
+});
+
+it("includes the edited rule when the board already has three banners", () => {
+  const rule = { ...cameraRule(), presentation: "banner" as const };
+  const notifications = ["first", "second", "third"].map(id => ({ id, rule: { ...rule, id, title: id }, startedAt: 0, popup: false }));
+  const value = { notifications, errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  render(<MemoryRouter><NotificationContext.Provider value={value}><NotificationPreview editing rule={rule} presentation="section" /></NotificationContext.Provider></MemoryRouter>);
+  expect(screen.getAllByRole("listitem")).toHaveLength(3);
+  expect(screen.getByText(rule.title, { selector: "li strong" })).toBeVisible();
 });
 
 it("shows a camera placeholder in style previews without requesting real media", () => {
@@ -1119,16 +1166,18 @@ it.each(["section", "banner", "activity"] as const)("updates accessible progress
 });
 
 it("previews and saves progress without text, preserving the choice when sources change and the editor reopens", async () => {
+  mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "30") }, emptyRegistries, "home");
   const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", progress: { current: { type: "entity", entity: "home|sensor.example" }, start: { type: "value", value: 100 }, end: { type: "value", value: 0 } } });
   mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules: [rule] };
   const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Progress");
   expect(screen.getByLabelText("Progress text")).toHaveValue("percentage");
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "70");
   fireEvent.change(screen.getByLabelText("Progress text"), { target: { value: "none" } });
   fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "120" } });
   expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^$/);
-  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "40");
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
   expect(saved.progress).toMatchObject({ text: "none", start: { type: "value", value: 120 } });
@@ -1138,7 +1187,7 @@ it("previews and saves progress without text, preserving the choice when sources
   await openEditorSection("Progress");
   expect(screen.getByLabelText("Progress text")).toHaveValue("none");
   fireEvent.change(screen.getByLabelText("Progress text"), { target: { value: "percentage" } });
-  expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^40%$/);
+  expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^75%$/);
 });
 
 it("previews simulated progress without saving settings or mutating Home Assistant readings", () => {

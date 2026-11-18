@@ -2,12 +2,14 @@ import { useEffect, useId, useState } from "react";
 import { Eye, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { useApp } from "@/contexts/AppContext";
+import { useNotifications } from "@/contexts/NotificationContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
-import { notificationEntity, progressSourceValue } from "@/lib/notifications";
+import { notificationEntity, progressSourceValue, showsOngoingSummary, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
-import { NotificationRow } from "./NotificationCenter";
+import { NotificationSurface } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
@@ -15,10 +17,12 @@ import { Accordion } from "./ui/accordion";
 import { NotificationEditorSection } from "./NotificationEditorSection";
 import { NotificationStylePicker } from "./NotificationStylePicker";
 
-export function NotificationPreview({ rule, presentation: defaultPresentation, disabled = false, onPresentationChange }: { rule?: NotificationRule; presentation: NotificationPresentation; disabled?: boolean; onPresentationChange?: (presentation: NotificationPresentation) => void }) {
+export function NotificationPreview({ rule, presentation: defaultPresentation, disabled = false, editing = false, onPresentationChange }: { rule?: NotificationRule; presentation: NotificationPresentation; disabled?: boolean; editing?: boolean; onPresentationChange?: (presentation: NotificationPresentation) => void }) {
   const { message: t } = useI18n();
   const { currentHome } = useApp();
-  const [demo, setDemo] = useState(true);
+  const { notifications, errors } = useNotifications();
+  const phone = useIsMobile();
+  const [demo, setDemo] = useState(!editing);
   const [percent, setPercent] = useState(40);
   const [playing, setPlaying] = useState(false);
   const [styleOpen, setStyleOpen] = useState(false);
@@ -32,7 +36,6 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   });
   const previewRule = rule ? { ...rule, title: rule.title || t("Your notification") } : example;
   const presentation = previewRule.presentation ?? defaultPresentation;
-  const activity = presentation === "activity" || presentation === "activity-compact";
   const useDemo = !rule || demo;
   const canPlay = useDemo && !!previewRule.progress && !reducedMotion;
   useEffect(() => {
@@ -71,13 +74,29 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
       }
     }
   }
+  const triggers = notificationTriggers(previewRule);
+  const now = Date.now();
+  const items = notifications.flatMap((item): HomeNotification[] => {
+    if (item.rule.id !== previewRule.id) return editing ? [item] : [];
+    if (item.calendarEntity && !triggers.some(trigger => trigger.type === "calendar" && trigger.entity === item.calendarEntity &&
+      item.eventStart <= now + trigger.leadMinutes * 60_000)) return [];
+    return [useDemo ? { id: item.id, rule: previewRule, startedAt: 0, popup: false } : { ...item, rule: previewRule }];
+  });
+  let draft = items.find(item => item.rule.id === previewRule.id);
+  if (!draft) {
+    draft = { id: previewRule.id, rule: previewRule, startedAt: 0, popup: false };
+    items.push(draft);
+  }
+  const previewTitle = t("Preview {name}", { name: draft.eventTitle || previewRule.title });
+  const sampleNote = editing ? "Sample data for this notification. Preview actions are disabled." : "Sample data only. Nothing is sent to Home Assistant.";
   return <section className="notification-preview" aria-label={onPresentationChange ? t("Preview {name}", { name: previewRule.title }) : t("Notification preview")}>
-    {!onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
-      <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p></>}
+    {!onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{editing ? previewTitle : t("Preview")}</PanelTitle>
+      <p className="page-note">{t(useDemo ? sampleNote : "Current readings. Preview actions are disabled.")}</p></>}
     {rule && <div className="notification-toggle"><span>{t("Use sample data")}</span><Switch aria-label={t("Use sample data")} checked={demo} onCheckedChange={checked => { setDemo(checked); setPlaying(false); }} /></div>}
-    <ul className={activity ? "notification-activity-grid" : presentation === "banner" ? "notification-preview-banner" : "notification-preview-section"}>
-      <NotificationRow item={{ id: "preview", rule: previewRule, startedAt: 0, popup: false }} activity={activity} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} entities={entities} preview />
-    </ul>
+    <fieldset disabled className="notification-preview-surface" aria-label={previewTitle} onClickCapture={event => { event.preventDefault(); event.stopPropagation(); }}>
+      <NotificationSurface items={editing ? items : [draft]} compact presentation={defaultPresentation} preview={useDemo ? "sample" : "current"}
+        entities={entities} focus={draft} viewAllCount={editing && !showsOngoingSummary(items, phone, errors) ? items.length : undefined} />
+    </fieldset>
     {useDemo && previewRule.progress && <div className="notification-demo-controls">
       <label htmlFor={id}>{t("Demo progress")} <strong>{percent}%</strong></label>
       <div className="flex items-center gap-3"><input id={id} aria-label={t("Demo progress")} type="range" min={0} max={100} value={percent} onChange={event => { setPercent(Number(event.target.value)); setPlaying(false); }} />

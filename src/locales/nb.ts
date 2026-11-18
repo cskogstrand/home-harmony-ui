@@ -2355,6 +2355,7 @@ export const nb = {
   "Check progress: choose numeric sources and different start and end values.": "Sjekk fremdriften: velg numeriske kilder og ulike start- og sluttverdier.",
   "Notification preview": "Forhåndsvisning av varsel",
   "Preview": "Forhåndsvisning",
+  "Sample data for this notification. Preview actions are disabled.": "Dette varselet viser eksempeldata. Handlinger er deaktivert i forhåndsvisningen.",
   "Sample data only. Nothing is sent to Home Assistant.": "Kun eksempeldata. Ingenting sendes til Home Assistant.",
   "Current readings. Preview actions are disabled.": "Nåværende målinger. Handlinger er deaktivert i forhåndsvisningen.",
   "Use sample data": "Bruk eksempeldata",

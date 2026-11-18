@@ -44,7 +44,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const [locations, setLocations] = useState<Record<string, Location>>({});
   if (mainPath && locations[mainPath] !== location) setLocations({ ...locations, [mainPath]: location });
   const errorFallback = <div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>;
-  return <div className={`afterglow-app${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
+  return <div className={`afterglow-app board-spacing${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <WeatherWidget placement="header" /><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
         <Link to="/sonos" className="icon-button glass-surface" aria-label={t("Sonos")} title={t("Sonos")}><Music2 size={20} aria-hidden="true" /></Link>
