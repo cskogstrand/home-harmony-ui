@@ -39,14 +39,15 @@ it("keeps the quick-add draft, suggestions and item UID with their selected shop
   const input = await screen.findByRole("textbox", { name: "New item in Weekend shop" });
   expect(input).toHaveFocus();
   fireEvent.change(input, { target: { value: "milk" } });
-  const picker = screen.getByRole("combobox", { name: "List" });
-  fireEvent.change(picker, { target: { value: "home|todo.shopping" } });
+  const picker = within(screen.getByRole("group", { name: "Shopping lists" }));
+  expect(picker.getByRole("button", { name: "Weekend shop" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(picker.getByRole("button", { name: "Shopping" }));
   fireEvent.click(screen.getByRole("button", { name: "Add item" }));
   const other = screen.getByRole("textbox", { name: "New item in Shopping" });
   expect(other).toHaveValue("");
   fireEvent.change(other, { target: { value: "milk" } });
   expect(within(screen.getByRole("group", { name: "Existing items" })).getByRole("button", { name: "Oat milk" })).toBeEnabled();
-  fireEvent.change(picker, { target: { value: weekend } });
+  fireEvent.click(picker.getByRole("button", { name: "Weekend shop" }));
   expect(input).toHaveValue("milk");
   const suggestions = within(screen.getByRole("group", { name: "Existing items" }));
   expect(suggestions.queryByText("Oat milk")).toBeNull();
@@ -59,7 +60,7 @@ it("requires a new destination when opening a link to a removed shopping list", 
   render(<MemoryRouter initialEntries={["/lists?tab=shopping&list=removed"]}><ListPanel kind="shopping" /></MemoryRouter>);
   expect(screen.getByText(/This list is no longer linked/)).toBeVisible();
   expect(screen.queryByRole("button", { name: "Add item" })).toBeNull();
-  fireEvent.change(screen.getByRole("combobox", { name: "List" }), { target: { value: "home|todo.shopping" } });
+  fireEvent.click(screen.getByRole("button", { name: "Shopping" }));
   expect(await screen.findByRole("checkbox", { name: "Milk" })).toBeVisible();
 });
 

@@ -8,7 +8,7 @@
 
 ## At a glance
 
-- **Plan together** — a family calendar, daily tasks and named household shopping lists.
+- **Plan together** — a family calendar, daily tasks, family tasks filtered by person avatar, and shared shopping lists with individual icons.
 - **Keep school close** — PDF timetables or Home Assistant calendars, with iPhone uploads.
 - **Control your home** — lights, climate, scenes and other Home Assistant devices.
 - **Listen together** — a dedicated Sonos player with grouped room selection and a shared music library in **Your music**. Open group and speaker settings when needed; keep your library folder and filter when switching rooms.

@@ -1802,7 +1802,7 @@ it("keeps shopping usable without people and hides tasks assigned to the removed
   window.history.replaceState(null, "", "/lists");
   render(<App />);
   expect(await screen.findByRole("checkbox", { name: "Milk" })).toBeInTheDocument();
-  expect(screen.getByRole("group", { name: "Shopping" }).querySelector(".member-avatar")).toBeNull();
+  expect(screen.getByRole("group", { name: "Shopping" }).querySelector(".shopping-avatar .lucide-shopping-basket")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Shopping 1" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
   expect(screen.getByText("No lists selected.")).toBeInTheDocument();
@@ -1842,6 +1842,11 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
     [`home|todo.weekend`]: { kind: "shopping", member: "everyone" },
     [`home|todo.shopping`]: { kind: "shopping", member: "everyone" },
   });
+  const weekendDisplay = screen.getByLabelText("Display settings for weekend");
+  fireEvent.click(weekendDisplay);
+  fireEvent.click(within(weekendDisplay.closest("details")).getByRole("button", { name: "Hardware" }));
+  await waitFor(() => expect(savedSettings().todoLists["home|todo.weekend"].display.shoppingIcon).toBe("hardware"));
+  expect(savedSettings().todoLists["home|todo.shopping"].display).toBeUndefined();
   await choose("Tasks for Morgan", "family");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(select("Tasks for Everyone")).toHaveTextContent("family");
@@ -1917,6 +1922,12 @@ it("uses saved people order for connected lists and retains missing people acros
   expect(listOrder("daily tasks")).toEqual(["Everyone daily tasks", "Riley daily tasks", "Morgan daily tasks"]);
   fireEvent.click(screen.getByRole("button", { name: /Family tasks/ }));
   expect(listOrder("tasks")).toEqual(["Everyone tasks", "Riley tasks", "Morgan tasks"]);
+  const filters = within(screen.getByRole("group", { name: "Filter by person" }));
+  fireEvent.click(filters.getByRole("button", { name: "Riley" }));
+  expect(filters.getByRole("button", { name: "Riley" })).toHaveAttribute("aria-pressed", "true");
+  expect(listOrder("tasks")).toEqual(["Riley tasks"]);
+  expect(new URLSearchParams(window.location.search).get("list")).toBe("home|todo.riley_tasks");
+  fireEvent.click(filters.getByRole("button", { name: "All lists" }));
   act(() => conn.entityCallback?.({ ...states, "person.morgan": household["person.morgan"] }));
   expect(listOrder("tasks")).toEqual(["Everyone tasks", "Person unavailable tasks", "Morgan tasks"]);
   const newPerson = { "person.alex": state("person.alex", "home", { friendly_name: "Alex" }) };

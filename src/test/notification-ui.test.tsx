@@ -496,7 +496,12 @@ it.each(["section", "banner", "activity", "activity-compact"])("shows one image 
   const view = render(<MemoryRouter><NotificationRow item={{ id: rule.id, rule, popup: false, startedAt: 0 }} activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} condensed={presentation === "banner"} /></MemoryRouter>);
   expect(view.container.querySelectorAll(".notification-camera-feed")).toHaveLength(1);
   expect(view.container.querySelectorAll(".notification-image-feed")).toHaveLength(1);
-  expect(screen.getByRole("button", { name: "Expand Example model" })).toBeEnabled();
+  for (const name of ["Expand Example model", "Show camera"]) {
+    const opener = screen.getByRole("button", { name });
+    expect(opener).toBeEnabled();
+    expect(opener).toHaveClass("smart-media-open");
+    expect(opener).toBeEmptyDOMElement();
+  }
   expect(!!screen.getByRole("img", { name: "Example model" }).closest('[data-placement="left"]')).toBe(presentation.startsWith("activity"));
   expect(!!view.container.querySelector(".notification-camera-feed").closest('[data-placement="right"]')).toBe(presentation.startsWith("activity"));
   expect(view.container.querySelector('[data-placement="left"]')).toHaveTextContent("Task state");

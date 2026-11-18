@@ -14,6 +14,8 @@ import type { Entity, TodoAction, TodoItem } from "@/types/api";
 import { todoDetailChanges, todoDueInput, todoDueTimestamp, type TodoDetails } from "@/lib/todo-items";
 import { TodoDueLabel, TodoItemFields } from "./TodoItemDetails";
 import { MemberAvatar, MemberOptions, PanelHeading } from "./FamilyPlanner";
+import { AvatarFilters } from "./AvatarFilters";
+import { ShoppingListAvatar } from "./ShoppingListIcon";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
@@ -123,7 +125,7 @@ function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; 
 }
 export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number }) {
   const { t, message } = useI18n();
-  const { connectedPlanner, todoLists, compareMembers, isMemberVisible } = useFamily();
+  const { connectedPlanner, todoLists, allMembers, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline, currentHome, services } = useApp();
   const [params, setParams] = useSearchParams();
   if (!connectedPlanner && kind !== "homework") return <LayoutGroup><LocalListPanel kind={kind} limit={limit} /></LayoutGroup>;
@@ -134,6 +136,8 @@ export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number 
   const selected = limit ? undefined : params.get("list") || (kind === "shopping" ? lists[0]?.[0] : undefined);
   const missing = !!selected && !lists.some(([id]) => id === selected);
   const summary = kind === "shopping" && !!limit && lists.length > 1;
+  const showFilters = !limit && (lists.length > 1 || (missing && lists.length > 0));
+  const selectList = (id: string) => setParams(id ? { tab: kind, list: id } : { tab: kind });
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
     <ListPanelSurface />
     <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
@@ -142,17 +146,22 @@ export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number 
       const entity = source(id);
       const online = homeOnline && entity && available(entity);
       const to = `/lists?${new URLSearchParams({ tab: kind, list: id })}`;
-      return <li key={id}><Link className="shopping-destination" to={to}><strong>{sourceName(id)}</strong>
+      return <li key={id}><Link className="shopping-destination" to={to}><ShoppingListAvatar icon={todoLists[id].display?.shoppingIcon} small /><strong>{sourceName(id)}</strong>
         <small>{online && /^\d+$/.test(entity.state) ? t("{count} to pick up", { count: entity.state }) : t("Count unavailable")}</small></Link>
         {online && supportsAction(entity, "add_item", services) && <Button asChild size="icon" variant="outline"><Link to={to} state={{ addToList: id }} aria-label={t("Add to {list}", { list: sourceName(id) })}><Plus aria-hidden="true" /></Link></Button>}
       </li>;
     })}</ul> : <>
       {missing && !!lists.length && <p className="page-note" role="status">{t("This list is no longer linked. Choose a list to continue.")}</p>}
-      {!limit && (lists.length > 1 || (missing && !!lists.length)) && <label className="list-source-picker">{t("List")}<select value={selected || ""} onChange={event => setParams(event.target.value ? { tab: kind, list: event.target.value } : { tab: kind })}>
+      {showFilters && (kind === "shopping" || kind === "tasks" ? <AvatarFilters label={t(kind === "tasks" ? "Filter by person" : "Shopping lists")} selected={selected || ""} onSelect={selectList} options={[
+        ...(kind === "tasks" ? [{ id: "", label: t("All lists") }] : []),
+        ...lists.map(([id, assigned]) => kind === "shopping"
+          ? { id, label: sourceName(id), avatar: <ShoppingListAvatar icon={assigned.display?.shoppingIcon} /> }
+          : { id, label: allMembers.find(person => person.id === assigned.member)?.name ?? sourceName(id), avatar: <MemberAvatar member={assigned.member} /> }),
+      ]} /> : <label className="list-source-picker">{t("List")}<select value={selected || ""} onChange={event => selectList(event.target.value)}>
         {missing && <option value={selected} disabled>{t("List unavailable")}</option>}
-        {kind !== "shopping" && <option value="">{t("All lists")}</option>}
+        <option value="">{t("All lists")}</option>
         {lists.map(([id]) => <option key={id} value={id}>{sourceName(id)}</option>)}
-      </select></label>}
+      </select></label>)}
       {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} hidden={!!selected && id !== selected} />)}
     </>}
   </article></LayoutGroup>;
@@ -342,7 +351,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, school = 
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
     {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
-        <div className="list-identity flex-1 basis-44">{kind !== "shopping" && <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
+        <div className="list-identity flex-1 basis-44">{kind === "shopping" ? <ShoppingListAvatar icon={display.shoppingIcon} small /> : <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
         {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
       </div>
       {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>

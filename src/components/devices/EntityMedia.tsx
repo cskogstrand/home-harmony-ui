@@ -161,7 +161,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
   </div>;
 }
 
-export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices = false, trimTransparent = false }: MediaSource & { showImageChoices?: boolean; trimTransparent?: boolean }) {
+export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices = false, trimTransparent = false, showExpandIcon = true }: MediaSource & { showImageChoices?: boolean; trimTransparent?: boolean; showExpandIcon?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const camera = suppliedCamera ?? shared?.state.config.settings.cameras.items.find(item => item.connectionId === "home-assistant" && item.source === entity?.entityId);
@@ -181,7 +181,7 @@ export function EntityMedia({ entity, camera: suppliedCamera, showImageChoices =
   return <Dialog open={open} onOpenChange={setOpen}>
     <div className="smart-media-preview">
       {preview === "person" ? <CameraPersonSnapshot cameraId={camera.id} /> : <MediaSurface key={preview} entity={entity} camera={camera} suspended={open && (preview !== selected || !camera && entity?.domain !== "camera")} snapshotOnly={preview === "snapshot"} trimTransparent={trimTransparent} />}
-      {expandable && <button ref={opener} type="button" className="smart-media-open" aria-label={t("Expand {name}", { name })} onClick={() => setOpen(true)}><span><Expand size={18} /></span></button>}
+      {expandable && <button ref={opener} type="button" className="smart-media-open" aria-haspopup="dialog" aria-label={t("Expand {name}", { name })} onClick={() => setOpen(true)}>{showExpandIcon && <span><Expand size={18} /></span>}</button>}
     </div>
     {showImageChoices && choices}
     {expandable && <DialogContent className="smart-media-dialog" aria-describedby={undefined} onCloseAutoFocus={event => { event.preventDefault(); opener.current?.focus(); }}>

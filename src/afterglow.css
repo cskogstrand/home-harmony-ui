@@ -319,7 +319,10 @@ fieldset.settings-card > legend + * { clear: both; }
 .list-source-picker { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; color: hsl(var(--muted-foreground)); }
 .list-source-picker select { min-width: 0; max-width: 100%; min-height: 48px; border: 1px solid hsl(var(--border)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: .5rem .75rem; }
 .shopping-destinations > li { display: flex; align-items: center; gap: 1rem; border-top: 1px solid hsl(var(--border)); }
-.shopping-destination { display: grid; flex: 1; min-width: 0; min-height: 52px; align-content: center; padding-block: .65rem; overflow-wrap: anywhere; }
+.shopping-destination { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .75rem; flex: 1; min-width: 0; min-height: 52px; align-content: center; padding-block: .65rem; overflow-wrap: anywhere; }
+.shopping-destination .shopping-avatar { grid-row: span 2; align-self: center; }
+.shopping-avatar { background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); }
+.shopping-avatar svg { width: 55%; height: 55%; }
 .shopping-destination small { font-size: .875rem; color: hsl(var(--muted-foreground)); }
 .shopping-destination:hover strong { text-decoration: underline; }
 .todo-celebration-list { position: absolute; inset: 0; z-index: 4; display: grid; place-items: center; overflow: clip; border-radius: var(--radius-inset); container: todo-finale / size; }
@@ -564,9 +567,11 @@ fieldset.settings-card > legend + * { clear: both; }
 .filter-row { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
 .filter-row > button { display: flex; align-items: center; gap: 7px; border: 1px solid hsl(var(--border)); border-radius: 50px; padding: 6px 17px; color: hsl(var(--muted-foreground)); font-size: 0.875rem; }
 .filter-row > button[aria-pressed="true"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
-.filter-row > .calendar-member-filter { flex-direction: column; gap: .5rem; max-width: 100%; padding: .75rem 1rem; border-radius: var(--radius-field); text-align: center; overflow-wrap: anywhere; border: none; }
-.calendar-member-filter > span:last-child { max-width: 12ch; }
-.calendar-member-filter .member-avatar, .calendar-lane > header .member-avatar, .lane-heading .member-avatar, .week-person .member-avatar { width: 4rem; height: 4rem; font-size: 1.25rem; }
+.avatar-filters > button { flex-shrink: 0; min-height: 48px; }
+.filter-row > .avatar-filter { flex-direction: column; gap: .5rem; max-width: 100%; padding: .75rem 1rem; border-radius: var(--radius-field); text-align: center; overflow-wrap: anywhere; border: none; }
+.avatar-filter > span:last-child { max-width: 16ch; }
+.avatar-filter .member-avatar, .calendar-lane > header .member-avatar, .lane-heading .member-avatar, .week-person .member-avatar { width: 4rem; height: 4rem; font-size: 1.25rem; }
+.list-panel > .avatar-filters { flex-wrap: nowrap; margin-bottom: 1rem; overflow-x: auto; padding: .25rem; }
 .calendar-lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 18px; }
 .calendar-lane { padding: 24px 18px; }
 .calendar-lane > header { display: flex; flex-direction: column; gap: .5rem; align-items: center; margin-bottom: 20px; text-align: center; overflow-wrap: anywhere; }
@@ -846,6 +851,9 @@ fieldset.settings-card > legend + * { clear: both; }
 }
 
 @media (max-width: 699px) {
+  .filter-row.avatar-filters { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: .25rem; }
+  .avatar-filters > .avatar-filter { flex-direction: row; padding: .375rem .75rem; border-radius: var(--radius-capsule); }
+  .avatar-filter .member-avatar { width: 32px; height: 32px; font-size: .875rem; }
   .afterglow-app { --space: 1rem; --panel-space: 1rem; }
   .app-header { padding-block: .75rem; gap: .5rem; min-height: 72px; }
   .brand { font-size: 1.25rem; gap: .3rem; }

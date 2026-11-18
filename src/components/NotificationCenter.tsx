@@ -36,6 +36,7 @@ export function NotificationBell() {
 function NotificationCameraFeed({ item, preview, compact = false }: { item: HomeNotification; preview: boolean; compact?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
+  const { camera } = useNotifications();
   const selected = configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(!globalThis.IntersectionObserver && !document.hidden);
@@ -48,11 +49,13 @@ function NotificationCameraFeed({ item, preview, compact = false }: { item: Home
     document.addEventListener("visibilitychange", update); update();
     return () => { observer?.disconnect(); document.removeEventListener("visibilitychange", update); };
   }, [preview]);
-  return <div ref={ref} className="notification-camera-feed">
+  return <div ref={ref} className="notification-camera-feed smart-media-preview">
     {preview || !visible ? <div className="notification-camera-placeholder"><Camera size={compact ? 24 : 32} aria-hidden="true" /><span className={compact ? "sr-only" : undefined}>{t(preview ? "Camera preview" : "Stream paused")}</span></div>
       : !selected ? <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>
       : item.rule.cameraMedia === "person" ? <CameraPersonSnapshot key={selected.id} cameraId={selected.id} />
       : <MediaSurface camera={selected} showPerson={item.rule.showPersonSnapshot} />}
+    <button type="button" className="smart-media-open" disabled={preview} aria-haspopup="dialog"
+      aria-label={t("Show camera")} onClick={() => camera(item.id, true)} />
   </div>;
 }
 
@@ -71,7 +74,7 @@ function useAlertFocusOnRemoval() {
 export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, preview = false, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; preview?: boolean; entities?: Entity[] }) {
   const { message: t, language, locale } = useI18n();
   const { currentHome } = useApp();
-  const { dismiss, camera } = useNotifications();
+  const { dismiss } = useNotifications();
   const entities = previewEntities ?? currentHome.entities;
   const readings = notificationReadings(item.rule).map(reading => ({ ...reading, position: reading.placement === "auto" ? reading.defaultPlacement : reading.placement }))
     .filter(reading => reading.position !== "hidden" && !(condensed && reading.placement === "auto" && reading.position === "subtitle"));
@@ -81,10 +84,10 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   const cameraPosition = activity ? item.rule.cameraPlacement ?? "footer" : "footer";
   const imagePosition = activity ? item.rule.imagePlacement ?? "left" : "footer";
   const image = notificationEntity(entities, item.rule.imageEntity ?? "");
-  const cameraContent = showCamera && <><NotificationCameraFeed item={item} preview={preview} compact={cameraPosition !== "footer"} /><Button type="button" disabled={preview} variant="link" className="h-auto px-0" onClick={() => camera(item.id, true)}>{t("Show camera")}</Button></>;
+  const cameraContent = showCamera && <NotificationCameraFeed item={item} preview={preview} compact={cameraPosition !== "footer"} />;
   const imageContent = item.rule.imageEntity && <div className="notification-image-feed">
     {preview ? <div className="notification-camera-placeholder"><Image size={imagePosition === "footer" ? 32 : 24} aria-hidden="true" /><span className={imagePosition === "footer" ? undefined : "sr-only"}>{t("Image preview")}</span></div>
-      : image?.domain === "image" ? <EntityMedia key={image.preferenceId} entity={image} trimTransparent />
+      : image?.domain === "image" ? <EntityMedia key={image.preferenceId} entity={image} trimTransparent showExpandIcon={false} />
       : <p role="status">{t("Image unavailable. Choose another image in notification settings.")}</p>}
   </div>;
   const hasColumn = (position: "left" | "right") => at(position).length > 0 || showCamera && cameraPosition === position || !!imageContent && imagePosition === position;

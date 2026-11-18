@@ -74,7 +74,7 @@ it("validates, shares and restores per-list display and next-plan range settings
   expect(read({ celebrate: true }).settings.todoLists["home|todo.example"].display.celebrateFinal).toBe(false);
   expect(read({ completed: "under" }).settings.todoLists["home|todo.example"].display.completed).toBe("under");
   expect(read({ completed: "hide", celebrate: true }).settings.todoLists["home|todo.example"].display.sort).toBe("home-assistant");
-  for (const display of [null, { completed: "other" }, { sort: "other" }, { showDetails: "true" }, { showDueDate: 1 }, { celebrate: "false" }, { celebrateFinal: "true" }, { unknown: true }]) expect(() => read(display)).toThrow();
+  for (const display of [null, { completed: "other" }, { sort: "other" }, { shoppingIcon: "other" }, { showDetails: "true" }, { showDueDate: 1 }, { celebrate: "false" }, { celebrateFinal: "true" }, { unknown: true }]) expect(() => read(display)).toThrow();
   for (const nextPlanDays of [-1, 91, 1.5, "2", null]) expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, nextPlanDays } } }))).toThrow();
   const backend = server(), a = await backend.start(), b = await backend.start();
   const display = { completed: "collapsed" as const, sort: "due-date" as const, showDetails: false, showDueDate: false, celebrate: true, celebrateFinal: true };
@@ -82,14 +82,14 @@ it("validates, shares and restores per-list display and next-plan range settings
   a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, nextPlanDays: 14 }, todoLists: {
     "home|todo.example": { kind: "daily", member: "home|person.example", display },
     "home|todo.groceries": { ...shopping, display: defaultTodoDisplay },
-    "home|todo.weekend": { ...shopping, display },
+    "home|todo.weekend": { ...shopping, display: { ...display, shoppingIcon: "groceries" } },
   } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
   expect(backup.settings.todoLists["home|todo.example"].display).toEqual(display);
   expect(backup.settings.todoLists["home|todo.groceries"].display).toEqual(defaultTodoDisplay);
-  expect(backup.settings.todoLists["home|todo.weekend"].display).toEqual(display);
+  expect(backup.settings.todoLists["home|todo.weekend"].display).toEqual({ ...display, shoppingIcon: "groceries" });
   expect(backup.settings.dashboard.nextPlanDays).toBe(14);
   await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
   expect(a.getSnapshot().config.settings).toEqual(backup.settings);

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberColorPicker } from "@/components/MemberColorPicker";
+import { ShoppingListIconPicker } from "@/components/ShoppingListIcon";
 import { TimetableAdministration } from "@/components/TimetableAdministration";
 import { EntityPicker } from "@/components/EntityPicker";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -63,6 +64,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
       {selected && <details className="todo-display-settings" key={selected}>
         <summary aria-label={t("Display settings for {list}", { list: label })}><span className="panel-title"><SlidersHorizontal className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Display settings")}</span></span></summary>
         <fieldset disabled={!shared?.state.loaded || !!shared.state.error} className="grid gap-3 py-3">
+          {kind === "shopping" && <ShoppingListIconPicker value={display.shoppingIcon} onChange={shoppingIcon => setTodoListDisplay(selected, { shoppingIcon })} />}
           <label className="grid gap-2 text-sm">{t("Completed items")}
             <select className="w-full rounded-lg border border-input bg-background p-2" value={display.completed} onChange={event => setTodoListDisplay(selected, { completed: event.target.value as TodoDisplay["completed"] })}>
               <option value="inline">{t("Show finished inline")}</option><option value="under">{t("Show finished underneath")}</option><option value="collapsed">{t("Hide finished underneath")}</option><option value="hide">{t("Hide finished")}</option>

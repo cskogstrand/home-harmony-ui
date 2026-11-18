@@ -11,6 +11,7 @@ import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEv
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { CalendarDay, CalendarMonth } from "@/components/CalendarViews";
+import { AvatarFilters } from "@/components/AvatarFilters";
 import "./calendar.css";
 
 const views = { month: "Month", week: "Week", day: "Day" } as const;
@@ -79,7 +80,10 @@ export default function Calendar() {
         </div>
       </div>
       <div className="calendar-filter-bar">
-        <div className="filter-row" role="group" aria-label={t("Filter by person")}><button aria-pressed={member === "all"} onClick={() => setMember("all")}>{t("All people")}</button>{familyMembers.map(m => <button key={m.id} className="calendar-member-filter" aria-label={m.name} aria-pressed={member === m.id} onClick={() => setMember(m.id)}><MemberAvatar member={m.id} /><span>{m.name}</span></button>)}</div>
+        <AvatarFilters label={t("Filter by person")} selected={member} onSelect={setMember} options={[
+          { id: "all", label: t("All people") },
+          ...familyMembers.map(m => ({ id: m.id, label: m.name, avatar: <MemberAvatar member={m.id} /> })),
+        ]} />
         {view === "week" && <CalendarViewControls onChange={change => {
           if (change.startDay) setParams({});
         }} />}

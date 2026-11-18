@@ -72,7 +72,9 @@ export const smartHomeSchema = z.object({
     .refine(cards => new Set(cards.map(card => card.id)).size === cards.length, "Card IDs must be unique."),
 // Retired visibility fields are discarded; no old layout is inferred from discovery.
 }).strip();
+export const shoppingListIcons = ["basket", "groceries", "household", "hardware", "clothing", "pharmacy", "pets"] as const;
 export const todoDisplaySchema = z.object({
+  shoppingIcon: z.enum(shoppingListIcons).optional(),
   completed: z.enum(["inline", "under", "collapsed", "hide"]).default("collapsed"),
   sort: z.enum(["home-assistant", "alphabetical", "due-date"]).default("home-assistant"),
   showDetails: z.boolean().default(true),

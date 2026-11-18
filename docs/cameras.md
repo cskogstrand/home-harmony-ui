@@ -28,7 +28,7 @@ If saving fails, the error identifies the field to correct and keeps your draft.
 
 Saved cameras group **Preview startup image**, **Watch live stream**, and **Preview person snapshot** (when configured). The startup preview refreshes the same image source used while video connects, without starting video. **Edit** and **Delete** sit beside the camera name.
 
-Cameras can also appear inline in **Ongoing tasks** notifications, such as a 3D printer while printing. Select the optional camera in the notification's **Camera and image** section; **Show camera** opens its larger viewer manually. Cameras used by ongoing tasks or camera popups cannot be deleted until those rules select another camera or remove the reference. See [notification setup](notifications.md).
+Cameras can also appear inline in **Ongoing tasks** notifications, such as a 3D printer while printing. Select the optional camera in the notification's **Camera and image** section. Tap its picture on the active card to open the larger viewer. Cameras used by ongoing tasks or camera popups cannot be deleted until those rules select another camera or remove the reference. See [notification setup](notifications.md).
 
 On **Smart home → Cameras**, each camera offers **Live camera**, **Still image**, and **Person snapshot** when a person source is configured, with video, image and person icons. The still view refreshes the configured startup image from Frigate or the video connection without opening a live stream. Each camera keeps its own selection. Expand any view to see the same selected media in the larger viewer; switching views stops the previous live stream or still-image polling.
 

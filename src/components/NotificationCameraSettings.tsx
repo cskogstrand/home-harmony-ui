@@ -36,7 +36,7 @@ export function NotificationCameraSettings({ rule, disabled, onChange, active }:
       <Button type="button" variant="outline" disabled={!image} onClick={() => setImagePreview(value => !value)}>{t(imagePreview ? "Close image preview" : "Test image output")}</Button>
       {imagePreview && active && image && <div className="notification-image-feed"><MediaSurface key={image.preferenceId} entity={image} expanded trimTransparent /></div>}
     </>}
-    {rule.kind === "ongoing" && <p className="page-note">{t("Optionally show a camera while this task is running. The larger viewer opens only when you choose Show camera.")}</p>}
+    {rule.kind === "ongoing" && <p className="page-note">{t("Tap the camera picture on an active task to open the larger viewer.")}</p>}
     <label>{t(rule.kind === "ongoing" ? "Camera (optional)" : "Camera")}<select name="cameraEntity" value={rule.cameraEntity} disabled={disabled} onChange={event => { setPreview(false); onChange({ cameraEntity: event.target.value, cameraMedia: "live" }); }}>
       <option value="">{t(rule.kind === "ongoing" ? "No camera" : "Choose a camera")}</option>
       {rule.cameraEntity && !camera && <option value={rule.cameraEntity}>{t("Unavailable camera")}</option>}
