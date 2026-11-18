@@ -1,5 +1,5 @@
 import { available, humanizeState } from "./ha-model";
-import type { Entity, Home, PhysicalDevice } from "@/types/api";
+import type { Entity, EntityAction, Home, PhysicalDevice } from "@/types/api";
 
 const teslaPlatforms = new Map([
   ["tesla_fleet", "Tesla Fleet"], ["tesla_custom", "Tesla Custom"], ["tesla", "Tesla"],
@@ -119,7 +119,7 @@ export const readingName = (entity: Entity) => {
 };
 
 export function cabinClimate(entities: Entity[]) {
-  const climates = entities.filter(e => e.domain === "climate");
+  const climates = entities.filter(e => e.domain === "climate" && vehicleGroup(e) === "Cabin temperature");
   return climates.find(e => /hvac|climate_system/.test(metricKey(e))) ?? climates[0]
     ?? entities.find(e => e.domain === "binary_sensor" && /(?:^|_)(?:is_climate_on|climate)$/.test(metricKey(e)));
 }
@@ -129,6 +129,49 @@ export function cabinState(entity?: Entity) {
   if (entity.state === "off") return false;
   if (["heat_cool", "auto", "heat", "cool", "fan_only", "dry", "on"].includes(entity.state)) return true;
   return undefined;
+}
+
+export function cabinSetpoint(entities: Entity[], unit: unknown) {
+  const climate = cabinClimate(entities);
+  const entity = entities.find(e => e.domain === "sensor" && /(?:^|_)(?:driver_temp(?:erature)?_setting|target_temperature|temperature_setpoint)$/.test(metricKey(e)))
+    ?? (climate?.domain === "climate" && typeof climate.attributes.temperature === "number" ? climate : undefined);
+  if (!entity) return;
+  const reading = entity.domain === "climate" ? entity.attributes.temperature : entity.state.trim() ? Number(entity.state) : undefined;
+  const from = entity.domain === "climate" ? entity.attributes.temperature_unit : entity.attributes.unit_of_measurement;
+  let value = typeof reading === "number" && Number.isFinite(reading) && available(entity) ? reading : undefined;
+  if (value !== undefined && from && unit && from !== unit) {
+    value = from === "°C" && unit === "°F" ? value * 9 / 5 + 32 : from === "°F" && unit === "°C" ? (value - 32) * 5 / 9 : undefined;
+  }
+  return { entity, value };
+}
+
+// Every command from a vehicle card waits for a new report from its selected telemetry source.
+export function vehicleCommandReport(before: Home, vehicleId: string, targetId: string, action: EntityAction, value: unknown) {
+  const readings = (home: Home) => teslaVehicles(home).find(car => car.id === vehicleId)?.entities ?? [];
+  const beforeReadings = readings(before);
+  const initial = new Map(beforeReadings.map(e => [e.preferenceId, e]));
+  const unit = before.entities.find(e => e.entityId === targetId)?.attributes.temperature_unit || before.temperatureUnit;
+  const fresh = (e: Entity) => {
+    if (!available(e)) return false;
+    const old = initial.get(e.preferenceId);
+    if (!old) return true;
+    if (e.lastUpdated === old.lastUpdated) return e.state !== old.state || e.attributes.temperature !== old.attributes.temperature;
+    return !!e.lastUpdated && (!old.lastUpdated || Date.parse(e.lastUpdated) > Date.parse(old.lastUpdated));
+  };
+  return (home: Home) => {
+    const entities = readings(home);
+    if (action === "hvac_mode") {
+      const climate = cabinClimate(entities);
+      if (climate) return fresh(climate) && (climate.domain === "climate" ? climate.state === value : cabinState(climate) === (value !== "off"));
+      if (cabinClimate(beforeReadings)) return false;
+    }
+    if (action === "temperature") {
+      const target = cabinSetpoint(entities, unit);
+      if (target) return fresh(target.entity) && target.value !== undefined && typeof value === "number" && Math.abs(target.value - value) < 0.01;
+      if (cabinSetpoint(beforeReadings, unit)) return false;
+    }
+    return entities.some(fresh);
+  };
 }
 
 export function driveStatus(entities: Entity[]) {

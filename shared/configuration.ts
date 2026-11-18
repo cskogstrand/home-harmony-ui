@@ -149,7 +149,7 @@ const plannerObjectSchema = z.object({
   morningSummaryEntity: z.union([memberSchema, z.literal("")]).default("sensor.afterglow_morning_summary"),
   morningSummaryScript: z.union([memberSchema, z.literal("")]).default("script.morning_summary_voice"),
   morningSummaryPlaybackEntity: z.union([memberSchema, z.literal("")]).default(""),
-  vehicles: z.array(z.object({ id: memberSchema, name: memberSchema, imageEntity: memberSchema.optional() }).strict()).max(100).default([])
+  vehicles: z.array(z.object({ id: memberSchema, name: memberSchema, imageEntity: memberSchema.optional(), commandVehicleId: memberSchema.optional() }).strict()).max(100).default([])
     .refine(cars => new Set(cars.map(car => car.id)).size === cars.length, "Choose each vehicle only once."),
   weatherEntity: z.union([memberSchema, z.literal("")]).default(""),
   wasteCalendarEntity: z.union([memberSchema, z.literal("")]).default(""),

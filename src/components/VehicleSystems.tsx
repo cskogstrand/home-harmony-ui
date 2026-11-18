@@ -2,7 +2,7 @@ import { Armchair, BatteryCharging, ChevronDown, CircleDot, Cpu, Fan, LockKeyhol
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel, humanizeState } from "@/lib/ha-model";
-import { accessStatus, cabinState, metricKey, readingName, teslaModelVariant, tyrePressureBar, vehicleGroup, vehicleSystems, vehicleTrip, type VehicleSystem } from "@/lib/vehicles";
+import { accessStatus, cabinSetpoint, cabinState, metricKey, readingName, teslaModelVariant, tyrePressureBar, vehicleGroup, vehicleSystems, vehicleTrip, type VehicleSystem } from "@/lib/vehicles";
 import type { Entity } from "@/types/api";
 import { DeviceControl } from "@/components/devices/DeviceControl";
 import { Input } from "@/components/ui/input";
@@ -45,10 +45,11 @@ function VehicleReading({ entity, label = readingName(entity) }: { entity: Entit
 }
 
 
-export function VehicleCabin({ climate, entities }: { climate?: Entity; entities: Entity[] }) {
+export function VehicleCabin({ climate, entities, control, linked }: { climate?: Entity; entities: Entity[]; control?: Entity; linked: boolean }) {
   const { t, number } = useI18n();
   const { currentHome } = useApp();
   const running = cabinState(climate);
+  const target = linked && cabinSetpoint(entities, control?.attributes.temperature_unit || currentHome.temperatureUnit);
   const current = climate && available(climate) ? climate.attributes.current_temperature : undefined;
   const inside = entities.find(e => e.domain === "sensor" && /(?:^|_)inside_temp(?:erature)?$/.test(metricKey(e)) && available(e)
     && e.state.trim() && Number.isFinite(Number(e.state)));
@@ -57,7 +58,8 @@ export function VehicleCabin({ climate, entities }: { climate?: Entity; entities
   return <section className="vehicle-cabin vehicle-module">
     <h3><Fan size={20} data-running={running} aria-hidden="true" />{t("Cabin")}</h3>
     <p>{t(running === undefined ? "Climate unknown" : running ? "Climate on" : "Climate off")}{typeof temp === "number" && ` · ${number(temp)}${unit || ""}`}</p>
-    {climate?.domain === "climate" && <DeviceControl entity={climate} cabin />}
+    {control?.domain === "climate" && <DeviceControl key={control.entityId} entity={control} cabinMode={running === undefined ? "" : climate.state} cabinSetpoint={target ? target.value ?? null : undefined} />}
+    {linked && (control?.domain !== "climate" || !available(control)) && <p role="status">{t("Climate control unavailable")}</p>}
   </section>;
 }
 

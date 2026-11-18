@@ -1,8 +1,28 @@
 import { expect, it } from "vitest";
 import type { PhysicalDevice } from "@/types/api";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
-import { accessStatus, cabinState, driveStatus, teslaVehicles, tyrePressureBar, vehicleGroup, vehicleSummary, vehicleTrip } from "@/lib/vehicles";
-import { state } from "./ha-fixtures";
+import { accessStatus, cabinClimate, cabinState, driveStatus, teslaVehicles, tyrePressureBar, vehicleCommandReport, vehicleGroup, vehicleSummary, vehicleTrip } from "@/lib/vehicles";
+import { config, state } from "./ha-fixtures";
+
+it("observes the requested setpoint when exposed and scopes the default for new actions to fresh readings from the chosen car", () => {
+  const devices = [{ id: "first" }, { id: "other" }];
+  const entries = [
+    ["sensor.setpoint", "first", "driver_temp_setting"], ["sensor.battery", "first", "battery_level"], ["sensor.other", "other", "battery_level"],
+  ].map(([id, device_id, original_name]) => ({ id, entity_id: id, device_id, original_name, platform: "teslamate" }));
+  const home = (setpoint: string, battery: string, other: string) => mapHome({
+    "sensor.setpoint": state("sensor.setpoint", setpoint, { unit_of_measurement: "°F" }),
+    "sensor.battery": state("sensor.battery", battery), "sensor.other": state("sensor.other", other),
+  }, { ...emptyRegistries, devices, entities: entries }, "home", config);
+  const before = home("77", "15", "24");
+  const temperature = vehicleCommandReport(before, "teslamate:first", "climate.example", "temperature", 20);
+  expect(temperature(home("77", "16", "25"))).toBe(false);
+  expect(temperature(home("70", "16", "25"))).toBe(false);
+  expect(temperature(home("68", "16", "25"))).toBe(true);
+  const nextReport = vehicleCommandReport(before, "teslamate:first", "button.example", "press", undefined);
+  expect(nextReport(home("77", "15", "25"))).toBe(false);
+  expect(nextReport(home("77", "unavailable", "25"))).toBe(false);
+  expect(nextReport(home("77", "16", "25"))).toBe(true);
+});
 
 it("discovers each TeslaMate car from MQTT registry metadata and ignores unrelated MQTT devices", () => {
   const devices: PhysicalDevice[] = [
@@ -58,6 +78,11 @@ it("keeps the cabin, closures and active destination distinct from the charge po
     state("sensor.example_tpms_front_left", "41"), state("select.example_heated_seat_rear_left", "low"),
   ];
   const entities = mapHome(Object.fromEntries(readings.map(r => [r.entity_id, r])), emptyRegistries, "home").entities;
+  const protection = state("climate.example_cabin_overheat_protection", "off");
+  const cabin = state("climate.example_climate", "heat_cool");
+  const climates = mapHome({ [protection.entity_id]: protection, [cabin.entity_id]: cabin }, emptyRegistries, "home").entities;
+  expect(cabinClimate(climates)?.entityId).toBe(cabin.entity_id);
+  expect(cabinClimate(climates.filter(e => e.entityId === protection.entity_id))).toBeUndefined();
   const access = accessStatus(entities);
   expect(access.lock?.state).toBe("locked");
   expect(access.open).toEqual([{ name: "Windows", position: "Passenger Rear" }]);

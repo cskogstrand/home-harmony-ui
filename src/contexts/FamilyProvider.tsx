@@ -78,7 +78,7 @@ function FamilyStore({ children }: { children: ReactNode }) {
     setMorningSummaryEntity: id => setPlanner(p => ({ ...p, morningSummaryEntity: id })),
     setMorningSummaryScript: id => setPlanner(p => ({ ...p, morningSummaryScript: id })),
     setMorningSummaryPlaybackEntity: id => setPlanner(p => ({ ...p, morningSummaryPlaybackEntity: id })),
-    setVehicleImage: (id, imageEntity) => setPlanner(p => ({ ...p, vehicles: p.vehicles.map(car => car.id === id ? { ...car, imageEntity: imageEntity || undefined } : car) })),
+    updateVehicle: (id, changes) => setPlanner(p => ({ ...p, vehicles: p.vehicles.map(car => car.id === id ? { ...car, ...changes } : car) })),
     setVehicleVisible: (vehicle, visible) => setPlanner(p => ({ ...p, vehicles: visible
       ? [...p.vehicles.filter(car => car.id !== vehicle.id), vehicle] : p.vehicles.filter(car => car.id !== vehicle.id) })),
     setWeatherEntity: id => setPlanner(p => ({ ...p, weatherEntity: id })),

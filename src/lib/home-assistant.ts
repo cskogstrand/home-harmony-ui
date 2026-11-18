@@ -5,7 +5,7 @@ import {
   ERR_INVALID_AUTH, ERR_INVALID_AUTH_CALLBACK, ERR_CONNECTION_LOST,
   Auth, type Connection, type HassConfig, type HassServices, type HassUser,
 } from "home-assistant-js-websocket";
-import type { CalendarEvent, EntityAction, EntityStates, Registries, TodoItem } from "@/types/api";
+import type { CalendarEvent, EntityAction, EntityStates, Home, Registries, TodoItem } from "@/types/api";
 import { available, emptyRegistries, entityCommand, feature, mapHome, supportsAction } from "./ha-model";
 import { mediaBrowserSchema, sonosQueueSchema, type MediaItem } from "./sonos";
 import { playCameraStream } from "./camera-stream";
@@ -13,7 +13,8 @@ import { MessageError } from "./i18n";
 import type { NotificationEvent } from "./notifications";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
-type CommandStatus = { pending: boolean; error?: string; message?: string };
+type CommandStatus = { pending: boolean; pendingAction?: EntityAction; error?: string; message?: string };
+type CommandReport = (home: Home) => boolean;
 interface Snapshot {
   url: string;
   status: ConnectionStatus;
@@ -62,6 +63,7 @@ export class HomeAssistantClient {
   private connection?: Connection;
   private cleanup: (() => void)[] = [];
   private requests = new Set<AbortController>();
+  private reports = new Map<string, { matches: CommandReport; accepted: boolean }>();
   private generation = 0;
   private epoch = 0;
   private fresh = false;
@@ -85,6 +87,7 @@ export class HomeAssistantClient {
     this.metadataReady = false;
     this.requests.forEach(request => request.abort());
     this.requests.clear();
+    this.reports.clear();
     this.cleanup.splice(0).forEach(cleanup => cleanup());
     this.connection?.close();
     this.connection = undefined;
@@ -141,7 +144,16 @@ export class HomeAssistantClient {
         if (!current() || !conn.connected || states === previous) return;
         previous = states;
         this.fresh = true;
-        this.update({ states, status: this.metadataReady ? "connected" : "syncing" });
+        let commands = this.snapshot.commands;
+        if (this.reports.size) {
+          const home = mapHome(states, this.snapshot.registries, "home", this.snapshot.config);
+          for (const [id, report] of this.reports) {
+            if (!report.matches(home)) continue;
+            this.reports.delete(id);
+            if (report.accepted) commands = { ...commands, [id]: { pending: false } };
+          }
+        }
+        this.update({ states, commands, status: this.metadataReady ? "connected" : "syncing" });
       }));
       for (const event of ["area_registry_updated", "device_registry_updated", "entity_registry_updated", "service_registered", "service_removed"]) {
         void conn.subscribeEvents(() => { if (current() && conn.connected) void this.loadMetadata(conn, generation); }, event)
@@ -179,7 +191,7 @@ export class HomeAssistantClient {
       warnings, status: this.metadataReady && this.fresh ? "connected" : "syncing",
     });
   }
-  command = async (entityId: string, action: EntityAction, value?: unknown, code?: string) => {
+  command = async (entityId: string, action: EntityAction, value?: unknown, code?: string, observe?: (home: Home) => CommandReport) => {
     const conn = this.connection;
     const generation = this.generation;
     const epoch = this.epoch;
@@ -198,7 +210,8 @@ export class HomeAssistantClient {
     if ((item !== undefined && status?.items ? status.items[item] : status)?.pending) throw new Error("A command is already pending for this entity.");
     try {
       if (!conn?.connected || !this.fresh || this.snapshot.status !== "connected") throw new Error("Controls are paused until fresh Home Assistant state arrives.");
-      const entities = mapHome(this.snapshot.states, this.snapshot.registries, "home").entities;
+      const home = mapHome(this.snapshot.states, this.snapshot.registries, "home", this.snapshot.config);
+      const { entities } = home;
       const entity = entities.find(e => e.entityId === entityId);
       if (!entity) throw new Error("This entity no longer exists.");
       const command = entityCommand(entity, action, this.snapshot.services, value, code);
@@ -211,7 +224,9 @@ export class HomeAssistantClient {
       // Sonos waits up to 30 seconds for topology after each speaker joins.
       if (action === "join") timeout = 45000 * (command.data.group_members as string[]).length;
       else if (action === "unjoin") timeout = 45000;
-      setCommand({ pending: true });
+      const report = observe?.(home);
+      if (report) this.reports.set(entityId, { matches: report, accepted: false });
+      setCommand(report ? { pending: true, pendingAction: action } : { pending: true });
       try {
         // Never suspend/queue/retry physical commands. The library rejects in-flight calls on loss.
         await bounded(action === "update_event" || action === "delete_event"
@@ -238,8 +253,15 @@ export class HomeAssistantClient {
           : "Home Assistant rejected or did not acknowledge the command. Check permissions, the required code and reported state before trying again.");
       }
       if (epoch !== this.epoch || generation !== this.generation) throw new Error("Connection changed. Check reported state; the command will not be replayed.");
+      const waiting = this.reports.get(entityId);
+      if (waiting) {
+        // Close the confirmation dialog on acceptance. The control stays busy until telemetry arrives.
+        waiting.accepted = true;
+        return;
+      }
       setCommand({ pending: false, message: "Request accepted. The reading below is reported by Home Assistant." });
     } catch (error) {
+      if (generation === this.generation) this.reports.delete(entityId);
       setCommand({ pending: false, error: (error as Error).message });
       throw error;
     }

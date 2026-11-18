@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 import { CarFront, CircleHelp, Fan, Gauge, Plug, Unplug, WifiOff, Zap } from "lucide-react";
-import { useApp } from "@/contexts/AppContext";
+import { AppContext, useApp } from "@/contexts/AppContext";
 import { homeDate, useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { deviceName } from "@/lib/device-model";
 import { available } from "@/lib/ha-model";
-import { cabinClimate, cabinState, driveStatus, teslaModelVariant, teslaVehicles, vehicleGroup, vehicleSystems, vehicleSummary, type Vehicle, type VehicleSystem } from "@/lib/vehicles";
+import { cabinClimate, cabinState, driveStatus, teslaModelVariant, teslaVehicles, vehicleCommandReport, vehicleGroup, vehicleSystems, vehicleSummary, type Vehicle, type VehicleSystem } from "@/lib/vehicles";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { VehicleAccess, VehicleCabin, VehicleJourney, VehicleSystemPanel } from "./VehicleSystems";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Planner } from "../../shared/configuration";
 import "./vehicle-widgets.css";
 
 const tabNames = { Overview: "Overview", "Battery & charging": "Charging", "Cabin & seats": "Cabin", "Doors & security": "Access", "Trip & position": "Trip", "Tyre pressure": "Tyres", "Vehicle & service": "Service" } as const;
@@ -25,15 +26,18 @@ function VehiclePhoto({ model, name, source, compact = false }: { model?: string
     onError={() => { if (photo) setFailed(src); else setFailedModel(src); }} decoding="async" />;
 }
 
-function VehicleWidget({ vehicle, savedName, imageEntity }: { vehicle?: Vehicle; savedName: string; imageEntity?: string }) {
-  const { currentHome, homeOnline } = useApp();
+function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehicle; commandVehicle?: Vehicle; selection: Planner["vehicles"][number] }) {
+  const app = useApp();
+  const { currentHome, homeOnline } = app;
   const { now } = useFamily();
   const { t, message, language, locale } = useI18n();
-  const name = vehicle ? deviceName(vehicle.device, language) : savedName;
+  const name = vehicle ? deviceName(vehicle.device, language) : selection.name;
+  const { imageEntity } = selection;
   const entities = vehicle?.entities ?? [];
   const { battery, range, charge, charging, plugged, limit, power, finish } = vehicleSummary(homeOnline ? entities : []);
   const live = homeOnline && !!vehicle;
   const climate = cabinClimate(entities);
+  const control = commandVehicle === vehicle ? climate : commandVehicle && cabinClimate(commandVehicle.entities);
   const climateOn = live ? cabinState(climate) : undefined;
   const climateLabel = t(climateOn === undefined ? "Climate unknown" : climateOn ? "Climate on" : "Climate off");
   const drive = driveStatus(live ? entities : []);
@@ -53,7 +57,12 @@ function VehicleWidget({ vehicle, savedName, imageEntity }: { vehicle?: Vehicle;
   const model = vehicle?.device.model;
   const image = imageEntity && homeOnline ? currentHome.entities.find(e => e.preferenceId === imageEntity && e.domain === "image" && available(e)) : undefined;
   const source = image ? `/api/image_proxy/${encodeURIComponent(image.entityId)}?v=${encodeURIComponent(image.lastUpdated ?? image.state)}` : undefined;
-  return <Dialog onOpenChange={open => { if (open) setSection("Overview"); }}>
+  const cabin = <VehicleCabin climate={climate} entities={entities} control={control} linked={!!selection.commandVehicleId} />;
+  const command: typeof app.command = (entityId, action, value, code) => {
+    if (!commandVehicle?.entities.some(e => e.entityId === entityId)) return Promise.reject(new Error("Vehicle command source unavailable"));
+    return app.command(entityId, action, value, code, home => vehicleCommandReport(home, selection.id, entityId, action, value));
+  };
+  return <AppContext.Provider value={{ ...app, command }}><Dialog onOpenChange={open => { if (open) setSection("Overview"); }}>
     <DialogTrigger asChild><button type="button" className="vehicle-glance" data-charging={charging} title={[name, t(drive.label), status, climateLabel].join(" · ")} aria-label={t("Open status for {name}. Battery {battery}, range {range}. {status}", { name, battery: percent, range: distance, status: [status, connectionLabel !== status && connectionLabel, t(drive.label), climateLabel].filter(Boolean).join(". ") })}>
       <span className="vehicle-thumbnail" aria-hidden="true"><VehiclePhoto model={model} name={name} source={source} compact /></span>
       <span className="vehicle-glance-info">
@@ -91,7 +100,7 @@ function VehicleWidget({ vehicle, savedName, imageEntity }: { vehicle?: Vehicle;
               </div>
             </div>
             <div className="vehicle-front-facts">
-              <VehicleCabin climate={climate} entities={entities} />
+              {cabin}
               <VehicleJourney entities={entities} active={view === "Overview"} />
               <VehicleAccess entities={entities} />
             </div>
@@ -100,9 +109,12 @@ function VehicleWidget({ vehicle, savedName, imageEntity }: { vehicle?: Vehicle;
             <VehicleSystemPanel system={view} entities={entities} model={model} version={vehicle.device.sw_version} />
           </TabsContent>}
         </div>
-      </Tabs> : <div className="vehicle-unavailable"><WifiOff size={24} aria-hidden="true" /><p role="status">{t(homeOnline ? "This vehicle is unavailable in Home Assistant." : "Vehicle readings resume when Home Assistant reconnects.")}</p></div>}
+      </Tabs> : homeOnline && commandVehicle ? <>
+        <p role="status">{t("TeslaMate readings unavailable")}</p>
+        {cabin}
+      </> : <div className="vehicle-unavailable"><WifiOff size={24} aria-hidden="true" /><p role="status">{t(homeOnline ? "This vehicle is unavailable in Home Assistant." : "Vehicle readings resume when Home Assistant reconnects.")}</p></div>}
     </DialogContent>
-  </Dialog>;
+  </Dialog></AppContext.Provider>;
 }
 
 export function VehicleWidgets() {
@@ -112,6 +124,11 @@ export function VehicleWidgets() {
   const cars = useMemo(() => vehicles.length ? teslaVehicles(currentHome) : [], [currentHome, vehicles.length]);
   if (!vehicles.length) return null;
   return <section className="vehicle-strip glass-surface" aria-label={t("Electric vehicles")}>
-    {vehicles.map(car => <VehicleWidget key={car.id} vehicle={cars.find(item => item.id === car.id)} savedName={car.name} imageEntity={car.imageEntity} />)}
+    {vehicles.map(car => {
+      const vehicle = cars.find(item => item.id === car.id);
+      const commandVehicle = car.id.startsWith("teslamate:")
+        ? cars.find(item => item.id === car.commandVehicleId && item.source !== "TeslaMate") : vehicle;
+      return <VehicleWidget key={car.id} selection={car} vehicle={vehicle} commandVehicle={commandVehicle} />;
+    })}
   </section>;
 }

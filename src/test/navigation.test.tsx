@@ -10,7 +10,11 @@ import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
+vi.mock("@/contexts/AppContext", async importOriginal => {
+  const { AppContext } = await importOriginal<typeof import("@/contexts/AppContext")>();
+  const { useContext } = await import("react");
+  return { AppContext, useApp: () => useContext(AppContext) ?? app };
+});
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
 vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));
 let settings = emptyConfiguration();
@@ -2051,8 +2055,11 @@ it("marks tasks in Today's person columns without repeating their owner's name",
   for (const card of person.getAllByRole("button")) expect(card).not.toHaveTextContent("Example person");
 });
 
-it("switches a saved Tesla to its read-only TeslaMate readings on the same HA device", async () => {
+it("uses TeslaMate readings and sends commands only to the explicitly paired Tesla vehicle", async () => {
+  app.command.mockReset().mockResolvedValue(undefined);
+  app.services = { climate: { set_hvac_mode: { fields: {} }, set_temperature: { fields: {} } } };
   const device = { id: "example-car", name: "Example car", model: "Model 3" };
+  const commands = { id: "command-car", name: "Example command vehicle", model: "Model 3" };
   const readings = [
     ["sensor.example_level", "battery_level", "64", { device_class: "battery", unit_of_measurement: "%" }],
     ["sensor.renamed_range", "rated_battery_range", "283", { unit_of_measurement: "km" }],
@@ -2069,13 +2076,15 @@ it("switches a saved Tesla to its read-only TeslaMate readings on the same HA de
   app.currentHome = mapHome({
     ...Object.fromEntries(states.map(s => [s.entity_id, s])),
     "climate.example_hvac": state("climate.example_hvac", "off", { hvac_modes: ["off", "heat_cool"] }),
-  }, { ...emptyRegistries, devices: [device], entities: [
+    "climate.example_target": state("climate.example_target", "off", { hvac_modes: ["off", "heat_cool"], supported_features: 1, current_temperature: 30, temperature: 20, min_temp: 15, max_temp: 28 }),
+  }, { ...emptyRegistries, devices: [device, commands], entities: [
     ...entries, { id: "native", entity_id: "climate.example_hvac", device_id: device.id, platform: "tesla_fleet" },
+    { id: "paired", entity_id: "climate.example_target", device_id: commands.id, platform: "tesla_fleet" },
   ] }, "home");
   settings.settings.vehicles = [{ id: device.id, name: device.name }];
   window.history.replaceState(null, "", "/settings/vehicles");
-  render(<App />);
-  const native = await screen.findByRole("switch", { description: /Tesla Fleet/ });
+  const view = render(<App />);
+  const native = await screen.findByRole("switch", { name: "Show Example car in the header", description: /Tesla Fleet/ });
   await waitFor(() => expect(native).toBeChecked());
   fireEvent.click(native);
   fireEvent.click(screen.getByRole("switch", { description: /TeslaMate/ }));
@@ -2085,6 +2094,44 @@ it("switches a saved Tesla to its read-only TeslaMate readings on the same HA de
   expect(within(dialog).getByText("Climate on · 18°C")).toBeVisible();
   expect(within(dialog).getByText("Locked")).toBeVisible();
   expect(within(dialog).queryByRole("switch", { name: "Cabin climate" })).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  const picker = screen.getByRole("combobox", { name: "Send commands for Example car through" });
+  expect(picker).toHaveValue("");
+  fireEvent.change(picker, { target: { value: commands.id } });
+  await waitFor(() => expect(settings.settings.vehicles[0].commandVehicleId).toBe(commands.id));
+  expect(screen.getAllByRole("button", { name: /^Open status for/ })).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: /Example car.*64%.*Climate on/ }));
+  const paired = screen.getByRole("dialog", { name: "Example car" });
+  expect(within(paired).getByText("Climate on · 18°C")).toBeVisible();
+  const toggle = within(paired).getByRole("switch", { name: "Cabin climate" });
+  expect(toggle).toBeChecked();
+  fireEvent.click(toggle);
+  const confirm = await screen.findByRole("alertdialog");
+  expect(app.command).not.toHaveBeenCalled();
+  fireEvent.click(within(confirm).getByRole("button", { name: "Confirm" }));
+  await waitFor(() => expect(confirm).not.toBeInTheDocument());
+  expect(app.command).toHaveBeenCalledWith("climate.example_target", "hvac_mode", "off", undefined, expect.any(Function));
+  expect(toggle).toBeChecked();
+  fireEvent.keyDown(within(paired).getByRole("slider"), { key: "ArrowRight" });
+  expect(app.command).toHaveBeenCalledWith("climate.example_target", "temperature", 20.5, undefined, expect.any(Function));
+
+  const home = app.currentHome;
+  app.currentHome = { ...home, entities: home.entities.filter(e => e.integration !== "mqtt") };
+  view.rerender(<App />);
+  expect(within(paired).getByText("TeslaMate readings unavailable")).toBeVisible();
+  expect(within(paired).getByRole("slider")).toBeEnabled();
+  expect(within(paired).getByRole("combobox")).toHaveValue("");
+
+  app.currentHome = { ...home, entities: home.entities.filter(e => e.device.id !== commands.id) };
+  view.rerender(<App />);
+  expect(within(paired).getByText("Climate on · 18°C")).toBeVisible();
+  expect(within(paired).getByText("Climate control unavailable")).toBeVisible();
+  expect(within(paired).queryByRole("switch", { name: "Cabin climate" })).toBeNull();
+  fireEvent.click(within(paired).getByRole("button", { name: "Close" }));
+  const savedPicker = screen.getByRole("combobox", { name: "Send commands for Example car through" });
+  expect(savedPicker).toHaveValue(commands.id);
+  fireEvent.change(savedPicker, { target: { value: "" } });
+  await waitFor(() => expect(settings.settings.vehicles[0].commandVehicleId).toBeUndefined());
 });
 
 it("saves Tesla vehicles by device, opens their separate live status and hides stale telemetry offline", async () => {
@@ -2174,17 +2221,17 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   const climateSwitch = within(dialog).getByRole("switch", { name: "Cabin climate" });
   expect(climateSwitch).not.toBeChecked();
   fireEvent.click(climateSwitch);
-  expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "hvac_mode", "heat_cool");
+  expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "hvac_mode", "heat_cool", undefined, expect.any(Function));
   expect(climateSwitch).not.toBeChecked();
   app.currentHome.entities.find(e => e.entityId === "climate.example_cabin").state = "heat_cool";
   view.rerender(<App />);
   expect(climateSwitch).toBeChecked();
   fireEvent.keyDown(within(dialog).getByRole("slider"), { key: "ArrowRight" });
-  expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "temperature", 19.5);
+  expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "temperature", 19.5, undefined, expect.any(Function));
   fireEvent.click(climateSwitch);
   const confirm = await screen.findByRole("alertdialog");
   fireEvent.click(within(confirm).getByRole("button", { name: "Confirm" }));
-  await waitFor(() => expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "hvac_mode", "off"));
+  await waitFor(() => expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "hvac_mode", "off", undefined, expect.any(Function)));
   await waitFor(() => expect(confirm).not.toBeInTheDocument());
   fireEvent.mouseDown(within(dialog).getByRole("tab", { name: "Access" }), { button: 0 });
   const search = within(dialog).getByRole("searchbox", { name: "Search this car" });

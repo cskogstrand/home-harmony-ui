@@ -777,6 +777,77 @@ it("does not clear the pending guard when a duplicate action is rejected", async
   await first;
   expect(ha.callService).toHaveBeenCalledOnce();
 });
+
+it("keeps vehicle controls busy across closing the card until the selected car reports", async () => {
+  const car = { id: "demo", name: "Example vehicle", model: "Model 3" };
+  const fan = "binary_sensor.example_climate", battery = "sensor.example_battery", climate = "climate.living";
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
+    "config/area_registry/list": [], "config/device_registry/list": [car],
+    "config/entity_registry/list": [
+      { id: "fan", entity_id: fan, original_name: "Is climate on", platform: "teslamate", device_id: car.id },
+      { id: "battery", entity_id: battery, platform: "teslamate", device_id: car.id },
+      { id: "control", entity_id: climate, platform: "tesla_fleet", device_id: car.id },
+    ],
+  })[type]);
+  serverConfig.settings.vehicles = [{ id: "teslamate:demo", commandVehicleId: "demo", name: car.name }];
+  window.history.replaceState(null, "", "/settings/vehicles");
+  render(<App />);
+  const open = await screen.findByRole("button", { name: /Open status for Example vehicle/ });
+  const readings = { ...states, [fan]: state(fan, "off"), [battery]: state(battery, "50") };
+  const report = (changed: HassEntities) => act(() => { conn.entityCallback({ ...readings, ...changed }); });
+  report({});
+  fireEvent.click(open);
+  const toggle = () => screen.getByRole("switch", { name: "Cabin climate" });
+  fireEvent.click(toggle());
+  await waitFor(() => expect(toggle()).toBeDisabled());
+  expect(toggle()).toHaveAttribute("aria-busy", "true");
+  expect(screen.getByText("Command in progress")).toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
+  fireEvent.click(open);
+  expect(toggle()).toBeDisabled();
+  report({ [battery]: state(battery, "51") });
+  expect(toggle()).toBeDisabled();
+  const climateOn = state(fan, "on");
+  report({ [fan]: climateOn });
+  expect(toggle()).toBeEnabled();
+  expect(toggle()).toBeChecked();
+  expect(screen.queryByText("Command in progress")).toBeNull();
+
+  fireEvent.keyDown(screen.getByRole("slider"), { key: "ArrowRight" });
+  await waitFor(() => expect(screen.getByText("Command in progress")).toBeInTheDocument());
+  report({ [fan]: climateOn, [climate]: state(climate, "heat", { ...states[climate].attributes, temperature: 21.5 }) });
+  expect(screen.getByText("Command in progress")).toBeInTheDocument();
+  report({ [fan]: climateOn, [battery]: state(battery, "52") });
+  expect(screen.queryByText("Command in progress")).toBeNull();
+  expect(ha.callService).toHaveBeenCalledTimes(2);
+});
+
+it("keeps an accepted vehicle command pending until a report and never resends it", async () => {
+  const client = await connectedClient();
+  vi.useFakeTimers();
+  await client.command("climate.living", "temperature", 22, undefined, () => home =>
+    home.entities.some(e => e.entityId === "climate.living" && e.attributes.temperature === 22));
+  await vi.advanceTimersByTimeAsync(120000);
+  expect(client.getSnapshot().commands["climate.living"]).toMatchObject({ pending: true, pendingAction: "temperature" });
+  await expect(client.command("climate.living", "temperature", 23)).rejects.toThrow("already pending");
+  conn.entityCallback({ ...states, "climate.living": state("climate.living", "heat", { temperature: 22 }) });
+  expect(client.getSnapshot().commands["climate.living"].pending).toBe(false);
+  expect(ha.callService).toHaveBeenCalledOnce();
+});
+
+it("remembers a vehicle report that arrives before Home Assistant accepts the command", async () => {
+  const client = await connectedClient();
+  const request = deferred<unknown>();
+  vi.mocked(ha.callService).mockReturnValueOnce(request.promise);
+  const sent = client.command("climate.living", "temperature", 22, undefined, () => home =>
+    home.entities.some(e => e.entityId === "climate.living" && e.attributes.temperature === 22));
+  conn.entityCallback({ ...states, "climate.living": state("climate.living", "heat", { temperature: 22 }) });
+  conn.entityCallback({ ...states });
+  expect(client.getSnapshot().commands["climate.living"].pending).toBe(true);
+  request.resolve({});
+  await sent;
+  expect(client.getSnapshot().commands["climate.living"].pending).toBe(false);
+});
 it.each([
   ["scene.evening", "scene", undefined],
   ["scene.evening", "scene", "eva"],
