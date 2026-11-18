@@ -9,6 +9,7 @@ import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { PageContent } from "@/components/common/PageContent";
 import { isHomeSection, isMainPage, mainPagePath } from "@/lib/navigation";
+import { VehicleWidgets } from "@/components/VehicleWidgets";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { StateWrapper } from "@/components/common/StateWrapper";
@@ -18,7 +19,7 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationBell, NotificationCamera, NotificationList } from "@/components/NotificationCenter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Check, LoaderCircle, Moon, Music2, RefreshCw, Settings, TriangleAlert, Wifi, WifiOff, X } from "lucide-react";
+import { Camera, Check, LoaderCircle, Moon, Music2, RefreshCw, Settings, TriangleAlert, X } from "lucide-react";
 
 export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
@@ -30,7 +31,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   }, []);
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
-  const { currentUser, homeOnline } = useApp();
+  const { currentUser } = useApp();
   const { saved, memberName, appearance, notifications } = useFamily();
   const shared = useSharedConfiguration();
   const timetableError = shared?.state.timetableError;
@@ -46,7 +47,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const errorFallback = <div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>;
   return <div className={`afterglow-app board-spacing${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
-      <WeatherWidget placement="header" /><div className="header-actions"><span className="hub-state">{homeOnline ? <Wifi size={15} /> : <WifiOff size={15} />}<span>{homeOnline ? "Home Assistant" : t("HA offline")}</span></span>
+      <VehicleWidgets /><WeatherWidget placement="header" /><div className="header-actions">
         <Link to="/sonos" className="icon-button glass-surface" aria-label={t("Sonos")} title={t("Sonos")}><Music2 size={20} aria-hidden="true" /></Link>
         <Link to="/cameras" className="icon-button glass-surface" aria-label={t("Cameras")} title={t("Cameras")}><Camera size={20} aria-hidden="true" /></Link>
         <NotificationBell />

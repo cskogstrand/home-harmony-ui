@@ -1,0 +1,175 @@
+.vehicle-strip {
+  display: flex; flex-wrap: wrap; align-items: stretch; min-width: 0; gap: 2px;
+  padding: 3px; border-radius: var(--radius-menu); color: hsl(var(--nav-foreground));
+}
+.vehicle-glance {
+  flex: 1 1 auto; display: grid; grid-template-columns: auto minmax(0, 1fr);
+  align-items: center; gap: .4rem; min-width: 0; min-height: 48px; padding: .2rem .55rem;
+  border-radius: var(--radius-inset); text-align: start; cursor: pointer;
+}
+.vehicle-glance:focus-visible { background: hsl(var(--secondary)); }
+.vehicle-glance:focus-visible, .vehicle-modal summary:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.vehicle-thumbnail { display: grid; place-items: center; width: 3.25rem; height: 2rem; }
+.vehicle-thumbnail .vehicle-photo { width: 100%; height: 100%; max-height: 100%; object-fit: contain; }
+.vehicle-glance-info { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: .25rem .4rem; }
+.vehicle-glance-info > strong { font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.vehicle-drive { font-size: .875rem; color: hsl(var(--muted-foreground)); white-space: nowrap; }
+.vehicle-drive b { display: none; }
+.vehicle-charge-symbol { display: flex; color: hsl(var(--muted-foreground)); }
+.vehicle-mini-meter { grid-column: 1/-1; height: 3px; overflow: hidden; border-radius: var(--radius-capsule); background: hsl(var(--foreground) / .14); }
+.vehicle-mini-meter i, .vehicle-charge-track i { display: block; height: 100%; border-radius: inherit; background: hsl(var(--primary)); }
+[data-charging="true"] .vehicle-mini-meter i, [data-charging="true"] .vehicle-charge-track i { background: hsl(var(--success)); }
+[data-charging="true"] .vehicle-charge-symbol { color: hsl(var(--success)); }
+
+.vehicle-modal {
+  display: flex; flex-direction: column; gap: 1rem; max-width: 42rem; max-height: calc(100dvh - max(.75rem, env(safe-area-inset-top)) - max(.75rem, env(safe-area-inset-bottom)));
+  overflow: hidden; color: hsl(var(--foreground)); overscroll-behavior: contain;
+}
+.vehicle-modal > div:first-child h2 { font-size: 1.25rem; letter-spacing: -.02em; line-height: 1.2; }
+/* The overview sets the natural height. Every other tab scrolls inside the same box. */
+.vehicle-pane-stack { position: relative; display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
+.vehicle-sizing-pane[data-state="inactive"] { visibility: hidden; pointer-events: none; }
+.vehicle-detail-pane { position: absolute; inset: 0; }
+.vehicle-tab-body { flex: 0 1 auto; min-height: 0; margin-top: 0; overflow-y: auto; overscroll-behavior: contain; }
+.vehicle-overview { background: hsl(var(--card)); border-radius: var(--radius-inset); overflow: hidden; }
+.vehicle-scene { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.65fr); align-items: center; gap: .5rem; min-height: 10rem; padding: 1.25rem; background: hsl(var(--secondary) / .65); }
+.vehicle-scene:not(:has(.vehicle-photo)) { grid-template-columns: 1fr; min-height: 8rem; }
+.vehicle-session { min-width: 0; }
+.vehicle-session-state { display: inline-flex; align-items: center; gap: .375rem; font-size: .9375rem; font-weight: 600; overflow-wrap: anywhere; }
+.vehicle-session-state svg { flex: none; }
+.vehicle-overview[data-charging="true"] .vehicle-session-state { color: hsl(var(--success)); }
+.vehicle-session dl { margin-top: 1rem; }
+.vehicle-session dt, .vehicle-levels dt, .vehicle-session-facts dt { font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.vehicle-session dd { margin-top: .2rem; font-size: 2.25rem; font-weight: 600; letter-spacing: -.035em; line-height: 1.12; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.vehicle-session .vehicle-no-estimate { font-size: 1.25rem; }
+.vehicle-photo { display: block; width: 100%; height: auto; max-height: 11rem; aspect-ratio: 2.1; object-fit: contain; }
+.vehicle-photo.is-photo { border-radius: var(--radius-field); }
+.vehicle-battery-status { padding: 1rem 1.25rem 1.25rem; }
+.vehicle-levels, .vehicle-session-facts { display: flex; justify-content: space-between; gap: 1rem; }
+.vehicle-levels > :last-child, .vehicle-session-facts > :last-child { text-align: end; }
+.vehicle-levels dd { margin-top: .1rem; font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vehicle-charge-track { position: relative; height: .625rem; margin-top: .5rem; border-radius: var(--radius-capsule); background: hsl(var(--foreground) / .14); }
+.vehicle-charge-track b { position: absolute; top: -3px; bottom: -3px; width: 2px; transform: translateX(-50%); background: hsl(var(--foreground)); }
+.vehicle-session-facts { margin-top: 1.25rem; padding-top: .75rem; border-top: 1px solid hsl(var(--border)); }
+.vehicle-session-facts dt { display: inline-flex; align-items: center; gap: .35rem; }
+.vehicle-session-facts dd { font-size: .9375rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.vehicle-search { position: relative; display: block; margin-bottom: .45rem; }
+.vehicle-search svg { position: absolute; left: .85rem; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.vehicle-search input { min-height: 48px; padding-left: 2.5rem; }
+.vehicle-reading { padding-inline: .75rem; border-radius: var(--radius-field); background: hsl(var(--card)); font-size: .875rem; }
+.vehicle-reading > summary > strong { max-width: 50%; overflow-wrap: anywhere; text-align: end; font-weight: 500; font-variant-numeric: tabular-nums; }
+.vehicle-reading .device-readings > div { flex-wrap: wrap; gap: .35rem 1rem; padding-block: .5rem; }
+.vehicle-reading .device-readings :is(dt, dd) { min-width: 0; overflow-wrap: anywhere; }
+
+.vehicle-unavailable { display: flex; align-items: center; gap: .75rem; min-height: 5rem; }
+.vehicle-unavailable svg { flex: none; }
+
+@media (width <= 1100px) {
+  .app-header:has(.vehicle-strip) { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+  .app-header:has(.vehicle-strip) .brand { grid-area: 1 / 1; }
+  .app-header:has(.vehicle-strip) .header-actions { grid-area: 1 / 2; justify-self: end; }
+  .app-header:has(.vehicle-strip) .header-weather { grid-area: 2 / 2; justify-self: end; }
+  .vehicle-strip { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.55rem), 1fr)); }
+}
+@media (width <= 499px) {
+  .vehicle-glance { gap: .25rem; padding-inline: .3rem; }
+  .vehicle-thumbnail { width: clamp(2.1rem, 10.5vw, 3rem); }
+  .vehicle-glance-info { column-gap: .22rem; }
+  .vehicle-drive > span { display: none; }
+  .vehicle-drive b { display: inline; font-weight: 600; }
+  .vehicle-scene { gap: .35rem; padding: 1rem; }
+  .vehicle-session dl { margin-top: .45rem; }
+  .vehicle-photo { justify-self: end; max-width: 20rem; max-height: 7.5rem; }
+  .vehicle-battery-status { padding: 1rem; }
+}
+@media (forced-colors: active) {
+  .vehicle-mini-meter, .vehicle-charge-track { outline: 1px solid CanvasText; }
+  .vehicle-mini-meter i, .vehicle-charge-track i, .vehicle-charge-track b { forced-color-adjust: none; background: Highlight; }
+}
+
+.vehicle-glance-climate { display: flex; align-items: center; gap: .16rem; font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.vehicle-glance-climate svg { flex: none; }
+.vehicle-strip [data-running="true"], .vehicle-cabin [data-running="true"] { color: hsl(var(--success)); }
+.vehicle-mini-meter i, .vehicle-charge-track i { position: relative; overflow: hidden; transform-origin: left; }
+@media (prefers-reduced-motion: no-preference) {
+  :is(.vehicle-strip, .vehicle-cabin) svg[data-running="true"] { animation: vehicle-fan 3s linear infinite; }
+  .vehicle-charging-icon { animation: var(--animate-pulse-soft); }
+  [data-charging="true"] :is(.vehicle-mini-meter, .vehicle-charge-track) i { transition: transform 240ms linear; }
+  [data-charging="true"] :is(.vehicle-mini-meter, .vehicle-charge-track) i::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 20%, hsl(var(--card) / .5) 50%, transparent 80%); animation: vehicle-current 2s linear infinite; }
+}
+@keyframes vehicle-fan { to { transform: rotate(1turn); } }
+@keyframes vehicle-current { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@media (hover: hover) and (pointer: fine) {
+  .vehicle-glance:hover { background: hsl(var(--secondary)); }
+}
+.vehicle-tabs { display: flex; flex: 0 1 auto; flex-direction: column; min-height: 0; gap: .7rem; }
+.vehicle-tabs .vehicle-view-tabs { display: flex; flex: none; flex-wrap: wrap; gap: 2px; width: 100%; height: auto; padding: 3px; border-radius: var(--radius-inset); background: hsl(var(--secondary)); }
+.vehicle-view-tabs [role="tab"] { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: .3rem .5rem; border-radius: var(--radius-field); }
+.vehicle-view-tabs [role="tab"][data-state="active"] { background: hsl(var(--card)); color: hsl(var(--foreground)); font-weight: 600; }
+.vehicle-module, .vehicle-band { background: hsl(var(--card)); padding: 1rem 1.25rem; border-radius: var(--radius-inset); overflow-wrap: anywhere; }
+.vehicle-module h3, .vehicle-system > h3 { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.vehicle-module h3 svg, .vehicle-system h3 svg { flex: none; }
+.vehicle-module > p, .vehicle-module dt { color: hsl(var(--muted-foreground)); font-size: .875rem; }
+.vehicle-module > strong, .vehicle-module > p, .vehicle-journey dl { display: block; margin-top: .35rem; }
+.vehicle-front-facts, .vehicle-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.vehicle-front-facts, .vehicle-system { margin-top: .65rem; }
+.vehicle-front-facts { grid-template-areas: "cabin journey" "access journey"; grid-template-rows: auto 1fr; }
+.vehicle-front-facts > .vehicle-cabin { grid-area: cabin; }
+.vehicle-front-facts > .vehicle-journey { grid-area: journey; }
+.vehicle-front-facts > .vehicle-access { grid-area: access; }
+.vehicle-cabin .control-stack { margin-top: .4rem; display: grid; align-items: center; gap: .25rem; }
+.vehicle-cabin .control-stack > :is([role="alert"], [role="status"]) { grid-column: 1/-1; }
+.vehicle-climate-switch { display: flex; align-items: center; justify-content: space-between; gap: .6rem; min-height: 44px; cursor: pointer; }
+.vehicle-journey dl > div + div { margin-top: .55rem; }
+.vehicle-journey dd, .vehicle-values strong { font-variant-numeric: tabular-nums; }
+.vehicle-openings { list-style: disc; padding-inline-start: 1.1rem; }
+.vehicle-system > h3 { margin-bottom: .65rem; }
+.vehicle-system .vehicle-module { background: hsl(var(--secondary)); }
+.vehicle-band { margin-top: .5rem; }
+.vehicle-band h4 { font-size: .875rem; color: hsl(var(--muted-foreground)); font-weight: 600; margin-bottom: .45rem; }
+.vehicle-reading { min-width: 0; padding: 0; background: transparent; }
+.vehicle-reading summary { display: flex; min-height: 48px; gap: .5rem; align-items: center; border-top: 1px solid hsl(var(--border)); cursor: pointer; }
+.vehicle-reading summary::-webkit-details-marker { display: none; }
+.vehicle-reading summary span { flex: 1; overflow-wrap: anywhere; }
+.vehicle-reading summary svg { flex: none; }
+.vehicle-reading[open] summary svg { transform: rotate(180deg); }
+.vehicle-wheels, .vehicle-seats { display: grid; gap: .5rem; }
+.vehicle-wheels { grid-template-columns: minmax(0, 1fr) minmax(3.6rem, .75fr) minmax(0, 1fr); grid-template-areas: "fl car fr" "rl car rr"; align-items: center; min-height: 12rem; }
+.vehicle-tyre-plan { grid-area: car; width: 100%; height: clamp(10rem, 23dvh, 16rem); object-fit: contain; }
+.vehicle-wheels > [data-position] > strong { display: block; }
+.dark .vehicle-map { filter: invert(.9) hue-rotate(180deg) saturate(.78); }
+.vehicle-map { color-scheme: light; display: block; width: 100%; height: clamp(12rem, 27dvh, 20rem); margin-top: .65rem; border: 0; border-radius: var(--radius-field); }
+.vehicle-seats { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "fl . fr" "rl rc rr"; }
+:is(.vehicle-wheels, .vehicle-seats) > div { padding: .65rem; border-radius: var(--radius-field); background: hsl(var(--secondary)); }
+.vehicle-band [data-position="Front left"] { grid-area: fl; }
+.vehicle-band [data-position="Front right"] { grid-area: fr; }
+.vehicle-band [data-position="Rear left"] { grid-area: rl; }
+.vehicle-band [data-position="Rear right"] { grid-area: rr; }
+.vehicle-seats [data-position="Rear center"] { grid-area: rc; }
+:is(.vehicle-wheels, .vehicle-seats) summary { display: grid; grid-template-columns: 1fr auto; gap: .25rem; border: 0; }
+:is(.vehicle-wheels, .vehicle-seats) summary strong { grid-row: 2; max-width: 100%; text-align: start; font-size: 1.25rem; }
+:is(.vehicle-wheels, .vehicle-seats) summary svg { grid-area: 1 / 2; }
+.vehicle-version, .vehicle-highlights { margin-block: .5rem; }
+.vehicle-highlights { display: flex; flex-wrap: wrap; gap: .45rem 1.25rem; }
+.vehicle-highlights dt { font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.vehicle-highlights dd { font-weight: 600; }
+@media (width <= 499px) {
+  .vehicle-modal { gap: .6rem; }
+  .vehicle-module, .vehicle-band { padding: .85rem; }
+  .vehicle-view-tabs [role="tab"] { flex-basis: 21%; padding-inline: .2rem; }
+  .vehicle-scene { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 7rem; }
+  .vehicle-photo { max-height: 6.5rem; }
+  .vehicle-front-facts, .vehicle-values, .vehicle-cabin .control-stack { grid-template-columns: 1fr; }
+  .vehicle-front-facts { grid-template-areas: "cabin" "journey" "access"; grid-template-rows: auto; }
+  .vehicle-cabin .control-stack { gap: .2rem; }
+}
+.vehicle-apertures { width: 100%; margin-block: .5rem; font-size: .875rem; }
+.vehicle-apertures th, .vehicle-apertures td { padding: .45rem .2rem; text-align: start; border-bottom: 1px solid hsl(var(--border)); }
+.vehicle-apertures thead th { color: hsl(var(--muted-foreground)); }
+.vehicle-apertures tbody th { font-weight: 500; }
+@media (min-width: 500px) and (max-height: 1100px) {
+  .vehicle-scene { min-height: 7rem; }
+  .vehicle-scene .vehicle-photo { max-height: 8rem; }
+}
+.vehicle-front-facts .vehicle-map { height: clamp(9rem, 18dvh, 13rem); }

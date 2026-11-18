@@ -55,6 +55,8 @@ interface FamilyContextValue extends FamilyState {
   setMorningSummaryEntity: (id: string) => boolean;
   setMorningSummaryScript: (id: string) => boolean;
   setMorningSummaryPlaybackEntity: (id: string) => boolean;
+  setVehicleImage: (id: string, imageEntity: string) => boolean;
+  setVehicleVisible: (vehicle: Planner["vehicles"][number], visible: boolean) => boolean;
   setWeatherEntity: (id: string) => boolean;
   setWasteCalendarEntity: (id: string) => boolean;
   setWasteCollectionDays: (days: number) => boolean;

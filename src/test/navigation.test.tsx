@@ -9,13 +9,14 @@ import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
 vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));
 let settings = emptyConfiguration();
 beforeEach(() => {
   settings = emptyConfiguration();
+  app.services = {};
   app.watchCalendarEvents.mockReset();
   app.todoItems.mockReset().mockResolvedValue([]);
   app.homeOnline = true;
@@ -1679,13 +1680,20 @@ it("distinguishes offline plans and security from successful empty reads", async
   app.homeOnline = false;
   app.connectionStatus = "disconnected";
   const view = render(<App />); await saved();
+  const header = within(screen.getByRole("link", { name: "Afterglow home" }).closest("header")!);
+  expect(header.queryByText("HA offline")).toBeNull();
+  const warning = screen.getByText(/Readings are stale; controls are paused/);
+  expect(within(warning).getByRole("link", { name: "Connection settings" })).toHaveAttribute("href", "/settings/connection");
   expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars and to-do lists are unavailable while offline.");
   expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   await navigate("Smart home");
   expect(screen.queryByText("No visible alarm")).not.toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();
-  view.unmount();
+  app.homeOnline = true;
   app.connectionStatus = "connected";
+  view.rerender(<App />);
+  expect(screen.queryByText(/Readings are stale/)).toBeNull();
+  expect(header.queryByText("Home Assistant")).toBeNull();
 });
 
 
@@ -1728,7 +1736,7 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
   render(<App />); await saved();
   const destinations = [
     ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"], ["Weather", "weather"],
-    ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
+    ["Electric vehicles", "vehicles"], ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
     ["Cameras", "cameras"], ["Camera connections", "camera-connections"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
   ];
   for (const [title, path] of destinations) {
@@ -2041,4 +2049,129 @@ it("marks tasks in Today's person columns without repeating their owner's name",
   expect(within(appointment).queryByRole("img", { name: "Task" })).not.toBeInTheDocument();
   expect(appointment).toHaveTextContent("Example hall");
   for (const card of person.getAllByRole("button")) expect(card).not.toHaveTextContent("Example person");
+});
+
+it("saves Tesla vehicles by device, opens their separate live status and hides stale telemetry offline", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2030-04-09T07:00:00Z"));
+  app.command.mockReset().mockResolvedValue(undefined);
+  app.services = { climate: { set_hvac_mode: { fields: {} }, set_temperature: { fields: {} } } };
+  const devices = [
+    { id: "demo-a", name: "Example One", model: "Model 3" },
+    { id: "demo-b", name: "Example Two", model: "Model Y" },
+    { id: "demo-site", name: "Example storage", model: "Powerwall" },
+  ];
+  const entries = [
+    { entity_id: "sensor.example_front", device_id: "demo-a", original_name: "Tpms front left" },
+    { entity_id: "sensor.example_gear", device_id: "demo-a", original_name: "Shift state" },
+    { entity_id: "climate.example_cabin", device_id: "demo-a", original_name: "Hvac (climate) system" },
+    { entity_id: "lock.example_doors", device_id: "demo-a", original_name: "Doors" },
+    { entity_id: "device_tracker.example_destination", device_id: "demo-a", original_name: "Destination location tracker" },
+    { entity_id: "device_tracker.example_location", device_id: "demo-a", original_name: "Location tracker" },
+    { entity_id: "sensor.example_arrival", device_id: "demo-a", original_name: "Arrival time" },
+    { entity_id: "sensor.demo_a_cell", device_id: "demo-a", translation_key: "charge_state_battery_level" },
+    { entity_id: "sensor.renamed_distance", device_id: "demo-a", translation_key: "charge_state_battery_range" },
+    { entity_id: "number.demo_a_target", device_id: "demo-a", original_name: "Charge limit" },
+    { entity_id: "sensor.demo_a_finish", device_id: "demo-a", original_name: "Time charge complete" },
+    { entity_id: "sensor.demo_a_power", device_id: "demo-a", original_name: "Charger power" },
+    { entity_id: "sensor.demo_a_odometer", device_id: "demo-a", translation_key: "vehicle_state_odometer" },
+    { entity_id: "sensor.demo_a_charging", device_id: "demo-a", translation_key: "charge_state_charging_state" },
+    { entity_id: "binary_sensor.demo_a_door", device_id: "demo-a", translation_key: "vehicle_state_driver_door" },
+    { entity_id: "sensor.demo_b_cell", device_id: "demo-b", original_name: "Battery" },
+    { entity_id: "binary_sensor.demo_b_plug", device_id: "demo-b", original_name: "Charger" },
+    { entity_id: "sensor.demo_site_cell", device_id: "demo-site" },
+  ].map(e => ({ ...e, id: e.entity_id, platform: e.device_id === "demo-b" ? "tesla_custom" : "tesla_fleet" }));
+  const battery = { unit_of_measurement: "%", device_class: "battery" };
+  const distance = { unit_of_measurement: "mi", device_class: "distance" };
+  app.currentHome = mapHome({
+    "sensor.demo_a_cell": state("sensor.demo_a_cell", "0", battery),
+    "sensor.renamed_distance": state("sensor.renamed_distance", "102.4", distance),
+    "number.demo_a_target": state("number.demo_a_target", "85", { unit_of_measurement: "%" }),
+    "sensor.demo_a_finish": state("sensor.demo_a_finish", "2030-04-09T10:34:00Z", { device_class: "timestamp" }),
+    "sensor.demo_a_power": state("sensor.demo_a_power", "3.5", { unit_of_measurement: "kW" }),
+    "sensor.example_front": state("sensor.example_front", "42", { unit_of_measurement: "psi", device_class: "pressure" }),
+    "sensor.example_gear": state("sensor.example_gear", "P"),
+    "climate.example_cabin": state("climate.example_cabin", "off", { hvac_modes: ["off", "heat_cool"], supported_features: 1, current_temperature: 15, temperature: 19, min_temp: 15, max_temp: 28, temperature_unit: "°C" }),
+    "lock.example_doors": state("lock.example_doors", "unlocked"),
+    "device_tracker.example_destination": state("device_tracker.example_destination", "not_home"),
+    "device_tracker.example_location": state("device_tracker.example_location", "home", { latitude: 12, longitude: 34 }),
+    "sensor.example_arrival": state("sensor.example_arrival", "2030-04-09T08:10:00Z", { device_class: "timestamp", Destination: "Example station" }),
+    "image.demo_car": state("image.demo_car", "2030-04-09T05:00:00Z", { friendly_name: "Example car photo" }),
+    "sensor.demo_a_odometer": state("sensor.demo_a_odometer", "12345", distance),
+    "sensor.demo_a_charging": state("sensor.demo_a_charging", "charging"),
+    "binary_sensor.demo_a_door": state("binary_sensor.demo_a_door", "on", { friendly_name: "Example One Door", device_class: "door", door_position: "ajar" }),
+    "sensor.demo_b_cell": state("sensor.demo_b_cell", "88", battery),
+    "binary_sensor.demo_b_plug": state("binary_sensor.demo_b_plug", "on", { device_class: "plug", charging_state: "Complete" }),
+    "sensor.demo_site_cell": state("sensor.demo_site_cell", "61", battery),
+  }, { ...emptyRegistries, devices, entities: entries }, "home");
+  window.history.replaceState(null, "", "/settings/vehicles");
+  const view = render(<App />);
+  const first = await screen.findByRole("switch", { name: "Show Example One in the header" });
+  await waitFor(() => expect(first).toBeEnabled());
+  expect(screen.queryByRole("switch", { name: /Example storage/ })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Open status for/ })).toBeNull();
+  fireEvent.click(first);
+  fireEvent.click(screen.getByRole("switch", { name: /Example Two/ }));
+  await waitFor(() => expect(settings.settings.vehicles.map(car => car.id)).toEqual(["demo-a", "demo-b"]));
+  fireEvent.click(screen.getByRole("button", { name: "Photo for Example One" }));
+  fireEvent.click(screen.getByRole("button", { name: /Example car photo · image.demo_car/ }));
+  await waitFor(() => expect(settings.settings.vehicles[0].imageEntity).toBe("home|image.demo_car"));
+  expect(screen.getByRole("button", { name: /Example Two.*88%.*Complete/ })).toBeVisible();
+  const widget = screen.getByRole("button", { name: /Example One.*0%.*102 mi.*Charging.*Parked.*Climate off/ });
+  expect(widget).not.toHaveTextContent(/Example One|Charging|Off/);
+  expect(widget.querySelector("img")).toHaveAttribute("src", expect.stringContaining("/api/image_proxy/image.demo_car"));
+  fireEvent.click(widget);
+  const dialog = screen.getByRole("dialog", { name: "Example One" });
+  expect(within(dialog).getByText("12:34")).toBeVisible();
+  expect(within(dialog).getByText("85%")).toBeVisible();
+  expect(within(dialog).getByText("3.5 kW")).toBeVisible();
+  const photo = within(dialog).getByRole("img", { name: "Photo of Example One" });
+  expect(photo.getAttribute("src")).toMatch(/^\/api\/image_proxy\/image.demo_car/);
+  fireEvent.error(photo);
+  expect(within(dialog).getByRole("img", { name: "Model illustration of Model 3" })).toHaveAttribute("src", "/vehicles/model-3.webp");
+  expect(within(dialog).getByText("Unlocked")).toBeVisible();
+  expect(within(dialog).getByText("Example station")).toBeVisible();
+  expect(within(dialog).getByText("10:10")).toBeVisible();
+  const map = new URL(within(dialog).getByTitle("Vehicle position on OpenStreetMap").getAttribute("src"));
+  expect(map.origin + map.pathname).toBe("https://www.openstreetmap.org/export/embed.html");
+  expect(map.searchParams.get("marker")).toBe("12.00000,34.00000");
+  const climateSwitch = within(dialog).getByRole("switch", { name: "Cabin climate" });
+  expect(climateSwitch).not.toBeChecked();
+  fireEvent.click(climateSwitch);
+  expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "hvac_mode", "heat_cool");
+  expect(climateSwitch).not.toBeChecked();
+  app.currentHome.entities.find(e => e.entityId === "climate.example_cabin").state = "heat_cool";
+  view.rerender(<App />);
+  expect(climateSwitch).toBeChecked();
+  fireEvent.keyDown(within(dialog).getByRole("slider"), { key: "ArrowRight" });
+  expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "temperature", 19.5);
+  fireEvent.click(climateSwitch);
+  const confirm = await screen.findByRole("alertdialog");
+  fireEvent.click(within(confirm).getByRole("button", { name: "Confirm" }));
+  await waitFor(() => expect(app.command).toHaveBeenCalledWith("climate.example_cabin", "hvac_mode", "off"));
+  await waitFor(() => expect(confirm).not.toBeInTheDocument());
+  fireEvent.mouseDown(within(dialog).getByRole("tab", { name: "Access" }), { button: 0 });
+  const search = within(dialog).getByRole("searchbox", { name: "Search this car" });
+  fireEvent.change(search, { target: { value: "door" } });
+  expect(within(dialog).queryByRole("heading", { name: "Battery & charging" })).toBeNull();
+  fireEvent.click(within(dialog).getByText("Door", { selector: "summary span" }));
+  expect(within(dialog).getByText("ajar")).toBeVisible();
+  expect(within(dialog).queryByText("88%")).toBeNull();
+  fireEvent.mouseDown(within(dialog).getByRole("tab", { name: "Tyres" }), { button: 0 });
+  expect(within(dialog).getByRole("img", { name: "Model 3 viewed from above" })).toHaveAttribute("src", "/vehicles/model-3-top.webp");
+  expect(within(dialog).getByText("2.9 bar")).toBeVisible();
+  fireEvent.mouseDown(within(dialog).getByRole("tab", { name: "Overview" }), { button: 0 });
+  app.currentHome.entities.find(e => e.entityId === "sensor.demo_a_cell").state = "24";
+  view.rerender(<App />);
+  expect(within(dialog).getByText("24%")).toBeVisible();
+  app.homeOnline = false;
+  view.rerender(<App />);
+  expect(within(dialog).getByRole("status")).toHaveTextContent("reconnects");
+  expect(within(dialog).queryByText("24%")).toBeNull();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  app.currentHome = mapHome({}, emptyRegistries, "home");
+  view.rerender(<App />);
+  expect(screen.getByRole("button", { name: /Example Two.*HA offline/ })).toBeVisible();
+  fireEvent.click(screen.getByRole("switch", { name: /Example Two/ }));
+  await waitFor(() => expect(settings.settings.vehicles.map(car => car.id)).toEqual(["demo-a"]));
 });

@@ -545,3 +545,17 @@ it("shares language changes, keeps conflicting drafts, and restores the language
   await a.refresh();
   expect(a.getSnapshot().config.settings.language).toBe("nb");
 });
+
+it("keeps older backups vehicle-free and rejects duplicate or invalid vehicle references", () => {
+  const config = emptyConfiguration();
+  delete config.settings.vehicles;
+  expect(parseConfiguration(JSON.stringify(config)).settings.vehicles).toEqual([]);
+  const car = { id: "fictional-registry-id", name: "Example car" };
+  for (const selection of [car, { ...car, imageEntity: "home|image.example" }]) {
+    const backup = { ...config, settings: { ...config.settings, vehicles: [selection] } };
+    expect(parseConfiguration(JSON.stringify(backup)).settings.vehicles).toEqual([selection]);
+  }
+  for (const vehicles of [[car, car], [{ ...car, id: "" }], [null]]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, vehicles } }))).toThrow();
+  }
+});

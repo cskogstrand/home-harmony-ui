@@ -18,6 +18,7 @@ export interface EntityRegistryEntry {
   device_id?: string | null;
   name?: string | null;
   original_name?: string | null;
+  translation_key?: string | null;
   disabled_by?: string | null;
   hidden_by?: string | null;
   entity_category?: string | null;
@@ -34,6 +35,7 @@ export interface Entity {
   name: string;
   domain: string;
   integration?: string;
+  registryName?: string;
   category?: string | null;
   state: string;
   attributes: Record<string, unknown>;

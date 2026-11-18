@@ -48,7 +48,7 @@ function LightColorControl({ entity, disabled, commit }: { entity: Entity; disab
     <Button type="submit" variant="outline" disabled={disabled}>{t("Apply color")}</Button>
   </form>;
 }
-export function DeviceControl({ entity, card = false, setting = false }: { entity: Entity; card?: boolean; setting?: boolean }) {
+export function DeviceControl({ entity, card = false, setting = false, cabin = false }: { entity: Entity; card?: boolean; setting?: boolean; cabin?: boolean }) {
   const { t, message, language, number } = useI18n();
   const { homeOnline, command, commands, services, currentHome } = useApp();
   const { variant } = useContext(CardPresentation);
@@ -97,6 +97,7 @@ export function DeviceControl({ entity, card = false, setting = false }: { entit
 </>;
   const hasColorControls = ["color_temp_kelvin", "rgb_color", "white", "effect"].some(action => supports(action as EntityAction));
   const climateMode = supports("hvac_mode") && <Choice key="hvac_mode" label="Mode" ariaLabel={t("{name} mode", { name: entity.name })} options={stringValues(entity.attributes.hvac_modes)} value={entity.state} optionLabel={value => message(humanizeState(value))} set={value => send("hvac_mode", value)} />;
+  const modes = stringValues(entity.attributes.hvac_modes);
   const climateExtras = ([
     { action: "set_fan_mode", label: "Fan mode", attribute: "fan_mode", options: "fan_modes" },
     { action: "set_preset_mode", label: "Preset", attribute: "preset_mode", options: "preset_modes" },
@@ -116,7 +117,12 @@ export function DeviceControl({ entity, card = false, setting = false }: { entit
   const on = reported && entity.state === "on";
   const percent = brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255));
   const domainContent = ["media_player", "fan", "humidifier", "water_heater", "vacuum", "lawn_mower", "valve", "siren", "number", "input_number", "select", "input_select", "counter", "timer", "button", "input_button", "script"].includes(entity.domain);
-  const primary = entity.domain === "scene" ? (reported ? null : <Readout value={status} caption="" />) : domainContent ? <DomainCardContent entity={entity} status={status} reported={reported} temperatureUnit={currentHome.temperatureUnit ?? ""} supports={supports} send={send} setting={setting} /> : !card ? <>
+  const primary = cabin && entity.domain === "climate" ? <>
+    {modes.length === 2 && modes.includes("off") && supports("hvac_mode")
+      ? <label className="vehicle-climate-switch"><span>{t("Cabin climate")}</span><Switch aria-label={t("Cabin climate")} checked={reported && entity.state !== "off"} disabled={disabled} onCheckedChange={on => send("hvac_mode", on ? modes.find(mode => mode !== "off") : "off")} /></label>
+      : climateMode}
+    {supports("temperature") && <RangeControl label={t("Target temperature")} name={entity.name} value={reported ? temperature : undefined} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) || .5} unit={String(entity.attributes.temperature_unit || currentHome.temperatureUnit || "")} disabled={disabled} commit={v => send("temperature", v)} />}
+  </> : entity.domain === "scene" ? (reported ? null : <Readout value={status} caption="" />) : domainContent ? <DomainCardContent entity={entity} status={status} reported={reported} temperatureUnit={currentHome.temperatureUnit ?? ""} supports={supports} send={send} setting={setting} /> : !card ? <>
     {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={t("Toggle {value1}", { value1: entity.name })} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
       : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{currentHome.temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
       : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}

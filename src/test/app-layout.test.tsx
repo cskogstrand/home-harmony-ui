@@ -9,7 +9,7 @@ import { notificationRuleSchema } from "../../shared/notifications";
 
 const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home", entities: [] }, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, memberName: () => "Emma", appearance: { compactMode: false }, notifications: shared.notifications }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], memberName: () => "Emma", appearance: { compactMode: false }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
 vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));

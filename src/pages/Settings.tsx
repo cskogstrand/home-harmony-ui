@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Bell, BookOpen, CalendarDays, Camera, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Bell, BookOpen, CalendarDays, Camera, CarFront, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -12,6 +12,7 @@ import { CameraSettings } from "@/components/CameraSettings";
 import { Button } from "@/components/ui/button";
 import { PanelTitle } from "@/components/PanelTitle";
 import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
+import { VehicleSettings } from "@/components/VehicleSettings";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import "./settings.css";
@@ -24,6 +25,7 @@ const groups = [
     { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },
   ] },
   { title: "Household", icon: Users, items: [
+    { id: "vehicles", title: "Electric vehicles", description: "Choose which cars appear in the header", icon: CarFront, content: <VehicleSettings /> },
     { id: "people", title: "People", description: "Visibility, order, colors and timetable access", icon: Users, content: <HomeSettings section="people" /> },
     { id: "calendars", title: "Calendars", description: "Connect calendars to the right people", icon: CalendarDays, content: <HomeSettings section="calendars" /> },
     { id: "lists", title: "To-do lists", description: "Personal tasks, daily lists and shared shopping", icon: ListChecks, content: <HomeSettings section="lists" /> },
