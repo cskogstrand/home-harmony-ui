@@ -585,7 +585,12 @@ fieldset.settings-card > legend + * { clear: both; }
 .list-tabs button > span { background: hsl(var(--background) / .15); padding: 2px 7px; font-size: 0.8125rem; border-radius: 20px; }
 .lists-page .check-row { display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 56px; }
 .lists-page .check-row :is(label, .edit-item) { min-height: 64px; font-size: 1rem; }
-.lists-page .list-panel { padding: var(--panel-space); }
+.list-viewport { box-sizing: content-box; overflow: clip; padding: 0; }
+.list-viewport > .list-panel { border: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-motion-input="pointer"] .list-viewport[data-resize="switch"] { transition: height 600ms var(--ease-in-out); }
+  .list-viewport[data-resize="items"] { transition: height 800ms var(--ease-in-out); }
+}
 .school-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; }
 .school-child { display: flex; align-items: center; gap: 13px; }
 .panel-heading > .school-child { flex: 1; min-width: 0; }

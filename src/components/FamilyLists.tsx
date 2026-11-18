@@ -139,7 +139,7 @@ export function ListPanel({ kind, limit }: { kind: TodoListKind; limit?: number 
   const showFilters = !limit && (lists.length > 1 || (missing && lists.length > 0));
   const selectList = (id: string) => setParams(id ? { tab: kind, list: id } : { tab: kind });
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
-    <ListPanelSurface />
+    {!!limit && <ListPanelSurface />}
     <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
     {!lists.length && <div className="empty-note"><p>{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p><Link className="text-link mt-3" to={homeOnline ? "/settings/lists" : "/settings/connection"}>{t(homeOnline ? "Choose lists" : "Connection settings")}</Link></div>}
     {summary ? <ul className="shopping-destinations">{lists.slice(0, limit).map(([id]) => {
@@ -408,7 +408,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   const row = (item: ListItem) => <CheckRow key={item.id} id={item.id} text={item.text} complete={itemIsDone(item, today)} member={kind !== "shopping" ? item.member : undefined} feedback={feedback.get(item.id)}
     onToggle={() => toggleItem(item.id)} onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <article className={`glow-panel list-panel list-${kind}`}>
-    <ListPanelSurface />
+    {!!limit && <ListPanelSurface />}
     <div className="list-composer">
       <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
       <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button></div>

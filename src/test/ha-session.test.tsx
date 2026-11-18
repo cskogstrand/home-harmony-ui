@@ -1842,10 +1842,23 @@ it("assigns one task and daily list per person plus shared shopping, moves selec
     [`home|todo.weekend`]: { kind: "shopping", member: "everyone" },
     [`home|todo.shopping`]: { kind: "shopping", member: "everyone" },
   });
-  const weekendDisplay = screen.getByLabelText("Display settings for weekend");
-  fireEvent.click(weekendDisplay);
-  fireEvent.click(within(weekendDisplay.closest("details")).getByRole("button", { name: "Hardware" }));
-  await waitFor(() => expect(savedSettings().todoLists["home|todo.weekend"].display.shoppingIcon).toBe("hardware"));
+  const iconButton = screen.getByRole("button", { name: "Choose list icon for weekend" });
+  fireEvent.click(iconButton);
+  const iconDialog = () => within(screen.getByRole("dialog", { name: "Choose list icon for weekend" }));
+  expect(iconDialog().getByRole("button", { name: "Shopping basket" })).toHaveAttribute("aria-pressed", "true");
+  const search = iconDialog().getByRole("searchbox", { name: "Search icons" });
+  fireEvent.change(search, { target: { value: "no match" } });
+  expect(iconDialog().getByRole("status")).toHaveTextContent("No matching icons");
+  fireEvent.change(search, { target: { value: "CHRISTMAS" } });
+  expect(iconDialog().queryByRole("button", { name: "Hardware" })).toBeNull();
+  fireEvent.click(iconDialog().getByRole("button", { name: "Christmas tree" }));
+  await waitFor(() => expect(savedSettings().todoLists["home|todo.weekend"].display.shoppingIcon).toBe("christmas"));
+  await waitFor(() => expect(iconButton).toHaveFocus());
+  fireEvent.click(iconButton);
+  expect(iconDialog().getByRole("searchbox")).toHaveValue("");
+  expect(iconDialog().getByRole("button", { name: "Christmas tree" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await waitFor(() => expect(iconButton).toHaveFocus());
   expect(savedSettings().todoLists["home|todo.shopping"].display).toBeUndefined();
   await choose("Tasks for Morgan", "family");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));

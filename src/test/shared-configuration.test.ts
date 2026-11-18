@@ -82,14 +82,14 @@ it("validates, shares and restores per-list display and next-plan range settings
   a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, nextPlanDays: 14 }, todoLists: {
     "home|todo.example": { kind: "daily", member: "home|person.example", display },
     "home|todo.groceries": { ...shopping, display: defaultTodoDisplay },
-    "home|todo.weekend": { ...shopping, display: { ...display, shoppingIcon: "groceries" } },
+    "home|todo.weekend": { ...shopping, display: { ...display, shoppingIcon: "christmas" } },
   } }));
   await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
   await b.refresh();
   const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
   expect(backup.settings.todoLists["home|todo.example"].display).toEqual(display);
   expect(backup.settings.todoLists["home|todo.groceries"].display).toEqual(defaultTodoDisplay);
-  expect(backup.settings.todoLists["home|todo.weekend"].display).toEqual({ ...display, shoppingIcon: "groceries" });
+  expect(backup.settings.todoLists["home|todo.weekend"].display).toEqual({ ...display, shoppingIcon: "christmas" });
   expect(backup.settings.dashboard.nextPlanDays).toBe(14);
   await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
   expect(a.getSnapshot().config.settings).toEqual(backup.settings);
