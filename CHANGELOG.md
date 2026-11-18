@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.30
+
+<!-- release-source: 01631fd5f852148e350f0647f198bd4d623dac93 -->
+
+- feat: add EV controls and simplify the header
+- fix: match notification previews to the board
+
 ## 0.10.29
 
 <!-- release-source: 58884f6aa0b3d5e74f91e7698e01c66dd0f7e942 -->
