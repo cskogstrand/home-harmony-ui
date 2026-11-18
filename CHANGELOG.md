@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.31
+
+<!-- release-source: cd9e74b7fed7ec00f8b2a20b32b6608eacd8884a -->
+
+- feat: support TeslaMate vehicle data
+
 ## 0.10.30
 
 <!-- release-source: 01631fd5f852148e350f0647f198bd4d623dac93 -->
