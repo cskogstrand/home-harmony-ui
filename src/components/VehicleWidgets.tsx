@@ -91,7 +91,7 @@ function VehicleWidget({ vehicle, savedName, imageEntity }: { vehicle?: Vehicle;
               </div>
             </div>
             <div className="vehicle-front-facts">
-              <VehicleCabin climate={climate} />
+              <VehicleCabin climate={climate} entities={entities} />
               <VehicleJourney entities={entities} active={view === "Overview"} />
               <VehicleAccess entities={entities} />
             </div>
@@ -112,6 +112,6 @@ export function VehicleWidgets() {
   const cars = useMemo(() => vehicles.length ? teslaVehicles(currentHome) : [], [currentHome, vehicles.length]);
   if (!vehicles.length) return null;
   return <section className="vehicle-strip glass-surface" aria-label={t("Electric vehicles")}>
-    {vehicles.map(car => <VehicleWidget key={car.id} vehicle={cars.find(item => item.device.id === car.id)} savedName={car.name} imageEntity={car.imageEntity} />)}
+    {vehicles.map(car => <VehicleWidget key={car.id} vehicle={cars.find(item => item.id === car.id)} savedName={car.name} imageEntity={car.imageEntity} />)}
   </section>;
 }

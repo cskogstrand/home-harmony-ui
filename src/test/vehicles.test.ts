@@ -1,7 +1,33 @@
 import { expect, it } from "vitest";
+import type { PhysicalDevice } from "@/types/api";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
-import { accessStatus, cabinState, driveStatus, tyrePressureBar, vehicleGroup, vehicleSummary, vehicleTrip } from "@/lib/vehicles";
+import { accessStatus, cabinState, driveStatus, teslaVehicles, tyrePressureBar, vehicleGroup, vehicleSummary, vehicleTrip } from "@/lib/vehicles";
 import { state } from "./ha-fixtures";
+
+it("discovers each TeslaMate car from MQTT registry metadata and ignores unrelated MQTT devices", () => {
+  const devices: PhysicalDevice[] = [
+    { id: "first", identifiers: [["mqtt", "teslamate_car_1"]] },
+    { id: "second", identifiers: [["mqtt", "teslamate_demo_2_car_1"]] },
+    { id: "third", identifiers: [["mqtt", "teslamate/cars/3"]] },
+    { id: "other", model: "Model 3" },
+  ];
+  const entities = devices.map(device => ({
+    id: device.id, device_id: device.id, entity_id: `device_tracker.${device.id}`, platform: "mqtt",
+  }));
+  const cars = teslaVehicles(mapHome({}, { ...emptyRegistries, entities, devices }, "home"));
+  expect(cars.map(car => [car.id, car.entities.map(e => e.entityId)])).toEqual([
+    ["teslamate:first", ["device_tracker.first"]], ["teslamate:second", ["device_tracker.second"]], ["teslamate:third", ["device_tracker.third"]],
+  ]);
+});
+
+it("keeps TeslaMate's charge limit and projected arrival level out of the current battery reading", () => {
+  const readings = ["active_route_energy_at_arrival", "charge_limit_soc", "usable_battery_level", "battery_level"]
+    .map((key, i) => state(`sensor.example_${key}`, String(10 * i), { device_class: "battery", unit_of_measurement: "%" }));
+  const car = mapHome(Object.fromEntries(readings.map(r => [r.entity_id, r])), emptyRegistries, "home");
+  expect(vehicleSummary(car.entities).battery?.state).toBe("30");
+  expect(vehicleSummary(car.entities.slice(0, 3)).battery?.state).toBe("20");
+  expect(vehicleSummary(car.entities.slice(0, 2)).battery).toBeUndefined();
+});
 
 it("anchors Fleet charge duration to its reading and clears the estimate when charging stops", () => {
   const remaining = state("sensor.example_time_to_full_charge", "1.5", { unit_of_measurement: "h" });

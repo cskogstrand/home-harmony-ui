@@ -85,7 +85,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
       // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
       name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
       state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
-      registryName: entry?.translation_key || entry?.original_name || undefined,
+      registryName: entry?.translation_key || entry?.original_name || undefined, uniqueId: entry?.unique_id,
       lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
     };
     entities.push(entity);

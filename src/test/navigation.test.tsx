@@ -2051,6 +2051,42 @@ it("marks tasks in Today's person columns without repeating their owner's name",
   for (const card of person.getAllByRole("button")) expect(card).not.toHaveTextContent("Example person");
 });
 
+it("switches a saved Tesla to its read-only TeslaMate readings on the same HA device", async () => {
+  const device = { id: "example-car", name: "Example car", model: "Model 3" };
+  const readings = [
+    ["sensor.example_level", "battery_level", "64", { device_class: "battery", unit_of_measurement: "%" }],
+    ["sensor.renamed_range", "rated_battery_range", "283", { unit_of_measurement: "km" }],
+    ["binary_sensor.example_plug", "plugged_in", "on", { device_class: "plug" }],
+    ["binary_sensor.example_brake", "park_brake", "on", {}],
+    ["binary_sensor.example_fan", "is_climate_on", "on", { device_class: "running" }],
+    ["sensor.example_temp", "inside_temp", "18", { unit_of_measurement: "°C" }],
+    ["binary_sensor.example_lock", "locked", "off", { device_class: "lock" }],
+  ] as const;
+  const states = readings.map(([id, , value, attrs]) => state(id, value, attrs));
+  const entries = readings.map(([id, metric]) => ({
+    id, entity_id: id, unique_id: `teslamate_demo_2_1_${metric}`, device_id: device.id, platform: "mqtt",
+  }));
+  app.currentHome = mapHome({
+    ...Object.fromEntries(states.map(s => [s.entity_id, s])),
+    "climate.example_hvac": state("climate.example_hvac", "off", { hvac_modes: ["off", "heat_cool"] }),
+  }, { ...emptyRegistries, devices: [device], entities: [
+    ...entries, { id: "native", entity_id: "climate.example_hvac", device_id: device.id, platform: "tesla_fleet" },
+  ] }, "home");
+  settings.settings.vehicles = [{ id: device.id, name: device.name }];
+  window.history.replaceState(null, "", "/settings/vehicles");
+  render(<App />);
+  const native = await screen.findByRole("switch", { description: /Tesla Fleet/ });
+  await waitFor(() => expect(native).toBeChecked());
+  fireEvent.click(native);
+  fireEvent.click(screen.getByRole("switch", { description: /TeslaMate/ }));
+  await waitFor(() => expect(settings.settings.vehicles.map(car => car.id)).toEqual(["teslamate:example-car"]));
+  fireEvent.click(screen.getByRole("button", { name: /Example car.*64%.*283 km.*Plugged in.*Parked.*Climate on/ }));
+  const dialog = screen.getByRole("dialog", { name: "Example car" });
+  expect(within(dialog).getByText("Climate on · 18°C")).toBeVisible();
+  expect(within(dialog).getByText("Locked")).toBeVisible();
+  expect(within(dialog).queryByRole("switch", { name: "Cabin climate" })).toBeNull();
+});
+
 it("saves Tesla vehicles by device, opens their separate live status and hides stale telemetry offline", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2030-04-09T07:00:00Z"));

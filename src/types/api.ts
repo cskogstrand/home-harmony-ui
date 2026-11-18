@@ -3,6 +3,7 @@ import type { HassEntities } from "home-assistant-js-websocket";
 export interface AreaRegistryEntry { area_id: string; name: string; icon?: string | null }
 export interface PhysicalDevice {
   id: string;
+  identifiers?: [string, string][];
   area_id?: string | null;
   name?: string | null;
   name_by_user?: string | null;
@@ -12,6 +13,7 @@ export interface PhysicalDevice {
 }
 export interface EntityRegistryEntry {
   id: string;
+  unique_id?: string;
   entity_id: string;
   platform?: string;
   area_id?: string | null;
@@ -31,6 +33,7 @@ export interface Registries {
 // A controllable entity is not a physical device. Several entities may share device.id.
 export interface Entity {
   entityId: string;
+  uniqueId?: string;
   preferenceId: string;
   name: string;
   domain: string;

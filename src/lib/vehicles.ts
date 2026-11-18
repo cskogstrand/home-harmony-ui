@@ -1,11 +1,19 @@
 import { available, humanizeState } from "./ha-model";
 import type { Entity, Home, PhysicalDevice } from "@/types/api";
 
-const teslaPlatforms = new Set(["tesla_fleet", "tesla_custom", "tesla", "teslemetry", "tessie"]);
-export type Vehicle = { device: PhysicalDevice; entities: Entity[] };
+const teslaPlatforms = new Map([
+  ["tesla_fleet", "Tesla Fleet"], ["tesla_custom", "Tesla Custom"], ["tesla", "Tesla"],
+  ["teslemetry", "Teslemetry"], ["tessie", "Tessie"], ["teslamate", "TeslaMate"],
+]);
+export type Vehicle = { id: string; source: string; device: PhysicalDevice; entities: Entity[] };
 
-// Fleet supplies stable translation keys. Tesla Custom supplies original English entity names.
-export const metricKey = (entity: Entity) => (entity.registryName || entity.entityId.split(".")[1]).toLowerCase().replace(/[\s-]+/g, "_");
+// TeslaMate's MQTT unique ID keeps the metric even if Home Assistant renames the entity.
+const teslaMateMetric = (entity: Entity) => entity.integration === "mqtt" && entity.uniqueId?.match(/^teslamate_(?:.+_)?\d+_(.+)$/)?.[1];
+function teslaMateIdentifier([domain, id]: [string, string]) {
+  return domain === "mqtt" && (/^teslamate_(?:.+_)?car_\d+$/.test(id) || /^teslamate\/(?:[^/]+\/)?cars\/\d+$/.test(id));
+}
+
+export const metricKey = (entity: Entity) => (teslaMateMetric(entity) || entity.registryName || entity.entityId.split(".")[1]).toLowerCase().replace(/[\s-]+/g, "_");
 const rangeKey = /(?:^|_)range$/;
 
 function durationEnd(entity?: Entity) {
@@ -20,14 +28,19 @@ export function teslaVehicles(home: Home) {
   const groups = new Map<string, Vehicle>();
   for (const entity of home.entities) {
     const { device } = entity;
-    if (!device || !teslaPlatforms.has(entity.integration) || entity.attributes.mode === "password") continue;
-    const group = groups.get(device.id) ?? { device, entities: [] };
+    if (!device || entity.attributes.mode === "password") continue;
+    const mqttCar = entity.integration === "mqtt" && (teslaMateMetric(entity) || device.identifiers?.some(teslaMateIdentifier));
+    const source = mqttCar ? "TeslaMate" : teslaPlatforms.get(entity.integration);
+    if (!source) continue;
+    // HA can put both sources on one device. Existing Tesla selections keep their device ID.
+    const id = source === "TeslaMate" ? `teslamate:${device.id}` : device.id;
+    const group = groups.get(id) ?? { id, source, device, entities: [] };
     group.entities.push(entity);
-    groups.set(device.id, group);
+    groups.set(id, group);
   }
   // The same integrations also register Powerwalls, wall connectors and energy sites.
-  return [...groups.values()].filter(({ device, entities }) =>
-    /\b(?:model [s3xy]|cybertruck|roadster|semi)\b/i.test(device.model ?? "") ||
+  return [...groups.values()].filter(({ source, device, entities }) =>
+    source === "TeslaMate" || /\b(?:model [s3xy]|cybertruck|roadster|semi)\b/i.test(device.model ?? "") ||
     entities.some(e => e.domain === "device_tracker" || (e.domain === "sensor" && rangeKey.test(metricKey(e)))));
 }
 
@@ -35,7 +48,7 @@ export function vehicleSummary(entities: Entity[]) {
   const live = entities.filter(available);
   const sensors = live.filter(e => e.domain === "sensor");
   const validNumber = (e: Entity) => e.state.trim() !== "" && Number.isFinite(Number(e.state));
-  const batteries = sensors.filter(e => validNumber(e) && e.attributes.device_class === "battery"
+  const batteries = sensors.filter(e => validNumber(e) && e.attributes.device_class === "battery" && !/charge_limit|arrival/.test(metricKey(e))
     && e.attributes.unit_of_measurement === "%" && Number(e.state) >= 0 && Number(e.state) <= 100);
   const battery = batteries.find(e => !metricKey(e).includes("usable")) ?? batteries[0];
   const ranges = sensors.filter(e => rangeKey.test(metricKey(e)) && validNumber(e) && Number(e.state) >= 0 && e.attributes.unit_of_measurement);
@@ -57,7 +70,7 @@ export function vehicleSummary(entities: Entity[]) {
   const finishSensor = charging && sensors.find(e => /(?:^|_)time_charge_complete$/.test(metricKey(e)) && e.attributes.device_class === "timestamp");
   let finish = finishSensor ? Date.parse(finishSensor.state) : NaN;
   if (charging && !Number.isFinite(finish)) {
-    const duration = sensors.find(e => /(?:^|_)(?:time|minutes)_to_full_charge$/.test(metricKey(e)) && validNumber(e));
+    const duration = sensors.find(e => /(?:^|_)(?:time|minutes)_(?:to|until)_full_charge$/.test(metricKey(e)) && validNumber(e));
     finish = durationEnd(duration);
   }
   const plugged = plug?.state === "on" ? true : plug?.state === "off" ? false
@@ -85,17 +98,17 @@ export function vehicleGroup(entity: Entity): VehicleGroup {
   if (/charge_port|charger_door/.test(key)) return "Charge port";
   if (/seat.*heat|heat.*seat/.test(key)) return "Seat heating";
   if (/overheat|heated_steering|steering_wheel|defrost|keeper/.test(key)) return "Cabin protection";
-  if (entity.domain === "climate" || /temp|climate|hvac/.test(key)) return "Cabin temperature";
-  if (/arrival|destination|active_route/.test(key) || entity.domain === "device_tracker") return "Navigation";
+  if (entity.domain === "climate" || /temp|climate|hvac|preconditioning/.test(key)) return "Cabin temperature";
+  if (/arrival|destination|active_route|geofence/.test(key) || entity.domain === "device_tracker") return "Navigation";
   if (/frunk|trunk|liftgate/.test(key)) return "Luggage compartments";
-  if (entity.domain === "lock" || /(?:^|_)locked$/.test(key)) return "Locks";
+  if (entity.domain === "lock" || entity.attributes.device_class === "lock" || /(?:^|_)locked$/.test(key)) return "Locks";
   if (entity.domain === "cover" || /door|window|sunroof/.test(key)) return "Doors and windows";
   if (/sentry|valet|user_present|presence|alarm/.test(key)) return "Security modes";
   if (/odometer|shift_state|speed|brake|drive_state|gear|heading/.test(key)) return "On the road";
   if (/battery|range/.test(key) && !/charg.*rate|energy_added/.test(key)) return "Battery and range";
-  if (/charg|cable|energy_added/.test(key)) return "Charge session";
+  if (/charg|cable|energy_added|plugged_in/.test(key)) return "Charge session";
   if (entity.domain === "button") return "Last commands";
-  if (entity.domain === "update" || /software|firmware/.test(key)) return "Software";
+  if (entity.domain === "update" || /software|firmware|^(update_available|update_version|version|download_perc|install_perc)$/.test(key)) return "Software";
   if (/online|connect|asleep|polling|last_update/.test(key)) return "Vehicle connection";
   return "Vehicle information";
 }
@@ -107,7 +120,8 @@ export const readingName = (entity: Entity) => {
 
 export function cabinClimate(entities: Entity[]) {
   const climates = entities.filter(e => e.domain === "climate");
-  return climates.find(e => /hvac|climate_system/.test(metricKey(e))) ?? climates[0];
+  return climates.find(e => /hvac|climate_system/.test(metricKey(e))) ?? climates[0]
+    ?? entities.find(e => e.domain === "binary_sensor" && /(?:^|_)(?:is_climate_on|climate)$/.test(metricKey(e)));
 }
 
 export function cabinState(entity?: Entity) {
@@ -130,7 +144,7 @@ export function driveStatus(entities: Entity[]) {
   if (gear === "N" || gear === "NEUTRAL") return { symbol: "N", label: "Neutral gear" } as const;
   if (gear === "D" || gear === "DRIVE") return { symbol: "D", label: moving ? "Driving" : "Drive gear" } as const;
   if (moving) return { symbol: "↗", label: "Driving" } as const;
-  if (live.some(e => e.domain === "binary_sensor" && /(?:^|_)parking_brake$/.test(metricKey(e)) && e.state === "on")) return { symbol: "P", label: "Parked" } as const;
+  if (live.some(e => e.domain === "binary_sensor" && /(?:^|_)park(?:ing)?_brake$/.test(metricKey(e)) && e.state === "on")) return { symbol: "P", label: "Parked" } as const;
   if (speed != null && String(speed).trim() && Number(speed) === 0) return { symbol: "0", label: "Stationary" } as const;
   return { symbol: "—", label: "Drive status unknown" } as const;
 }
@@ -145,7 +159,8 @@ export function tyrePressureBar(entity: Entity) {
 export function accessStatus(entities: Entity[]) {
   const openings = entities.filter(e => ["cover", "binary_sensor"].includes(e.domain)
     && ["Doors and windows", "Luggage compartments"].includes(vehicleGroup(e)));
-  const lock = entities.find(e => e.domain === "lock" && vehicleGroup(e) === "Locks");
+  const lock = entities.find(e => e.domain === "lock" && vehicleGroup(e) === "Locks")
+    ?? entities.find(e => e.domain === "binary_sensor" && e.attributes.device_class === "lock" && vehicleGroup(e) === "Locks");
   const open: { name: string; position?: string }[] = [];
   let unknown = false;
   // Some cars publish both a window cover and an aggregate sensor with individual positions.

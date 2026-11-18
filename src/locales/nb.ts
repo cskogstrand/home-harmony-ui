@@ -131,7 +131,7 @@ export const nb = {
   "Choose which cars appear in the header": "Velg hvilke biler som vises i toppfeltet",
   "Connect to Home Assistant to discover vehicles.": "Koble til Home Assistant for å finne biler.",
   "Vehicle discovery is incomplete. Check the Home Assistant connection.": "Kunne ikke hente alle bilene. Sjekk tilkoblingen til Home Assistant.",
-  "No Tesla vehicles found in Home Assistant.": "Fant ingen Tesla-biler i Home Assistant.",
+  "No Tesla vehicles found. Connect a Tesla integration in Home Assistant or enable MQTT discovery in TeslaMate.": "Fant ingen Tesla-biler. Koble til en Tesla-integrasjon i Home Assistant eller aktiver MQTT-oppdagelse i TeslaMate.",
   "Show {name} in the header": "Vis {name} i toppfeltet",
   "Range": "Rekkevidde",
   "state.charging": "Lader",

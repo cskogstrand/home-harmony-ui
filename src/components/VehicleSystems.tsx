@@ -45,15 +45,19 @@ function VehicleReading({ entity, label = readingName(entity) }: { entity: Entit
 }
 
 
-export function VehicleCabin({ climate }: { climate?: Entity }) {
+export function VehicleCabin({ climate, entities }: { climate?: Entity; entities: Entity[] }) {
   const { t, number } = useI18n();
   const { currentHome } = useApp();
   const running = cabinState(climate);
-  const temp = climate && available(climate) ? climate.attributes.current_temperature : undefined;
+  const current = climate && available(climate) ? climate.attributes.current_temperature : undefined;
+  const inside = entities.find(e => e.domain === "sensor" && /(?:^|_)inside_temp(?:erature)?$/.test(metricKey(e)) && available(e)
+    && e.state.trim() && Number.isFinite(Number(e.state)));
+  const temp = typeof current === "number" ? current : inside && Number(inside.state);
+  const unit = typeof current === "number" ? climate.attributes.temperature_unit || currentHome.temperatureUnit : inside?.attributes.unit_of_measurement;
   return <section className="vehicle-cabin vehicle-module">
     <h3><Fan size={20} data-running={running} aria-hidden="true" />{t("Cabin")}</h3>
-    <p>{t(running === undefined ? "Climate unknown" : running ? "Climate on" : "Climate off")}{typeof temp === "number" && ` · ${number(temp)}${climate.attributes.temperature_unit || currentHome.temperatureUnit || ""}`}</p>
-    {climate && <DeviceControl entity={climate} cabin />}
+    <p>{t(running === undefined ? "Climate unknown" : running ? "Climate on" : "Climate off")}{typeof temp === "number" && ` · ${number(temp)}${unit || ""}`}</p>
+    {climate?.domain === "climate" && <DeviceControl entity={climate} cabin />}
   </section>;
 }
 
