@@ -30,7 +30,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
       const label = t(date === today ? "Today" : "Tomorrow");
       return <section key={date} aria-label={label} className={date === today ? undefined : "border-border pt-6"}>
         <h3 className={dashboard.showTomorrow ? "mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-medium" : "sr-only"}>
-          <span>{label}</span><time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { day: "numeric", month: "short" })}</time>
+          <span>{label}</span> <time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { day: "numeric", month: "short" })}</time>
         </h3>
         <div className="family-lanes">{people.map(person => {
           const personal = uniqueCalendarPlans(data.events.filter(event => event.member === person.id && event.date === date));

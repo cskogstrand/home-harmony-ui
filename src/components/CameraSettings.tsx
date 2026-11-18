@@ -140,7 +140,7 @@ export function CameraSettings() {
             <p id="camera-person-size-help" className="page-note">{t("The inset covers this percentage of the video width, including in fullscreen and notification cards.")}</p>
             <div className="camera-person-size-options">{(Object.keys(personSizes) as (keyof typeof personSizes)[]).map(size => <Button key={size} type="button" variant="outline" className="camera-person-size-option" aria-pressed={(draft.personPipSize ?? "medium") === size} onClick={() => setDraft({ ...draft, personPipSize: size })}>
               <span className="camera-person-size-example" aria-hidden="true"><Video size={24} /><span style={{ width: `${cameraPersonPipWidths[size]}%` }}><UserRound /></span></span>
-              <span className="camera-person-size-label">{t(personSizes[size])}<Check size={18} aria-hidden="true" className={(draft.personPipSize ?? "medium") === size ? "" : "invisible"} /></span>
+              <span className="camera-person-size-label">{t(personSizes[size])}<Check size={18} aria-hidden="true" className={(draft.personPipSize ?? "medium") === size ? "" : "invisible"} /></span>{" "}
               <span className="camera-person-size-percent">{t("{percent}% of video width", { percent: cameraPersonPipWidths[size] })}</span>
             </Button>)}</div>
           </fieldset>}

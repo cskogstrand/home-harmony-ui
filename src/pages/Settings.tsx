@@ -59,7 +59,7 @@ export default function Settings() {
       <PanelTitle icon={group.icon}>{message(group.title)}</PanelTitle>
       <ul>{group.items.map(item => <li key={item.id}><Link to={`/settings/${item.id}`} className="settings-row" aria-current={selected?.id === item.id ? "page" : undefined}>
         <item.icon className="settings-row-icon" size={20} strokeWidth={1.8} aria-hidden="true" />
-        <span><span className="settings-row-title">{message(item.title)}</span>{!selected && <span className="settings-row-description">{message(item.description)}</span>}</span>
+        <span><span className="settings-row-title">{message(item.title)}</span> {!selected && <span className="settings-row-description">{message(item.description)}</span>}</span>
         <ChevronRight className="settings-chevron" size={17} aria-hidden="true" />
       </Link></li>)}</ul>
     </section>)}
