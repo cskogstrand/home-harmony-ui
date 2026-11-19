@@ -6,16 +6,16 @@ import { EntityPicker } from "./EntityPicker";
 import { Progress } from "./ui/progress";
 import { Switch } from "./ui/switch";
 
-export function NotificationProgress({ progress, entities, title }: { progress: ProgressSettings; entities: Entity[]; title: string }) {
+export function NotificationProgress({ progress, entities, title, caption }: { progress: ProgressSettings; entities: Entity[]; title: string; caption?: string }) {
   const { message: t, number } = useI18n();
   const value = notificationProgress(progress, entities);
-  if (!value) return <p className="notification-progress-unavailable">{t("Progress unavailable. Check the numeric readings and range.")}</p>;
+  if (!value) return <p className="notification-progress-unavailable">{caption && <strong className="block">{caption}</strong>}{t("Progress unavailable. Check the numeric readings and range.")}</p>;
   const entity = notificationEntity(entities, progress.current.entity);
   const unit = !progress.current.attribute && typeof entity?.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : "";
   const percent = number(Math.round(value.percent));
   const reading = `${number(value.current)}${unit}`;
   return <div className="notification-progress">
-    {progress.text !== "none" && <div className="notification-progress-label"><strong>{percent}%</strong></div>}
+    {(caption || progress.text !== "none") && <div className="notification-progress-label">{caption && <span>{caption}</span>}{progress.text !== "none" && <strong>{percent}%</strong>}</div>}
     <Progress value={value.percent} aria-label={t("Progress for {name}", { name: title })} aria-valuetext={t("{percent}% complete, current value {value}", { percent, value: reading })} className="h-2" />
   </div>;
 }

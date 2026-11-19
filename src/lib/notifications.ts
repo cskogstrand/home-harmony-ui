@@ -1,7 +1,9 @@
 import type { ZodIssue } from "zod";
-import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay, type NotificationPresentation } from "../../shared/notifications";
+import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
+
+export const notificationStyleLabels = { banner: "Banner", section: "Section", activity: "Activity cards", "activity-compact": "Compact activity card" } as const;
 
 export interface HomeNotification {
   id: string;
@@ -11,19 +13,15 @@ export interface HomeNotification {
   calendarEntity?: string;
   eventTitle?: string;
   eventStart?: number;
+  eventAllDay?: boolean;
   popup: boolean;
   dismissed?: boolean;
 }
 export interface NotificationEvent { event_type: string; data: Record<string, unknown> }
 export const notificationEntity = (entities: Entity[], id: string) => entities.find(entity => entity.preferenceId === id);
 
-export function supportsLiveActivityPreview(rule: NotificationRule, presentation: NotificationPresentation) {
-  const style = rule.presentation ?? presentation;
-  return rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && (style === "activity" || style === "activity-compact");
-}
-
-export function showsLiveActivityPreview(rule: NotificationRule, presentation: NotificationPresentation) {
-  return supportsLiveActivityPreview(rule, presentation) && (rule.livePreviewBelowTitle ?? rule.icon === "printer_3d");
+export function showsLiveActivityPreview(rule: NotificationRule) {
+  return rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && rule.livePreviewBelowTitle !== false;
 }
 
 const remainingTimeName = /remaining|time[ _]left|tid[ _]igjen|gjenstående|end[ _]time|finish(?:es|[ _]time)?\b|estimated[ _]completion|ferdigtid|sluttid/i;
@@ -56,10 +54,6 @@ export function notificationMinutesLeft(rule: NotificationRule, entities: Entity
   if (!unit || !range) return undefined;
   const remaining = (range.end - range.current) * Math.sign(range.end - range.start) * unit;
   return Number.isFinite(remaining) ? Math.max(0, Math.ceil(remaining)) : undefined;
-}
-
-export function showsOngoingSummary(items: HomeNotification[], phone: boolean, errors: string[]) {
-  return phone && items.length > 0 && !errors.length && items.every(item => item.rule.kind === "ongoing");
 }
 
 export function notificationReadings(rule: NotificationRule) {
@@ -191,7 +185,7 @@ export class NotificationEngine {
             if (!(now >= start - trigger.leadMinutes * 60000 && now < end)) continue;
             const id = JSON.stringify([rule.id, trigger.entity, event.uid ?? event.summary, event.recurrence_id, from]);
             observation.calendarIds.add(id);
-            if (rule.kind === "current") this.entries.set(id, { id, rule, startedAt: now, popup: false, ...this.entries.get(id), calendarEntity: trigger.entity, eventTitle: event.summary, eventStart: start });
+            if (rule.kind === "current") this.entries.set(id, { id, rule, startedAt: now, popup: false, ...this.entries.get(id), calendarEntity: trigger.entity, eventTitle: event.summary, eventStart: start, eventAllDay: !from.includes("T") });
           }
         }
       });
@@ -202,5 +196,5 @@ export class NotificationEngine {
   }
 }
 
-const sections: Record<string, string> = { title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "presentation", timeLeftEntity: "presentation", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+const sections: Record<string, string> = { title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
 export const notificationIssueSection = (issue: ZodIssue) => sections[issue.path[0]] ?? "content";

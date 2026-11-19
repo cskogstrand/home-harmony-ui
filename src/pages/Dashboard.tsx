@@ -1,4 +1,4 @@
-import { NotificationActivityPreviews } from "@/components/NotificationCenter";
+import { NotificationList } from "@/components/NotificationCenter";
 import { PanelTitle } from "@/components/PanelTitle";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
@@ -105,7 +105,7 @@ export default function Dashboard() {
       </div>
       <div className="ambient-glance"><time className="ambient-clock">{time}</time><WeatherWidget placement="today" /></div>
     </header>
-    <NotificationActivityPreviews />
+    <NotificationList compact />
     {!dashboard.order.some(key => dashboard[key]) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
     {dashboard.order.map(key => <Fragment key={key}>{sections[key]}</Fragment>)}
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />

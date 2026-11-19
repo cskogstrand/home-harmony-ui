@@ -7,6 +7,7 @@ type View = {
   container: HTMLElement;
   name: string;
   expanded: boolean;
+  controls?: boolean;
   update: (playback: Playback) => void;
   failed: (message?: string) => void;
   canvas: HTMLCanvasElement;
@@ -49,9 +50,9 @@ function createSession(id: string, go2rtc: boolean, watchCameraStream: Player) {
     if (!owner) return;
     // Move the original element: MSE/HLS buffers cannot be attached to two videos.
     if (!owner.container.contains(video)) owner.container.replaceChildren(video);
-    video.controls = owner.expanded;
+    video.controls = owner.controls ?? owner.expanded;
     video.setAttribute("aria-label", owner.name);
-    if (!owner.expanded) video.muted = true;
+    if (!video.controls) video.muted = true;
     for (const view of views) if (view !== owner && !view.container.contains(view.canvas)) view.container.replaceChildren(view.canvas);
     if (views.size > 1) mirror();
   };

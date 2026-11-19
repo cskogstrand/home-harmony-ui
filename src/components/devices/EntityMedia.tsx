@@ -31,15 +31,15 @@ function MediaImage({ src, name, caption, shortLabel, trimTransparent, onError }
   }} onError={() => { if (displaySource !== src) setDisplaySource(src); else onError(); }} />
     {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} shortLabel={shortLabel} icon={VideoOff} />}</>;
 }
-function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, onError, onAspectRatio }: { id: string; sourceKey: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
+function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, controls, onError, onAspectRatio }: { id: string; sourceKey: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; controls: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
   const { watchCameraStream } = useApp();
   const ref = useRef<HTMLDivElement>(null);
   const [playback, setPlayback] = useState<{ video: HTMLVideoElement; transport: "webrtc" | "mse" }>();
   const { video, transport = "webrtc" } = playback ?? {};
   const [playing, setPlaying] = useState(false);
   useLayoutEffect(() => shareCameraStream(sourceKey, id, go2rtc, watchCameraStream, {
-    container: ref.current, name, expanded, update: setPlayback, failed: onError,
-  }), [sourceKey, id, go2rtc, watchCameraStream, name, expanded, onError]);
+    container: ref.current, name, expanded, controls, update: setPlayback, failed: onError,
+  }), [sourceKey, id, go2rtc, watchCameraStream, name, expanded, controls, onError]);
   const updateAspectRatio = useCallback(() => {
     const preview = ref.current?.parentElement.querySelector("img");
     const width = playing ? video?.videoWidth : preview?.naturalWidth;
@@ -87,7 +87,7 @@ function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, onErro
     <CameraMediaStatus shortLabel={playing ? "Live" : "Connecting…"} icon={playing ? Video : LoaderCircle} label={playing ? go2rtc ? transport === "mse" ? "Live video from go2rtc · MSE" : "Live video from go2rtc" : "Live camera" : "Snapshot preview · connecting video…"} /></div></>;
 }
 
-export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, snapshotOnly = false, showPerson = expanded && !snapshotOnly, trimTransparent = false }: MediaSource & { suspended?: boolean; expanded?: boolean; snapshotOnly?: boolean; showPerson?: boolean; trimTransparent?: boolean }) {
+export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, controls = expanded, snapshotOnly = false, showPerson = expanded && !snapshotOnly, trimTransparent = false }: MediaSource & { suspended?: boolean; expanded?: boolean; controls?: boolean; snapshotOnly?: boolean; showPerson?: boolean; trimTransparent?: boolean }) {
   const pageActive = usePageActive();
   const { homeOnline, currentHome } = useApp();
   const shared = useSharedConfiguration();
@@ -145,7 +145,7 @@ export function MediaSurface({ entity, camera: configured, suspended = false, ex
     {reported && (seen || expanded) && !paused && !failed ? snapshotOnly
       ? <div className="smart-camera-player"><CameraStreamPreview key={sourceKey} src={previewSrc} name={name} status="Loading image…" caption="Preview image · refreshes automatically" shortLabel="Still image" /></div>
       : camera && !mjpeg
-      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} sourceKey={sourceKey} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} onError={fallback} onAspectRatio={setAspectRatio} />
+      ? <CameraVideo key={`${sourceKey}-${retry}`} id={id} sourceKey={sourceKey} name={name} go2rtc={customStream} previewSrc={previewSrc} expanded={expanded} controls={controls} onError={fallback} onAspectRatio={setAspectRatio} />
       : <MediaImage key={src} src={src} name={name} trimTransparent={trimTransparent && domain === "image"} shortLabel={camera ? snapshot ? "Still image" : "Camera preview" : undefined} caption={camera ? snapshot ? "Snapshot · live stream unavailable" : "Camera preview · video unavailable" : undefined}
         onError={() => { if (camera && !snapshot) setSnapshot(true); else setFailedSrc(src); }} />
       : <p role="status">{t(suspended ? "Open in viewer" : !homeOnline && !customStream ? "Offline" : !reported ? "Unavailable" : failed ? customStream ? streamError : "Image unavailable" : paused ? "Stream paused" : "Loading image…")}</p>}

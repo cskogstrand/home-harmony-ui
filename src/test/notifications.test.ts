@@ -11,15 +11,15 @@ const now = Date.parse("2026-10-24T12:00:00Z");
 const zone = "Europe/Oslo";
 
 describe("notification configuration", () => {
-  it("defaults the below-title preview to ongoing printer cards with a live camera and preserves overrides in backups", () => {
+  it("defaults to live media for ongoing camera rules and preserves overrides in backups", () => {
     const printer = rule({ icon: "printer_3d", cameraEntity: "example-camera" });
-    expect(showsLiveActivityPreview(printer, "activity")).toBe(true);
-    expect(showsLiveActivityPreview(printer, "banner")).toBe(false);
-    expect(showsLiveActivityPreview({ ...printer, livePreviewBelowTitle: false }, "activity")).toBe(false);
-    expect(showsLiveActivityPreview({ ...printer, cameraMedia: "person" }, "activity")).toBe(false);
-    expect(showsLiveActivityPreview({ ...printer, cameraEntity: "" }, "activity")).toBe(false);
+    expect(showsLiveActivityPreview(printer)).toBe(true);
+    expect(showsLiveActivityPreview({ ...printer, icon: "washing", presentation: "banner" })).toBe(true);
+    expect(showsLiveActivityPreview({ ...printer, livePreviewBelowTitle: false })).toBe(false);
+    expect(showsLiveActivityPreview({ ...printer, cameraMedia: "person" })).toBe(false);
+    expect(showsLiveActivityPreview({ ...printer, cameraEntity: "" })).toBe(false);
     const custom = { ...printer, icon: undefined, livePreviewBelowTitle: true, timeLeftEntity: "home|sensor.finish" };
-    expect(showsLiveActivityPreview(custom, "activity-compact")).toBe(true);
+    expect(showsLiveActivityPreview(custom)).toBe(true);
     const config = emptyConfiguration();
     config.settings.notifications.rules = [custom];
     expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0]).toMatchObject({ livePreviewBelowTitle: true, timeLeftEntity: custom.timeLeftEntity });
@@ -258,7 +258,7 @@ describe("notification lifecycle", () => {
       { uid: "example-two", summary: "Example all-day", start: { date: "2026-10-24" }, end: { date: "2026-10-25" } },
     ];
     const update = (time: number) => engine.update([calendarRule], calendar, { "calendar.example": plans }, true, time, zone);
-    expect(update(now)).toHaveLength(2);
+    expect(update(now).map(item => item.eventAllDay)).toEqual([false, true]);
     plans[0].summary = "Updated example event";
     expect(update(now)[0].eventTitle).toBe("Updated example event");
     engine.dismiss(update(now)[0].id);

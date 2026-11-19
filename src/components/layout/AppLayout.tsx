@@ -8,7 +8,7 @@ import { MainPages } from "./MainPages";
 import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { PageContent } from "@/components/common/PageContent";
-import { isHomeSection, isMainPage, mainPagePath } from "@/lib/navigation";
+import { isHomeSection, mainPagePath } from "@/lib/navigation";
 import { VehicleWidgets } from "@/components/VehicleWidgets";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
-import { NotificationBell, NotificationCamera, NotificationList } from "@/components/NotificationCenter";
+import { NotificationBell, NotificationCamera } from "@/components/NotificationCenter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Camera, Check, LoaderCircle, Moon, Music2, RefreshCw, Settings, TriangleAlert, X } from "lucide-react";
 
@@ -32,7 +32,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
   const { currentUser } = useApp();
-  const { saved, memberName, appearance, notifications } = useFamily();
+  const { saved, memberName, appearance } = useFamily();
   const shared = useSharedConfiguration();
   const timetableError = shared?.state.timetableError;
   const [dismissedError, setDismissedError] = useState<string>();
@@ -71,7 +71,6 @@ export function AppLayout({ children }: { children?: ReactNode }) {
     <ConnectionBanner />
     <main id="main-content" tabIndex={-1} className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
-      {isMainPage(pathname) && <NotificationList compact presentation={notifications.presentation} />}
       <MainPages locations={locations} errorFallback={errorFallback} />
       <PageErrorBoundary key={pathname} fallback={errorFallback}>
         <Suspense fallback={<p role="status">{t("Loading…")}</p>}><PageContent active={!mainPath}>{children}</PageContent></Suspense>

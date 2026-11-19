@@ -1,16 +1,16 @@
-import { useEffect, useId, useState } from "react";
-import { Eye, Pause, Play } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Expand, Eye, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { useApp } from "@/contexts/AppContext";
 import { useNotifications } from "@/contexts/NotificationContext";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
-import { notificationEntity, progressSourceValue, showsOngoingSummary, type HomeNotification } from "@/lib/notifications";
+import { notificationEntity, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
-import { NotificationSurface } from "./NotificationCenter";
+import { CameraAlertPreview, NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
+import { Dialog } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { Accordion } from "./ui/accordion";
@@ -20,11 +20,14 @@ import { NotificationStylePicker } from "./NotificationStylePicker";
 export function NotificationPreview({ rule, presentation: defaultPresentation, disabled = false, editing = false, onPresentationChange }: { rule?: NotificationRule; presentation: NotificationPresentation; disabled?: boolean; editing?: boolean; onPresentationChange?: (presentation: NotificationPresentation) => void }) {
   const { message: t } = useI18n();
   const { currentHome } = useApp();
-  const { notifications, errors } = useNotifications();
-  const phone = useIsMobile();
+  const { notifications } = useNotifications();
   const [demo, setDemo] = useState(!editing);
   const [percent, setPercent] = useState(40);
   const [playing, setPlaying] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const opener = useRef<HTMLButtonElement | null>(null);
+  const openPopup = (button: HTMLButtonElement) => { opener.current = button; setPopupOpen(true); };
+  const [sampleAt] = useState(Date.now);
   const [styleOpen, setStyleOpen] = useState(false);
   const reducedMotion = useReducedMotion();
   const id = useId();
@@ -34,7 +37,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
     detailEntities: ["preview|sensor.remaining", "preview|sensor.total"],
     progress: { current: { type: "entity", entity: "preview|sensor.remaining" }, start: { type: "value", value: 90 }, end: { type: "value", value: 0 } },
   });
-  const previewRule = rule ? { ...rule, title: rule.title || t("Your notification") } : example;
+  const previewRule = rule ? { ...rule, title: rule.title.trim() || t("Your notification") } : example;
   const presentation = previewRule.presentation ?? defaultPresentation;
   const useDemo = !rule || demo;
   const canPlay = useDemo && !!previewRule.progress && !reducedMotion;
@@ -65,6 +68,17 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
         notificationEntity(entities, reference).name = t(index === 0 ? "Time remaining" : "Total duration");
       }
     });
+    if (previewRule.timeLeftEntity) {
+      const remaining = Math.round(90 * (1 - percent / 100));
+      const reference = previewRule.timeLeftEntity;
+      const entity = notificationEntity(entities, reference);
+      if (entity?.attributes.device_class === "timestamp") {
+        setReading(reference, new Date(Date.now() + remaining * 60_000).toISOString(), t("Time remaining"));
+      } else if (!previewRule.progress || ![previewRule.progress.current, previewRule.progress.start, previewRule.progress.end].some(source => source.type === "entity" && source.entity === reference && !source.attribute)) {
+        setReading(reference, remaining, t("Time remaining"));
+        notificationEntity(entities, reference).attributes.unit_of_measurement = "min";
+      }
+    }
     if (previewRule.progress) {
       const { current, start, end } = previewRule.progress;
       const to = progressSourceValue(end, currentHome.entities) ?? 100;
@@ -76,27 +90,37 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   }
   const triggers = notificationTriggers(previewRule);
   const now = Date.now();
-  const items = notifications.flatMap((item): HomeNotification[] => {
-    if (item.rule.id !== previewRule.id) return editing ? [item] : [];
-    if (item.calendarEntity && !triggers.some(trigger => trigger.type === "calendar" && trigger.entity === item.calendarEntity &&
-      item.eventStart <= now + trigger.leadMinutes * 60_000)) return [];
-    return [useDemo ? { id: item.id, rule: previewRule, startedAt: 0, popup: false } : { ...item, rule: previewRule }];
-  });
-  let draft = items.find(item => item.rule.id === previewRule.id);
-  if (!draft) {
-    draft = { id: previewRule.id, rule: previewRule, startedAt: 0, popup: false };
-    items.push(draft);
+  const live = !useDemo && notifications.find(item => item.rule.id === previewRule.id && (!item.calendarEntity ||
+    triggers.some(trigger => trigger.type === "calendar" && trigger.entity === item.calendarEntity && item.eventStart <= now + trigger.leadMinutes * 60_000)));
+  const draft: HomeNotification = { id: previewRule.id, startedAt: sampleAt, ...live, rule: previewRule, popup: false };
+  const calendar = triggers.find(trigger => trigger.type === "calendar");
+  if (editing && useDemo && calendar) {
+    draft.eventTitle = t("Example calendar event");
+    draft.eventStart = sampleAt + calendar.leadMinutes * 60_000;
+  } else if (editing && useDemo && triggers.some(trigger => trigger.type === "ha-event" || trigger.type === "entity-event")) {
+    draft.expiresAt = sampleAt + previewRule.durationSeconds * 1000;
   }
+  const mode = useDemo ? "sample" : "current";
   const previewTitle = t("Preview {name}", { name: draft.eventTitle || previewRule.title });
-  const sampleNote = editing ? "Sample data for this notification. Preview actions are disabled." : "Sample data only. Nothing is sent to Home Assistant.";
   return <section className="notification-preview" aria-label={onPresentationChange ? t("Preview {name}", { name: previewRule.title }) : t("Notification preview")}>
-    {!onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{editing ? previewTitle : t("Preview")}</PanelTitle>
-      <p className="page-note">{t(useDemo ? sampleNote : "Current readings. Preview actions are disabled.")}</p></>}
+    {editing ? <>
+      <PanelTitle as="h3" icon={Eye}>{t("Board preview")}</PanelTitle>
+      <p className="page-note">{t("This tile appears below the page title. Tap it to preview the popup.")}</p>
+      <div className="notification-widget-stage"><ul className="notification-board-layout">
+        {draft.rule.kind === "camera" ? <CameraAlertPreview item={draft} preview={mode} onOpen={openPopup} /> :
+          <NotificationTile item={draft} presentation={presentation} preview={mode} entities={entities} onOpen={openPopup} />}
+      </ul></div>
+      <Button type="button" variant="outline" aria-haspopup="dialog" className="self-start" onClick={event => openPopup(event.currentTarget)}><Expand aria-hidden="true" />{t("Preview popup")}</Button>
+      <Dialog open={popupOpen} onOpenChange={setPopupOpen}>{draft.rule.kind === "camera"
+        ? <NotificationCameraContent item={draft} presentation={presentation} preview={mode} entities={entities} onReturn={() => opener.current?.focus()} />
+        : <NotificationDetailContent item={draft} presentation={presentation} preview={mode} entities={entities} onReturn={() => opener.current?.focus()} />}
+      </Dialog>
+    </> : !onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
+      <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p></>}
     {rule && <div className="notification-toggle"><span>{t("Use sample data")}</span><Switch aria-label={t("Use sample data")} checked={demo} onCheckedChange={checked => { setDemo(checked); setPlaying(false); }} /></div>}
-    <fieldset disabled className="notification-preview-surface" aria-label={previewTitle} onClickCapture={event => { event.preventDefault(); event.stopPropagation(); }}>
-      <NotificationSurface items={editing ? items : [draft]} compact presentation={defaultPresentation} preview={useDemo ? "sample" : "current"}
-        entities={entities} focus={draft} viewAllCount={editing && !showsOngoingSummary(items, phone, errors) ? items.length : undefined} />
-    </fieldset>
+    {!editing && <fieldset disabled className="notification-preview-surface" aria-label={previewTitle} onClickCapture={event => { event.preventDefault(); event.stopPropagation(); }}>
+      <NotificationSurface items={[draft]} compact presentation={defaultPresentation} preview={mode} entities={entities} />
+    </fieldset>}
     {useDemo && previewRule.progress && <div className="notification-demo-controls">
       <label htmlFor={id}>{t("Demo progress")} <strong>{percent}%</strong></label>
       <div className="flex items-center gap-3"><input id={id} aria-label={t("Demo progress")} type="range" min={0} max={100} value={percent} onChange={event => { setPercent(Number(event.target.value)); setPlaying(false); }} />

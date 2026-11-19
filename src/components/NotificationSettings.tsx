@@ -3,12 +3,12 @@ import { NotificationValidationErrors } from "./NotificationValidationErrors";
 import { configuredCamera } from "../../shared/cameras";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, Timer, Zap, X } from "lucide-react";
+import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, Eye, Plus, SlidersHorizontal, Timer, Zap, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { isNotificationTimeSource, notificationEntity, notificationReadings, notificationIssueSection, showsLiveActivityPreview, supportsLiveActivityPreview } from "@/lib/notifications";
+import { isNotificationTimeSource, notificationEntity, notificationReadings, notificationStyleLabels, notificationIssueSection } from "@/lib/notifications";
 import { MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger } from "../../shared/notifications";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
@@ -46,6 +46,7 @@ export function NotificationSettings() {
   const shared = useSharedConfiguration();
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const [draft, setDraft] = useState<NotificationRule>();
+  const [mobileView, setMobileView] = useState<"setup" | "preview">("setup");
   const [openSections, setOpenSections] = useState<string[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewError, setPreviewError] = useState(false);
@@ -64,7 +65,8 @@ export function NotificationSettings() {
   const cameras = shared?.state.config.settings.cameras;
   const selectable = entities.filter(entity => !(entity.domain === "input_text" && entity.attributes.mode === "password"));
   const begin = (rule: NotificationRule, existing = false) => {
-    setOpenSections(["trigger", ...(rule.title.trim() ? [] : ["content"]), ...(rule.kind === "camera" ? ["camera"] : [])]);
+    setMobileView("setup");
+    setOpenSections([...(existing ? [] : ["trigger"]), ...(rule.title.trim() ? [] : ["content"]), ...(!existing && rule.kind === "camera" ? ["camera"] : [])]);
     setDraft(rule); setOriginal(existing ? JSON.stringify(rule) : ""); setError(""); setIssues([]);
     setFilters(notificationTriggers(rule).map(trigger => trigger.type === "ha-event" ? JSON.stringify(trigger.filters, null, 2) : "{}"));
   };
@@ -73,7 +75,7 @@ export function NotificationSettings() {
     const camera = configuredCamera(cameras, requestedCamera);
     if (!camera) return;
     setDraft({ id: newPlannerId(), title: camera.name.slice(0, 100), message: "", kind: "camera", enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: camera.id, durationSeconds: 60, cooldownSeconds: 10 });
-    setOriginal(""); setError(""); setIssues([]); setFilters(["{}"]); setOpenSections(["camera", "trigger"]);
+    setMobileView("setup"); setOriginal(""); setError(""); setIssues([]); setFilters(["{}"]); setOpenSections(["camera", "trigger"]);
     const next = new URLSearchParams(params); next.delete("camera"); setParams(next, { replace: true });
   }, [requestedCamera, shared?.state.loaded, cameras, draft, params, setParams]);
   const selectEntity = (label: string, value: string, update: (id: string) => void, domain?: string, name?: string) => {
@@ -100,6 +102,7 @@ export function NotificationSettings() {
     const result = notificationRuleSchema.safeParse({ ...draft, trigger: triggers[0], additionalTriggers: triggers.length > 1 ? triggers.slice(1) : undefined, ...(draft.entityDisplay && { entityDisplay: draft.entityDisplay.filter(item => readings.some(reading => reading.entity === item.entity && reading.attribute === item.attribute)) }) });
     if (!result.success) errors.push(...result.error.issues);
     if (errors.length) {
+      setMobileView("setup");
       setIssues(errors.filter((issue, index) => errors.findIndex(other => JSON.stringify(other.path) === JSON.stringify(issue.path)) === index));
       setOpenSections(sections => [...new Set([...sections, ...errors.map(notificationIssueSection)])]);
       return;
@@ -110,6 +113,12 @@ export function NotificationSettings() {
     else setError("The rule could not be saved. Your draft is still here. Check settings storage and retry.");
   };
   const setTriggers = (triggers: NotificationTrigger[]) => setDraft({ ...draft, trigger: triggers[0], additionalTriggers: triggers.length > 1 ? triggers.slice(1) : undefined });
+  const triggers = draft ? notificationTriggers(draft) : [];
+  const trigger = draft?.trigger;
+  const source = trigger && "entity" in trigger && notificationEntity(entities, trigger.entity);
+  const triggerSummary = triggers.length > 1 ? t("{count} triggers", { count: triggers.length }) : trigger?.type === "ha-event" ? trigger.eventType :
+    source && trigger?.type === "state" ? [source.name, trigger.attribute, { eq: "=", neq: "≠", gt: ">", lt: "<" }[trigger.operator], source.attributes.mode === "password" ? "••••••" : trigger.value].filter(Boolean).join(" ") : source && source.name;
+  const selectedMedia = draft && [draft.kind !== "current" && configuredCamera(cameras, draft.cameraEntity)?.name, notificationEntity(entities, draft.imageEntity ?? "")?.name].filter(Boolean).join(" · ");
   return <section className="settings-stack" id="notifications">
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Afterglow is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
@@ -159,12 +168,16 @@ export function NotificationSettings() {
     <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className={`notification-editor ${boardSpacing}`} data-kind={draft?.kind} onOpenAutoFocus={event => {
       event.preventDefault(); editor.current?.querySelector<HTMLButtonElement>('[data-section="trigger"] > h3 > button')?.focus();
     }}>
-      <DialogHeader><DialogTitle asChild><PanelTitle icon={Bell}>{t(original ? "Edit notification" : "Add notification")}</PanelTitle></DialogTitle><DialogDescription>{t(draft ? kinds[draft.kind] : "Notifications")}</DialogDescription></DialogHeader>
+      <DialogHeader><DialogTitle asChild><PanelTitle icon={Bell}>{t(original ? "Edit notification" : "Add notification")}</PanelTitle></DialogTitle><DialogDescription className="truncate">{[draft?.title.trim(), t(draft ? kinds[draft.kind] : "Notifications")].filter(Boolean).join(" · ")}</DialogDescription></DialogHeader>
       {draft && <form ref={editor} noValidate className="planner-form notification-editor-form" onSubmit={event => { event.preventDefault(); save(); }}>
-        <div className="notification-editor-layout">
+        <div className="notification-editor-views" role="group" aria-label={t("Editor view")}>
+          <Button type="button" variant="ghost" aria-pressed={mobileView === "setup"} onClick={() => setMobileView("setup")}><SlidersHorizontal aria-hidden="true" />{t("Setup")}</Button>
+          <Button type="button" variant="ghost" aria-pressed={mobileView === "preview"} onClick={() => setMobileView("preview")}><Eye aria-hidden="true" />{t("Preview")}</Button>
+        </div>
+        <div className="notification-editor-layout" data-view={mobileView}>
         <Accordion type="multiple" value={openSections} onValueChange={setOpenSections} className="notification-editor-fields">
-        <NotificationEditorSection value="trigger" title={t("When to show it")} icon={Zap} open={openSections.includes("trigger")}>
-        <p className="page-note">{t("Any trigger can show this notification. Camera and event triggers share one cooldown.")}</p>
+        <NotificationEditorSection value="trigger" title={t("When to show it")} icon={Zap} summary={triggerSummary || t("Choose a source")} open={openSections.includes("trigger")}>
+        {triggers.length > 1 && <p className="page-note">{t("Any matching trigger can show this notification.")}</p>}
         {notificationTriggers(draft).map((trigger, index, triggers) => {
           const field = index === 0 ? "trigger" : `additionalTriggers.${index - 1}`;
           const source = "entity" in trigger ? notificationEntity(entities, trigger.entity) : undefined;
@@ -185,7 +198,7 @@ export function NotificationSettings() {
             </select></label>
             {"entity" in trigger && selectEntity("Source entity", trigger.entity, entity => update({ ...trigger, entity } as NotificationTrigger), trigger.type === "calendar" ? "calendar" : trigger.type === "entity-event" ? "event" : undefined, `${field}.entity`)}
             {trigger.type === "state" && <>
-              <p className="page-note">{t("Shown while the condition matches. Camera popups open only when it becomes true.")}{source && <> {t("Reported state: {state}", { state: source.attributes.mode === "password" ? "••••••" : source.state })}</>}</p>
+              <p className="page-note">{t(draft.kind === "camera" ? "The popup opens when this condition becomes true." : "Visible while this condition is true.")}{source && <> {t("Reported state: {state}", { state: source.attributes.mode === "password" ? "••••••" : source.state })}</>}</p>
               <label>{t("Attribute (optional)")}<input name={`${field}.attribute`} maxLength={100} value={trigger.attribute} placeholder={t("Leave empty to use the state")} onChange={event => update({ ...trigger, attribute: event.target.value } as NotificationTrigger)} /></label>
               <div className="grid gap-3 sm:grid-cols-2"><label>{t("Condition")}<select name={`${field}.operator`} value={trigger.operator} onChange={event => update({ ...trigger, operator: event.target.value } as NotificationTrigger)}>
                 <option value="eq">{t("Equals")}</option><option value="neq">{t("Does not equal")}</option><option value="gt">{t("Above")}</option><option value="lt">{t("Below")}</option>
@@ -204,7 +217,7 @@ export function NotificationSettings() {
         }}><Plus size={18} aria-hidden="true" />{t("Add trigger")}</Button>
         {notificationTriggers(draft).length >= MAX_NOTIFICATION_TRIGGERS && <p className="page-note">{t("Choose up to {count} triggers.", { count: MAX_NOTIFICATION_TRIGGERS })}</p>}
         </NotificationEditorSection>
-        <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} open={openSections.includes("content")}>
+        <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} summary={[draft.title.trim() || t("Add a title"), t((draft.pages ?? notifications.pages) === "main" ? "All main pages" : "Today only")].join(" · ")} open={openSections.includes("content")}>
         <label>{t("Title")}<input name="title" ref={titleInput} required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t("Message (optional)")}<textarea name="message" maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
         <label>{t("Show on")}<select name="pages" value={draft.pages ?? notifications.pages} disabled={disabled} onChange={event => setDraft({ ...draft, pages: event.target.value as NotificationRule["pages"] })}>
@@ -212,35 +225,32 @@ export function NotificationSettings() {
         </select></label>
         <p className="page-note">{t("Main pages: Today, Calendar, Lists, School and Smart home.")}</p>
         </NotificationEditorSection>
-        {draft.kind !== "current" && <NotificationEditorSection value="camera" title={t("Camera and image")} icon={Camera} open={openSections.includes("camera")}>
+        <NotificationEditorSection value="camera" title={t(draft.kind === "current" ? "Image" : "Camera and image")} icon={Camera} summary={selectedMedia || t(draft.kind === "camera" ? "Choose a camera" : "Optional")} open={openSections.includes("camera")}>
           <NotificationCameraSettings rule={draft} disabled={disabled} active={openSections.includes("camera")} onChange={changes => setDraft({ ...draft, ...changes })} />
-        </NotificationEditorSection>}
-        <NotificationEditorSection value="readings" title={t("Entities and readings")} icon={Gauge} open={openSections.includes("readings")}>
+        </NotificationEditorSection>
+        <NotificationEditorSection value="readings" title={t("Entities and readings")} icon={Gauge} summary={t("Additional readings: {count}", { count: draft.detailEntities.length })} open={openSections.includes("readings")}>
             <NotificationEntitySettings rule={draft} entities={selectable} disabled={disabled} onChange={changes => setDraft({ ...draft, ...changes })} onEditUsage={editUsage} />
           </NotificationEditorSection>
-        {draft.kind === "ongoing" && <NotificationEditorSection value="progress" title={t("Progress")} icon={ChartNoAxesColumnIncreasing} open={openSections.includes("progress")}>
+        {draft.kind === "ongoing" && <NotificationEditorSection value="progress" title={t("Progress")} icon={ChartNoAxesColumnIncreasing} summary={[t(draft.progress ? "Progress bar" : "No progress bar"), notificationEntity(entities, draft.timeLeftEntity ?? "")?.name].filter(Boolean).join(" · ")} open={openSections.includes("progress")}>
           <NotificationProgressSettings rule={draft} entities={selectable} disabled={disabled} onChange={progress => setDraft({ ...draft, progress })} />
+            <EntityPicker name="timeLeftEntity" label={t("Time left sensor")} clearLabel={t("Automatic")} placeholder={t("Automatic")} entities={selectable.filter(isNotificationTimeSource)} value={draft.timeLeftEntity ?? ""} disabled={disabled} onChange={id => setDraft({ ...draft, timeLeftEntity: id || undefined })} />
         </NotificationEditorSection>}
-        <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>
+        <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} summary={t(notificationStyleLabels[draft.presentation ?? notifications.presentation])} open={openSections.includes("presentation")}>
           <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />
-          {supportsLiveActivityPreview(draft, notifications.presentation) && <>
-            <div className="notification-toggle"><span>{t("Show live preview below the page title")}</span><Switch aria-label={t("Show live preview below the page title")} checked={showsLiveActivityPreview(draft, notifications.presentation)} disabled={disabled} onCheckedChange={livePreviewBelowTitle => setDraft({ ...draft, livePreviewBelowTitle })} /></div>
-            {showsLiveActivityPreview(draft, notifications.presentation) && <EntityPicker name="timeLeftEntity" label={t("Time left sensor")} clearLabel={t("Automatic")} placeholder={t("Automatic")} entities={selectable.filter(isNotificationTimeSource)} value={draft.timeLeftEntity ?? ""} disabled={disabled} onChange={id => setDraft({ ...draft, timeLeftEntity: id || undefined })} />}
-          </>}
         </NotificationEditorSection>
         <NotificationEditorSection value="appearance" title={t("Icon and animation")} icon={Palette} open={openSections.includes("appearance")}>
           <NotificationIconPicker rule={draft} disabled={disabled} onChange={icon => setDraft({ ...draft, icon })} />
           {draft.kind === "ongoing" && <div className="notification-toggle"><span>{t("Animate activity icon")}</span><Switch aria-label={t("Animate activity icon")} checked={draft.animateIcon !== false} disabled={disabled} onCheckedChange={animateIcon => setDraft({ ...draft, animateIcon })} /></div>}
           <p className="page-note">{t("Icons animate in activity cards while the task is active. Reduced motion keeps them still.")}</p>
         </NotificationEditorSection>
-        {(draft.kind === "camera" || notificationTriggers(draft).some(trigger => ["entity-event", "ha-event"].includes(trigger.type))) && <NotificationEditorSection value="timing" title={t("Timing")} icon={Timer} open={openSections.includes("timing")}><div className="grid gap-3 sm:grid-cols-2">
+        {(draft.kind === "camera" || notificationTriggers(draft).some(trigger => ["entity-event", "ha-event"].includes(trigger.type))) && <NotificationEditorSection value="timing" title={t("Timing")} icon={Timer} summary={t("Visible for {duration} s · Cooldown {cooldown} s", { duration: draft.durationSeconds, cooldown: draft.cooldownSeconds })} open={openSections.includes("timing")}><div className="grid gap-3 sm:grid-cols-2">
           <label>{t("Show for (seconds)")}<input name="durationSeconds" type="number" min={10} max={3600} required value={draft.durationSeconds} onChange={event => setDraft({ ...draft, durationSeconds: event.target.valueAsNumber })} /></label>
           <label>{t("Cooldown (seconds)")}<input name="cooldownSeconds" type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>
         </div></NotificationEditorSection>}
         </Accordion>
         <NotificationPreview key={draft.id} editing rule={draft} presentation={notifications.presentation} />
         </div>
-        {!!issues.length && <NotificationValidationErrors issues={issues} editor={editor} openSection={section => setOpenSections(sections => [...new Set([...sections, section])])} />}
+        {!!issues.length && <NotificationValidationErrors issues={issues} editor={editor} openSection={section => { setMobileView("setup"); setOpenSections(sections => [...new Set([...sections, section])]); }} />}
         {error && <p role="alert" className="text-destructive">{t(error)}</p>}
         <div className="form-actions"><Button type="button" variant="outline" onClick={() => setDraft(undefined)}>{t("Cancel")}</Button><Button type="submit" disabled={disabled}>{t("Save notification")}</Button></div>
       </form>}
