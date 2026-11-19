@@ -3,7 +3,7 @@ import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import { NotificationRow } from "@/components/NotificationCenter";
+import { NotificationActivityPreviews, NotificationRow } from "@/components/NotificationCenter";
 import { NotificationPreview } from "@/components/NotificationPreview";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { NotificationIcon, NotificationIconPicker } from "@/components/NotificationIcon";
@@ -11,6 +11,7 @@ import { cardDesigns } from "@/components/devices/card-designs";
 import { nb } from "@/locales/nb";
 import { NotificationBell, NotificationCamera, NotificationList } from "@/components/NotificationCenter";
 import { NotificationContext } from "@/contexts/NotificationContext";
+import { PageActivityContext } from "@/contexts/PageActivityContext";
 import { NotificationProvider } from "@/contexts/NotificationProvider";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
@@ -47,6 +48,71 @@ beforeEach(() => {
   setNotifications.mockReturnValue(true);
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it.each([
+  ["activity", "footer"], ["activity-compact", "right"], ["activity", "left"],
+] as const)("opens the configured %s card from its live preview without restarting its %s camera", (presentation, cameraPlacement) => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", title: "Example print", icon: "printer_3d", presentation, cameraPlacement,
+    imageEntity: "home|image.model", imagePlacement: "left", detailEntities: ["home|sensor.remaining"], pages: "main",
+    progress: { current: { type: "entity", entity: "home|sensor.percent" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 } } });
+  const currentHome = home();
+  currentHome.entities.push(...mapHome({
+    "sensor.remaining": state("sensor.remaining", "42", { unit_of_measurement: "min" }),
+    "sensor.percent": state("sensor.percent", "36"), "image.model": state("image.model", "ready"),
+  }, emptyRegistries, "home").entities);
+  mocks.app.currentHome = currentHome;
+  const item = { id: rule.id, rule, startedAt: 0, popup: false };
+  const content = (running: boolean, active = true) => <MemoryRouter initialEntries={["/calendar"]}><NotificationContext.Provider value={{
+    notifications: running ? [item] : [], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn(),
+  }}><NotificationBell /><NotificationList compact /><PageActivityContext.Provider value={active}><NotificationActivityPreviews /></PageActivityContext.Provider></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content(true, false));
+  expect(watchCameraStream).not.toHaveBeenCalled();
+  view.rerender(content(true));
+  const row = screen.getByRole("listitem");
+  const video = row.querySelector("video");
+  expect(video).toBeInstanceOf(HTMLVideoElement);
+  expect(screen.getByText("42 min left")).toBeVisible();
+  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "36");
+  expect(row.querySelector(".notification-image-feed")).toBeNull();
+  const toggle = screen.getByRole("button", { name: "Open activity card for Example print" });
+  toggle.focus();
+  fireEvent.click(toggle);
+  expect(row).toHaveClass("notification-activity");
+  expect(within(row).getByText("Example print")).toHaveFocus();
+  expect(row.classList.contains("notification-activity-compact")).toBe(presentation === "activity-compact");
+  expect(row.querySelector(".notification-image-feed")).not.toBeNull();
+  expect(screen.getByRole("button", { name: "Show camera" })).toBeVisible();
+  expect(row.querySelector("video")).toBe(video);
+  fireEvent.keyDown(toggle, { key: "Escape" });
+  expect(toggle).toHaveFocus();
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
+  expect(row.querySelector("video")).toBe(video);
+  expect(watchCameraStream).toHaveBeenCalledOnce();
+  item.rule = { ...rule, pages: "today" };
+  view.rerender(content(true));
+  expect(screen.queryByRole("listitem")).toBeNull();
+  expect(screen.getByRole("link", { name: /Notifications/ })).toHaveFocus();
+  item.rule = rule;
+  view.rerender(content(true));
+  fireEvent.click(screen.getByRole("button", { name: /Open activity card/ }));
+  view.rerender(content(false));
+  expect(view.container.querySelector(".notification-live-previews")).toBeNull();
+});
+
+it("saves a camera activity's below-title placement and explicit time-left source in Varsler", async () => {
+  const currentHome = home();
+  currentHome.entities.push(...mapHome({ "sensor.finish": state("sensor.finish", "2030-01-01T10:00:00Z", { device_class: "timestamp" }) }, emptyRegistries, "home").entities);
+  mocks.app.currentHome = currentHome;
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", presentation: "activity-compact" });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Display as");
+  fireEvent.click(screen.getByRole("switch", { name: "Show live preview below the page title" }));
+  chooseEntity("Time left sensor", "sensor.finish");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ livePreviewBelowTitle: true, timeLeftEntity: "home|sensor.finish", presentation: "activity-compact" });
+});
 
 it("adds, saves and reopens camera triggers, preserving filters when the first trigger is removed", async () => {
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };

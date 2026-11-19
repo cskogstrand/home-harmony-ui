@@ -1,3 +1,4 @@
+import { NotificationActivityPreviews } from "@/components/NotificationCenter";
 import { calendarRange, moveCalendarDate, uniqueCalendarPlans, type CalendarView } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
@@ -59,6 +60,7 @@ export default function Calendar() {
 
   return <div className="planner-page calendar-page">
     <PageHeading title={t("Calendar")}><Button onClick={() => openEvent()}><Plus size={18} aria-hidden="true" />{t("Add a plan")}</Button></PageHeading>
+    <NotificationActivityPreviews />
     <section className="glow-panel calendar-toolbar" aria-label={t("Calendar navigation")}>
       <div className="calendar-navigation">
         <div className="calendar-date-navigation">

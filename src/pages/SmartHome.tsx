@@ -1,3 +1,4 @@
+import { NotificationActivityPreviews } from "@/components/NotificationCenter";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useI18n } from "@/hooks/use-i18n";
 import { entityDetailPath, smartHomeEntities } from "@/lib/device-model";
@@ -37,6 +38,7 @@ export default function SmartHome() {
         {haUrl && <><a className="text-link min-h-11" href={`${haUrl}/history`} target="_blank" rel="noreferrer">{t("Open Home Assistant history")}<ArrowUpRight size={17} aria-hidden="true" /></a><a className="text-link min-h-11" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Open Home Assistant integrations")}<ArrowUpRight size={17} aria-hidden="true" /></a></>}
       </SettingsPopover>
     </div></PageHeading>
+    <NotificationActivityPreviews />
     {/* Online, summarize only what this home has; offline, keep every tile so unavailable never reads as absent. */}
     {!!devices.length && (!homeOnline || !!lights.length || climate || !!alarms.length) && <div className="smart-summary">
       {(!homeOnline || !!lights.length) && <Link to="/devices"><Lightbulb /><span>{t("Lighting")} <strong>{!homeOnline ? t("Offline") : !lightsOn ? t("All lights off") : t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn })}</strong></span><ArrowUpRight size={18} /></Link>}

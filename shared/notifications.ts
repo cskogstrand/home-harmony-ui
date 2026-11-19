@@ -54,6 +54,8 @@ export const notificationRuleSchema = z.object({
   additionalTriggers: z.array(notificationTriggerSchema).max(MAX_NOTIFICATION_TRIGGERS - 1).optional(),
   pages: z.enum(["today", "main"]).optional(),
   presentation: notificationPresentationSchema.optional(),
+  livePreviewBelowTitle: z.boolean().optional(),
+  timeLeftEntity: reference.optional(),
   detailEntity: z.string().max(512).optional(),
   // One extra slot preserves a named camera-state reading from older rules.
   detailEntities: z.array(reference).max(101).refine(ids => new Set(ids).size === ids.length).optional(),

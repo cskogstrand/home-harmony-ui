@@ -1,5 +1,5 @@
 import type { ZodIssue } from "zod";
-import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay } from "../../shared/notifications";
+import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay, type NotificationPresentation } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
 
@@ -16,6 +16,47 @@ export interface HomeNotification {
 }
 export interface NotificationEvent { event_type: string; data: Record<string, unknown> }
 export const notificationEntity = (entities: Entity[], id: string) => entities.find(entity => entity.preferenceId === id);
+
+export function supportsLiveActivityPreview(rule: NotificationRule, presentation: NotificationPresentation) {
+  const style = rule.presentation ?? presentation;
+  return rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && (style === "activity" || style === "activity-compact");
+}
+
+export function showsLiveActivityPreview(rule: NotificationRule, presentation: NotificationPresentation) {
+  return supportsLiveActivityPreview(rule, presentation) && (rule.livePreviewBelowTitle ?? rule.icon === "printer_3d");
+}
+
+const remainingTimeName = /remaining|time[ _]left|tid[ _]igjen|gjenstående|end[ _]time|finish(?:es|[ _]time)?\b|estimated[ _]completion|ferdigtid|sluttid/i;
+const minutesPerUnit = new Map([["ms", 1 / 60000], ["s", 1 / 60], ["min", 1], ["h", 60], ["d", 1440]]);
+export function isNotificationTimeSource(entity: Entity) {
+  return entity.domain === "sensor" && entity.attributes.mode !== "password" && (entity.attributes.device_class === "timestamp" || minutesPerUnit.has(String(entity.attributes.unit_of_measurement)));
+}
+
+export function notificationMinutesLeft(rule: NotificationRule, entities: Entity[], now: number) {
+  const source = rule.timeLeftEntity ? notificationEntity(entities, rule.timeLeftEntity) : rule.detailEntities
+    .map(id => notificationEntity(entities, id))
+    .find(entity => entity && isNotificationTimeSource(entity) && remainingTimeName.test(entity.entityId + " " + entity.name));
+  if (source || rule.timeLeftEntity) {
+    if (!source || !isNotificationTimeSource(source) || !available(source)) return undefined;
+    let minutes: number;
+    if (source.attributes.device_class === "timestamp") {
+      minutes = (Date.parse(source.state) - now) / 60000;
+    } else {
+      const value = progressNumber(source.state);
+      if (value === undefined || value < 0) return undefined;
+      minutes = value * minutesPerUnit.get(String(source.attributes.unit_of_measurement));
+    }
+    return Number.isFinite(minutes) ? Math.max(0, Math.ceil(minutes)) : undefined;
+  }
+  const progress = rule.progress;
+  if (!progress || progress.current.attribute) return undefined;
+  const current = notificationEntity(entities, progress.current.entity);
+  const unit = minutesPerUnit.get(String(current?.attributes.unit_of_measurement));
+  const range = notificationProgress(progress, entities);
+  if (!unit || !range) return undefined;
+  const remaining = (range.end - range.current) * Math.sign(range.end - range.start) * unit;
+  return Number.isFinite(remaining) ? Math.max(0, Math.ceil(remaining)) : undefined;
+}
 
 export function showsOngoingSummary(items: HomeNotification[], phone: boolean, errors: string[]) {
   return phone && items.length > 0 && !errors.length && items.every(item => item.rule.kind === "ongoing");
@@ -161,5 +202,5 @@ export class NotificationEngine {
   }
 }
 
-const sections: Record<string, string> = { title: "content", message: "content", pages: "content", presentation: "presentation", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+const sections: Record<string, string> = { title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "presentation", timeLeftEntity: "presentation", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
 export const notificationIssueSection = (issue: ZodIssue) => sections[issue.path[0]] ?? "content";

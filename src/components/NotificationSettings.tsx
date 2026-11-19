@@ -8,7 +8,7 @@ import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { notificationEntity, notificationReadings, notificationIssueSection } from "@/lib/notifications";
+import { isNotificationTimeSource, notificationEntity, notificationReadings, notificationIssueSection, showsLiveActivityPreview, supportsLiveActivityPreview } from "@/lib/notifications";
 import { MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger } from "../../shared/notifications";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
@@ -223,6 +223,10 @@ export function NotificationSettings() {
         </NotificationEditorSection>}
         <NotificationEditorSection value="presentation" title={t("Display as")} icon={Eye} open={openSections.includes("presentation")}>
           <NotificationStylePicker value={draft.presentation ?? notifications.presentation} disabled={disabled} onChange={presentation => setDraft({ ...draft, presentation })} />
+          {supportsLiveActivityPreview(draft, notifications.presentation) && <>
+            <div className="notification-toggle"><span>{t("Show live preview below the page title")}</span><Switch aria-label={t("Show live preview below the page title")} checked={showsLiveActivityPreview(draft, notifications.presentation)} disabled={disabled} onCheckedChange={livePreviewBelowTitle => setDraft({ ...draft, livePreviewBelowTitle })} /></div>
+            {showsLiveActivityPreview(draft, notifications.presentation) && <EntityPicker name="timeLeftEntity" label={t("Time left sensor")} clearLabel={t("Automatic")} placeholder={t("Automatic")} entities={selectable.filter(isNotificationTimeSource)} value={draft.timeLeftEntity ?? ""} disabled={disabled} onChange={id => setDraft({ ...draft, timeLeftEntity: id || undefined })} />}
+          </>}
         </NotificationEditorSection>
         <NotificationEditorSection value="appearance" title={t("Icon and animation")} icon={Palette} open={openSections.includes("appearance")}>
           <NotificationIconPicker rule={draft} disabled={disabled} onChange={icon => setDraft({ ...draft, icon })} />

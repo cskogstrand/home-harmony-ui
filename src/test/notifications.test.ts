@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { notificationIcons, notificationRuleSchema, notificationSettingsSchema, type NotificationRule } from "../../shared/notifications";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
-import { matchesState, notificationProgress, notificationReadings, NotificationEngine } from "@/lib/notifications";
+import { matchesState, notificationMinutesLeft, notificationProgress, notificationReadings, NotificationEngine, showsLiveActivityPreview } from "@/lib/notifications";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
@@ -11,6 +11,34 @@ const now = Date.parse("2026-10-24T12:00:00Z");
 const zone = "Europe/Oslo";
 
 describe("notification configuration", () => {
+  it("defaults the below-title preview to ongoing printer cards with a live camera and preserves overrides in backups", () => {
+    const printer = rule({ icon: "printer_3d", cameraEntity: "example-camera" });
+    expect(showsLiveActivityPreview(printer, "activity")).toBe(true);
+    expect(showsLiveActivityPreview(printer, "banner")).toBe(false);
+    expect(showsLiveActivityPreview({ ...printer, livePreviewBelowTitle: false }, "activity")).toBe(false);
+    expect(showsLiveActivityPreview({ ...printer, cameraMedia: "person" }, "activity")).toBe(false);
+    expect(showsLiveActivityPreview({ ...printer, cameraEntity: "" }, "activity")).toBe(false);
+    const custom = { ...printer, icon: undefined, livePreviewBelowTitle: true, timeLeftEntity: "home|sensor.finish" };
+    expect(showsLiveActivityPreview(custom, "activity-compact")).toBe(true);
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = [custom];
+    expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0]).toMatchObject({ livePreviewBelowTitle: true, timeLeftEntity: custom.timeLeftEntity });
+  });
+  it("reads time left from a duration or finish timestamp and never treats a percentage as time", () => {
+    const finish = entities("2026-10-24T13:05:30Z", { device_class: "timestamp" }, "sensor.finish");
+    const duration = entities("150", { unit_of_measurement: "s" }, "sensor.remaining");
+    const both = [...duration, ...finish];
+    const auto = rule({ detailEntities: ["home|sensor.finish"] });
+    expect(notificationMinutesLeft(auto, both, now)).toBe(66);
+    expect(notificationMinutesLeft(auto, both, now + 7200000)).toBe(0);
+    const selected = { ...auto, timeLeftEntity: "home|sensor.remaining" };
+    expect(notificationMinutesLeft(selected, both, now)).toBe(3);
+    expect(notificationMinutesLeft(selected, finish, now)).toBeUndefined();
+    expect(notificationMinutesLeft(selected, entities("unavailable", { unit_of_measurement: "min" }, "sensor.remaining"), now)).toBeUndefined();
+    const countdown = rule({ progress: { current: { type: "entity", entity: "home|sensor.example", attribute: "" }, start: { type: "value", value: 2 }, end: { type: "value", value: 0 } } });
+    expect(notificationMinutesLeft(countdown, entities("1.5", { unit_of_measurement: "h" }), now)).toBe(90);
+    expect(notificationMinutesLeft(countdown, entities("1.5", { unit_of_measurement: "%" }), now)).toBeUndefined();
+  });
   it("keeps legacy triggers and round-trips multiple validated triggers through backups", () => {
     expect(rule().additionalTriggers).toBeUndefined();
     const extra = { type: "state" as const, entity: "home|sensor.other", attribute: "", operator: "gt" as const, value: "10" };

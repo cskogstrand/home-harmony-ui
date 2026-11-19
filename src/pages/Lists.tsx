@@ -1,3 +1,4 @@
+import { NotificationActivityPreviews } from "@/components/NotificationCenter";
 import { useI18n } from "@/hooks/use-i18n";
 import { useLayoutEffect, useRef } from "react";
 import { useRevealSelection } from "@/hooks/use-reveal-selection";
@@ -43,6 +44,7 @@ export default function Lists() {
   const shown = tabs.filter(tab => tab.id === selected || !connectedPlanner || !homeOnline || Object.values(todoLists).some(list => list.kind === tab.id));
   const tabList = useRevealSelection<HTMLDivElement>(selected, shown.length);
   return <div className="planner-page lists-page"><PageHeading title={t("Lists")} />
+    <NotificationActivityPreviews />
     <div ref={tabList} className="list-tabs" role="group" aria-label={t("Family lists")}>{shown.map(tab => <button aria-pressed={tab.id === selected} aria-controls={`list-${tab.id}`} id={`tab-${tab.id}`} key={tab.id} onClick={() => setParams({ tab: tab.id })}>{message(tab.name)} <span>{count(tab.id)}</span></button>)}</div>
     <section ref={viewport} className="glow-panel list-viewport" aria-labelledby={`tab-${selected}`} id={`list-${selected}`}><ListPanel key={selected} kind={selected} /></section>
   </div>;
