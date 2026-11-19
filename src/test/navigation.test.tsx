@@ -1083,6 +1083,8 @@ it.each([
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   await saved();
   expect(day.getAllByRole("region").map(row => row.getAttribute("aria-label"))).toEqual(["Today", "Tomorrow"]);
+  expect(day.getAllByRole("heading", { name: "Example person" })).toHaveLength(1);
+  expect(day.getAllByRole("heading", { name: "Everyone" })).toHaveLength(1);
   expect(day.getAllByRole("heading", { name: /^Today / })).toHaveLength(1);
   expect(day.getAllByRole("heading", { name: /^Tomorrow / })).toHaveLength(1);
   const todayRow = within(day.getByRole("region", { name: "Today" }));
@@ -1127,7 +1129,6 @@ it.each(["loading", "failed", "offline", "missing"])("does not claim daily plans
   for (const label of ["Today", "Tomorrow"]) {
     const person = within(day.getByRole("region", { name: label })).getByRole("group", { name: "Example person" });
     expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars and to-do lists are unavailable while offline." : "Some calendars or to-do lists could not be loaded.");
-    expect(within(person).getByRole("heading", { name: "Example person" })).toBeInTheDocument();
     expect(within(person).queryByRole("img")).not.toBeInTheDocument();
   }
   expect(day.queryByText("No plans today.")).not.toBeInTheDocument();
@@ -2068,7 +2069,7 @@ it("marks tasks in Today's person columns without repeating their owner's name",
   render(<App />);
   const day = within(await screen.findByRole("region", { name: "Everyone’s day" }));
   const person = within(day.getByRole("group", { name: "Example person" }));
-  expect(person.getByRole("heading", { name: "Example person" })).toBeInTheDocument();
+  expect(day.getByRole("heading", { name: "Example person" })).toBeInTheDocument();
   const task = await person.findByRole("button", { name: /Example deadline/ });
   expect(within(task).getByRole("img", { name: "Task" })).toBeVisible();
   const appointment = person.getByRole("button", { name: /Example appointment/ });

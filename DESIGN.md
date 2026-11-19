@@ -259,7 +259,7 @@ Home Assistant connection issues appear in a banner below the header with a link
 | Width ≤800px | Device rows put controls below the title and retain readable metadata. |
 | Width ≤699px | Gutters and panels use 1rem; the board and primary grids stack; navigation floats within .75rem side margins, with icons above labels. |
 
-Each person’s name and avatar sit directly above their plans in Everyone’s day. Today and Tomorrow each keep their own labeled groups when the columns wrap. Month view uses the shared event cards with a two-line title, time and person. Tapping an event opens its full details. Phones show the plan count on each date and open its agenda.
+Everyone’s day shows one 4rem avatar centered above each person’s name. Today and Tomorrow share those columns, with one date heading per row of people. When the card narrows, the next group starts below both days. Month view uses the shared event cards with a two-line title, time and person. Tapping an event opens its full details. Phones show the plan count on each date and open its agenda.
 
 The weekly grid uses horizontal overflow when necessary, with a sticky person column. A 63rem minimum keeps narrow layouts scrollable. At 1440 × 2560, all seven dates fit beside a 6rem person column, with room for a start and end time on one line at the default reading scale. Multi-day events remain aligned across dates. Event text breaks only between words or at hyphenation points in the document language. Week-grid event titles clamp at four lines; the event dialog shows the full title. Each empty week cell has an icon-only add button whose accessible label names the person and date. Content below the viewport stays reachable by scrolling.
 
