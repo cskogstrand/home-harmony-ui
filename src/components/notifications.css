@@ -66,21 +66,22 @@
 .notification-summary > .text-link { min-height: 44px; }
 .notification-activity .notification-progress:last-child { margin-top: auto; padding-top: .5rem; }
 @container (min-width: 31rem) {
-  .notification-activity-compact .notification-body:has(.notification-media-side) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); column-gap: 1rem; align-content: start; align-items: start; }
+  .notification-activity-compact .notification-body:has(.notification-media-side) { display: grid; grid-template-columns: minmax(0, 1fr) min(50%, 20rem); grid-template-rows: auto auto 1fr; column-gap: .75rem; align-items: start; }
   .notification-activity-compact .notification-body:has(.notification-media-side) > * { grid-column: 1; }
   .notification-activity-compact .notification-body:has(.notification-media-side) > .notification-activity-readings { grid-column: 2; grid-row: 1 / span 3; margin: 0; }
-  .notification-activity-compact .notification-body:has(.notification-media-side) > .notification-progress { grid-column: 1 / -1; align-self: end; }
+  .notification-activity-compact .notification-body:has(.notification-media-side) > :is(.notification-progress, .notification-progress-unavailable, .notification-image-feed, .notification-camera-feed) { grid-column: 1 / -1; }
 }
 .notification-activity-readings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: 1rem; }
 .notification-activity-readings > div { min-width: 0; display: flex; flex-direction: column; gap: 1rem; }
 .notification-activity-readings > [data-placement="left"] { grid-column: 1; grid-row: 1; }
 .notification-activity-readings > [data-placement="right"] { grid-column: 2; grid-row: 1; border-left: 1px solid hsl(var(--border)); padding-left: 1rem; }
+.notification-activity-readings:has(.notification-media-side) > [data-placement="right"] { border: 0; padding: 0; }
 .notification-activity-readings > div:only-child { grid-column: 1 / -1; border: 0; padding-left: 0; }
 .notification-activity-readings > div > div { display: flex; flex-direction: column; gap: .25rem; }
 .notification-activity-readings .notification-media-side { gap: 0; }
 .notification-media-side :is(.notification-camera-feed, .notification-image-feed) { margin-top: 0; }
 .notification-media-side .notification-image-feed .smart-entity-media { aspect-ratio: 16 / 9; }
-.notification-media-side .notification-image-feed img { max-height: 100%; min-height: 0; }
+.notification-media-side .notification-image-feed img { height: 100%; min-height: 0; }
 .notification-media-side .notification-camera-placeholder { min-height: 4rem; }
 .notification-media-side .smart-media-status { top: 0; left: 0; align-items: flex-start; justify-content: flex-start; padding: 4px; }
 .notification-media-side .smart-media-status,
@@ -149,14 +150,15 @@
   .notification-activity { padding: 1rem; gap: .75rem; }
   .notification-activity-heading .notification-icon svg { width: 2rem; height: 2rem; }
 }
-.notification-activity-compact { padding: .875rem; gap: .375rem .625rem; border-radius: 16px; }
+.notification-activity-compact { align-self: flex-start; padding: .5rem .625rem; border-radius: 16px; }
+.notification-activity-compact > .notification-body { row-gap: .25rem; }
 .notification-activity-compact .notification-icon svg { width: 1.5rem; height: 1.5rem; }
 .notification-activity-compact .notification-activity-heading strong { font-size: 1rem; }
-.notification-activity-compact .notification-activity-readings { margin-top: .25rem; gap: .625rem; }
+.notification-activity-compact .notification-activity-readings { margin-top: 0; gap: .5rem; }
 .notification-activity-compact .notification-activity-readings > div { gap: .375rem; }
 .notification-activity-compact .notification-activity-readings strong { font-size: 1.125rem; }
-.notification-activity-compact .notification-progress { margin-top: .375rem; gap: .25rem; }
-.notification-activity-compact .notification-reading-footer, .notification-activity-compact .notification-progress-unavailable { margin-top: .25rem; }
+.notification-activity-compact .notification-progress:last-child { display: flex; flex-direction: row-reverse; align-items: center; gap: .5rem; margin: 0; padding: 0; }
+.notification-activity-compact .notification-reading-footer, .notification-activity-compact .notification-progress-unavailable { margin-top: 0; }
 @media (forced-colors: active) {
   .notification-preview-surface button:disabled { color: ButtonText; }
   .notification-icon-options > button[aria-pressed="true"] { outline: 2px solid Highlight; }
