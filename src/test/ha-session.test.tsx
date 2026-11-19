@@ -2112,6 +2112,7 @@ it("remembers timetable toggles across school, dashboard and reload without losi
   if (screen.queryByRole("alertdialog")) await confirmAction("Hide timetable");
   await navigate("School");
   expect(screen.getByText(/No timetables enabled/)).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Enable timetables" })).toHaveAttribute("href", "/settings/people");
   expect(screen.queryByRole("heading", { name: /’s school week/ })).not.toBeInTheDocument();
   await navigate("Today");
   expect(screen.queryByRole("button", { name: /Enlarge .* timetable/ })).not.toBeInTheDocument();

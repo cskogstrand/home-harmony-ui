@@ -603,9 +603,11 @@ fieldset.settings-card > legend + * { clear: both; }
 .school-reminder { border-block: 1px solid hsl(var(--border)); padding-block: 21px; margin-bottom: 9px; }
 .school-reminder p { margin-top: 10px; line-height: 1.7; color: hsl(var(--muted-foreground)); font-size: 0.9375rem; }
 .school-card .planner-form { margin-top: 15px; }
-.smart-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: 0 0 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid hsl(var(--border)); }
+.smart-nav { display: flex; overflow-x: auto; scrollbar-width: thin; align-items: center; gap: .4rem; padding: 0 0 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid hsl(var(--border)); }
+.smart-nav > * { flex-shrink: 0; white-space: nowrap; }
+.smart-nav :is(a, button):focus-visible { outline-offset: -3px; }
 .smart-nav a { display: flex; align-items: center; gap: .5rem; padding: .65rem .8rem; min-height: 48px; font-size: .9375rem; color: hsl(var(--muted-foreground)); border-radius: var(--radius-capsule); }
-.smart-nav a[aria-current="page"] { color: hsl(var(--primary)); background: hsl(var(--secondary)); }
+.smart-nav a[aria-current="page"] { font-weight: 600; color: hsl(var(--primary)); background: hsl(var(--secondary)); }
 .connection-pill { display: flex; align-items: center; gap: 9px; color: hsl(var(--primary)); font-size: 0.875rem; white-space: nowrap; }
 .connection-pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .smart-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 16px; }
@@ -666,9 +668,9 @@ fieldset.settings-card > legend + * { clear: both; }
 .calendar-segment button:hover { background: hsl(var(--secondary)); }
 .weekly-panel { padding: 12px; }
 .weekly-scroll { overflow-x: auto; scrollbar-width: thin; border-radius: 13px; min-width: 0; }
-.family-week-table { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
+.family-week-table { width: 100%; min-width: 63rem; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
 .week-member-column { width: 108px; }
-.family-week-table th, .family-week-table td { padding: 10px 8px; border-bottom: 1px solid hsl(var(--border) / .6); border-right: 1px solid hsl(var(--border) / .45); }
+.family-week-table th, .family-week-table td { padding: 10px .375rem; border-bottom: 1px solid hsl(var(--border) / .6); border-right: 1px solid hsl(var(--border) / .45); }
 .family-week-table tr > :last-child { border-right: 0; }
 .family-week-table .week-event-row:not(:last-child) td { border-bottom: 0; }
 .family-week-table tbody:last-child th, .family-week-table tbody:last-child tr:last-child td { border-bottom: 0; }
@@ -778,14 +780,13 @@ fieldset.settings-card > legend + * { clear: both; }
 .calendar-pagination { margin-bottom: 1rem; }
 .calendar-pagination > .calendar-view-controls { margin-left: auto; }
 .family-week > .page-note { margin: 0 0 .75rem; }
-.family-week-table { font-size: .875rem; min-width: 840px; }
 .week-member-column { width: 120px; }
 .family-week-table .event-button strong { font-size: .9375rem; }
 .family-week-table .event-time { font-size: .875rem; }
 .week-add-plan { font-size: .8125rem; min-height: 48px; }
 .smart-more { margin-left: auto; }
 .smart-more > button { display: inline-flex; align-items: center; gap: .5rem; min-height: 48px; padding: .65rem .8rem; font-size: .9375rem; border-radius: var(--radius-capsule); color: hsl(var(--muted-foreground)); }
-.smart-more > button[data-active="true"] { color: hsl(var(--primary)); background: hsl(var(--secondary)); }
+.smart-more > button[data-active="true"] { font-weight: 600; color: hsl(var(--primary)); background: hsl(var(--secondary)); }
 .smart-menu { min-width: 220px; }
 .smart-menu [role="menuitem"] { min-height: 48px; gap: .75rem; font-size: .9375rem; }
 .optional-fields summary { min-height: 48px; cursor: pointer; padding-block: .75rem; font-size: .9375rem; color: hsl(var(--primary)); }
@@ -806,7 +807,6 @@ fieldset.settings-card > legend + * { clear: both; }
   .portrait-board > .family-week:has(+ .list-panel + .list-panel) { grid-row: span 2; }
   .portrait-board > .family-week + .list-panel, .portrait-board > .family-week + .list-panel + .list-panel { grid-column: span 2; }
   .portrait-board > .school-strip { grid-column: 1 / -1; }
-  .family-week-table { min-width: 760px; }
 }
 
 @media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
@@ -826,12 +826,13 @@ fieldset.settings-card > legend + * { clear: both; }
   .family-dock a svg { width: 28px; height: 28px; }
   .panel-heading h2 { font-size: 1.4rem; }
   .text-link, .hub-state, .empty-note, .muted, .page-note, .planner-form label { font-size: .95rem; }
-  .family-week-table { min-width: 0; font-size: 1rem; }
-  .week-member-column { width: 150px; }
-  .family-week-table th, .family-week-table td { padding: .3rem .4rem; }
+  .family-week-table { font-size: 1rem; }
+  .week-member-column { width: 6rem; }
+  .family-week-table th, .family-week-table td { padding: .3rem .25rem; }
   .family-week-table .event-button strong, .family-week-table thead time > strong { font-size: 1rem; }
   .family-week-table .event-time, .family-week-table thead time > span, .week-add-plan { font-size: .9rem; }
-  .family-week-table .event-button { min-height: 64px; }
+  .family-week-table .event-button { min-height: 64px; padding-inline: .85rem .35rem; }
+  .week-add-plan, .calendar-week-day { min-height: 56px; }
   .calendar-segment button, .calendar-current-week, .calendar-week-number { font-size: .9rem; }
   .check-row, .check-row :is(label, .edit-item) { min-height: 64px; font-size: 1.1rem; }
   .check-mark { width: 26px; height: 26px; }
@@ -841,7 +842,8 @@ fieldset.settings-card > legend + * { clear: both; }
   .school-preview .timetable-image { max-height: 200px; }
   .school-strip { gap: 1rem; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .icon-button { min-width: 48px; min-height: 48px; }
+  .header-actions .icon-button { min-width: 60px; min-height: 60px; }
+  .header-actions .icon-button > svg { width: 26px; height: 26px; }
   .compact-mode { --panel-space: 1rem; }
 }
 
@@ -910,8 +912,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .list-tabs button { font-size: .875rem; flex: 1 0 auto; flex-wrap: nowrap; white-space: nowrap; gap: .5rem; min-height: 48px; padding: .5rem .875rem; }
   .school-strip { gap: 1rem; grid-template-columns: 1fr; }
   .school-preview .timetable-image { max-height: 240px; }
-  .smart-nav { gap: .25rem; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: .5rem; margin-bottom: 1rem; }
-  .smart-nav > * { flex-shrink: 0; white-space: nowrap; }
+  .smart-nav { gap: .25rem; padding-bottom: .5rem; margin-bottom: 1rem; }
   .smart-nav a, .smart-more > button { font-size: .8125rem; padding: .5rem; }
   .smart-nav a svg { width: 16px; }
   .smart-more { margin-left: 0; }

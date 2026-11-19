@@ -10,6 +10,8 @@ When a native Sonos group plays a source other than TV, one mini player appears 
 
 Open the mini player's room dropdown to choose a destination. Each option names its rooms, track and playback state; the selected stopped group remains available during the countdown. A visible **playing separately** count identifies multiple independent groups; the menu repeats that count. Choosing a destination only changes which group the controls target; it does not join groups or move music. The mini player follows the navigation dock's rounded shape, with circular artwork, a prominent play/pause button and inline volume.
 
+On phones, tap the circular artwork with the expand icon to open the full player. The transport buttons sit beside the track, with room selection and volume underneath.
+
 **Open full player** opens the same player used on the Sonos page in a dialog, including **Your music**, **Group settings** and **Speaker settings**. Closing it returns focus to the expand button. The dock animates the mini player's arrival and departure, respects reduced motion, and reserves enough page space to keep the bottom content reachable.
 
 ## Listen

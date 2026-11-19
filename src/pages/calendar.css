@@ -45,7 +45,6 @@
   .calendar-view-switch { flex: 1 1 max-content; flex-wrap: wrap; }
   .calendar-view-switch > button { flex: 1; }
   .calendar-local-note { font-size: .875rem; }
-  .calendar-page .family-week-table { min-width: 1100px; }
   .calendar-month { padding: .375rem; }
   .calendar-month-day { min-height: 5rem; padding: .125rem; }
   .calendar-month-date { min-height: 4.5rem; flex-direction: column; justify-content: flex-start; gap: .125rem; padding: 0; }

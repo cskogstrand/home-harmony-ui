@@ -1344,6 +1344,25 @@ it.each(["/", "/calendar"])("marks Monday week changes and keeps today's week vi
   expect(screen.getByText("Today · Week 53")).toBeInTheDocument();
 });
 
+it("returns from an unknown address to Today through the app", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  window.history.replaceState(null, "", "/missing-page");
+  render(<App />);
+  expect(await screen.findByRole("heading", { name: "Page not found" })).toBeVisible();
+  expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
+  fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
+  expect(await screen.findByRole("heading", { name: "Today" })).toBeVisible();
+});
+
+it.each(["/history", "/integrations"])("offers connection settings when %s has no Home Assistant URL", async path => {
+  app.haUrl = "";
+  app.homeOnline = false;
+  window.history.replaceState(null, "", path);
+  render(<App />);
+  expect(await screen.findByRole("link", { name: "Open connection settings" })).toHaveAttribute("href", "/settings/connection");
+});
+
 it("offers one setup entry on Today and keeps guidance off the everyday boards", async () => {
   render(<App />); await saved();
   expect(screen.getByRole("link", { name: "Get started" })).toHaveAttribute("href", "/onboarding");

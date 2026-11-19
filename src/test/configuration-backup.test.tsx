@@ -92,12 +92,14 @@ it("ignores old browser settings and loads shared settings while HA is offline",
 
 it("keeps failed imports recoverable and blocks editing while a conflict is unresolved", async () => {
   mount(); await screen.findByText("Shared configuration saved.");
+  expect(screen.queryByRole("button", { name: "Retry storage" })).not.toBeInTheDocument();
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
   await upload(JSON.stringify(backup()));
   await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
   expect(screen.getByRole("alertdialog")).toHaveTextContent("Another screen changed");
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
   expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Retry storage" })).toBeEnabled();
   const count = app.configurationRequest.mock.calls.length;
   fireEvent.click(screen.getByRole("button", { name: "Change view" }));
   expect(app.configurationRequest.mock.calls).toHaveLength(count);

@@ -3,7 +3,6 @@ import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft, Bell, BookOpen, CalendarDays, Camera, CarFront, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { SmartHomeSettings } from "@/components/SmartHomeSettings";
@@ -50,7 +49,6 @@ export default function Settings() {
   const { hash, search } = useLocation();
   const { t, message } = useI18n();
   const { currentHome, homeOnline } = useApp();
-  const shared = useSharedConfiguration();
   const heading = useRef<HTMLHeadingElement>(null);
   const selected = groups.flatMap(group => group.items).find(item => item.id === section);
   useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [section]);
@@ -84,11 +82,7 @@ export default function Settings() {
     </div>
     {menu}
     {selected && <div className="settings-content" key={section}>
-      {section !== "backups" && section !== "smart-home" && (shared.state.error || shared.state.dirty && !shared.state.saving) && <div className="settings-storage-warning" role="alert">
-        <p>{shared.state.error ? message(shared.state.error) : t("Shared settings are not saved yet.")}</p>
-        <Link className="text-link" to="/settings/backups">{t("Storage and backups")}</Link>
-      </div>}
-      <SharedSettingsStatus />
+      {section === "backups" ? <p className="shared-settings-status">{t("Applies to every screen connected to this server.")}</p> : <SharedSettingsStatus showRecovery />}
       {selected.content}
       {section === "people" && <Link className="settings-related text-link" to="/settings/timetables">{t("Configure timetables")}<ChevronRight size={17} aria-hidden="true" /></Link>}
     </div>}

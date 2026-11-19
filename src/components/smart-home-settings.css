@@ -27,8 +27,6 @@
 .smart-danger p { max-width: 58ch; font-size: .875rem; line-height: 1.55; margin-top: .4rem; color: hsl(var(--muted-foreground)); }
 .smart-remove-card { color: hsl(var(--destructive)); flex-shrink: 0; }
 .smart-danger > a { font-size: .875rem; }
-.smart-settings-status { min-height: 3rem; margin: 1rem .3rem; font-size: .875rem; color: hsl(var(--muted-foreground)); line-height: 1.6; }
-.smart-settings-status [role="alert"] { color: hsl(var(--destructive)); }
 .smart-builder-back { margin: -.5rem 0 1.25rem -.75rem; }
 .smart-type-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0 2rem; }
 .smart-type-search { flex: 1; min-width: 12rem; position: relative; }

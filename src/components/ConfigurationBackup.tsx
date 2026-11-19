@@ -1,4 +1,3 @@
-import { Database } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -6,7 +5,6 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { PanelHeading } from "@/components/FamilyPlanner";
 import { MAX_CONFIG_BYTES, parseConfiguration, type Configuration } from "../../shared/configuration";
 
 export function ConfigurationBackup() {
@@ -31,17 +29,12 @@ export function ConfigurationBackup() {
       setError("");
     } catch { setError("Could not export the configuration. Try again before closing this screen."); }
   };
-  return <section className="glow-panel space-y-4">
-    <PanelHeading icon={Database} title={t("Storage and backups")} />
-    <p className="page-note">{t("Backups include shared app settings and timetable links. They exclude uploaded files, Home Assistant data, passwords and alarm codes.")}</p>
-      <p role="status">{shared.state.saving ? t("Saving shared configuration…") : shared.state.dirty ? t("Unsaved changes on this screen.") : shared.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
-      {shared.state.error && <p role="alert" className="text-destructive">{message(shared.state.error)}</p>}
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" disabled={shared.state.saving} onClick={() => { void shared.store.retry().catch(() => {}); }}>{t("Retry storage")}</Button>
-        <Button variant="outline" disabled={shared.state.saving} onClick={() => setReload(true)}>{t("Load shared version")}</Button>
-      </div>
+  return <section className="glow-panel space-y-4" aria-label={t("Storage and backups")}>
+    <p className="muted">{t("Backups include shared app settings and timetable links. They exclude uploaded files, Home Assistant data, passwords and alarm codes.")}</p>
+    {shared.state.error ? <p role="alert" className="text-destructive">{message(shared.state.error)}</p>
+      : <p role="status">{shared.state.saving ? t("Saving shared configuration…") : shared.state.dirty ? t("Unsaved changes on this screen.") : shared.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>}
     <div className="flex flex-wrap gap-2">
-      <Button variant="outline" disabled={!shared.state.loaded} onClick={download}>{shared?.state.dirty ? t("Export unsaved configuration") : t("Export configuration")}</Button>
+      <Button disabled={!shared.state.loaded} onClick={download}>{shared?.state.dirty ? t("Export unsaved configuration") : t("Export configuration")}</Button>
       <Button variant="outline" disabled={blocked} onClick={() => fileInput.current?.click()}>{reading ? t("Reading backup…") : t("Import configuration")}</Button>
       <input ref={fileInput} type="file" accept=".json,application/json" className="sr-only" aria-label={t("Configuration backup file")} disabled={blocked} onChange={async event => {
         const file = event.target.files?.[0];
@@ -54,6 +47,10 @@ export function ConfigurationBackup() {
         } catch (error) { setError(error instanceof Error ? error.message : "Cannot read this backup."); }
         finally { setReading(false); }
       }} />
+    </div>
+    <div className="flex flex-wrap gap-2">
+      {shared.state.error && <Button variant="outline" disabled={shared.state.saving} onClick={() => { void shared.store.retry().catch(() => {}); }}>{t("Retry storage")}</Button>}
+      <Button variant="ghost" disabled={shared.state.saving} onClick={() => setReload(true)}>{t("Load shared version")}</Button>
     </div>
     {error && <p role="alert" className="text-destructive">{message(error)}</p>}
     {pending && <ConfirmDialog open onOpenChange={open => { if (!open) setPending(undefined); }} title={t("Restore configuration?")} confirmLabel={t("Restore configuration")} destructive disabled={blocked}

@@ -11,8 +11,8 @@ import { NotificationProvider } from "@/contexts/NotificationProvider";
 import { CameraPersonImageProvider } from "@/contexts/CameraPersonImageProvider";
 import { CameraPreviewImageProvider } from "@/contexts/CameraPreviewImageProvider";
 import { mainPaths } from "@/lib/navigation";
-import NotFound from "./pages/NotFound";
 
+const NotFound = lazy(() => import("./pages/NotFound"));
 const DeviceGallery = lazy(() => import("./pages/DeviceGallery"));
 const Cameras = lazy(() => import("./pages/Cameras"));
 const Sonos = lazy(() => import("./pages/Sonos"));

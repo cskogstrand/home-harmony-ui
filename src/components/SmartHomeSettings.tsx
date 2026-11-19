@@ -152,7 +152,7 @@ export function SmartHomeSettings() {
   return <div className="smart-settings">
     {selectedId === "new" || selected ? <CardEditor key={selectedId} card={selected} disabled={disabled} onClose={() => open()} /> : <>
       <section className="smart-collection" aria-label={t("Your cards")}>
-        <div className="smart-builder-heading"><div><PanelTitle icon={Layers3}>{t("Your cards")}</PanelTitle><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button className="mobile-icon-button" disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" /><span className="max-[700px]:sr-only">{t("Add card")}</span></Button></div>
+        <div className="smart-builder-heading"><div><PanelTitle icon={Layers3}>{t("Your cards")}</PanelTitle><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" />{t("Add card")}</Button></div>
         {!!selectedId && <p role="status">{t("This card no longer exists. Choose another or add a new one.")}</p>}
         {cards.length ? <ul className="smart-card-list">{cards.map(card => <li key={card.id} className="settings-card"><button onClick={() => open(card.id)} className="smart-card-row"><span className="smart-card-row-icon glass-surface"><card.design.icon size={22} strokeWidth={1.7} aria-hidden="true" /></span><span className="smart-card-row-copy"><strong>{card.title || card.main?.name || t(card.design.subtitle)}</strong> <small>{[t(card.design.subtitle), card.group, t(card.linkedEntities.length ? "{count} entities" : "1 entity", { count: card.linkedEntities.length + 1 })].filter(Boolean).join(" · ")}</small> {!card.main && <small className="smart-card-missing">{t("Main entity unavailable · choose a replacement")}</small>}</span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
           : <div className="smart-collection-empty"><Layers3 size={38} strokeWidth={1.4} aria-hidden="true" /><h3>{t("A place for the things you use")}</h3><p>{t("Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.")}</p></div>}
@@ -160,10 +160,7 @@ export function SmartHomeSettings() {
       </section>
       <section className="smart-danger settings-card" aria-labelledby="smart-danger-title"><PanelTitle id="smart-danger-title" icon={TriangleAlert}>{t("Danger zone")}</PanelTitle><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
     </>}
-    <div className="smart-settings-status"><p role="status">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
-      {!homeOnline && <p>{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
-      {shared?.state.error && <div role="alert"><p>{t(shared.state.error)}</p><Link className="text-link" to="/settings/backups">{t("Storage and backups")}</Link></div>}
-    </div>
+    {!homeOnline && <p className="page-note">{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
     <ConfirmDialog open={reset} onOpenChange={setReset} title="Clear Smart home?" destructive disabled={disabled} confirmLabel="Clear Smart home"
       description="All Smart home cards, groups and scene cards will be removed from every screen. Today’s favourites, other settings and Home Assistant devices will be kept. Restore a settings backup if you need this layout again."
       onConfirm={clearSmartHome} />

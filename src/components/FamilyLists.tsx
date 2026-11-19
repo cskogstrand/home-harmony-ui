@@ -35,7 +35,7 @@ type ListPresence = { itemIds: string[]; completedIds: string[] };
 type TodoCompletion = { index: number; checkbox: HTMLInputElement; origin: { x: number; y: number }; confirmed?: boolean; finale?: boolean; onComplete: () => void };
 function ListPanelSurface() {
   const reduceMotion = useReducedMotion();
-  return <motion.div className="list-panel-surface" aria-hidden="true" layout={!reduceMotion}
+  return <motion.div className="list-panel-surface" aria-hidden="true" layout={reduceMotion ? false : "size"}
     style={{ borderRadius: 24 }} transition={reduceMotion ? { duration: 0 } : rowTransition} />;
 }
 const CheckRow = forwardRef<HTMLDivElement, {

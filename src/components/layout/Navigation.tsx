@@ -1,8 +1,9 @@
-import { isHomeSection, mainPagePath } from "@/lib/navigation";
+import { isHomeSection, mainPagePath, moreItems, smartItems } from "@/lib/navigation";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { Link, useLocation, type Location } from "react-router-dom";
-import { Music2, Camera, House, CalendarDays, ListChecks, BookOpen, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package, ChevronDown, ExternalLink } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronDown, ExternalLink, House, ListChecks, SlidersHorizontal } from "lucide-react";
+import { useRevealSelection } from "@/hooks/use-reveal-selection";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const mainItems = [
@@ -17,25 +18,15 @@ export function MainNav({ locations = {} }: { locations?: Record<string, Locatio
   const { pathname } = useLocation();
   return <nav className="family-dock glass-surface" aria-label={t("Main navigation")}>{mainItems.map(item => <Link className="press-feedback" to={locations[item.path] ?? item.path} key={item.path} aria-current={(item.path === "/home" ? isHomeSection(pathname) : mainPagePath(pathname) === item.path) ? "page" : undefined}><item.icon size={23} strokeWidth={1.8} aria-hidden="true" /><span>{message(item.label)}</span></Link>)}</nav>;
 }
-const smartItems = [
-  { path: "/home", label: "Overview", icon: Grid2X2 }, { path: "/areas", label: "Areas", icon: DoorOpen },
-  { path: "/sonos", label: "Sonos", icon: Music2 },
-  { path: "/devices", label: "Devices", icon: Lightbulb }, { path: "/cameras", label: "Cameras", icon: Camera }, { path: "/moods", label: "Scenes", icon: Sparkles },
-  { path: "/alarm", label: "Security", icon: Shield },
-];
-const moreItems = [
-  { path: "/energy", label: "Car & energy", icon: Zap }, { path: "/zones", label: "Zones", icon: MapPin },
-  { path: "/automations", label: "Automations", icon: Workflow }, { path: "/notifications", label: "Alerts", icon: Bell },
-  { path: "/history", label: "Activity", icon: Clock }, { path: "/integrations", label: "Integrations", icon: Package },
-  { path: "/settings", label: "Home settings", icon: Settings },
-];
 export function SmartHomeNav() {
   const { haUrl } = useApp();
   const { t, message } = useI18n();
   const { pathname } = useLocation();
-  const active = (path: string) => pathname === path || pathname.startsWith(`${path}/`) || path === "/devices" && pathname.startsWith("/entities/");
+  const nav = useRevealSelection<HTMLElement>(pathname);
+  const current = pathname.toLowerCase();
+  const active = (path: string) => current === path || current.startsWith(`${path}/`) || path === "/devices" && current.startsWith("/entities/");
   const selectedMore = moreItems.find(item => active(item.path));
-  return <nav className="smart-nav" aria-label={t("Smart home navigation")}>
+  return <nav ref={nav} className="smart-nav" aria-label={t("Smart home navigation")}>
     {smartItems.map(item => <Link key={item.path} to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>)}
     <div className="smart-more"><DropdownMenu>
       <DropdownMenuTrigger data-active={!!selectedMore}>{selectedMore ? message(selectedMore.label) : t("More controls")}<ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>

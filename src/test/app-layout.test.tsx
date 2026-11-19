@@ -118,6 +118,22 @@ it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device 
   expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
 });
 
+it("reveals the selected destination inside its row without scrolling the page", () => {
+  render(<MemoryRouter initialEntries={["/home"]}><SmartHomeNav /></MemoryRouter>);
+  const nav = screen.getByRole("navigation", { name: "Smart home navigation" });
+  Object.defineProperties(nav, { clientWidth: { value: 320 }, scrollWidth: { value: 800 } });
+  vi.spyOn(nav, "getBoundingClientRect").mockReturnValue(new DOMRect(16, 0, 320, 48));
+  const cameras = screen.getByRole("link", { name: "Cameras" });
+  vi.spyOn(cameras, "getBoundingClientRect").mockReturnValue(new DOMRect(400, 0, 88, 48));
+  fireEvent.click(cameras);
+  expect(nav.scrollLeft).toBe(152);
+  const overview = screen.getByRole("link", { name: "Overview" });
+  vi.spyOn(overview, "getBoundingClientRect").mockReturnValue(new DOMRect(-136, 0, 90, 48));
+  fireEvent.click(overview);
+  expect(nav.scrollLeft).toBe(0);
+  expect(window.scrollTo).not.toHaveBeenCalled();
+});
+
 it("keeps secondary routes discoverable with their current destination visible", () => {
   render(<MemoryRouter initialEntries={["/settings"]}><SmartHomeNav /></MemoryRouter>);
   const trigger = screen.getByRole("button", { name: "Home settings" });
