@@ -241,7 +241,7 @@ Shared range thumbs and filled tracks fall back to the palette's primary color o
 
 The frontmatter records the base roles: the light-weight display clock; semibold page headlines; panel titles; regular supporting copy; and medium compact labels. The Today heading uses a slightly tighter line height (1.2). Times and primary numerical readings use tabular numerals. Page descriptions stop at a readable measure (65ch).
 
-For the large portrait display, the root grows to (20px), the clock uses (5rem), the Today heading (2.2rem), panel headings (1.4rem), list labels (1.1rem), event titles (1rem), and supporting event times (.9rem). This yields readable content around (18–28px). At phone width, the clock uses (3.25rem), the Today heading (1.5rem) and page title (1.8rem). Small navigation captions are an exception to the content scale; their full links remain large touch areas.
+For the large portrait display, the root uses 125% of the browser’s default text size (normally 20px), the clock uses (5rem), the Today heading (2.2rem), panel headings (1.4rem), list labels (1.1rem), event titles (1rem), and supporting event times (.9rem). This yields readable content around (18–28px). At phone width, the clock uses (3.25rem), the Today heading (1.5rem) and page title (1.8rem). Small navigation captions are an exception to the content scale; their full links remain large touch areas.
 
 **The Read Before Decoration Rule.** Use the existing sentence-case heading hierarchy and concise action labels. Give content the strongest typographic emphasis.
 
@@ -253,11 +253,13 @@ Home Assistant connection issues appear in a banner below the header with a link
 
 | Context | Built behavior |
 | --- | --- |
-| Large portrait: width ≥1000px, height ≥1400px, portrait | Root type grows to 20px, with 2.8rem page gutters, 1.2rem panel padding and a 1rem board gap. Favorite and scene rows center their final items at the same width as a full row. |
+| Large portrait: width ≥1000px, height ≥1400px, portrait | Root type grows to 125%, with 2.8rem page gutters, 1.2rem panel padding and a 1rem board gap. Favorite and scene rows center their final items at the same width as a full row. |
 | Wide landscape: width ≥1100px, landscape | Board uses six tracks; the week spans four and lists two. |
 | Width ≤999px | Gutters reduce to 1.5rem and school cards stack. Scene and favorite rows use the space available inside their panel. Dock icons sit above 12px captions, aligned even when labels wrap. |
 | Width ≤800px | Device rows put controls below the title and retain readable metadata. |
 | Width ≤699px | Gutters and panels use 1rem; the board and primary grids stack; navigation floats within .75rem side margins, with icons above labels. |
+
+Each person’s name and avatar sit directly above their plans in Everyone’s day. Today and Tomorrow each keep their own labeled groups when the columns wrap. Month view uses the shared event cards with a two-line title, time and person. Tapping an event opens its full details. Phones show the plan count on each date and open its agenda.
 
 The weekly grid uses horizontal overflow when necessary, with a sticky person column. A 63rem minimum keeps narrow layouts scrollable. At 1440 × 2560, all seven dates fit beside a 6rem person column, with room for a start and end time on one line at the default reading scale. Multi-day events remain aligned across dates. Event text breaks only between words or at hyphenation points in the document language. Week-grid event titles clamp at four lines; the event dialog shows the full title. Each empty week cell has an icon-only add button whose accessible label names the person and date. Content below the viewport stays reachable by scrolling.
 
@@ -321,7 +323,7 @@ Clear labels in rounded capsules. Reuse the shared Button variants: primary, des
 
 ### Inputs and fields
 
-Planner fields use an opaque ground fill, a stronger input border and a minimum height (48px). Labels sit above the field. Primary-colored caret and visible focus remain consistent with other controls. Optional details can expand; planner and list editor bodies scroll within (48dvh), with actions outside the scrolling body. Standard dialogs use a (580px) maximum width, (12px) minimum side gutters and (20px) phone / (24px) desktop padding. The favorites dialog expands to (960px) for its three-column card-type previews. The PIN dialog remains compact at (360px), and timetable previews retain their (1100px) maximum width. Headers reserve room for the close control and wrap long names. Validation and failed-write messages stay beside the operation, with the draft preserved.
+Planner fields use an opaque ground fill, a stronger input border and a minimum height (48px). Labels sit above the field. Primary-colored caret and visible focus remain consistent with other controls. Optional details can expand; planner and list editor bodies scroll within (48dvh), with actions outside the scrolling body. Standard dialogs scale with the reading size up to 36.25rem (580px at the default size or 725px on the portrait wall), with (12px) minimum side gutters and (20px) phone / (24px) desktop padding. The favorites dialog expands to (960px) for its three-column card-type previews. The PIN dialog remains compact at (360px), and timetable previews retain their (1100px) maximum width. Headers reserve room for the close control and wrap long names. Validation and failed-write messages stay beside the operation, with the draft preserved.
 
 ### Chips and segmented controls
 
@@ -434,7 +436,7 @@ Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode
 - **Don't** turn a timetable preview into a cropped substitute for the full, pageable view.
 - **Don't** describe CSS blur and specular edges as native optical refraction.
 
-On linked device cards, the icon, title, room and chevron form one details link at least 48px high. The controls below the heading retain their own touch targets. Shared device sliders retain a 44px interaction height and enlarged thumb hit area at every density. Device metadata uses at least .875rem; headings use 1.0625rem or the established hierarchy. Appearance and Language use the same 16px settings surfaces and 1rem padding as other settings.
+On linked device cards, the icon, title, room and chevron form one details link at least 48px high. The controls below the heading retain their own touch targets. Shared device sliders retain a 44px interaction height and enlarged thumb hit area at every density. The Smart home grid uses a 17.5rem minimum card width, giving three columns on the portrait wall at its default reading size. Compact mode fits four columns there. Device metadata uses at least .875rem; headings use 1.0625rem or the established hierarchy. Appearance and Language use the same 16px settings surfaces and 1rem padding as other settings.
 
 Activity and Integrations open their named Home Assistant destinations in a new tab; legacy routes still work. Your cards always exposes Add card. Arrange cards changes order, groups and sizes; Edit cards opens the card editor.
 

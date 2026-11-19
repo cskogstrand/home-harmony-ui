@@ -1,18 +1,16 @@
 import { PanelTitle } from "@/components/PanelTitle";
-import { CalendarDays, ListTodo } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { useFamily, addDays, type FamilyEvent } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { EventButton } from "./FamilyPlanner";
-import { WasteTypeIcons } from "./WasteCollection";
-import { isWasteCollected } from "@/lib/waste-collection";
 
 export function CalendarMonth({ date, start, end, events, unavailable, onDay, onEdit }: {
   date: string; start: string; end: string; events: FamilyEvent[]; unavailable?: string;
   onDay: (date: string) => void; onEdit: (event: FamilyEvent) => void;
 }) {
-  const { today, time, memberColor, memberName } = useFamily();
-  const { t, dateLabel, eventTimeLabel } = useI18n();
+  const { today } = useFamily();
+  const { t, dateLabel } = useI18n();
   const days: string[] = [];
   for (let day = start; day < end; day = addDays(day, 1)) days.push(day);
   return <section className="glow-panel calendar-month" aria-label={t("Month view")}>
@@ -25,10 +23,7 @@ export function CalendarMonth({ date, start, end, events, unavailable, onDay, on
           <time dateTime={day}>{dateLabel(day, { day: "numeric" })}</time>
           {!!plans.length && <span className="calendar-month-count">{count}</span>}
         </button>
-        <div className="calendar-month-events">{plans.slice(0, 3).map(event => <button key={event.id} className="calendar-month-event" style={{ "--member": memberColor(event.member) } as React.CSSProperties}
-          aria-label={`${event.todo ? `${t("Task")}: ` : ""}${event.title}, ${event.wasteCollection ? t(isWasteCollected(event.date, today, time) ? "Picked up today" : "Waste collection") : eventTimeLabel(event)}, ${memberName(event.member)}`} onClick={() => onEdit(event)}>
-          <span className="calendar-event-dot" aria-hidden="true" /><span>{event.title || (event.wasteCollection && t("Waste collection"))}</span>{event.todo && <ListTodo size={14} className="shrink-0" aria-hidden="true" />}{event.wasteCollection && <WasteTypeIcons title={event.title} size={14} />}{!event.allDay && !event.continues && <time>{event.time}</time>}
-        </button>)}
+        <div className="calendar-month-events">{plans.slice(0, 3).map(event => <EventButton key={event.id} event={event} showMember onClick={() => onEdit(event)} />)}
           {plans.length > 3 && <button className="calendar-month-more" onClick={() => onDay(day)}>{t("{count} more", { count: plans.length - 3 })}</button>}
         </div>
       </div>;

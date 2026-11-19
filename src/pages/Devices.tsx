@@ -41,7 +41,7 @@ export default function Devices() {
       <div className="panel-heading"><PanelTitle icon={grouping === "room" ? DoorOpen : Layers3}>{section.name}</PanelTitle><span>{t(section.devices.length === 1 ? "{count} device" : "{count} devices", { count: section.devices.length })}</span></div>
       <div className="device-list">{section.devices.map(({ device, entities }) => <DeviceCard key={device.id} device={device} entities={entities} listSearch={listSearch} />)}</div>
     </section>)}
-    {!devices.length && <p className="glow-panel empty-note">{loading ? t("Loading devices…") : query ? t("No devices match your search.") : metadataWarnings.length ? t("Device information is unavailable. Check your Home Assistant connection and permissions.") : haUrl ? t("No registered devices found in this home.") : t("Connect your home in Settings to see your devices.")}</p>}
+    {!devices.length && !(query && other.length) && <p className="glow-panel empty-note">{loading ? t("Loading devices…") : query ? t("No devices match your search.") : metadataWarnings.length ? t("Device information is unavailable. Check your Home Assistant connection and permissions.") : haUrl ? t("No registered devices found in this home.") : t("Connect your home in Settings to see your devices.")}</p>}
     {!!other.length && <details key={query ? "search" : "browse"} open={query ? true : undefined} className="glow-panel device-details other-controls"><summary>{t("Other controls ({value1})", { value1: other.length })}</summary>
       <p className="page-note">{t("Controls without an associated device.")}</p>
       <div className="home-device-grid">{other.map(entity => <EntityCard key={entity.entityId} entity={entity} listSearch={listSearch} />)}</div>

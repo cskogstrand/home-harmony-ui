@@ -53,7 +53,7 @@ export function EventButton({ event, onClick, showDate = false, showMember = fal
   const details = [!hideMember && (showMember || !event.location) && memberName(event.member), event.location].filter(Boolean).join(" · ");
   return <button type="button" className={`event-button press-feedback${continuesBefore ? " event-continues-before" : ""}${continuesAfter ? " event-continues-after" : ""}`} style={{ "--member": memberColor(event.member) } as React.CSSProperties} onClick={onClick}>
     <div className="event-title"><strong>{continuesBefore && <ChevronLeft size={13} aria-hidden="true" />}{event.title || (event.wasteCollection && t("Waste collection"))}{continuesAfter && <ChevronRight size={13} aria-hidden="true" />}</strong>{event.todo && <ListTodo size={16} role="img" aria-label={t("Task")} />}{event.wasteCollection && <WasteTypeIcons title={event.title} size={16} />}</div>
-    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span><time>{event.wasteCollection ? t(isWasteCollected(event.date, today, time) ? "Picked up today" : "Waste collection") : eventTimeLabel(event)}</time></div>
+    <div className="event-time"><span className={showDate ? undefined : "sr-only"}>{dates}</span> <time>{event.wasteCollection ? t(isWasteCollected(event.date, today, time) ? "Picked up today" : "Waste collection") : eventTimeLabel(event)}</time></div>
     {details && <small>{details}</small>}
     {continuesBefore && <span className="sr-only">{t("Starts before this week.")}</span>}{continuesAfter && <span className="sr-only">{t("Ends after this week.")}</span>}
   </button>;

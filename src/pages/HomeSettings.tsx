@@ -149,7 +149,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             {selected.map(calendar => <span key={calendar.preferenceId} className="inline-flex max-w-full items-center gap-1 rounded-full bg-secondary py-1 pl-3 pr-1 text-sm">
               <span className="min-w-0 break-words">{calendar.name}</span>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0 rounded-full" disabled={!homeOnline} aria-label={t("Remove {value1} from {value2}", { value1: calendar.name, value2: memberMessage(person.id) })} onClick={() => changeCalendar(calendar.preferenceId, "")}><X size={14} aria-hidden="true" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={!homeOnline} aria-label={t("Remove {value1} from {value2}", { value1: calendar.name, value2: memberMessage(person.id) })} onClick={() => changeCalendar(calendar.preferenceId, "")}><X aria-hidden="true" /></Button>
             </span>)}
             {!selected.length && <span className="text-sm text-muted-foreground">{t("No calendars selected")}</span>}
           </div>

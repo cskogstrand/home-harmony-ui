@@ -2532,6 +2532,7 @@ it("lists devices once, searches their metadata and child readings, and keeps st
   }
   fireEvent.change(search, { target: { value: "charger" } });
   expect(screen.queryByRole("link", { name: "Multi sensor details" })).not.toBeInTheDocument();
+  expect(screen.queryByText("No devices match your search.")).not.toBeInTheDocument();
   expect(screen.getByText(/^Other controls/).closest("details")).toHaveAttribute("open");
   fireEvent.click(screen.getByRole("link", { name: "Charger power details" }));
   expect(await screen.findByRole("heading", { level: 1, name: "Charger power" })).toBeInTheDocument();

@@ -313,9 +313,12 @@ it("switches calendar periods, loads the whole month, filters people and drills 
   expect(screen.getByRole("heading", { level: 1, name: "Calendar" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Month", pressed: true })).toBeVisible();
   expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", "2026-09-27T22:00:00.000Z", "2026-11-01T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
-  expect(screen.getAllByRole("button", { name: /^Example trip,/ })).toHaveLength(3);
+  const month = within(screen.getByRole("region", { name: "Month view" }));
+  const tripCards = month.getAllByRole("button", { name: /^Example trip.*All day.*Example person/ });
+  expect(tripCards).toHaveLength(3);
+  expect(within(tripCards[0]).getByText("Example person")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Example person" }));
-  expect(screen.queryByRole("button", { name: /^Other plan,/ })).not.toBeInTheDocument();
+  expect(month.queryByRole("button", { name: /^Other plan/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: /Sunday, 1 November 2026, 2 plans/ }));
   expect(screen.getByRole("button", { name: "Day", pressed: true })).toBeVisible();
   expect(screen.getByRole("region", { name: "All day" })).toHaveTextContent("Example trip");
