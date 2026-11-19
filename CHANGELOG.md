@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.33
+
+<!-- release-source: 9bd6e13631c650c8215f13127daad1c3c7dc7cb8 -->
+
+- feat: unify notification tiles and modal previews
+- feat: show live print previews below page titles
+- fix: show each person once on the daily board
+- fix: improve portrait board readability and touch
+- fix: improve portrait touch targets and navigation
+- fix: align media and tighten notification cards
+
 ## 0.10.32
 
 <!-- release-source: 82006369e23729df42c8b01e159efd8d03560f1c -->
