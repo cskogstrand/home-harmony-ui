@@ -26,10 +26,13 @@ describe("notification configuration", () => {
   });
   it("round-trips independent widget settings and validates reading and media selections", () => {
     const config = emptyConfiguration();
-    const widget = { title: "Tile", readings: ["home|sensor.watts"], media: { type: "person" as const, cameraId: "example-camera" } };
+    const widget = { title: "Tile", slots: [{ type: "progress" as const, entity: "home|sensor.percent" }, { type: "empty" as const }, { type: "reading" as const, entity: "home|sensor.watts" }], media: { type: "person" as const, cameraId: "example-camera" } };
     config.settings.notifications.rules = [rule({ widget })];
     expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0].widget).toEqual(widget);
-    for (const invalid of [{ readings: ["a", "a"] }, { readings: ["a", "b", "c"] }, { media: { type: "image", entity: "" } }, { media: { type: "live", cameraId: "" } }]) {
+    for (const readings of [[], ["a", "b"]]) {
+      expect(notificationRuleSchema.parse({ ...rule(), widget: { readings } }).widget.slots).toEqual(readings.map(entity => ({ type: "reading", entity })));
+    }
+    for (const invalid of [{ slots: [...widget.slots, { type: "empty" }] }, { slots: [{ type: "progress" }] }, { slots: [{ type: "reading", entity: "" }] }, { readings: ["a", "a"] }, { readings: ["a", "b", "c"] }, { media: { type: "image", entity: "" } }, { media: { type: "live", cameraId: "" } }]) {
       expect(notificationRuleSchema.safeParse({ ...rule(), widget: invalid }).success).toBe(false);
     }
   });

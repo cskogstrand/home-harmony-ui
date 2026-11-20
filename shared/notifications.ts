@@ -41,17 +41,27 @@ const notificationEntityDisplaySchema = z.object({
 }).strict();
 export type NotificationEntityDisplay = z.infer<typeof notificationEntityDisplaySchema>;
 const imageReference = z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/);
-export const MAX_WIDGET_READINGS = 2;
+export const MAX_WIDGET_SLOTS = 3;
+const widgetSlotSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("empty") }).strict(),
+  z.object({ type: z.literal("reading"), entity: reference }).strict(),
+  z.object({ type: z.enum(["progress", "remaining"]), entity: reference.optional() }).strict(),
+]);
+export type NotificationWidgetSlot = z.infer<typeof widgetSlotSchema>;
 const widgetSchema = z.object({
   title: z.string().trim().max(100).optional(),
   text: z.string().trim().max(100).optional(),
-  readings: z.array(reference).max(MAX_WIDGET_READINGS).refine(ids => new Set(ids).size === ids.length).optional(),
+  slots: z.array(widgetSlotSchema).max(MAX_WIDGET_SLOTS).optional(),
+  readings: z.array(reference).max(2).refine(ids => new Set(ids).size === ids.length).optional(),
   media: z.discriminatedUnion("type", [
     z.object({ type: z.literal("none") }).strict(),
     z.object({ type: z.literal("image"), entity: imageReference.min(1) }).strict(),
     z.object({ type: z.enum(["live", "person"]), cameraId: reference }).strict(),
   ]).optional(),
-}).strict();
+}).strict().transform(({ readings, ...widget }) => {
+  if (readings && !widget.slots) widget.slots = readings.map(entity => ({ type: "reading", entity }));
+  return widget;
+});
 export type NotificationWidget = z.infer<typeof widgetSchema>;
 export const notificationTriggerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("state"), entity: reference, attribute: z.string().max(100).default(""),
@@ -90,6 +100,11 @@ export const notificationRuleSchema = z.object({
 }).strict().transform(({ detailEntity, detailEntities, ...rule }) => ({
   ...rule, detailEntities: detailEntities ?? (detailEntity ? [detailEntity] : []),
 })).superRefine((rule, ctx) => {
+  rule.widget?.slots?.forEach((slot, index) => {
+    if ((slot.type === "progress" && !rule.progress || slot.type === "remaining" && rule.kind !== "ongoing") && !slot.entity) {
+      ctx.addIssue({ code: "custom", path: ["widget", "slots", index, "entity"], message: "Choose a sensor for this field." });
+    }
+  });
   if (rule.progress && rule.kind !== "ongoing") ctx.addIssue({ code: "custom", path: ["progress"], message: "Progress is only available for ongoing tasks." });
   if (rule.kind === "camera" && !rule.cameraEntity) ctx.addIssue({ code: "custom", path: ["cameraEntity"], message: "Choose a camera." });
   [rule.trigger, ...(rule.additionalTriggers ?? [])].forEach((trigger, index) => {

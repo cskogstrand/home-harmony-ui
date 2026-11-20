@@ -1,15 +1,34 @@
 import { useI18n } from "@/hooks/use-i18n";
+import { isNotificationTimeSource, notificationMinutesLeft, progressNumber } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import type { ConfiguredCamera } from "../../shared/cameras";
-import { MAX_WIDGET_READINGS, type NotificationWidget } from "../../shared/notifications";
+import { MAX_WIDGET_SLOTS, type NotificationRule, type NotificationWidget, type NotificationWidgetSlot } from "../../shared/notifications";
 import { EntityPicker } from "./EntityPicker";
-import { Switch } from "./ui/switch";
 
-export function NotificationWidgetSettings({ widget = {}, entities, cameras, disabled, onChange }: {
-  widget?: NotificationWidget; entities: Entity[]; cameras: ConfiguredCamera[]; disabled: boolean; onChange: (value: NotificationWidget) => void;
+function acceptsSource(slot: NotificationWidgetSlot, entity: Entity) {
+  if (entity.attributes.mode === "password") return false;
+  if (slot.type === "remaining") return isNotificationTimeSource(entity);
+  if (slot.type !== "progress" || entity.preferenceId === slot.entity) return true;
+  const unit = entity.attributes.unit_of_measurement;
+  return unit === "%" || !unit && progressNumber(entity.state) !== undefined;
+}
+
+export function NotificationWidgetSettings({ rule, entities, cameras, disabled, onChange }: {
+  rule: NotificationRule; entities: Entity[]; cameras: ConfiguredCamera[]; disabled: boolean; onChange: (value: NotificationWidget) => void;
 }) {
   const { message: t } = useI18n();
+  const widget = rule.widget ?? {};
   const update = (patch: Partial<NotificationWidget>) => onChange({ ...widget, ...patch });
+  const setSlot = (index: number, next: NotificationWidgetSlot) => {
+    const slots = Array.from({ length: MAX_WIDGET_SLOTS }, (_, i) => i === index ? next : widget.slots?.[i] ?? { type: "empty" as const });
+    update({ slots });
+  };
+  const defaultSlots = (): NotificationWidgetSlot[] => {
+    const slots: NotificationWidgetSlot[] = [];
+    if (rule.progress) slots.push({ type: "progress" });
+    if (rule.kind === "ongoing" && (rule.timeLeftEntity || notificationMinutesLeft(rule, entities, Date.now()) !== undefined)) slots.push({ type: "remaining" });
+    return slots;
+  };
   const media = widget.media;
   const cameraId = media && "cameraId" in media ? media.cameraId : "";
   const cameraChoices = media?.type === "person" ? cameras.filter(camera => camera.personSnapshot.type !== "none") : cameras;
@@ -32,10 +51,30 @@ export function NotificationWidgetSettings({ widget = {}, entities, cameras, dis
       {cameraChoices.map(camera => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
     </select></label>}
     {media?.type === "image" && <EntityPicker label={t("Widget image")} name="widget.media.entity" entities={entities.filter(entity => entity.domain === "image")} value={media.entity} disabled={disabled} onChange={entity => update({ media: { type: "image", entity } })} />}
-    <label className="notification-toggle"><span>{t("Choose widget readings")}</span><Switch checked={widget.readings !== undefined} disabled={disabled} onCheckedChange={custom => update({ readings: custom ? [] : undefined })} /></label>
-    {widget.readings && <><EntityPicker multiple label={t("Widget readings")} name="widget.readings" entities={entities.filter(entity => entity.attributes.mode !== "password")}
-      value={widget.readings} disabled={disabled} onChange={readings => update({ readings })}
-      disabledReason={entity => widget.readings.length >= MAX_WIDGET_READINGS && !widget.readings.includes(entity.preferenceId) ? t("Choose up to two readings.") : undefined} />
-      <p className="page-note">{t("Select up to two readings. Leave the selection empty to hide readings on the widget.")}</p></>}
+    <label>{t("Widget fields")}<select value={widget.slots ? "custom" : "auto"} disabled={disabled}
+      onChange={event => update({ slots: event.target.value === "custom" ? defaultSlots() : undefined })}>
+      <option value="auto">{t("Automatic")}</option><option value="custom">{t("Choose fields")}</option>
+    </select></label>
+    {widget.slots && <><p className="page-note">{t("Fields appear from left to right on one row.")}</p>
+      {Array.from({ length: MAX_WIDGET_SLOTS }, (_, index) => {
+        const slot = widget.slots[index] ?? { type: "empty" as const };
+        const field = t("Field {number}", { number: index + 1 });
+        const shared = slot.type === "progress" && !!rule.progress || slot.type === "remaining" && rule.kind === "ongoing";
+        const sourceLabel = slot.type === "progress" ? "Percentage sensor" : slot.type === "remaining" ? "Time left sensor" : "Sensor";
+        return <fieldset key={index} className="notification-progress-field notification-widget-field">
+          <legend>{field}</legend>
+          <label>{t("Field type")}<select aria-label={t("{field} · type", { field })} name={`widget.slots.${index}.type`} value={slot.type} disabled={disabled} onChange={event => {
+            const type = event.target.value as NotificationWidgetSlot["type"];
+            setSlot(index, type === "reading" ? { type, entity: "" } : { type });
+          }}>
+            <option value="empty">{t("Empty")}</option><option value="progress">{t("Progress bar")}</option>
+            <option value="reading">{t("Reading or status")}</option><option value="remaining">{t("Time remaining")}</option>
+          </select></label>
+          {slot.type !== "empty" && <EntityPicker name={`widget.slots.${index}.entity`} label={t(sourceLabel)} ariaLabel={t("{field} · {source}", { field, source: t(sourceLabel) })}
+            entities={entities.filter(entity => acceptsSource(slot, entity))}
+            value={slot.entity ?? ""} disabled={disabled} placeholder={shared ? t("From notification") : undefined} clearLabel={shared ? t("From notification") : undefined}
+            onChange={entity => setSlot(index, slot.type === "reading" ? { type: "reading", entity } : { type: slot.type, entity: entity || undefined })} />}
+        </fieldset>;
+      })}</>}
   </>;
 }

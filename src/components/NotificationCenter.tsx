@@ -13,7 +13,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
-import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
+import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, progressSourceValue, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -192,9 +192,39 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   </Tag>;
 }
 
+function WidgetFields({ rule, entities }: { rule: NotificationRule; entities: Entity[] }) {
+  const { message: t, number } = useI18n();
+  const readingValue = useReadingValue();
+  const slots = rule.widget.slots;
+  const last = slots.reduce((count, slot, index) => slot.type === "empty" ? count : index + 1, 0);
+  if (!last) return null;
+  return <dl className="notification-widget-fields" style={{ gridTemplateColumns: `repeat(${last}, minmax(0, 1fr))` }}>
+    {slots.map((slot, index) => {
+      if (slot.type === "empty") return null;
+      const entity = slot.entity && notificationEntity(entities, slot.entity);
+      let label: string, value: string, bar: ReactNode;
+      if (slot.type === "reading") {
+        label = entity?.name || slot.entity?.split("|").pop() || t("Sensor");
+        const reading = readingValue(entity);
+        value = reading.value + reading.unit;
+      } else if (slot.type === "remaining") {
+        label = t("Time remaining");
+        const minutes = notificationMinutesLeft(rule, entities, Date.now(), slot.entity);
+        value = minutes === undefined ? t("Unavailable") : minutes < 60 ? t("{minutes} min", { minutes }) : t("{hours} h {minutes} min", { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
+      } else {
+        label = entity?.name || t("Progress");
+        const raw = slot.entity ? progressSourceValue({ type: "entity", entity: slot.entity, attribute: "" }, entities) : rule.progress && notificationProgress(rule.progress, entities)?.percent;
+        const percent = raw === undefined ? null : Math.min(100, Math.max(0, raw));
+        value = percent === null ? t("Unavailable") : `${number(Math.round(percent))}%`;
+        bar = <Progress value={percent} aria-label={label} aria-valuetext={value} className="h-1" />;
+      }
+      return <div key={index} style={{ gridColumn: index + 1 }}><dt title={label}>{label}</dt><dd title={value}>{bar}<span>{value}</span></dd></div>;
+    })}
+  </dl>;
+}
+
 export function NotificationTile({ item, presentation, preview, entities: previewEntities, onOpen }: { item: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; onOpen: (opener: HTMLButtonElement) => void }) {
   const { message: t } = useI18n();
-  const readingValue = useReadingValue();
   const { currentHome } = useApp();
   const { dismiss } = useNotifications();
   const entities = previewEntities ?? currentHome.entities;
@@ -207,12 +237,14 @@ export function NotificationTile({ item, presentation, preview, entities: previe
   const hasMedia = media.type !== "none";
   const doorbell = rule.kind === "camera";
   const print = rule.kind === "ongoing" && rule.icon === "printer_3d" && media.type === "live";
-  const showTitle = !print || !!widget?.title?.trim() || !!subtitle || widget?.readings !== undefined;
+  const custom = widget?.slots !== undefined;
+  const showTitle = !print || !!widget?.title?.trim() || !!subtitle || custom;
+  const hasFields = widget?.slots?.some(slot => slot.type !== "empty");
   const row = useAlertFocusOnRemoval();
   const bodyId = useId();
   const action = doorbell ? "Open camera for {name}" : presentation.startsWith("activity") ? "Open activity card for {name}" : "Show details for {name}";
   return <li ref={row} className={hasMedia ? "notification-glance notification-live-thumbnail" : "notification-glance"}
-    data-widget-readings={!!widget?.readings?.length || undefined} data-widget-text={!!subtitle && rule.kind === "ongoing" && widget?.readings === undefined || undefined}>
+    data-widget-wide={hasFields || !!subtitle && rule.kind === "ongoing" || undefined}>
     <div className="notification-widget-main">
       {!hasMedia && <NotificationIcon rule={rule} />}
       <div id={bodyId} className="notification-body min-w-0 flex-1 break-words">
@@ -220,17 +252,12 @@ export function NotificationTile({ item, presentation, preview, entities: previe
           <NotificationCameraFeed item={item} cameraId={media.cameraId} cameraMedia={media.type} preview={preview} compact thumbnail />}
         <div className="notification-preview-copy">
           {showTitle && <div className="notification-glance-caption"><strong>{name}</strong>{subtitle && <small>{subtitle}</small>}</div>}
-          {rule.kind === "ongoing" && widget?.readings === undefined && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
+          {custom ? <WidgetFields rule={rule} entities={entities} /> : rule.kind === "ongoing" && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
         </div>
       </div>
       {!hasMedia && !doorbell && <ChevronRight className="notification-glance-chevron" aria-hidden="true" />}
       {doorbell && <Button type="button" disabled={!!preview} variant="ghost" size="icon" className="notification-widget-dismiss" aria-label={t("Dismiss {name}", { name })} onClick={() => dismiss(item.id)}><X size={16} aria-hidden="true" /></Button>}
     </div>
-    {!!widget?.readings?.length && <dl className="notification-widget-readings">{widget.readings.map(id => {
-      const entity = notificationEntity(entities, id);
-      const { value, unit } = readingValue(entity);
-      return <div key={id}><dt>{entity?.name ?? id.split("|").pop()}</dt><dd>{value}{unit}</dd></div>;
-    })}</dl>}
     <button type="button" className="notification-thumbnail-open" aria-haspopup="dialog" aria-describedby={bodyId}
       aria-label={t(action, { name })} onClick={event => onOpen(event.currentTarget)} />
   </li>;

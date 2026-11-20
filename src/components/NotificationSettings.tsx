@@ -232,7 +232,7 @@ export function NotificationSettings() {
         </div></NotificationEditorSection>}
         <h3 className="notification-settings-group">{t("Board widget")}</h3>
         <NotificationEditorSection value="widget" title={t("Edit widget")} icon={PanelsTopLeft} summary={draft.widget?.title?.trim() || t("Title, short text, readings and media")} open={openSections.includes("widget")}>
-          <NotificationWidgetSettings widget={draft.widget} entities={selectable} cameras={cameras?.items ?? []} disabled={disabled} onChange={widget => setDraft({ ...draft, widget })} />
+          <NotificationWidgetSettings rule={draft} entities={selectable} cameras={cameras?.items ?? []} disabled={disabled} onChange={widget => setDraft({ ...draft, widget })} />
         </NotificationEditorSection>
         <h3 className="notification-settings-group">{t("Widget and popup")}</h3>
         <p className="page-note">{t("The popup uses these settings. The widget uses them until you choose its own content.")}</p>

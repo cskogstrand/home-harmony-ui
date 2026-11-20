@@ -43,11 +43,11 @@ export function isNotificationTimeSource(entity: Entity) {
   return entity.domain === "sensor" && entity.attributes.mode !== "password" && (entity.attributes.device_class === "timestamp" || minutesPerUnit.has(String(entity.attributes.unit_of_measurement)));
 }
 
-export function notificationMinutesLeft(rule: NotificationRule, entities: Entity[], now: number) {
-  const source = rule.timeLeftEntity ? notificationEntity(entities, rule.timeLeftEntity) : rule.detailEntities
+export function notificationMinutesLeft(rule: NotificationRule, entities: Entity[], now: number, sourceId = rule.timeLeftEntity) {
+  const source = sourceId ? notificationEntity(entities, sourceId) : rule.detailEntities
     .map(id => notificationEntity(entities, id))
     .find(entity => entity && isNotificationTimeSource(entity) && remainingTimeName.test(entity.entityId + " " + entity.name));
-  if (source || rule.timeLeftEntity) {
+  if (source || sourceId) {
     if (!source || !isNotificationTimeSource(source) || !available(source)) return undefined;
     let minutes: number;
     if (source.attributes.device_class === "timestamp") {

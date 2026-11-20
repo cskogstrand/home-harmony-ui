@@ -156,10 +156,12 @@ it("edits an image-only current alert and previews the draft image in both place
   expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ imageEntity: "home|image.parcel", cameraEntity: "" });
 });
 
-it("edits widget text, readings and media independently of the live popup, then saves them to the board", async () => {
+it("combines three widget field types independently of the popup and saves the live preview to the board", async () => {
   const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "current", cameraEntity: "", message: "Popup message" });
   mocks.app.currentHome = mapHome({
     "sensor.watts": state("sensor.watts", "32", { friendly_name: "Example power", unit_of_measurement: "W" }),
+    "sensor.percent": state("sensor.percent", "67", { friendly_name: "Example progress", unit_of_measurement: "%" }),
+    "sensor.remaining": state("sensor.remaining", "4500", { unit_of_measurement: "s" }),
     "image.preview": state("image.preview", "ready", { friendly_name: "Example image" }),
   }, emptyRegistries, "home");
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
@@ -177,14 +179,25 @@ it("edits widget text, readings and media independently of the live popup, then 
   fireEvent.change(screen.getByLabelText("Widget short text"), { target: { value: "Board summary" } });
   fireEvent.change(screen.getByLabelText("Widget media"), { target: { value: "image" } });
   chooseEntity("Widget image", "image.preview");
-  fireEvent.click(screen.getByRole("switch", { name: "Choose widget readings" }));
-  fireEvent.click(screen.getByRole("button", { name: "Widget readings" }));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Example power" }));
-  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  fireEvent.change(screen.getByLabelText("Widget fields"), { target: { value: "custom" } });
+  fireEvent.change(screen.getByLabelText("Field 1 · type"), { target: { value: "progress" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(screen.getByRole("button", { name: "Field 1 · Percentage sensor" })).toHaveAttribute("aria-invalid", "true");
+  chooseEntity("Field 1 · Percentage sensor", "sensor.percent");
+  fireEvent.change(screen.getByLabelText("Field 2 · type"), { target: { value: "reading" } });
+  chooseEntity("Field 2 · Sensor", "sensor.watts");
+  fireEvent.change(screen.getByLabelText("Field 3 · type"), { target: { value: "remaining" } });
+  chooseEntity("Field 3 · Time left sensor", "sensor.remaining");
   const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
   const detail = screen.getByRole("group", { name: "Popup preview" });
   expect(tile).toHaveTextContent("Board titleBoard summary");
   expect(tile).toHaveTextContent("32 W");
+  expect(tile).toHaveTextContent("1 h 15 min");
+  expect(within(tile).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "67");
+  fireEvent.click(screen.getByRole("switch", { name: "Use sample data" }));
+  fireEvent.change(screen.getByRole("slider", { name: "Demo progress" }), { target: { value: "80" } });
+  expect(within(tile).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "80");
+  fireEvent.click(screen.getByRole("switch", { name: "Use sample data" }));
   expect(tile.querySelector("img")).toHaveAttribute("alt", "Example image");
   expect(detail).toHaveTextContent("Popup message");
   expect(detail).not.toHaveTextContent(/Board title|Board summary|32 W/);
@@ -192,12 +205,34 @@ it("edits widget text, readings and media independently of the live popup, then 
   expect(setNotifications).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
-  expect(saved).toMatchObject({ ...rule, widget: { title: "Board title", text: "Board summary", readings: ["home|sensor.watts"], media: { type: "image", entity: "home|image.preview" } } });
+  expect(saved).toMatchObject({ ...rule, widget: { title: "Board title", text: "Board summary", slots: [{ type: "progress", entity: "home|sensor.percent" }, { type: "reading", entity: "home|sensor.watts" }, { type: "remaining", entity: "home|sensor.remaining" }], media: { type: "image", entity: "home|image.preview" } } });
   view.unmount();
   render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }], dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
   expect(screen.getByRole("listitem")).toHaveTextContent("Board summary");
+  expect(within(screen.getByRole("listitem")).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "67");
   fireEvent.click(screen.getByRole("button", { name: "Show details for Board title" }));
   expect(screen.getByRole("dialog", { name: rule.title })).toHaveTextContent("Popup message");
+});
+
+it("keeps an empty field in place and distinguishes unavailable progress from zero", () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", cameraEntity: "",
+    progress: { current: { type: "entity", entity: "home|sensor.current" }, start: { type: "value", value: 80 }, end: { type: "value", value: 0 } },
+    widget: { slots: [{ type: "empty" }, { type: "progress" }, { type: "reading", entity: "home|binary_sensor.example" }] } });
+  const content = <MemoryRouter><NotificationPreview editing rule={rule} presentation="section" /></MemoryRouter>;
+  const view = render(content);
+  const tile = within(screen.getByRole("listitem"));
+  const bar = tile.getByRole("progressbar");
+  expect(bar).not.toHaveAttribute("aria-valuenow");
+  expect(bar).toHaveAttribute("aria-valuetext", "Unavailable");
+  expect(tile.getByText("Progress").parentElement).toHaveStyle({ gridColumn: "2" });
+  expect(tile.getByText("Off")).toBeVisible();
+  fireEvent.click(screen.getByRole("switch", { name: "Use sample data" }));
+  expect(tile.getByText("On")).toBeVisible();
+  mocks.app.currentHome = mapHome({ "sensor.current": state("sensor.current", "80") }, emptyRegistries, "home");
+  view.rerender(<MemoryRouter><NotificationPreview editing rule={rule} presentation="section" /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("switch", { name: "Use sample data" }));
+  expect(bar).toHaveAttribute("aria-valuenow", "0");
+  expect(tile.getByText("Entity unavailable")).toBeVisible();
 });
 
 it("keeps a disabled live preview quiet until the task is opened", () => {

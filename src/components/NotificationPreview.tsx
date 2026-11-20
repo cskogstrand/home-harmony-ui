@@ -5,7 +5,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
-import { notificationEntity, progressSourceValue, type HomeNotification } from "@/lib/notifications";
+import { notificationEntity, progressNumber, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
 import { NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
@@ -40,7 +40,9 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   const previewRule = rule ? { ...rule, title: rule.title.trim() || t("Your notification") } : example;
   const presentation = previewRule.presentation ?? defaultPresentation;
   const useDemo = !rule || demo;
-  const canPlay = useDemo && !!previewRule.progress && !reducedMotion;
+  const widgetSlots = previewRule.widget?.slots ?? [];
+  const hasProgress = !!previewRule.progress || widgetSlots.some(slot => slot.type === "progress" && slot.entity);
+  const canPlay = useDemo && hasProgress && !reducedMotion;
   useEffect(() => {
     if (!playing || !canPlay) return;
     const timer = setInterval(() => { if (!document.hidden) setPercent(value => value >= 100 ? 0 : value + 5); }, 1000);
@@ -50,6 +52,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   if (useDemo) {
     entities = entities.map(entity => ({ ...entity, attributes: { ...entity.attributes } }));
     const setReading = (reference: string, value: number | string, name: string, attribute = "") => {
+      if (!reference) return;
       let entity = notificationEntity(entities, reference);
       if (!entity) {
         entity = { entityId: reference.split("|").pop(), preferenceId: reference, domain: "sensor", state: "0", name, attributes: {}, areaId: "unassigned" } as Entity;
@@ -58,7 +61,15 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
       if (attribute) { if (!available(entity)) entity.state = "0"; entity.attributes[attribute] = value; }
       else entity.state = String(value);
     };
-    for (const reference of previewRule.widget?.readings ?? []) setReading(reference, 42, t("Example reading"));
+    for (const slot of widgetSlots) {
+      if (slot.type !== "reading") continue;
+      const entity = notificationEntity(entities, slot.entity);
+      let value: string | number = 42;
+      if (entity?.attributes.device_class === "timestamp") value = new Date(sampleAt).toISOString();
+      else if (entity && ["binary_sensor", "switch", "input_boolean"].includes(entity.domain)) value = "on";
+      else if (entity && !entity.attributes.unit_of_measurement && progressNumber(entity.state) === undefined) value = t("Active");
+      setReading(slot.entity, value, t("Example reading"));
+    }
     for (const trigger of notificationTriggers(previewRule)) if ("entity" in trigger) setReading(trigger.entity, trigger.type === "state" ? trigger.value : "on", t("Example source"), trigger.type === "state" ? trigger.attribute : "");
     previewRule.detailEntities.forEach((reference, index) => {
       const entity = notificationEntity(entities, reference);
@@ -69,9 +80,10 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
         notificationEntity(entities, reference).name = t(index === 0 ? "Time remaining" : "Total duration");
       }
     });
-    if (previewRule.timeLeftEntity) {
+    const timeSources = new Set([previewRule.timeLeftEntity, ...widgetSlots.flatMap(slot => slot.type === "remaining" ? [slot.entity] : [])]);
+    for (const reference of timeSources) {
+      if (!reference) continue;
       const remaining = Math.round(90 * (1 - percent / 100));
-      const reference = previewRule.timeLeftEntity;
       const entity = notificationEntity(entities, reference);
       if (entity?.attributes.device_class === "timestamp") {
         setReading(reference, new Date(Date.now() + remaining * 60_000).toISOString(), t("Time remaining"));
@@ -80,6 +92,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
         notificationEntity(entities, reference).attributes.unit_of_measurement = "min";
       }
     }
+    for (const slot of widgetSlots) if (slot.type === "progress" && slot.entity) setReading(slot.entity, percent, t("Progress"));
     if (previewRule.progress) {
       const { current, start, end } = previewRule.progress;
       const to = progressSourceValue(end, currentHome.entities) ?? 100;
@@ -122,7 +135,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
     {!editing && <fieldset disabled className="notification-preview-surface" aria-label={previewTitle} onClickCapture={event => { event.preventDefault(); event.stopPropagation(); }}>
       <NotificationSurface items={[draft]} compact presentation={defaultPresentation} preview={mode} entities={entities} />
     </fieldset>}
-    {useDemo && previewRule.progress && <div className="notification-demo-controls">
+    {useDemo && hasProgress && <div className="notification-demo-controls">
       <label htmlFor={id}>{t("Demo progress")} <strong>{percent}%</strong></label>
       <div className="flex items-center gap-3"><input id={id} aria-label={t("Demo progress")} type="range" min={0} max={100} value={percent} onChange={event => { setPercent(Number(event.target.value)); setPlaying(false); }} />
         <Button type="button" variant="outline" size="icon" disabled={!!reducedMotion} aria-label={t(playing ? "Pause demo" : "Play demo")} onClick={() => setPlaying(value => !value)}>{playing ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}</Button>
