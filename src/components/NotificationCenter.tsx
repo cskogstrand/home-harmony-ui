@@ -1,19 +1,19 @@
 import { notificationTriggers, visibleWidgetSlots } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 import { Bell, Camera, ChevronRight, Clock3, Image, ImageOff, ListChecks, VideoOff, X } from "lucide-react";
 import { configuredCamera } from "../../shared/cameras";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
-import { useNotifications } from "@/contexts/NotificationContext";
+import { NotificationDebugContext, useNotifications } from "@/contexts/NotificationContext";
 import { usePageActive } from "@/contexts/PageActivityContext";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
-import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, progressSourceValue, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
+import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, previewNotificationEvent, progressSourceValue, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -413,9 +413,19 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
     return () => { observer.disconnect(); window.removeEventListener("scroll", onScroll); };
   }, [active, compact, pathname]);
   const { notifications: allNotifications, errors, retry, dismiss, camera } = useNotifications();
+  const { previewStartedAt } = useContext(NotificationDebugContext);
+  const previewAll = compact && pathname === "/" && previewStartedAt !== undefined;
   const [selectedId, select] = useState<string>();
   const opener = useRef<HTMLButtonElement | null>(null);
   const eligible = allNotifications.filter(({ rule }) => pathname === "/" || (rule.pages ?? settings?.pages) === "main");
+  if (active && previewAll) {
+    const activeRules = new Set(eligible.map(item => item.rule.id));
+    for (const rule of settings.rules) {
+      if (activeRules.has(rule.id)) continue;
+      eligible.push({ id: `${rule.id}:preview`, rule, startedAt: previewStartedAt, popup: false,
+        ...previewNotificationEvent(rule, previewStartedAt, rule.title) });
+    }
+  }
   const selected = active && selectedId ? eligible.find(item => item.id === selectedId) : undefined;
   if (selectedId && !selected) select(undefined);
   if (!active) return null;
@@ -428,24 +438,32 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
   const media = eligible.filter(hasMedia);
   const rows = eligible.filter(item => !hasMedia(item));
   const priority = { camera: 0, current: 1, ongoing: 2 };
-  const compactRows = rows.sort((a, b) => priority[a.rule.kind] - priority[b.rule.kind]).slice(0, 3);
+  rows.sort((a, b) => priority[a.rule.kind] - priority[b.rule.kind]);
+  const compactRows = previewAll ? rows : rows.slice(0, 3);
+  const previewMode = previewAll ? "current" : undefined;
   const preview = (item: HomeNotification) => {
     const type = item.rule.presentation ?? style;
-    return <NotificationTile key={item.id} item={item} presentation={type} onOpen={button => { if (item.rule.kind === "camera") camera(item.id, true); else { opener.current = button; select(item.id); } }} />;
+    return <NotificationTile key={item.id} item={item} presentation={type} preview={previewMode} onOpen={button => {
+      if (item.rule.kind === "camera" && !previewAll) camera(item.id, true);
+      else { opener.current = button; select(item.id); }
+    }} />;
   };
-  const presentationType = selected?.rule.presentation ?? style;
-  return <div ref={slot} className="notification-slot"><AnimatePresence initial={false}>{(eligible.length > 0 || !!sourceErrors) && <NotificationPresence key="notifications">
-    <section aria-label={t("Active notifications")}>
+  const detailProps = { item: selected, presentation: selected?.rule.presentation ?? style, preview: previewMode, onReturn: () => {
+    select(id => id === selected?.id ? undefined : id);
+    returnToNotification(opener.current);
+  } } as const;
+  return <div ref={slot} className="notification-slot"><AnimatePresence initial={false}>{(previewAll || eligible.length > 0 || !!sourceErrors) && <NotificationPresence key="notifications">
+    <section aria-label={t(previewAll ? "Notification preview" : "Active notifications")}>
+      {previewAll && <Link className="text-link min-h-11 text-sm" to="/settings/debug">{t("Previewing all notifications")}<ChevronRight size={16} aria-hidden="true" /></Link>}
+      {previewAll && !eligible.length && <p className="empty-note">{t("No saved notification rules.")}</p>}
       {sourceErrors}
       {!!eligible.length && <NotificationBoardGrid>{[...media, ...compactRows].map(preview)}</NotificationBoardGrid>}
       {!!eligible.length && allNotifications.length > media.length + compactRows.length && <Link ref={moreLink} className="text-link min-h-11 text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link>}
     </section>
   </NotificationPresence>}</AnimatePresence>
     {selected && <Dialog key={selected.id} defaultOpen>
-      <NotificationDetailContent item={selected} presentation={presentationType} onDismiss={() => { dismiss(selected.id); select(undefined); }} onReturn={() => {
-        select(id => id === selected.id ? undefined : id);
-        returnToNotification(opener.current);
-      }} />
+      {selected.rule.kind === "camera" ? <NotificationCameraContent {...detailProps} />
+        : <NotificationDetailContent {...detailProps} onDismiss={() => { dismiss(selected.id); select(undefined); }} />}
     </Dialog>}
   </div>;
 }

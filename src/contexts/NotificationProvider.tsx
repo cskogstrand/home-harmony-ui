@@ -2,7 +2,7 @@ import { notificationTriggers } from "../../shared/notifications";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useApp } from "./AppContext";
 import { addDays, useFamily } from "./FamilyContext";
-import { NotificationContext } from "./NotificationContext";
+import { NotificationContext, NotificationDebugContext } from "./NotificationContext";
 import { NotificationEngine, notificationEntity, type HomeNotification } from "@/lib/notifications";
 import { calendarBoundary } from "@/lib/ha-model";
 import type { CalendarEvent } from "@/types/api";
@@ -11,6 +11,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const { currentHome, homeOnline, watchEvents, watchCalendarEvents } = useApp();
   const { notifications: settings, today } = useFamily();
   const [engine] = useState(() => new NotificationEngine());
+  const [previewStartedAt, setPreviewStartedAt] = useState<number>();
   const [notifications, setNotifications] = useState<HomeNotification[]>([]);
   const [calendars, setCalendars] = useState<Record<string, CalendarEvent[] | null>>({});
   const [eventErrors, setEventErrors] = useState<string[]>([]);
@@ -58,5 +59,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const errors = [...eventErrors, ...Object.keys(calendars).filter(id => calendars[id] === null)];
   return <NotificationContext.Provider value={{ notifications: homeOnline && settings.enabled ? notifications : [], errors: homeOnline && settings.enabled ? errors : [],
     dismiss: id => { engine.dismiss(id); publish(engine.list()); }, camera: (id, open) => { engine.camera(id, open); publish(engine.list()); }, retry: () => setRefresh(value => value + 1),
-  }}>{children}</NotificationContext.Provider>;
+  }}>
+    <NotificationDebugContext.Provider value={{ previewStartedAt, setPreviewStartedAt }}>{children}</NotificationDebugContext.Provider>
+  </NotificationContext.Provider>;
 }

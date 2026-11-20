@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Bell, BookOpen, CalendarDays, Camera, CarFront, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
+import { NotificationDebugContext } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import { NotificationSettings } from "@/components/NotificationSettings";
@@ -9,12 +10,27 @@ import { SmartHomeSettings } from "@/components/SmartHomeSettings";
 import { CameraConnections } from "@/components/CameraConnections";
 import { CameraSettings } from "@/components/CameraSettings";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { PanelTitle } from "@/components/PanelTitle";
 import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import { VehicleSettings } from "@/components/VehicleSettings";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import "./settings.css";
+
+function DebugSettings() {
+  const { t } = useI18n();
+  const { previewStartedAt, setPreviewStartedAt } = useContext(NotificationDebugContext);
+  return <section className="settings-card settings-preferences">
+    <PanelTitle icon={Bell}>{t("Notifications")}</PanelTitle>
+    <label className="settings-control-row">
+      <span>{t("Show all notifications")}<span className="page-note block" id="notification-debug-description">{t("Show every saved rule on Today, including disabled rules.")}</span></span>
+      <Switch aria-label={t("Show all notifications")} aria-describedby="notification-debug-description" checked={previewStartedAt !== undefined}
+        onCheckedChange={enabled => setPreviewStartedAt(enabled ? Date.now() : undefined)} />
+    </label>
+    {previewStartedAt !== undefined && <Link className="text-link min-h-11" to="/">{t("Go to Today")}<ChevronRight size={17} aria-hidden="true" /></Link>}
+  </section>;
+}
 
 const groups = [
   { title: "Preferences", icon: SlidersHorizontal, items: [
@@ -36,6 +52,7 @@ const groups = [
     { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
     { id: "connection", title: "Connection & account", description: "Home Assistant connection and instance details", icon: Wifi, content: <HomeSettings section="connection" /> },
     { id: "backups", title: "Storage and backups", description: "Export, restore and recover shared settings", icon: Database, content: <ConfigurationBackup /> },
+    { id: "debug", title: "Debug", description: "Test features in this tab until you reload.", icon: Bug, content: <DebugSettings /> },
   ] },
 ];
 
@@ -76,13 +93,13 @@ export default function Settings() {
           <span><strong>{currentHome.name}</strong><span>{homeOnline ? <Wifi size={14} aria-hidden="true" /> : <WifiOff size={14} aria-hidden="true" />}{homeOnline ? t("Connected") : t("HA offline")}</span></span>
           <ChevronRight size={17} aria-hidden="true" />
         </Link>
-        <p className="page-note settings-shared-note">{t("Applies to every screen connected to this server.")}</p>
+        <p className="page-note settings-shared-note">{t("Settings are shared across screens. Debug tools apply only to this tab.")}</p>
         <Button variant="outline" asChild><Link to="/onboarding">{t("Get started")}</Link></Button>
       </>}
     </div>
     {menu}
     {selected && <div className="settings-content" key={section}>
-      {section === "backups" ? <p className="shared-settings-status">{t("Applies to every screen connected to this server.")}</p> : <SharedSettingsStatus showRecovery />}
+      {section !== "debug" && (section === "backups" ? <p className="shared-settings-status">{t("Applies to every screen connected to this server.")}</p> : <SharedSettingsStatus showRecovery />)}
       {selected.content}
       {section === "people" && <Link className="settings-related text-link" to="/settings/timetables">{t("Configure timetables")}<ChevronRight size={17} aria-hidden="true" /></Link>}
     </div>}

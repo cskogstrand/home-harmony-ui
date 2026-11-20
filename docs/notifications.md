@@ -6,6 +6,8 @@ On the selected main pages, notifications appear in a grid just below the page t
 
 Camera popup rules, including doorbells, still open their viewer automatically on every page. After closing it, tap the camera thumbnail or its title to reopen it while the alert is active. The separate dismiss button clears that activation. Alongside ongoing media and image previews, the board shows up to three compact rows, with camera alerts first, then current alerts and ongoing tasks. **View all** and the header bell open the complete list.
 
+To test the board, open **Settings → Debug → Show all notifications** (**Innstillinger → Feilsøking → Vis alle varsler**) and choose **Go to Today**. The board shows every saved rule, including disabled rules, with its configured layout, media and current readings. Active alerts keep their event details. The preview lifts the three-row limit, and you can tap each tile to inspect its popup. The bell continues to count real alerts. Tap **Previewing all notifications** to return to the switch. Turning it off or reloading the tab ends the preview.
+
 | Type | Behavior |
 | --- | --- |
 | Ongoing tasks | Shows when an entity state or attribute matches. Clears when all show conditions stop matching, or when its configured hide condition and delay take effect. |

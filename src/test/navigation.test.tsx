@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { toast } from "sonner";
 import App from "@/App";
 import { dashboardSections, emptyConfiguration, parseConfiguration } from "../../shared/configuration";
+import { notificationRuleSchema } from "../../shared/notifications";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
@@ -1769,13 +1770,51 @@ it("translates calendar settings and restores the selected layout after closing"
   expect(screen.getByRole("button", { name: "Mandag", pressed: true })).toBeInTheDocument();
 });
 
+it.each([true, false])("previews every saved rule only on Today with notifications enabled=%s", async enabled => {
+  app.currentHome = mapHome({ "sensor.example": state("sensor.example", "running") }, emptyRegistries, "home");
+  settings.settings.notifications.enabled = enabled;
+  settings.settings.notifications.rules = Array.from({ length: 5 }, (_, i) => notificationRuleSchema.parse({
+    id: `rule-${i}`, title: `Example alert ${i}`, kind: "current", enabled: i !== 4,
+    trigger: i === 4 ? { type: "calendar", entity: "home|calendar.example", leadMinutes: 30 }
+      : { type: "state", entity: "home|sensor.example", operator: "eq", value: i === 0 ? "running" : "idle" },
+  }));
+  window.history.replaceState(null, "", "/settings/debug");
+  render(<App />);
+  await saved();
+  const toggle = () => screen.getByRole("switch", { name: "Show all notifications" });
+  expect(toggle()).not.toBeChecked();
+  app.configurationRequest.mockClear();
+  fireEvent.click(toggle());
+  fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
+  const preview = within(await screen.findByRole("region", { name: "Notification preview" }));
+  expect(preview.getAllByRole("listitem")).toHaveLength(5);
+  fireEvent.click(preview.getByRole("button", { name: "Show details for Example alert 4" }));
+  const dialog = screen.getByRole("dialog", { name: "Example alert 4" });
+  expect(within(dialog).getByText(/Starts at/)).toBeVisible();
+  expect(within(dialog).getByRole("button", { name: "Dismiss notification" })).toBeDisabled();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  expect(screen.getByRole("link", { name: `Notifications: ${enabled ? 1 : 0} active` })).toBeVisible();
+
+  await navigate("Calendar");
+  expect(screen.queryByRole("region", { name: "Notification preview" })).toBeNull();
+  expect(screen.queryByText("Example alert 4")).toBeNull();
+  await navigate("Today");
+  fireEvent.click(screen.getByRole("link", { name: "Previewing all notifications" }));
+  expect(toggle()).toBeChecked();
+  fireEvent.click(toggle());
+  await navigate("Today");
+  expect(screen.queryByRole("region", { name: "Notification preview" })).toBeNull();
+  expect(screen.queryAllByRole("button", { name: /Show details for Example alert/ })).toHaveLength(enabled ? 1 : 0);
+  expect(app.configurationRequest.mock.calls.some(([method]) => method === "PUT")).toBe(false);
+});
+
 it("groups all settings, opens each focused subpage, and returns to the hub", async () => {
   window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
   const destinations = [
     ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"], ["Weather", "weather"],
     ["Electric vehicles", "vehicles"], ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
-    ["Cameras", "cameras"], ["Camera connections", "camera-connections"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"],
+    ["Cameras", "cameras"], ["Camera connections", "camera-connections"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"], ["Debug", "debug"],
   ];
   for (const [title, path] of destinations) {
     const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));

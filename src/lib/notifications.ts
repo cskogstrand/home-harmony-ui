@@ -20,6 +20,16 @@ export interface HomeNotification {
 export interface NotificationEvent { event_type: string; data: Record<string, unknown> }
 export const notificationEntity = (entities: Entity[], id: string) => entities.find(entity => entity.preferenceId === id);
 
+export function previewNotificationEvent(rule: NotificationRule, startedAt: number, eventTitle: string) {
+  const triggers = notificationTriggers(rule);
+  const calendar = triggers.find(trigger => trigger.type === "calendar");
+  if (calendar) return { eventTitle, eventStart: startedAt + calendar.leadMinutes * 60_000 };
+  if (triggers.some(trigger => trigger.type === "ha-event" || trigger.type === "entity-event")) {
+    return { expiresAt: startedAt + rule.durationSeconds * 1000 };
+  }
+  return {};
+}
+
 export function showsLiveActivityPreview(rule: NotificationRule) {
   return rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && rule.livePreviewBelowTitle !== false;
 }

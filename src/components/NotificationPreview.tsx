@@ -6,7 +6,7 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
-import { notificationEntity, progressNumber, progressSourceValue, type HomeNotification } from "@/lib/notifications";
+import { notificationEntity, previewNotificationEvent, progressNumber, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import { notificationTriggers, notificationRuleSchema, visibleWidgetSlots, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
 import { NotificationBoardGrid, NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
@@ -108,14 +108,8 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   const now = Date.now();
   const live = !useDemo && notifications.find(item => item.rule.id === previewRule.id && (!item.calendarEntity ||
     triggers.some(trigger => trigger.type === "calendar" && trigger.entity === item.calendarEntity && item.eventStart <= now + trigger.leadMinutes * 60_000)));
-  const draft: HomeNotification = { id: previewRule.id, startedAt: sampleAt, ...live, rule: previewRule, popup: false };
-  const calendar = triggers.find(trigger => trigger.type === "calendar");
-  if (editing && useDemo && calendar) {
-    draft.eventTitle = t("Example calendar event");
-    draft.eventStart = sampleAt + calendar.leadMinutes * 60_000;
-  } else if (editing && useDemo && triggers.some(trigger => trigger.type === "ha-event" || trigger.type === "entity-event")) {
-    draft.expiresAt = sampleAt + previewRule.durationSeconds * 1000;
-  }
+  const event = editing && useDemo ? previewNotificationEvent(previewRule, sampleAt, t("Example calendar event")) : live;
+  const draft: HomeNotification = { id: previewRule.id, startedAt: sampleAt, ...event, rule: previewRule, popup: false };
   const mode = useDemo ? "sample" : "current";
   const Popup = draft.rule.kind === "camera" ? NotificationCameraContent : NotificationDetailContent;
   const previewTitle = t("Preview {name}", { name: draft.eventTitle || previewRule.title });

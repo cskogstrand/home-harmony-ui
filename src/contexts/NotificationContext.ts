@@ -6,3 +6,7 @@ export const NotificationContext = createContext({
   dismiss: (_id: string) => {}, camera: (_id: string, _open: boolean) => {}, retry: () => {},
 });
 export const useNotifications = () => useContext(NotificationContext);
+
+export const NotificationDebugContext = createContext({
+  previewStartedAt: undefined as number | undefined, setPreviewStartedAt: (_time: number | undefined) => {},
+});
