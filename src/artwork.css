@@ -48,7 +48,7 @@
 @media (width <= 499px) { .artwork-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .afterglow-app[data-artwork] { isolation: isolate; }
-.artwork-background { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--art-base); }
+.artwork-background { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--art-base); opacity: .26; }
 .artwork-background svg, .artwork-background::before, .artwork-background::after { position: absolute; inset: 0; width: 100%; height: 100%; }
 .artwork-ground { opacity: .79; }
 .artwork-background::before {
@@ -74,8 +74,6 @@
 [data-artwork] :is(.greeting > p, .app-footer) { color: hsl(var(--foreground)); }
 [data-artwork] :is(.smart-summary, .smart-nav, .list-tabs) { background-color: var(--art-surface); border-radius: var(--radius-field); }
 [data-artwork] :is(.smart-page > section > .section-heading .panel-title, .smart-page > section > .section-heading .text-link, .filter-row button:not([aria-pressed=true])) { background-color: var(--art-surface); border-radius: 6px; box-shadow: 0 0 0 4px var(--art-surface); }
-/* Settings and secondary pages have free-standing labels throughout the viewport. */
-[data-artwork]:not(:has(.today-page)) .artwork-background { opacity: .26; }
 @media (width < 900px) {
   .artwork-background::after { background: linear-gradient(90deg, var(--shield), color-mix(in srgb, var(--art-base) 75%, transparent) 65%, var(--shield)); }
 }

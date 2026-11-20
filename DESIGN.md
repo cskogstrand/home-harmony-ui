@@ -211,7 +211,7 @@ Settings → Appearance offers **Pearl** (the default blue), **Sage** (muted gre
 
 The labeled radio choices show the current mode's actual background, card and primary tokens. Selection and keyboard focus have visible outlines. Choices form three rows of four on wider screens and wrap to two columns on phones. They use the existing shared settings, conflict recovery and backup flow; older settings default to Pearl.
 
-The separate Artwork picker previews the SVG illustrations in the active palette and mode. No artwork keeps the original ambient background and is the default for new installations and older backups. Selected artwork fills the wall, with a panoramic crop behind the header and a lighter touch on secondary pages. The decorative layer ignores touch and is hidden in forced colors, increased contrast and reduced transparency.
+The separate Artwork picker previews the SVG illustrations in the active palette and mode. No artwork keeps the original ambient background and is the default for new installations and older backups. Selected artwork fills the wall at 26% opacity on every page, with a panoramic crop behind the header. The decorative layer ignores touch and is hidden in forced colors, increased contrast and reduced transparency.
 
 ### Card artwork
 
