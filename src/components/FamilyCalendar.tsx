@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { weekEventRows } from "@/lib/family-calendar";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
@@ -39,7 +40,7 @@ interface FamilyWeekGridProps {
   onDay?: (date: string) => void;
 }
 
-export function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd, onDay }: FamilyWeekGridProps) {
+export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd, onDay }: FamilyWeekGridProps) {
   const { t, dateLabel } = useI18n();
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -73,7 +74,7 @@ export function FamilyWeekGrid({ start, events, members, compact = false, onEdit
         })}
       </table>
     </div>;
-}
+});
 
 export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
   const { t, message } = useI18n();

@@ -2,7 +2,7 @@ import { NotificationList } from "@/components/NotificationCenter";
 import { calendarRange, moveCalendarDate, uniqueCalendarPlans, type CalendarView } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,16 +41,16 @@ export default function Calendar() {
   const [newPlan, setNewPlan] = useState<{ date: string; member: MemberId }>();
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpDate, setJumpDate] = useState(date);
-  const openEvent = (event?: FamilyEvent) => { setEditing(event); setNewPlan(undefined); setEditorOpen(true); };
-  const addPlan = (date: string, person: MemberId) => { setEditing(undefined); setNewPlan({ date, member: person }); setEditorOpen(true); };
-  const navigate = (date: string, nextView = view) => setParams(previous => {
+  const openEvent = useCallback((event?: FamilyEvent) => { setEditing(event); setNewPlan(undefined); setEditorOpen(true); }, []);
+  const addPlan = useCallback((date: string, person: MemberId) => { setEditing(undefined); setNewPlan({ date, member: person }); setEditorOpen(true); }, []);
+  const navigate = useCallback((date: string, nextView = view) => setParams(previous => {
     const next = new URLSearchParams(previous);
     next.delete("week"); next.set("date", date); next.set("view", nextView);
     return next;
-  });
-  const openDay = (day: string) => navigate(day, "day");
-  const visible = events.filter(e => e.date >= start && e.date < end && (member === "all" || e.member === member));
-  const people = familyMembers.filter(m => member === "all" || member === m.id);
+  }), [setParams, view]);
+  const openDay = useCallback((day: string) => navigate(day, "day"), [navigate]);
+  const visible = useMemo(() => events.filter(e => e.date >= start && e.date < end && (member === "all" || e.member === member)), [events, start, end, member]);
+  const people = useMemo(() => familyMembers.filter(m => member === "all" || member === m.id), [familyMembers, member]);
   const calendars = Object.entries(calendarMembers).filter(([, id]) => people.some(person => person.id === id));
   const hasLists = Object.values(todoLists).some(list => list.kind !== "shopping" && people.some(person => person.id === list.member));
   const missing = calendars.some(([id]) => !currentHome.entities.some(entity => entity.preferenceId === id));

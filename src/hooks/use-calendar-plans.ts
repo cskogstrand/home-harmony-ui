@@ -14,7 +14,7 @@ export function useCalendarPlans(start: string, end: string) {
   const { t } = useI18n();
   const { currentHome, homeOnline, haUrl, watchCalendarEvents } = useApp();
   const { events, calendarMembers, members, compareMembers, isMemberVisible, wasteCalendarEntity } = useFamily();
-  const localEvents = events.length ? events.filter(event => isMemberVisible(event.member)) : noLocalEvents;
+  const localEvents = useMemo(() => events.length ? events.filter(event => isMemberVisible(event.member)) : noLocalEvents, [events, isMemberVisible]);
   const [refresh, setRefresh] = useState(0);
   const todos = useCalendarTodos(start, end, refresh);
   const [result, setResult] = useState<{ key: string; events: { event: CalendarEvent; calendar: string }[]; errors: string[]; loading: boolean }>({ key: "", events: [], errors: [], loading: false });
@@ -62,9 +62,10 @@ export function useCalendarPlans(start: string, end: string) {
   }, [result, requestKey, assignmentKey, start, end, currentHome.timeZone]);
   const plans = useMemo(() => sortEvents([...localEvents, ...remote, ...todos.events]), [localEvents, remote, todos.events]);
   // Local plans remain reachable when their HA person is removed or has not loaded yet.
-  const people = [...members, ...[...new Set(localEvents.map(e => e.member))]
+  const people = useMemo(() => [...members, ...[...new Set(localEvents.map(e => e.member))]
     .filter(id => id !== "everyone" && !members.some(m => m.id === id))
-    .map(id => ({ id, name: t("Person unavailable"), initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id));
+    .map(id => ({ id, name: t("Person unavailable"), initials: "?", color: "#c4d5a3" }))].sort((a, b) => compareMembers(a.id, b.id)),
+  [members, localEvents, t, compareMembers]);
   return { events: plans, people,
     loading: todos.loading || homeOnline && !!calendarIds && (result.key !== requestKey || result.loading),
     errors: [...todos.errors, ...(homeOnline && result.key === requestKey ? result.errors.map(calendar => t("Could not read {value1}. Check the calendar integration, permissions, connection and HA CORS configuration.", { value1: calendar })) : [])],

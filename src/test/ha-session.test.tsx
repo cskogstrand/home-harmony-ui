@@ -6,6 +6,7 @@ import { StrictMode } from "react";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection, HassEntities } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
+import * as familyCalendar from "@/lib/family-calendar";
 import App from "@/App";
 import { PinPadModal } from "@/components/devices/PinPadModal";
 import { config, registries, services, states as deviceStates, state, user } from "./ha-fixtures";
@@ -200,6 +201,28 @@ beforeEach(() => {
   vi.mocked(ha.callService).mockResolvedValue({});
 });
 afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+it("skips both weekly grids on sensor updates and refreshes both when a person changes", async () => {
+  const rows = vi.spyOn(familyCalendar, "weekEventRows");
+  render(<App />);
+  const week = () => within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  await screen.findByRole("region", { name: "Family weekly calendar" });
+  await week().findByRole("rowheader", { name: "Everyone" });
+  await navigate("Calendar");
+  await week().findByRole("rowheader", { name: "Everyone" });
+  await navigate("Today");
+
+  rows.mockClear();
+  const updated = { ...states, "sensor.power": state("sensor.power", "42") };
+  act(() => conn.entityCallback(updated));
+  expect(rows).not.toHaveBeenCalled();
+
+  act(() => conn.entityCallback({ ...updated, "person.everyone": state("person.everyone", "home", { friendly_name: "New name" }) }));
+  expect(await week().findByRole("rowheader", { name: "New name" })).toBeVisible();
+  expect(rows).toHaveBeenCalled();
+  await navigate("Calendar");
+  expect(week().getByRole("rowheader", { name: "New name" })).toBeVisible();
+});
 
 it.each(["/", "/calendar"])("loads uploaded person photos and falls back to initials from %s", async path => {
   const photo = "/api/image/serve/0123456789abcdef0123456789abcdef/original";

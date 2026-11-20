@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { memo, useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useI18n, useRememberLanguage } from "@/hooks/use-i18n";
 import { useApp } from "./AppContext";
@@ -10,27 +10,32 @@ import { memberPalette } from "@/lib/member-colors";
 import { moveSmartHomeCard } from "@/lib/smart-home-cards";
 import { modalGlassProperties } from "@/lib/modal-glass";
 
+type HomePerson = Pick<FamilyMember, "id" | "name" | "picture">;
+
 export function FamilyProvider({ children }: { children: ReactNode }) {
-  return <SharedConfigurationProvider><FamilyStore>{children}</FamilyStore></SharedConfigurationProvider>;
-}
-function FamilyStore({ children }: { children: ReactNode }) {
-  const { t, message, language } = useI18n();
-  useRememberLanguage();
   const { currentHome } = useApp();
-  const shared = useSharedConfiguration();
-  const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
-  const connectedPlanner = true;
-  const availableMembers: FamilyMember[] = currentHome.entities.filter(e => e.domain === "person").map((person, index) => ({
+  const people: HomePerson[] = currentHome.entities.filter(entity => entity.domain === "person").map(person => ({
     id: person.preferenceId, name: person.name,
-    initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
-    color: planner.memberColors[person.preferenceId] ?? memberPalette[index % memberPalette.length].color,
     // shortcut: only uploaded HA photos are supported; add other picture sources when needed.
     picture: typeof person.attributes.entity_picture === "string" && /^\/api\/image\/serve\/[a-f0-9]{32}\/(original|256x256|512x512)$/.test(person.attributes.entity_picture)
       ? person.attributes.entity_picture : undefined,
   }));
+  return <SharedConfigurationProvider><FamilyStore people={people} timeZone={currentHome.timeZone}>{children}</FamilyStore></SharedConfigurationProvider>;
+}
+const FamilyStore = memo(function FamilyStore({ children, people, timeZone }: { children: ReactNode; people: HomePerson[]; timeZone: string }) {
+  const { t, message, language } = useI18n();
+  useRememberLanguage();
+  const shared = useSharedConfiguration();
+  const planner: FamilyState = { ...(shared?.state.config.settings ?? emptyPlanner()), events: [], items: [] };
+  const connectedPlanner = true;
+  const availableMembers: FamilyMember[] = people.map((person, index) => ({
+    ...person,
+    initials: person.name.split(/\s+/).map(part => part[0]).slice(0, 2).join(""),
+    color: planner.memberColors[person.id] ?? memberPalette[index % memberPalette.length].color,
+  }));
   const [now, setNow] = useState(() => new Date());
-  const today = homeDate(now, currentHome.timeZone);
-  const time = new Intl.DateTimeFormat("en-GB", { timeZone: currentHome.timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  const today = homeDate(now, timeZone);
+  const time = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
   const setPlanner = (change: (value: FamilyState) => FamilyState) => {
     try { shared.store.updateSettings(settings => plannerSettings(change({ ...settings, events: [], items: [] }))); return true; }
     catch (error) { toast.error(message(error instanceof Error ? error.message : "Configuration could not be saved.")); return false; }
@@ -141,4 +146,8 @@ function FamilyStore({ children }: { children: ReactNode }) {
       return true;
     },
   }}>{children}</FamilyContext.Provider>;
-}
+}, (prev, next) => prev.children === next.children && prev.timeZone === next.timeZone
+  && prev.people.length === next.people.length && prev.people.every((person, i) => {
+    const other = next.people[i];
+    return person.id === other.id && person.name === other.name && person.picture === other.picture;
+  }));

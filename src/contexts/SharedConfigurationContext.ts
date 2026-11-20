@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useApp } from "./AppContext";
 import { SharedConfiguration } from "@/lib/shared-configuration";
 
@@ -17,6 +17,6 @@ export function useSharedStore() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [state.dirty]);
-  return { state, store };
+  return useMemo(() => ({ state, store }), [state, store]);
 }
 export function useSharedConfiguration() { return useContext(SharedConfigurationContext); }
