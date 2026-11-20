@@ -3,7 +3,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import { Bell, Camera, ChevronRight, Clock3, Expand, Image, ImageOff, ListChecks, VideoOff, X } from "lucide-react";
+import { Bell, Camera, ChevronRight, Clock3, Image, ImageOff, ListChecks, VideoOff, X } from "lucide-react";
 import { configuredCamera } from "../../shared/cameras";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
@@ -13,11 +13,12 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
-import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
+import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { EntityMedia, MediaSurface } from "./devices/EntityMedia";
+import { DeviceIcon } from "./devices/DeviceControl";
 import type { Entity } from "@/types/api";
 import type { NotificationPresentation, NotificationRule } from "../../shared/notifications";
 import { NotificationIcon } from "./NotificationIcon";
@@ -36,11 +37,11 @@ export function NotificationBell() {
 
 type PreviewMode = "current" | "sample";
 
-function NotificationCameraFeed({ item, preview, compact = false, thumbnail = false, inDialog = false }: { item: HomeNotification; preview?: PreviewMode; compact?: boolean; thumbnail?: boolean; inDialog?: boolean }) {
+function NotificationCameraFeed({ item, cameraId = item.rule.cameraEntity, cameraMedia = item.rule.cameraMedia, preview, compact = false, thumbnail = false, inDialog = false }: { item: HomeNotification; cameraId?: string; cameraMedia?: "live" | "person"; preview?: PreviewMode; compact?: boolean; thumbnail?: boolean; inDialog?: boolean }) {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const { camera } = useNotifications();
-  const selected = configuredCamera(shared?.state.config.settings.cameras, item.rule.cameraEntity);
+  const selected = configuredCamera(shared?.state.config.settings.cameras, cameraId);
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => { ref.current?.toggleAttribute("inert", thumbnail); }, [thumbnail]);
   const [visible, setVisible] = useState(!globalThis.IntersectionObserver && !document.hidden);
@@ -57,7 +58,7 @@ function NotificationCameraFeed({ item, preview, compact = false, thumbnail = fa
     {inDialog && <p className="notification-media-caption">{selected?.name || t("Camera")}</p>}
     {preview === "sample" || !visible ? <div className="notification-camera-placeholder"><Camera size={compact ? 24 : 32} aria-hidden="true" /><span className={compact ? "sr-only" : undefined}>{t(preview === "sample" ? "Camera preview" : "Stream paused")}</span></div>
       : !selected ? <p role="status">{thumbnail && <VideoOff size={20} aria-hidden="true" />}<span className={thumbnail ? "sr-only" : undefined}>{t("Camera unavailable. Check the selected camera in notification settings.")}</span></p>
-      : item.rule.cameraMedia === "person" ? <CameraPersonSnapshot key={selected.id} cameraId={selected.id} />
+      : cameraMedia === "person" ? <CameraPersonSnapshot key={selected.id} cameraId={selected.id} />
       : <MediaSurface camera={selected} expanded={inDialog} controls={false} showPerson={!thumbnail && item.rule.showPersonSnapshot} />}
     {!thumbnail && <button type="button" className="smart-media-open" disabled={!!preview} aria-haspopup="dialog"
       aria-label={t("Show camera")} onClick={event => { event.currentTarget.focus({ preventScroll: true }); camera(item.id, true); }} />}
@@ -74,10 +75,6 @@ function useAlertFocusOnRemoval() {
     if (!node) restoreAlertFocus(element.current);
     element.current = node;
   }, []);
-}
-
-function previewCamera(rule: NotificationRule) {
-  return showsLiveActivityPreview(rule) || (rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia === "person");
 }
 
 function NotificationImageFeed({ image, preview, compact = false, thumbnail = false, inDialog = false }: { image?: Entity; preview?: PreviewMode; compact?: boolean; thumbnail?: boolean; inDialog?: boolean }) {
@@ -107,8 +104,25 @@ function useTimeLeft(rule: NotificationRule | undefined, entities: Entity[], req
   return minutes < 60 ? t("{minutes} min left", { minutes }) : t("{hours} h {minutes} min left", { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
 }
 
-export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, inDialog = false, preview, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; inDialog?: boolean; preview?: PreviewMode; entities?: Entity[] }) {
+function useReadingValue() {
   const { message: t, language, locale } = useI18n();
+  const { currentHome } = useApp();
+  return (entity?: Entity, attribute?: string) => {
+    const raw = attribute ? entity?.attributes[attribute] : entity?.state;
+    if (!entity || !available(entity) || entity.attributes.mode === "password" || !["string", "number", "boolean"].includes(typeof raw)) {
+      return { value: t("Entity unavailable"), unit: "" };
+    }
+    const value = !attribute && entity.attributes.device_class === "timestamp" && Number.isFinite(Date.parse(String(raw)))
+      ? new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, hour: "2-digit", minute: "2-digit" }).format(Date.parse(String(raw)))
+      : entityStateLabel(attribute ? { ...entity, domain: "sensor", state: String(raw) } : entity, language);
+    const unit = !attribute && typeof entity.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : "";
+    return { value, unit };
+  };
+}
+
+export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, inDialog = false, preview, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; inDialog?: boolean; preview?: PreviewMode; entities?: Entity[] }) {
+  const { message: t } = useI18n();
+  const readingValue = useReadingValue();
   const { currentHome } = useApp();
   const { dismiss } = useNotifications();
   const entities = previewEntities ?? currentHome.entities;
@@ -123,26 +137,36 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   const cameraContent = showCamera && <NotificationCameraFeed item={item} preview={preview} compact={cameraPosition !== "footer"} inDialog={inDialog} />;
   const imageContent = item.rule.imageEntity && <NotificationImageFeed image={notificationEntity(entities, item.rule.imageEntity)} preview={preview} compact={imagePosition !== "footer"} inDialog={inDialog} />;
   const hasColumn = (position: "left" | "right") => at(position).length > 0 || showCamera && cameraPosition === position || !!imageContent && imagePosition === position;
-  const time = new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, hour: "2-digit", minute: "2-digit" });
   const eventTime = useEventTime(item);
   const timeLeft = useTimeLeft(inDialog && item.rule.kind === "ongoing" ? item.rule : undefined, entities, showsLiveActivityPreview(item.rule) && item.rule.icon === "printer_3d");
-  const renderReading = (reading: typeof readings[number], prominent = false) => {
-    const entity = notificationEntity(entities, reading.entity);
-    const name = reading.name || `${entity?.name ?? t("Entity unavailable")}${reading.attribute ? ` · ${reading.attribute}` : ""}`;
-    const raw = reading.attribute ? entity?.attributes[reading.attribute] : entity?.state;
-    const readable = entity && available(entity) && entity.attributes.mode !== "password" && ["string", "number", "boolean"].includes(typeof raw);
-    const value = !readable ? t("Entity unavailable") : !reading.attribute && entity.attributes.device_class === "timestamp" && Number.isFinite(Date.parse(String(raw))) ? time.format(Date.parse(String(raw))) : entityStateLabel(reading.attribute ? { ...entity, domain: "sensor", state: String(raw) } : entity, language);
-    const unit = readable && !reading.attribute && typeof entity.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : "";
-    const key = JSON.stringify([reading.entity, reading.attribute]);
-    const hideName = activity && reading.hideName;
-    return prominent ? <div key={key}><span className={hideName ? "sr-only" : undefined}>{name}</span><strong>{value}{unit && <small>{unit}</small>}</strong></div> : <p key={key} className="text-sm">{hideName ? <span className="sr-only">{name}: </span> : `${name} · `}{value}{unit}</p>;
+  const renderReadings = (position: string, prominent = false) => {
+    const group = at(position);
+    if (!group.length) return null;
+    const items = group.map(reading => {
+      const entity = notificationEntity(entities, reading.entity);
+      const name = reading.name || `${entity?.name ?? t("Entity unavailable")}${reading.attribute ? ` · ${reading.attribute}` : ""}`;
+      const { value, unit } = readingValue(entity, reading.attribute);
+      const key = JSON.stringify([reading.entity, reading.attribute]);
+      const hideName = activity && reading.hideName;
+      if (inDialog) return <div key={key}>
+        <dt className={hideName ? "sr-only" : undefined}>
+          {entity?.attributes.device_class === "timestamp" ? <Clock3 aria-hidden="true" /> : <DeviceIcon type={entity?.domain ?? "sensor"} deviceClass={entity?.attributes.device_class} />}
+          {name}
+        </dt>
+        <dd>{value}{unit && <small>{unit}</small>}</dd>
+      </div>;
+      return prominent ? <div key={key}><span className={hideName ? "sr-only" : undefined}>{name}</span><strong>{value}{unit && <small>{unit}</small>}</strong></div> : <p key={key} className="text-sm">{hideName ? <span className="sr-only">{name}: </span> : `${name} · `}{value}{unit}</p>;
+    });
+    return inDialog ? <dl className="notification-dialog-readings">{items}</dl> : items;
   };
+  const subtitle = renderReadings("subtitle");
+  const footer = renderReadings("footer");
   const icon = <NotificationIcon rule={item.rule} animate={activity && item.rule.kind === "ongoing"} />;
   const dismissAction = item.rule.kind !== "ongoing" && <Button type="button" disabled={!!preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>;
   const title = <strong className="block">{item.eventTitle || item.rule.title}</strong>;
   const Tag = inDialog ? "div" : "li";
   const style = activity ? `notification-activity${compactActivity ? " notification-activity-compact" : ""}` : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0";
-  const progress = item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} caption={inDialog ? timeLeft : undefined} />;
+  const progress = item.rule.kind === "ongoing" && item.rule.progress && <NotificationProgress progress={item.rule.progress} entities={entities} title={item.rule.title} caption={timeLeft} inDialog={inDialog} />;
   return <Tag ref={inDialog ? undefined : row} className={inDialog ? `notification-dialog-body ${style}` : style}>
     {!inDialog && !activity && icon}
     <div className="notification-body min-w-0 flex-1 break-words">
@@ -150,18 +174,18 @@ export function NotificationRow({ item, condensed = false, activity = false, com
       {!inDialog && showDetails && item.eventTitle && <p className="text-sm text-muted-foreground">{item.rule.title} · {eventTime}</p>}
       {inDialog && item.rule.kind === "ongoing" && (progress || (timeLeft && <p className="notification-time-left"><Clock3 aria-hidden="true" />{timeLeft}</p>))}
       {showDetails && item.rule.message && !(inDialog && item.rule.kind === "camera") && <p className={inDialog ? "notification-dialog-message" : "text-sm"}>{item.rule.message}</p>}
-      {!!at("subtitle").length && <div data-placement="subtitle" className="text-muted-foreground">{at("subtitle").map(reading => renderReading(reading))}</div>}
+      {subtitle && <div data-placement="subtitle" className="text-muted-foreground">{subtitle}</div>}
       {(hasColumn("left") || hasColumn("right")) && <div className={activity ? "notification-activity-readings" : ""}>
         {(["left", "right"] as const).map(position => hasColumn(position) && <div key={position} data-placement={position}>
           {imagePosition === position && imageContent && <div className="notification-media-side">{imageContent}</div>}
           {cameraPosition === position && showCamera && <div className="notification-media-side">{cameraContent}</div>}
-          {at(position).map(reading => renderReading(reading, activity))}
+          {renderReadings(position, activity)}
         </div>)}
       </div>}
       {readings.some(reading => !notificationEntity(entities, reading.entity)) && <p className="text-sm text-muted-foreground">{t("Some additional readings are unavailable")}</p>}
       {imagePosition === "footer" && imageContent}
       {cameraPosition === "footer" && cameraContent}
-      {!!at("footer").length && <div data-placement="footer" className="notification-reading-footer">{at("footer").map(reading => renderReading(reading))}</div>}
+      {footer && <div data-placement="footer" className="notification-reading-footer">{footer}</div>}
       {!inDialog && progress}
     </div>
     {!inDialog && !activity && dismissAction}
@@ -170,30 +194,45 @@ export function NotificationRow({ item, condensed = false, activity = false, com
 
 export function NotificationTile({ item, presentation, preview, entities: previewEntities, onOpen }: { item: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; onOpen: (opener: HTMLButtonElement) => void }) {
   const { message: t } = useI18n();
+  const readingValue = useReadingValue();
   const { currentHome } = useApp();
+  const { dismiss } = useNotifications();
   const entities = previewEntities ?? currentHome.entities;
   const { rule } = item;
-  const name = item.eventTitle || rule.title;
-  const camera = previewCamera(rule);
-  const media = camera || !!rule.imageEntity;
-  const print = camera && showsLiveActivityPreview(rule) && rule.icon === "printer_3d";
+  const widget = rule.widget;
+  const name = widget?.title?.trim() || item.eventTitle || rule.title;
   const eventTime = useEventTime(item);
+  const subtitle = widget?.text?.trim() || eventTime || (rule.kind === "current" && rule.message);
+  const media = notificationWidgetMedia(rule);
+  const hasMedia = media.type !== "none";
+  const doorbell = rule.kind === "camera";
+  const print = rule.kind === "ongoing" && rule.icon === "printer_3d" && media.type === "live";
+  const showTitle = !print || !!widget?.title?.trim() || !!subtitle || widget?.readings !== undefined;
   const row = useAlertFocusOnRemoval();
   const bodyId = useId();
-  return <li ref={row} className={media ? "notification-glance notification-live-thumbnail" : "notification-glance"}>
-    {!media && <NotificationIcon rule={rule} />}
-    <div id={bodyId} className="notification-body min-w-0 flex-1 break-words">
-      {camera ? <NotificationCameraFeed item={item} preview={preview} compact thumbnail /> : rule.imageEntity && <NotificationImageFeed image={notificationEntity(entities, rule.imageEntity)} preview={preview} thumbnail />}
-      <div className="notification-preview-copy">
-        {!print && <div className="notification-glance-caption"><strong>{name}</strong>
-          {(eventTime || (rule.kind === "current" && rule.message)) && <small>{eventTime || rule.message}</small>}
-        </div>}
-        {rule.kind === "ongoing" && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
+  const action = doorbell ? "Open camera for {name}" : presentation.startsWith("activity") ? "Open activity card for {name}" : "Show details for {name}";
+  return <li ref={row} className={hasMedia ? "notification-glance notification-live-thumbnail" : "notification-glance"}
+    data-widget-readings={!!widget?.readings?.length || undefined} data-widget-text={!!subtitle && rule.kind === "ongoing" && widget?.readings === undefined || undefined}>
+    <div className="notification-widget-main">
+      {!hasMedia && <NotificationIcon rule={rule} />}
+      <div id={bodyId} className="notification-body min-w-0 flex-1 break-words">
+        {media.type === "image" ? <NotificationImageFeed image={notificationEntity(entities, media.entity)} preview={preview} thumbnail /> : "cameraId" in media &&
+          <NotificationCameraFeed item={item} cameraId={media.cameraId} cameraMedia={media.type} preview={preview} compact thumbnail />}
+        <div className="notification-preview-copy">
+          {showTitle && <div className="notification-glance-caption"><strong>{name}</strong>{subtitle && <small>{subtitle}</small>}</div>}
+          {rule.kind === "ongoing" && widget?.readings === undefined && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
+        </div>
       </div>
+      {!hasMedia && !doorbell && <ChevronRight className="notification-glance-chevron" aria-hidden="true" />}
+      {doorbell && <Button type="button" disabled={!!preview} variant="ghost" size="icon" className="notification-widget-dismiss" aria-label={t("Dismiss {name}", { name })} onClick={() => dismiss(item.id)}><X size={16} aria-hidden="true" /></Button>}
     </div>
-    {!media && <ChevronRight className="notification-glance-chevron" aria-hidden="true" />}
+    {!!widget?.readings?.length && <dl className="notification-widget-readings">{widget.readings.map(id => {
+      const entity = notificationEntity(entities, id);
+      const { value, unit } = readingValue(entity);
+      return <div key={id}><dt>{entity?.name ?? id.split("|").pop()}</dt><dd>{value}{unit}</dd></div>;
+    })}</dl>}
     <button type="button" className="notification-thumbnail-open" aria-haspopup="dialog" aria-describedby={bodyId}
-      aria-label={t(presentation.startsWith("activity") ? "Open activity card for {name}" : "Show details for {name}", { name })} onClick={event => onOpen(event.currentTarget)} />
+      aria-label={t(action, { name })} onClick={event => onOpen(event.currentTarget)} />
   </li>;
 }
 
@@ -210,7 +249,7 @@ function ActivityPreviewReadings({ item, entities, printPreview }: { item: HomeN
   </div>;
 }
 
-function NotificationDetailHeader({ item, kind, children }: { item: HomeNotification; kind?: string; children?: ReactNode }) {
+function NotificationDetailHeader({ item, kind, inline, children }: { item: HomeNotification; kind?: string; inline?: boolean; children?: ReactNode }) {
   const { message: t, locale } = useI18n();
   const { currentHome } = useApp();
   const calendar = item.eventStart !== undefined || item.eventAllDay;
@@ -224,7 +263,7 @@ function NotificationDetailHeader({ item, kind, children }: { item: HomeNotifica
     <NotificationIcon rule={item.rule} animate={item.rule.kind === "ongoing"} />
     <div className="min-w-0">
       <p className="notification-dialog-kind">{label}</p>
-      <DialogTitle tabIndex={-1}>{item.eventTitle || item.rule.title}</DialogTitle>
+      {inline ? <h4>{item.eventTitle || item.rule.title}</h4> : <DialogTitle tabIndex={-1}>{item.eventTitle || item.rule.title}</DialogTitle>}
       {when && <p className="notification-event-time"><Clock3 aria-hidden="true" />{when}</p>}
       {children}
     </div>
@@ -235,20 +274,6 @@ function returnToNotification(opener: HTMLElement | null) {
   const dialog = document.querySelector<HTMLElement>('[role="dialog"][data-state="open"]:not([aria-hidden="true"])');
   if (opener?.isConnected && !opener.closest('[inert], [hidden], [aria-hidden="true"]') && (!dialog || dialog.contains(opener))) opener.focus({ preventScroll: true });
   else (dialog ?? document.getElementById("notification-bell") ?? document.getElementById("main-content"))?.focus({ preventScroll: true });
-}
-
-export function CameraAlertPreview({ item, preview, onOpen }: { item: HomeNotification; preview?: PreviewMode; onOpen?: (opener: HTMLButtonElement) => void }) {
-  const { message: t } = useI18n();
-  const { camera, dismiss } = useNotifications();
-  const row = useAlertFocusOnRemoval();
-  const name = item.rule.title;
-  return <li ref={row} className="notification-glance notification-glance-camera">
-    <div className="notification-camera-reopen">
-      <NotificationCameraFeed item={item} preview={preview} compact thumbnail /><strong>{name}</strong><Expand size={16} aria-hidden="true" />
-      <button type="button" className="notification-thumbnail-open" aria-haspopup="dialog" aria-label={t("Open camera for {name}", { name })} onClick={event => onOpen ? onOpen(event.currentTarget) : camera(item.id, true)} />
-    </div>
-    <Button type="button" disabled={!!preview} variant="ghost" size="icon" aria-label={t("Dismiss {name}", { name })} onClick={() => dismiss(item.id)}><X size={16} aria-hidden="true" /></Button>
-  </li>;
 }
 
 function NotificationPresence({ children }: { children: ReactNode }) {
@@ -344,7 +369,7 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { observer.disconnect(); window.removeEventListener("scroll", onScroll); };
   }, [active, compact, pathname]);
-  const { notifications: allNotifications, errors, retry, dismiss } = useNotifications();
+  const { notifications: allNotifications, errors, retry, dismiss, camera } = useNotifications();
   const [selectedId, select] = useState<string>();
   const opener = useRef<HTMLButtonElement | null>(null);
   const eligible = allNotifications.filter(({ rule }) => pathname === "/" || (rule.pages ?? settings?.pages) === "main");
@@ -356,15 +381,14 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
     {sourceErrors}
     {!allNotifications.length && !errors.length && <p className="empty-note">{t("Nothing needs your attention right now.")}</p>}
   </NotificationSurface>;
-  const hasMedia = ({ rule }: HomeNotification) => rule.kind !== "camera" && (previewCamera(rule) || !!rule.imageEntity);
+  const hasMedia = ({ rule }: HomeNotification) => rule.kind !== "camera" && notificationWidgetMedia(rule).type !== "none";
   const media = eligible.filter(hasMedia);
   const rows = eligible.filter(item => !hasMedia(item));
   const priority = { camera: 0, current: 1, ongoing: 2 };
   const compactRows = rows.sort((a, b) => priority[a.rule.kind] - priority[b.rule.kind]).slice(0, 3);
   const preview = (item: HomeNotification) => {
-    if (item.rule.kind === "camera") return <CameraAlertPreview key={item.id} item={item} />;
     const type = item.rule.presentation ?? style;
-    return <NotificationTile key={item.id} item={item} presentation={type} onOpen={button => { opener.current = button; select(item.id); }} />;
+    return <NotificationTile key={item.id} item={item} presentation={type} onOpen={button => { if (item.rule.kind === "camera") camera(item.id, true); else { opener.current = button; select(item.id); } }} />;
   };
   const presentationType = selected?.rule.presentation ?? style;
   return <div ref={slot} className="notification-slot"><AnimatePresence initial={false}>{(eligible.length > 0 || !!sourceErrors) && <NotificationPresence key="notifications">
@@ -383,19 +407,21 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
   </div>;
 }
 
-export function NotificationDetailContent({ item, presentation, preview, entities, onDismiss, onReturn }: {
-  item: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; onDismiss?: () => void; onReturn: () => void;
+export function NotificationDetailContent({ item, presentation, preview, entities, inline = false, onDismiss, onReturn }: {
+  item: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; inline?: boolean; onDismiss?: () => void; onReturn?: () => void;
 }) {
   const { message: t } = useI18n();
+  const content = <>
+    <NotificationDetailHeader item={item} inline={inline} />
+    <NotificationRow item={item} inDialog condensed={presentation === "banner"} activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} preview={preview} entities={entities} />
+    {item.rule.kind === "current" && <div className="notification-dialog-actions"><Button type="button" variant="outline" disabled={!!preview} onClick={onDismiss}>{t("Dismiss notification")}</Button></div>}
+  </>;
+  if (inline) return <fieldset disabled className="notification-inline-popup notification-detail-dialog glass-surface glass-modal" data-presentation={presentation} aria-label={t("Popup preview")}>{content}</fieldset>;
   return <DialogContent className="notification-detail-dialog" aria-describedby={undefined}
     data-media={!!(item.rule.imageEntity || item.rule.kind === "ongoing" && item.rule.cameraEntity) || undefined}
     data-presentation={presentation}
     onOpenAutoFocus={event => { event.preventDefault(); (event.currentTarget as HTMLElement).querySelector("h2")?.focus({ preventScroll: true }); }}
-    onCloseAutoFocus={event => { event.preventDefault(); onReturn(); }}>
-    <NotificationDetailHeader item={item} />
-    <NotificationRow item={item} inDialog condensed={presentation === "banner"} activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} preview={preview} entities={entities} />
-    {item.rule.kind === "current" && <div className="notification-dialog-actions"><Button type="button" variant="outline" disabled={!!preview} onClick={onDismiss}>{t("Dismiss notification")}</Button></div>}
-  </DialogContent>;
+    onCloseAutoFocus={event => { event.preventDefault(); onReturn?.(); }}>{content}</DialogContent>;
 }
 
 export function NotificationCamera() {
@@ -408,8 +434,8 @@ export function NotificationCamera() {
   </Dialog>;
 }
 
-export function NotificationCameraContent({ item, presentation, preview, entities, onReturn }: {
-  item?: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; onReturn?: () => void;
+export function NotificationCameraContent({ item, presentation, preview, entities, inline = false, onReturn }: {
+  item?: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; inline?: boolean; onReturn?: () => void;
 }) {
   const { message: t } = useI18n();
   const { currentHome } = useApp();
@@ -418,20 +444,24 @@ export function NotificationCameraContent({ item, presentation, preview, entitie
   const seconds = preview && item ? item.rule.durationSeconds : item?.expiresAt === undefined ? undefined : Math.max(0, Math.ceil((item.expiresAt - Date.now()) / 1000));
   const countdown = seconds !== undefined && !notificationTriggers(item.rule).some(trigger => trigger.type === "state" && matchesState(trigger, notificationEntity(entities ?? currentHome.entities, trigger.entity)));
   const returnFocus = useRef<HTMLElement | null>(null);
-  return <DialogContent className="smart-media-dialog notification-camera-dialog" onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }} onCloseAutoFocus={event => {
-      event.preventDefault();
-      if (onReturn) onReturn(); else returnToNotification(returnFocus.current);
-    }}>
-      {item && <NotificationDetailHeader item={item} kind={t(item.rule.cameraMedia === "person" ? "Person snapshot" : item.rule.kind === "camera" ? "Camera popup" : "Camera")}>
-        <DialogDescription role={countdown ? "timer" : undefined} aria-live="off" className="mt-1 tabular-nums">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t(item.rule.kind === "ongoing" ? "Closes when this task ends." : "Closes automatically when this alert expires.")}</DialogDescription>
+  const Description = inline ? "p" : DialogDescription;
+  const close = <Button type="button" variant="outline" disabled={inline}>{t("Close camera")}</Button>;
+  const content = <>
+      {item && <NotificationDetailHeader item={item} inline={inline} kind={t(item.rule.cameraMedia === "person" ? "Person snapshot" : item.rule.kind === "camera" ? "Camera popup" : "Camera")}>
+        <Description role={countdown ? "timer" : undefined} aria-live="off" className="mt-1 text-sm text-muted-foreground tabular-nums">{countdown ? t("Closes in {time}", { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` }) : t(item.rule.kind === "ongoing" ? "Closes when this task ends." : "Closes automatically when this alert expires.")}</Description>
       </NotificationDetailHeader>}
       <div className="notification-camera-dialog-scroll">{preview === "sample" ? <div className="notification-camera-placeholder"><Camera size={32} aria-hidden="true" />{t(item?.rule.cameraMedia === "person" ? "Person snapshot" : "Camera preview")}</div> : selectedCamera ? item.rule.cameraMedia === "person"
         ? <CameraPersonSnapshot key={item.id} cameraId={selectedCamera.id} />
-        : <MediaSurface key={`${item.id}-${selectedCamera.id}`} camera={selectedCamera} expanded />
+        : <MediaSurface key={`${item.id}-${selectedCamera.id}`} camera={selectedCamera} expanded={!inline} showPerson />
         : <p role="status">{t("Camera unavailable. Check the selected camera in notification settings.")}</p>}
         {item?.rule.message && <p className="mt-3 break-words">{item.rule.message}</p>}
         {item?.rule.kind === "camera" && <NotificationRow item={item} inDialog preview={preview} entities={entities} activity={presentation?.startsWith("activity")} compactActivity={presentation === "activity-compact"} />}
       </div>
-      <div className="flex justify-end"><DialogClose asChild><Button type="button" variant="outline">{t("Close camera")}</Button></DialogClose></div>
-    </DialogContent>;
+      <div className="flex justify-end">{inline ? close : <DialogClose asChild>{close}</DialogClose>}</div>
+  </>;
+  if (inline) return <fieldset disabled className="notification-inline-popup notification-camera-dialog glass-surface glass-modal" aria-label={t("Popup preview")}>{content}</fieldset>;
+  return <DialogContent className="smart-media-dialog notification-camera-dialog" onOpenAutoFocus={() => { returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }} onCloseAutoFocus={event => {
+      event.preventDefault();
+      if (onReturn) onReturn(); else returnToNotification(returnFocus.current);
+    }}>{content}</DialogContent>;
 }

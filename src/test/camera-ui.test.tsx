@@ -40,12 +40,15 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.use
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
 
-it("protects cameras used by ongoing tasks, including assignments made during deletion confirmation", () => {
+it.each([
+  { kind: "ongoing", cameraEntity: "example-camera" },
+  { kind: "current", widget: { media: { type: "live", cameraId: "example-camera" } } },
+])("protects cameras assigned during deletion confirmation (%j)", assignment => {
   configure();
   const view = renderSettings();
   fireEvent.click(screen.getByRole("button", { name: "Delete Example camera" }));
   mocks.shared.state.config.settings.notifications.rules = [notificationRuleSchema.parse({
-    id: "example-print", title: "Example print", kind: "ongoing", cameraEntity: "example-camera",
+    id: "example-print", title: "Example print", ...assignment,
     trigger: { type: "state", entity: "home|sensor.example", operator: "eq", value: "printing" },
   })];
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));

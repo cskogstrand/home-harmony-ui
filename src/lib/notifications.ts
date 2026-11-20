@@ -1,5 +1,5 @@
 import type { ZodIssue } from "zod";
-import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay } from "../../shared/notifications";
+import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay, type NotificationWidget } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
 
@@ -22,6 +22,19 @@ export const notificationEntity = (entities: Entity[], id: string) => entities.f
 
 export function showsLiveActivityPreview(rule: NotificationRule) {
   return rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && rule.livePreviewBelowTitle !== false;
+}
+
+export function notificationWidgetMedia(rule: NotificationRule): NonNullable<NotificationWidget["media"]> {
+  if (rule.widget?.media) return rule.widget.media;
+  if (rule.kind === "camera" || showsLiveActivityPreview(rule) || (rule.kind === "ongoing" && rule.cameraEntity && rule.cameraMedia === "person")) {
+    return { type: rule.cameraMedia ?? "live", cameraId: rule.cameraEntity };
+  }
+  return rule.imageEntity ? { type: "image", entity: rule.imageEntity } : { type: "none" };
+}
+
+export function notificationUsesCamera(rule: NotificationRule, id: string) {
+  const media = rule.widget?.media;
+  return (rule.kind !== "current" && rule.cameraEntity === id) || (!!media && "cameraId" in media && media.cameraId === id);
 }
 
 const remainingTimeName = /remaining|time[ _]left|tid[ _]igjen|gjenstående|end[ _]time|finish(?:es|[ _]time)?\b|estimated[ _]completion|ferdigtid|sluttid/i;
@@ -119,6 +132,9 @@ export function matchesEvent(trigger: NotificationTrigger, event: NotificationEv
 type Observation = { signature: string; triggers: { entity?: Entity; matched: boolean }[]; stateId?: string; calendarIds: Set<string>; lastFired: number };
 
 // Session-only state: never persist event payloads, camera images, or notification history.
+// A widget edit changes the displayed tile without restarting the activation or its cooldown.
+const ruleSignature = (rule: NotificationRule) => JSON.stringify({ ...rule, widget: undefined });
+
 export class NotificationEngine {
   private observations = new Map<string, Observation>();
   private entries = new Map<string, HomeNotification>();
@@ -131,7 +147,7 @@ export class NotificationEngine {
   private removeRule(id: string) { for (const [key, entry] of this.entries) if (entry.rule.id === id) this.entries.delete(key); }
   private fire(rule: NotificationRule, now: number) {
     const observation = this.observations.get(rule.id);
-    if (!observation || observation.signature !== JSON.stringify(rule) || now - observation.lastFired < rule.cooldownSeconds * 1000) return;
+    if (!observation || observation.signature !== ruleSignature(rule) || now - observation.lastFired < rule.cooldownSeconds * 1000) return;
     observation.lastFired = now;
     for (const [id, entry] of this.entries) if (entry.rule.id === rule.id && entry.expiresAt !== undefined) this.entries.delete(id);
     const id = `${rule.id}:${++this.sequence}`;
@@ -143,15 +159,20 @@ export class NotificationEngine {
   }
   update(rules: NotificationRule[], entities: Entity[], calendars: Record<string, CalendarEvent[] | null>, online: boolean, now: number, timeZone: string) {
     if (!online) { this.clear(); return this.list(); }
-    const enabled = rules.filter(rule => rule.enabled);
+    const enabled = new Map(rules.filter(rule => rule.enabled).map(rule => [rule.id, rule]));
     for (const [id, old] of this.observations) {
-      if (!enabled.some(rule => rule.id === id && JSON.stringify(rule) === old.signature)) { this.observations.delete(id); this.removeRule(id); }
+      const rule = enabled.get(id);
+      if (!rule || ruleSignature(rule) !== old.signature) { this.observations.delete(id); this.removeRule(id); }
     }
-    for (const [id, entry] of this.entries) if (entry.expiresAt <= now) this.entries.delete(id);
-    for (const rule of enabled) {
+    for (const [id, entry] of this.entries) {
+      const rule = enabled.get(entry.rule.id);
+      if (entry.expiresAt <= now) this.entries.delete(id);
+      else if (rule && entry.rule !== rule) this.entries.set(id, { ...entry, rule });
+    }
+    for (const rule of enabled.values()) {
       const previous = this.observations.get(rule.id);
       const triggers = notificationTriggers(rule);
-      const observation: Observation = { signature: JSON.stringify(rule), triggers: triggers.map(trigger => {
+      const observation: Observation = { signature: ruleSignature(rule), triggers: triggers.map(trigger => {
         const entity = "entity" in trigger ? notificationEntity(entities, trigger.entity) : undefined;
         return { entity, matched: matchesState(trigger, entity) };
       }), stateId: previous?.stateId, calendarIds: new Set(), lastFired: previous?.lastFired ?? -Infinity };
@@ -196,5 +217,5 @@ export class NotificationEngine {
   }
 }
 
-const sections: Record<string, string> = { title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+const sections: Record<string, string> = { widget: "widget", title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
 export const notificationIssueSection = (issue: ZodIssue) => sections[issue.path[0]] ?? "content";

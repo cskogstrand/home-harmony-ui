@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Expand, Eye, Pause, Play } from "lucide-react";
+import { Expand, PanelsTopLeft, PanelTop, Pause, Play, Eye } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { useApp } from "@/contexts/AppContext";
 import { useNotifications } from "@/contexts/NotificationContext";
@@ -8,7 +8,7 @@ import { available } from "@/lib/ha-model";
 import { notificationEntity, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
-import { CameraAlertPreview, NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
+import { NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -58,6 +58,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
       if (attribute) { if (!available(entity)) entity.state = "0"; entity.attributes[attribute] = value; }
       else entity.state = String(value);
     };
+    for (const reference of previewRule.widget?.readings ?? []) setReading(reference, 42, t("Example reading"));
     for (const trigger of notificationTriggers(previewRule)) if ("entity" in trigger) setReading(trigger.entity, trigger.type === "state" ? trigger.value : "on", t("Example source"), trigger.type === "state" ? trigger.attribute : "");
     previewRule.detailEntities.forEach((reference, index) => {
       const entity = notificationEntity(entities, reference);
@@ -101,20 +102,20 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
     draft.expiresAt = sampleAt + previewRule.durationSeconds * 1000;
   }
   const mode = useDemo ? "sample" : "current";
+  const Popup = draft.rule.kind === "camera" ? NotificationCameraContent : NotificationDetailContent;
   const previewTitle = t("Preview {name}", { name: draft.eventTitle || previewRule.title });
   return <section className="notification-preview" aria-label={onPresentationChange ? t("Preview {name}", { name: previewRule.title }) : t("Notification preview")}>
     {editing ? <>
-      <PanelTitle as="h3" icon={Eye}>{t("Board preview")}</PanelTitle>
-      <p className="page-note">{t("This tile appears below the page title. Tap it to preview the popup.")}</p>
+      <PanelTitle as="h3" icon={PanelsTopLeft}>{t("Board widget")}</PanelTitle>
       <div className="notification-widget-stage"><ul className="notification-board-layout">
-        {draft.rule.kind === "camera" ? <CameraAlertPreview item={draft} preview={mode} onOpen={openPopup} /> :
-          <NotificationTile item={draft} presentation={presentation} preview={mode} entities={entities} onOpen={openPopup} />}
+        <NotificationTile item={draft} presentation={presentation} preview={mode} entities={entities} onOpen={openPopup} />
       </ul></div>
-      <Button type="button" variant="outline" aria-haspopup="dialog" className="self-start" onClick={event => openPopup(event.currentTarget)}><Expand aria-hidden="true" />{t("Preview popup")}</Button>
-      <Dialog open={popupOpen} onOpenChange={setPopupOpen}>{draft.rule.kind === "camera"
-        ? <NotificationCameraContent item={draft} presentation={presentation} preview={mode} entities={entities} onReturn={() => opener.current?.focus()} />
-        : <NotificationDetailContent item={draft} presentation={presentation} preview={mode} entities={entities} onReturn={() => opener.current?.focus()} />}
-      </Dialog>
+      <div className="notification-popup-preview-heading">
+        <PanelTitle as="h3" icon={PanelTop}>{t("Popup window")}</PanelTitle>
+        <Button type="button" variant="ghost" aria-haspopup="dialog" onClick={event => openPopup(event.currentTarget)}><Expand aria-hidden="true" />{t("Open full size")}</Button>
+      </div>
+      {!popupOpen && <Popup inline item={draft} presentation={presentation} preview={mode} entities={entities} />}
+      <Dialog open={popupOpen} onOpenChange={setPopupOpen}><Popup item={draft} presentation={presentation} preview={mode} entities={entities} onReturn={() => opener.current?.focus()} /></Dialog>
     </> : !onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
       <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p></>}
     {rule && <div className="notification-toggle"><span>{t("Use sample data")}</span><Switch aria-label={t("Use sample data")} checked={demo} onCheckedChange={checked => { setDemo(checked); setPlaying(false); }} /></div>}

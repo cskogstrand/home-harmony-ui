@@ -24,6 +24,28 @@ describe("notification configuration", () => {
     config.settings.notifications.rules = [custom];
     expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0]).toMatchObject({ livePreviewBelowTitle: true, timeLeftEntity: custom.timeLeftEntity });
   });
+  it("round-trips independent widget settings and validates reading and media selections", () => {
+    const config = emptyConfiguration();
+    const widget = { title: "Tile", readings: ["home|sensor.watts"], media: { type: "person" as const, cameraId: "example-camera" } };
+    config.settings.notifications.rules = [rule({ widget })];
+    expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0].widget).toEqual(widget);
+    for (const invalid of [{ readings: ["a", "a"] }, { readings: ["a", "b", "c"] }, { media: { type: "image", entity: "" } }, { media: { type: "live", cameraId: "" } }]) {
+      expect(notificationRuleSchema.safeParse({ ...rule(), widget: invalid }).success).toBe(false);
+    }
+  });
+  it("updates an active event widget without reopening it, reviving a dismissal or restarting cooldown", () => {
+    const engine = new NotificationEngine();
+    const alert = rule({ kind: "current", trigger: { type: "ha-event", eventType: "example_event", filters: {} } });
+    const edited = { ...alert, widget: { title: "Board title" } };
+    const event = { event_type: "example_event", data: {} };
+    engine.update([alert], [], {}, true, now, zone);
+    const [initial] = engine.receive([alert], event, now);
+    const update = (current: NotificationRule) => engine.update([current], [], {}, true, now + 1000, zone);
+    expect(update(edited)).toEqual([{ ...initial, rule: edited }]);
+    expect(engine.receive([edited], event, now + 2000)).toEqual([{ ...initial, rule: edited }]);
+    engine.dismiss(initial.id);
+    expect(update(alert)).toEqual([]);
+  });
   it("reads time left from a duration or finish timestamp and never treats a percentage as time", () => {
     const finish = entities("2026-10-24T13:05:30Z", { device_class: "timestamp" }, "sensor.finish");
     const duration = entities("150", { unit_of_measurement: "s" }, "sensor.remaining");

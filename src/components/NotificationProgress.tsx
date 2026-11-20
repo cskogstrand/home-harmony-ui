@@ -1,3 +1,4 @@
+import { Clock3 } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { notificationEntity, notificationProgress, progressNumber, progressSourceValue } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
@@ -6,16 +7,22 @@ import { EntityPicker } from "./EntityPicker";
 import { Progress } from "./ui/progress";
 import { Switch } from "./ui/switch";
 
-export function NotificationProgress({ progress, entities, title, caption }: { progress: ProgressSettings; entities: Entity[]; title: string; caption?: string }) {
+export function NotificationProgress({ progress, entities, title, caption, inDialog = false }: { progress: ProgressSettings; entities: Entity[]; title: string; caption?: string; inDialog?: boolean }) {
   const { message: t, number } = useI18n();
   const value = notificationProgress(progress, entities);
-  if (!value) return <p className="notification-progress-unavailable">{caption && <strong className="block">{caption}</strong>}{t("Progress unavailable. Check the numeric readings and range.")}</p>;
+  const remaining = caption && <span className="notification-remaining"><Clock3 aria-hidden="true" />{caption}</span>;
+  if (!value) return <div className="notification-progress-unavailable">{remaining}<p>{t("Progress unavailable. Check the numeric readings and range.")}</p></div>;
   const entity = notificationEntity(entities, progress.current.entity);
   const unit = !progress.current.attribute && typeof entity?.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : "";
   const percent = number(Math.round(value.percent));
   const reading = `${number(value.current)}${unit}`;
   return <div className="notification-progress">
-    {(caption || progress.text !== "none") && <div className="notification-progress-label">{caption && <span>{caption}</span>}{progress.text !== "none" && <strong>{percent}%</strong>}</div>}
+    {(caption || progress.text !== "none") && <div className="notification-progress-label">
+      {progress.text !== "none" && (inDialog
+        ? <div className="notification-progress-amount"><span>{t("Progress")}</span><strong>{percent}<small>%</small></strong></div>
+        : <strong>{percent}%</strong>)}
+      {remaining}
+    </div>}
     <Progress value={value.percent} aria-label={t("Progress for {name}", { name: title })} aria-valuetext={t("{percent}% complete, current value {value}", { percent, value: reading })} className="h-2" />
   </div>;
 }

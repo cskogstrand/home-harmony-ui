@@ -34,7 +34,7 @@ const openEditorSection = async (name: string) => {
   await waitFor(() => expect(screen.getByRole("region", { name }).querySelector("fieldset")).toBeVisible());
 };
 function openPreviewPopup(name = "Example doorbell") {
-  fireEvent.click(screen.getByRole("button", { name: "Preview popup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Open full size" }));
   return screen.getByRole("dialog", { name });
 }
 function closePreviewPopup(popup: HTMLElement) {
@@ -87,6 +87,10 @@ it.each([
   const dialog = screen.getByRole("dialog", { name: "Example print" });
   expect(row).toHaveClass("notification-glance");
   expect(within(dialog).getByRole("heading", { name: "Example print" })).toHaveFocus();
+  const progress = within(dialog).getByRole("progressbar", { name: "Progress for Example print" });
+  expect(progress).toHaveAttribute("aria-valuenow", "36");
+  expect(progress.parentElement).toHaveTextContent("36%");
+  expect(progress.parentElement).toHaveTextContent("42 min left");
   expect(dialog.querySelector(".notification-dialog-body").classList.contains("notification-activity-compact")).toBe(presentation === "activity-compact");
   expect(dialog.querySelector('[data-placement="left"] .notification-image-feed')).not.toBeNull();
   expect(dialog.querySelector(".notification-camera-feed").closest("[data-placement]")?.getAttribute("data-placement")).toBe(cameraPlacement === "footer" ? undefined : cameraPlacement);
@@ -150,6 +154,50 @@ it("edits an image-only current alert and previews the draft image in both place
   expect(setNotifications).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ imageEntity: "home|image.parcel", cameraEntity: "" });
+});
+
+it("edits widget text, readings and media independently of the live popup, then saves them to the board", async () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "current", cameraEntity: "", message: "Popup message" });
+  mocks.app.currentHome = mapHome({
+    "sensor.watts": state("sensor.watts", "32", { friendly_name: "Example power", unit_of_measurement: "W" }),
+    "image.preview": state("image.preview", "ready", { friendly_name: "Example image" }),
+  }, emptyRegistries, "home");
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  const edit = async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+    await openEditorSection("Edit widget");
+  };
+  await edit();
+  fireEvent.change(screen.getByLabelText("Widget title"), { target: { value: "Discarded title" } });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  await edit();
+  expect(screen.getByLabelText("Widget title")).toHaveValue("");
+  fireEvent.change(screen.getByLabelText("Widget title"), { target: { value: "Board title" } });
+  fireEvent.change(screen.getByLabelText("Widget short text"), { target: { value: "Board summary" } });
+  fireEvent.change(screen.getByLabelText("Widget media"), { target: { value: "image" } });
+  chooseEntity("Widget image", "image.preview");
+  fireEvent.click(screen.getByRole("switch", { name: "Choose widget readings" }));
+  fireEvent.click(screen.getByRole("button", { name: "Widget readings" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Example power" }));
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  const detail = screen.getByRole("group", { name: "Popup preview" });
+  expect(tile).toHaveTextContent("Board titleBoard summary");
+  expect(tile).toHaveTextContent("32 W");
+  expect(tile.querySelector("img")).toHaveAttribute("alt", "Example image");
+  expect(detail).toHaveTextContent("Popup message");
+  expect(detail).not.toHaveTextContent(/Board title|Board summary|32 W/);
+  expect(detail.querySelector("img")).toBeNull();
+  expect(setNotifications).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved).toMatchObject({ ...rule, widget: { title: "Board title", text: "Board summary", readings: ["home|sensor.watts"], media: { type: "image", entity: "home|image.preview" } } });
+  view.unmount();
+  render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }], dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
+  expect(screen.getByRole("listitem")).toHaveTextContent("Board summary");
+  fireEvent.click(screen.getByRole("button", { name: "Show details for Board title" }));
+  expect(screen.getByRole("dialog", { name: rule.title })).toHaveTextContent("Popup message");
 });
 
 it("keeps a disabled live preview quiet until the task is opened", () => {
@@ -558,7 +606,9 @@ it("retains an unavailable task camera until it is replaced or removed", async (
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   expect(screen.getByText("A selected entity is unavailable. Edit this rule to choose a replacement.")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
-  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByRole("status")).toHaveTextContent("Camera unavailable");
+  const preview = within(screen.getByRole("region", { name: "Notification preview" }));
+  expect(within(preview.getByRole("listitem")).getByRole("status")).toHaveTextContent("Camera unavailable");
+  expect(within(preview.getByRole("group", { name: "Popup preview" })).getByRole("status")).toHaveTextContent("Camera unavailable");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).not.toHaveBeenCalled();
   expect(screen.getByRole("alert")).toHaveTextContent("Choose a camera you have added in Camera settings.");
@@ -625,8 +675,8 @@ it("selects, previews, saves, reopens and removes an image independently of the 
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Camera and image");
   chooseEntity("Image (optional)", "image.example");
-  const widget = screen.getByRole("region", { name: "Notification preview" });
-  expect(widget.querySelector("video")).not.toBeNull();
+  const widget = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  expect(widget.querySelector("video, canvas")).not.toBeNull();
   expect(within(widget).queryByRole("img", { name: "Example model" })).toBeNull();
   let preview = openPreviewPopup();
   expect(within(preview).getByRole("img", { name: "Example model" }).closest('[data-placement="left"]')).not.toBeNull();
@@ -820,13 +870,18 @@ it.each([false, true])("renders and refreshes all readings, retaining available 
   const content = () => <MemoryRouter><NotificationContext.Provider value={value}><NotificationList compact={compact} presentation="banner" /></NotificationContext.Provider></MemoryRouter>;
   const view = render(content());
   if (compact) fireEvent.click(screen.getByRole("button", { name: "Show details for Example doorbell" }));
-  expect(screen.getByText("Example remaining · 15 min")).toBeVisible();
-  expect(screen.getByText("Example progress · 40 %")).toBeVisible();
+  const expectReading = (name: string, value: string) => {
+    if (compact) {
+      const term = within(screen.getByRole("dialog")).getByText(name, { selector: "dt" });
+      expect(within(term.parentElement).getByRole("definition")).toHaveTextContent(value);
+    } else expect(screen.getByText(`${name} · ${value}`)).toBeVisible();
+  };
+  expectReading("Example remaining", "15 min");
+  expectReading("Example progress", "40 %");
   expect(screen.getByText("Some additional readings are unavailable")).toBeVisible();
   mocks.app.currentHome = readingHome("50");
   view.rerender(content());
-  expect(screen.getByText("Example progress · 50 %")).toBeVisible();
-  expect(screen.queryByText("Example progress · 40 %")).not.toBeInTheDocument();
+  expectReading("Example progress", "50 %");
 });
 
 it("saves page choices per rule and disables editing when storage is unavailable", async () => {
@@ -1063,7 +1118,7 @@ it.each(["section", "banner", "activity", "activity-compact"] as const)("preview
   expect(value.dismiss).not.toHaveBeenCalled();
   fireEvent.click(preview.getByRole("switch", { name: "Use sample data" }));
   expect(preview.queryByText("Example appointment")).not.toBeInTheDocument();
-  expect(preview.getByText("Example calendar event")).toBeVisible();
+  expect(preview.getByRole("heading", { name: "Example calendar event" })).toBeVisible();
   fireEvent.click(preview.getByRole("switch", { name: "Use sample data" }));
   view.rerender(content({ ...rule, title: "Draft title", trigger: { type: "calendar", entity: "home|calendar.other", leadMinutes: 5 } }));
   expect(preview.getByText("Draft title", { selector: "li strong" })).toBeVisible();
@@ -1096,7 +1151,7 @@ it("opens the draft doorbell viewer from either preview control without activati
   expect(popup.querySelector(".notification-camera-placeholder")).toHaveTextContent("Person snapshot");
   expect(within(popup).queryByRole("img")).toBeNull();
   fireEvent.keyDown(popup, { key: "Escape" });
-  await waitFor(() => expect(screen.getByRole("button", { name: "Preview popup" })).toHaveFocus());
+  await waitFor(() => expect(screen.getByRole("button", { name: "Open full size" })).toHaveFocus());
   expect(screen.getByRole("button", { name: "Dismiss Example doorbell" })).toBeDisabled();
   expect(context.camera).not.toHaveBeenCalled();
   expect(context.dismiss).not.toHaveBeenCalled();
@@ -1108,15 +1163,15 @@ it("uses the chosen time-left sensor in the widget and popup and simulates it wi
   mocks.app.currentHome = currentHome;
   const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", timeLeftEntity: "home|sensor.eta" });
   render(<MemoryRouter><NotificationPreview editing rule={rule} presentation="activity" /></MemoryRouter>);
-  expect(screen.getByText("20 min left")).toBeVisible();
+  expect(within(screen.getByRole("listitem")).getByText("20 min left")).toBeVisible();
   const toggle = screen.getByRole("switch", { name: "Use sample data" });
   fireEvent.click(toggle);
-  expect(screen.getByText("54 min left")).toBeVisible();
+  expect(within(screen.getByRole("listitem")).getByText("54 min left")).toBeVisible();
   const popup = openPreviewPopup();
   expect(within(popup).getByText("54 min left")).toBeVisible();
   closePreviewPopup(popup);
   fireEvent.click(toggle);
-  expect(screen.getByText("20 min left")).toBeVisible();
+  expect(within(screen.getByRole("listitem")).getByText("20 min left")).toBeVisible();
 });
 
 it("shows a camera placeholder in style previews without requesting real media", () => {
@@ -1380,7 +1435,8 @@ it.each(["section", "banner", "activity"] as const)("updates accessible progress
   expect(screen.getByRole("progressbar", { name: "Progress for Example doorbell" })).toHaveAttribute("aria-valuenow", "40");
   expect(screen.getByText("40%")).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: /^(Show details|Open activity card) for Example doorbell/ }));
-  expect(screen.getByRole("dialog").querySelector(".notification-progress")).toHaveTextContent(/^40%$/);
+  expect(within(screen.getByRole("dialog")).getByText("Progress")).toBeVisible();
+  expect(screen.getByRole("dialog").querySelector(".notification-progress-amount strong")).toHaveTextContent(/^40%$/);
   mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", "75") }, emptyRegistries, "home");
   view.rerender(content());
   expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
@@ -1403,11 +1459,11 @@ it("previews and saves progress without text, preserving the choice when sources
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Progress");
   expect(screen.getByLabelText("Progress text")).toHaveValue("percentage");
-  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "70");
+  expect(within(screen.getByRole("listitem")).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "70");
   fireEvent.change(screen.getByLabelText("Progress text"), { target: { value: "none" } });
   fireEvent.change(screen.getByLabelText("Start value"), { target: { value: "120" } });
-  expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^$/);
-  expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
+  expect(within(screen.getByRole("listitem")).getByRole("progressbar").parentElement).toHaveTextContent(/^$/);
+  expect(within(screen.getByRole("listitem")).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
   expect(saved.progress).toMatchObject({ text: "none", start: { type: "value", value: 120 } });
@@ -1417,7 +1473,7 @@ it("previews and saves progress without text, preserving the choice when sources
   await openEditorSection("Progress");
   expect(screen.getByLabelText("Progress text")).toHaveValue("none");
   fireEvent.change(screen.getByLabelText("Progress text"), { target: { value: "percentage" } });
-  expect(screen.getByRole("progressbar").parentElement).toHaveTextContent(/^75%$/);
+  expect(within(screen.getByRole("listitem")).getByRole("progressbar").parentElement).toHaveTextContent(/^75%$/);
 });
 
 it("previews simulated progress without saving settings or mutating Home Assistant readings", () => {
@@ -1600,7 +1656,9 @@ it("saves and reopens names and placement for sources, readings and progress att
   const preview = within(popup);
   expect(preview.getByText("Time left").closest("[data-placement]")).toHaveAttribute("data-placement", "left");
   expect(preview.getByText("Power now").closest("[data-placement]")).toHaveAttribute("data-placement", "right");
-  expect(preview.getByText(/Total duration ·/).closest("[data-placement]")).toHaveAttribute("data-placement", "footer");
+  const total = preview.getByText("Total duration", { selector: "dt" });
+  expect(total.closest("[data-placement]")).toHaveAttribute("data-placement", "footer");
+  expect(total.nextElementSibling).toHaveTextContent("90");
   closePreviewPopup(popup);
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
@@ -1667,7 +1725,7 @@ it("collapses editor sections independently, keeps draft values and reveals inva
   expect(screen.getByLabelText("Title")).toBeDisabled();
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("region", { name: "Notification preview" })).toBeVisible();
-  expect(within(screen.getByRole("region", { name: "Notification preview" })).getByText("Draft title")).toBeVisible();
+  expect(within(screen.getByRole("group", { name: "Popup preview" })).getByRole("heading", { name: "Draft title" })).toBeVisible();
   content.focus();
   fireEvent.keyDown(content, { key: "ArrowDown" });
   expect(screen.getByRole("button", { name: "Camera and image" })).toHaveFocus();

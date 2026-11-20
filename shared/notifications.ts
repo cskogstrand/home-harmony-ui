@@ -40,6 +40,19 @@ const notificationEntityDisplaySchema = z.object({
   placement: z.enum(["auto", "subtitle", "left", "right", "footer", "hidden"]).default("auto"),
 }).strict();
 export type NotificationEntityDisplay = z.infer<typeof notificationEntityDisplaySchema>;
+const imageReference = z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/);
+export const MAX_WIDGET_READINGS = 2;
+const widgetSchema = z.object({
+  title: z.string().trim().max(100).optional(),
+  text: z.string().trim().max(100).optional(),
+  readings: z.array(reference).max(MAX_WIDGET_READINGS).refine(ids => new Set(ids).size === ids.length).optional(),
+  media: z.discriminatedUnion("type", [
+    z.object({ type: z.literal("none") }).strict(),
+    z.object({ type: z.literal("image"), entity: imageReference.min(1) }).strict(),
+    z.object({ type: z.enum(["live", "person"]), cameraId: reference }).strict(),
+  ]).optional(),
+}).strict();
+export type NotificationWidget = z.infer<typeof widgetSchema>;
 export const notificationTriggerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("state"), entity: reference, attribute: z.string().max(100).default(""),
     operator: z.enum(["eq", "neq", "gt", "lt"]), value: z.string().trim().min(1).max(256) }).strict(),
@@ -54,6 +67,7 @@ export const notificationRuleSchema = z.object({
   additionalTriggers: z.array(notificationTriggerSchema).max(MAX_NOTIFICATION_TRIGGERS - 1).optional(),
   pages: z.enum(["today", "main"]).optional(),
   presentation: notificationPresentationSchema.optional(),
+  widget: widgetSchema.optional(),
   livePreviewBelowTitle: z.boolean().optional(),
   timeLeftEntity: reference.optional(),
   detailEntity: z.string().max(512).optional(),
@@ -68,7 +82,7 @@ export const notificationRuleSchema = z.object({
   cameraMedia: z.enum(["live", "person"]).optional(),
   cameraPlacement: z.enum(["footer", "left", "right"]).optional(),
   // Entity preferences use registry IDs when available, not necessarily image.* IDs.
-  imageEntity: z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/).optional(),
+  imageEntity: imageReference.optional(),
   imagePlacement: z.enum(["footer", "left", "right"]).optional(),
   showPersonSnapshot: z.boolean().optional(),
   durationSeconds: z.number().int().min(10).max(3600).default(60),

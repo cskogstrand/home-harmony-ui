@@ -36,7 +36,7 @@ export function NotificationCameraSettings({ rule, disabled, onChange, active }:
         <option value="live">{connection?.type === "go2rtc" ? t("Live video from go2rtc · {stream}", { stream: camera.source }) : t("Live video from Home Assistant")}</option>
         <option value="person" disabled={!person}>{t("Person snapshot")}{!person ? ` · ${t("Not configured")}` : ""}</option>
       </select></label>
-      {rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && <div className="notification-toggle"><span>{t("Show live preview below the page title")}</span><Switch aria-label={t("Show live preview below the page title")} checked={showsLiveActivityPreview(rule)} disabled={disabled} onCheckedChange={livePreviewBelowTitle => onChange({ livePreviewBelowTitle })} /></div>}
+      {!rule.widget?.media && rule.kind === "ongoing" && !!rule.cameraEntity && rule.cameraMedia !== "person" && <div className="notification-toggle"><span>{t("Show live preview below the page title")}</span><Switch aria-label={t("Show live preview below the page title")} checked={showsLiveActivityPreview(rule)} disabled={disabled} onCheckedChange={livePreviewBelowTitle => onChange({ livePreviewBelowTitle })} /></div>}
       <label>{t("Camera placement")}<select name="cameraPlacement" value={rule.cameraPlacement ?? "footer"} disabled={disabled || !camera} onChange={event => onChange({ cameraPlacement: event.target.value as NotificationRule["cameraPlacement"] })}>
         <option value="footer">{t("At the bottom")}</option>
         <option value="left">{t("Left reading")}</option>
