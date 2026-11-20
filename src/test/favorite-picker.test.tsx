@@ -7,7 +7,7 @@ import { emptyConfiguration } from "../../shared/configuration";
 import { cardEntity, cardServices } from "./device-card-fixtures";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null, save: vi.fn(), command: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 const light = cardEntity("light", "on", { brightness: 128, supported_color_modes: ["brightness"] });
 const toggle = cardEntity("input_boolean", "off");

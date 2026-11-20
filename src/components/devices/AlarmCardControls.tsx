@@ -9,7 +9,8 @@ import { PinPadModal } from "./PinPadModal";
 
 export function AlarmCardControls({ entity }: { entity: Entity }) {
   const { t, message } = useI18n();
-  const { services, command } = useApp();
+  const services = useApp(app => app.services);
+  const command = useApp(app => app.command);
   const disabled = useContext(CardDisabled);
   const [selected, setSelected] = useState<AlarmAction>(), [action, setAction] = useState<AlarmAction>();
   const modes = alarmModes.filter(mode => mode.action !== "alarm_trigger" && supportsAction(entity, mode.action, services));

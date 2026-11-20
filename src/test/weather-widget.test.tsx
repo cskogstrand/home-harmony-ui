@@ -7,7 +7,7 @@ import { createI18n } from "@/lib/i18n";
 import { state } from "./ha-fixtures";
 
 const data = vi.hoisted(() => ({ app: { currentHome: null, homeOnline: true, watchForecast: vi.fn() }, weatherEntity: "", weatherTemperatureEntity: "", weatherPlacement: { today: true, header: false }, language: "en" as "en" | "nb" }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => data.app }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(data.app) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => data }));
 vi.mock("@/hooks/use-i18n", () => ({ useI18n: () => createI18n(data.language) }));
 

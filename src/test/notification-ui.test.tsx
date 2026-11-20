@@ -21,7 +21,7 @@ import { playGo2rtcStream } from "@/lib/go2rtc-stream";
 import * as imageTrimming from "@/lib/trim-transparent-image";
 
 const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {} as Record<string, unknown>, shared: { state: { loaded: true, error: "", config: undefined as ReturnType<typeof emptyConfiguration> } } }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<object>(), useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 vi.mock("@/contexts/CameraPersonImageContext", () => ({ useCameraPersonImage: (id: string) => ({ src: `/api/cameras/${id}/person.jpg`, failed: false, refresh: vi.fn() }) }));

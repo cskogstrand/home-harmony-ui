@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, render, screen, within, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as renderUI, screen, within, waitFor } from "@testing-library/react";
+import { AppContext } from "@/contexts/AppContext";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
@@ -12,7 +13,7 @@ import { services, state } from "./ha-fixtures";
 import { cardEntity, cardServices, configuredCard, mediaEntity } from "./device-card-fixtures";
 
 const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn(), camera: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
+const render = (ui: React.ReactElement) => renderUI(ui, { wrapper: ({ children }) => <AppContext.Provider value={{ ...mocks.app }}>{children}</AppContext.Provider> });
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => mocks.family }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 const climate = () => mapHome({ "climate.example": state("climate.example", "heat", {

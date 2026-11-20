@@ -32,7 +32,7 @@ function MediaImage({ src, name, caption, shortLabel, trimTransparent, onError }
     {!loaded && <p role="status">{t("Loading image…")}</p>}{loaded && caption && <CameraMediaStatus label={caption} shortLabel={shortLabel} icon={VideoOff} />}</>;
 }
 function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, controls, onError, onAspectRatio }: { id: string; sourceKey: string; name: string; go2rtc: boolean; previewSrc: string; expanded: boolean; controls: boolean; onError: (message?: string) => void; onAspectRatio: (ratio: number) => void }) {
-  const { watchCameraStream } = useApp();
+  const watchCameraStream = useApp(app => app.watchCameraStream);
   const ref = useRef<HTMLDivElement>(null);
   const [playback, setPlayback] = useState<{ video: HTMLVideoElement; transport: "webrtc" | "mse" }>();
   const { video, transport = "webrtc" } = playback ?? {};
@@ -89,11 +89,11 @@ function CameraVideo({ id, sourceKey, name, go2rtc, previewSrc, expanded, contro
 
 export function MediaSurface({ entity, camera: configured, suspended = false, expanded = false, controls = expanded, snapshotOnly = false, showPerson = expanded && !snapshotOnly, trimTransparent = false }: MediaSource & { suspended?: boolean; expanded?: boolean; controls?: boolean; snapshotOnly?: boolean; showPerson?: boolean; trimTransparent?: boolean }) {
   const pageActive = usePageActive();
-  const { homeOnline, currentHome } = useApp();
+  const homeOnline = useApp(app => app.homeOnline);
   const shared = useSharedConfiguration();
   const connection = shared?.state.config.settings.cameras.connections.find(item => item.id === configured?.connectionId);
   const customStream = !!configured && connection?.type === "go2rtc";
-  const target = entity ?? (configured?.connectionId === "home-assistant" ? currentHome.entities.find(item => item.entityId === configured.source) : undefined);
+  const target = useApp(app => entity ?? (configured?.connectionId === "home-assistant" ? app.currentHome.entities.find(item => item.entityId === configured.source) : undefined));
   const id = customStream ? configured.id : target?.entityId ?? configured?.source ?? "";
   const name = configured?.name ?? target?.name ?? "Camera";
   const domain = target?.domain ?? "camera";

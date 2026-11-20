@@ -8,7 +8,7 @@ import { state } from "./ha-fixtures";
 import { cameraSettings } from "./camera-fixtures";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 const fetchImage = vi.fn(), decode = vi.fn(), create = vi.fn(), revoke = vi.fn();
 const response = () => new Response(new Blob(["fictional-image"], { type: "image/jpeg" }), { headers: { "Content-Type": "image/jpeg" } });

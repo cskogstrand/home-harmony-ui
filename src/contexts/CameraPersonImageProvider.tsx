@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useState, type ComponentProps, type ReactNode } from "react";
 import { useApp } from "./AppContext";
 import { useSharedConfiguration } from "./SharedConfigurationContext";
 import { CameraPersonImageContext, type CameraImage } from "./CameraPersonImageContext";
@@ -6,7 +6,8 @@ import { CameraImageLoader } from "./CameraImageLoader";
 import { homeAssistantPicturePath } from "../../shared/cameras";
 
 export function CameraPersonImageProvider({ children }: { children: ReactNode }) {
-  const { currentHome, haUrl, connectionStatus } = useApp();
+  const haUrl = useApp(app => app.haUrl);
+  const connectionStatus = useApp(app => app.connectionStatus);
   const shared = useSharedConfiguration();
   const [images, setImages] = useState<Record<string, CameraImage>>({});
   const publish = useCallback((key: string, image?: CameraImage) => setImages(current => {
@@ -19,14 +20,22 @@ export function CameraPersonImageProvider({ children }: { children: ReactNode })
   const sources = ready ? settings.items.filter(camera => camera.personSnapshot.type !== "none").map(camera => {
     const source = camera.personSnapshot;
     const connection = source.type === "frigate" && settings.connections.find(item => item.id === source.connectionId);
-    const entity = source.type === "home-assistant" && currentHome.entities.find(item => item.entityId === source.entity);
-    const picturePath = entity && homeAssistantPicturePath(entity.attributes.entity_picture);
-    const picture = picturePath && currentHome.entities.find(item => item.entityId === picturePath.slice(picturePath.lastIndexOf("/") + 1));
     return { cameraId: camera.id, cacheKey: JSON.stringify([camera.id, source, connection && connection.url, source.type === "home-assistant" && haUrl]),
-      revision: JSON.stringify([entity && entity.lastUpdated, picture && picture.lastUpdated]), poll: source.type === "frigate" };
+      entityId: source.type === "home-assistant" ? source.entity : undefined, poll: source.type === "frigate" };
   }) : [];
   return <CameraPersonImageContext.Provider value={Object.fromEntries(sources.map(source => [source.cameraId, images[source.cacheKey]]))}>
-    {sources.map(source => <CameraImageLoader key={source.cacheKey} {...source} src={`/api/cameras/${encodeURIComponent(source.cameraId)}/person.jpg`} enabled={!shared.state.dirty && !shared.state.saving} publish={publish} />)}
+    {sources.map(source => <PersonImageLoader key={source.cacheKey} {...source} src={`/api/cameras/${encodeURIComponent(source.cameraId)}/person.jpg`} enabled={!shared.state.dirty && !shared.state.saving} publish={publish} />)}
     {children}
   </CameraPersonImageContext.Provider>;
+}
+
+function PersonImageLoader({ entityId, ...props }: Omit<ComponentProps<typeof CameraImageLoader>, "revision"> & { entityId?: string }) {
+  const revision = useApp(app => {
+    if (!entityId) return "";
+    const entity = app.currentHome.entities.find(item => item.entityId === entityId);
+    const path = entity && homeAssistantPicturePath(entity.attributes.entity_picture);
+    const picture = path && app.currentHome.entities.find(item => item.entityId === path.slice(path.lastIndexOf("/") + 1));
+    return JSON.stringify([entity?.lastUpdated, picture && picture.lastUpdated]);
+  });
+  return <CameraImageLoader {...props} revision={revision} />;
 }

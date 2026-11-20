@@ -16,7 +16,7 @@ import { PageActivityContext } from "@/contexts/PageActivityContext";
 import { CameraPreviewImageContext } from "@/contexts/CameraPreviewImageContext";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null, go2rtc: vi.fn(), mse: vi.fn(), ha: vi.fn(), save: vi.fn(), fetch: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => mocks.shared }));
 vi.mock("@/contexts/CameraPersonImageContext", () => ({ useCameraPersonImage: (id: string) => ({ src: `/api/cameras/${id}/person.jpg`, failed: false, refresh: vi.fn() }) }));
 vi.mock("@/lib/go2rtc-stream", () => ({ playGo2rtcStream: (...args) => mocks.go2rtc(...args) }));

@@ -14,7 +14,7 @@ const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123"
 vi.mock("@/contexts/AppContext", async importOriginal => {
   const { AppContext } = await importOriginal<typeof import("@/contexts/AppContext")>();
   const { useContext } = await import("react");
-  return { AppContext, useApp: () => useContext(AppContext) ?? app };
+  return { AppContext, useApp: (select = value => value) => select(useContext(AppContext) ?? app) };
 });
 vi.mock("../../config.yaml?raw", () => ({ default: 'name: Home Harmony UI\nversion: "9.8.7"\n' }));
 vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));

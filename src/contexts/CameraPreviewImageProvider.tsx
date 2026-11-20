@@ -7,7 +7,8 @@ import { CameraPreviewImageContext } from "./CameraPreviewImageContext";
 import { cameraPreviewPath } from "../../shared/cameras";
 
 export function CameraPreviewImageProvider({ children }: { children: ReactNode }) {
-  const { haUrl, connectionStatus } = useApp();
+  const haUrl = useApp(app => app.haUrl);
+  const connectionStatus = useApp(app => app.connectionStatus);
   const shared = useSharedConfiguration();
   const [images, setImages] = useState<Record<string, CameraImage>>({});
   const publish = useCallback((key: string, image?: CameraImage) => setImages(current => {

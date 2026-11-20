@@ -7,7 +7,7 @@ import { state } from "./ha-fixtures";
 import { emptyPlanner } from "../../shared/configuration";
 
 const mocks = vi.hoisted(() => ({ home: null }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ currentHome: mocks.home, homeOnline: false }) }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select({ currentHome: mocks.home, homeOnline: false }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ language: "en", notifications: emptyPlanner().notifications }) }));
 vi.mock("@/components/NotificationCenter", () => ({ NotificationList: () => <div>Household alerts</div> }));
 afterEach(cleanup);

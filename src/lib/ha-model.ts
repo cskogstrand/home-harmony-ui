@@ -64,7 +64,8 @@ export const alarmModes: { action: AlarmAction; label: string; flag: number }[] 
 export const needsCode = (entity: Entity, action: EntityAction) => !!entity.attributes.code_format &&
   (!action.startsWith("alarm_arm_") || entity.attributes.code_arm_required !== false);
 
-export function mapHome(states: EntityStates, registries: Registries, instance: string, config?: HassConfig): Home {
+// A caller that reuses entities keeps the cache local to one instance and registry snapshot.
+export function mapHome(states: EntityStates, registries: Registries, instance: string, config?: HassConfig, cache?: WeakMap<object, Entity>): Home {
   const registered = new Map(registries.entities.map(e => [e.entity_id, e]));
   const devices = new Map(registries.devices.map(d => [d.id, d]));
   const areas = new Map(registries.areas.map(a => [a.area_id, { id: a.area_id, name: a.name, entities: [] as Entity[] }]));
@@ -78,16 +79,21 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     const area = entry?.area_id ?? device?.area_id;
     const areaId = areas.has(area) ? area : "unassigned";
     if (!areas.has(areaId)) areas.set(areaId, { id: areaId, name: "Unassigned", entities: [] });
-    const name = entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1));
-    const deviceLabel = (device?.name_by_user || device?.name)?.trim();
-    const entity: Entity = {
-      entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain: id.split(".")[0],
-      // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
-      name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
-      state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
-      registryName: entry?.translation_key || entry?.original_name || undefined, uniqueId: entry?.unique_id,
-      lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
-    };
+    const source = state ?? entry;
+    let entity = cache?.get(source);
+    if (!entity) {
+      const name = entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1));
+      const deviceLabel = (device?.name_by_user || device?.name)?.trim();
+      entity = {
+        entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain: id.split(".")[0],
+        // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
+        name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
+        state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
+        registryName: entry?.translation_key || entry?.original_name || undefined, uniqueId: entry?.unique_id,
+        lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
+      };
+      cache?.set(source, entity);
+    }
     entities.push(entity);
     areas.get(areaId).entities.push(entity);
   }

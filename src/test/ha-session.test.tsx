@@ -3,6 +3,11 @@ import { chooseEntity } from "./entity-picker-helpers";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
+import { MemoryRouter } from "react-router-dom";
+import { AppProvider } from "@/contexts/AppProvider";
+import { useApp } from "@/contexts/AppContext";
+import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
+import * as cardFrame from "@/components/devices/CardFrame";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection, HassEntities } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
@@ -61,6 +66,35 @@ const navigate = async (name: string) => {
   await screen.findByRole("heading", { level: 1, name });
 };
 const deferred = <T,>() => { let resolve: (value: T) => void; let reject: (error: unknown) => void; const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; }); return { promise, resolve: resolve!, reject: reject! }; };
+
+it("renders a card only when its main or supporting entity changes", async () => {
+  const main = state("sensor.main", "12"), linked = state("sensor.linked", "34"), other = state("sensor.other", "56");
+  const snapshot = { [main.entity_id]: main, [linked.entity_id]: linked, [other.entity_id]: other };
+  function Cards() {
+    const { currentHome } = useApp();
+    const find = (id: string) => currentHome.entities.find(entity => entity.entityId === id);
+    return <><SmartHomeCard title="Meter" entity={find(main.entity_id)} entities={[find(linked.entity_id)].filter(Boolean)} />
+      <SmartHomeCard title="Second meter" entity={find(other.entity_id)} /></>;
+  }
+  const frame = vi.spyOn(cardFrame, "CardFrame");
+  try {
+    render(<AppProvider><MemoryRouter><Cards /></MemoryRouter></AppProvider>);
+    await waitFor(() => expect(conn.entityCallback).toBeDefined());
+    act(() => conn.entityCallback(snapshot));
+    expect(await screen.findByText("34")).toBeVisible();
+    frame.mockClear();
+    act(() => conn.entityCallback({ ...snapshot, "sensor.unrelated": state("sensor.unrelated", "78") }));
+    expect(frame).not.toHaveBeenCalled();
+    const linkedUpdate = { ...snapshot, [linked.entity_id]: { ...linked, state: "45" } };
+    act(() => conn.entityCallback(linkedUpdate));
+    expect(screen.getByText("45")).toBeVisible();
+    expect(frame.mock.calls.map(([props]) => props.title)).toEqual(["Meter"]);
+    frame.mockClear();
+    act(() => conn.entityCallback({ ...linkedUpdate, [main.entity_id]: { ...main, state: "91" } }));
+    expect(screen.getByText("91")).toBeVisible();
+    expect(frame.mock.calls.map(([props]) => props.title)).toEqual(["Meter"]);
+  } finally { frame.mockRestore(); }
+});
 
 it("subscribes to selected notification events, rejects stale callbacks and cleans up late subscriptions", async () => {
   const client = await connectedClient(), controller = new AbortController(), receive = vi.fn();

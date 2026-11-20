@@ -1,20 +1,51 @@
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import { mapHome } from "@/lib/ha-model";
+import type { Entity, Home } from "@/types/api";
 
-export function useHomeAssistant() {
-  const [client] = useState(() => new HomeAssistantClient());
-  const state = useSyncExternalStore(client.subscribe, client.getSnapshot);
-  useEffect(() => { client.start(); return client.dispose; }, [client]);
-  const currentHome = useMemo(() => mapHome(state.states, state.registries, "home", state.config), [state.states, state.registries, state.config]);
+function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistantClient["getSnapshot"]>, currentHome: Home) {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
     connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
     command: client.command, browseMedia: client.browseMedia, sonosQueue: client.sonosQueue, watchEvents: client.watchEvents, watchCameraStream: client.watchCameraStream, watchForecast: client.watchForecast, entityHistory: client.entityHistory, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
 }
-export const AppContext = createContext<ReturnType<typeof useHomeAssistant> | null>(null);
-export function useApp() {
-  const context = useContext(AppContext);
-  if (!context) throw new Error("useApp must be used within AppProvider");
-  return context;
+
+type AppSnapshot = ReturnType<typeof appSnapshot>;
+
+export function createAppStore() {
+  const client = new HomeAssistantClient();
+  let previous: ReturnType<typeof client.getSnapshot>;
+  let app: AppSnapshot;
+  let entityCache: WeakMap<object, Entity>;
+  function getSnapshot() {
+    const state = client.getSnapshot();
+    if (state !== previous) {
+      // HA preserves untouched state objects. A registry refresh can change their names, devices or areas.
+      if (state.registries !== previous?.registries) entityCache = new WeakMap();
+      const currentHome = state.states === previous?.states && state.registries === previous?.registries && state.config === previous?.config
+        ? app.currentHome : mapHome(state.states, state.registries, "home", state.config, entityCache);
+      app = appSnapshot(client, state, currentHome);
+      previous = state;
+    }
+    return app;
+  }
+  return { getSnapshot, subscribe: client.subscribe, start: client.start, dispose: client.dispose };
+}
+
+export const AppStoreContext = createContext<ReturnType<typeof createAppStore> | null>(null);
+// Vehicle controls can override command routing for their subtree.
+export const AppContext = createContext<AppSnapshot | null>(null);
+const noSubscription = () => () => {};
+
+// Select an existing object or a scalar so React can skip unchanged snapshots.
+export function useApp(): AppSnapshot;
+export function useApp<T>(select: (app: AppSnapshot) => T): T;
+export function useApp(select: (app: AppSnapshot) => unknown = app => app) {
+  const override = useContext(AppContext);
+  const store = useContext(AppStoreContext);
+  return useSyncExternalStore(override ? noSubscription : store?.subscribe ?? noSubscription, () => {
+    const app = override ?? store?.getSnapshot();
+    if (!app) throw new Error("useApp must be used within AppProvider");
+    return select(app);
+  });
 }

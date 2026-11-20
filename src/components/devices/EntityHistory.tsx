@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { ChartNoAxesCombined } from "lucide-react";
 
 export function EntityHistory({ entity, icon = false }: { entity: Entity; icon?: boolean }) {
-  const { entityHistory, homeOnline, currentHome } = useApp();
+  const entityHistory = useApp(app => app.entityHistory);
+  const homeOnline = useApp(app => app.homeOnline);
+  const timeZone = useApp(app => app.currentHome.timeZone);
   const { message: t, number, locale } = useI18n();
   const [open, setOpen] = useState(false), [days, setDays] = useState<1 | 7>(1), [retry, setRetry] = useState(0);
   const [history, setHistory] = useState<Awaited<ReturnType<typeof entityHistory>> | null>();
@@ -27,7 +29,7 @@ export function EntityHistory({ entity, icon = false }: { entity: Entity; icon?:
     const command = gap ? "M" : "L"; gap = false;
     return `${command}${end > start ? (point.time - start) / (end - start) * 300 : 150},${max > min ? 90 - (point.value - min) / (max - min) * 80 : 50}`;
   }).join(" ");
-  const time = (value: number) => new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(value);
+  const time = (value: number) => new Intl.DateTimeFormat(locale, { timeZone: timeZone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(value);
   const label = t("History for {name}", { name: entity.name });
   return <details className={`smart-reading-details${icon ? " entity-history-icon" : ""}`} onToggle={event => setOpen(event.currentTarget.open)}><summary aria-label={icon ? label : undefined} title={icon ? label : undefined}>{icon ? <ChartNoAxesCombined size={17} aria-hidden="true" /> : t("History")}</summary>{open && <>
     <label className="dg-choice"><span>{t("History period")}</span><select value={days} onChange={event => setDays(Number(event.target.value) as 1 | 7)}><option value={1}>{t("24 h")}</option><option value={7}>{t("7 d")}</option></select></label>

@@ -5,7 +5,7 @@ import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { services, state } from "./ha-fixtures";
 
 const app = vi.hoisted(() => ({ homeOnline: true, commands: {}, services: {}, currentHome: { temperatureUnit: "°C" }, command: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(app) }));
 const light = () => mapHome({ "light.example": state("light.example", "on", {
   friendly_name: "Example lamp", supported_color_modes: ["rgb", "color_temp", "white"], brightness: 128,
   rgb_color: [255, 128, 0], color_temp_kelvin: 3000, min_color_temp_kelvin: 2200, max_color_temp_kelvin: 6500,

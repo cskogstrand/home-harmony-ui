@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
-import { AppContext, useHomeAssistant } from "./AppContext";
+import { useEffect, useState, type ReactNode } from "react";
+import { AppStoreContext, createAppStore } from "./AppContext";
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  return <AppContext.Provider value={useHomeAssistant()}>{children}</AppContext.Provider>;
+  const [store] = useState(createAppStore);
+  useEffect(() => { store.start(); return store.dispose; }, [store]);
+  return <AppStoreContext.Provider value={store}>{children}</AppStoreContext.Provider>;
 }

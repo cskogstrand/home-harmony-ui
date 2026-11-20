@@ -23,7 +23,9 @@ const facts: Record<string, readonly string[]> = {
 const units: Record<string, string> = { battery_level: "%", current_humidity: "%", cloud_coverage: "%", current_position: "%", current_tilt_position: "%", color_temp_kelvin: "K", gps_accuracy: "m" };
 
 export function EntityFacts({ entity }: { entity: Entity }) {
-  const { homeOnline, currentHome } = useApp();
+  const homeOnline = useApp(app => app.homeOnline);
+  const timeZone = useApp(app => app.currentHome.timeZone);
+  const temperatureUnit = useApp(app => app.currentHome.temperatureUnit);
   const { message: t, locale, number } = useI18n();
   if (!homeOnline || !available(entity)) return null;
   const a = entity.attributes;
@@ -33,14 +35,14 @@ export function EntityFacts({ entity }: { entity: Entity }) {
     const text = typeof value === "boolean" ? t(value ? "Yes" : "No") : typeof value === "number" && Number.isFinite(value) ? number(value) : typeof value === "string" ? value : Array.isArray(value) && value.every(v => typeof v === "string") ? value.join(", ") : "";
     if (!text) return [];
     let unit = units[key] ?? "";
-    if (["current_temperature", "apparent_temperature", "dew_point"].includes(key)) unit = String(a.temperature_unit ?? currentHome.temperatureUnit ?? "");
+    if (["current_temperature", "apparent_temperature", "dew_point"].includes(key)) unit = String(a.temperature_unit ?? temperatureUnit ?? "");
     if (key === "pressure") unit = String(a.pressure_unit ?? "");
     if (key === "visibility") unit = String(a.visibility_unit ?? "");
     if (key === "wind_gust_speed") unit = String(a.wind_speed_unit ?? "");
     const date = ["last_triggered", "finishes_at"].includes(key) && typeof value === "string" && Number.isFinite(Date.parse(value));
-    return [{ label: t(humanizeState(key)), value: date ? new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(text)) : `${t(text)}${unit ? ` ${unit}` : ""}` }];
+    return [{ label: t(humanizeState(key)), value: date ? new Intl.DateTimeFormat(locale, { timeZone: timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(text)) : `${t(text)}${unit ? ` ${unit}` : ""}` }];
   });
-  if (entity.lastUpdated && Number.isFinite(Date.parse(entity.lastUpdated))) rows.push({ label: t("Last updated"), value: new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(entity.lastUpdated)) });
+  if (entity.lastUpdated && Number.isFinite(Date.parse(entity.lastUpdated))) rows.push({ label: t("Last updated"), value: new Intl.DateTimeFormat(locale, { timeZone: timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(entity.lastUpdated)) });
   if (!rows.length) return null;
   return <details className="smart-reading-details"><summary>{t("Details")}</summary><dl className="smart-card-facts">{rows.map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}</dl></details>;
 }

@@ -24,8 +24,7 @@ export function DeviceIcon({ type, deviceClass, className }: { type: string; dev
 }
 export function CommandFeedback({ entityId }: { entityId: string }) {
   const { t, message } = useI18n();
-  const { commands } = useApp();
-  const command = commands[entityId];
+  const command = useApp(app => app.commands[entityId]);
   return command?.error ? <p role="alert" className="text-sm text-destructive">{message(command.error)}</p> : command?.pending ? <span role="status" className="command-spinner"><Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" /><span className="sr-only">{t("Command in progress")}</span></span> : null;
 }
 function RangeControl({ label, name, value, min, max, step = 1, unit = "", disabled, commit, icon }: { label: string; name: string; value?: number; min: number; max: number; step?: number; unit?: string; disabled: boolean; commit: (value: number) => void; icon?: LucideIcon }) {
@@ -50,12 +49,16 @@ function LightColorControl({ entity, disabled, commit }: { entity: Entity; disab
 }
 export function DeviceControl({ entity, card = false, setting = false, cabinMode, cabinSetpoint }: { entity: Entity; card?: boolean; setting?: boolean; cabinMode?: string; cabinSetpoint?: number | null }) {
   const { t, message, language, number } = useI18n();
-  const { homeOnline, command, commands, services, currentHome } = useApp();
+  const homeOnline = useApp(app => app.homeOnline);
+  const command = useApp(app => app.command);
+  const services = useApp(app => app.services);
+  const commandState = useApp(app => app.commands[entity.entityId]);
+  const temperatureUnit = useApp(app => app.currentHome.temperatureUnit);
   const { variant } = useContext(CardPresentation);
   const [lockAction, setLockAction] = useState<"lock" | "unlock">();
   const [confirmation, setConfirmation] = useState<{ action: EntityAction; value?: unknown; title: Message; description: Message }>();
   const previewDisabled = useContext(CardDisabled);
-  const disabled = previewDisabled || !homeOnline || !available(entity) || !!commands[entity.entityId]?.pending;
+  const disabled = previewDisabled || !homeOnline || !available(entity) || !!commandState?.pending;
   const supports = (action: EntityAction) => supportsAction(entity, action, services);
   const send = (action: EntityAction, value?: unknown) => {
     if (disabled || !supports(action)) return;
@@ -118,7 +121,7 @@ export function DeviceControl({ entity, card = false, setting = false, cabinMode
   const on = reported && entity.state === "on";
   const percent = brightness === undefined ? undefined : Math.max(1, Math.round(brightness * 100 / 255));
   const domainContent = ["media_player", "fan", "humidifier", "water_heater", "vacuum", "lawn_mower", "valve", "siren", "number", "input_number", "select", "input_select", "counter", "timer", "button", "input_button", "script"].includes(entity.domain);
-  const pendingAction = cabinMode !== undefined && commands[entity.entityId]?.pendingAction;
+  const pendingAction = cabinMode !== undefined && commandState?.pendingAction;
   const cabinSwitch = cabinMode && modes.length === 2 && modes.includes("off");
   const modePending = pendingAction === "hvac_mode" && supports("hvac_mode");
   const temperaturePending = pendingAction === "temperature" && supports("temperature");
@@ -131,30 +134,30 @@ export function DeviceControl({ entity, card = false, setting = false, cabinMode
       </span></label>
       : <div className="relative">{climateMode}{modeFeedback}</div>)}
     {supports("temperature") && <div className="relative" aria-busy={temperaturePending}>
-      <RangeControl label={t("Target temperature")} name={entity.name} value={cabinSetpoint === undefined ? (reported ? temperature : undefined) : cabinSetpoint ?? undefined} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) || .5} unit={String(entity.attributes.temperature_unit || currentHome.temperatureUnit || "")} disabled={disabled} commit={v => send("temperature", v)} />
+      <RangeControl label={t("Target temperature")} name={entity.name} value={cabinSetpoint === undefined ? (reported ? temperature : undefined) : cabinSetpoint ?? undefined} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) || .5} unit={String(entity.attributes.temperature_unit || temperatureUnit || "")} disabled={disabled} commit={v => send("temperature", v)} />
       {temperaturePending && <CommandFeedback entityId={entity.entityId} />}
     </div>}
-  </> : entity.domain === "scene" ? (reported ? null : <Readout value={status} caption="" />) : domainContent ? <DomainCardContent entity={entity} status={status} reported={reported} temperatureUnit={currentHome.temperatureUnit ?? ""} supports={supports} send={send} setting={setting} /> : !card ? <>
+  </> : entity.domain === "scene" ? (reported ? null : <Readout value={status} caption="" />) : domainContent ? <DomainCardContent entity={entity} status={status} reported={reported} temperatureUnit={temperatureUnit ?? ""} supports={supports} send={send} setting={setting} /> : !card ? <>
     {toggle ? <div className="toggle-line"><span>{status}</span><Switch checked={entity.state === "on"} disabled={disabled} aria-label={t("Toggle {value1}", { value1: entity.name })} onCheckedChange={on => send(on ? "turn_on" : "turn_off")} /></div>
-      : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{currentHome.temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
+      : entity.domain === "climate" && homeOnline && available(entity) ? <div className="climate-reading"><strong>{currentTemperature === undefined ? "—" : number(currentTemperature)}<small>{temperatureUnit}</small></strong><span>{t("Inside")}</span></div>
       : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}
 
     {dimmer}{colorControls}
-    {entity.domain === "climate" && <>{supports("temperature") && <RangeControl label={t("Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={currentHome.temperatureUnit ?? ""} disabled={disabled} commit={v => send("temperature", v)} />}{climateMode}{climateExtras}{humidity}</>}
+    {entity.domain === "climate" && <>{supports("temperature") && <RangeControl label={t("Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={temperatureUnit ?? ""} disabled={disabled} commit={v => send("temperature", v)} />}{climateMode}{climateExtras}{humidity}</>}
     {entity.domain === "cover" && coverControls}
   </> : entity.domain === "light" ? <LightCard value={on && percent !== undefined ? `${percent}%` : status} caption={on && percent !== undefined ? status : ""} strength={on ? (percent ?? 100) / 100 : 0} power={power} brightness={dimmer}>
     {hasColorControls && (variant === "Original" ? colorControls : <More label="Color & effects">{colorControls}</More>)}
-  </LightCard> : entity.domain === "climate" ? <ClimateCard name={entity.name} value={reported ? temperature : undefined} unit={currentHome.temperatureUnit ?? ""}
+  </LightCard> : entity.domain === "climate" ? <ClimateCard name={entity.name} value={reported ? temperature : undefined} unit={temperatureUnit ?? ""}
     min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? .1}
     set={supports("temperature") ? value => send("temperature", value) : undefined}
-    caption={reported && currentTemperature !== undefined ? `${status} · ${t("Inside")} ${number(currentTemperature)}${currentHome.temperatureUnit ?? ""}` : status}>
+    caption={reported && currentTemperature !== undefined ? `${status} · ${t("Inside")} ${number(currentTemperature)}${temperatureUnit ?? ""}` : status}>
     {variant !== "Super compact" && climateMode}{climateMore.length > 0 && <More>{climateMore}</More>}
   </ClimateCard> : entity.domain === "cover" ? <CoverCard position={reported ? position : undefined} tilt={numberValue(entity.attributes.current_tilt_position) ?? 0}>
     {showState && <Readout value={status} caption="" />}{coverControls}
   </CoverCard> : power ? <PowerCard on={on} power={power} value={status} caption="" />
     : Icon && ["lock", "alarm_control_panel", "siren", "binary_sensor"].includes(entity.domain) ? <SecurityCard icon={entity.domain === "lock" && entity.state === "unlocked" ? Unlock : Icon} value={status} caption="" secure={reported && entity.state === "locked"} />
     : <Readout value={status} unit={reported ? unit : ""} caption="" />;
-  return <CardDisabled.Provider value={disabled}><div className={card ? "dg-card-body command-controller" : "control-stack command-controller"} aria-busy={!!commands[entity.entityId]?.pending}>
+  return <CardDisabled.Provider value={disabled}><div className={card ? "dg-card-body command-controller" : "control-stack command-controller"} aria-busy={!!commandState?.pending}>
     {primary}
     {entity.domain === "alarm_control_panel" && <AlarmCardControls entity={entity} />}
     {entity.domain === "automation" && supports("trigger") && <Action label="Run actions" compactIcon={Play} onClick={() => send("trigger")}><Play size={18} />{t("Run actions")}</Action>}
