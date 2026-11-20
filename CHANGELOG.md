@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.37
+
+<!-- release-source: abb552a277c94eec46aabbd5b392a24def6c781a -->
+
+- feat: group notification trigger values
+
 ## 0.10.36
 
 <!-- release-source: 32ac75118063b504e735991ea822a9151678e458 -->
