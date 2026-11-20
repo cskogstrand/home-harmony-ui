@@ -2,12 +2,13 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Expand, PanelsTopLeft, PanelTop, Pause, Play, Eye } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { useApp } from "@/contexts/AppContext";
+import { useFamily } from "@/contexts/FamilyContext";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { notificationEntity, progressNumber, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
-import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
+import { notificationTriggers, notificationRuleSchema, visibleWidgetSlots, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
 import { NotificationBoardGrid, NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog } from "./ui/dialog";
@@ -21,6 +22,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   const { message: t } = useI18n();
   const { currentHome } = useApp();
   const { notifications } = useNotifications();
+  const { notifications: settings } = useFamily();
   const [demo, setDemo] = useState(!editing);
   const [percent, setPercent] = useState(40);
   const [playing, setPlaying] = useState(false);
@@ -40,7 +42,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   const previewRule = rule ? { ...rule, title: rule.title.trim() || t("Your notification") } : example;
   const presentation = previewRule.presentation ?? defaultPresentation;
   const useDemo = !rule || demo;
-  const widgetSlots = previewRule.widget?.slots ?? [];
+  const widgetSlots = visibleWidgetSlots(previewRule.widget, settings.gridZoom) ?? [];
   const hasProgress = !!previewRule.progress || widgetSlots.some(slot => slot.type === "progress" && slot.entity);
   const canPlay = useDemo && hasProgress && !reducedMotion;
   useEffect(() => {

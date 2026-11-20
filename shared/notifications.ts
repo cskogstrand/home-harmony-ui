@@ -41,13 +41,15 @@ const notificationEntityDisplaySchema = z.object({
 }).strict();
 export type NotificationEntityDisplay = z.infer<typeof notificationEntityDisplaySchema>;
 const imageReference = z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/);
-export const MAX_WIDGET_SLOTS = 3;
+export const MAX_WIDGET_SLOTS = 4;
+export const MAX_INLINE_WIDGET_FIELDS = 3;
 export const notificationGridZooms = ["small", "medium", "large"] as const;
 export const notificationWidgetSizes = ["auto", ...notificationGridZooms] as const;
 const widgetSlotSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("empty") }).strict(),
-  z.object({ type: z.literal("reading"), entity: reference }).strict(),
-  z.object({ type: z.enum(["progress", "remaining"]), entity: reference.optional() }).strict(),
+  z.object({ type: z.literal("text"), text: z.string().trim().min(1, "Enter text for this field.").max(100) }).strict(),
+  z.object({ type: z.literal("reading"), entity: reference, hideName: z.boolean().optional() }).strict(),
+  z.object({ type: z.enum(["progress", "remaining"]), entity: reference.optional(), hideName: z.boolean().optional() }).strict(),
 ]);
 export type NotificationWidgetSlot = z.infer<typeof widgetSlotSchema>;
 const widgetSchema = z.object({
@@ -55,6 +57,7 @@ const widgetSchema = z.object({
   title: z.string().trim().max(100).optional(),
   text: z.string().trim().max(100).optional(),
   slots: z.array(widgetSlotSchema).max(MAX_WIDGET_SLOTS).optional(),
+  slotLayout: z.literal("lines").optional(),
   readings: z.array(reference).max(2).refine(ids => new Set(ids).size === ids.length).optional(),
   media: z.discriminatedUnion("type", [
     z.object({ type: z.literal("none") }).strict(),
@@ -66,6 +69,9 @@ const widgetSchema = z.object({
   return widget;
 });
 export type NotificationWidget = z.infer<typeof widgetSchema>;
+export function visibleWidgetSlots(widget: NotificationWidget | undefined, zoom: typeof notificationGridZooms[number]) {
+  return widget?.slots?.slice(0, widget.slotLayout === "lines" && zoom === "large" ? MAX_WIDGET_SLOTS : MAX_INLINE_WIDGET_FIELDS);
+}
 const stateTriggerSchema = z.object({ type: z.literal("state"), entity: reference, attribute: z.string().max(100).default(""),
   operator: z.enum(["eq", "neq", "gt", "lt"]), value: z.string().trim().min(1).max(256) }).strict();
 export type NotificationStateTrigger = z.infer<typeof stateTriggerSchema>;

@@ -227,16 +227,21 @@ it("combines three widget field types independently of the popup and saves the l
   fireEvent.change(screen.getByLabelText("Widget short text"), { target: { value: "Board summary" } });
   fireEvent.change(screen.getByLabelText("Widget media"), { target: { value: "image" } });
   chooseEntity("Widget image", "image.preview");
-  fireEvent.change(screen.getByLabelText("Widget fields"), { target: { value: "custom" } });
+  fireEvent.change(screen.getByLabelText("Widget content"), { target: { value: "columns" } });
   fireEvent.change(screen.getByLabelText("Field 1 · type"), { target: { value: "progress" } });
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(screen.getByRole("button", { name: "Field 1 · Percentage sensor" })).toHaveAttribute("aria-invalid", "true");
+  fireEvent.click(screen.getByRole("switch", { name: "Field 1 · Hide name" }));
   chooseEntity("Field 1 · Percentage sensor", "sensor.percent");
   fireEvent.change(screen.getByLabelText("Field 2 · type"), { target: { value: "reading" } });
   chooseEntity("Field 2 · Sensor", "sensor.watts");
   fireEvent.change(screen.getByLabelText("Field 3 · type"), { target: { value: "remaining" } });
   chooseEntity("Field 3 · Time left sensor", "sensor.remaining");
+  fireEvent.click(screen.getByRole("switch", { name: "Field 3 · Hide name" }));
   const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  expect(tile.querySelectorAll("dt")[0]).toHaveClass("sr-only");
+  expect(tile.querySelectorAll("dt")[1]).not.toHaveClass("sr-only");
+  expect(tile.querySelectorAll("dt")[2]).toHaveClass("sr-only");
   expect(tile).toHaveAttribute("data-widget-columns", "2");
   fireEvent.click(widthChoice("1 column"));
   expect(tile).toHaveAttribute("data-widget-columns", "1");
@@ -267,6 +272,86 @@ it("combines three widget field types independently of the popup and saves the l
   expect(within(screen.getByRole("listitem")).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "67");
   fireEvent.click(screen.getByRole("button", { name: "Show details for Board title" }));
   expect(screen.getByRole("dialog", { name: rule.title })).toHaveTextContent("Popup message");
+});
+
+it("saves three custom lines in order and previews free text, a sensor value and live progress", async () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "current", cameraEntity: "", widget: { slots: [
+    { type: "empty" }, { type: "reading", entity: "home|sensor.watts" }, { type: "progress", entity: "home|sensor.percent" },
+  ] } });
+  mocks.app.currentHome = mapHome({
+    "sensor.watts": state("sensor.watts", "32", { unit_of_measurement: "W" }),
+    "sensor.percent": state("sensor.percent", "67", { unit_of_measurement: "%" }),
+  }, emptyRegistries, "home");
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Edit widget");
+  const mode = screen.getByLabelText("Widget content");
+  expect(mode).toHaveValue("columns");
+  const hideName = screen.getByRole("switch", { name: "Field 2 · Hide name" });
+  expect(hideName).not.toBeChecked();
+  fireEvent.click(hideName);
+  fireEvent.change(mode, { target: { value: "lines" } });
+  expect(screen.getByRole("switch", { name: "Line 2 · Hide name" })).toBeChecked();
+  fireEvent.change(screen.getByLabelText("Line 1 · type"), { target: { value: "text" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(screen.getByLabelText("Line 1 · Free text")).toHaveAttribute("aria-invalid", "true");
+  fireEvent.change(screen.getByLabelText("Line 1 · Free text"), { target: { value: "Workshop cycle" } });
+  const preview = screen.getByRole("region", { name: "Notification preview" });
+  const lines = within(preview).getByRole("listitem").querySelector("dl");
+  expect(lines).toHaveAttribute("data-layout", "lines");
+  expect(lines.querySelectorAll("dt")[1]).toHaveClass("sr-only");
+  expect(lines.querySelectorAll("dt")[2]).not.toHaveClass("sr-only");
+  expect(Array.from(lines.querySelectorAll("dd"), item => item.textContent)).toEqual(["Workshop cycle", "32 W", "67%"]);
+  expect(screen.getByRole("group", { name: "Popup preview" })).not.toHaveTextContent("Workshop cycle");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.widget).toEqual({ slotLayout: "lines", slots: [{ type: "text", text: "Workshop cycle" }, { ...rule.widget.slots[1], hideName: true }, rule.widget.slots[2], { type: "empty" }] });
+  view.unmount();
+  render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }], dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
+  const tile = screen.getByRole("listitem");
+  expect(tile.querySelector(".notification-glance-caption")).toBeNull();
+  expect(tile.querySelectorAll("dt")[1]).toHaveClass("sr-only");
+  expect(tile).toHaveTextContent("32 W");
+  expect(tile).toHaveTextContent("Workshop cycle");
+  expect(within(tile).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "67");
+});
+
+it("edits and reorders all four lines at any zoom and shows the fourth only at Large", async () => {
+  const reading = { type: "reading" as const, entity: "home|binary_sensor.example", hideName: true };
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), widget: { slotLayout: "lines", slots: [
+    { type: "text", text: "First" }, { type: "empty" }, reading,
+  ] } });
+  const settings = { ...emptyPlanner().notifications, rules: [rule] };
+  mocks.family.notifications = settings;
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Edit widget");
+  const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  expect(screen.getByRole("group", { name: "Line 4 · Large zoom only" })).toBeVisible();
+  fireEvent.change(screen.getByLabelText("Line 4 · type"), { target: { value: "text" } });
+  fireEvent.change(screen.getByLabelText("Line 4 · Free text"), { target: { value: "Fourth" } });
+  expect(tile).not.toHaveTextContent("Fourth");
+  expect(screen.getByRole("button", { name: "Move Line 4 down" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Move Line 1 up" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Move Line 4 up" }));
+  expect(tile).toHaveTextContent("Fourth");
+  expect(screen.getByRole("switch", { name: "Line 4 · Hide name" })).toBeChecked();
+  fireEvent.click(screen.getByRole("button", { name: "Move Line 3 down" }));
+  for (const gridZoom of ["small", "large"] as const) {
+    mocks.family.notifications = { ...settings, gridZoom };
+    view.rerender(content());
+    expect(tile.textContent.includes("Fourth")).toBe(gridZoom === "large");
+  }
+  const mode = screen.getByLabelText("Widget content");
+  fireEvent.change(mode, { target: { value: "columns" } });
+  expect(tile).not.toHaveTextContent("Fourth");
+  expect(screen.queryByLabelText("Field 4 · type")).toBeNull();
+  fireEvent.change(mode, { target: { value: "lines" } });
+  expect(screen.getByLabelText("Line 4 · Free text")).toHaveValue("Fourth");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].widget.slots).toEqual([...rule.widget.slots, { type: "text", text: "Fourth" }]);
 });
 
 it("keeps an empty field in place and distinguishes unavailable progress from zero", () => {
