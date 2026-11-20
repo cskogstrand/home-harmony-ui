@@ -1776,7 +1776,10 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
     expect(window.location.pathname).toBe(`/settings/${path}`);
     expect(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: title })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
-    if (path === "appearance") expect(screen.getAllByRole("radio")).toHaveLength(12);
+    if (path === "appearance") {
+      expect(within(screen.getByRole("radiogroup", { name: "Color palette" })).getAllByRole("radio")).toHaveLength(12);
+      expect(within(screen.getByRole("radiogroup", { name: "Artwork" })).getAllByRole("radio")).toHaveLength(6);
+    }
     if (path === "backups") expect(screen.getByRole("button", { name: "Import configuration" })).toBeEnabled();
     fireEvent.click(screen.getByRole("link", { name: "All settings" }));
     expect(await screen.findByRole("heading", { name: "Settings", level: 1 })).toHaveFocus();

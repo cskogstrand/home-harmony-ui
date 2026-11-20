@@ -18,7 +18,7 @@ import "./settings.css";
 
 const groups = [
   { title: "Preferences", icon: SlidersHorizontal, items: [
-    { id: "appearance", title: "Appearance", description: "Theme, colors, glass and display density", icon: Palette, content: <UserSettings section="appearance" /> },
+    { id: "appearance", title: "Appearance", description: "Theme, colors, artwork, glass and display density", icon: Palette, content: <UserSettings section="appearance" /> },
     { id: "language", title: "Language", description: "Language for every connected screen", icon: Globe, content: <UserSettings section="language" /> },
     { id: "notifications", title: "Notifications", description: "Alerts, ongoing tasks and camera popups", icon: Bell, content: <NotificationSettings /> },
     { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },

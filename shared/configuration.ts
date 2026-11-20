@@ -4,6 +4,8 @@ import { cameraSettingsSchema } from "./cameras.ts";
 
 export const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 export const defaultModalGlass = { modalTransparency: 70, modalBlur: 20, modalSaturation: 150, modalDimming: 20 };
+export const artworkSchema = z.enum(["none", "fjord", "garden", "sunroom", "paper", "aurora"]);
+export type Artwork = z.infer<typeof artworkSchema>;
 export function isPlannerDate(value: string | null): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(`${value}T12:00:00Z`);
@@ -138,6 +140,7 @@ const plannerObjectSchema = z.object({
   appearance: z.object({
     theme: z.enum(["light", "dark"]),
     colorPalette: z.enum(["pearl", "sage", "sand", "dusk", "mist", "rose", "olive", "clay", "lavender", "seafoam", "honey", "slate"]).default("pearl"),
+    artwork: artworkSchema.default("none"),
     compactMode: z.boolean(),
     darkTimetables: z.boolean().default(false),
     modalTransparency: z.number().int().min(0).max(85).default(defaultModalGlass.modalTransparency),

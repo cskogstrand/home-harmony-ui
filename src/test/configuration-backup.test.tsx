@@ -180,6 +180,32 @@ it.each([
   expect(document.documentElement).not.toHaveClass("dark");
 });
 
+it("keeps shared artwork, palette and mode independent across reloads", async () => {
+  const settings = <FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>;
+  const view = render(settings);
+  await screen.findByText("Shared configuration saved.");
+  const artwork = () => within(screen.getByRole("radiogroup", { name: "Artwork" }));
+  expect(artwork().getByRole("radio", { name: "No artwork" })).toBeChecked();
+  for (const name of ["Fjord Morning", "Winter Garden", "Sunroom", "Paper Coast", "Northern Lights"]) {
+    fireEvent.click(artwork().getByRole("radio", { name }));
+    await screen.findByText("Shared configuration saved.");
+    expect(artwork().getByRole("radio", { name })).toBeChecked();
+  }
+  expect(screen.getByRole("radio", { name: "Pearl" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Toggle dark mode" })).toBeChecked();
+  fireEvent.click(screen.getByRole("radio", { name: "Clay" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Toggle dark mode" }));
+  await screen.findByText("Shared configuration saved.");
+  view.unmount();
+  render(settings);
+  await screen.findByText("Shared configuration saved.");
+  expect(artwork().getByRole("radio", { name: "Northern Lights" })).toBeChecked();
+  fireEvent.click(artwork().getByRole("radio", { name: "No artwork" }));
+  await screen.findByText("Shared configuration saved.");
+  expect(screen.getByRole("radio", { name: "Clay" })).toBeChecked();
+  expect(screen.getByRole("switch", { name: "Toggle dark mode" })).not.toBeChecked();
+});
+
 it("keeps a failed palette save as an unsaved draft and blocks further choices until recovery", async () => {
   render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
@@ -189,6 +215,7 @@ it("keeps a failed palette save as an unsaved draft and blocks further choices u
   expect(document.documentElement).toHaveAttribute("data-color-palette", "sand");
   expect(screen.getByRole("radio", { name: "Sand" })).toBeChecked();
   expect(screen.getByRole("radio", { name: "Dusk" })).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "Fjord Morning" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
 });
 

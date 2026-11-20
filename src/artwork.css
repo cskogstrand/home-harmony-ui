@@ -1,0 +1,96 @@
+:root {
+  --art-h: var(--palette-hue, 213);
+  --art-base: hsl(var(--background));
+  --art-surface: hsl(var(--card));
+  --art-action: hsl(var(--primary));
+  --art-paper: color-mix(in srgb, var(--art-surface) 93%, var(--art-action));
+  --art-ink: hsl(var(--art-h) 28% 15%);
+  --art-night: hsl(var(--art-h) 40% 12%);
+  --art-pig: color-mix(in srgb, var(--art-action) 80%, hsl(var(--art-h) 64% 48%));
+  --art-deep: color-mix(in srgb, var(--art-pig) 62%, var(--art-ink));
+  --art-mid: color-mix(in srgb, var(--art-pig) 70%, var(--art-paper));
+  --art-mist: color-mix(in srgb, var(--art-pig) 43%, var(--art-paper));
+  --art-high: color-mix(in srgb, var(--art-pig) 19%, var(--art-paper));
+  --art-pale: color-mix(in srgb, var(--art-pig) 12%, var(--art-paper));
+  --art-snow: color-mix(in srgb, var(--art-paper) 95%, white);
+  --art-other: hsl(calc(var(--art-h) + 44) 34% 49%);
+  --art-warm: hsl(calc(var(--art-h) + 160) 60% 70%);
+  --art-glow: hsl(calc(var(--art-h) - 35) 63% 74%);
+}
+:root[data-color-palette="slate"] {
+  --art-warm: hsl(calc(var(--art-h) + 160) 22% 70%);
+  --art-other: hsl(calc(var(--art-h) + 44) 16% 49%);
+}
+:root.dark {
+  --art-paper: color-mix(in srgb, var(--art-base) 89%, var(--art-action));
+  --art-pig: color-mix(in srgb, var(--art-action) 56%, var(--art-ink));
+  --art-deep: color-mix(in srgb, var(--art-action) 23%, var(--art-night));
+  --art-mid: color-mix(in srgb, var(--art-action) 43%, var(--art-night));
+  --art-mist: color-mix(in srgb, var(--art-action) 31%, var(--art-paper));
+  --art-high: color-mix(in srgb, var(--art-action) 13%, var(--art-paper));
+  --art-pale: color-mix(in srgb, var(--art-action) 21%, var(--art-paper));
+  --art-snow: color-mix(in srgb, var(--art-action) 72%, var(--art-paper));
+  --art-other: hsl(calc(var(--art-h) + 44) 26% 41%);
+  --art-warm: hsl(calc(var(--art-h) + 160) 36% 56%);
+  --art-glow: hsl(calc(var(--art-h) - 35) 68% 70%);
+}
+:root.dark[data-color-palette="slate"] {
+  --art-warm: hsl(calc(var(--art-h) + 160) 19% 51%);
+  --art-other: hsl(calc(var(--art-h) + 44) 18% 41%);
+}
+[data-scene="sunroom"] {
+  --art-warm: color-mix(in srgb, var(--art-pig) 48%, var(--art-snow));
+}
+
+.artwork-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.artwork-preview { display: block; width: 100%; aspect-ratio: 1440 / 580; border: 1px solid hsl(var(--border)); border-radius: var(--radius-event); overflow: hidden; }
+.artwork-ambient { background: var(--app-ground); }
+@media (width <= 499px) { .artwork-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.afterglow-app[data-artwork] { isolation: isolate; }
+.artwork-background { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: var(--art-base); }
+.artwork-background svg, .artwork-background::before, .artwork-background::after { position: absolute; inset: 0; width: 100%; height: 100%; }
+.artwork-ground { opacity: .79; }
+.artwork-background::before {
+  content: "";
+  z-index: 1;
+  background: linear-gradient(180deg, transparent, var(--art-base) 23%, color-mix(in srgb, var(--art-base) 75%, transparent) 55%, transparent 88%);
+  opacity: .68;
+}
+.artwork-background .artwork-horizon {
+  z-index: 2;
+  height: min(506px, 60svh);
+  mask-image: linear-gradient(black 83%, transparent);
+}
+.artwork-background::after {
+  content: "";
+  z-index: 3;
+  --shield: color-mix(in srgb, var(--art-base) 96%, transparent);
+  height: min(478px, 58svh);
+  background: linear-gradient(90deg, var(--shield) 11%, transparent 35% 47%, var(--shield) 66%);
+  mask-image: linear-gradient(black 32%, transparent);
+}
+
+/* Keep dense work surfaces quiet. On Today, leave a window between the plan and its time. */
+[data-artwork] .glow-panel.next-chapter { background: hsl(var(--card) / .96); }
+@media (min-width: 900px) {
+  [data-artwork] .glow-panel.next-chapter { background: linear-gradient(90deg, hsl(var(--card)) 28%, hsl(var(--card) / .97) 35%, hsl(var(--card) / .2) 48% 59%, hsl(var(--card) / .97) 76%, hsl(var(--card)) 87%); }
+  [data-artwork] .next-event:not(:hover) { background-color: transparent; }
+  [data-artwork] .next-chapter :is(.next-event-copy h3, .next-event-copy small, .next-event-time, .event-description, p.muted) {
+    background-color: hsl(var(--card) / .95);
+    width: fit-content;
+    max-width: 100%;
+  }
+}
+[data-artwork] .greeting > p { color: hsl(var(--foreground)); }
+[data-artwork] :is(.smart-summary, .smart-nav, .list-tabs) { background-color: var(--art-surface); border-radius: var(--radius-field); }
+[data-artwork] :is(.smart-page > section > .section-heading .panel-title, .smart-page > section > .section-heading .text-link, .filter-row button:not([aria-pressed=true]), .app-footer > span) { background-color: var(--art-surface); border-radius: 6px; box-shadow: 0 0 0 4px var(--art-surface); }
+/* Settings and secondary pages have free-standing labels throughout the viewport. */
+[data-artwork]:not(:has(.today-page)) .artwork-background { opacity: .26; }
+@media (width < 900px) {
+  .artwork-background::after { background: linear-gradient(90deg, var(--shield), color-mix(in srgb, var(--art-base) 75%, transparent) 65%, var(--shield)); }
+}
+@media (forced-colors: active), (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  .artwork-background { display: none; }
+  [data-artwork] .glow-panel.next-chapter { background: hsl(var(--card)); }
+}

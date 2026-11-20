@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import './afterglow.css';
+@import './artwork.css';
 
 /* latin-ext */
 @font-face {

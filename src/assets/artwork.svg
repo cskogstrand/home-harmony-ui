@@ -1,0 +1,1598 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" width="0" height="0">
+  <defs>
+    <g id="artwork-fjord" data-scene="fjord">
+      <defs>
+        <linearGradient id="art-fjord-sky" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-high)" stop-opacity="1" />
+          <stop offset="48%" stop-color="var(--art-paper)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-warm)" stop-opacity="1" />
+        </linearGradient>
+        <linearGradient id="art-fjord-water" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-pale)" stop-opacity="1" />
+          <stop offset="48%" stop-color="var(--art-mist)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-mid)" stop-opacity="1" />
+        </linearGradient>
+        <pattern id="art-fjord-grain" width="65" height="65" patternUnits="userSpaceOnUse">
+          <ellipse cx="10.7" cy="44.8" rx="0.76" ry="0.57" fill="var(--art-ink)" />
+          <ellipse cx="14.0" cy="51.5" rx="0.88" ry="0.58" fill="var(--art-ink)" />
+          <ellipse cx="32.8" cy="15.3" rx="0.35" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="38.0" cy="4.5" rx="0.87" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="15.1" cy="2.8" rx="1.0" ry="0.68" fill="var(--art-ink)" />
+          <ellipse cx="56.9" cy="40.0" rx="0.37" ry="0.5" fill="var(--art-ink)" />
+          <ellipse cx="32.3" cy="7.5" rx="0.97" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="10.1" cy="53.1" rx="0.43" ry="0.77" fill="var(--art-ink)" />
+          <ellipse cx="29.5" cy="35.9" rx="0.57" ry="0.57" fill="var(--art-ink)" />
+          <ellipse cx="12.1" cy="2.4" rx="0.91" ry="0.46" fill="var(--art-ink)" />
+          <ellipse cx="50.7" cy="13.6" rx="0.98" ry="0.75" fill="var(--art-ink)" />
+          <ellipse cx="49.1" cy="49.6" rx="0.73" ry="0.68" fill="var(--art-ink)" />
+          <ellipse cx="8.0" cy="31.0" rx="0.89" ry="0.44" fill="var(--art-ink)" />
+          <ellipse cx="60.0" cy="57.7" rx="0.62" ry="0.51" fill="var(--art-ink)" />
+          <ellipse cx="29.3" cy="25.1" rx="1.0" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="1.7" cy="6.1" rx="0.82" ry="0.8" fill="var(--art-ink)" />
+          <ellipse cx="32.2" cy="32.0" rx="0.71" ry="0.69" fill="var(--art-ink)" />
+          <ellipse cx="14.4" cy="39.6" rx="0.71" ry="0.63" fill="var(--art-ink)" />
+          <ellipse cx="11.7" cy="11.1" rx="0.58" ry="0.77" fill="var(--art-ink)" />
+          <ellipse cx="22.5" cy="38.8" rx="0.55" ry="0.4" fill="var(--art-ink)" />
+          <ellipse cx="4.3" cy="52.9" rx="0.86" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="44.4" cy="43.9" rx="0.93" ry="0.78" fill="var(--art-ink)" />
+          <ellipse cx="26.5" cy="64.3" rx="0.97" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="57.4" cy="31.9" rx="0.59" ry="0.46" fill="var(--art-ink)" />
+          <ellipse cx="56.9" cy="10.5" rx="0.4" ry="0.71" fill="var(--art-ink)" />
+          <ellipse cx="50.3" cy="31.4" rx="0.89" ry="0.37" fill="var(--art-ink)" />
+          <ellipse cx="16.8" cy="18.8" rx="0.62" ry="0.43" fill="var(--art-ink)" />
+          <ellipse cx="4.5" cy="22.0" rx="0.93" ry="0.79" fill="var(--art-ink)" />
+          <ellipse cx="48.5" cy="31.1" rx="0.51" ry="0.78" fill="var(--art-ink)" />
+          <ellipse cx="34.2" cy="47.4" rx="0.37" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="54.5" cy="51.7" rx="0.92" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="27.7" cy="37.8" rx="0.9" ry="0.49" fill="var(--art-ink)" />
+          <ellipse cx="34.7" cy="17.9" rx="0.85" ry="0.35" fill="var(--art-ink)" />
+          <ellipse cx="44.5" cy="62.0" rx="0.37" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="41.9" cy="55.4" rx="0.73" ry="0.47" fill="var(--art-ink)" />
+          <ellipse cx="26.4" cy="62.3" rx="0.94" ry="0.41" fill="var(--art-ink)" />
+          <ellipse cx="6.2" cy="6.1" rx="0.37" ry="0.55" fill="var(--art-ink)" />
+          <ellipse cx="9.2" cy="56.4" rx="0.78" ry="0.41" fill="var(--art-ink)" />
+          <ellipse cx="35.0" cy="21.1" rx="0.67" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="10.8" cy="12.0" rx="0.6" ry="0.67" fill="var(--art-ink)" />
+          <ellipse cx="35.8" cy="3.0" rx="0.81" ry="0.74" fill="var(--art-ink)" />
+          <ellipse cx="50.3" cy="51.4" rx="0.36" ry="0.56" fill="var(--art-ink)" />
+          <ellipse cx="4.1" cy="49.7" rx="0.46" ry="0.67" fill="var(--art-ink)" />
+          <ellipse cx="16.4" cy="45.3" rx="0.55" ry="0.37" fill="var(--art-ink)" />
+        </pattern>
+      </defs>
+      <rect width="1440" height="580" fill="url(#art-fjord-sky)" />
+      <ellipse cx="970" cy="141" rx="44" ry="44" fill="var(--art-warm)" />
+      <path d="M0 271 L88 219 147 236 199 197 251 206 351 147 421 183 515 123 575 151 650 99 726 159 790 130 897 209 964 177 1004 195 1085 143 1218 225 1304 184 1440 233 V410 H0Z" fill="var(--art-mist)" />
+      <path d="M0 326 L110 272 188 289 298 201 365 222 466 133 516 157 597 96 634 111 660 87 701 126 755 154 784 181 851 202 922 244 987 230 1073 264 1191 243 1277 278 1440 258 V405 H0Z" fill="var(--art-mid)" />
+      <path d="M371 228 L466 133 516 157 597 96 634 111 660 87 701 126 755 154 784 181 703 148 662 109 628 149 614 127 596 143 579 139 543 181 518 177 491 206 462 183 447 195 456 161Z" fill="var(--art-snow)" />
+      <path d="M662 106 L697 163 720 174 758 227 729 211 706 186 689 183 675 150 669 155Z M593 115 L555 182 509 207 543 173Z" fill="var(--art-deep)" opacity=".5" />
+      <path d="M0 250 Q146 289 222 282 T389 314 Q489 351 580 342 Q687 333 750 345 Q831 356 902 328 T1040 318 Q1178 294 1270 266 Q1360 244 1440 221 V404 H0Z" fill="var(--art-deep)" />
+      <path d="M0 307.0l4 -15 5 15Z" fill="var(--art-ink)" />
+      <path d="M8 308.352l4 -17 5 17Z" fill="var(--art-ink)" />
+      <path d="M16 309.676l4 -22 5 22Z" fill="var(--art-ink)" />
+      <path d="M24 310.946l4 -16 5 16Z" fill="var(--art-ink)" />
+      <path d="M32 312.138l4 -8 5 8Z" fill="var(--art-ink)" />
+      <path d="M40 313.231l4 -11 5 11Z" fill="var(--art-ink)" />
+      <path d="M48 314.205l4 -12 5 12Z" fill="var(--art-ink)" />
+      <path d="M56 315.048l4 -18 5 18Z" fill="var(--art-ink)" />
+      <path d="M64 315.75l4 -18 5 18Z" fill="var(--art-ink)" />
+      <path d="M72 316.307l4 -18 5 18Z" fill="var(--art-ink)" />
+      <path d="M80 316.722l4 -11 5 11Z" fill="var(--art-ink)" />
+      <path d="M88 317l4 -10 5 10Z" fill="var(--art-ink)" />
+      <path d="M96 317.152l4 -20 5 20Z" fill="var(--art-ink)" />
+      <path d="M104 317.195l4 -13 5 13Z" fill="var(--art-ink)" />
+      <path d="M112 317.149l4 -12 5 12Z" fill="var(--art-ink)" />
+      <path d="M120 317.037l4 -22 5 22Z" fill="var(--art-ink)" />
+      <path d="M128 316.884l4 -19 5 19Z" fill="var(--art-ink)" />
+      <path d="M136 316.717l4 -15 5 15Z" fill="var(--art-ink)" />
+      <path d="M144 316.565l4 -21 5 21Z" fill="var(--art-ink)" />
+      <path d="M152 316.453l4 -8 5 8Z" fill="var(--art-ink)" />
+      <path d="M160 316.408l4 -16 5 16Z" fill="var(--art-ink)" />
+      <path d="M168 316.453l4 -22 5 22Z" fill="var(--art-ink)" />
+      <path d="M176 316.607l4 -19 5 19Z" fill="var(--art-ink)" />
+      <path d="M184 316.886l4 -10 5 10Z" fill="var(--art-ink)" />
+      <path d="M192 317.303l4 -8 5 8Z" fill="var(--art-ink)" />
+      <path d="M200 317.862l4 -18 5 18Z" fill="var(--art-ink)" />
+      <path d="M208 318.566l4 -11 5 11Z" fill="var(--art-ink)" />
+      <path d="M216 319.411l4 -17 5 17Z" fill="var(--art-ink)" />
+      <path d="M224 320.387l4 -19 5 19Z" fill="var(--art-ink)" />
+      <path d="M232 321.48l4 -15 5 15Z" fill="var(--art-ink)" />
+      <path d="M240 322.674l4 -21 5 21Z" fill="var(--art-ink)" />
+      <path d="M248 323.945l4 -8 5 8Z" fill="var(--art-ink)" />
+      <path d="M256 325.27l4 -10 5 10Z" fill="var(--art-ink)" />
+      <path d="M264 326.622l4 -20 5 20Z" fill="var(--art-ink)" />
+      <path d="M272 327.973l4 -17 5 17Z" fill="var(--art-ink)" />
+      <path d="M280 329.297l4 -13 5 13Z" fill="var(--art-ink)" />
+      <path d="M288 330.566l4 -9 5 9Z" fill="var(--art-ink)" />
+      <path d="M296 331.757l4 -12 5 12Z" fill="var(--art-ink)" />
+      <path d="M304 332.848l4 -13 5 13Z" fill="var(--art-ink)" />
+      <path d="M312 333.821l4 -10 5 10Z" fill="var(--art-ink)" />
+      <path d="M320 334.662l4 -20 5 20Z" fill="var(--art-ink)" />
+      <path d="M328 335.362l4 -16 5 16Z" fill="var(--art-ink)" />
+      <path d="M336 335.917l4 -18 5 18Z" fill="var(--art-ink)" />
+      <path d="M344 336.33l4 -21 5 21Z" fill="var(--art-ink)" />
+      <path d="M352 336.606l4 -16 5 16Z" fill="var(--art-ink)" />
+      <path d="M360 336.757l4 -22 5 22Z" fill="var(--art-ink)" />
+      <path d="M368 336.799l4 -9 5 9Z" fill="var(--art-ink)" />
+      <path d="M376 336.752l4 -14 5 14Z" fill="var(--art-ink)" />
+      <path d="M384 336.639l4 -22 5 22Z" fill="var(--art-ink)" />
+      <path d="M392 336.485l4 -8 5 8Z" fill="var(--art-ink)" />
+      <path d="M400 336.319l4 -21 5 21Z" fill="var(--art-ink)" />
+      <path d="M408 336.167l4 -21 5 21Z" fill="var(--art-ink)" />
+      <path d="M416 336.056l4 -13 5 13Z" fill="var(--art-ink)" />
+      <path d="M424 336.012l4 -19 5 19Z" fill="var(--art-ink)" />
+      <path d="M432 336.058l4 -20 5 20Z" fill="var(--art-ink)" />
+      <path d="M440 336.213l4 -13 5 13Z" fill="var(--art-ink)" />
+      <path d="M448 336.494l4 -11 5 11Z" fill="var(--art-ink)" />
+      <path d="M456 336.913l4 -19 5 19Z" fill="var(--art-ink)" />
+      <path d="M464 337.474l4 -10 5 10Z" fill="var(--art-ink)" />
+      <path d="M472 338.18l4 -12 5 12Z" fill="var(--art-ink)" />
+      <path d="M480 339.026l4 -10 5 10Z" fill="var(--art-ink)" />
+      <path d="M488 340.004l4 -16 5 16Z" fill="var(--art-ink)" />
+      <path d="M496 341.099l4 -12 5 12Z" fill="var(--art-ink)" />
+      <path d="M504 342.294l4 -19 5 19Z" fill="var(--art-ink)" />
+      <path d="M512 343.566l4 -21 5 21Z" fill="var(--art-ink)" />
+      <path d="M520 344.891l4 -12 5 12Z" fill="var(--art-ink)" />
+      <rect y="352" width="1440" height="228" fill="url(#art-fjord-water)" />
+      <path d="M0 352 Q173 365 326 362 T583 382 Q406 377 276 384 T0 383Z M1440 350 Q1279 344 1178 362 T942 380 Q1236 375 1440 399Z" fill="var(--art-deep)" opacity=".46" />
+      <path d="M865 562q16 -2 33 0" fill="none" stroke="var(--art-deep)" stroke-width="2" opacity="0.24" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M807 494q10 -2 21 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.401" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1167 565q44 -2 87 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.188" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1172 439q14 -2 27 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.512" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M864 478q12 -2 25 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.571" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M599 521q36 -2 71 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.514" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1093 564q22 -2 44 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.562" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M224 517q31 -2 62 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.492" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1401 476q13 -2 26 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.329" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1122 366q33 -2 66 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.373" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M412 418q34 -2 69 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.233" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M246 440q22 -2 45 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.189" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M610 403q22 -2 44 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.254" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M33 567q38 -2 77 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.242" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1296 472q36 -2 73 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.283" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M428 370q47 -2 94 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.557" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M5 573q16 -2 33 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.517" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M559 555q8 -2 16 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.306" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1255 533q34 -2 67 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.376" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-7 498q46 -2 92 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.26" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M892 427q47 -2 94 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.551" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-36 497q20 -2 40 0" fill="none" stroke="var(--art-deep)" stroke-width="2" opacity="0.568" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1100 455q24 -2 49 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.474" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-5 512q39 -2 78 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.549" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-26 440q8 -2 15 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.565" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M257 559q18 -2 36 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.395" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-43 577q29 -2 58 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.295" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1152 467q37 -2 74 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.445" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M279 437q8 -2 16 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.191" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M833 484q23 -2 46 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.356" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M846 515q31 -2 62 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.391" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M840 547q37 -2 74 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.236" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M660 527q51 -2 102 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M809 375q41 -2 82 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.553" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-61 363q46 -2 93 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.535" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1037 548q27 -2 54 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.238" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M616 473q44 -2 87 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.156" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1140 391q15 -2 30 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.417" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1435 508q14 -2 28 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.179" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M792 486q12 -2 24 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.556" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M522 439q7 -2 14 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.358" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1023 395q34 -2 68 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.398" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M70 460q16 -2 33 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.406" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-11 520q34 -2 69 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.253" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M722 496q44 -2 89 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.278" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M931 518q36 -2 73 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.353" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1163 438q38 -2 76 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.476" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M776 567q21 -2 42 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.171" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M65 499q7 -2 14 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.186" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1346 523q48 -2 96 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.28" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1379 424q42 -2 85 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.226" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M903 413q37 -2 74 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.489" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M70 540q7 -2 14 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.199" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1391 570q50 -2 101 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.56" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M762 536q43 -2 86 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.292" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1087 555q31 -2 62 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.196" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1316 473q12 -2 23 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.163" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1428 524q30 -2 60 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.204" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1409 445q34 -2 67 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.392" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M952 483q42 -2 85 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.29" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M909 454q50 -2 99 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.518" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M429 448q47 -2 94 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.298" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1434 480q18 -2 35 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.523" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M451 474q40 -2 80 0" fill="none" stroke="var(--art-deep)" stroke-width="1.2" opacity="0.42" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M47 398q41 -2 82 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.381" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M946 438q44 -2 88 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.578" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M271 534q44 -2 88 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.162" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M20 402q18 -2 36 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.427" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M250 507q24 -2 47 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.319" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M68 385q7 -2 14 0" fill="none" stroke="var(--art-deep)" stroke-width="2" opacity="0.305" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M618 474q17 -2 34 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.527" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1102 386q12 -2 25 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.254" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M45 463q42 -2 83 0" fill="none" stroke="var(--art-deep)" stroke-width="2" opacity="0.464" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M196 419q22 -2 44 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.348" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M380 544q42 -2 84 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.173" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M976 576q38 -2 76 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.378" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M-42 550q17 -2 34 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.215" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M296 438q14 -2 28 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.364" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M324 455q35 -2 70 0" fill="none" stroke="var(--art-deep)" stroke-width="2" opacity="0.525" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1025 505q46 -2 91 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.552" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M364 531q10 -2 20 0" fill="none" stroke="var(--art-snow)" stroke-width="1.2" opacity="0.265" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M557 555q38 -2 76 0" fill="none" stroke="var(--art-deep)" stroke-width="2" opacity="0.398" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M98 420q46 -2 92 0" fill="none" stroke="var(--art-snow)" stroke-width="2" opacity="0.533" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1259 566q10 -2 19 0" fill="none" stroke="var(--art-snow)" stroke-width="1.5" opacity="0.264" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M368 385q43 -2 86 0" fill="none" stroke="var(--art-deep)" stroke-width="1.5" opacity="0.415" stroke-linecap="round" stroke-linejoin="round" />
+      <g transform="translate(830 154) rotate(0) scale(0.7)">
+        <path d="M-29 -4 Q-12 -10 0 0 Q10 -13 26 -15" fill="none" stroke="var(--art-deep)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(864 143) rotate(0) scale(0.4)">
+        <path d="M-29 -4 Q-12 -10 0 0 Q10 -13 26 -15" fill="none" stroke="var(--art-deep)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <rect width="1440" height="580" fill="url(#art-fjord-grain)" opacity="0.13" />
+    </g>
+    <g id="artwork-garden" data-scene="garden">
+      <defs>
+        <pattern id="art-garden-grain" width="65" height="65" patternUnits="userSpaceOnUse">
+          <ellipse cx="10.7" cy="44.8" rx="0.76" ry="0.57" fill="var(--art-deep)" />
+          <ellipse cx="14.0" cy="51.5" rx="0.88" ry="0.58" fill="var(--art-deep)" />
+          <ellipse cx="32.8" cy="15.3" rx="0.35" ry="0.52" fill="var(--art-deep)" />
+          <ellipse cx="38.0" cy="4.5" rx="0.87" ry="0.45" fill="var(--art-deep)" />
+          <ellipse cx="15.1" cy="2.8" rx="1.0" ry="0.68" fill="var(--art-deep)" />
+          <ellipse cx="56.9" cy="40.0" rx="0.37" ry="0.5" fill="var(--art-deep)" />
+          <ellipse cx="32.3" cy="7.5" rx="0.97" ry="0.52" fill="var(--art-deep)" />
+          <ellipse cx="10.1" cy="53.1" rx="0.43" ry="0.77" fill="var(--art-deep)" />
+          <ellipse cx="29.5" cy="35.9" rx="0.57" ry="0.57" fill="var(--art-deep)" />
+          <ellipse cx="12.1" cy="2.4" rx="0.91" ry="0.46" fill="var(--art-deep)" />
+          <ellipse cx="50.7" cy="13.6" rx="0.98" ry="0.75" fill="var(--art-deep)" />
+          <ellipse cx="49.1" cy="49.6" rx="0.73" ry="0.68" fill="var(--art-deep)" />
+          <ellipse cx="8.0" cy="31.0" rx="0.89" ry="0.44" fill="var(--art-deep)" />
+          <ellipse cx="60.0" cy="57.7" rx="0.62" ry="0.51" fill="var(--art-deep)" />
+          <ellipse cx="29.3" cy="25.1" rx="1.0" ry="0.52" fill="var(--art-deep)" />
+          <ellipse cx="1.7" cy="6.1" rx="0.82" ry="0.8" fill="var(--art-deep)" />
+          <ellipse cx="32.2" cy="32.0" rx="0.71" ry="0.69" fill="var(--art-deep)" />
+          <ellipse cx="14.4" cy="39.6" rx="0.71" ry="0.63" fill="var(--art-deep)" />
+          <ellipse cx="11.7" cy="11.1" rx="0.58" ry="0.77" fill="var(--art-deep)" />
+          <ellipse cx="22.5" cy="38.8" rx="0.55" ry="0.4" fill="var(--art-deep)" />
+          <ellipse cx="4.3" cy="52.9" rx="0.86" ry="0.52" fill="var(--art-deep)" />
+          <ellipse cx="44.4" cy="43.9" rx="0.93" ry="0.78" fill="var(--art-deep)" />
+          <ellipse cx="26.5" cy="64.3" rx="0.97" ry="0.62" fill="var(--art-deep)" />
+          <ellipse cx="57.4" cy="31.9" rx="0.59" ry="0.46" fill="var(--art-deep)" />
+          <ellipse cx="56.9" cy="10.5" rx="0.4" ry="0.71" fill="var(--art-deep)" />
+          <ellipse cx="50.3" cy="31.4" rx="0.89" ry="0.37" fill="var(--art-deep)" />
+          <ellipse cx="16.8" cy="18.8" rx="0.62" ry="0.43" fill="var(--art-deep)" />
+          <ellipse cx="4.5" cy="22.0" rx="0.93" ry="0.79" fill="var(--art-deep)" />
+          <ellipse cx="48.5" cy="31.1" rx="0.51" ry="0.78" fill="var(--art-deep)" />
+          <ellipse cx="34.2" cy="47.4" rx="0.37" ry="0.45" fill="var(--art-deep)" />
+          <ellipse cx="54.5" cy="51.7" rx="0.92" ry="0.62" fill="var(--art-deep)" />
+          <ellipse cx="27.7" cy="37.8" rx="0.9" ry="0.49" fill="var(--art-deep)" />
+          <ellipse cx="34.7" cy="17.9" rx="0.85" ry="0.35" fill="var(--art-deep)" />
+          <ellipse cx="44.5" cy="62.0" rx="0.37" ry="0.62" fill="var(--art-deep)" />
+          <ellipse cx="41.9" cy="55.4" rx="0.73" ry="0.47" fill="var(--art-deep)" />
+          <ellipse cx="26.4" cy="62.3" rx="0.94" ry="0.41" fill="var(--art-deep)" />
+          <ellipse cx="6.2" cy="6.1" rx="0.37" ry="0.55" fill="var(--art-deep)" />
+          <ellipse cx="9.2" cy="56.4" rx="0.78" ry="0.41" fill="var(--art-deep)" />
+          <ellipse cx="35.0" cy="21.1" rx="0.67" ry="0.45" fill="var(--art-deep)" />
+          <ellipse cx="10.8" cy="12.0" rx="0.6" ry="0.67" fill="var(--art-deep)" />
+          <ellipse cx="35.8" cy="3.0" rx="0.81" ry="0.74" fill="var(--art-deep)" />
+          <ellipse cx="50.3" cy="51.4" rx="0.36" ry="0.56" fill="var(--art-deep)" />
+          <ellipse cx="4.1" cy="49.7" rx="0.46" ry="0.67" fill="var(--art-deep)" />
+          <ellipse cx="16.4" cy="45.3" rx="0.55" ry="0.37" fill="var(--art-deep)" />
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="1440" height="580" fill="var(--art-paper)" />
+      <g transform="translate(104 452) rotate(-40) scale(1.48)">
+        <path d="M0 35 Q-12 -120 4 -296" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(0.0 0) scale(-0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.0 -14) scale(0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -27) scale(-0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -41) scale(0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -54) scale(-0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -68) scale(0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -81) scale(-0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -95) scale(0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -108) scale(-0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -122) scale(0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -135) scale(-0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -149) scale(0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -162) scale(-0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -176) scale(0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(1.971 -189) scale(-0.533 0.533) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </g>
+      <g transform="translate(419 102) rotate(133) scale(1.15)">
+        <path d="M0 35 Q-12 -120 4 -296" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(0.0 0) scale(-0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.0 -14) scale(0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -27) scale(-0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -41) scale(0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -54) scale(-0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -68) scale(0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -81) scale(-0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -95) scale(0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -108) scale(-0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -122) scale(0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -135) scale(-0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -149) scale(0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -162) scale(-0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -176) scale(0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(1.971 -189) scale(-0.533 0.533) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </g>
+      <g transform="translate(931 532) rotate(34) scale(1.15)">
+        <path d="M0 35 Q-12 -120 4 -296" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(0.0 0) scale(-0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.0 -14) scale(0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -27) scale(-0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -41) scale(0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -54) scale(-0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -68) scale(0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -81) scale(-0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -95) scale(0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -108) scale(-0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -122) scale(0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -135) scale(-0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -149) scale(0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -162) scale(-0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -176) scale(0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(1.971 -189) scale(-0.533 0.533) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </g>
+      <g transform="translate(1391 144) rotate(-121) scale(1.7)">
+        <path d="M0 35 Q-12 -120 4 -296" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(0.0 0) scale(-0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.0 -14) scale(0.89 0.89) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -27) scale(-0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.524 -41) scale(0.839 0.839) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -54) scale(-0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(2.728 -68) scale(0.788 0.788) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -81) scale(-0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(0.423 -95) scale(0.737 0.737) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -108) scale(-0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.27 -122) scale(0.686 0.686) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-mid)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -135) scale(-0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-2.877 -149) scale(0.635 0.635) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -162) scale(-0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(-0.838 -176) scale(0.584 0.584) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+        <g transform="translate(1.971 -189) scale(-0.533 0.533) rotate(-29)">
+          <path d="M0 0 C-29 -7 -40 -40 -30 -82 C-4 -63 17 -27 0 0Z" fill="var(--art-pig)" />
+          <path d="M-1 -3 Q-11 -33 -29 -76" fill="none" stroke="var(--art-paper)" stroke-width="1.25" opacity="0.75" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </g>
+      <g transform="translate(551 607) rotate(23) scale(1.85)">
+        <path d="M0 20 Q-12 -165 0 -291" fill="none" stroke="var(--art-ink)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M0 0q-38 -6 -74 -39 q28 35 74 39Z" fill="var(--art-pig)" />
+        <path d="M0 0q38 -6 74 -39 q-28 35 -74 39Z" fill="var(--art-pig)" />
+        <path d="M0 -18q-36 -6 -70 -39 q27 35 70 39Z" fill="var(--art-deep)" />
+        <path d="M0 -18q36 -6 70 -39 q-27 35 -70 39Z" fill="var(--art-deep)" />
+        <path d="M0 -36q-34 -6 -66 -39 q25 35 66 39Z" fill="var(--art-deep)" />
+        <path d="M0 -36q34 -6 66 -39 q-25 35 -66 39Z" fill="var(--art-deep)" />
+        <path d="M0 -54q-31 -6 -62 -39 q23 35 62 39Z" fill="var(--art-pig)" />
+        <path d="M0 -54q31 -6 62 -39 q-23 35 -62 39Z" fill="var(--art-pig)" />
+        <path d="M0 -72q-29 -6 -58 -39 q22 35 58 39Z" fill="var(--art-deep)" />
+        <path d="M0 -72q29 -6 58 -39 q-22 35 -58 39Z" fill="var(--art-deep)" />
+        <path d="M0 -90q-27 -6 -53 -39 q20 35 53 39Z" fill="var(--art-deep)" />
+        <path d="M0 -90q27 -6 53 -39 q-20 35 -53 39Z" fill="var(--art-deep)" />
+        <path d="M0 -108q-25 -6 -49 -39 q19 35 49 39Z" fill="var(--art-pig)" />
+        <path d="M0 -108q25 -6 49 -39 q-19 35 -49 39Z" fill="var(--art-pig)" />
+        <path d="M0 -126q-23 -6 -45 -39 q17 35 45 39Z" fill="var(--art-deep)" />
+        <path d="M0 -126q23 -6 45 -39 q-17 35 -45 39Z" fill="var(--art-deep)" />
+        <path d="M0 -144q-21 -6 -41 -39 q16 35 41 39Z" fill="var(--art-deep)" />
+        <path d="M0 -144q21 -6 41 -39 q-16 35 -41 39Z" fill="var(--art-deep)" />
+        <path d="M0 -162q-19 -6 -37 -39 q14 35 37 39Z" fill="var(--art-pig)" />
+        <path d="M0 -162q19 -6 37 -39 q-14 35 -37 39Z" fill="var(--art-pig)" />
+        <path d="M0 -180q-17 -6 -33 -39 q12 35 33 39Z" fill="var(--art-deep)" />
+        <path d="M0 -180q17 -6 33 -39 q-12 35 -33 39Z" fill="var(--art-deep)" />
+        <path d="M0 -198q-15 -6 -29 -39 q11 35 29 39Z" fill="var(--art-deep)" />
+        <path d="M0 -198q15 -6 29 -39 q-11 35 -29 39Z" fill="var(--art-deep)" />
+        <path d="M0 -216q-13 -6 -25 -39 q9 35 25 39Z" fill="var(--art-pig)" />
+        <path d="M0 -216q13 -6 25 -39 q-9 35 -25 39Z" fill="var(--art-pig)" />
+        <path d="M0 -234q-10 -6 -21 -39 q8 35 21 39Z" fill="var(--art-deep)" />
+        <path d="M0 -234q10 -6 21 -39 q-8 35 -21 39Z" fill="var(--art-deep)" />
+        <path d="M0 -252q-8 -6 -16 -39 q6 35 16 39Z" fill="var(--art-deep)" />
+        <path d="M0 -252q8 -6 16 -39 q-6 35 -16 39Z" fill="var(--art-deep)" />
+      </g>
+      <g transform="translate(230 -56) rotate(195) scale(1.26)">
+        <path d="M0 20 Q-12 -165 0 -291" fill="none" stroke="var(--art-ink)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M0 0q-38 -6 -74 -39 q28 35 74 39Z" fill="var(--art-pig)" />
+        <path d="M0 0q38 -6 74 -39 q-28 35 -74 39Z" fill="var(--art-pig)" />
+        <path d="M0 -18q-36 -6 -70 -39 q27 35 70 39Z" fill="var(--art-deep)" />
+        <path d="M0 -18q36 -6 70 -39 q-27 35 -70 39Z" fill="var(--art-deep)" />
+        <path d="M0 -36q-34 -6 -66 -39 q25 35 66 39Z" fill="var(--art-deep)" />
+        <path d="M0 -36q34 -6 66 -39 q-25 35 -66 39Z" fill="var(--art-deep)" />
+        <path d="M0 -54q-31 -6 -62 -39 q23 35 62 39Z" fill="var(--art-pig)" />
+        <path d="M0 -54q31 -6 62 -39 q-23 35 -62 39Z" fill="var(--art-pig)" />
+        <path d="M0 -72q-29 -6 -58 -39 q22 35 58 39Z" fill="var(--art-deep)" />
+        <path d="M0 -72q29 -6 58 -39 q-22 35 -58 39Z" fill="var(--art-deep)" />
+        <path d="M0 -90q-27 -6 -53 -39 q20 35 53 39Z" fill="var(--art-deep)" />
+        <path d="M0 -90q27 -6 53 -39 q-20 35 -53 39Z" fill="var(--art-deep)" />
+        <path d="M0 -108q-25 -6 -49 -39 q19 35 49 39Z" fill="var(--art-pig)" />
+        <path d="M0 -108q25 -6 49 -39 q-19 35 -49 39Z" fill="var(--art-pig)" />
+        <path d="M0 -126q-23 -6 -45 -39 q17 35 45 39Z" fill="var(--art-deep)" />
+        <path d="M0 -126q23 -6 45 -39 q-17 35 -45 39Z" fill="var(--art-deep)" />
+        <path d="M0 -144q-21 -6 -41 -39 q16 35 41 39Z" fill="var(--art-deep)" />
+        <path d="M0 -144q21 -6 41 -39 q-16 35 -41 39Z" fill="var(--art-deep)" />
+        <path d="M0 -162q-19 -6 -37 -39 q14 35 37 39Z" fill="var(--art-pig)" />
+        <path d="M0 -162q19 -6 37 -39 q-14 35 -37 39Z" fill="var(--art-pig)" />
+        <path d="M0 -180q-17 -6 -33 -39 q12 35 33 39Z" fill="var(--art-deep)" />
+        <path d="M0 -180q17 -6 33 -39 q-12 35 -33 39Z" fill="var(--art-deep)" />
+        <path d="M0 -198q-15 -6 -29 -39 q11 35 29 39Z" fill="var(--art-deep)" />
+        <path d="M0 -198q15 -6 29 -39 q-11 35 -29 39Z" fill="var(--art-deep)" />
+        <path d="M0 -216q-13 -6 -25 -39 q9 35 25 39Z" fill="var(--art-pig)" />
+        <path d="M0 -216q13 -6 25 -39 q-9 35 -25 39Z" fill="var(--art-pig)" />
+        <path d="M0 -234q-10 -6 -21 -39 q8 35 21 39Z" fill="var(--art-deep)" />
+        <path d="M0 -234q10 -6 21 -39 q-8 35 -21 39Z" fill="var(--art-deep)" />
+        <path d="M0 -252q-8 -6 -16 -39 q6 35 16 39Z" fill="var(--art-deep)" />
+        <path d="M0 -252q8 -6 16 -39 q-6 35 -16 39Z" fill="var(--art-deep)" />
+      </g>
+      <g transform="translate(1030 65) rotate(113) scale(1.42)">
+        <path d="M0 20 Q-12 -165 0 -291" fill="none" stroke="var(--art-ink)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M0 0q-38 -6 -74 -39 q28 35 74 39Z" fill="var(--art-pig)" />
+        <path d="M0 0q38 -6 74 -39 q-28 35 -74 39Z" fill="var(--art-pig)" />
+        <path d="M0 -18q-36 -6 -70 -39 q27 35 70 39Z" fill="var(--art-deep)" />
+        <path d="M0 -18q36 -6 70 -39 q-27 35 -70 39Z" fill="var(--art-deep)" />
+        <path d="M0 -36q-34 -6 -66 -39 q25 35 66 39Z" fill="var(--art-deep)" />
+        <path d="M0 -36q34 -6 66 -39 q-25 35 -66 39Z" fill="var(--art-deep)" />
+        <path d="M0 -54q-31 -6 -62 -39 q23 35 62 39Z" fill="var(--art-pig)" />
+        <path d="M0 -54q31 -6 62 -39 q-23 35 -62 39Z" fill="var(--art-pig)" />
+        <path d="M0 -72q-29 -6 -58 -39 q22 35 58 39Z" fill="var(--art-deep)" />
+        <path d="M0 -72q29 -6 58 -39 q-22 35 -58 39Z" fill="var(--art-deep)" />
+        <path d="M0 -90q-27 -6 -53 -39 q20 35 53 39Z" fill="var(--art-deep)" />
+        <path d="M0 -90q27 -6 53 -39 q-20 35 -53 39Z" fill="var(--art-deep)" />
+        <path d="M0 -108q-25 -6 -49 -39 q19 35 49 39Z" fill="var(--art-pig)" />
+        <path d="M0 -108q25 -6 49 -39 q-19 35 -49 39Z" fill="var(--art-pig)" />
+        <path d="M0 -126q-23 -6 -45 -39 q17 35 45 39Z" fill="var(--art-deep)" />
+        <path d="M0 -126q23 -6 45 -39 q-17 35 -45 39Z" fill="var(--art-deep)" />
+        <path d="M0 -144q-21 -6 -41 -39 q16 35 41 39Z" fill="var(--art-deep)" />
+        <path d="M0 -144q21 -6 41 -39 q-16 35 -41 39Z" fill="var(--art-deep)" />
+        <path d="M0 -162q-19 -6 -37 -39 q14 35 37 39Z" fill="var(--art-pig)" />
+        <path d="M0 -162q19 -6 37 -39 q-14 35 -37 39Z" fill="var(--art-pig)" />
+        <path d="M0 -180q-17 -6 -33 -39 q12 35 33 39Z" fill="var(--art-deep)" />
+        <path d="M0 -180q17 -6 33 -39 q-12 35 -33 39Z" fill="var(--art-deep)" />
+        <path d="M0 -198q-15 -6 -29 -39 q11 35 29 39Z" fill="var(--art-deep)" />
+        <path d="M0 -198q15 -6 29 -39 q-11 35 -29 39Z" fill="var(--art-deep)" />
+        <path d="M0 -216q-13 -6 -25 -39 q9 35 25 39Z" fill="var(--art-pig)" />
+        <path d="M0 -216q13 -6 25 -39 q-9 35 -25 39Z" fill="var(--art-pig)" />
+        <path d="M0 -234q-10 -6 -21 -39 q8 35 21 39Z" fill="var(--art-deep)" />
+        <path d="M0 -234q10 -6 21 -39 q-8 35 -21 39Z" fill="var(--art-deep)" />
+        <path d="M0 -252q-8 -6 -16 -39 q6 35 16 39Z" fill="var(--art-deep)" />
+        <path d="M0 -252q8 -6 16 -39 q-6 35 -16 39Z" fill="var(--art-deep)" />
+      </g>
+      <g transform="translate(710 345) rotate(-19) scale(1.21)">
+        <path d="M0 74 C20 -20 -41 -115 -4 -223 M1 -70 Q42 -83 67 -119 M-7 -131 Q-45 -152 -64 -166" fill="none" stroke="var(--art-deep)" stroke-width="2.7" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(-4 -218) rotate(0) scale(0.83)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+        <g transform="translate(68 -118) rotate(0) scale(0.83)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+        <g transform="translate(-63 -166) rotate(0) scale(0.6)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+      </g>
+      <g transform="translate(1161 548) rotate(9) scale(1.09)">
+        <path d="M0 74 C20 -20 -41 -115 -4 -223 M1 -70 Q42 -83 67 -119 M-7 -131 Q-45 -152 -64 -166" fill="none" stroke="var(--art-deep)" stroke-width="2.7" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(-4 -218) rotate(0) scale(0.83)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+        <g transform="translate(68 -118) rotate(0) scale(0.83)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+        <g transform="translate(-63 -166) rotate(0) scale(0.6)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+      </g>
+      <g transform="translate(69 185) rotate(72) scale(0.92)">
+        <path d="M0 74 C20 -20 -41 -115 -4 -223 M1 -70 Q42 -83 67 -119 M-7 -131 Q-45 -152 -64 -166" fill="none" stroke="var(--art-deep)" stroke-width="2.7" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(-4 -218) rotate(0) scale(0.83)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+        <g transform="translate(68 -118) rotate(0) scale(0.83)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+        <g transform="translate(-63 -166) rotate(0) scale(0.6)">
+          <g transform="rotate(0)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(45)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(90)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(135)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(180)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(225)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(270)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <g transform="rotate(315)">
+            <ellipse cx="0" cy="-17" rx="10" ry="21" fill="var(--art-other)" />
+          </g>
+          <ellipse cx="0" cy="0" rx="8" ry="8" fill="var(--art-warm)" />
+          <ellipse cx="-1" cy="0" rx="3" ry="3" fill="var(--art-ink)" />
+        </g>
+      </g>
+      <rect width="1440" height="580" fill="url(#art-garden-grain)" opacity="0.23" />
+    </g>
+    <g id="artwork-sunroom" data-scene="sunroom">
+      <defs>
+        <linearGradient id="art-sunroom-room" x1="0%" y1="0%" x2="90%" y2="70%">
+          <stop offset="0%" stop-color="var(--art-high)" stop-opacity="1" />
+          <stop offset="52%" stop-color="var(--art-warm)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-mid)" stop-opacity="1" />
+        </linearGradient>
+        <linearGradient id="art-sunroom-recess" x1="0%" y1="0%" x2="100%" y2="45%">
+          <stop offset="0%" stop-color="var(--art-deep)" stop-opacity="1" />
+          <stop offset="53%" stop-color="var(--art-pig)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-warm)" stop-opacity="1" />
+        </linearGradient>
+        <linearGradient id="art-sunroom-pot" x1="0%" y1="0%" x2="100%" y2="9%">
+          <stop offset="0%" stop-color="var(--art-deep)" stop-opacity="1" />
+          <stop offset="23%" stop-color="var(--art-pig)" stop-opacity="1" />
+          <stop offset="60%" stop-color="var(--art-warm)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-deep)" stop-opacity="1" />
+        </linearGradient>
+        <pattern id="art-sunroom-grain" width="65" height="65" patternUnits="userSpaceOnUse">
+          <ellipse cx="10.7" cy="44.8" rx="0.76" ry="0.57" fill="var(--art-ink)" />
+          <ellipse cx="14.0" cy="51.5" rx="0.88" ry="0.58" fill="var(--art-ink)" />
+          <ellipse cx="32.8" cy="15.3" rx="0.35" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="38.0" cy="4.5" rx="0.87" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="15.1" cy="2.8" rx="1.0" ry="0.68" fill="var(--art-ink)" />
+          <ellipse cx="56.9" cy="40.0" rx="0.37" ry="0.5" fill="var(--art-ink)" />
+          <ellipse cx="32.3" cy="7.5" rx="0.97" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="10.1" cy="53.1" rx="0.43" ry="0.77" fill="var(--art-ink)" />
+          <ellipse cx="29.5" cy="35.9" rx="0.57" ry="0.57" fill="var(--art-ink)" />
+          <ellipse cx="12.1" cy="2.4" rx="0.91" ry="0.46" fill="var(--art-ink)" />
+          <ellipse cx="50.7" cy="13.6" rx="0.98" ry="0.75" fill="var(--art-ink)" />
+          <ellipse cx="49.1" cy="49.6" rx="0.73" ry="0.68" fill="var(--art-ink)" />
+          <ellipse cx="8.0" cy="31.0" rx="0.89" ry="0.44" fill="var(--art-ink)" />
+          <ellipse cx="60.0" cy="57.7" rx="0.62" ry="0.51" fill="var(--art-ink)" />
+          <ellipse cx="29.3" cy="25.1" rx="1.0" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="1.7" cy="6.1" rx="0.82" ry="0.8" fill="var(--art-ink)" />
+          <ellipse cx="32.2" cy="32.0" rx="0.71" ry="0.69" fill="var(--art-ink)" />
+          <ellipse cx="14.4" cy="39.6" rx="0.71" ry="0.63" fill="var(--art-ink)" />
+          <ellipse cx="11.7" cy="11.1" rx="0.58" ry="0.77" fill="var(--art-ink)" />
+          <ellipse cx="22.5" cy="38.8" rx="0.55" ry="0.4" fill="var(--art-ink)" />
+          <ellipse cx="4.3" cy="52.9" rx="0.86" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="44.4" cy="43.9" rx="0.93" ry="0.78" fill="var(--art-ink)" />
+          <ellipse cx="26.5" cy="64.3" rx="0.97" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="57.4" cy="31.9" rx="0.59" ry="0.46" fill="var(--art-ink)" />
+          <ellipse cx="56.9" cy="10.5" rx="0.4" ry="0.71" fill="var(--art-ink)" />
+          <ellipse cx="50.3" cy="31.4" rx="0.89" ry="0.37" fill="var(--art-ink)" />
+          <ellipse cx="16.8" cy="18.8" rx="0.62" ry="0.43" fill="var(--art-ink)" />
+          <ellipse cx="4.5" cy="22.0" rx="0.93" ry="0.79" fill="var(--art-ink)" />
+          <ellipse cx="48.5" cy="31.1" rx="0.51" ry="0.78" fill="var(--art-ink)" />
+          <ellipse cx="34.2" cy="47.4" rx="0.37" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="54.5" cy="51.7" rx="0.92" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="27.7" cy="37.8" rx="0.9" ry="0.49" fill="var(--art-ink)" />
+          <ellipse cx="34.7" cy="17.9" rx="0.85" ry="0.35" fill="var(--art-ink)" />
+          <ellipse cx="44.5" cy="62.0" rx="0.37" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="41.9" cy="55.4" rx="0.73" ry="0.47" fill="var(--art-ink)" />
+          <ellipse cx="26.4" cy="62.3" rx="0.94" ry="0.41" fill="var(--art-ink)" />
+          <ellipse cx="6.2" cy="6.1" rx="0.37" ry="0.55" fill="var(--art-ink)" />
+          <ellipse cx="9.2" cy="56.4" rx="0.78" ry="0.41" fill="var(--art-ink)" />
+          <ellipse cx="35.0" cy="21.1" rx="0.67" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="10.8" cy="12.0" rx="0.6" ry="0.67" fill="var(--art-ink)" />
+          <ellipse cx="35.8" cy="3.0" rx="0.81" ry="0.74" fill="var(--art-ink)" />
+          <ellipse cx="50.3" cy="51.4" rx="0.36" ry="0.56" fill="var(--art-ink)" />
+          <ellipse cx="4.1" cy="49.7" rx="0.46" ry="0.67" fill="var(--art-ink)" />
+          <ellipse cx="16.4" cy="45.3" rx="0.55" ry="0.37" fill="var(--art-ink)" />
+        </pattern>
+      </defs>
+      <rect width="1440" height="580" fill="url(#art-sunroom-room)" />
+      <path d="M0 0H235V483L0 546Z" fill="var(--art-mid)" />
+      <path d="M235 0H264V480L235 486Z" fill="var(--art-pale)" />
+      <path d="M996 497V232 C996 27 1322 8 1322 232V498Z" fill="var(--art-pale)" />
+      <path d="M1020 488V228 C1020 44 1300 45 1300 228V488Z" fill="url(#art-sunroom-recess)" />
+      <path d="M1050 485 1300 359V488Z" fill="var(--art-warm)" />
+      <path d="M0 539 236 480 1020 480 1440 457V580H0Z" fill="var(--art-pale)" />
+      <path d="M236 480 1017 480 808 519 0 538Z" fill="var(--art-mist)" opacity=".6" />
+      <path d="M292 0h26l374 482h-34Z M475 0h21l368 480h-28Z M665 0h22l343 456-22 12Z M244 89L999 290v15L244 109Z M250 264L1023 457v15L250 284Z" fill="var(--art-deep)" opacity=".30" />
+      <g transform="translate(461 24) rotate(14) scale(1.05)">
+        <path d="M0 -92Q24 -24 99 56" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(20 -41) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(35 -24) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(50 -7) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(65 10) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(80 27) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+      </g>
+      <g transform="translate(511 38) rotate(14) scale(1.05)">
+        <path d="M0 -92Q24 -24 99 56" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(20 -41) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(35 -24) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(50 -7) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(65 10) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(80 27) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+      </g>
+      <g transform="translate(561 52) rotate(14) scale(1.05)">
+        <path d="M0 -92Q24 -24 99 56" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(20 -41) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(35 -24) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(50 -7) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(65 10) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(80 27) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+      </g>
+      <g transform="translate(611 66) rotate(14) scale(1.05)">
+        <path d="M0 -92Q24 -24 99 56" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(20 -41) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(35 -24) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(50 -7) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(65 10) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(80 27) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+      </g>
+      <g transform="translate(661 80) rotate(14) scale(1.05)">
+        <path d="M0 -92Q24 -24 99 56" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(20 -41) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(35 -24) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(50 -7) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(65 10) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(80 27) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+      </g>
+      <g transform="translate(711 94) rotate(14) scale(1.05)">
+        <path d="M0 -92Q24 -24 99 56" fill="none" stroke="var(--art-deep)" stroke-width="2.8" opacity="0.55" stroke-linecap="round" stroke-linejoin="round" />
+        <g transform="translate(20 -41) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(35 -24) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(50 -7) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(65 10) rotate(-60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+        <g transform="translate(80 27) rotate(60) scale(0.85)">
+          <ellipse cx="0" cy="-14" rx="6" ry="20" fill="var(--art-deep)" />
+        </g>
+      </g>
+      <path d="M1138 487 Q1126 469 1134 449 Q1143 428 1161 418 L1161 402 Q1170 395 1183 402 L1183 418 Q1209 431 1213 452 Q1218 475 1204 487Q1173 493 1138 487Z" fill="url(#art-sunroom-pot)" />
+      <path d="M1172 405Q1169 373 1142 347 M1171 388Q1190 361 1208 349" fill="none" stroke="var(--art-deep)" stroke-width="2.7" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+      <ellipse cx="1148" cy="355" rx="4.5" ry="12" fill="var(--art-deep)" transform="rotate(-36 1148 355)" />
+      <ellipse cx="1157" cy="367" rx="4.5" ry="12" fill="var(--art-deep)" transform="rotate(48 1157 367)" />
+      <ellipse cx="1190" cy="366" rx="4.5" ry="12" fill="var(--art-deep)" transform="rotate(45 1190 366)" />
+      <ellipse cx="1202" cy="351" rx="4.5" ry="12" fill="var(--art-deep)" transform="rotate(-39 1202 351)" />
+      <rect width="1440" height="580" fill="url(#art-sunroom-grain)" opacity="0.22" />
+    </g>
+    <g id="artwork-paper" data-scene="paper">
+      <defs>
+        <pattern id="art-paper-grain" width="65" height="65" patternUnits="userSpaceOnUse">
+          <ellipse cx="10.7" cy="44.8" rx="0.76" ry="0.57" fill="var(--art-ink)" />
+          <ellipse cx="14.0" cy="51.5" rx="0.88" ry="0.58" fill="var(--art-ink)" />
+          <ellipse cx="32.8" cy="15.3" rx="0.35" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="38.0" cy="4.5" rx="0.87" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="15.1" cy="2.8" rx="1.0" ry="0.68" fill="var(--art-ink)" />
+          <ellipse cx="56.9" cy="40.0" rx="0.37" ry="0.5" fill="var(--art-ink)" />
+          <ellipse cx="32.3" cy="7.5" rx="0.97" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="10.1" cy="53.1" rx="0.43" ry="0.77" fill="var(--art-ink)" />
+          <ellipse cx="29.5" cy="35.9" rx="0.57" ry="0.57" fill="var(--art-ink)" />
+          <ellipse cx="12.1" cy="2.4" rx="0.91" ry="0.46" fill="var(--art-ink)" />
+          <ellipse cx="50.7" cy="13.6" rx="0.98" ry="0.75" fill="var(--art-ink)" />
+          <ellipse cx="49.1" cy="49.6" rx="0.73" ry="0.68" fill="var(--art-ink)" />
+          <ellipse cx="8.0" cy="31.0" rx="0.89" ry="0.44" fill="var(--art-ink)" />
+          <ellipse cx="60.0" cy="57.7" rx="0.62" ry="0.51" fill="var(--art-ink)" />
+          <ellipse cx="29.3" cy="25.1" rx="1.0" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="1.7" cy="6.1" rx="0.82" ry="0.8" fill="var(--art-ink)" />
+          <ellipse cx="32.2" cy="32.0" rx="0.71" ry="0.69" fill="var(--art-ink)" />
+          <ellipse cx="14.4" cy="39.6" rx="0.71" ry="0.63" fill="var(--art-ink)" />
+          <ellipse cx="11.7" cy="11.1" rx="0.58" ry="0.77" fill="var(--art-ink)" />
+          <ellipse cx="22.5" cy="38.8" rx="0.55" ry="0.4" fill="var(--art-ink)" />
+          <ellipse cx="4.3" cy="52.9" rx="0.86" ry="0.52" fill="var(--art-ink)" />
+          <ellipse cx="44.4" cy="43.9" rx="0.93" ry="0.78" fill="var(--art-ink)" />
+          <ellipse cx="26.5" cy="64.3" rx="0.97" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="57.4" cy="31.9" rx="0.59" ry="0.46" fill="var(--art-ink)" />
+          <ellipse cx="56.9" cy="10.5" rx="0.4" ry="0.71" fill="var(--art-ink)" />
+          <ellipse cx="50.3" cy="31.4" rx="0.89" ry="0.37" fill="var(--art-ink)" />
+          <ellipse cx="16.8" cy="18.8" rx="0.62" ry="0.43" fill="var(--art-ink)" />
+          <ellipse cx="4.5" cy="22.0" rx="0.93" ry="0.79" fill="var(--art-ink)" />
+          <ellipse cx="48.5" cy="31.1" rx="0.51" ry="0.78" fill="var(--art-ink)" />
+          <ellipse cx="34.2" cy="47.4" rx="0.37" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="54.5" cy="51.7" rx="0.92" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="27.7" cy="37.8" rx="0.9" ry="0.49" fill="var(--art-ink)" />
+          <ellipse cx="34.7" cy="17.9" rx="0.85" ry="0.35" fill="var(--art-ink)" />
+          <ellipse cx="44.5" cy="62.0" rx="0.37" ry="0.62" fill="var(--art-ink)" />
+          <ellipse cx="41.9" cy="55.4" rx="0.73" ry="0.47" fill="var(--art-ink)" />
+          <ellipse cx="26.4" cy="62.3" rx="0.94" ry="0.41" fill="var(--art-ink)" />
+          <ellipse cx="6.2" cy="6.1" rx="0.37" ry="0.55" fill="var(--art-ink)" />
+          <ellipse cx="9.2" cy="56.4" rx="0.78" ry="0.41" fill="var(--art-ink)" />
+          <ellipse cx="35.0" cy="21.1" rx="0.67" ry="0.45" fill="var(--art-ink)" />
+          <ellipse cx="10.8" cy="12.0" rx="0.6" ry="0.67" fill="var(--art-ink)" />
+          <ellipse cx="35.8" cy="3.0" rx="0.81" ry="0.74" fill="var(--art-ink)" />
+          <ellipse cx="50.3" cy="51.4" rx="0.36" ry="0.56" fill="var(--art-ink)" />
+          <ellipse cx="4.1" cy="49.7" rx="0.46" ry="0.67" fill="var(--art-ink)" />
+          <ellipse cx="16.4" cy="45.3" rx="0.55" ry="0.37" fill="var(--art-ink)" />
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="1440" height="580" fill="var(--art-pig)" />
+      <ellipse cx="422" cy="138" rx="80" ry="80" fill="var(--art-warm)" />
+      <path d="M0 175 Q195 145 289 168 T572 176 Q437 202 297 191 T0 222Z" fill="var(--art-snow)" />
+      <path d="M0 286 Q265 260 505 281 T974 264 Q1233 218 1440 197V580H0Z" fill="var(--art-high)" />
+      <path d="M669 322 785 291 870 279 926 258 1046 246 1139 212 1244 194 1440 156V393L1098 426Z" fill="var(--art-other)" />
+      <path d="M936 258 1039 248 1139 213 1173 213 1135 231 1104 243 1085 268 1048 270 1039 289 960 299Z M1219 207 1440 165V356L1319 369 1349 312 1234 324 1268 272 1199 268Z" fill="var(--art-warm)" />
+      <path d="M0 320 Q189 283 393 316 Q556 349 740 320 Q600 380 435 366 Q202 351 0 410Z" fill="var(--art-mid)" />
+      <path d="M0 395 Q168 326 382 381 T745 391 Q950 370 1154 389 Q1290 398 1440 359V580H0Z" fill="var(--art-deep)" />
+      <path d="M0 448 Q290 347 526 420 Q711 476 918 423 Q1124 373 1335 425 Q1103 408 948 467 Q692 528 504 466 Q302 395 0 487Z" fill="var(--art-snow)" />
+      <path d="M0 502 Q216 429 420 484 Q752 584 1060 479 Q1305 412 1440 459V580H0Z" fill="var(--art-pig)" />
+      <path d="M0 553 Q280 472 481 516 Q832 604 1057 539 Q1303 464 1440 510V580H0Z" fill="var(--art-ink)" />
+      <g transform="translate(829 118) rotate(0) scale(0.87)">
+        <path d="M-29 -4 Q-12 -10 0 0 Q10 -13 26 -15" fill="none" stroke="var(--art-deep)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(879 103) rotate(0) scale(0.6)">
+        <path d="M-29 -4 Q-12 -10 0 0 Q10 -13 26 -15" fill="none" stroke="var(--art-deep)" stroke-width="2.2" opacity="1" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <rect width="1440" height="580" fill="url(#art-paper-grain)" opacity="0.23" />
+    </g>
+    <g id="artwork-aurora" data-scene="aurora">
+      <defs>
+        <linearGradient id="art-aurora-night" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-night)" stop-opacity="1" />
+          <stop offset="60%" stop-color="var(--art-deep)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-mid)" stop-opacity="1" />
+        </linearGradient>
+        <linearGradient id="art-aurora-light" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-other)" stop-opacity="0" />
+          <stop offset="41%" stop-color="var(--art-other)" stop-opacity="0.18" />
+          <stop offset="78%" stop-color="var(--art-glow)" stop-opacity="0.79" />
+          <stop offset="100%" stop-color="var(--art-snow)" stop-opacity="1" />
+        </linearGradient>
+        <linearGradient id="art-aurora-lake" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-night)" stop-opacity="1" />
+          <stop offset="60%" stop-color="var(--art-deep)" stop-opacity="1" />
+          <stop offset="100%" stop-color="var(--art-night)" stop-opacity="1" />
+        </linearGradient>
+        <pattern id="art-aurora-grain" width="65" height="65" patternUnits="userSpaceOnUse">
+          <ellipse cx="10.7" cy="44.8" rx="0.76" ry="0.57" fill="var(--art-paper)" />
+          <ellipse cx="14.0" cy="51.5" rx="0.88" ry="0.58" fill="var(--art-paper)" />
+          <ellipse cx="32.8" cy="15.3" rx="0.35" ry="0.52" fill="var(--art-paper)" />
+          <ellipse cx="38.0" cy="4.5" rx="0.87" ry="0.45" fill="var(--art-paper)" />
+          <ellipse cx="15.1" cy="2.8" rx="1.0" ry="0.68" fill="var(--art-paper)" />
+          <ellipse cx="56.9" cy="40.0" rx="0.37" ry="0.5" fill="var(--art-paper)" />
+          <ellipse cx="32.3" cy="7.5" rx="0.97" ry="0.52" fill="var(--art-paper)" />
+          <ellipse cx="10.1" cy="53.1" rx="0.43" ry="0.77" fill="var(--art-paper)" />
+          <ellipse cx="29.5" cy="35.9" rx="0.57" ry="0.57" fill="var(--art-paper)" />
+          <ellipse cx="12.1" cy="2.4" rx="0.91" ry="0.46" fill="var(--art-paper)" />
+          <ellipse cx="50.7" cy="13.6" rx="0.98" ry="0.75" fill="var(--art-paper)" />
+          <ellipse cx="49.1" cy="49.6" rx="0.73" ry="0.68" fill="var(--art-paper)" />
+          <ellipse cx="8.0" cy="31.0" rx="0.89" ry="0.44" fill="var(--art-paper)" />
+          <ellipse cx="60.0" cy="57.7" rx="0.62" ry="0.51" fill="var(--art-paper)" />
+          <ellipse cx="29.3" cy="25.1" rx="1.0" ry="0.52" fill="var(--art-paper)" />
+          <ellipse cx="1.7" cy="6.1" rx="0.82" ry="0.8" fill="var(--art-paper)" />
+          <ellipse cx="32.2" cy="32.0" rx="0.71" ry="0.69" fill="var(--art-paper)" />
+          <ellipse cx="14.4" cy="39.6" rx="0.71" ry="0.63" fill="var(--art-paper)" />
+          <ellipse cx="11.7" cy="11.1" rx="0.58" ry="0.77" fill="var(--art-paper)" />
+          <ellipse cx="22.5" cy="38.8" rx="0.55" ry="0.4" fill="var(--art-paper)" />
+          <ellipse cx="4.3" cy="52.9" rx="0.86" ry="0.52" fill="var(--art-paper)" />
+          <ellipse cx="44.4" cy="43.9" rx="0.93" ry="0.78" fill="var(--art-paper)" />
+          <ellipse cx="26.5" cy="64.3" rx="0.97" ry="0.62" fill="var(--art-paper)" />
+          <ellipse cx="57.4" cy="31.9" rx="0.59" ry="0.46" fill="var(--art-paper)" />
+          <ellipse cx="56.9" cy="10.5" rx="0.4" ry="0.71" fill="var(--art-paper)" />
+          <ellipse cx="50.3" cy="31.4" rx="0.89" ry="0.37" fill="var(--art-paper)" />
+          <ellipse cx="16.8" cy="18.8" rx="0.62" ry="0.43" fill="var(--art-paper)" />
+          <ellipse cx="4.5" cy="22.0" rx="0.93" ry="0.79" fill="var(--art-paper)" />
+          <ellipse cx="48.5" cy="31.1" rx="0.51" ry="0.78" fill="var(--art-paper)" />
+          <ellipse cx="34.2" cy="47.4" rx="0.37" ry="0.45" fill="var(--art-paper)" />
+          <ellipse cx="54.5" cy="51.7" rx="0.92" ry="0.62" fill="var(--art-paper)" />
+          <ellipse cx="27.7" cy="37.8" rx="0.9" ry="0.49" fill="var(--art-paper)" />
+          <ellipse cx="34.7" cy="17.9" rx="0.85" ry="0.35" fill="var(--art-paper)" />
+          <ellipse cx="44.5" cy="62.0" rx="0.37" ry="0.62" fill="var(--art-paper)" />
+          <ellipse cx="41.9" cy="55.4" rx="0.73" ry="0.47" fill="var(--art-paper)" />
+          <ellipse cx="26.4" cy="62.3" rx="0.94" ry="0.41" fill="var(--art-paper)" />
+          <ellipse cx="6.2" cy="6.1" rx="0.37" ry="0.55" fill="var(--art-paper)" />
+          <ellipse cx="9.2" cy="56.4" rx="0.78" ry="0.41" fill="var(--art-paper)" />
+          <ellipse cx="35.0" cy="21.1" rx="0.67" ry="0.45" fill="var(--art-paper)" />
+          <ellipse cx="10.8" cy="12.0" rx="0.6" ry="0.67" fill="var(--art-paper)" />
+          <ellipse cx="35.8" cy="3.0" rx="0.81" ry="0.74" fill="var(--art-paper)" />
+          <ellipse cx="50.3" cy="51.4" rx="0.36" ry="0.56" fill="var(--art-paper)" />
+          <ellipse cx="4.1" cy="49.7" rx="0.46" ry="0.67" fill="var(--art-paper)" />
+          <ellipse cx="16.4" cy="45.3" rx="0.55" ry="0.37" fill="var(--art-paper)" />
+        </pattern>
+        <clipPath id="art-aurora-curtain">
+          <path d="M-70 288 C160 335 298 213 468 245 C614 266 696 296 819 230 S1123 104 1498 122 L1498 15 C1090 -1 965 82 804 146 C655 211 582 171 466 172 C257 120 124 265 -70 158Z" />
+        </clipPath>
+      </defs>
+      <rect width="1440" height="580" fill="url(#art-aurora-night)" />
+      <ellipse cx="185" cy="243" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.30" />
+      <ellipse cx="619" cy="215" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.52" />
+      <ellipse cx="618" cy="22" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.59" />
+      <ellipse cx="1357" cy="120" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.39" />
+      <ellipse cx="830" cy="81" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.62" />
+      <ellipse cx="1292" cy="10" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.26" />
+      <ellipse cx="472" cy="131" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.46" />
+      <ellipse cx="458" cy="13" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.33" />
+      <ellipse cx="1028" cy="164" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.31" />
+      <ellipse cx="420" cy="105" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.36" />
+      <ellipse cx="17" cy="27" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.36" />
+      <ellipse cx="741" cy="158" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.33" />
+      <ellipse cx="358" cy="215" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.32" />
+      <ellipse cx="1134" cy="41" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.32" />
+      <ellipse cx="1303" cy="33" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.55" />
+      <ellipse cx="1199" cy="154" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.39" />
+      <ellipse cx="1346" cy="228" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.34" />
+      <ellipse cx="1435" cy="178" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.35" />
+      <ellipse cx="552" cy="32" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.47" />
+      <ellipse cx="924" cy="127" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.27" />
+      <ellipse cx="536" cy="140" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.29" />
+      <ellipse cx="459" cy="100" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.42" />
+      <ellipse cx="357" cy="162" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.26" />
+      <ellipse cx="487" cy="204" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.56" />
+      <ellipse cx="661" cy="180" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.45" />
+      <ellipse cx="1311" cy="0" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.37" />
+      <ellipse cx="1367" cy="51" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.36" />
+      <ellipse cx="1087" cy="74" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.34" />
+      <ellipse cx="1003" cy="53" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.31" />
+      <ellipse cx="427" cy="174" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.41" />
+      <ellipse cx="1325" cy="125" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.51" />
+      <ellipse cx="98" cy="142" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.47" />
+      <ellipse cx="520" cy="46" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.32" />
+      <ellipse cx="1369" cy="105" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.40" />
+      <ellipse cx="577" cy="223" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.54" />
+      <ellipse cx="57" cy="182" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.42" />
+      <ellipse cx="1159" cy="121" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.54" />
+      <ellipse cx="53" cy="92" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.34" />
+      <ellipse cx="872" cy="90" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.45" />
+      <ellipse cx="666" cy="19" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.56" />
+      <ellipse cx="279" cy="111" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.25" />
+      <ellipse cx="1097" cy="185" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.49" />
+      <ellipse cx="552" cy="190" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.26" />
+      <ellipse cx="1321" cy="163" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.40" />
+      <ellipse cx="495" cy="184" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.43" />
+      <ellipse cx="166" cy="9" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.40" />
+      <ellipse cx="28" cy="209" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.43" />
+      <ellipse cx="459" cy="66" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.29" />
+      <ellipse cx="1170" cy="192" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.44" />
+      <ellipse cx="1378" cy="128" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.45" />
+      <ellipse cx="128" cy="101" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.45" />
+      <ellipse cx="651" cy="31" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.50" />
+      <ellipse cx="82" cy="162" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.27" />
+      <ellipse cx="353" cy="221" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.42" />
+      <ellipse cx="914" cy="65" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.27" />
+      <ellipse cx="1385" cy="97" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.54" />
+      <ellipse cx="292" cy="206" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.39" />
+      <ellipse cx="681" cy="205" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.52" />
+      <ellipse cx="147" cy="15" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.45" />
+      <ellipse cx="1197" cy="146" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.42" />
+      <ellipse cx="597" cy="54" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.52" />
+      <ellipse cx="382" cy="36" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.42" />
+      <ellipse cx="712" cy="122" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.53" />
+      <ellipse cx="541" cy="185" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.46" />
+      <ellipse cx="682" cy="237" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.48" />
+      <ellipse cx="1159" cy="202" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.49" />
+      <ellipse cx="934" cy="76" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.46" />
+      <ellipse cx="540" cy="180" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.61" />
+      <ellipse cx="1352" cy="89" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.28" />
+      <ellipse cx="1261" cy="24" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.36" />
+      <ellipse cx="918" cy="97" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.48" />
+      <ellipse cx="220" cy="191" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.56" />
+      <ellipse cx="187" cy="132" rx="0.9" ry="1" fill="var(--art-snow)" opacity="0.49" />
+      <ellipse cx="112" cy="167" rx="1.4" ry="1" fill="var(--art-snow)" opacity="0.24" />
+      <path d="M-70 288 C160 335 298 213 468 245 C614 266 696 296 819 230 S1123 104 1498 122 L1498 15 C1090 -1 965 82 804 146 C655 211 582 171 466 172 C257 120 124 265 -70 158Z" fill="url(#art-aurora-light)" />
+      <g clip-path="url(#art-aurora-curtain)">
+        <path d="M-15 16q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.175" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M-8 18q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.106" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M-1 20q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.091" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M6 22q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.112" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M13 24q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.219" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M20 26q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.136" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M27 27q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.053" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M34 29q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.214" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M41 31q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.218" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M48 33q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.051" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M55 35q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.103" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M62 37q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.208" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M69 39q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.097" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M76 40q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.171" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M83 42q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.158" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M90 44q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.099" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M97 46q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M104 47q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.063" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M111 49q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.066" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M118 50q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.073" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M125 52q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.19" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M132 53q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.178" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M139 55q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M146 56q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.157" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M153 58q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.14" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M160 59q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.096" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M167 60q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.122" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M174 61q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.119" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M181 62q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.208" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M188 63q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.093" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M195 64q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.167" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M202 65q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.14" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M209 66q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.11" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M216 67q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.164" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M223 67q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.099" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M230 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.108" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M237 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.179" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M244 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.215" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M251 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M258 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.179" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M265 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.12" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M272 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.133" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M279 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.171" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M286 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.217" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M293 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.186" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M300 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.11" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M307 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.118" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M314 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.114" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M321 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.174" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M328 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.063" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M335 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.087" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M342 67q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.057" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M349 67q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.127" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M356 66q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.151" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M363 65q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.156" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M370 64q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.113" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M377 63q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.155" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M384 62q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.079" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M391 61q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.217" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M398 60q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.177" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M405 59q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.138" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M412 58q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.072" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M419 56q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.177" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M426 55q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.162" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M433 54q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.18" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M440 52q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.103" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M447 51q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.15" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M454 49q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.107" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M461 47q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.199" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M468 46q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.212" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M475 44q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.106" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M482 42q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.092" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M489 41q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.122" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M496 39q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.084" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M503 37q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.109" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M510 35q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.159" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M517 33q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.097" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M524 31q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.097" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M531 30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.177" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M538 28q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.212" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M545 26q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.136" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M552 24q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.106" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M559 22q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.134" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M566 20q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.08" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M573 18q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.142" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M580 16q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.14" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M587 14q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.143" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M594 12q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.211" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M601 10q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.157" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M608 8q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.191" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M615 6q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.217" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M622 5q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.153" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M629 3q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.076" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M636 1q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.158" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M643 -1q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.198" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M650 -3q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.086" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M657 -4q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.057" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M664 -6q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.205" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M671 -8q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.154" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M678 -9q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.057" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M685 -11q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.087" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M692 -12q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.218" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M699 -14q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.18" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M706 -15q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.133" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M713 -17q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.09" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M720 -18q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.066" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M727 -19q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.134" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M734 -20q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.092" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M741 -21q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.184" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M748 -22q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.054" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M755 -23q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.15" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M762 -24q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.215" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M769 -25q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.158" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M776 -26q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.183" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M783 -27q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.193" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M790 -27q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.135" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M797 -28q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.201" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M804 -28q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.217" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M811 -29q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.163" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M818 -29q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.132" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M825 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.184" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M832 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.073" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M839 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.12" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M846 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.178" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M853 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.056" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M860 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.145" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M867 -30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.143" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M874 -29q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.189" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M881 -29q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.203" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M888 -29q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.067" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M895 -28q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.111" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M902 -28q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.064" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M909 -27q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.054" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M916 -26q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.124" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M923 -26q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.183" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M930 -25q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.194" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M937 -24q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.169" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M944 -23q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.172" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M951 -22q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.177" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M958 -21q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.117" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M965 -20q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.203" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M972 -19q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.11" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M979 -17q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.21" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M986 -16q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.158" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M993 -15q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.086" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1000 -13q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.102" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1007 -12q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.147" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1014 -10q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.176" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1021 -9q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.06" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1028 -7q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.123" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1035 -5q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.079" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1042 -4q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.191" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1049 -2q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.136" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1056 -0q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.083" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1063 2q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.051" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1070 3q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.053" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1077 5q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.07" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1084 7q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.144" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1091 9q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.194" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1098 11q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.181" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1105 13q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.09" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1112 15q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.128" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1119 17q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.138" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1126 19q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.205" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1133 21q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.179" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1140 23q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.137" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1147 24q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.108" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1154 26q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.169" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1161 28q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.179" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1168 30q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.168" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1175 32q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.105" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1182 34q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.187" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1189 36q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.148" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1196 38q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.166" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1203 39q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.188" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1210 41q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.207" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1217 43q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.082" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1224 45q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.191" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1231 46q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.121" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1238 48q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.086" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1245 50q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.198" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1252 51q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.206" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1259 53q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.16" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1266 54q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.083" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1273 55q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.161" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1280 57q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.213" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1287 58q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.167" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1294 59q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.185" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1301 61q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.151" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1308 62q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.168" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1315 63q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.073" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1322 64q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1329 65q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.141" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1336 65q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.083" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1343 66q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.123" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1350 67q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.054" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1357 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.086" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1364 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.163" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1371 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.063" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1378 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.077" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1385 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.117" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1392 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.204" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1399 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.102" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1406 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.137" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1413 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.174" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1420 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.196" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1427 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.191" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1434 70q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="3" opacity="0.148" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1441 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.085" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1448 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.136" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1455 69q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.202" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1462 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity="0.139" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M1469 68q14 100 -19 255" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity="0.12" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <path d="M0 375 88 349 167 357 258 325 356 350 471 294 523 314 602 278 623 292 653 275 728 334 777 318 851 350 941 323 1023 344 1119 298 1171 312 1267 271 1367 302 1440 285V410H0Z" fill="var(--art-mist)" />
+      <path d="M403 350 470 296 494 310 477 309 454 326Z M554 318 602 280 622 292 650 277 683 305 651 287 634 299 616 298 586 311Z M1197 319 1267 273 1312 293 1270 285 1252 294 1232 297Z" fill="var(--art-snow)" opacity=".8" />
+      <path d="M0 369 Q170 344 294 375 Q510 408 681 383 Q803 368 900 381T1220 363Q1351 342 1440 334V411H0Z" fill="var(--art-night)" />
+      <rect y="405" width="1440" height="175" fill="url(#art-aurora-lake)" />
+      <path d="M171 560q23 -1 46 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.19" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M785 565q8 -1 17 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.229" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M198 497q14 -1 29 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.123" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M963 570q30 -1 61 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.216" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M174 536q11 -1 22 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.108" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M400 572q32 -1 64 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.236" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M120 465q21 -1 42 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M483 458q12 -1 24 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.129" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M364 505q17 -1 35 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.192" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M39 522q16 -1 32 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.095" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1421 551q12 -1 24 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.096" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M914 565q11 -1 23 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.231" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M834 442q24 -1 48 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.11" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1054 424q28 -1 57 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.224" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1129 516q18 -1 36 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.095" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1103 537q11 -1 23 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.174" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M527 521q6 -1 12 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.169" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M270 440q32 -1 65 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.195" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1344 516q24 -1 49 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.181" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M876 442q15 -1 30 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.102" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M876 542q11 -1 23 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.142" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M980 435q31 -1 62 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.239" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M693 566q31 -1 62 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.23" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M104 425q20 -1 40 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.214" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M894 545q32 -1 65 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.07" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M372 575q8 -1 16 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.215" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1401 510q6 -1 13 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.217" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1303 539q12 -1 24 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.146" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1008 449q9 -1 18 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.089" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1273 513q22 -1 45 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.146" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1036 566q16 -1 32 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.172" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1181 567q27 -1 55 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.167" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M371 531q7 -1 15 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.177" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1172 518q29 -1 59 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.112" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M294 441q21 -1 42 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.07" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M609 548q19 -1 39 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.154" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M684 413q31 -1 62 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.196" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M485 487q7 -1 14 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.178" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M13 504q28 -1 57 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.172" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1332 537q25 -1 51 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.184" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M74 460q19 -1 39 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.068" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M380 540q19 -1 38 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.147" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M156 423q14 -1 29 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.126" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M955 456q33 -1 66 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.15" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M194 488q25 -1 51 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.154" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M66 472q33 -1 66 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.106" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M232 576q19 -1 38 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.068" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M443 527q7 -1 15 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.176" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M28 424q11 -1 23 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.146" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M849 463q27 -1 54 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.201" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M109 552q25 -1 51 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.141" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M438 516q19 -1 39 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.166" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M919 563q18 -1 36 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.073" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M446 475q26 -1 52 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.112" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M346 501q9 -1 18 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.117" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M827 475q7 -1 15 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.15" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M679 448q22 -1 45 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.101" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M940 411q18 -1 37 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.143" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M214 445q5 -1 11 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.095" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M107 501q31 -1 62 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.224" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M3 509q25 -1 51 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.104" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1403 509q8 -1 16 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.148" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1162 425q22 -1 44 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.111" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1199 411q5 -1 11 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.234" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1188 440q32 -1 65 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.137" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M440 513q11 -1 23 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.187" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1357 439q15 -1 31 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.085" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M606 484q9 -1 19 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.147" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1137 535q19 -1 39 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.128" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1271 496q11 -1 22 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.199" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M904 435q28 -1 57 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.204" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M881 422q30 -1 61 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.206" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M774 474q33 -1 67 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.236" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1153 575q22 -1 45 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.153" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M102 496q31 -1 62 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.061" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M977 490q14 -1 28 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.132" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1195 578q16 -1 33 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.194" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M493 426q7 -1 15 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.099" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M560 499q11 -1 22 0" fill="none" stroke="var(--art-mist)" stroke-width="1.3" opacity="0.178" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M11 491q21 -1 42 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.07" stroke-linecap="round" stroke-linejoin="round" />
+      <rect width="1440" height="580" fill="url(#art-aurora-grain)" opacity="0.07" />
+    </g>
+  </defs>
+</svg>

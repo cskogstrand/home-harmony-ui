@@ -1,8 +1,8 @@
 import { useI18n } from "@/hooks/use-i18n";
 import { useMotionInput } from "@/hooks/use-motion-input";
 import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
-import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation, type Location } from "react-router-dom";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation, useMatch, type Location } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
 import { MainPages } from "./MainPages";
 import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
@@ -10,6 +10,7 @@ import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { PageContent } from "@/components/common/PageContent";
 import { isHomeSection, mainPagePath } from "@/lib/navigation";
 import { VehicleWidgets } from "@/components/VehicleWidgets";
+import { ArtworkImage } from "@/components/ArtworkImage";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { StateWrapper } from "@/components/common/StateWrapper";
@@ -20,6 +21,8 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationBell, NotificationCamera } from "@/components/NotificationCenter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Camera, Check, LoaderCircle, Moon, Music2, RefreshCw, Settings, TriangleAlert, X } from "lucide-react";
+
+const ArtworkDefinitions = lazy(() => import("@/components/ArtworkDefinitions"));
 
 export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
@@ -40,12 +43,19 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const storageBusy = shared?.state.saving || !shared?.state.loaded;
   const storageMessage = (shared?.state.error && message(shared.state.error)) || (shared.state.saving ? t("Saving shared settings…") : !shared.state.loaded ? t("Loading shared settings…") : !saved ? t("Shared settings are not saved yet.") : t("Shared settings saved."));
   const location = useLocation();
+  const appearanceSettings = useMatch("/settings/appearance");
   const { pathname } = location;
   const mainPath = mainPagePath(pathname);
   const [locations, setLocations] = useState<Record<string, Location>>({});
   if (mainPath && locations[mainPath] !== location) setLocations({ ...locations, [mainPath]: location });
   const errorFallback = <div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>;
-  return <div className={`afterglow-app board-spacing${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
+  const artwork = appearance.artwork === "none" ? undefined : appearance.artwork;
+  return <div data-artwork={artwork} className={`afterglow-app board-spacing${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
+    {(artwork || appearanceSettings) && <PageErrorBoundary fallback={null}><Suspense fallback={null}><ArtworkDefinitions /></Suspense></PageErrorBoundary>}
+    {artwork && <div className="artwork-background" aria-hidden="true">
+      <ArtworkImage artwork={artwork} className="artwork-ground" />
+      <ArtworkImage artwork={artwork} className="artwork-horizon" />
+    </div>}
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <VehicleWidgets /><WeatherWidget placement="header" /><div className="header-actions">
         <Link to="/sonos" className="icon-button glass-surface" aria-label={t("Sonos")} title={t("Sonos")}><Music2 size={20} aria-hidden="true" /></Link>

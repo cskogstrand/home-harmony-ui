@@ -351,6 +351,15 @@ it("uses School sections for both views and migrates older week-only settings", 
   for (const roles of [[], ["unknown"], ["events", "events"], ["popup", "unknown"], "popup"]) expect(() => read({ example: roles })).toThrow();
 });
 
+it("restores older settings without artwork and validates artwork in backups", () => {
+  const config = emptyConfiguration();
+  const appearance = { theme: "light", colorPalette: "rose", compactMode: true };
+  const read = (options: object) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, appearance: { ...appearance, ...options } } })).settings.appearance;
+  expect(read({})).toMatchObject({ ...appearance, artwork: "none" });
+  expect(read({ artwork: "paper" })).toMatchObject({ ...appearance, artwork: "paper" });
+  expect(() => read({ artwork: "unknown" })).toThrow();
+});
+
 it("defaults older settings to Pearl and rejects unknown palettes", () => {
   const config = emptyConfiguration();
   const { colorPalette: _colorPalette, ...oldAppearance } = config.settings.appearance;

@@ -211,6 +211,8 @@ Settings → Appearance offers **Pearl** (the default blue), **Sage** (muted gre
 
 The labeled radio choices show the current mode's actual background, card and primary tokens. Selection and keyboard focus have visible outlines. Choices form three rows of four on wider screens and wrap to two columns on phones. They use the existing shared settings, conflict recovery and backup flow; older settings default to Pearl.
 
+The separate Artwork picker previews the SVG illustrations in the active palette and mode. No artwork keeps the original ambient background and is the default for new installations and older backups. Selected artwork fills the wall, with a panoramic crop behind the header and a lighter touch on secondary pages. The decorative layer ignores touch and is hidden in forced colors, increased contrast and reduced transparency.
+
 Device card icons, controls, sliders, selected segments, control popovers and decorative illustrations use the selected palette's primary, accent and surface tokens. Card rims and shadows use the shared glass tokens. Card types have no separate fixed color categories. Light-color controls and color-picker samples retain their actual hues; light previews mix any supplied lamp color into the current card surface, with palette-colored controls and text. Without a supplied light color, the preview uses the palette's primary color. Semantic status colors and configured person colors remain independent of the palette.
 
 Shared range thumbs and filled tracks fall back to the palette's primary color outside device cards; thumb borders fall back to the opaque card surface. Loading device-card styles must not make Sonos sliders transparent.
@@ -446,7 +448,7 @@ Area detail reuses compact SmartHomeCard controls and DeviceReading status. Main
 
 The notification editor shows setup beside the draft’s board widget on wide screens. Phones open on Setup and offer a Preview switch. A tap on the widget or Preview popup opens the same detail layout as the board, including the camera viewer for doorbells. Collapsed setup sections summarize their values. Validation brings the user to the fields that need attention, and Save and Cancel stay reachable in both views. Card selection distinguishes duplicate device names by room and model.
 
-Settings surface shared scope and save feedback in the content area. Appearance follows theme, palette, density and timetable choices, then a collapsed Advanced appearance disclosure. Calendar distinguishes local view/person filters from shared layout settings.
+Settings surface shared scope and save feedback in the content area. Appearance follows theme, palette, artwork and display options, then a collapsed Advanced appearance disclosure. Calendar distinguishes local view/person filters from shared layout settings.
 
 The plan editor exposes All day for new Home Assistant events, explains inclusive end dates, and preserves duration when the start changes. New timed plans use the next half hour today, or 09:00 on another date.
 
