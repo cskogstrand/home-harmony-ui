@@ -2477,6 +2477,7 @@ it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unass
   serverConfig.settings.smartHome.layout = [configuredCard("home|automation.sunset", "automation")];
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
+  await act(vi.dynamicImportSettled);
   if (path === "/devices") fireEvent.click(await screen.findByText(/^Other controls/));
   const toggle = await screen.findByRole((path === "/home" || path.startsWith("/areas/")) ? "button" : "switch", { name: "Toggle Sunset" });
   await waitFor(() => expect(toggle).toBeEnabled());
@@ -2499,6 +2500,7 @@ it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unass
 it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation from %s", async path => {
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
+  await act(vi.dynamicImportSettled);
   const activate = await screen.findByRole("button", { name: "Activate Evening" });
   await waitFor(() => expect(activate).toBeEnabled());
   fireEvent.click(activate);
