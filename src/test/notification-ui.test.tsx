@@ -321,6 +321,52 @@ it("adds, saves and reopens camera triggers, preserving filters when the first t
   expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ trigger: saved.additionalTriggers[0], additionalTriggers: [saved.additionalTriggers[1]] });
 });
 
+it("groups saved equality values, preserves other conditions and keeps the printer hide deadline separate", async () => {
+  const state = { type: "state" as const, entity: "home|sensor.example", attribute: "", operator: "eq" as const, value: "running" };
+  const other = { type: "ha-event" as const, eventType: "example_event", filters: { action: "pressed" } };
+  const attribute = { ...state, attribute: "temperature", operator: "gt" as const, value: "50" };
+  const hideTrigger = { ...state, value: "finish", delayMinutes: 5 };
+  const rule = notificationRuleSchema.parse({ id: "example", title: "Example print", kind: "current", trigger: state,
+    additionalTriggers: [other, { ...state, value: "prepare" }, attribute, { ...state, value: "pause" }], hideTrigger });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  const edit = async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Edit Example print" }));
+    await openEditorSection("When to show it");
+    return within(screen.getByRole("group", { name: "Trigger 1" }));
+  };
+  const first = await edit();
+  expect(first.getAllByRole("button", { name: "Source entity" })).toHaveLength(1);
+  expect(first.getByLabelText("Value 1")).toHaveValue("running");
+  expect(first.getByLabelText("Value 2")).toHaveValue("prepare");
+  expect(first.getByLabelText("Value 3")).toHaveValue("pause");
+  expect(within(screen.getByRole("group", { name: "Trigger 3" })).queryByRole("button", { name: "Add value" })).toBeNull();
+  fireEvent.click(first.getByRole("button", { name: "Add value" }));
+  const added = first.getByLabelText("Value 4");
+  await waitFor(() => expect(added).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  expect(added).toHaveAttribute("aria-invalid", "true");
+  fireEvent.click(within(screen.getByRole("alert")).getByRole("button", { name: /Trigger 1.*Value 4/ }));
+  await waitFor(() => expect(added).toHaveFocus());
+  fireEvent.change(added, { target: { value: "warming" } });
+  fireEvent.click(first.getByRole("button", { name: "Remove value 1" }));
+  fireEvent.change(first.getByLabelText("Attribute (optional)"), { target: { value: "phase" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.trigger).toEqual({ ...state, attribute: "phase", value: "prepare" });
+  expect(saved.additionalTriggers).toEqual([other, { ...state, attribute: "phase", value: "pause" }, attribute, { ...state, attribute: "phase", value: "warming" }]);
+  expect(saved.hideTrigger).toEqual(hideTrigger);
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(content());
+  const reopened = await edit();
+  expect(reopened.getByLabelText("Value 3")).toHaveValue("warming");
+  fireEvent.click(reopened.getByRole("button", { name: "Remove trigger 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ trigger: other, additionalTriggers: [attribute], hideTrigger });
+});
+
 it("retains invalid additional trigger drafts and opens their section on save", async () => {
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [cameraRule()] };
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
@@ -396,8 +442,11 @@ it("limits trigger count and translates the camera trigger controls", async () =
   await openEditorSection("Når varselet skal vises");
   fireEvent.click(screen.getByRole("button", { name: "Legg til utløser" }));
   expect(screen.getByRole("button", { name: "Legg til utløser" })).toBeDisabled();
-  expect(screen.getByText("Velg opptil 10 utløsere.")).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: "Fjern utløser 10" }));
+  expect(screen.getByText("Hver verdi teller som én av de 10 tillatte utløserne.")).toBeVisible();
+  const first = within(screen.getByRole("group", { name: "Utløser 1" }));
+  expect(first.getByRole("button", { name: "Legg til verdi" })).toBeDisabled();
+  fireEvent.click(first.getByRole("button", { name: "Fjern verdi 9" }));
+  expect(first.getByRole("button", { name: "Legg til verdi" })).toBeEnabled();
   expect(screen.getByRole("button", { name: "Legg til utløser" })).toBeEnabled();
 });
 

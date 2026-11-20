@@ -24,7 +24,7 @@ export function NotificationValidationErrors({ issues, editor, openSection }: { 
       }
       control ??= editor.current.querySelector<HTMLButtonElement>(`[data-section="${notificationIssueSection(issue)}"] > h3 > button`);
       const label = control?.getAttribute("aria-label") || control?.labels?.[0]?.firstChild?.textContent || control?.textContent || t("Notification content");
-      const trigger = issue.path[0] === "trigger" ? 1 : issue.path[0] === "additionalTriggers" ? Number(issue.path[1]) + 2 : undefined;
+      const trigger = control?.closest<HTMLElement>("[data-trigger-number]")?.dataset.triggerNumber;
       return { control, label: trigger ? `${t("Trigger {number}", { number: trigger })} · ${label}` : label };
     });
     const restore = resolved.map(({ control }, index) => {
