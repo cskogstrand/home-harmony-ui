@@ -11,7 +11,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
-import { PlannerCardIcon } from "@/components/CardArtwork";
+import { PlannerCardBackdrop, PlannerCardIcon } from "@/components/CardArtwork";
 import { CalendarDay, CalendarMonth } from "@/components/CalendarViews";
 import { AvatarFilters } from "@/components/AvatarFilters";
 import "./calendar.css";
@@ -63,6 +63,7 @@ export default function Calendar() {
     <PageHeading title={t("Calendar")}><Button onClick={() => openEvent()}><Plus size={18} aria-hidden="true" />{t("Add a plan")}</Button></PageHeading>
     <NotificationList compact />
     <section className="glow-panel calendar-toolbar" aria-label={t("Calendar navigation")}>
+      <PlannerCardBackdrop kind="calendar" />
       <div className="calendar-navigation">
         <div className="calendar-date-navigation">
           <Button variant="ghost" size="icon" aria-label={t(previousLabels[view])} onClick={() => navigate(moveCalendarDate(date, view, -1))}><ChevronLeft /></Button>
@@ -99,10 +100,10 @@ export default function Calendar() {
     </section>
     {view === "month" ? <CalendarMonth date={date} start={start} end={end} events={visible} unavailable={unavailable} onDay={openDay} onEdit={openEvent} /> :
       view === "day" ? <CalendarDay date={date} events={visible} unavailable={unavailable} onEdit={openEvent} /> :
-      calendar.view === "week" ? <section className="glow-panel weekly-panel"><FamilyWeekGrid start={start} events={visible} members={people} onEdit={openEvent} onAdd={addPlan} onDay={openDay} /></section> :
+      calendar.view === "week" ? <section className="glow-panel weekly-panel"><PlannerCardBackdrop kind="calendar" /><FamilyWeekGrid start={start} events={visible} members={people} onEdit={openEvent} onAdd={addPlan} onDay={openDay} /></section> :
         <div className="calendar-lanes">{people.map(person => {
           const personal = uniqueCalendarPlans(visible.filter(e => e.member === person.id));
-          return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2><p>{t(personal.length === 1 ? "{count} plan in these 7 days" : "{count} plans in these 7 days", { count: personal.length })}</p></div></header>
+          return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><PlannerCardBackdrop kind="calendar" /><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2><p>{t(personal.length === 1 ? "{count} plan in these 7 days" : "{count} plans in these 7 days", { count: personal.length })}</p></div></header>
             {personal.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
             {!personal.length && <div className="empty-note"><CalendarDays size={25} aria-hidden="true" /><p>{unavailable || t("No plans yet.")}</p></div>}
           </section>;

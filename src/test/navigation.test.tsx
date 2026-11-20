@@ -49,6 +49,16 @@ const saved = async () => {
   await pageReady();
 };
 
+it("loads the saved day scene on the card itself with the wall artwork off", async () => {
+  settings.settings.appearance.plannerArtwork = { day: true };
+  const { container } = render(<App />);
+  const day = await screen.findByRole("region", { name: "Everyone’s day" });
+  await waitFor(() => expect(container.querySelector("#artwork-fjord")).toBeInTheDocument());
+  expect(day.querySelector(":scope > .card-backdrop use")).toHaveAttribute("href", "#artwork-fjord");
+  expect(screen.getByRole("region", { name: "Everyone’s week" }).querySelector(".card-backdrop")).toBeNull();
+  expect(container.querySelector(".artwork-background")).toBeNull();
+});
+
 it("assigns waste collections to an active person and shows the same single collection date in Calendar and Everyone’s day", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-24T07:00:00Z"));

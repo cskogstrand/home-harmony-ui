@@ -1,3 +1,4 @@
+import { PlannerCardBackdrop } from "@/components/CardArtwork";
 import { PanelTitle } from "@/components/PanelTitle";
 import { CalendarDays } from "lucide-react";
 import { useFamily, addDays, type FamilyEvent } from "@/contexts/FamilyContext";
@@ -14,6 +15,7 @@ export function CalendarMonth({ date, start, end, events, unavailable, onDay, on
   const days: string[] = [];
   for (let day = start; day < end; day = addDays(day, 1)) days.push(day);
   return <section className="glow-panel calendar-month" aria-label={t("Month view")}>
+    <PlannerCardBackdrop kind="calendar" />
     <div className="calendar-month-weekdays" aria-hidden="true">{days.slice(0, 7).map(day => <span key={day}>{dateLabel(day, { weekday: "short" })}</span>)}</div>
     <div className="calendar-month-grid">{days.map(day => {
       const plans = uniqueCalendarPlans(events.filter(event => event.date === day));
@@ -37,6 +39,7 @@ export function CalendarDay({ date, events, unavailable, onEdit }: {
   const { t, dateLabel } = useI18n();
   const plans = uniqueCalendarPlans(events);
   return <section className="glow-panel calendar-agenda" aria-label={t("Day view")}>
+    <PlannerCardBackdrop kind="calendar" />
     <PanelTitle icon={CalendarDays}>{dateLabel(date, { weekday: "long", day: "numeric", month: "long" })}</PanelTitle>
     {!plans.length ? <div className="calendar-agenda-empty"><CalendarDays size={32} strokeWidth={1.5} aria-hidden="true" /><p>{unavailable || t("No plans for this day.")}</p></div> :
       ([true, false] as const).map(allDay => {

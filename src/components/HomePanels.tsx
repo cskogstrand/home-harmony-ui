@@ -1,3 +1,4 @@
+import { PlannerCardBackdrop } from "@/components/CardArtwork";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
@@ -100,6 +101,7 @@ export function MorningSummary({ dialogTrigger = false }: { dialogTrigger?: bool
     </DialogContent>
   </Dialog>;
   return <section className="glow-panel col-span-full" aria-label={title}>
+    <PlannerCardBackdrop kind="morningSummary" />
     <div className={`panel-heading${dashboard.hideMorningSummaryContent ? " !mb-0" : ""}`}>
       <PanelTitle artwork="morningSummary" icon={Icon}>{title}</PanelTitle>
       {playback}
@@ -130,6 +132,7 @@ export function HomeFavorites() {
   const groups = [...new Set(entities.map(entity => homeEntityGroups[entity.preferenceId] || ""))];
   const missing = selected.length - entities.length;
   return <section className="glow-panel home-favorites" aria-label={t("Home favorites")}>
+    <PlannerCardBackdrop kind="home" />
     <div className="panel-heading"><PanelTitle artwork="home" icon={Heart}>{t("Favorites")}</PanelTitle><div className="favorite-heading-actions"><Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="ghost" size="icon" disabled={!haUrl} aria-label={t("Customize home favorites")} title={t("Customize home favorites")}><Settings aria-hidden="true" /></Button></DialogTrigger><DialogContent className="favorite-dialog"><DialogHeader><DialogTitle asChild><PanelTitle icon={House}>{t("Make home yours")}</PanelTitle></DialogTitle><DialogDescription>{t("Browse card types, then choose what belongs in your favorites.")}</DialogDescription></DialogHeader>{open && <FavoritePicker key={haUrl} selected={selected} groups={homeEntityGroups} savedGroups={homeGroups} onSave={(ids, groups, groupNames) => { if (setHomeEntities(ids, groups, groupNames)) setOpen(false); }} onCancel={() => setOpen(false)} />}</DialogContent></Dialog><Link className="text-link" to="/home">{t("All controls")}<ArrowUpRight size={16} /></Link></div></div>
     {groups.map(group => <div className="favorite-group" key={group}>
       {(group || groups.length > 1) && <h3>{group || t("Other")}</h3>}

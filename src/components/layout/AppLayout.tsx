@@ -35,7 +35,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
   const { currentUser } = useApp();
-  const { saved, memberName, appearance } = useFamily();
+  const { saved, memberName, appearance, smartHome } = useFamily();
   const shared = useSharedConfiguration();
   const timetableError = shared?.state.timetableError;
   const [dismissedError, setDismissedError] = useState<string>();
@@ -50,8 +50,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   if (mainPath && locations[mainPath] !== location) setLocations({ ...locations, [mainPath]: location });
   const errorFallback = <div role="alert"><StateWrapper state="error" errorDescription={t("This page could not be loaded. Refresh the app and try again.")} onRetry={() => window.location.reload()}>{null}</StateWrapper></div>;
   const artwork = appearance.artwork === "none" ? undefined : appearance.artwork;
+  const cardArtwork = Object.values(appearance.plannerArtwork).some(Boolean) || smartHome.layout.some(card => card.illustrated);
   return <div data-artwork={artwork} className={`afterglow-app board-spacing${appearance.compactMode ? " compact-mode" : ""}`}><a className="skip-link" href="#main-content">{t("Skip to content")}</a>
-    {(artwork || appearanceSettings) && <PageErrorBoundary fallback={null}><Suspense fallback={null}><ArtworkDefinitions /></Suspense></PageErrorBoundary>}
+    {(artwork || appearanceSettings || cardArtwork) && <PageErrorBoundary fallback={null}><Suspense fallback={null}><ArtworkDefinitions /></Suspense></PageErrorBoundary>}
     {artwork && <div className="artwork-background" aria-hidden="true">
       <ArtworkImage artwork={artwork} className="artwork-ground" />
       <ArtworkImage artwork={artwork} className="artwork-horizon" />

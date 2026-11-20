@@ -1,3 +1,4 @@
+import { PlannerCardBackdrop } from "@/components/CardArtwork";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useState } from "react";
 import { Apple, Check, Cylinder, Leaf, Milk, Newspaper, PlugZap, Shirt, Trash2, TriangleAlert, Wine, type LucideIcon } from "lucide-react";
@@ -66,6 +67,7 @@ export function WasteCollection() {
   const loading = ready && events === undefined;
   if (!status && !collections.length) return null;
   return <section className="glow-panel col-span-full waste-collection" aria-label={t("Waste collection")} aria-busy={loading}>
+    <PlannerCardBackdrop kind="wasteCollection" />
     <div className="panel-heading">
       <PanelTitle artwork="wasteCollection" icon={Trash2}>{t("Waste collection")}</PanelTitle>
     </div>

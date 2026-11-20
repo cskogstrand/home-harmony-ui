@@ -1,3 +1,4 @@
+import { PlannerCardBackdrop } from "@/components/CardArtwork";
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { PanelTitle } from "@/components/PanelTitle";
 import { Armchair, CalendarCheck } from "lucide-react";
@@ -40,6 +41,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   for (let i = 0; i < people.length; i += columns) rows.push(people.slice(i, i + columns));
 
   return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
+    <PlannerCardBackdrop kind="day" />
     <div className="panel-heading"><PanelTitle artwork="day" icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
     <HomeAssistantCalendar data={data} />
     <div ref={board} className="family-day-board" style={{ "--day-columns": columns } as CSSProperties}>{rows.map(row => <div className="family-day-row" key={row[0].id}>

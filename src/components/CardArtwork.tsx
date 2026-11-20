@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import type { PlannerArtwork } from "../../shared/configuration";
+import { ArtworkImage } from "./ArtworkImage";
+import type { Artwork, PlannerArtwork } from "../../shared/configuration";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 
 // Small painted objects share paper, pigment and highlight colors with the wall illustrations.
@@ -86,8 +87,26 @@ export function PlannerIllustration({ kind }: { kind: PlannerArtwork }) {
   </svg>;
 }
 
+const cardScenes: Record<PlannerArtwork | "device", Exclude<Artwork, "none">> = {
+  day: "fjord", nextPlan: "harbor", morningSummary: "pottery", week: "weave",
+  daily: "meadow", shopping: "garden", wasteCollection: "birch", homework: "sunroom",
+  school: "atlas", home: "pottery", calendar: "paper", tasks: "weave", device: "weave",
+};
+
+export function CardBackdrop({ kind }: { kind: keyof typeof cardScenes }) {
+  return <span className="card-backdrop" aria-hidden="true"><ArtworkImage artwork={cardScenes[kind]} className="card-backdrop-image" /></span>;
+}
+
+function usePlannerArtwork(kind: PlannerArtwork) {
+  return useSharedConfiguration()?.state.config?.settings.appearance?.plannerArtwork?.[kind];
+}
+
+export function PlannerCardBackdrop({ kind }: { kind: PlannerArtwork }) {
+  return usePlannerArtwork(kind) ? <CardBackdrop kind={kind} /> : null;
+}
+
 export function PlannerCardIcon({ kind, children }: { kind: PlannerArtwork; children?: ReactNode }) {
-  const enabled = useSharedConfiguration()?.state.config?.settings.appearance?.plannerArtwork?.[kind];
+  const enabled = usePlannerArtwork(kind);
   return enabled ? <span className="illustrated-icon"><PlannerIllustration kind={kind} />{children}</span> : <>{children}</>;
 }
 

@@ -71,20 +71,9 @@
   mask-image: linear-gradient(black 32%, transparent);
 }
 
-/* Keep dense work surfaces quiet. On Today, leave a window between the plan and its time. */
-[data-artwork] .glow-panel.next-chapter { background: hsl(var(--card) / .96); }
-@media (min-width: 900px) {
-  [data-artwork] .glow-panel.next-chapter { background: linear-gradient(90deg, hsl(var(--card)) 28%, hsl(var(--card) / .97) 35%, hsl(var(--card) / .2) 48% 59%, hsl(var(--card) / .97) 76%, hsl(var(--card)) 87%); }
-  [data-artwork] .next-event:not(:hover) { background-color: transparent; }
-  [data-artwork] .next-chapter :is(.next-event-copy h3, .next-event-copy small, .next-event-time, .event-description, p.muted) {
-    background-color: hsl(var(--card) / .95);
-    width: fit-content;
-    max-width: 100%;
-  }
-}
-[data-artwork] .greeting > p { color: hsl(var(--foreground)); }
+[data-artwork] :is(.greeting > p, .app-footer) { color: hsl(var(--foreground)); }
 [data-artwork] :is(.smart-summary, .smart-nav, .list-tabs) { background-color: var(--art-surface); border-radius: var(--radius-field); }
-[data-artwork] :is(.smart-page > section > .section-heading .panel-title, .smart-page > section > .section-heading .text-link, .filter-row button:not([aria-pressed=true]), .app-footer > span) { background-color: var(--art-surface); border-radius: 6px; box-shadow: 0 0 0 4px var(--art-surface); }
+[data-artwork] :is(.smart-page > section > .section-heading .panel-title, .smart-page > section > .section-heading .text-link, .filter-row button:not([aria-pressed=true])) { background-color: var(--art-surface); border-radius: 6px; box-shadow: 0 0 0 4px var(--art-surface); }
 /* Settings and secondary pages have free-standing labels throughout the viewport. */
 [data-artwork]:not(:has(.today-page)) .artwork-background { opacity: .26; }
 @media (width < 900px) {
@@ -92,7 +81,6 @@
 }
 @media (forced-colors: active), (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
   .artwork-background { display: none; }
-  [data-artwork] .glow-panel.next-chapter { background: hsl(var(--card)); }
 }
 
 /* Illustrated headings keep the picture beside the label, clear of data and touch targets. */
@@ -123,21 +111,27 @@
   .illustrated-icon:not(:has(> svg + svg)) { display: none; }
 }
 
-/* Print the corner of the selected heading, behind its title and actions. */
-:is(.panel-heading, .calendar-navigation, .school-strip > div:first-child):has(.illustrated-icon),
-.dg-card[data-illustrated] :is(.dg-card-header, .dg-scene-action) { position: relative; isolation: isolate; }
-:is(.panel-heading, .calendar-navigation, .school-strip > div:first-child):has(.illustrated-icon)::before,
-.dg-card[data-illustrated] :is(.dg-card-header, .dg-scene-action)::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 0 auto;
-  z-index: -1;
-  width: min(55%, 16rem);
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, hsl(var(--primary) / .21) 65%);
-  mask: url("./assets/card-engraving.svg") right center / contain no-repeat;
+/* Isolate the print inside its card so touch targets and focus rings stay above it. */
+:where(.glow-panel, .homework-list, .dg-card, .card-artwork-options label):has(> .card-backdrop) {
+  position: relative;
+  isolation: isolate;
 }
+.card-backdrop {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: min(35%, 22rem);
+  aspect-ratio: 2.4;
+  max-height: 52%;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 100% 100% at bottom right, black 38%, transparent 100%);
+}
+.card-backdrop-image { display: block; width: 100%; height: 100%; opacity: .28; }
+.next-chapter:has(> .card-backdrop) .next-event:not(:hover),
+.waste-collection:has(> .card-backdrop) :is([data-state="upcoming"], [data-state="collected"]) .waste-collection-date { background-color: transparent; }
 @media (forced-colors: active), (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
-  :is(.panel-heading, .calendar-navigation, .school-strip > div:first-child):has(.illustrated-icon)::before,
-  .dg-card[data-illustrated] :is(.dg-card-header, .dg-scene-action)::before { content: none; }
+  .card-backdrop { display: none; }
 }

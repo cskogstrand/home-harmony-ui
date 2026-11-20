@@ -1,5 +1,5 @@
 import { NotificationList } from "@/components/NotificationCenter";
-import { PlannerCardIcon } from "@/components/CardArtwork";
+import { PlannerCardBackdrop, PlannerCardIcon } from "@/components/CardArtwork";
 import { HomeworkList } from "@/components/HomeworkList";
 import { ListPanel } from "@/components/FamilyLists";
 import { Link, useSearchParams } from "react-router-dom";
@@ -22,6 +22,7 @@ export default function School() {
     <NotificationList compact />
     {!people.length && <section className="glow-panel"><p>{t("No timetables enabled.")}</p><Link className="text-link" to="/settings/people">{t("Enable timetables")}</Link></section>}
     <div className="school-cards">{people.map(person => <article key={person.id} className={`glow-panel school-card${timetableSettings[person.id]?.type === "calendar" ? " glass-surface" : ""}`}>
+      <PlannerCardBackdrop kind="school" />
       <div className="panel-heading"><div className="school-child"><MemberAvatar member={person.id} /><h2>{timetableSettings[person.id]?.type === "calendar" ? t("Activities for {name}", { name: person.name }) : t(timetableSettings[person.id]?.education === "kindergarten" ? "{value1}’s kindergarten week" : "{value1}’s school week", { value1: person.name })}</h2></div><PlannerCardIcon kind="school"><BookOpen size={24} aria-hidden="true" /></PlannerCardIcon></div>
       <SchoolPreview child={person.id} dayView />
       <HomeworkList member={person.id} />

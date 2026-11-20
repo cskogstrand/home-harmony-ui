@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import type { MessageKey } from "@/lib/i18n";
 import { smartHomeCards } from "@/lib/smart-home-cards";
 import { PanelHeading } from "./FamilyPlanner";
-import { DeviceIllustration, PlannerIllustration } from "./CardArtwork";
+import { CardBackdrop, DeviceIllustration, PlannerIllustration } from "./CardArtwork";
 import { Switch } from "./ui/switch";
 
 const plannerNames: Record<PlannerArtwork, MessageKey> = {
@@ -22,10 +22,11 @@ export function CardArtworkSettings({ disabled }: { disabled: boolean }) {
   const cards = smartHomeCards(currentHome.entities, smartHome);
   return <section className="settings-card card-artwork-settings" aria-label={t("Card artwork")}>
     <PanelHeading icon={Image} title={t("Card artwork")} />
-    <p className="page-note">{t("Choose which cards have illustrated headings. These choices also work without a wall background.")}</p>
+    <p className="page-note">{t("Choose which cards show corner artwork and an illustrated icon. This also works without a wall background.")}</p>
     <fieldset><legend>{t("Planner cards")}</legend>
       <div className="card-artwork-options">
         {plannerArtworkSchema.options.map(kind => <label key={kind}>
+          {appearance.plannerArtwork[kind] && <CardBackdrop kind={kind} />}
           <PlannerIllustration kind={kind} /><span>{t(plannerNames[kind])}</span>
           <Switch disabled={disabled} checked={!!appearance.plannerArtwork[kind]}
             onCheckedChange={checked => setAppearance({ plannerArtwork: { ...appearance.plannerArtwork, [kind]: checked } })} />
@@ -35,13 +36,14 @@ export function CardArtworkSettings({ disabled }: { disabled: boolean }) {
     <details><summary>{t("Smart home cards")} <span>({cards.length})</span></summary>
       {cards.length ? <div className="card-artwork-options">
         {cards.map((card, index) => <label key={card.id}>
+          {card.illustrated && <CardBackdrop kind="device" />}
           <DeviceIllustration icon={card.design.icon} />
           <span>{card.title || card.main?.name || message(card.design.subtitle)}
             <small>{[card.group, t("Card {position} of {total}", { position: index + 1, total: cards.length })].filter(Boolean).join(" · ")}</small>
           </span>
           <Switch disabled={disabled} checked={!!card.illustrated} onCheckedChange={checked => setSmartHomeCardArtwork(card.id, checked)} />
         </label>)}
-      </div> : <p className="page-note">{t("Add a card in Smart home to give it an illustrated icon.")}</p>}
+      </div> : <p className="page-note">{t("Add a card in Smart home to give it corner artwork and an illustrated icon.")}</p>}
     </details>
   </section>;
 }

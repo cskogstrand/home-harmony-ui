@@ -1,3 +1,4 @@
+import { PlannerCardBackdrop } from "@/components/CardArtwork";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PanelTitle } from "@/components/PanelTitle";
@@ -147,6 +148,7 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
   const selectList = (id: string) => setParams(id ? { tab: kind, list: id } : { tab: kind });
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
     {preview && <ListPanelSurface />}
+    <PlannerCardBackdrop kind={kind} />
     {homeworkPreview ? <PanelHeading artwork="homework" icon={listIcons.homework}
       title={t(homeworkTitles[homeworkPreview.period])}
       to={homeworkPreview.action === "lists" ? "/lists?tab=homework" : homeworkPreview.action === "school" ? "/school?tab=homework" : undefined}
@@ -373,8 +375,9 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
     onToggle={readOnly ? undefined : checkbox => void toggle(item, checkbox)}
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
   return <section hidden={hidden} role="group" aria-label={kind === "shopping" ? entity?.name ?? t("List unavailable") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
+    {school && <PlannerCardBackdrop kind="homework" />}
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
-    {school ? <div className="panel-heading"><PanelTitle as="h3" artwork="homework" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
+    {school ? <div className="panel-heading"><PanelTitle as="h3" artwork="homework" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className={editable ? "list-composer" : "py-2"}>
       <div className="list-action-bar flex-wrap">
         <div className="list-identity flex-1 basis-44">{kind === "shopping" ? <ShoppingListAvatar icon={display.shoppingIcon} small /> : <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
         {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
@@ -434,6 +437,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
     onToggle={() => toggleItem(item.id)} onEdit={() => setEditing(item)} onRemove={!limit ? () => setRemoving(item) : undefined} />;
   return <article className={`glow-panel list-panel list-${kind}`}>
     {!!limit && <ListPanelSurface />}
+    <PlannerCardBackdrop kind={kind} />
     <div className="list-composer">
       <PanelHeading artwork={kind} icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
       <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button></div>
