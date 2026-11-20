@@ -774,7 +774,7 @@ export const nb = {
   "Widget content": "Widgetinnhold",
   "Custom lines": "Egendefinerte linjer",
   "Side-by-side fields": "Felt ved siden av hverandre",
-  "Add up to three fields per line. Use the arrows to move the whole line.": "Legg til opptil tre felt per linje. Bruk pilene til å flytte hele linjen.",
+  "Add up to three fields per line. The first field appears on the left.": "Legg til opptil tre felt per linje. Det første feltet vises til venstre.",
   "Add field": "Legg til felt",
   "Large zoom only": "Kun ved Stor zoom",
   "Line {number}": "Linje {number}",

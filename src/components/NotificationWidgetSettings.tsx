@@ -136,6 +136,31 @@ function focusWidgetField(group: HTMLElement, index: number) {
   });
 }
 
+function MoveButtons<T>({ items, index, group, name, disabled, onChange }: {
+  items: T[]; index: number; group: string; name: string; disabled: boolean; onChange: (items: T[]) => void;
+}) {
+  const { message: t } = useI18n();
+  return <div className="flex shrink-0 gap-2" data-move-controls={`${group}-${index}`}>
+    {([-1, 1] as const).map(direction => {
+      const to = index + direction;
+      const label = t(direction === -1 ? "Move {value1} up" : "Move {value1} down", { value1: name });
+      return <Button key={direction} type="button" variant="ghost" size="icon" data-direction={direction}
+        aria-label={label} title={label} disabled={disabled || to < 0 || to >= items.length} onClick={event => {
+          const form = event.currentTarget.form;
+          const reordered = [...items];
+          [reordered[index], reordered[to]] = [items[to], items[index]];
+          onChange(reordered);
+          requestAnimationFrame(() => {
+            const destination = form?.querySelector(`[data-move-controls="${group}-${to}"]`);
+            const control = destination?.querySelector<HTMLButtonElement>(`[data-direction="${direction}"]:enabled`)
+              ?? destination?.querySelector<HTMLButtonElement>("button:enabled");
+            control?.focus();
+          });
+        }}>{direction === -1 ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />}</Button>;
+    })}
+  </div>;
+}
+
 export function NotificationWidgetSettings({ rule, entities, cameras, defaultWidth, disabled, onChange }: {
   rule: NotificationRule; entities: Entity[]; cameras: ConfiguredCamera[]; defaultWidth: WidgetWidth; disabled: boolean; onChange: (value: NotificationWidget) => void;
 }) {
@@ -148,18 +173,6 @@ export function NotificationWidgetSettings({ rule, entities, cameras, defaultWid
   const setFields = (index: number, fields: NotificationWidgetSlot[]) => {
     const next = fields.length > 1 ? { type: "fields" as const, fields } : fields[0] ?? { type: "empty" as const };
     update({ slots: slots.map((slot, i) => i === index ? next : slot) });
-  };
-  const moveLine = (index: number, direction: -1 | 1, form: HTMLFormElement | null) => {
-    const to = index + direction;
-    const reordered = [...slots];
-    [reordered[index], reordered[to]] = [slots[to], slots[index]];
-    update({ slots: reordered });
-    requestAnimationFrame(() => {
-      const destination = form?.querySelector(`[data-line-index="${to}"]`);
-      const control = destination?.querySelector<HTMLButtonElement>(`[data-direction="${direction}"]:enabled`)
-        ?? destination?.querySelector<HTMLButtonElement>("[data-direction]:enabled");
-      control?.focus();
-    });
   };
   const defaultSlots = (): NotificationWidgetSlot[] => {
     const slots: NotificationWidgetSlot[] = [];
@@ -196,7 +209,7 @@ export function NotificationWidgetSettings({ rule, entities, cameras, defaultWid
       {cameraChoices.map(camera => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
     </select></label>}
     {media?.type === "image" && <EntityPicker label={t("Widget image")} name="widget.media.entity" entities={entities.filter(entity => entity.domain === "image")} value={media.entity} disabled={disabled} onChange={entity => update({ media: { type: "image", entity } })} />}
-    {widget.slots && <><p className="page-note">{t(lines ? "Add up to three fields per line. Use the arrows to move the whole line." : "Fields appear from left to right on one row.")}</p>
+    {widget.slots && <><p className="page-note">{t(lines ? "Add up to three fields per line. The first field appears on the left." : "Fields appear from left to right on one row.")}</p>
       {slots.slice(0, slotCount).map((line, index) => {
         const name = t(lines ? "Line {number}" : "Field {number}", { number: index + 1 });
         const fields = widgetLineFields(line);
@@ -215,27 +228,23 @@ export function NotificationWidgetSettings({ rule, entities, cameras, defaultWid
           aria-label={largeOnly ? `${name} · ${t("Large zoom only")}` : name}>
           <div className="notification-line-header">
             <strong>{name}{largeOnly && <small className="page-note block">{t("Large zoom only")}</small>}</strong>
-            <div className="flex gap-2">
-              {([-1, 1] as const).map(direction => {
-                const label = t(direction === -1 ? "Move {value1} up" : "Move {value1} down", { value1: name });
-                return <Button key={direction} type="button" variant="ghost" size="icon" data-direction={direction} aria-label={label} title={label}
-                  disabled={disabled || !lineFields.length || index + direction < 0 || index + direction >= slotCount}
-                  onClick={event => moveLine(index, direction, event.currentTarget.form)}>
-                  {direction === -1 ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />}
-                </Button>;
-              })}
-            </div>
+            <MoveButtons group="lines" name={name} items={slots} index={index} disabled={disabled || !lineFields.length}
+              onChange={slots => update({ slots })} />
           </div>
           {lineFields.map((slot, position) => {
             const field = t("Field {number}", { number: position + 1 });
             const remove = t("Remove {value1} from {value2}", { value1: field, value2: name });
             return <div key={position} className="notification-line-field">
               <div className="notification-line-field-heading"><span>{field}</span>
-                <Button type="button" size="icon" variant="ghost" aria-label={remove} title={remove} disabled={disabled} onClick={event => {
-                  const remaining = fields.filter((_, i) => i !== position);
-                  setFields(index, remaining);
-                  focusWidgetField(event.currentTarget.closest("[data-line-index]"), Math.min(position, remaining.length - 1));
-                }}><X aria-hidden="true" /></Button>
+                <div className="flex items-center gap-2">
+                  {lineFields.length > 1 && <MoveButtons group={`fields-${index}`} name={field} items={fields} index={position}
+                    disabled={disabled} onChange={next => setFields(index, next)} />}
+                  <Button type="button" size="icon" variant="ghost" aria-label={remove} title={remove} disabled={disabled} onClick={event => {
+                    const remaining = fields.filter((_, i) => i !== position);
+                    setFields(index, remaining);
+                    focusWidgetField(event.currentTarget.closest("[data-line-index]"), Math.min(position, remaining.length - 1));
+                  }}><X aria-hidden="true" /></Button>
+                </div>
               </div>
               {controls(slot, position, lineFields.length === 1 ? name : `${name} · ${field}`)}
             </div>;

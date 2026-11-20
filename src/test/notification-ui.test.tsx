@@ -381,27 +381,37 @@ it("adds mixed fields to one line, validates their sources and moves and saves t
   fireEvent.click(add());
   expect(add()).toBeDisabled();
   fireEvent.change(screen.getByLabelText("Line 3 · Field 3 · Free text"), { target: { value: "Temporary" } });
+  const line = within(screen.getByRole("group", { name: "Line 3" }));
+  const arrow = (field: number, direction: "up" | "down") => line.getByRole("button", { name: `Move Field ${field} ${direction}` });
+  expect(arrow(1, "up")).toBeDisabled();
+  expect(arrow(3, "down")).toBeDisabled();
+  fireEvent.click(arrow(1, "down"));
+  await waitFor(() => expect(arrow(2, "down")).toHaveFocus());
+  fireEvent.click(arrow(2, "down"));
+  await waitFor(() => expect(arrow(3, "up")).toHaveFocus());
+  fireEvent.click(arrow(3, "up"));
+  expect(screen.getByLabelText("Line 3 · Field 2 · Free text")).toHaveValue("Cycle");
   fireEvent.click(screen.getByRole("button", { name: "Remove Field 3 from Line 3" }));
   expect(add()).toBeEnabled();
   const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
-  expect(Array.from(tile.querySelectorAll("dl dd"), dd => dd.textContent)).toEqual(["Cycle", "67%"]);
+  expect(Array.from(tile.querySelectorAll("dl dd"), dd => dd.textContent)).toEqual(["67%", "Cycle"]);
   expect(within(tile).getByText("Task")).not.toHaveClass("sr-only");
   expect(within(tile).getByRole("progressbar", { name: "Completion" })).toHaveAttribute("aria-valuenow", "67");
   fireEvent.change(mode, { target: { value: "columns" } });
-  expect(tile).not.toHaveTextContent("67%");
+  expect(tile).not.toHaveTextContent("Cycle");
   fireEvent.change(mode, { target: { value: "lines" } });
   fireEvent.click(screen.getByRole("button", { name: "Move Line 3 down" }));
   expect(tile).not.toHaveTextContent("Cycle");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const [saved] = setNotifications.mock.lastCall[0].rules;
   expect(saved.widget.slots[3]).toEqual({ type: "fields", fields: [
-    { type: "text", text: "Cycle", name: "Task" }, { type: "progress", entity: "home|sensor.percent", name: "Completion", hideName: true },
+    { type: "progress", entity: "home|sensor.percent", name: "Completion", hideName: true }, { type: "text", text: "Cycle", name: "Task" },
   ] });
   mocks.family.notifications = { ...settings, rules: [saved], gridZoom: "large" };
   view.rerender(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }],
     dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
   const row = screen.getByRole("listitem").querySelector("dl");
-  expect(Array.from(row.querySelectorAll("dd"), dd => dd.textContent)).toEqual(["Cycle", "67%"]);
+  expect(Array.from(row.querySelectorAll("dd"), dd => dd.textContent)).toEqual(["67%", "Cycle"]);
   expect(within(row).getByText("Completion")).toHaveClass("sr-only");
 });
 
