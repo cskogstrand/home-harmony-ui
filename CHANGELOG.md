@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.39
+
+<!-- release-source: b3a88ffc0e952afbb002d37a5962ada21bcd60ec -->
+
+- test: await lazy routes in confirmation checks
+- feat: reorder fields within widget lines
+- feat: support multiple named fields per widget line
+
 ## 0.10.38
 
 <!-- release-source: 09fb8af8f33b325ce3d3b1a70af0c8cadf907081 -->
