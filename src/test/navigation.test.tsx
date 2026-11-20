@@ -7,6 +7,7 @@ import App from "@/App";
 import { dashboardSections, emptyConfiguration, parseConfiguration } from "../../shared/configuration";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
+import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
@@ -29,7 +30,7 @@ beforeEach(() => {
   app.currentHome = mapHome({ "person.emma": state("person.emma", "home", { friendly_name: "Emma" }), "person.leo": state("person.leo", "home", { friendly_name: "Leo" }) }, emptyRegistries, "home");
   app.configurationRequest.mockImplementation(async (method, body) => {
     if (method === "PUT") settings = parseConfiguration(body);
-    return { ok: true, json: async () => ({ revision: "a".repeat(64), config: structuredClone(settings) }) };
+    return { ok: true, json: async () => configurationSnapshot(settings) };
   });
   window.history.replaceState(null, "", "/");
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });

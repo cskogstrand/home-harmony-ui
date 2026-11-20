@@ -9,6 +9,7 @@ import { HomeAssistantClient } from "@/lib/home-assistant";
 import App from "@/App";
 import { PinPadModal } from "@/components/devices/PinPadModal";
 import { config, registries, services, states as deviceStates, state, user } from "./ha-fixtures";
+import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { timetableUploadPath } from "../../shared/timetables";
 import { musicFolder, sonosEntities, sonosServices } from "./sonos-fixtures";
@@ -121,7 +122,7 @@ it("confirms PDF uploads, preserves failed drafts, refreshes private previews an
   });
   const fetch = vi.fn().mockImplementation(async (path: string, options: RequestInit) => {
     if (options.method === "POST") return post(path, options);
-    if (path === "/api/config") return new Response(JSON.stringify({ revision: "a".repeat(64), config: saved }));
+    if (path === "/api/config") return new Response(JSON.stringify(configurationSnapshot(saved)));
     if (path === imagePath) return new Response(new Uint8Array([137, 80, 78, 71]), { headers: { "Content-Type": "image/png" } });
     throw new Error(`Unexpected request ${path}`);
   });
@@ -182,7 +183,7 @@ beforeEach(() => {
     if (path === "/api/runtime") return new Response(JSON.stringify({ homeAssistantUrl: "http://ha.local:8123" }));
     if (path === "/api/config") {
       if (options.method === "PUT") serverConfig = JSON.parse(String(options.body));
-      return new Response(JSON.stringify({ revision: "a".repeat(64), config: serverConfig }));
+      return new Response(JSON.stringify(configurationSnapshot(serverConfig)));
     }
     return haFetch(path, options);
   }));

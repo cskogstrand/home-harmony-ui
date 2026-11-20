@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createI18n, MessageError, msg } from "@/lib/i18n";
 import { nb } from "@/locales/nb";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
@@ -32,6 +32,22 @@ it("formats Norwegian dates and numbers without changing calendar dates or preci
   expect(i18n.eventTimeLabel({ allDay: true } as never)).toBe("Hele dagen");
   expect(i18n.eventTimeLabel({ date: "2026-10-19", continues: true, endTime: "09:00", endDate: "2026-10-20" } as never)).toMatch(/^Fortsetter – .*09:00$/);
   expect(createI18n("en").dateLabel("2026-10-19", { weekday: "long" })).toBe("Monday");
+});
+
+it("shares date formatters across labels and keeps languages and formats distinct", () => {
+  const options = { month: "long", calendar: "gregory" } as const;
+  const NativeDateTimeFormat = Intl.DateTimeFormat;
+  const constructor = vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (...args) {
+    return new NativeDateTimeFormat(...args);
+  });
+  try {
+    expect(createI18n("en").dateLabel("2026-01-01", options)).toBe("January");
+    expect(createI18n("en").dateLabel("2026-02-01", { ...options })).toBe("February");
+    expect(constructor).toHaveBeenCalledTimes(1);
+    expect(createI18n("nb").dateLabel("2026-01-01", options)).toBe("januar");
+    expect(createI18n("en").dateLabel("2026-01-01", { ...options, month: "2-digit" })).toBe("01");
+    expect(constructor).toHaveBeenCalledTimes(3);
+  } finally { constructor.mockRestore(); }
 });
 
 it("translates stored messages again after switching languages and keeps inserted text literal", () => {

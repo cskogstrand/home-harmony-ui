@@ -18,7 +18,12 @@ export class SharedConfiguration {
   constructor(request: Request) { this.request = request; }
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   getSnapshot = () => this.snapshot;
-  private update(patch: Partial<typeof this.snapshot>) { this.snapshot = { ...this.snapshot, ...patch }; this.listeners.forEach(listener => listener()); }
+  private update(patch: Partial<typeof this.snapshot>) {
+    const keys = Object.keys(patch) as (keyof typeof patch)[];
+    if (keys.every(key => this.snapshot[key] === patch[key])) return;
+    this.snapshot = { ...this.snapshot, ...patch };
+    this.listeners.forEach(listener => listener());
+  }
   private async response(method: "GET" | "PUT", config?: Configuration) {
     const response = await this.request(method, config ? JSON.stringify(config) : undefined, this.revision);
     if (!response.ok) {
@@ -44,10 +49,16 @@ export class SharedConfiguration {
     try {
       const result = await this.response("GET");
       if (generation !== this.generation) return;
-      this.update({ timetableError: result.timetableError });
-      if (!discard && (this.snapshot.dirty || this.snapshot.config !== before)) return;
+      const { config, dirty, timetableError } = this.snapshot;
+      // Each failed upload gets a new ID independently of the settings revision.
+      const nextError = timetableError?.id === result.timetableError?.id ? timetableError : result.timetableError;
+      if (!discard && (dirty || config !== before)) {
+        this.update({ timetableError: nextError });
+        return;
+      }
+      const nextConfig = !dirty && this.revision === result.revision ? config : result.config;
       this.revision = result.revision;
-      this.update({ config: result.config, loaded: true, dirty: false, error: "" });
+      this.update({ config: nextConfig, loaded: true, dirty: false, error: "", timetableError: nextError });
     } catch (error) {
       if (generation === this.generation) this.update({ error: error instanceof Error ? error.message : "Cannot load shared configuration." });
       if (discard) throw error;

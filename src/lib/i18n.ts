@@ -15,6 +15,7 @@ export class MessageError extends Error {
   }
 }
 export const locales = { en: "en-GB", nb: "nb-NO" } as const;
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 const calendarCategories = ["Activities", "Meetings", "Pedagogy", "Closure days", "Invitations", "Opening hours"] as const;
 
 // English source messages are keys, so the default language needs no duplicate catalogue.
@@ -32,8 +33,16 @@ export function createI18n(language: Language) {
       return typeof value === "object" ? message(value) : typeof value === "number" ? number(value) : value;
     });
   };
-  const dateLabel = (date: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) =>
-    new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+  const dateLabel = (date: string, options: Intl.DateTimeFormatOptions = { weekday: "short", day: "numeric", month: "short" }) => {
+    const key = JSON.stringify([locale, options]);
+    let formatter = dateFormatters.get(key);
+    if (!formatter) {
+      formatter = new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" });
+      if (dateFormatters.size >= 64) dateFormatters.clear();
+      dateFormatters.set(key, formatter);
+    }
+    return formatter.format(new Date(`${date}T12:00:00Z`));
+  };
   const eventTimeLabel = (event: FamilyEvent) => {
     if (event.allDay) return message("All day");
     const start = event.continues ? message("Continues") : event.time;

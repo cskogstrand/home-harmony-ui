@@ -4,6 +4,7 @@ import App from "@/App";
 import { emptyConfiguration } from "../../shared/configuration";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
+import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import type { CalendarEvent } from "@/types/api";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "https://ha.example", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], commands: {}, services: {}, configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
@@ -23,7 +24,7 @@ beforeEach(() => {
     "todo.example": state("todo.example", "1", { friendly_name: "Example list", supported_features: 1 }),
   }, emptyRegistries, "home");
   app.services = { todo: { add_item: { fields: {} } } };
-  app.configurationRequest.mockImplementation(async () => ({ ok: true, json: async () => ({ revision: "a".repeat(64), config: structuredClone(config) }) }));
+  app.configurationRequest.mockImplementation(async () => ({ ok: true, json: async () => configurationSnapshot(config) }));
   app.storageRequest.mockResolvedValue({ ok: true, blob: async () => new Blob(["example"], { type: "image/png" }) });
   app.watchCalendarEvents.mockReset().mockImplementation((_id, _from, _to, _signal, receive) => receive([]));
   app.todoItems.mockResolvedValue([{ uid: "example", summary: "Example homework", status: "needs_action" }]);

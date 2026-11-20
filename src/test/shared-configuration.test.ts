@@ -383,6 +383,47 @@ it.each(["pearl", "sage", "sand", "dusk", "mist", "rose", "olive", "clay", "lave
 });
 
 describe("shared configuration", () => {
+  it("keeps the snapshot on unchanged polls and publishes upload and connection errors independently", async () => {
+    const backend = server();
+    const store = await backend.start();
+    const initial = store.getSnapshot();
+    const notify = vi.fn();
+    store.subscribe(notify);
+    await store.refresh();
+    expect(store.getSnapshot()).toBe(initial);
+    expect(notify).not.toHaveBeenCalled();
+
+    const timetableError = { id: "upload-one", member: "home|person.one", message: "Conversion failed." };
+    const result = { config: initial.config, revision: "0".repeat(64), timetableError };
+    backend.request.mockResolvedValueOnce(response(200, result));
+    await store.refresh();
+    const failedUpload = store.getSnapshot();
+    expect(failedUpload.timetableError).toEqual(timetableError);
+    expect(failedUpload.config).toBe(initial.config);
+    backend.request.mockResolvedValueOnce(response(200, result));
+    await store.refresh();
+    expect(store.getSnapshot()).toBe(failedUpload);
+    expect(notify).toHaveBeenCalledTimes(1);
+
+    backend.request.mockRejectedValueOnce(new Error("Network unavailable"));
+    await store.refresh();
+    expect(store.getSnapshot().error).toBe("Network unavailable");
+    await store.retry();
+    expect(store.getSnapshot()).toEqual(initial);
+    expect(store.getSnapshot().config).toBe(initial.config);
+    expect(notify).toHaveBeenCalledTimes(3);
+  });
+
+  it("discards a failed local edit on explicit reload even at the same server revision", async () => {
+    const backend = server();
+    const store = await backend.start();
+    backend.request.mockRejectedValueOnce(new Error("Network unavailable"));
+    store.updateSettings(settings => ({ ...settings, memberOrder: ["unsaved"] }));
+    await waitFor(() => expect(store.getSnapshot().error).toBe("Network unavailable"));
+    await store.refresh(true);
+    expect(store.getSnapshot()).toMatchObject({ dirty: false, error: "", config: backend.current() });
+  });
+
   it("polls upload errors without discarding unsaved settings or their conflict", async () => {
     const backend = server();
     let timetableError = null;
