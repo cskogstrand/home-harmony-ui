@@ -428,6 +428,25 @@ it("subscribes to all distinct event and calendar triggers and cleans up on edit
   expect(screen.queryByText("Example doorbell")).not.toBeInTheDocument();
 });
 
+it("removes the printer tile and open details when the hide delay elapses without another sensor update", () => {
+  vi.useFakeTimers();
+  const trigger = { type: "state", entity: "home|sensor.example", operator: "eq", value: "running" };
+  const printer = notificationRuleSchema.parse({ id: "print", title: "Example print", kind: "ongoing", trigger, hideTrigger: { ...trigger, value: "finish", delayMinutes: 1 } });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [printer] };
+  const printerHome = (value: string) => mapHome({ "sensor.example": state("sensor.example", value) }, emptyRegistries, "home");
+  mocks.app.currentHome = printerHome("running");
+  const content = () => <MemoryRouter><NotificationProvider><NotificationList compact /></NotificationProvider></MemoryRouter>;
+  const view = render(content());
+  fireEvent.click(screen.getByRole("button", { name: "Show details for Example print" }));
+  mocks.app.currentHome = printerHome("finish");
+  view.rerender(content());
+  act(() => { vi.advanceTimersByTime(59000); });
+  expect(screen.getByRole("dialog", { name: "Example print" })).toBeVisible();
+  act(() => { vi.advanceTimersByTime(1000); });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Show details for Example print" })).not.toBeInTheDocument();
+});
+
 it("starts a camera rule from its shortcut, names the go2rtc output and tests live video or person images", async () => {
   mocks.shared.state.config.settings.cameras = cameraSettings();
   render(<MemoryRouter initialEntries={["/settings/notifications?camera=example-camera"]}><NotificationSettings /></MemoryRouter>);
@@ -604,6 +623,39 @@ it("configures ongoing tasks with a stable entity reference", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications).toHaveBeenCalledWith({ rules: [expect.objectContaining({ title: "Example wash", kind: "ongoing", trigger: expect.objectContaining({ entity: "home|binary_sensor.example", value: "on" }) })] });
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+it("edits, validates and removes the hide condition without changing the show trigger", async () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "ongoing", title: "Example print", cameraEntity: "" });
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  const edit = async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Edit Example print" }));
+    await openEditorSection("When to hide it");
+    return within(screen.getByRole("region", { name: "When to hide it" }));
+  };
+  const section = await edit();
+  fireEvent.click(section.getByRole("switch", { name: "Use a separate hide condition" }));
+  fireEvent.click(screen.getByRole("button", { name: "When to hide it" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications).not.toHaveBeenCalled();
+  await waitFor(() => expect(section.getByLabelText("Value")).toHaveAttribute("aria-invalid", "true"));
+  fireEvent.change(section.getByLabelText("Value"), { target: { value: "finish" } });
+  fireEvent.change(section.getByLabelText("Hide after (minutes)"), { target: { value: "12" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.trigger).toEqual(rule.trigger);
+  expect(saved.hideTrigger).toEqual({ ...rule.trigger, value: "finish", delayMinutes: 12 });
+
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(content());
+  const reopened = await edit();
+  expect(reopened.getByLabelText("Value")).toHaveValue("finish");
+  expect(reopened.getByLabelText("Hide after (minutes)")).toHaveValue(12);
+  fireEvent.click(reopened.getByRole("switch", { name: "Use a separate hide condition" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].hideTrigger).toBeUndefined();
 });
 
 it("saves, reopens and removes an optional task camera with the live source in the preview", async () => {

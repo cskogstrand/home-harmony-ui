@@ -7,6 +7,7 @@ import { state } from "./ha-fixtures";
 
 const rule = (overrides: Partial<NotificationRule> = {}) => notificationRuleSchema.parse({ id: "example-rule", title: "Example appliance", kind: "ongoing", trigger: { type: "state", entity: "home|sensor.example", operator: "gt", value: "5" }, ...overrides });
 const entities = (value: string, attributes = {}, id = "sensor.example") => mapHome({ [id]: state(id, value, attributes) }, emptyRegistries, "home").entities;
+const stateEquals = (value: string) => ({ type: "state" as const, entity: "home|sensor.example", attribute: "", operator: "eq" as const, value });
 const now = Date.parse("2026-10-24T12:00:00Z");
 const zone = "Europe/Oslo";
 
@@ -76,6 +77,19 @@ describe("notification configuration", () => {
     }
     expect(notificationRuleSchema.safeParse({ ...rule({ kind: "camera", cameraEntity: "example-camera" }), additionalTriggers: [{ type: "calendar", entity: "home|calendar.example" }] }).success).toBe(false);
     expect(notificationRuleSchema.safeParse({ ...rule({ kind: "current" }), additionalTriggers: [{ type: "ha-event", eventType: "example", filters: { nested: {} } }] }).success).toBe(false);
+  });
+  it("round-trips a separate hide condition and validates its source, threshold and delay", () => {
+    const hideTrigger = { ...stateEquals("finish"), delayMinutes: 5 };
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = [rule({ hideTrigger })];
+    expect(parseConfiguration(JSON.stringify(config))).toEqual(config);
+    expect(rule().hideTrigger).toBeUndefined();
+    for (const changes of [{ delayMinutes: -1 }, { delayMinutes: 1441 }, { delayMinutes: 0.5 }, { value: "" }, { entity: "" }, { operator: "gt" }, { type: "ha-event" }]) {
+      expect(notificationRuleSchema.safeParse({ ...rule(), hideTrigger: { ...hideTrigger, ...changes } }).success).toBe(false);
+    }
+    for (const changes of [{ kind: "camera", cameraEntity: "example-camera" }, { kind: "current", trigger: { type: "ha-event", eventType: "example_event" } }]) {
+      expect(notificationRuleSchema.safeParse({ ...rule(), hideTrigger, ...changes }).success).toBe(false);
+    }
   });
   it("preserves every supported icon and its animation choice through configuration backups", () => {
     const config = emptyConfiguration();
@@ -152,6 +166,38 @@ describe("notification configuration", () => {
 });
 
 describe("notification lifecycle", () => {
+  it("keeps a print visible through status changes and hides it once after finish", () => {
+    const engine = new NotificationEngine();
+    const printer = rule({ trigger: stateEquals("prepare"), additionalTriggers: [stateEquals("running"), stateEquals("pause")], hideTrigger: { ...stateEquals("finish"), delayMinutes: 5 } });
+    const update = (state: string, ms: number) => engine.update([printer], entities(state), {}, true, now + ms, zone);
+    expect(update("finish", 0)).toEqual([]);
+    const [first] = update("prepare", 100);
+    for (const [index, status] of ["running", "pause", "running", "cooling"].entries()) {
+      expect(update(status, 200 + index)).toEqual([first]);
+    }
+    expect(update("finish", 1000)).toEqual([first]);
+    expect(update("finish", 2000)).toEqual([first]);
+    expect(update("idle", 300999)).toEqual([first]);
+    expect(update("idle", 301000)).toEqual([]);
+    expect(update("finish", 302000)).toEqual([]);
+    const [second] = update("running", 303000);
+    expect(second.id).not.toBe(first.id);
+    expect(update("finish", 304000)).toEqual([second]);
+    const [restarted] = update("prepare", 305000);
+    expect(update("running", 604000)).toEqual([restarted]);
+  });
+  it("lets a hide condition end only the state activation and requires a fresh show trigger to rearm", () => {
+    const engine = new NotificationEngine();
+    const hideTrigger = { ...stateEquals("done"), entity: "home|sensor.other", attribute: "phase", delayMinutes: 0 };
+    const current = rule({ kind: "current", trigger: stateEquals("on"), hideTrigger, additionalTriggers: [{ type: "ha-event", eventType: "example_event", filters: {} }] });
+    const update = (state: string, phase: string) => engine.update([current], [...entities(state), ...entities("on", { phase }, "sensor.other")], {}, true, now, zone);
+    expect(update("on", "busy")).toHaveLength(1);
+    const [, event] = engine.receive([current], { event_type: "example_event", data: {} }, now);
+    expect(update("on", "done")).toEqual([event]);
+    expect(update("on", "busy")).toEqual([event]);
+    update("off", "busy");
+    expect(update("on", "busy")).toHaveLength(2);
+  });
   it("keeps one state alert until every condition clears, including dismissal across handoffs", () => {
     const engine = new NotificationEngine();
     const configured = rule({ additionalTriggers: [{ type: "state", entity: "home|sensor.other", attribute: "", operator: "gt", value: "5" }] });

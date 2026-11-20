@@ -88,6 +88,7 @@ export function notificationReadings(rule: NotificationRule) {
     }
   }
   if (rule.kind === "camera" && rule.cameraEntity.startsWith("home|")) add(rule.cameraEntity, "", "Camera", "hidden");
+  if (rule.hideTrigger) add(rule.hideTrigger.entity, rule.hideTrigger.attribute, "Hide condition", "hidden");
   return readings.map(reading => ({ ...reading, ...rule.entityDisplay?.find(item => item.entity === reading.entity && item.attribute === reading.attribute) }));
 }
 
@@ -129,7 +130,7 @@ export function matchesEvent(trigger: NotificationTrigger, event: NotificationEv
     Object.entries(trigger.filters).every(([key, value]) => Object.prototype.hasOwnProperty.call(event.data, key) && event.data[key] === value);
 }
 
-type Observation = { signature: string; triggers: { entity?: Entity; matched: boolean }[]; stateId?: string; calendarIds: Set<string>; lastFired: number };
+type Observation = { signature: string; triggers: { entity?: Entity; matched: boolean }[]; stateId?: string; hideAt?: number; calendarIds: Set<string>; lastFired: number };
 
 // Session-only state: never persist event payloads, camera images, or notification history.
 // A widget edit changes the displayed tile without restarting the activation or its cooldown.
@@ -157,6 +158,25 @@ export class NotificationEngine {
     for (const rule of rules) if (rule.enabled && notificationTriggers(rule).some(trigger => matchesEvent(trigger, event))) this.fire(rule, now);
     return this.list();
   }
+  private updateState(rule: NotificationRule, entities: Entity[], observation: Observation, previous: Observation | undefined, now: number) {
+    const hide = rule.hideTrigger;
+    const hiding = hide && matchesState(hide, notificationEntity(entities, hide.entity));
+    const show = !hiding && observation.triggers.some((trigger, index) => trigger.matched && (!hide || !previous?.triggers[index].matched));
+    if (observation.stateId) {
+      if (hiding) observation.hideAt ??= now + hide.delayMinutes * 60000;
+      const countdownEnded = observation.hideAt !== undefined && (now >= observation.hideAt || show);
+      if (countdownEnded || (!hide && !show)) {
+        this.entries.delete(observation.stateId);
+        observation.stateId = undefined;
+        observation.hideAt = undefined;
+      }
+    }
+    if (!observation.stateId && show) {
+      const id = `${rule.id}:${++this.sequence}`;
+      observation.stateId = id;
+      this.entries.set(id, { id, rule, startedAt: now, popup: false });
+    }
+  }
   update(rules: NotificationRule[], entities: Entity[], calendars: Record<string, CalendarEvent[] | null>, online: boolean, now: number, timeZone: string) {
     if (!online) { this.clear(); return this.list(); }
     const enabled = new Map(rules.filter(rule => rule.enabled).map(rule => [rule.id, rule]));
@@ -175,18 +195,9 @@ export class NotificationEngine {
       const observation: Observation = { signature: ruleSignature(rule), triggers: triggers.map(trigger => {
         const entity = "entity" in trigger ? notificationEntity(entities, trigger.entity) : undefined;
         return { entity, matched: matchesState(trigger, entity) };
-      }), stateId: previous?.stateId, calendarIds: new Set(), lastFired: previous?.lastFired ?? -Infinity };
+      }), stateId: previous?.stateId, hideAt: previous?.hideAt, calendarIds: new Set(), lastFired: previous?.lastFired ?? -Infinity };
       this.observations.set(rule.id, observation);
-      if (rule.kind !== "camera") {
-        if (!observation.triggers.some(trigger => trigger.matched)) {
-          if (observation.stateId) this.entries.delete(observation.stateId);
-          observation.stateId = undefined;
-        } else if (!observation.stateId) {
-          const id = `${rule.id}:${++this.sequence}`;
-          observation.stateId = id;
-          this.entries.set(id, { id, rule, startedAt: now, popup: false });
-        }
-      }
+      if (rule.kind !== "camera") this.updateState(rule, entities, observation, previous, now);
       let fired = false;
       triggers.forEach((trigger, index) => {
         const { entity, matched } = observation.triggers[index];
@@ -217,5 +228,5 @@ export class NotificationEngine {
   }
 }
 
-const sections: Record<string, string> = { widget: "widget", title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+const sections: Record<string, string> = { widget: "widget", title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", hideTrigger: "hideTrigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
 export const notificationIssueSection = (issue: ZodIssue) => sections[issue.path[0]] ?? "content";

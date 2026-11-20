@@ -63,9 +63,11 @@ const widgetSchema = z.object({
   return widget;
 });
 export type NotificationWidget = z.infer<typeof widgetSchema>;
+const stateTriggerSchema = z.object({ type: z.literal("state"), entity: reference, attribute: z.string().max(100).default(""),
+  operator: z.enum(["eq", "neq", "gt", "lt"]), value: z.string().trim().min(1).max(256) }).strict();
+export type NotificationStateTrigger = z.infer<typeof stateTriggerSchema>;
 export const notificationTriggerSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("state"), entity: reference, attribute: z.string().max(100).default(""),
-    operator: z.enum(["eq", "neq", "gt", "lt"]), value: z.string().trim().min(1).max(256) }).strict(),
+  stateTriggerSchema,
   z.object({ type: z.literal("entity-event"), entity: reference, eventType: z.string().trim().max(100).default("") }).strict(),
   z.object({ type: z.literal("ha-event"), eventType: z.string().trim().regex(/^[a-zA-Z0-9_]+$/).max(100),
     filters: z.record(field, z.union([z.string().max(512), z.number().finite(), z.boolean()])).refine(value => Object.keys(value).length <= 10).default({}) }).strict(),
@@ -75,6 +77,7 @@ export const notificationRuleSchema = z.object({
   id: reference, title: z.string().trim().min(1).max(100), message: z.string().trim().max(300).default(""),
   enabled: z.boolean().default(true), kind: z.enum(["ongoing", "current", "camera"]), trigger: notificationTriggerSchema,
   additionalTriggers: z.array(notificationTriggerSchema).max(MAX_NOTIFICATION_TRIGGERS - 1).optional(),
+  hideTrigger: stateTriggerSchema.extend({ delayMinutes: z.number().int().min(0).max(1440) }).optional(),
   pages: z.enum(["today", "main"]).optional(),
   presentation: notificationPresentationSchema.optional(),
   widget: widgetSchema.optional(),
@@ -83,7 +86,7 @@ export const notificationRuleSchema = z.object({
   detailEntity: z.string().max(512).optional(),
   // One extra slot preserves a named camera-state reading from older rules.
   detailEntities: z.array(reference).max(101).refine(ids => new Set(ids).size === ids.length).optional(),
-  entityDisplay: z.array(notificationEntityDisplaySchema).max(105 + MAX_NOTIFICATION_TRIGGERS - 1)
+  entityDisplay: z.array(notificationEntityDisplaySchema).max(105 + MAX_NOTIFICATION_TRIGGERS)
     .refine(items => new Set(items.map(item => JSON.stringify([item.entity, item.attribute]))).size === items.length).optional(),
   progress: notificationProgressSchema.optional(),
   icon: z.enum(notificationIcons).optional(),
@@ -107,8 +110,15 @@ export const notificationRuleSchema = z.object({
   });
   if (rule.progress && rule.kind !== "ongoing") ctx.addIssue({ code: "custom", path: ["progress"], message: "Progress is only available for ongoing tasks." });
   if (rule.kind === "camera" && !rule.cameraEntity) ctx.addIssue({ code: "custom", path: ["cameraEntity"], message: "Choose a camera." });
-  [rule.trigger, ...(rule.additionalTriggers ?? [])].forEach((trigger, index) => {
-    const path = index === 0 ? ["trigger"] : ["additionalTriggers", index - 1];
+  const triggers = [rule.trigger, ...(rule.additionalTriggers ?? [])];
+  if (rule.hideTrigger) {
+    if (rule.kind === "camera" || !triggers.some(trigger => trigger.type === "state")) {
+      ctx.addIssue({ code: "custom", path: ["hideTrigger"], message: "A hide condition requires a state notification." });
+    }
+    triggers.push(rule.hideTrigger);
+  }
+  triggers.forEach((trigger, index) => {
+    const path = trigger === rule.hideTrigger ? ["hideTrigger"] : index === 0 ? ["trigger"] : ["additionalTriggers", index - 1];
     if (rule.kind === "ongoing" && trigger.type !== "state") ctx.addIssue({ code: "custom", path, message: "Ongoing tasks require a state condition." });
     if (trigger.type === "calendar" && rule.kind !== "current") ctx.addIssue({ code: "custom", path, message: "Calendar events use current notifications." });
     if (trigger.type === "state" && ["gt", "lt"].includes(trigger.operator) && !Number.isFinite(Number(trigger.value))) ctx.addIssue({ code: "custom", path: [...path, "value"], message: "Enter a numeric threshold." });

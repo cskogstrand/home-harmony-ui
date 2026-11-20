@@ -9,7 +9,7 @@ import type { NotificationEntityDisplay, NotificationRule } from "../../shared/n
 
 const placements = { auto: "Automatic placement", subtitle: "Under the title", left: "Left reading", right: "Right reading", footer: "At the bottom", hidden: "Hidden" } as const;
 
-export function NotificationEntitySettings({ rule, entities, disabled, onChange, onEditUsage }: { rule: NotificationRule; entities: Entity[]; disabled: boolean; onChange: (value: Partial<NotificationRule>) => void; onEditUsage: (section: "trigger" | "progress" | "readings" | "camera") => void }) {
+export function NotificationEntitySettings({ rule, entities, disabled, onChange, onEditUsage }: { rule: NotificationRule; entities: Entity[]; disabled: boolean; onChange: (value: Partial<NotificationRule>) => void; onEditUsage: (section: "trigger" | "hideTrigger" | "progress" | "readings" | "camera") => void }) {
   const { message: t } = useI18n();
   const readings = notificationReadings(rule);
   const update = (reading: NotificationEntityDisplay, change: Partial<NotificationEntityDisplay>) => {
@@ -40,6 +40,7 @@ export function NotificationEntitySettings({ rule, entities, disabled, onChange,
           <p>{t(additional ? "Removing the extra reading keeps its other uses." : "Change its assignment before removing this entity.")}</p>
           <div className="notification-entity-shortcuts">
             {reading.roles.includes("Source entity") && <Button type="button" variant="link" onClick={() => onEditUsage("trigger")}>{t("Edit trigger")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
+            {reading.roles.includes("Hide condition") && <Button type="button" variant="link" onClick={() => onEditUsage("hideTrigger")}>{t("Edit hide condition")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
             {reading.roles.some(role => ["Current value", "Start value", "End / total value"].includes(role)) && <Button type="button" variant="link" onClick={() => onEditUsage("progress")}>{t("Edit progress")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
             {reading.roles.includes("Camera") && <Button type="button" variant="link" onClick={() => onEditUsage("camera")}>{t("Change camera")}<ArrowUpRight size={14} aria-hidden="true" /></Button>}
           </div>
