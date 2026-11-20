@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } 
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { CalendarTimetable } from "@/components/CalendarTimetable";
 import { useTimetableCalendars } from "@/hooks/use-timetable-calendars";
+import * as timetable from "@/lib/calendar-timetable";
 import { PageActivityContext } from "@/contexts/PageActivityContext";
 import type { CalendarEvent, Entity } from "@/types/api";
 import type { TimetableSettings } from "../../shared/configuration";
@@ -32,7 +33,25 @@ beforeEach(() => {
     callback(id === "calendar.activities" ? activities : [{ summary: "Example meeting", start: "2026-10-19T11:00:00Z", end: "2026-10-19T12:00:00Z" }]);
   });
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+
+it("updates the timetable clock without rebuilding days until a calendar changes", () => {
+  const days = vi.spyOn(timetable, "timetableDays");
+  const view = render(<CalendarTimetable child="example" settings={settings} dayView />);
+  const panel = within(screen.getByRole("tabpanel"));
+  expect(panel.getByText("Happening now")).toBeVisible();
+  days.mockClear();
+  app.currentHome.entities = app.currentHome.entities.map(entity => ({ ...entity }));
+  clock.now = new Date("2026-10-19T10:15:00Z");
+  clock.time = "10:15";
+  view.rerender(<CalendarTimetable child="example" settings={settings} dayView />);
+  expect(panel.queryByText("Happening now")).not.toBeInTheDocument();
+  expect(days).not.toHaveBeenCalled();
+  expect(app.watchCalendarEvents).toHaveBeenCalledTimes(2);
+  act(() => receive.get("calendar.activities")!([]));
+  expect(panel.queryByText("Example activity")).not.toBeInTheDocument();
+  expect(days).toHaveBeenCalled();
+});
 
 it("centers today's tab when a preloaded timetable becomes active and preserves subsequent scrolling", () => {
   const content = (active: boolean) => <PageActivityContext.Provider value={active}><CalendarTimetable child="example" settings={settings} dayView /></PageActivityContext.Provider>;

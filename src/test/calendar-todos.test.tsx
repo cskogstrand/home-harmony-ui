@@ -31,6 +31,10 @@ it("reads visible people's lists only and removes completed tasks after an entit
   const { result, rerender } = renderHook(() => useTodos());
   await waitFor(() => expect(result.current.events).toHaveLength(1));
   expect(mocks.app.todoItems).toHaveBeenCalledExactlyOnceWith("todo.example");
+  const plans = result.current.events;
+  mocks.app.currentHome = { ...mocks.app.currentHome, entities: mocks.app.currentHome.entities.map(entity => ({ ...entity })) };
+  rerender();
+  expect(result.current.events).toBe(plans);
   mocks.app.todoItems.mockResolvedValue([{ ...item, status: "completed" }]);
   mocks.app.currentHome.entities.find(entity => entity.entityId === "todo.example").lastUpdated = "2026-10-29T11:00:00Z";
   rerender();

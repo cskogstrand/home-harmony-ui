@@ -27,6 +27,22 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+it("reuses loaded plans when unrelated sensor updates rebuild the home model", () => {
+  const { result, rerender } = renderHook(() => useCalendarPlans("2026-10-29", "2026-10-30"));
+  receive(0, [event("Original")]); receive(1, []);
+  const original = result.current.events[0];
+  mocks.app.currentHome = mapHome({
+    "calendar.example": state("calendar.example", "off"),
+    "calendar.other": state("calendar.other", "off"),
+    "sensor.example": state("sensor.example", "42"),
+  }, emptyRegistries, "home");
+  rerender();
+  expect(result.current.events[0]).toBe(original);
+  expect(mocks.app.watchCalendarEvents).toHaveBeenCalledTimes(2);
+  receive(0, [event("Updated")]);
+  expect(result.current.events[0].title).toBe("Updated");
+});
+
 it("normalizes only the chosen waste source, follows its person assignment and stops showing hidden or unassigned collections", () => {
   mocks.app.currentHome.timeZone = "Europe/Oslo";
   mocks.family.wasteCalendarEntity = "home|calendar.example";

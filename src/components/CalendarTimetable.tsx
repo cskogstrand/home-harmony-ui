@@ -1,5 +1,5 @@
 import { PanelTitle } from "@/components/PanelTitle";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { usePageActive } from "@/contexts/PageActivityContext";
@@ -28,11 +28,15 @@ export function CalendarTimetable({ child, settings, dayView = false, sourceCont
   });
   const start = timetableWeek(today);
   const { sources, closuresUnknown, popupClosuresUnknown, popupMeetingsLoading, popupMeetingsUnavailable, loading, errors, refresh } = useTimetableCalendars(settings, start, today);
-  const daySources = sources.map(source => ({ ...source, roles: source.roles.filter(role =>
-    !(closuresUnknown && role === "hours") && !(popupClosuresUnknown && role === "popupHours")) }));
-  const days = timetableDays(daySources, start, currentHome.timeZone, child);
-  const selectableDays = dayView && !days.some(day => day.date === today) ? [timetableDays(daySources, today, currentHome.timeZone, child)[0], ...days] : days;
-  const messages = dayView ? [] : timetableMessages(sources, today, currentHome.timeZone, child);
+  const { days, selectableDays, messages } = useMemo(() => {
+    const daySources = sources.map(source => ({ ...source, roles: source.roles.filter(role =>
+      !(closuresUnknown && role === "hours") && !(popupClosuresUnknown && role === "popupHours")) }));
+    const days = timetableDays(daySources, start, currentHome.timeZone, child);
+    return { days,
+      selectableDays: dayView && !days.some(day => day.date === today) ? [timetableDays(daySources, today, currentHome.timeZone, child)[0], ...days] : days,
+      messages: dayView ? [] : timetableMessages(sources, today, currentHome.timeZone, child),
+    };
+  }, [sources, closuresUnknown, popupClosuresUnknown, start, currentHome.timeZone, child, today, dayView]);
   const popupGroups = [
     ["activities", "Activities", ["popupActivities"]], ["meetings", "Meetings", ["popupMeetings"]],
     ["messages", "Messages", ["popupMessages"]],

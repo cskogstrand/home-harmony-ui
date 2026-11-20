@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { available } from "@/lib/ha-model";
@@ -42,13 +42,11 @@ export function useCalendarTodos(start: string, end: string, refresh: number) {
     return () => clearInterval(timer);
   }, [homeOnline, lists.length, busy, pending]);
   const current = result.source === sourceKey ? result.lists : [];
-  return {
-    events: current.flatMap(({ id, items }) => {
-      const assigned = todoLists[id];
-      const entity = lists.find(list => list.id === id)?.entity;
-      return assigned && entity ? todoPlans(items, id, assigned.kind, assigned.member, start, end, currentHome.timeZone) : [];
-    }),
-    loading,
+  const events = useMemo(() => result.source === sourceKey ? result.lists.flatMap(({ id, items }) => {
+    const assigned = todoLists[id];
+    return assigned ? todoPlans(items, id, assigned.kind, assigned.member, start, end, currentHome.timeZone) : [];
+  }) : [], [result, sourceKey, todoLists, start, end, currentHome.timeZone]);
+  return { events, loading,
     errors: current.filter(list => list.failed).map(({ id }) => t("Could not read to-do list {value1}. Check it in Home Assistant.", { value1: lists.find(list => list.id === id)?.entity?.name ?? t("List unavailable") })),
   };
 }
