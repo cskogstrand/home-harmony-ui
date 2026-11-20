@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.35
+
+<!-- release-source: 4a450515846f542087ff0312a3e33232a47875db -->
+
+- feat: add configurable fields to alert widgets
+- feat: customize alert widgets and popup previews
+
 ## 0.10.34
 
 <!-- release-source: cd74966d88e8e541a59bbbfec442f805c1f7a6ab -->
