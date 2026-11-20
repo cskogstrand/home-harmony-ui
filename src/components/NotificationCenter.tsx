@@ -240,11 +240,14 @@ export function NotificationTile({ item, presentation, preview, entities: previe
   const custom = widget?.slots !== undefined;
   const showTitle = !print || !!widget?.title?.trim() || !!subtitle || custom;
   const hasFields = widget?.slots?.some(slot => slot.type !== "empty");
+  const dense = hasFields || !!subtitle && rule.kind === "ongoing";
+  const size = widget?.size ?? "auto";
+  const columns = { auto: dense ? 2 : 1, small: 1, medium: 2, large: 3 }[size];
   const row = useAlertFocusOnRemoval();
   const bodyId = useId();
   const action = doorbell ? "Open camera for {name}" : presentation.startsWith("activity") ? "Open activity card for {name}" : "Show details for {name}";
   return <li ref={row} className={hasMedia ? "notification-glance notification-live-thumbnail" : "notification-glance"}
-    data-widget-wide={hasFields || !!subtitle && rule.kind === "ongoing" || undefined}>
+    data-widget-size={size} data-widget-columns={columns} data-widget-dense={dense || undefined}>
     <div className="notification-widget-main">
       {!hasMedia && <NotificationIcon rule={rule} />}
       <div id={bodyId} className="notification-body min-w-0 flex-1 break-words">

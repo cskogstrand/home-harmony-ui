@@ -42,6 +42,7 @@ const notificationEntityDisplaySchema = z.object({
 export type NotificationEntityDisplay = z.infer<typeof notificationEntityDisplaySchema>;
 const imageReference = z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/);
 export const MAX_WIDGET_SLOTS = 3;
+export const notificationWidgetSizes = ["auto", "small", "medium", "large"] as const;
 const widgetSlotSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("empty") }).strict(),
   z.object({ type: z.literal("reading"), entity: reference }).strict(),
@@ -49,6 +50,7 @@ const widgetSlotSchema = z.discriminatedUnion("type", [
 ]);
 export type NotificationWidgetSlot = z.infer<typeof widgetSlotSchema>;
 const widgetSchema = z.object({
+  size: z.enum(notificationWidgetSizes).optional(),
   title: z.string().trim().max(100).optional(),
   text: z.string().trim().max(100).optional(),
   slots: z.array(widgetSlotSchema).max(MAX_WIDGET_SLOTS).optional(),

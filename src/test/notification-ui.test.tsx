@@ -171,9 +171,12 @@ it("combines three widget field types independently of the popup and saves the l
     await openEditorSection("Edit widget");
   };
   await edit();
+  const sizeChoice = (name: RegExp) => within(screen.getByRole("group", { name: "Widget size" })).getByRole("button", { name });
+  fireEvent.click(sizeChoice(/^Medium/));
   fireEvent.change(screen.getByLabelText("Widget title"), { target: { value: "Discarded title" } });
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   await edit();
+  expect(sizeChoice(/^Automatic/)).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByLabelText("Widget title")).toHaveValue("");
   fireEvent.change(screen.getByLabelText("Widget title"), { target: { value: "Board title" } });
   fireEvent.change(screen.getByLabelText("Widget short text"), { target: { value: "Board summary" } });
@@ -189,6 +192,12 @@ it("combines three widget field types independently of the popup and saves the l
   fireEvent.change(screen.getByLabelText("Field 3 · type"), { target: { value: "remaining" } });
   chooseEntity("Field 3 · Time left sensor", "sensor.remaining");
   const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  expect(tile).toHaveAttribute("data-widget-columns", "2");
+  fireEvent.click(sizeChoice(/^Small/));
+  expect(tile).toHaveAttribute("data-widget-columns", "1");
+  fireEvent.click(sizeChoice(/^Large/));
+  expect(tile).toHaveAttribute("data-widget-size", "large");
+  expect(tile).toHaveAttribute("data-widget-columns", "3");
   const detail = screen.getByRole("group", { name: "Popup preview" });
   expect(tile).toHaveTextContent("Board titleBoard summary");
   expect(tile).toHaveTextContent("32 W");
@@ -205,10 +214,12 @@ it("combines three widget field types independently of the popup and saves the l
   expect(setNotifications).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.widget.size).toBe("large");
   expect(saved).toMatchObject({ ...rule, widget: { title: "Board title", text: "Board summary", slots: [{ type: "progress", entity: "home|sensor.percent" }, { type: "reading", entity: "home|sensor.watts" }, { type: "remaining", entity: "home|sensor.remaining" }], media: { type: "image", entity: "home|image.preview" } } });
   view.unmount();
   render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }], dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
   expect(screen.getByRole("listitem")).toHaveTextContent("Board summary");
+  expect(screen.getByRole("listitem")).toHaveAttribute("data-widget-size", "large");
   expect(within(screen.getByRole("listitem")).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "67");
   fireEvent.click(screen.getByRole("button", { name: "Show details for Board title" }));
   expect(screen.getByRole("dialog", { name: rule.title })).toHaveTextContent("Popup message");
