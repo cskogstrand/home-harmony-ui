@@ -223,8 +223,14 @@ function WidgetFields({ rule, entities }: { rule: NotificationRule; entities: En
   </dl>;
 }
 
+export function NotificationBoardGrid({ children }: { children: ReactNode }) {
+  const { notifications } = useFamily();
+  return <ul className="notification-board-layout" data-grid-zoom={notifications.gridZoom}>{children}</ul>;
+}
+
 export function NotificationTile({ item, presentation, preview, entities: previewEntities, onOpen }: { item: HomeNotification; presentation: NotificationPresentation; preview?: PreviewMode; entities?: Entity[]; onOpen: (opener: HTMLButtonElement) => void }) {
   const { message: t } = useI18n();
+  const { notifications } = useFamily();
   const { currentHome } = useApp();
   const { dismiss } = useNotifications();
   const entities = previewEntities ?? currentHome.entities;
@@ -241,13 +247,13 @@ export function NotificationTile({ item, presentation, preview, entities: previe
   const showTitle = !print || !!widget?.title?.trim() || !!subtitle || custom;
   const hasFields = widget?.slots?.some(slot => slot.type !== "empty");
   const dense = hasFields || !!subtitle && rule.kind === "ongoing";
-  const size = widget?.size ?? "auto";
+  const size = widget?.size ?? notifications.defaultWidgetWidth;
   const columns = { auto: dense ? 2 : 1, small: 1, medium: 2, large: 3 }[size];
   const row = useAlertFocusOnRemoval();
   const bodyId = useId();
   const action = doorbell ? "Open camera for {name}" : presentation.startsWith("activity") ? "Open activity card for {name}" : "Show details for {name}";
   return <li ref={row} className={hasMedia ? "notification-glance notification-live-thumbnail" : "notification-glance"}
-    data-widget-size={size} data-widget-columns={columns} data-widget-dense={dense || undefined}>
+    data-widget-columns={columns} data-widget-dense={dense || undefined}>
     <div className="notification-widget-main">
       {!hasMedia && <NotificationIcon rule={rule} />}
       <div id={bodyId} className="notification-body min-w-0 flex-1 break-words">
@@ -424,7 +430,7 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
   return <div ref={slot} className="notification-slot"><AnimatePresence initial={false}>{(eligible.length > 0 || !!sourceErrors) && <NotificationPresence key="notifications">
     <section aria-label={t("Active notifications")}>
       {sourceErrors}
-      {!!eligible.length && <ul className="notification-board-layout">{[...media, ...compactRows].map(preview)}</ul>}
+      {!!eligible.length && <NotificationBoardGrid>{[...media, ...compactRows].map(preview)}</NotificationBoardGrid>}
       {!!eligible.length && allNotifications.length > media.length + compactRows.length && <Link ref={moreLink} className="text-link min-h-11 text-sm" to="/notifications">{t("View all ({count})", { count: allNotifications.length })}</Link>}
     </section>
   </NotificationPresence>}</AnimatePresence>

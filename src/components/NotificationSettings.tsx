@@ -21,7 +21,7 @@ import { EntityPicker } from "./EntityPicker";
 import { PanelTitle } from "./PanelTitle";
 import { NotificationProgressSettings } from "./NotificationProgress";
 import { NotificationPreview } from "./NotificationPreview";
-import { NotificationWidgetSettings } from "./NotificationWidgetSettings";
+import { NotificationGridZoomPicker, NotificationWidgetSettings, NotificationWidgetWidthPicker } from "./NotificationWidgetSettings";
 import { NotificationStylePicker } from "./NotificationStylePicker";
 import { NotificationCameraSettings } from "./NotificationCameraSettings";
 import { NotificationEntitySettings } from "./NotificationEntitySettings";
@@ -181,6 +181,8 @@ export function NotificationSettings() {
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Afterglow is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
+    <NotificationGridZoomPicker value={notifications.gridZoom} disabled={disabled} onChange={gridZoom => setNotifications({ gridZoom })} />
+    <NotificationWidgetWidthPicker value={notifications.defaultWidgetWidth} disabled={disabled} onChange={defaultWidgetWidth => setNotifications({ defaultWidgetWidth })} />
     <Dialog open={previewOpen} onOpenChange={open => { setPreviewOpen(open); setPreviewError(false); }}>
     <div className="notification-settings-toolbar">
       <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
@@ -316,7 +318,7 @@ export function NotificationSettings() {
         </div></NotificationEditorSection>}
         <h3 className="notification-settings-group">{t("Board widget")}</h3>
         <NotificationEditorSection value="widget" title={t("Edit widget")} icon={PanelsTopLeft} summary={draft.widget?.title?.trim() || t("Title, short text, readings and media")} open={openSections.includes("widget")}>
-          <NotificationWidgetSettings rule={draft} entities={selectable} cameras={cameras?.items ?? []} disabled={disabled} onChange={widget => setDraft({ ...draft, widget })} />
+          <NotificationWidgetSettings rule={draft} entities={selectable} cameras={cameras?.items ?? []} defaultWidth={notifications.defaultWidgetWidth} disabled={disabled} onChange={widget => setDraft({ ...draft, widget })} />
         </NotificationEditorSection>
         <h3 className="notification-settings-group">{t("Widget and popup")}</h3>
         <p className="page-note">{t("The popup uses these settings. The widget uses them until you choose its own content.")}</p>

@@ -42,7 +42,8 @@ const notificationEntityDisplaySchema = z.object({
 export type NotificationEntityDisplay = z.infer<typeof notificationEntityDisplaySchema>;
 const imageReference = z.string().max(512).regex(/^(?:[^|]+\|[a-zA-Z0-9_.-]+)?$/);
 export const MAX_WIDGET_SLOTS = 3;
-export const notificationWidgetSizes = ["auto", "small", "medium", "large"] as const;
+export const notificationGridZooms = ["small", "medium", "large"] as const;
+export const notificationWidgetSizes = ["auto", ...notificationGridZooms] as const;
 const widgetSlotSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("empty") }).strict(),
   z.object({ type: z.literal("reading"), entity: reference }).strict(),
@@ -128,6 +129,8 @@ export const notificationRuleSchema = z.object({
 });
 export const notificationSettingsSchema = z.object({
   enabled: z.boolean().default(true),
+  defaultWidgetWidth: z.enum(notificationWidgetSizes).default("auto"),
+  gridZoom: z.enum(notificationGridZooms).default("medium"),
   presentation: notificationPresentationSchema.default("section"),
   // Keep the previous global choice for rules without their own page setting.
   pages: z.enum(["today", "main"]).default("main"),
