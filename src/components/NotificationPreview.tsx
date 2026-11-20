@@ -8,7 +8,7 @@ import { available } from "@/lib/ha-model";
 import { notificationEntity, progressNumber, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import { notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
-import { NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
+import { NotificationBoardGrid, NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog } from "./ui/dialog";
 import { Button } from "./ui/button";
@@ -120,9 +120,9 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   return <section className="notification-preview" aria-label={onPresentationChange ? t("Preview {name}", { name: previewRule.title }) : t("Notification preview")}>
     {editing ? <>
       <PanelTitle as="h3" icon={PanelsTopLeft}>{t("Board widget")}</PanelTitle>
-      <div className="notification-widget-stage"><ul className="notification-board-layout">
+      <div className="notification-widget-stage"><NotificationBoardGrid>
         <NotificationTile item={draft} presentation={presentation} preview={mode} entities={entities} onOpen={openPopup} />
-      </ul></div>
+      </NotificationBoardGrid></div>
       <div className="notification-popup-preview-heading">
         <PanelTitle as="h3" icon={PanelTop}>{t("Popup window")}</PanelTitle>
         <Button type="button" variant="ghost" aria-haspopup="dialog" onClick={event => openPopup(event.currentTarget)}><Expand aria-hidden="true" />{t("Open full size")}</Button>

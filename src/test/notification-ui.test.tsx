@@ -156,6 +156,51 @@ it("edits an image-only current alert and previews the draft image in both place
   expect(setNotifications.mock.lastCall[0].rules[0]).toMatchObject({ imageEntity: "home|image.parcel", cameraEntity: "" });
 });
 
+it("changes the shared width without rewriting rules and lets an override follow the default again", async () => {
+  const rule = { ...cameraRule(), widget: { size: "auto" as const } };
+  const settings = { ...emptyPlanner().notifications, rules: [rule] };
+  mocks.family.notifications = settings;
+  const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
+  const view = render(content());
+  const defaults = within(screen.getByRole("group", { name: "Default widget width" }));
+  fireEvent.click(defaults.getByRole("button", { name: "Up to 3 columns" }));
+  expect(setNotifications).toHaveBeenCalledWith({ defaultWidgetWidth: "large" });
+  mocks.family.notifications = { ...settings, ...setNotifications.mock.lastCall[0] };
+  view.rerender(content());
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Edit widget");
+  const widths = within(screen.getByRole("group", { name: "Widget width" }));
+  const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  expect(widths.getByRole("button", { name: "Automatic" })).toHaveAttribute("aria-pressed", "true");
+  expect(tile).toHaveAttribute("data-widget-columns", "1");
+  fireEvent.click(widths.getByRole("button", { name: "Use default width (Up to 3 columns)" }));
+  expect(tile).toHaveAttribute("data-widget-columns", "3");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(setNotifications.mock.lastCall[0].rules[0].widget.size).toBeUndefined();
+});
+
+it("applies grid zoom to the board and draft preview independently of widget spans", () => {
+  const rule = { ...cameraRule(), widget: { size: "large" as const } };
+  const settings = { ...emptyPlanner().notifications, rules: [rule] };
+  const context = { notifications: [{ id: rule.id, rule, startedAt: 0, popup: false }], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  mocks.family.notifications = settings;
+  const content = () => <MemoryRouter><NotificationContext.Provider value={context}>
+    <NotificationSettings /><NotificationList compact /><NotificationPreview editing rule={rule} presentation="section" />
+  </NotificationContext.Provider></MemoryRouter>;
+  const view = render(content());
+  const picker = within(screen.getByRole("group", { name: "Widget grid zoom" }));
+  expect(picker.getByRole("button", { name: "Medium" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(picker.getByRole("button", { name: "Small" }));
+  expect(setNotifications).toHaveBeenCalledWith({ gridZoom: "small" });
+  mocks.family.notifications = { ...settings, ...setNotifications.mock.lastCall[0] };
+  view.rerender(content());
+  for (const name of ["Active notifications", "Notification preview"]) {
+    const region = within(screen.getByRole("region", { name }));
+    expect(region.getByRole("list")).toHaveAttribute("data-grid-zoom", "small");
+    expect(region.getByRole("listitem")).toHaveAttribute("data-widget-columns", "3");
+  }
+});
+
 it("combines three widget field types independently of the popup and saves the live preview to the board", async () => {
   const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "current", cameraEntity: "", message: "Popup message" });
   mocks.app.currentHome = mapHome({
@@ -171,12 +216,12 @@ it("combines three widget field types independently of the popup and saves the l
     await openEditorSection("Edit widget");
   };
   await edit();
-  const sizeChoice = (name: RegExp) => within(screen.getByRole("group", { name: "Widget size" })).getByRole("button", { name });
-  fireEvent.click(sizeChoice(/^Medium/));
+  const widthChoice = (name: string) => within(screen.getByRole("group", { name: "Widget width" })).getByRole("button", { name });
+  fireEvent.click(widthChoice("Up to 2 columns"));
   fireEvent.change(screen.getByLabelText("Widget title"), { target: { value: "Discarded title" } });
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   await edit();
-  expect(sizeChoice(/^Automatic/)).toHaveAttribute("aria-pressed", "true");
+  expect(widthChoice("Use default width (Automatic)")).toHaveAttribute("aria-pressed", "true");
   expect(screen.getByLabelText("Widget title")).toHaveValue("");
   fireEvent.change(screen.getByLabelText("Widget title"), { target: { value: "Board title" } });
   fireEvent.change(screen.getByLabelText("Widget short text"), { target: { value: "Board summary" } });
@@ -193,10 +238,9 @@ it("combines three widget field types independently of the popup and saves the l
   chooseEntity("Field 3 · Time left sensor", "sensor.remaining");
   const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
   expect(tile).toHaveAttribute("data-widget-columns", "2");
-  fireEvent.click(sizeChoice(/^Small/));
+  fireEvent.click(widthChoice("1 column"));
   expect(tile).toHaveAttribute("data-widget-columns", "1");
-  fireEvent.click(sizeChoice(/^Large/));
-  expect(tile).toHaveAttribute("data-widget-size", "large");
+  fireEvent.click(widthChoice("Up to 3 columns"));
   expect(tile).toHaveAttribute("data-widget-columns", "3");
   const detail = screen.getByRole("group", { name: "Popup preview" });
   expect(tile).toHaveTextContent("Board titleBoard summary");
@@ -219,7 +263,7 @@ it("combines three widget field types independently of the popup and saves the l
   view.unmount();
   render(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }], dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
   expect(screen.getByRole("listitem")).toHaveTextContent("Board summary");
-  expect(screen.getByRole("listitem")).toHaveAttribute("data-widget-size", "large");
+  expect(screen.getByRole("listitem")).toHaveAttribute("data-widget-columns", "3");
   expect(within(screen.getByRole("listitem")).getByRole("progressbar")).toHaveAttribute("aria-valuenow", "67");
   fireEvent.click(screen.getByRole("button", { name: "Show details for Board title" }));
   expect(screen.getByRole("dialog", { name: rule.title })).toHaveTextContent("Popup message");
