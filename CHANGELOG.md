@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.36
+
+<!-- release-source: 32ac75118063b504e735991ea822a9151678e458 -->
+
+- feat: add delayed hide conditions for alerts
+
 ## 0.10.35
 
 <!-- release-source: 4a450515846f542087ff0312a3e33232a47875db -->
