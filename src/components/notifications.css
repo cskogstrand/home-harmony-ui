@@ -126,8 +126,8 @@
 .notification-widget-fields dd { display: flex; gap: .25rem; align-items: center; font-size: .875em; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .notification-widget-fields [role="progressbar"] { width: auto; flex: 1; min-width: .75rem; max-width: 4rem; background: hsl(var(--muted-foreground) / .25); }
 .notification-widget-fields [role="progressbar"][data-state="indeterminate"] { border: 1px dashed currentColor; background: transparent; }
-.notification-widget-fields[data-layout="lines"] { display: flex; flex-direction: column; gap: clamp(0rem, var(--tile-height) - 3.5rem, .2em); }
-.notification-widget-fields[data-layout="lines"] > div { display: flex; align-items: baseline; gap: .375em; padding: 0; border: 0; }
+.notification-widget-fields[data-layout="lines"] + dl { margin-top: clamp(0rem, var(--tile-height) - 3.5rem, .2em); }
+.notification-widget-fields[data-layout="lines"] > div { display: flex; align-items: baseline; gap: .375em; }
 .notification-widget-fields[data-layout="lines"] dt { max-width: 48%; }
 .notification-widget-fields[data-layout="lines"] dd { flex: 1; min-width: 0; }
 .notification-widget-fields[data-layout="lines"] :is(dt, dd) { line-height: 1; }
@@ -136,7 +136,15 @@
   .notification-widget-fields [role="progressbar"] { border: 1px solid CanvasText; }
   .notification-widget-fields [role="progressbar"] > div { background: Highlight; forced-color-adjust: none; }
 }
-.notification-widget-field { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); align-items: start; padding-block-start: .25rem; }
+.notification-widget-field { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); align-items: end; min-width: 0; }
+.notification-widget-line.settings-card { padding: 0; }
+.notification-line-header, .notification-line-field-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.notification-line-header { padding: .25rem .75rem; background: hsl(var(--muted)); border-bottom: 1px solid hsl(var(--border)); border-radius: var(--radius-inset) var(--radius-inset) 0 0; }
+.notification-line-header small { font-weight: 500; }
+.notification-line-field { padding: .25rem .75rem .75rem; }
+.notification-line-field + .notification-line-field { border-top: 1px solid hsl(var(--border)); }
+.notification-line-field-heading { font-weight: 600; font-size: .875rem; }
+.notification-add-field { margin: .5rem .75rem .75rem; }
 @container (max-width: 20em) {
   /* Leave room for the three readings as their type grows. */
   .notification-live-thumbnail[data-widget-dense] .notification-body { --thumbnail-share: clamp(15%, 100% - 9.25em, 20%); }

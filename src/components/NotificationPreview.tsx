@@ -8,7 +8,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { available } from "@/lib/ha-model";
 import { notificationEntity, previewNotificationEvent, progressNumber, progressSourceValue, type HomeNotification } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
-import { notificationTriggers, notificationRuleSchema, visibleWidgetSlots, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
+import { notificationTriggers, notificationRuleSchema, visibleWidgetRows, type NotificationRule, type NotificationPresentation } from "../../shared/notifications";
 import { NotificationBoardGrid, NotificationCameraContent, NotificationDetailContent, NotificationSurface, NotificationTile } from "./NotificationCenter";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog } from "./ui/dialog";
@@ -42,7 +42,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
   const previewRule = rule ? { ...rule, title: rule.title.trim() || t("Your notification") } : example;
   const presentation = previewRule.presentation ?? defaultPresentation;
   const useDemo = !rule || demo;
-  const widgetSlots = visibleWidgetSlots(previewRule.widget, settings.gridZoom) ?? [];
+  const widgetSlots = visibleWidgetRows(previewRule.widget, settings.gridZoom)?.flat() ?? [];
   const hasProgress = !!previewRule.progress || widgetSlots.some(slot => slot.type === "progress" && slot.entity);
   const canPlay = useDemo && hasProgress && !reducedMotion;
   useEffect(() => {

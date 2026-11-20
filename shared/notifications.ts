@@ -45,18 +45,25 @@ export const MAX_WIDGET_SLOTS = 4;
 export const MAX_INLINE_WIDGET_FIELDS = 3;
 export const notificationGridZooms = ["small", "medium", "large"] as const;
 export const notificationWidgetSizes = ["auto", ...notificationGridZooms] as const;
+const widgetFieldLabel = { name: z.string().trim().max(100).optional(), hideName: z.boolean().optional() };
 const widgetSlotSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("empty") }).strict(),
-  z.object({ type: z.literal("text"), text: z.string().trim().min(1, "Enter text for this field.").max(100) }).strict(),
-  z.object({ type: z.literal("reading"), entity: reference, hideName: z.boolean().optional() }).strict(),
-  z.object({ type: z.enum(["progress", "remaining"]), entity: reference.optional(), hideName: z.boolean().optional() }).strict(),
+  z.object({ type: z.literal("text"), text: z.string().trim().min(1, "Enter text for this field.").max(100), ...widgetFieldLabel }).strict(),
+  z.object({ type: z.literal("reading"), entity: reference, ...widgetFieldLabel }).strict(),
+  z.object({ type: z.enum(["progress", "remaining"]), entity: reference.optional(), ...widgetFieldLabel }).strict(),
 ]);
 export type NotificationWidgetSlot = z.infer<typeof widgetSlotSchema>;
+const widgetLineSchema = z.discriminatedUnion("type", [
+  ...widgetSlotSchema.options,
+  z.object({ type: z.literal("fields"), fields: z.array(widgetSlotSchema).min(2).max(MAX_INLINE_WIDGET_FIELDS) }).strict(),
+]);
+// Existing lines store a single field directly.
+export const widgetLineFields = (line: z.infer<typeof widgetLineSchema>) => line.type === "fields" ? line.fields : [line];
 const widgetSchema = z.object({
   size: z.enum(notificationWidgetSizes).optional(),
   title: z.string().trim().max(100).optional(),
   text: z.string().trim().max(100).optional(),
-  slots: z.array(widgetSlotSchema).max(MAX_WIDGET_SLOTS).optional(),
+  slots: z.array(widgetLineSchema).max(MAX_WIDGET_SLOTS).optional(),
   slotLayout: z.literal("lines").optional(),
   readings: z.array(reference).max(2).refine(ids => new Set(ids).size === ids.length).optional(),
   media: z.discriminatedUnion("type", [
@@ -69,8 +76,10 @@ const widgetSchema = z.object({
   return widget;
 });
 export type NotificationWidget = z.infer<typeof widgetSchema>;
-export function visibleWidgetSlots(widget: NotificationWidget | undefined, zoom: typeof notificationGridZooms[number]) {
-  return widget?.slots?.slice(0, widget.slotLayout === "lines" && zoom === "large" ? MAX_WIDGET_SLOTS : MAX_INLINE_WIDGET_FIELDS);
+export function visibleWidgetRows(widget: NotificationWidget | undefined, zoom: typeof notificationGridZooms[number]) {
+  if (!widget?.slots) return undefined;
+  if (widget.slotLayout === "lines") return widget.slots.slice(0, zoom === "large" ? MAX_WIDGET_SLOTS : 3).map(widgetLineFields);
+  return [widget.slots.slice(0, MAX_INLINE_WIDGET_FIELDS).map(line => widgetLineFields(line)[0])];
 }
 const stateTriggerSchema = z.object({ type: z.literal("state"), entity: reference, attribute: z.string().max(100).default(""),
   operator: z.enum(["eq", "neq", "gt", "lt"]), value: z.string().trim().min(1).max(256) }).strict();
@@ -112,11 +121,12 @@ export const notificationRuleSchema = z.object({
 }).strict().transform(({ detailEntity, detailEntities, ...rule }) => ({
   ...rule, detailEntities: detailEntities ?? (detailEntity ? [detailEntity] : []),
 })).superRefine((rule, ctx) => {
-  rule.widget?.slots?.forEach((slot, index) => {
+  rule.widget?.slots?.forEach((line, index) => widgetLineFields(line).forEach((slot, fieldIndex) => {
     if ((slot.type === "progress" && !rule.progress || slot.type === "remaining" && rule.kind !== "ongoing") && !slot.entity) {
-      ctx.addIssue({ code: "custom", path: ["widget", "slots", index, "entity"], message: "Choose a sensor for this field." });
+      const path = line.type === "fields" ? ["widget", "slots", index, "fields", fieldIndex] : ["widget", "slots", index];
+      ctx.addIssue({ code: "custom", path: [...path, "entity"], message: "Choose a sensor for this field." });
     }
-  });
+  }));
   if (rule.progress && rule.kind !== "ongoing") ctx.addIssue({ code: "custom", path: ["progress"], message: "Progress is only available for ongoing tasks." });
   if (rule.kind === "camera" && !rule.cameraEntity) ctx.addIssue({ code: "custom", path: ["cameraEntity"], message: "Choose a camera." });
   const triggers = [rule.trigger, ...(rule.additionalTriggers ?? [])];

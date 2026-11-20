@@ -9,7 +9,7 @@ import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { isNotificationTimeSource, notificationEntity, notificationReadings, notificationStyleLabels, notificationIssueSection } from "@/lib/notifications";
-import { MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger, type NotificationStateTrigger } from "../../shared/notifications";
+import { MAX_INLINE_WIDGET_FIELDS, MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger, type NotificationStateTrigger } from "../../shared/notifications";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
 import { Accordion } from "./ui/accordion";
@@ -140,6 +140,10 @@ export function NotificationSettings() {
     }
     if (errors.length) {
       setMobileView("setup");
+      if (draft.widget?.slots && !draft.widget.slotLayout && errors.some(({ path }) =>
+        path[0] === "widget" && path[1] === "slots" && (Number(path[2]) >= MAX_INLINE_WIDGET_FIELDS || path[3] === "fields" && Number(path[4]) > 0))) {
+        setDraft({ ...draft, widget: { ...draft.widget, slotLayout: "lines" } });
+      }
       setIssues(errors.filter((issue, index) => errors.findIndex(other => JSON.stringify(other.path) === JSON.stringify(issue.path)) === index));
       setOpenSections(sections => [...new Set([...sections, ...errors.map(notificationIssueSection)])]);
       return;

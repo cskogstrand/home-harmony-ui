@@ -30,6 +30,12 @@ describe("notification configuration", () => {
     const widget = { size: "medium" as const, title: "Tile", slotLayout: "lines" as const, slots: [{ type: "progress" as const, entity: "home|sensor.percent", hideName: true }, { type: "text" as const, text: "Cycle in progress" }, { type: "reading" as const, entity: "home|sensor.watts" }, { type: "text" as const, text: "Large only" }], media: { type: "person" as const, cameraId: "example-camera" } };
     config.settings.notifications.rules = [rule({ widget })];
     expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0].widget).toEqual(widget);
+    const fields = [widget.slots[0], widget.slots[1], widget.slots[2]];
+    config.settings.notifications.rules[0].widget.slots = [{ type: "fields", fields }];
+    expect(parseConfiguration(JSON.stringify(config)).settings.notifications.rules[0].widget.slots).toEqual([{ type: "fields", fields }]);
+    for (const invalid of [[], [...fields, fields[0]], [{ type: "fields", fields }, fields[0]]]) {
+      expect(notificationRuleSchema.safeParse({ ...rule(), widget: { slots: [{ type: "fields", fields: invalid }] } }).success).toBe(false);
+    }
     for (const readings of [[], ["a", "b"]]) {
       expect(notificationRuleSchema.parse({ ...rule(), widget: { readings } }).widget.slots).toEqual(readings.map(entity => ({ type: "reading", entity })));
     }

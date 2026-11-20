@@ -1,10 +1,10 @@
-import { ArrowDown, ArrowUp, Check } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Plus, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useI18n } from "@/hooks/use-i18n";
 import { isNotificationTimeSource, notificationMinutesLeft, progressNumber } from "@/lib/notifications";
 import type { Entity } from "@/types/api";
 import type { ConfiguredCamera } from "../../shared/cameras";
-import { MAX_INLINE_WIDGET_FIELDS, MAX_WIDGET_SLOTS, notificationGridZooms, notificationWidgetSizes, type NotificationRule, type NotificationWidget, type NotificationWidgetSlot } from "../../shared/notifications";
+import { MAX_INLINE_WIDGET_FIELDS, MAX_WIDGET_SLOTS, notificationGridZooms, notificationWidgetSizes, widgetLineFields, type NotificationRule, type NotificationWidget, type NotificationWidgetSlot } from "../../shared/notifications";
 import { EntityPicker } from "./EntityPicker";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
@@ -90,6 +90,52 @@ function acceptsSource(slot: NotificationWidgetSlot, entity: Entity) {
   return unit === "%" || !unit && progressNumber(entity.state) !== undefined;
 }
 
+function WidgetFieldControls({ slot, rule, entities, field, path, customLine, disabled, onChange }: {
+  slot: NotificationWidgetSlot; rule: NotificationRule; entities: Entity[]; field: string; path: string;
+  customLine: boolean; disabled: boolean; onChange: (slot: NotificationWidgetSlot) => void;
+}) {
+  const { message: t } = useI18n();
+  const shared = slot.type === "progress" && !!rule.progress || slot.type === "remaining" && rule.kind === "ongoing";
+  const sourceLabel = slot.type === "progress" ? "Percentage sensor" : slot.type === "remaining" ? "Time left sensor" : "Sensor";
+  return <div className="grid min-w-0 gap-3">
+    <div className="notification-widget-field">
+      <label>{t("Field type")}<select data-field-type aria-label={t("{field} · type", { field })} name={`${path}.type`} value={slot.type} disabled={disabled} onChange={event => {
+        const type = event.target.value as NotificationWidgetSlot["type"];
+        const label = slot.type === "empty" ? {} : { name: slot.name, hideName: slot.hideName };
+        if (type === "empty") onChange({ type });
+        else if (type === "text") onChange({ type, text: "", ...label });
+        else if (type === "reading") onChange({ type, entity: "", ...label });
+        else onChange({ type, ...label });
+      }}>
+        {(!customLine || slot.type === "empty") && <option value="empty">{t("Empty")}</option>}
+        <option value="text">{t("Free text")}</option><option value="progress">{t("Progress bar")}</option>
+        <option value="reading">{t("Reading or status")}</option><option value="remaining">{t("Time remaining")}</option>
+      </select></label>
+      {slot.type === "text" && <label>{t("Free text")}<input name={`${path}.text`} aria-label={t("{field} · {source}", { field, source: t("Free text") })}
+        maxLength={100} value={slot.text} disabled={disabled} onChange={event => onChange({ ...slot, text: event.target.value })} /></label>}
+      {slot.type !== "empty" && slot.type !== "text" && <EntityPicker name={`${path}.entity`} label={t(sourceLabel)} ariaLabel={t("{field} · {source}", { field, source: t(sourceLabel) })}
+        entities={entities.filter(entity => acceptsSource(slot, entity))} value={slot.entity ?? ""} disabled={disabled}
+        placeholder={shared ? t("From notification") : undefined} clearLabel={shared ? t("From notification") : undefined}
+        onChange={entity => onChange(slot.type === "reading" ? { ...slot, entity } : { ...slot, entity: entity || undefined })} />}
+    </div>
+    {slot.type !== "empty" && <div className="notification-widget-field">
+      <label>{t("Field name (optional)")}<input name={`${path}.name`} aria-label={t("{field} · {source}", { field, source: t("Field name (optional)") })}
+        maxLength={100} value={slot.name ?? ""} placeholder={t("Automatic")} disabled={disabled} onChange={event => onChange({ ...slot, name: event.target.value || undefined })} /></label>
+      {(slot.type !== "text" || slot.name?.trim()) && <label className="notification-toggle min-h-12"><span>{t("Hide name")}</span>
+        <Switch aria-label={t("{field} · {source}", { field, source: t("Hide name") })} checked={!!slot.hideName} disabled={disabled}
+          onCheckedChange={hideName => onChange({ ...slot, hideName })} />
+      </label>}
+    </div>}
+  </div>;
+}
+
+function focusWidgetField(group: HTMLElement, index: number) {
+  requestAnimationFrame(() => {
+    const field = group.querySelectorAll<HTMLSelectElement>("[data-field-type]")[index];
+    (field ?? group.querySelector<HTMLButtonElement>("[data-add-field]"))?.focus();
+  });
+}
+
 export function NotificationWidgetSettings({ rule, entities, cameras, defaultWidth, disabled, onChange }: {
   rule: NotificationRule; entities: Entity[]; cameras: ConfiguredCamera[]; defaultWidth: WidgetWidth; disabled: boolean; onChange: (value: NotificationWidget) => void;
 }) {
@@ -99,7 +145,8 @@ export function NotificationWidgetSettings({ rule, entities, cameras, defaultWid
   const slotCount = lines ? MAX_WIDGET_SLOTS : MAX_INLINE_WIDGET_FIELDS;
   const slots = Array.from({ length: Math.max(slotCount, widget.slots?.length ?? 0) }, (_, i) => widget.slots?.[i] ?? { type: "empty" as const });
   const update = (patch: Partial<NotificationWidget>) => onChange({ ...widget, ...patch });
-  const setSlot = (index: number, next: NotificationWidgetSlot) => {
+  const setFields = (index: number, fields: NotificationWidgetSlot[]) => {
+    const next = fields.length > 1 ? { type: "fields" as const, fields } : fields[0] ?? { type: "empty" as const };
     update({ slots: slots.map((slot, i) => i === index ? next : slot) });
   };
   const moveLine = (index: number, direction: -1 | 1, form: HTMLFormElement | null) => {
@@ -149,51 +196,56 @@ export function NotificationWidgetSettings({ rule, entities, cameras, defaultWid
       {cameraChoices.map(camera => <option key={camera.id} value={camera.id}>{camera.name}</option>)}
     </select></label>}
     {media?.type === "image" && <EntityPicker label={t("Widget image")} name="widget.media.entity" entities={entities.filter(entity => entity.domain === "image")} value={media.entity} disabled={disabled} onChange={entity => update({ media: { type: "image", entity } })} />}
-    {widget.slots && <><p className="page-note">{t(lines ? "Use the arrows to change the line order." : "Fields appear from left to right on one row.")}</p>
-      {slots.slice(0, slotCount).map((slot, index) => {
-        const field = t(lines ? "Line {number}" : "Field {number}", { number: index + 1 });
-        const largeOnly = lines && index === MAX_WIDGET_SLOTS - 1;
-        const shared = slot.type === "progress" && !!rule.progress || slot.type === "remaining" && rule.kind === "ongoing";
-        const sourceLabel = slot.type === "progress" ? "Percentage sensor" : slot.type === "remaining" ? "Time left sensor" : "Sensor";
-        return <fieldset key={index} className="notification-progress-field notification-widget-field" data-line-index={lines ? index : undefined}
-          aria-label={largeOnly ? `${field} · ${t("Large zoom only")}` : field}>
-          <legend className="w-full"><span className="flex items-center justify-between gap-2">
-            <span>{field}{largeOnly && <small className="page-note block">{t("Large zoom only")}</small>}</span>
-            {lines && <span className="flex shrink-0 gap-1">
+    {widget.slots && <><p className="page-note">{t(lines ? "Add up to three fields per line. Use the arrows to move the whole line." : "Fields appear from left to right on one row.")}</p>
+      {slots.slice(0, slotCount).map((line, index) => {
+        const name = t(lines ? "Line {number}" : "Field {number}", { number: index + 1 });
+        const fields = widgetLineFields(line);
+        const path = `widget.slots.${index}`;
+        const controls = (slot: NotificationWidgetSlot, position: number, field: string) => <WidgetFieldControls
+          slot={slot} field={field} path={line.type === "fields" ? `${path}.fields.${position}` : path}
+          rule={rule} entities={entities} customLine={lines} disabled={disabled}
+          onChange={next => setFields(index, fields.map((old, i) => i === position ? next : old))} />;
+        if (!lines) return <fieldset key={index} className="notification-progress-field">
+          <legend>{name}</legend>{controls(fields[0], 0, name)}
+        </fieldset>;
+
+        const largeOnly = index === MAX_WIDGET_SLOTS - 1;
+        const lineFields = line.type === "empty" ? [] : fields;
+        return <div role="group" key={index} className="settings-card notification-widget-line" data-line-index={index}
+          aria-label={largeOnly ? `${name} · ${t("Large zoom only")}` : name}>
+          <div className="notification-line-header">
+            <strong>{name}{largeOnly && <small className="page-note block">{t("Large zoom only")}</small>}</strong>
+            <div className="flex gap-2">
               {([-1, 1] as const).map(direction => {
-                const label = t(direction === -1 ? "Move {value1} up" : "Move {value1} down", { value1: field });
+                const label = t(direction === -1 ? "Move {value1} up" : "Move {value1} down", { value1: name });
                 return <Button key={direction} type="button" variant="ghost" size="icon" data-direction={direction} aria-label={label} title={label}
-                  disabled={disabled || slot.type === "empty" || index + direction < 0 || index + direction >= slotCount}
+                  disabled={disabled || !lineFields.length || index + direction < 0 || index + direction >= slotCount}
                   onClick={event => moveLine(index, direction, event.currentTarget.form)}>
                   {direction === -1 ? <ArrowUp aria-hidden="true" /> : <ArrowDown aria-hidden="true" />}
                 </Button>;
               })}
-            </span>}
-          </span></legend>
-          <label>{t("Field type")}<select aria-label={t("{field} · type", { field })} name={`widget.slots.${index}.type`} value={slot.type} disabled={disabled} onChange={event => {
-            const type = event.target.value as NotificationWidgetSlot["type"];
-            const hideName = "hideName" in slot ? slot.hideName : undefined;
-            if (type === "text") setSlot(index, { type, text: "" });
-            else if (type === "empty") setSlot(index, { type });
-            else if (type === "reading") setSlot(index, { type, entity: "", hideName });
-            else setSlot(index, { type, hideName });
-          }}>
-            <option value="empty">{t("Empty")}</option><option value="text">{t("Free text")}</option><option value="progress">{t("Progress bar")}</option>
-            <option value="reading">{t("Reading or status")}</option><option value="remaining">{t("Time remaining")}</option>
-          </select></label>
-          {slot.type === "text" && <label>{t("Free text")}<input name={`widget.slots.${index}.text`} aria-label={t("{field} · {source}", { field, source: t("Free text") })}
-            maxLength={100} value={slot.text} disabled={disabled} onChange={event => setSlot(index, { type: "text", text: event.target.value })} /></label>}
-          {slot.type !== "empty" && slot.type !== "text" && <>
-            <EntityPicker name={`widget.slots.${index}.entity`} label={t(sourceLabel)} ariaLabel={t("{field} · {source}", { field, source: t(sourceLabel) })}
-              entities={entities.filter(entity => acceptsSource(slot, entity))}
-              value={slot.entity ?? ""} disabled={disabled} placeholder={shared ? t("From notification") : undefined} clearLabel={shared ? t("From notification") : undefined}
-              onChange={entity => setSlot(index, slot.type === "reading" ? { ...slot, entity } : { ...slot, entity: entity || undefined })} />
-            <label className="notification-toggle col-span-full"><span>{t("Hide name")}</span>
-              <Switch aria-label={t("{field} · {source}", { field, source: t("Hide name") })} checked={!!slot.hideName} disabled={disabled}
-                onCheckedChange={hideName => setSlot(index, { ...slot, hideName })} />
-            </label>
-          </>}
-        </fieldset>;
+            </div>
+          </div>
+          {lineFields.map((slot, position) => {
+            const field = t("Field {number}", { number: position + 1 });
+            const remove = t("Remove {value1} from {value2}", { value1: field, value2: name });
+            return <div key={position} className="notification-line-field">
+              <div className="notification-line-field-heading"><span>{field}</span>
+                <Button type="button" size="icon" variant="ghost" aria-label={remove} title={remove} disabled={disabled} onClick={event => {
+                  const remaining = fields.filter((_, i) => i !== position);
+                  setFields(index, remaining);
+                  focusWidgetField(event.currentTarget.closest("[data-line-index]"), Math.min(position, remaining.length - 1));
+                }}><X aria-hidden="true" /></Button>
+              </div>
+              {controls(slot, position, lineFields.length === 1 ? name : `${name} · ${field}`)}
+            </div>;
+          })}
+          <Button type="button" variant="outline" size="sm" className="notification-add-field" data-add-field
+            disabled={disabled || lineFields.length >= MAX_INLINE_WIDGET_FIELDS} onClick={event => {
+              setFields(index, [...lineFields, { type: "text", text: "" }]);
+              focusWidgetField(event.currentTarget.closest("[data-line-index]"), lineFields.length);
+            }}><Plus aria-hidden="true" />{t("Add field")}</Button>
+        </div>;
       })}</>}
   </>;
 }

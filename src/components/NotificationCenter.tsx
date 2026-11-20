@@ -1,4 +1,4 @@
-import { notificationTriggers, visibleWidgetSlots } from "../../shared/notifications";
+import { notificationTriggers, visibleWidgetRows } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent } from "framer-motion";
@@ -195,35 +195,35 @@ export function NotificationRow({ item, condensed = false, activity = false, com
 function WidgetFields({ rule, entities, slots }: { rule: NotificationRule; entities: Entity[]; slots: NotificationWidgetSlot[] }) {
   const { message: t, number } = useI18n();
   const readingValue = useReadingValue();
-  const lines = rule.widget.slotLayout === "lines";
   const last = slots.reduce((count, slot, index) => slot.type === "empty" ? count : index + 1, 0);
   if (!last) return null;
   return <dl className="notification-widget-fields" data-layout={rule.widget.slotLayout}
-    style={lines ? undefined : { gridTemplateColumns: `repeat(${last}, minmax(0, 1fr))` }}>
+    style={{ gridTemplateColumns: `repeat(${last}, minmax(0, 1fr))` }}>
     {slots.map((slot, index) => {
       if (slot.type === "empty") return null;
       const entity = "entity" in slot && slot.entity ? notificationEntity(entities, slot.entity) : undefined;
+      const name = slot.name?.trim();
       let label: string, value: string, bar: ReactNode;
       if (slot.type === "text") {
-        label = t("Free text");
+        label = name || t("Free text");
         value = slot.text;
       } else if (slot.type === "reading") {
-        label = entity?.name || slot.entity?.split("|").pop() || t("Sensor");
+        label = name || entity?.name || slot.entity?.split("|").pop() || t("Sensor");
         const reading = readingValue(entity);
         value = reading.value + reading.unit;
       } else if (slot.type === "remaining") {
-        label = t("Time remaining");
+        label = name || t("Time remaining");
         const minutes = notificationMinutesLeft(rule, entities, Date.now(), slot.entity);
         value = minutes === undefined ? t("Unavailable") : minutes < 60 ? t("{minutes} min", { minutes }) : t("{hours} h {minutes} min", { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
       } else {
-        label = entity?.name || t("Progress");
+        label = name || entity?.name || t("Progress");
         const raw = slot.entity ? progressSourceValue({ type: "entity", entity: slot.entity, attribute: "" }, entities) : rule.progress && notificationProgress(rule.progress, entities)?.percent;
         const percent = raw === undefined ? null : Math.min(100, Math.max(0, raw));
         value = percent === null ? t("Unavailable") : `${number(Math.round(percent))}%`;
         bar = <Progress value={percent} aria-label={label} aria-valuetext={value} className="h-1" />;
       }
-      return <div key={index} style={lines ? undefined : { gridColumn: index + 1 }}>
-        <dt title={label} className={slot.type === "text" || slot.hideName ? "sr-only" : undefined}>{label}</dt><dd title={value}>{bar}<span>{value}</span></dd>
+      return <div key={index} style={{ gridColumn: index + 1 }}>
+        <dt title={label} className={slot.hideName || slot.type === "text" && !name ? "sr-only" : undefined}>{label}</dt><dd title={value}>{bar}<span>{value}</span></dd>
       </div>;
     })}
   </dl>;
@@ -249,9 +249,9 @@ export function NotificationTile({ item, presentation, preview, entities: previe
   const hasMedia = media.type !== "none";
   const doorbell = rule.kind === "camera";
   const print = rule.kind === "ongoing" && rule.icon === "printer_3d" && media.type === "live";
-  const slots = visibleWidgetSlots(widget, notifications.gridZoom);
-  const custom = slots !== undefined;
-  const hasFields = slots?.some(slot => slot.type !== "empty");
+  const rows = visibleWidgetRows(widget, notifications.gridZoom);
+  const custom = rows !== undefined;
+  const hasFields = rows?.some(row => row.some(slot => slot.type !== "empty"));
   const showTitle = !(hasFields && widget?.slotLayout === "lines") && (!print || !!widget?.title?.trim() || !!subtitle || custom);
   const dense = hasFields || !!subtitle && rule.kind === "ongoing";
   const size = widget?.size ?? notifications.defaultWidgetWidth;
@@ -268,7 +268,8 @@ export function NotificationTile({ item, presentation, preview, entities: previe
           <NotificationCameraFeed item={item} cameraId={media.cameraId} cameraMedia={media.type} preview={preview} compact thumbnail />}
         <div className="notification-preview-copy">
           {showTitle && <div className="notification-glance-caption"><strong>{name}</strong>{subtitle && <small>{subtitle}</small>}</div>}
-          {custom ? <WidgetFields rule={rule} entities={entities} slots={slots} /> : rule.kind === "ongoing" && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
+          {custom ? rows.map((slots, index) => <WidgetFields key={index} rule={rule} entities={entities} slots={slots} />)
+            : rule.kind === "ongoing" && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
         </div>
       </div>
       {!hasMedia && !doorbell && <ChevronRight className="notification-glance-chevron" aria-hidden="true" />}

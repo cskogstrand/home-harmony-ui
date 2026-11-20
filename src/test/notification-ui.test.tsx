@@ -293,13 +293,13 @@ it("saves three custom lines in order and previews free text, a sensor value and
   fireEvent.click(hideName);
   fireEvent.change(mode, { target: { value: "lines" } });
   expect(screen.getByRole("switch", { name: "Line 2 · Hide name" })).toBeChecked();
-  fireEvent.change(screen.getByLabelText("Line 1 · type"), { target: { value: "text" } });
+  fireEvent.click(within(screen.getByRole("group", { name: "Line 1" })).getByRole("button", { name: "Add field" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(screen.getByLabelText("Line 1 · Free text")).toHaveAttribute("aria-invalid", "true");
   fireEvent.change(screen.getByLabelText("Line 1 · Free text"), { target: { value: "Workshop cycle" } });
   const preview = screen.getByRole("region", { name: "Notification preview" });
-  const lines = within(preview).getByRole("listitem").querySelector("dl");
-  expect(lines).toHaveAttribute("data-layout", "lines");
+  const lines = within(preview).getByRole("listitem");
+  expect(lines.querySelectorAll('dl[data-layout="lines"]')).toHaveLength(3);
   expect(lines.querySelectorAll("dt")[1]).toHaveClass("sr-only");
   expect(lines.querySelectorAll("dt")[2]).not.toHaveClass("sr-only");
   expect(Array.from(lines.querySelectorAll("dd"), item => item.textContent)).toEqual(["Workshop cycle", "32 W", "67%"]);
@@ -330,7 +330,7 @@ it("edits and reorders all four lines at any zoom and shows the fourth only at L
   await openEditorSection("Edit widget");
   const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
   expect(screen.getByRole("group", { name: "Line 4 · Large zoom only" })).toBeVisible();
-  fireEvent.change(screen.getByLabelText("Line 4 · type"), { target: { value: "text" } });
+  fireEvent.click(within(screen.getByRole("group", { name: "Line 4 · Large zoom only" })).getByRole("button", { name: "Add field" }));
   fireEvent.change(screen.getByLabelText("Line 4 · Free text"), { target: { value: "Fourth" } });
   expect(tile).not.toHaveTextContent("Fourth");
   expect(screen.getByRole("button", { name: "Move Line 4 down" })).toBeDisabled();
@@ -352,6 +352,57 @@ it("edits and reorders all four lines at any zoom and shows the fourth only at L
   expect(screen.getByLabelText("Line 4 · Free text")).toHaveValue("Fourth");
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(setNotifications.mock.lastCall[0].rules[0].widget.slots).toEqual([...rule.widget.slots, { type: "text", text: "Fourth" }]);
+});
+
+it("adds mixed fields to one line, validates their sources and moves and saves them together", async () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), widget: { slotLayout: "lines", slots: [
+    { type: "empty" }, { type: "empty" }, { type: "text", text: "Cycle" },
+  ] } });
+  mocks.app.currentHome = mapHome({ "sensor.percent": state("sensor.percent", "67", { unit_of_measurement: "%" }) }, emptyRegistries, "home");
+  const settings = { ...emptyPlanner().notifications, rules: [rule] };
+  mocks.family.notifications = settings;
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
+  await openEditorSection("Edit widget");
+  const add = () => within(screen.getByRole("group", { name: "Line 3" })).getByRole("button", { name: "Add field" });
+  fireEvent.click(add());
+  const type = screen.getByLabelText("Line 3 · Field 2 · type");
+  await waitFor(() => expect(type).toHaveFocus());
+  fireEvent.change(screen.getByLabelText("Line 3 · Field 1 · Field name (optional)"), { target: { value: "Task" } });
+  fireEvent.change(screen.getByLabelText("Line 3 · Field 2 · Field name (optional)"), { target: { value: "Completion" } });
+  fireEvent.change(type, { target: { value: "progress" } });
+  const mode = screen.getByLabelText("Widget content");
+  fireEvent.change(mode, { target: { value: "columns" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(mode).toHaveValue("lines");
+  expect(screen.getByRole("button", { name: "Line 3 · Field 2 · Percentage sensor" })).toHaveAttribute("aria-invalid", "true");
+  chooseEntity("Line 3 · Field 2 · Percentage sensor", "sensor.percent");
+  fireEvent.click(screen.getByRole("switch", { name: "Line 3 · Field 2 · Hide name" }));
+  fireEvent.click(add());
+  expect(add()).toBeDisabled();
+  fireEvent.change(screen.getByLabelText("Line 3 · Field 3 · Free text"), { target: { value: "Temporary" } });
+  fireEvent.click(screen.getByRole("button", { name: "Remove Field 3 from Line 3" }));
+  expect(add()).toBeEnabled();
+  const tile = within(screen.getByRole("region", { name: "Notification preview" })).getByRole("listitem");
+  expect(Array.from(tile.querySelectorAll("dl dd"), dd => dd.textContent)).toEqual(["Cycle", "67%"]);
+  expect(within(tile).getByText("Task")).not.toHaveClass("sr-only");
+  expect(within(tile).getByRole("progressbar", { name: "Completion" })).toHaveAttribute("aria-valuenow", "67");
+  fireEvent.change(mode, { target: { value: "columns" } });
+  expect(tile).not.toHaveTextContent("67%");
+  fireEvent.change(mode, { target: { value: "lines" } });
+  fireEvent.click(screen.getByRole("button", { name: "Move Line 3 down" }));
+  expect(tile).not.toHaveTextContent("Cycle");
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const [saved] = setNotifications.mock.lastCall[0].rules;
+  expect(saved.widget.slots[3]).toEqual({ type: "fields", fields: [
+    { type: "text", text: "Cycle", name: "Task" }, { type: "progress", entity: "home|sensor.percent", name: "Completion", hideName: true },
+  ] });
+  mocks.family.notifications = { ...settings, rules: [saved], gridZoom: "large" };
+  view.rerender(<MemoryRouter><NotificationContext.Provider value={{ notifications: [{ id: saved.id, rule: saved, startedAt: 0, popup: false }],
+    dismiss: vi.fn(), camera: vi.fn(), errors: [], retry: vi.fn() }}><NotificationList compact /></NotificationContext.Provider></MemoryRouter>);
+  const row = screen.getByRole("listitem").querySelector("dl");
+  expect(Array.from(row.querySelectorAll("dd"), dd => dd.textContent)).toEqual(["Cycle", "67%"]);
+  expect(within(row).getByText("Completion")).toHaveClass("sr-only");
 });
 
 it("keeps an empty field in place and distinguishes unavailable progress from zero", () => {
