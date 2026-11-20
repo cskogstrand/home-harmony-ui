@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.38
+
+<!-- release-source: 09fb8af8f33b325ce3d3b1a70af0c8cadf907081 -->
+
+- feat: preview all notification rules on Today
+- feat: support four reorderable widget lines
+- fix: match Today background dimming to other pages
+- feat: add notification grid zoom and shared widths
+- perf: skip unrelated Smart Home card renders
+- feat: add notification widget sizes
+
 ## 0.10.37
 
 <!-- release-source: abb552a277c94eec46aabbd5b392a24def6c781a -->
