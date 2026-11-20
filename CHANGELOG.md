@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.34
+
+<!-- release-source: cd74966d88e8e541a59bbbfec442f805c1f7a6ab -->
+
+- fix: confine card artwork to a corner
+- perf: skip weekly grid renders on sensor updates
+- perf: reuse date formatters and settings snapshots
+- feat: add six SVG scenes and per-card artwork
+- perf: reuse calendar plans across sensor updates
+- feat: add optional SVG dashboard artwork
+
 ## 0.10.33
 
 <!-- release-source: 9bd6e13631c650c8215f13127daad1c3c7dc7cb8 -->
