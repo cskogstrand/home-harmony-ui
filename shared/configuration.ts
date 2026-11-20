@@ -4,7 +4,7 @@ import { cameraSettingsSchema } from "./cameras.ts";
 
 export const MAX_CONFIG_BYTES = 2 * 1024 * 1024;
 export const defaultModalGlass = { modalTransparency: 70, modalBlur: 20, modalSaturation: 150, modalDimming: 20 };
-export const artworkSchema = z.enum(["none", "fjord", "garden", "sunroom", "paper", "aurora"]);
+export const artworkSchema = z.enum(["none", "fjord", "garden", "sunroom", "paper", "aurora", "harbor", "birch", "atlas", "pottery", "meadow", "weave"]);
 export type Artwork = z.infer<typeof artworkSchema>;
 export function isPlannerDate(value: string | null): value is string {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -67,6 +67,7 @@ export const deviceCardSchema = z.object({
   linkedEntities: z.array(memberSchema).max(100).default([]),
   group: z.string().trim().max(80).default(""),
   density: cardDensitySchema.default("supercompact"),
+  illustrated: z.boolean().optional(),
 }).strict().refine(card => new Set([card.mainEntity, ...card.linkedEntities]).size === card.linkedEntities.length + 1, "Choose each entity only once per card.");
 export type DeviceCardSettings = z.infer<typeof deviceCardSchema>;
 export const smartHomeSchema = z.object({
@@ -94,6 +95,8 @@ export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
 export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
 export type DashboardSection = typeof dashboardSections[number];
+export const plannerArtworkSchema = z.enum([...dashboardSections, "calendar", "tasks"]);
+export type PlannerArtwork = z.infer<typeof plannerArtworkSchema>;
 const dashboardHomeworkSchema = z.object({
   period: z.enum(["through-today", "through-tomorrow", "today", "tomorrow", "all"]).default("through-today"),
   includeUndated: z.boolean().default(true),
@@ -141,6 +144,7 @@ const plannerObjectSchema = z.object({
     theme: z.enum(["light", "dark"]),
     colorPalette: z.enum(["pearl", "sage", "sand", "dusk", "mist", "rose", "olive", "clay", "lavender", "seafoam", "honey", "slate"]).default("pearl"),
     artwork: artworkSchema.default("none"),
+    plannerArtwork: z.record(plannerArtworkSchema, z.boolean()).default({}),
     compactMode: z.boolean(),
     darkTimetables: z.boolean().default(false),
     modalTransparency: z.number().int().min(0).max(85).default(defaultModalGlass.modalTransparency),

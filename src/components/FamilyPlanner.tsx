@@ -3,6 +3,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, ChevronLeft, ChevronRight, Trash2, ImageOff, Maximize2, PencilOff, ListTodo, type LucideIcon } from "lucide-react";
+import type { PlannerArtwork } from "../../shared/configuration";
 import { PanelTitle } from "./PanelTitle";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { newPlanTimes, shiftedPlanEnd } from "@/lib/calendar-editor";
@@ -41,9 +42,9 @@ export function MemberOptions() {
   const { members } = useFamily();
   return <><option value="" disabled>{t(members.length ? "Choose a person" : "No people available.")}</option>{members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</>;
 }
-export function PanelHeading({ title, icon, to, label = "View all" }: { title: string; icon: LucideIcon; to?: string; label?: string }) {
+export function PanelHeading({ title, icon, artwork, to, label = "View all" }: { title: string; icon: LucideIcon; artwork?: PlannerArtwork; to?: string; label?: string }) {
   const { message } = useI18n();
-  return <div className="panel-heading"><PanelTitle icon={icon}>{title}</PanelTitle>{to && <Link to={to} className="text-link">{message(label)}<ArrowUpRight size={17} aria-hidden="true" /></Link>}</div>;
+  return <div className="panel-heading"><PanelTitle icon={icon} artwork={artwork}>{title}</PanelTitle>{to && <Link to={to} className="text-link">{message(label)}<ArrowUpRight size={17} aria-hidden="true" /></Link>}</div>;
 }
 export function EventButton({ event, onClick, showDate = false, showMember = false, hideMember = false, continuesBefore = false, continuesAfter = false }: { event: FamilyEvent; onClick: () => void; showDate?: boolean; showMember?: boolean; hideMember?: boolean; continuesBefore?: boolean; continuesAfter?: boolean }) {
   const { t, dateLabel, eventTimeLabel } = useI18n();

@@ -16,8 +16,8 @@ import { CardPresentation, cardVariants } from "./card-presentation";
 import { CardFrame } from "./CardFrame";
 import { DeviceControl } from "./DeviceControl";
 
-export function SmartHomeCard({ entity, entities = entity ? [entity] : [], design: chosenDesign, title, density = "supercompact", preview = false, detail = false, editTo }: {
-  entity?: Entity; entities?: Entity[]; design?: CardDesign; title?: string; density?: CardDensity; preview?: boolean; detail?: boolean; editTo?: string;
+export function SmartHomeCard({ entity, entities = entity ? [entity] : [], design: chosenDesign, title, density = "supercompact", illustrated, preview = false, detail = false, editTo }: {
+  entity?: Entity; entities?: Entity[]; design?: CardDesign; title?: string; density?: CardDensity; illustrated?: boolean; preview?: boolean; detail?: boolean; editTo?: string;
 }) {
   const { currentHome, homeOnline } = useApp();
   const { message: t, language } = useI18n();
@@ -26,7 +26,7 @@ export function SmartHomeCard({ entity, entities = entity ? [entity] : [], desig
   const supporting = entities.filter(item => item.preferenceId !== entity?.preferenceId);
   const media = supporting.filter(item => ["image", "camera"].includes(item.domain));
   const readings = supporting.filter(item => !["image", "camera"].includes(item.domain));
-  return <CardFrame design={design} title={title || entity?.name || t(design.subtitle)} subtitle={area?.name} to={!preview && !detail && entity && entity.domain !== "scene" ? entityDetailPath(entity) : undefined} id={detail ? entity?.entityId : undefined} tabIndex={detail ? -1 : undefined} variant={cardVariants[density]} disabled={preview} footer={detail && entity ? <EntityDetails entity={entity} /> : undefined}>
+  return <CardFrame illustrated={illustrated} design={design} title={title || entity?.name || t(design.subtitle)} subtitle={area?.name} to={!preview && !detail && entity && entity.domain !== "scene" ? entityDetailPath(entity) : undefined} id={detail ? entity?.entityId : undefined} tabIndex={detail ? -1 : undefined} variant={cardVariants[density]} disabled={preview} footer={detail && entity ? <EntityDetails entity={entity} /> : undefined}>
     {!entity ? <div className="smart-card-unassigned"><design.icon size={32} aria-hidden="true" /><p>{t(preview ? "Choose a main entity to preview this card." : "The main entity is unavailable.")}</p>{editTo && <Link className="text-link" to={editTo}>{t("Edit card")}</Link>}</div> : <>
     {entity.domain === "weather" ? <WeatherCard entity={entity} /> : ["camera", "image"].includes(entity.domain) ? <EntityMedia key={entity.entityId} entity={entity} /> : <>
       {entity.domain === "media_player" ? <div className="smart-player">

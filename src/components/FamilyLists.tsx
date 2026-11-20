@@ -147,11 +147,11 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
   const selectList = (id: string) => setParams(id ? { tab: kind, list: id } : { tab: kind });
   return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
     {preview && <ListPanelSurface />}
-    {homeworkPreview ? <PanelHeading icon={listIcons.homework}
+    {homeworkPreview ? <PanelHeading artwork="homework" icon={listIcons.homework}
       title={t(homeworkTitles[homeworkPreview.period])}
       to={homeworkPreview.action === "lists" ? "/lists?tab=homework" : homeworkPreview.action === "school" ? "/school?tab=homework" : undefined}
       label={t(homeworkPreview.action === "school" ? "Open in School" : "Open in Lists")} />
-      : <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />}
+      : <PanelHeading artwork={kind} icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />}
     {!lists.length && <div className="empty-note"><p>{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p><Link className="text-link mt-3" to={homeOnline ? "/settings/lists" : "/settings/connection"}>{t(homeOnline ? "Choose lists" : "Connection settings")}</Link></div>}
     {summary ? <ul className="shopping-destinations">{lists.slice(0, limit).map(([id]) => {
       const entity = source(id);
@@ -374,7 +374,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
   return <section hidden={hidden} role="group" aria-label={kind === "shopping" ? entity?.name ?? t("List unavailable") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
-    {school ? <div className="panel-heading"><PanelTitle as="h3" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
+    {school ? <div className="panel-heading"><PanelTitle as="h3" artwork="homework" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className="list-composer">
       <div className="list-action-bar flex-wrap">
         <div className="list-identity flex-1 basis-44">{kind === "shopping" ? <ShoppingListAvatar icon={display.shoppingIcon} small /> : <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
         {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
@@ -435,7 +435,7 @@ function LocalListPanel({ kind, limit }: { kind: ListKind; limit?: number }) {
   return <article className={`glow-panel list-panel list-${kind}`}>
     {!!limit && <ListPanelSurface />}
     <div className="list-composer">
-      <PanelHeading icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
+      <PanelHeading artwork={kind} icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />
       <div className="list-action-bar"><span className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: list.length })}</span><Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button></div>
       {adding && <form id={formId} className="quick-add" onSubmit={e => { e.preventDefault(); add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input aria-label={kind === "shopping" ? t("New shopping item") : t(kind === "daily" ? "New daily task" : "New task")} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} value={text} onChange={e => setText(e.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>

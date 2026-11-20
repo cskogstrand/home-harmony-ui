@@ -62,7 +62,7 @@ export default function Dashboard() {
     morningSummary: dashboard.morningSummary && <MorningSummary />,
     wasteCollection: dashboard.wasteCollection && <WasteCollection />,
     nextPlan: dashboard.nextPlan && <Collapsible key={`${next?.id}:${dashboard.hideNextPlanDescription}`} defaultOpen={!dashboard.hideNextPlanDescription} asChild><section className="glow-panel next-chapter" aria-label={t("Next family plan")}>
-      <div className="panel-heading"><PanelTitle icon={CalendarClock}>{t("Next family plan")}</PanelTitle>
+      <div className="panel-heading"><PanelTitle artwork="nextPlan" icon={CalendarClock}>{t("Next family plan")}</PanelTitle>
         <Link className="text-link" to={`/calendar?date=${next?.date ?? today}&view=day`}>{t("Open calendar")}<ArrowUpRight size={16} aria-hidden="true" /></Link>
         {next?.note && <CollapsibleTrigger asChild><Button type="button" variant="ghost" size="icon" className="group shrink-0" aria-label={t("Show or hide description")} title={t("Show or hide description")}><ChevronDown aria-hidden="true" className="group-data-[state=open]:rotate-180" /></Button></CollapsibleTrigger>}
       </div>
@@ -77,7 +77,7 @@ export default function Dashboard() {
     </section></Collapsible>,
     day: dashboard.day && <FamilyDay data={data} onEdit={openEvent} />,
     week: dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
-      <div className="panel-heading calendar-panel-heading"><PanelTitle icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><CalendarViewControls /></div>
+      <div className="panel-heading calendar-panel-heading"><PanelTitle artwork="week" icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><CalendarViewControls /></div>
       <HomeAssistantCalendar data={data} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
       <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={t("View {value1}, week {value2}", { value1: dateLabel(day), value2: weekNumber(day) })} aria-current={day === today ? "date" : undefined}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>
@@ -95,7 +95,7 @@ export default function Dashboard() {
     daily: dashboard.daily && <ListPanel kind="daily" limit={3} />,
     shopping: dashboard.shopping && <ListPanel kind="shopping" limit={3} />,
     homework: dashboard.homework && <ListPanel kind="homework" homeworkPreview={dashboard.homeworkOptions} />,
-    school: dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>,
+    school: dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle artwork="school" icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}</section>,
     home: dashboard.home && <HomeFavorites />,
   };
   return <div className="portrait-board">

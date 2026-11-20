@@ -1594,5 +1594,1334 @@
       <path d="M11 491q21 -1 42 0" fill="none" stroke="var(--art-glow)" stroke-width="1.3" opacity="0.07" stroke-linecap="round" stroke-linejoin="round" />
       <rect width="1440" height="580" fill="url(#art-aurora-grain)" opacity="0.07" />
     </g>
+    <g id="artwork-harbor" data-scene="harbor">
+      <defs>
+        <linearGradient id="harbor-sky" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-mist)" />
+          <stop offset="80%" stop-color="var(--art-pale)" />
+          <stop offset="100%" stop-color="var(--art-warm)" />
+        </linearGradient>
+        <linearGradient id="harbor-sea" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-mist)" />
+          <stop offset="100%" stop-color="var(--art-deep)" />
+        </linearGradient>
+        <g id="harbor-boat">
+          <path d="M-47 0H43L30 12H-30Z" fill="var(--art-ink)" />
+          <path d="M5 1V-94" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M0 -88V-5H-44Z" fill="var(--art-snow)" />
+          <path d="M10 -72L36 -5H10Z" fill="var(--art-warm)" />
+          <path d="M-24 15h54" fill="none" stroke="var(--art-high)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </defs>
+      <rect width="1440" height="580" fill="url(#harbor-sky)" />
+      <circle cx="882" cy="123" r="55" fill="var(--art-warm)" />
+      <path d="M0 300Q156 240 290 265T575 261Q697 236 841 278T1110 245T1440 242V331H0Z" fill="var(--art-mist)" />
+      <path d="M0 308Q193 278 338 289T725 288T1065 280T1440 271V335H0Z" fill="var(--art-mid)" />
+      <rect y="300" width="1440" height="280" fill="url(#harbor-sea)" />
+      <path d="M1279 361q7 -3 15 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M533 429q20 -3 40 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M255 356q40 -3 81 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M148 520q8 -3 16 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M31 351q19 -3 39 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M446 562q7 -3 15 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1119 405q40 -3 81 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M829 416q34 -3 69 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1176 446q6 -3 12 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M296 520q27 -3 55 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M539 383q19 -3 39 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M659 356q11 -3 23 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M748 353q28 -3 57 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M674 439q8 -3 17 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M910 578q13 -3 27 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M745 344q41 -3 82 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M570 489q18 -3 36 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1412 339q8 -3 17 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1324 420q24 -3 49 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M133 423q12 -3 24 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M748 446q35 -3 70 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1271 490q16 -3 32 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M728 485q19 -3 38 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1342 440q10 -3 21 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1217 391q40 -3 80 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M471 387q35 -3 71 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M747 442q20 -3 40 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1372 470q9 -3 19 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M439 320q26 -3 52 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M791 441q10 -3 20 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M402 465q19 -3 39 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1312 559q31 -3 62 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1286 538q15 -3 30 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M512 375q21 -3 43 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1119 579q22 -3 45 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1167 523q31 -3 63 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M711 416q14 -3 29 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1013 556q11 -3 23 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M66 360q15 -3 31 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1255 385q33 -3 66 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1191 336q30 -3 61 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M751 543q39 -3 79 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M484 309q13 -3 26 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1366 578q23 -3 46 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1282 478q13 -3 26 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M571 526q16 -3 32 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M899 305q22 -3 45 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M995 395q38 -3 76 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M187 456q38 -3 76 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1217 405q15 -3 31 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M735 386q40 -3 81 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1056 304q26 -3 53 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M970 313q13 -3 26 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M713 461q21 -3 42 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M88 427q11 -3 22 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M145 552q10 -3 20 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1060 368q14 -3 28 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1321 547q41 -3 82 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M308 439q39 -3 79 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1212 520q19 -3 39 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1074 406q25 -3 51 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M787 495q34 -3 68 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1029 535q13 -3 27 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M477 419q10 -3 20 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M662 314q41 -3 82 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M441 416q6 -3 12 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M115 334q20 -3 41 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M108 320q27 -3 54 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M115 567q21 -3 42 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M540 552q19 -3 39 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1074 371q36 -3 72 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M467 546q32 -3 64 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M359 352q12 -3 24 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1319 524q28 -3 57 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M837 514q35 -3 71 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M80 354q9 -3 19 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M794 477q12 -3 25 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M479 402q18 -3 36 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1068 533q14 -3 29 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M834 397q23 -3 47 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M917 431q10 -3 21 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M877 354q9 -3 18 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1305 311q11 -3 23 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M454 389q32 -3 64 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M964 550q19 -3 39 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M791 334q16 -3 33 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M746 305q30 -3 61 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M513 536q24 -3 48 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M836 553q15 -3 31 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M358 455q19 -3 39 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M89 335q26 -3 52 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M87 329q36 -3 73 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M999 575q16 -3 32 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M86 564q11 -3 22 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M350 339q10 -3 20 0" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1352 424q31 -3 63 0" fill="none" stroke="var(--art-pale)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M215 430q8 -3 17 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1238 345q32 -3 65 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1316 571q26 -3 52 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M504 408q26 -3 52 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M458 439q31 -3 62 0" fill="none" stroke="var(--art-snow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M238 457q35 -3 70 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M617 341q6 -3 13 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M908 355q10 -3 21 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1071 413q38 -3 76 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M513 371q28 -3 56 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M110 429q29 -3 59 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M553 384q34 -3 68 0" fill="none" stroke="var(--art-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M1082 458q39 -3 79 0" fill="none" stroke="var(--art-mid)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M-14 457q12 -3 25 0" fill="none" stroke="var(--art-snow)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M245 439q13 -3 26 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M189 383q23 -3 46 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M547 411q27 -3 55 0" fill="none" stroke="var(--art-pale)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M386 439q38 -3 76 0" fill="none" stroke="var(--art-snow)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <path d="M970 432q9 -3 18 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".58" />
+      <g transform="translate(64 264) scale(0.7)">
+        <rect x="0" y="0" width="73" height="36" fill="var(--art-warm)" />
+        <path d="M-5 0L17 -21H65L78 0Z" fill="var(--art-deep)" />
+        <rect x="12" y="12" width="13" height="24" fill="var(--art-deep)" />
+        <rect x="44" y="12" width="11" height="10" fill="var(--art-paper)" />
+      </g>
+      <g transform="translate(126 258) scale(0.83)">
+        <rect x="0" y="0" width="73" height="36" fill="var(--art-warm)" />
+        <path d="M-5 0L17 -21H65L78 0Z" fill="var(--art-deep)" />
+        <rect x="12" y="12" width="13" height="24" fill="var(--art-deep)" />
+        <rect x="44" y="12" width="11" height="10" fill="var(--art-paper)" />
+      </g>
+      <g transform="translate(183 269) scale(0.6)">
+        <rect x="0" y="0" width="73" height="36" fill="var(--art-warm)" />
+        <path d="M-5 0L17 -21H65L78 0Z" fill="var(--art-deep)" />
+        <rect x="12" y="12" width="13" height="24" fill="var(--art-deep)" />
+        <rect x="44" y="12" width="11" height="10" fill="var(--art-paper)" />
+      </g>
+      <path d="M0 282Q104 277 228 292L294 311L114 317L0 328Z" fill="var(--art-deep)" />
+      <path d="M880 311Q945 294 1015 295L1064 274L1106 262L1186 275L1231 289L1293 291L1390 321H917Z" fill="var(--art-deep)" />
+      <path d="M1032 292L1070 270L1110 266L1184 279L1200 287L1143 282Z" fill="var(--art-mid)" />
+      <path d="M1080 269L1093 143H1126L1143 269Z" fill="var(--art-snow)" />
+      <path d="M1090 173H1130L1134 198H1087ZM1084 229H1138L1141 252H1081Z" fill="var(--art-other)" />
+      <rect x="1089" y="135" width="42" height="10" fill="var(--art-ink)" />
+      <rect x="1096" y="111" width="28" height="25" fill="var(--art-warm)" />
+      <path d="M1086 111L1110 91L1133 111Z" fill="var(--art-deep)" />
+      <path d="M1096 113v22m9 -22v22m10 -22v22m9 -22v22" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      <rect x="1105" y="252" width="10" height="16" fill="var(--art-deep)" />
+      <use href="#harbor-boat" transform="translate(623 375) rotate(0) scale(1.07)" />
+      <use href="#harbor-boat" transform="translate(458 331) rotate(0) scale(0.48)" />
+      <path d="M788 95q10 -5 17 3q6 -9 15 -9M747 111q6 -4 13 1q4 -6 10 -7" fill="none" stroke="var(--art-deep)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g id="artwork-birch" data-scene="birch">
+      <defs>
+        <linearGradient id="birch-sky" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-mist)" />
+          <stop offset="64%" stop-color="var(--art-high)" />
+          <stop offset="100%" stop-color="var(--art-paper)" />
+        </linearGradient>
+        <g id="birch-leaf">
+          <path d="M0 0Q6 -15 20 -10Q19 4 0 0Z" fill="var(--art-other)" />
+          <path d="M1 -1l15 -7" fill="none" stroke="var(--art-high)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </defs>
+      <rect width="1440" height="580" fill="url(#birch-sky)" />
+      <circle cx="835" cy="181" r="89" fill="var(--art-pale)" />
+      <path d="M0 389Q275 252 530 332T1020 331T1440 279V580H0Z" fill="var(--art-mist)" />
+      <path d="M0 461Q278 343 570 414T1105 395T1440 368V580H0Z" fill="var(--art-mid)" />
+      <path d="M-42 449l10 -477" fill="none" stroke="var(--art-high)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M6 449l34 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M54 449l-32 -477" fill="none" stroke="var(--art-high)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M102 449l-49 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M150 449l11 -477" fill="none" stroke="var(--art-high)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M198 449l32 -477" fill="none" stroke="var(--art-high)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M246 449l38 -477" fill="none" stroke="var(--art-high)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M294 449l21 -477" fill="none" stroke="var(--art-high)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M342 449l34 -477" fill="none" stroke="var(--art-high)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M390 449l6 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M438 449l-30 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M486 449l-24 -477" fill="none" stroke="var(--art-high)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M534 449l23 -477" fill="none" stroke="var(--art-high)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M582 449l-41 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M630 449l37 -477" fill="none" stroke="var(--art-high)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M678 449l52 -477" fill="none" stroke="var(--art-high)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M726 449l-48 -477" fill="none" stroke="var(--art-high)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M774 449l54 -477" fill="none" stroke="var(--art-high)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M822 449l-39 -477" fill="none" stroke="var(--art-high)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M870 449l6 -477" fill="none" stroke="var(--art-high)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M918 449l34 -477" fill="none" stroke="var(--art-high)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M966 449l-33 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1014 449l29 -477" fill="none" stroke="var(--art-high)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1062 449l39 -477" fill="none" stroke="var(--art-high)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1110 449l21 -477" fill="none" stroke="var(--art-high)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1158 449l14 -477" fill="none" stroke="var(--art-high)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1206 449l1 -477" fill="none" stroke="var(--art-high)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1254 449l35 -477" fill="none" stroke="var(--art-high)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1302 449l11 -477" fill="none" stroke="var(--art-high)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1350 449l19 -477" fill="none" stroke="var(--art-high)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1398 449l32 -477" fill="none" stroke="var(--art-high)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1446 449l-26 -477" fill="none" stroke="var(--art-high)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <path d="M1494 449l-5 -477" fill="none" stroke="var(--art-high)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".85" />
+      <g transform="translate(-20 0) skewX(8.0)">
+        <path d="M0 580L8 0h41L55 580Z" fill="var(--art-snow)" />
+        <path d="M46 0h4L55 580h-9Z" fill="var(--art-mist)" />
+        <path d="M51 26l-25 -3l6 4l19 3Z" fill="var(--art-deep)" />
+        <path d="M51 50l-21 -3l5 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M51 74l-29 -3l6 4l22 3Z" fill="var(--art-deep)" />
+        <path d="M6 98l17 -3l-4 4l-12 3Z" fill="var(--art-deep)" />
+        <path d="M51 122l-33 -3l7 4l25 3Z" fill="var(--art-deep)" />
+        <path d="M51 146l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M51 170l-33 -3l7 4l25 3Z" fill="var(--art-deep)" />
+        <path d="M51 194l-19 -3l4 4l14 3Z" fill="var(--art-deep)" />
+        <path d="M6 218l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 242l20 -3l-4 4l-15 3Z" fill="var(--art-deep)" />
+        <path d="M51 266l-23 -3l5 4l17 3Z" fill="var(--art-deep)" />
+        <path d="M51 290l-23 -3l5 4l17 3Z" fill="var(--art-deep)" />
+        <path d="M51 314l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 338l29 -3l-6 4l-22 3Z" fill="var(--art-deep)" />
+        <path d="M51 362l-24 -3l5 4l18 3Z" fill="var(--art-deep)" />
+        <path d="M51 386l-36 -3l8 4l27 3Z" fill="var(--art-deep)" />
+        <path d="M51 410l-16 -3l3 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M51 434l-29 -3l6 4l22 3Z" fill="var(--art-deep)" />
+        <path d="M51 458l-20 -3l4 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M6 482l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 506l27 -3l-6 4l-20 3Z" fill="var(--art-deep)" />
+        <path d="M51 530l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M6 554l21 -3l-5 4l-15 3Z" fill="var(--art-deep)" />
+        <path d="M6 578l29 -3l-6 4l-22 3Z" fill="var(--art-deep)" />
+        <path d="M27 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M27 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(130 0) skewX(4.3)">
+        <path d="M0 580L8 0h25L39 580Z" fill="var(--art-snow)" />
+        <path d="M30 0h4L39 580h-9Z" fill="var(--art-mist)" />
+        <path d="M6 21l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 45l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M6 69l13 -3l-3 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 93l22 -3l-5 4l-16 3Z" fill="var(--art-deep)" />
+        <path d="M35 117l-26 -3l6 4l19 3Z" fill="var(--art-deep)" />
+        <path d="M35 141l-20 -3l4 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M6 165l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M35 189l-25 -3l6 4l19 3Z" fill="var(--art-deep)" />
+        <path d="M6 213l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M35 237l-22 -3l5 4l16 3Z" fill="var(--art-deep)" />
+        <path d="M6 261l20 -3l-4 4l-15 3Z" fill="var(--art-deep)" />
+        <path d="M6 285l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 309l22 -3l-5 4l-16 3Z" fill="var(--art-deep)" />
+        <path d="M35 333l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M6 357l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M6 381l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M35 405l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M35 429l-21 -3l5 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M6 453l23 -3l-5 4l-17 3Z" fill="var(--art-deep)" />
+        <path d="M6 477l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M6 501l19 -3l-4 4l-14 3Z" fill="var(--art-deep)" />
+        <path d="M35 525l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 549l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 573l17 -3l-4 4l-12 3Z" fill="var(--art-deep)" />
+        <path d="M19 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M19 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(239 0) skewX(-1.8)">
+        <path d="M0 580L8 0h19L33 580Z" fill="var(--art-snow)" />
+        <path d="M24 0h4L33 580h-9Z" fill="var(--art-mist)" />
+        <path d="M6 15l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M6 39l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 63l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M6 87l7 -3l-1 4l-5 3Z" fill="var(--art-deep)" />
+        <path d="M6 111l19 -3l-4 4l-14 3Z" fill="var(--art-deep)" />
+        <path d="M6 135l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M6 159l17 -3l-4 4l-12 3Z" fill="var(--art-deep)" />
+        <path d="M29 183l-14 -3l3 4l10 3Z" fill="var(--art-deep)" />
+        <path d="M6 207l21 -3l-5 4l-15 3Z" fill="var(--art-deep)" />
+        <path d="M6 231l9 -3l-2 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M29 255l-18 -3l4 4l13 3Z" fill="var(--art-deep)" />
+        <path d="M6 279l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M29 303l-16 -3l3 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M29 327l-16 -3l3 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M29 351l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 375l15 -3l-3 4l-11 3Z" fill="var(--art-deep)" />
+        <path d="M6 399l19 -3l-4 4l-14 3Z" fill="var(--art-deep)" />
+        <path d="M29 423l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M29 447l-20 -3l4 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M29 471l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M6 495l16 -3l-3 4l-12 3Z" fill="var(--art-deep)" />
+        <path d="M29 519l-16 -3l3 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M29 543l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M29 567l-17 -3l4 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M16 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M16 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(385 0) skewX(3.7)">
+        <path d="M0 580L8 0h10L24 580Z" fill="var(--art-snow)" />
+        <path d="M15 0h4L24 580h-9Z" fill="var(--art-mist)" />
+        <path d="M20 15l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 39l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M20 63l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 87l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M20 111l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M20 135l-14 -3l3 4l10 3Z" fill="var(--art-deep)" />
+        <path d="M6 159l9 -3l-2 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M20 183l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M6 207l9 -3l-2 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M20 231l-12 -3l2 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M6 255l13 -3l-3 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 279l7 -3l-1 4l-5 3Z" fill="var(--art-deep)" />
+        <path d="M6 303l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M20 327l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M20 351l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M6 375l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M20 399l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M20 423l-14 -3l3 4l10 3Z" fill="var(--art-deep)" />
+        <path d="M20 447l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M20 471l-11 -3l2 4l8 3Z" fill="var(--art-deep)" />
+        <path d="M20 495l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M20 519l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M20 543l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M20 567l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M12 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M12 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(614 0) skewX(-5.0)">
+        <path d="M0 580L8 0h3L17 580Z" fill="var(--art-snow)" />
+        <path d="M8 0h4L17 580h-9Z" fill="var(--art-mist)" />
+        <path d="M6 25l9 -3l-2 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M13 49l-10 -3l2 4l7 3Z" fill="var(--art-deep)" />
+        <path d="M6 73l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M13 97l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M13 121l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 145l7 -3l-1 4l-5 3Z" fill="var(--art-deep)" />
+        <path d="M13 169l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M6 193l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 217l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M6 241l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M6 265l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M6 289l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M6 313l7 -3l-1 4l-5 3Z" fill="var(--art-deep)" />
+        <path d="M6 337l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 361l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M13 385l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M13 409l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M6 433l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M6 457l7 -3l-1 4l-5 3Z" fill="var(--art-deep)" />
+        <path d="M6 481l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M6 505l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M6 529l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M6 553l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M13 577l-6 -3l1 4l4 3Z" fill="var(--art-deep)" />
+        <path d="M8 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M8 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(913 0) skewX(3.7)">
+        <path d="M0 580L8 0h10L24 580Z" fill="var(--art-snow)" />
+        <path d="M15 0h4L24 580h-9Z" fill="var(--art-mist)" />
+        <path d="M20 20l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 44l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M20 68l-10 -3l2 4l7 3Z" fill="var(--art-deep)" />
+        <path d="M20 92l-12 -3l2 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M6 116l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M20 140l-10 -3l2 4l7 3Z" fill="var(--art-deep)" />
+        <path d="M20 164l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M20 188l-11 -3l2 4l8 3Z" fill="var(--art-deep)" />
+        <path d="M6 212l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 236l15 -3l-3 4l-11 3Z" fill="var(--art-deep)" />
+        <path d="M20 260l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M6 284l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M20 308l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M20 332l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M6 356l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 380l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M20 404l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M6 428l6 -3l-1 4l-4 3Z" fill="var(--art-deep)" />
+        <path d="M6 452l15 -3l-3 4l-11 3Z" fill="var(--art-deep)" />
+        <path d="M6 476l13 -3l-3 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 500l13 -3l-3 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 524l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 548l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M6 572l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M12 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M12 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(1030 0) skewX(-4.3)">
+        <path d="M0 580L8 0h14L28 580Z" fill="var(--art-snow)" />
+        <path d="M19 0h4L28 580h-9Z" fill="var(--art-mist)" />
+        <path d="M6 6l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M6 30l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M6 54l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M24 78l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M6 102l15 -3l-3 4l-11 3Z" fill="var(--art-deep)" />
+        <path d="M24 126l-10 -3l2 4l7 3Z" fill="var(--art-deep)" />
+        <path d="M24 150l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M24 174l-12 -3l2 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M6 198l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 222l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M6 246l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M6 270l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M24 294l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 318l16 -3l-3 4l-12 3Z" fill="var(--art-deep)" />
+        <path d="M6 342l11 -3l-2 4l-8 3Z" fill="var(--art-deep)" />
+        <path d="M24 366l-11 -3l2 4l8 3Z" fill="var(--art-deep)" />
+        <path d="M24 390l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M6 414l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M6 438l13 -3l-3 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 462l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M24 486l-7 -3l1 4l5 3Z" fill="var(--art-deep)" />
+        <path d="M24 510l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M6 534l8 -3l-1 4l-6 3Z" fill="var(--art-deep)" />
+        <path d="M24 558l-8 -3l1 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M14 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M14 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(1195 0) skewX(4.6)">
+        <path d="M0 580L8 0h33L47 580Z" fill="var(--art-snow)" />
+        <path d="M38 0h4L47 580h-9Z" fill="var(--art-mist)" />
+        <path d="M6 23l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M43 47l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M43 71l-16 -3l3 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M6 95l25 -3l-6 4l-19 3Z" fill="var(--art-deep)" />
+        <path d="M43 119l-11 -3l2 4l8 3Z" fill="var(--art-deep)" />
+        <path d="M6 143l12 -3l-2 4l-9 3Z" fill="var(--art-deep)" />
+        <path d="M6 167l25 -3l-6 4l-19 3Z" fill="var(--art-deep)" />
+        <path d="M43 191l-17 -3l4 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M6 215l10 -3l-2 4l-7 3Z" fill="var(--art-deep)" />
+        <path d="M43 239l-16 -3l3 4l12 3Z" fill="var(--art-deep)" />
+        <path d="M6 263l26 -3l-6 4l-19 3Z" fill="var(--art-deep)" />
+        <path d="M43 287l-22 -3l5 4l16 3Z" fill="var(--art-deep)" />
+        <path d="M43 311l-23 -3l5 4l17 3Z" fill="var(--art-deep)" />
+        <path d="M43 335l-27 -3l6 4l20 3Z" fill="var(--art-deep)" />
+        <path d="M6 359l14 -3l-3 4l-10 3Z" fill="var(--art-deep)" />
+        <path d="M43 383l-21 -3l5 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M6 407l27 -3l-6 4l-20 3Z" fill="var(--art-deep)" />
+        <path d="M43 431l-31 -3l7 4l23 3Z" fill="var(--art-deep)" />
+        <path d="M43 455l-15 -3l3 4l11 3Z" fill="var(--art-deep)" />
+        <path d="M43 479l-28 -3l6 4l21 3Z" fill="var(--art-deep)" />
+        <path d="M43 503l-12 -3l2 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M43 527l-9 -3l2 4l6 3Z" fill="var(--art-deep)" />
+        <path d="M6 551l24 -3l-5 4l-18 3Z" fill="var(--art-deep)" />
+        <path d="M43 575l-29 -3l6 4l22 3Z" fill="var(--art-deep)" />
+        <path d="M23 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M23 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(1420 0) skewX(-4.5)">
+        <path d="M0 580L8 0h43L57 580Z" fill="var(--art-snow)" />
+        <path d="M48 0h4L57 580h-9Z" fill="var(--art-mist)" />
+        <path d="M53 13l-36 -3l8 4l27 3Z" fill="var(--art-deep)" />
+        <path d="M53 37l-35 -3l8 4l26 3Z" fill="var(--art-deep)" />
+        <path d="M53 61l-23 -3l5 4l17 3Z" fill="var(--art-deep)" />
+        <path d="M6 85l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M53 109l-37 -3l8 4l28 3Z" fill="var(--art-deep)" />
+        <path d="M6 133l27 -3l-6 4l-20 3Z" fill="var(--art-deep)" />
+        <path d="M53 157l-25 -3l6 4l19 3Z" fill="var(--art-deep)" />
+        <path d="M53 181l-10 -3l2 4l7 3Z" fill="var(--art-deep)" />
+        <path d="M6 205l24 -3l-5 4l-18 3Z" fill="var(--art-deep)" />
+        <path d="M53 229l-24 -3l5 4l18 3Z" fill="var(--art-deep)" />
+        <path d="M6 253l15 -3l-3 4l-11 3Z" fill="var(--art-deep)" />
+        <path d="M6 277l32 -3l-7 4l-24 3Z" fill="var(--art-deep)" />
+        <path d="M6 301l17 -3l-4 4l-12 3Z" fill="var(--art-deep)" />
+        <path d="M53 325l-32 -3l7 4l24 3Z" fill="var(--art-deep)" />
+        <path d="M6 349l15 -3l-3 4l-11 3Z" fill="var(--art-deep)" />
+        <path d="M53 373l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M6 397l21 -3l-5 4l-15 3Z" fill="var(--art-deep)" />
+        <path d="M53 421l-13 -3l3 4l9 3Z" fill="var(--art-deep)" />
+        <path d="M6 445l30 -3l-7 4l-22 3Z" fill="var(--art-deep)" />
+        <path d="M6 469l25 -3l-6 4l-19 3Z" fill="var(--art-deep)" />
+        <path d="M6 493l18 -3l-4 4l-13 3Z" fill="var(--art-deep)" />
+        <path d="M53 517l-20 -3l4 4l15 3Z" fill="var(--art-deep)" />
+        <path d="M53 541l-22 -3l5 4l16 3Z" fill="var(--art-deep)" />
+        <path d="M6 565l29 -3l-6 4l-22 3Z" fill="var(--art-deep)" />
+        <path d="M28 198q-28 -22 -65 -96m47 59q-24 -6 -57 -33M28 112q36 -17 73 -79" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <use href="#birch-leaf" transform="translate(376 14) rotate(-105) scale(1.14)" />
+      <use href="#birch-leaf" transform="translate(479 20) rotate(67) scale(0.57)" />
+      <use href="#birch-leaf" transform="translate(212 134) rotate(-66) scale(0.95)" />
+      <use href="#birch-leaf" transform="translate(1153 95) rotate(-6) scale(0.59)" />
+      <use href="#birch-leaf" transform="translate(34 114) rotate(44) scale(0.8)" />
+      <use href="#birch-leaf" transform="translate(164 91) rotate(107) scale(0.91)" />
+      <use href="#birch-leaf" transform="translate(921 91) rotate(44) scale(1.06)" />
+      <use href="#birch-leaf" transform="translate(1104 -5) rotate(30) scale(1.1)" />
+      <use href="#birch-leaf" transform="translate(839 79) rotate(-123) scale(0.57)" />
+      <use href="#birch-leaf" transform="translate(1070 72) rotate(-1) scale(0.95)" />
+      <use href="#birch-leaf" transform="translate(440 23) rotate(103) scale(0.81)" />
+      <use href="#birch-leaf" transform="translate(796 143) rotate(-137) scale(0.6)" />
+      <use href="#birch-leaf" transform="translate(576 106) rotate(-14) scale(1.18)" />
+      <use href="#birch-leaf" transform="translate(699 87) rotate(-139) scale(0.98)" />
+      <use href="#birch-leaf" transform="translate(225 86) rotate(-84) scale(0.59)" />
+      <use href="#birch-leaf" transform="translate(264 115) rotate(-70) scale(0.9)" />
+      <use href="#birch-leaf" transform="translate(1112 41) rotate(-46) scale(1.19)" />
+      <use href="#birch-leaf" transform="translate(814 73) rotate(-16) scale(0.98)" />
+      <use href="#birch-leaf" transform="translate(928 89) rotate(7) scale(0.85)" />
+      <use href="#birch-leaf" transform="translate(333 48) rotate(-14) scale(1.04)" />
+      <use href="#birch-leaf" transform="translate(875 99) rotate(-150) scale(0.68)" />
+      <use href="#birch-leaf" transform="translate(1264 112) rotate(-112) scale(0.78)" />
+      <use href="#birch-leaf" transform="translate(1245 121) rotate(22) scale(0.79)" />
+      <use href="#birch-leaf" transform="translate(656 67) rotate(-156) scale(0.92)" />
+      <use href="#birch-leaf" transform="translate(601 115) rotate(1) scale(1.12)" />
+      <use href="#birch-leaf" transform="translate(275 52) rotate(-38) scale(1.15)" />
+      <use href="#birch-leaf" transform="translate(1106 78) rotate(-56) scale(1.06)" />
+      <use href="#birch-leaf" transform="translate(239 73) rotate(-127) scale(1.17)" />
+      <use href="#birch-leaf" transform="translate(1238 77) rotate(14) scale(1.03)" />
+      <use href="#birch-leaf" transform="translate(538 10) rotate(31) scale(0.83)" />
+      <use href="#birch-leaf" transform="translate(638 97) rotate(1) scale(0.58)" />
+      <use href="#birch-leaf" transform="translate(1342 170) rotate(-56) scale(0.86)" />
+      <use href="#birch-leaf" transform="translate(439 64) rotate(-112) scale(0.59)" />
+      <use href="#birch-leaf" transform="translate(1359 143) rotate(-77) scale(0.87)" />
+      <use href="#birch-leaf" transform="translate(1043 10) rotate(79) scale(0.99)" />
+      <use href="#birch-leaf" transform="translate(1083 37) rotate(-63) scale(1.01)" />
+      <use href="#birch-leaf" transform="translate(1378 96) rotate(-74) scale(0.93)" />
+      <use href="#birch-leaf" transform="translate(1075 47) rotate(-81) scale(1.02)" />
+      <use href="#birch-leaf" transform="translate(224 93) rotate(-51) scale(0.97)" />
+      <use href="#birch-leaf" transform="translate(350 40) rotate(7) scale(0.96)" />
+      <use href="#birch-leaf" transform="translate(951 93) rotate(-114) scale(0.84)" />
+      <use href="#birch-leaf" transform="translate(878 125) rotate(-58) scale(0.8)" />
+      <use href="#birch-leaf" transform="translate(335 88) rotate(-87) scale(0.97)" />
+      <use href="#birch-leaf" transform="translate(162 151) rotate(6) scale(1.01)" />
+      <use href="#birch-leaf" transform="translate(1272 144) rotate(-138) scale(0.98)" />
+      <use href="#birch-leaf" transform="translate(467 46) rotate(88) scale(1.02)" />
+      <use href="#birch-leaf" transform="translate(276 65) rotate(75) scale(1.14)" />
+      <use href="#birch-leaf" transform="translate(1236 143) rotate(-43) scale(0.92)" />
+      <use href="#birch-leaf" transform="translate(294 99) rotate(-86) scale(1.07)" />
+      <use href="#birch-leaf" transform="translate(553 78) rotate(-34) scale(0.91)" />
+      <use href="#birch-leaf" transform="translate(1064 66) rotate(-120) scale(0.72)" />
+      <use href="#birch-leaf" transform="translate(794 96) rotate(-145) scale(0.91)" />
+      <use href="#birch-leaf" transform="translate(863 126) rotate(106) scale(0.58)" />
+      <use href="#birch-leaf" transform="translate(247 84) rotate(-67) scale(0.96)" />
+      <use href="#birch-leaf" transform="translate(1366 88) rotate(-151) scale(0.99)" />
+      <use href="#birch-leaf" transform="translate(7 52) rotate(-88) scale(1.03)" />
+      <use href="#birch-leaf" transform="translate(815 108) rotate(-115) scale(0.91)" />
+      <use href="#birch-leaf" transform="translate(888 120) rotate(-116) scale(1.15)" />
+      <use href="#birch-leaf" transform="translate(1035 7) rotate(-125) scale(1.07)" />
+      <use href="#birch-leaf" transform="translate(324 71) rotate(11) scale(0.57)" />
+      <use href="#birch-leaf" transform="translate(11 58) rotate(-155) scale(0.62)" />
+      <use href="#birch-leaf" transform="translate(534 50) rotate(23) scale(0.72)" />
+      <use href="#birch-leaf" transform="translate(233 149) rotate(64) scale(0.93)" />
+      <use href="#birch-leaf" transform="translate(1208 53) rotate(63) scale(1.12)" />
+      <use href="#birch-leaf" transform="translate(822 115) rotate(25) scale(1.17)" />
+      <use href="#birch-leaf" transform="translate(212 85) rotate(-43) scale(0.76)" />
+      <use href="#birch-leaf" transform="translate(1415 110) rotate(-29) scale(1.13)" />
+      <use href="#birch-leaf" transform="translate(971 59) rotate(-99) scale(0.77)" />
+      <use href="#birch-leaf" transform="translate(164 133) rotate(-43) scale(0.55)" />
+      <use href="#birch-leaf" transform="translate(887 101) rotate(41) scale(0.99)" />
+      <use href="#birch-leaf" transform="translate(1415 152) rotate(-126) scale(0.8)" />
+      <use href="#birch-leaf" transform="translate(179 100) rotate(-74) scale(0.95)" />
+      <use href="#birch-leaf" transform="translate(1398 132) rotate(-8) scale(0.75)" />
+      <use href="#birch-leaf" transform="translate(473 -8) rotate(-60) scale(0.55)" />
+      <use href="#birch-leaf" transform="translate(635 116) rotate(0) scale(0.81)" />
+      <use href="#birch-leaf" transform="translate(346 27) rotate(51) scale(1.07)" />
+      <use href="#birch-leaf" transform="translate(258 64) rotate(35) scale(0.96)" />
+      <use href="#birch-leaf" transform="translate(2 75) rotate(21) scale(0.85)" />
+      <use href="#birch-leaf" transform="translate(145 121) rotate(-150) scale(0.77)" />
+      <use href="#birch-leaf" transform="translate(211 116) rotate(-24) scale(0.83)" />
+      <use href="#birch-leaf" transform="translate(389 1) rotate(-55) scale(0.82)" />
+      <use href="#birch-leaf" transform="translate(1255 64) rotate(-44) scale(1.03)" />
+      <use href="#birch-leaf" transform="translate(583 39) rotate(-87) scale(0.58)" />
+      <use href="#birch-leaf" transform="translate(34 98) rotate(-115) scale(0.9)" />
+      <use href="#birch-leaf" transform="translate(743 108) rotate(62) scale(0.66)" />
+      <use href="#birch-leaf" transform="translate(1265 82) rotate(-119) scale(0.61)" />
+      <use href="#birch-leaf" transform="translate(1136 50) rotate(-66) scale(1.1)" />
+      <use href="#birch-leaf" transform="translate(270 128) rotate(94) scale(0.67)" />
+      <use href="#birch-leaf" transform="translate(680 125) rotate(-83) scale(0.62)" />
+      <use href="#birch-leaf" transform="translate(614 98) rotate(-129) scale(1.04)" />
+      <use href="#birch-leaf" transform="translate(47 117) rotate(102) scale(0.59)" />
+      <use href="#birch-leaf" transform="translate(482 28) rotate(-1) scale(1.01)" />
+      <use href="#birch-leaf" transform="translate(329 87) rotate(52) scale(0.82)" />
+      <use href="#birch-leaf" transform="translate(138 124) rotate(-140) scale(1.11)" />
+      <use href="#birch-leaf" transform="translate(986 80) rotate(-130) scale(0.62)" />
+      <path d="M0 540Q138 497 335 536T754 529T1098 526T1440 485V580H0Z" fill="var(--art-deep)" />
+    </g>
+    <g id="artwork-atlas" data-scene="atlas">
+      <defs>
+        <linearGradient id="atlas-night" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-night)" />
+          <stop offset="100%" stop-color="var(--art-deep)" />
+        </linearGradient>
+      </defs>
+      <rect width="1440" height="580" fill="url(#atlas-night)" />
+      <circle cx="784" cy="186" r="0.8" fill="var(--art-mid)" />
+      <circle cx="397" cy="173" r="1.7" fill="var(--art-snow)" />
+      <circle cx="309" cy="290" r="1.7" fill="var(--art-snow)" />
+      <circle cx="903" cy="478" r="1.7" fill="var(--art-snow)" />
+      <circle cx="57" cy="529" r="0.8" fill="var(--art-mist)" />
+      <circle cx="909" cy="311" r="1.2" fill="var(--art-snow)" />
+      <circle cx="1407" cy="260" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1395" cy="334" r="1.2" fill="var(--art-snow)" />
+      <circle cx="1110" cy="375" r="1.7" fill="var(--art-snow)" />
+      <circle cx="437" cy="323" r="1.2" fill="var(--art-snow)" />
+      <circle cx="636" cy="99" r="0.8" fill="var(--art-mid)" />
+      <circle cx="1002" cy="290" r="1.2" fill="var(--art-glow)" />
+      <circle cx="405" cy="95" r="1.7" fill="var(--art-mist)" />
+      <circle cx="315" cy="146" r="1.2" fill="var(--art-mist)" />
+      <circle cx="405" cy="134" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1042" cy="231" r="1.7" fill="var(--art-mid)" />
+      <circle cx="173" cy="139" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1318" cy="555" r="1.7" fill="var(--art-mid)" />
+      <circle cx="801" cy="211" r="1.2" fill="var(--art-mist)" />
+      <circle cx="136" cy="480" r="1.2" fill="var(--art-glow)" />
+      <circle cx="513" cy="189" r="1.7" fill="var(--art-mist)" />
+      <circle cx="699" cy="254" r="1.2" fill="var(--art-snow)" />
+      <circle cx="118" cy="461" r="1.7" fill="var(--art-glow)" />
+      <circle cx="898" cy="459" r="0.8" fill="var(--art-snow)" />
+      <circle cx="166" cy="335" r="1.7" fill="var(--art-mist)" />
+      <circle cx="770" cy="551" r="1.2" fill="var(--art-mist)" />
+      <circle cx="811" cy="226" r="1.2" fill="var(--art-glow)" />
+      <circle cx="761" cy="300" r="0.8" fill="var(--art-glow)" />
+      <circle cx="129" cy="17" r="1.2" fill="var(--art-snow)" />
+      <circle cx="1417" cy="429" r="1.2" fill="var(--art-mist)" />
+      <circle cx="596" cy="273" r="1.2" fill="var(--art-mist)" />
+      <circle cx="1387" cy="380" r="1.2" fill="var(--art-snow)" />
+      <circle cx="813" cy="19" r="1.2" fill="var(--art-mist)" />
+      <circle cx="139" cy="172" r="0.8" fill="var(--art-mid)" />
+      <circle cx="1084" cy="218" r="1.2" fill="var(--art-mid)" />
+      <circle cx="359" cy="49" r="0.8" fill="var(--art-snow)" />
+      <circle cx="106" cy="240" r="0.8" fill="var(--art-mist)" />
+      <circle cx="101" cy="187" r="1.2" fill="var(--art-glow)" />
+      <circle cx="212" cy="187" r="0.8" fill="var(--art-mid)" />
+      <circle cx="1032" cy="80" r="1.7" fill="var(--art-mist)" />
+      <circle cx="1068" cy="313" r="1.2" fill="var(--art-mist)" />
+      <circle cx="943" cy="387" r="1.2" fill="var(--art-mid)" />
+      <circle cx="698" cy="82" r="0.8" fill="var(--art-mid)" />
+      <circle cx="371" cy="134" r="1.2" fill="var(--art-glow)" />
+      <circle cx="577" cy="237" r="1.7" fill="var(--art-mid)" />
+      <circle cx="510" cy="102" r="1.2" fill="var(--art-mid)" />
+      <circle cx="553" cy="472" r="0.8" fill="var(--art-mid)" />
+      <circle cx="438" cy="385" r="1.7" fill="var(--art-mist)" />
+      <circle cx="1201" cy="349" r="1.2" fill="var(--art-mid)" />
+      <circle cx="94" cy="177" r="0.8" fill="var(--art-mid)" />
+      <circle cx="463" cy="12" r="0.8" fill="var(--art-glow)" />
+      <circle cx="629" cy="487" r="1.7" fill="var(--art-mid)" />
+      <circle cx="673" cy="270" r="0.8" fill="var(--art-glow)" />
+      <circle cx="971" cy="564" r="1.2" fill="var(--art-snow)" />
+      <circle cx="495" cy="352" r="1.7" fill="var(--art-glow)" />
+      <circle cx="448" cy="373" r="0.8" fill="var(--art-mist)" />
+      <circle cx="681" cy="76" r="0.8" fill="var(--art-glow)" />
+      <circle cx="909" cy="463" r="1.2" fill="var(--art-mist)" />
+      <circle cx="965" cy="577" r="1.2" fill="var(--art-mid)" />
+      <circle cx="69" cy="111" r="0.8" fill="var(--art-snow)" />
+      <circle cx="618" cy="554" r="0.8" fill="var(--art-glow)" />
+      <circle cx="401" cy="218" r="1.2" fill="var(--art-mid)" />
+      <circle cx="233" cy="532" r="0.8" fill="var(--art-glow)" />
+      <circle cx="1251" cy="379" r="0.8" fill="var(--art-glow)" />
+      <circle cx="1063" cy="458" r="1.2" fill="var(--art-mid)" />
+      <circle cx="583" cy="145" r="1.2" fill="var(--art-snow)" />
+      <circle cx="155" cy="247" r="1.2" fill="var(--art-snow)" />
+      <circle cx="506" cy="521" r="1.2" fill="var(--art-mist)" />
+      <circle cx="285" cy="550" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1231" cy="358" r="0.8" fill="var(--art-snow)" />
+      <circle cx="703" cy="183" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1184" cy="206" r="1.2" fill="var(--art-mid)" />
+      <circle cx="1230" cy="431" r="0.8" fill="var(--art-glow)" />
+      <circle cx="973" cy="390" r="1.7" fill="var(--art-snow)" />
+      <circle cx="958" cy="552" r="1.2" fill="var(--art-glow)" />
+      <circle cx="406" cy="481" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1326" cy="168" r="1.7" fill="var(--art-snow)" />
+      <circle cx="575" cy="141" r="1.7" fill="var(--art-snow)" />
+      <circle cx="1032" cy="540" r="1.7" fill="var(--art-mid)" />
+      <circle cx="924" cy="322" r="1.7" fill="var(--art-mid)" />
+      <circle cx="351" cy="0" r="1.2" fill="var(--art-mist)" />
+      <circle cx="1269" cy="44" r="0.8" fill="var(--art-mid)" />
+      <circle cx="702" cy="285" r="1.2" fill="var(--art-mid)" />
+      <circle cx="1319" cy="127" r="0.8" fill="var(--art-mist)" />
+      <circle cx="1272" cy="303" r="1.7" fill="var(--art-mid)" />
+      <circle cx="977" cy="233" r="0.8" fill="var(--art-glow)" />
+      <circle cx="889" cy="155" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1067" cy="118" r="1.2" fill="var(--art-snow)" />
+      <circle cx="21" cy="129" r="1.2" fill="var(--art-mist)" />
+      <circle cx="290" cy="536" r="0.8" fill="var(--art-glow)" />
+      <circle cx="1283" cy="190" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1381" cy="140" r="1.2" fill="var(--art-snow)" />
+      <circle cx="424" cy="102" r="1.2" fill="var(--art-glow)" />
+      <circle cx="300" cy="331" r="1.7" fill="var(--art-snow)" />
+      <circle cx="478" cy="415" r="0.8" fill="var(--art-mid)" />
+      <circle cx="1255" cy="509" r="0.8" fill="var(--art-snow)" />
+      <circle cx="194" cy="283" r="1.2" fill="var(--art-mist)" />
+      <circle cx="1068" cy="481" r="0.8" fill="var(--art-glow)" />
+      <circle cx="744" cy="444" r="1.2" fill="var(--art-mist)" />
+      <circle cx="324" cy="149" r="1.2" fill="var(--art-snow)" />
+      <circle cx="962" cy="8" r="0.8" fill="var(--art-snow)" />
+      <circle cx="1180" cy="453" r="1.7" fill="var(--art-snow)" />
+      <circle cx="520" cy="73" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1220" cy="293" r="1.2" fill="var(--art-mid)" />
+      <circle cx="764" cy="124" r="1.7" fill="var(--art-glow)" />
+      <circle cx="247" cy="364" r="1.7" fill="var(--art-glow)" />
+      <circle cx="519" cy="544" r="1.2" fill="var(--art-glow)" />
+      <circle cx="297" cy="573" r="0.8" fill="var(--art-mid)" />
+      <circle cx="295" cy="235" r="1.2" fill="var(--art-mist)" />
+      <circle cx="835" cy="107" r="1.2" fill="var(--art-glow)" />
+      <circle cx="823" cy="50" r="1.2" fill="var(--art-mist)" />
+      <circle cx="421" cy="386" r="0.8" fill="var(--art-glow)" />
+      <circle cx="267" cy="195" r="1.2" fill="var(--art-glow)" />
+      <circle cx="321" cy="578" r="0.8" fill="var(--art-mid)" />
+      <circle cx="351" cy="324" r="1.7" fill="var(--art-snow)" />
+      <circle cx="1382" cy="172" r="0.8" fill="var(--art-mid)" />
+      <circle cx="1380" cy="233" r="0.8" fill="var(--art-glow)" />
+      <circle cx="1050" cy="451" r="0.8" fill="var(--art-mist)" />
+      <circle cx="492" cy="494" r="1.2" fill="var(--art-mid)" />
+      <circle cx="1089" cy="413" r="0.8" fill="var(--art-snow)" />
+      <circle cx="1365" cy="332" r="0.8" fill="var(--art-mid)" />
+      <circle cx="386" cy="409" r="0.8" fill="var(--art-mid)" />
+      <circle cx="581" cy="113" r="1.2" fill="var(--art-glow)" />
+      <circle cx="966" cy="257" r="1.2" fill="var(--art-snow)" />
+      <circle cx="269" cy="337" r="0.8" fill="var(--art-mist)" />
+      <circle cx="933" cy="526" r="1.2" fill="var(--art-mist)" />
+      <circle cx="643" cy="143" r="1.7" fill="var(--art-mid)" />
+      <circle cx="606" cy="47" r="1.2" fill="var(--art-snow)" />
+      <circle cx="804" cy="393" r="1.2" fill="var(--art-snow)" />
+      <circle cx="327" cy="242" r="1.7" fill="var(--art-snow)" />
+      <circle cx="532" cy="282" r="0.8" fill="var(--art-snow)" />
+      <circle cx="1394" cy="158" r="0.8" fill="var(--art-mid)" />
+      <circle cx="607" cy="23" r="0.8" fill="var(--art-snow)" />
+      <circle cx="994" cy="86" r="1.7" fill="var(--art-mid)" />
+      <circle cx="1408" cy="416" r="0.8" fill="var(--art-glow)" />
+      <circle cx="871" cy="282" r="1.2" fill="var(--art-snow)" />
+      <circle cx="237" cy="54" r="0.8" fill="var(--art-glow)" />
+      <circle cx="580" cy="160" r="1.2" fill="var(--art-mist)" />
+      <circle cx="1368" cy="148" r="1.7" fill="var(--art-snow)" />
+      <circle cx="762" cy="269" r="0.8" fill="var(--art-glow)" />
+      <circle cx="342" cy="272" r="1.2" fill="var(--art-mist)" />
+      <circle cx="336" cy="480" r="1.2" fill="var(--art-snow)" />
+      <circle cx="590" cy="10" r="0.8" fill="var(--art-glow)" />
+      <circle cx="155" cy="478" r="1.7" fill="var(--art-mid)" />
+      <circle cx="403" cy="95" r="0.8" fill="var(--art-mid)" />
+      <circle cx="53" cy="167" r="1.7" fill="var(--art-snow)" />
+      <circle cx="917" cy="91" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1344" cy="35" r="0.8" fill="var(--art-mid)" />
+      <circle cx="230" cy="12" r="1.7" fill="var(--art-snow)" />
+      <circle cx="1154" cy="7" r="0.8" fill="var(--art-mist)" />
+      <circle cx="644" cy="372" r="0.8" fill="var(--art-glow)" />
+      <circle cx="323" cy="427" r="0.8" fill="var(--art-snow)" />
+      <circle cx="1294" cy="242" r="1.2" fill="var(--art-snow)" />
+      <circle cx="110" cy="270" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1096" cy="149" r="0.8" fill="var(--art-mid)" />
+      <circle cx="887" cy="194" r="0.8" fill="var(--art-mid)" />
+      <circle cx="574" cy="395" r="1.2" fill="var(--art-snow)" />
+      <circle cx="792" cy="241" r="1.2" fill="var(--art-mist)" />
+      <circle cx="724" cy="389" r="1.7" fill="var(--art-mist)" />
+      <circle cx="816" cy="134" r="1.2" fill="var(--art-glow)" />
+      <circle cx="955" cy="177" r="1.2" fill="var(--art-mid)" />
+      <circle cx="321" cy="402" r="1.7" fill="var(--art-snow)" />
+      <circle cx="1034" cy="301" r="1.2" fill="var(--art-snow)" />
+      <circle cx="1348" cy="552" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1320" cy="148" r="1.2" fill="var(--art-snow)" />
+      <circle cx="1287" cy="393" r="0.8" fill="var(--art-glow)" />
+      <circle cx="186" cy="496" r="1.7" fill="var(--art-mist)" />
+      <circle cx="898" cy="148" r="1.2" fill="var(--art-snow)" />
+      <circle cx="849" cy="319" r="1.7" fill="var(--art-glow)" />
+      <circle cx="764" cy="68" r="1.2" fill="var(--art-mid)" />
+      <circle cx="79" cy="433" r="1.2" fill="var(--art-snow)" />
+      <circle cx="137" cy="214" r="1.2" fill="var(--art-glow)" />
+      <circle cx="721" cy="578" r="1.7" fill="var(--art-mid)" />
+      <circle cx="329" cy="43" r="1.2" fill="var(--art-snow)" />
+      <circle cx="1322" cy="323" r="1.7" fill="var(--art-glow)" />
+      <circle cx="985" cy="160" r="0.8" fill="var(--art-glow)" />
+      <circle cx="15" cy="174" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1109" cy="307" r="1.7" fill="var(--art-mid)" />
+      <circle cx="968" cy="410" r="1.7" fill="var(--art-glow)" />
+      <circle cx="175" cy="480" r="0.8" fill="var(--art-mid)" />
+      <circle cx="612" cy="333" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1139" cy="97" r="1.2" fill="var(--art-mid)" />
+      <circle cx="1422" cy="368" r="1.2" fill="var(--art-mid)" />
+      <circle cx="188" cy="112" r="0.8" fill="var(--art-snow)" />
+      <circle cx="801" cy="578" r="1.2" fill="var(--art-mid)" />
+      <circle cx="489" cy="152" r="0.8" fill="var(--art-mid)" />
+      <circle cx="541" cy="541" r="0.8" fill="var(--art-snow)" />
+      <circle cx="258" cy="407" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1230" cy="437" r="0.8" fill="var(--art-glow)" />
+      <circle cx="920" cy="574" r="1.2" fill="var(--art-glow)" />
+      <circle cx="162" cy="318" r="0.8" fill="var(--art-mist)" />
+      <circle cx="1400" cy="115" r="1.2" fill="var(--art-mid)" />
+      <circle cx="598" cy="395" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1039" cy="363" r="1.2" fill="var(--art-snow)" />
+      <circle cx="609" cy="499" r="0.8" fill="var(--art-mid)" />
+      <circle cx="549" cy="149" r="1.2" fill="var(--art-snow)" />
+      <circle cx="96" cy="190" r="1.2" fill="var(--art-mist)" />
+      <circle cx="295" cy="146" r="1.2" fill="var(--art-snow)" />
+      <circle cx="99" cy="448" r="1.2" fill="var(--art-mist)" />
+      <circle cx="641" cy="141" r="0.8" fill="var(--art-mist)" />
+      <circle cx="98" cy="119" r="1.2" fill="var(--art-mist)" />
+      <circle cx="796" cy="402" r="0.8" fill="var(--art-mist)" />
+      <circle cx="264" cy="20" r="0.8" fill="var(--art-snow)" />
+      <circle cx="1420" cy="506" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1412" cy="265" r="0.8" fill="var(--art-mid)" />
+      <circle cx="234" cy="300" r="0.8" fill="var(--art-snow)" />
+      <circle cx="648" cy="439" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1312" cy="549" r="0.8" fill="var(--art-mid)" />
+      <circle cx="1015" cy="469" r="1.2" fill="var(--art-mid)" />
+      <circle cx="57" cy="18" r="1.2" fill="var(--art-glow)" />
+      <circle cx="604" cy="263" r="1.7" fill="var(--art-mist)" />
+      <circle cx="583" cy="91" r="1.2" fill="var(--art-glow)" />
+      <circle cx="996" cy="186" r="1.2" fill="var(--art-mist)" />
+      <circle cx="844" cy="121" r="1.2" fill="var(--art-mid)" />
+      <circle cx="1072" cy="38" r="0.8" fill="var(--art-glow)" />
+      <circle cx="1215" cy="275" r="1.7" fill="var(--art-mist)" />
+      <circle cx="1005" cy="263" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1004" cy="224" r="0.8" fill="var(--art-glow)" />
+      <circle cx="531" cy="512" r="1.2" fill="var(--art-mid)" />
+      <circle cx="989" cy="447" r="1.2" fill="var(--art-mid)" />
+      <circle cx="189" cy="156" r="1.2" fill="var(--art-mist)" />
+      <circle cx="341" cy="43" r="1.7" fill="var(--art-mist)" />
+      <circle cx="549" cy="299" r="1.2" fill="var(--art-mist)" />
+      <circle cx="1050" cy="21" r="1.2" fill="var(--art-glow)" />
+      <circle cx="1125" cy="570" r="0.8" fill="var(--art-snow)" />
+      <circle cx="701" cy="50" r="0.8" fill="var(--art-snow)" />
+      <circle cx="992" cy="271" r="1.2" fill="var(--art-mist)" />
+      <circle cx="152" cy="241" r="1.2" fill="var(--art-glow)" />
+      <circle cx="478" cy="222" r="0.8" fill="var(--art-mist)" />
+      <circle cx="925" cy="85" r="0.8" fill="var(--art-snow)" />
+      <circle cx="953" cy="183" r="0.8" fill="var(--art-mist)" />
+      <circle cx="564" cy="471" r="1.2" fill="var(--art-snow)" />
+      <circle cx="37" cy="189" r="1.7" fill="var(--art-glow)" />
+      <circle cx="1421" cy="387" r="0.8" fill="var(--art-mist)" />
+      <circle cx="736" cy="555" r="0.8" fill="var(--art-mid)" />
+      <circle cx="398" cy="16" r="1.7" fill="var(--art-glow)" />
+      <circle cx="500" cy="226" r="1.7" fill="var(--art-mist)" />
+      <circle cx="323" cy="500" r="0.8" fill="var(--art-glow)" />
+      <circle cx="821" cy="525" r="0.8" fill="var(--art-mist)" />
+      <circle cx="821" cy="476" r="0.8" fill="var(--art-glow)" />
+      <circle cx="952" cy="272" r="1.7" fill="var(--art-glow)" />
+      <circle cx="292" cy="506" r="1.2" fill="var(--art-glow)" />
+      <circle cx="678" cy="332" r="1.2" fill="var(--art-snow)" />
+      <circle cx="539" cy="516" r="1.2" fill="var(--art-mist)" />
+      <circle cx="1206" cy="3" r="1.7" fill="var(--art-glow)" />
+      <circle cx="247" cy="421" r="1.2" fill="var(--art-mist)" />
+      <circle cx="161" cy="116" r="1.2" fill="var(--art-glow)" />
+      <circle cx="242" cy="86" r="0.8" fill="var(--art-mist)" />
+      <circle cx="57" cy="536" r="1.2" fill="var(--art-glow)" />
+      <circle cx="457" cy="263" r="0.8" fill="var(--art-mist)" />
+      <circle cx="800" cy="262" r="89" fill="none" stroke="var(--art-mist)" stroke-width="1" opacity=".74" />
+      <circle cx="800" cy="262" r="142" fill="none" stroke="var(--art-mist)" stroke-width="1" opacity=".74" />
+      <circle cx="800" cy="262" r="149" fill="none" stroke="var(--art-glow)" stroke-width="1" opacity=".74" />
+      <circle cx="800" cy="262" r="211" fill="none" stroke="var(--art-mist)" stroke-width="1" opacity=".74" />
+      <circle cx="800" cy="262" r="221" fill="none" stroke="var(--art-glow)" stroke-width="2" opacity=".74" />
+      <circle cx="800" cy="262" r="243" fill="none" stroke="var(--art-mist)" stroke-width="1" opacity=".74" />
+      <path d="M1022.0 262.0l10.0 0.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1021.7 273.6l4.0 0.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1020.8 285.2l4.0 0.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1019.3 296.7l4.0 0.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1017.1 308.2l3.9 0.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1014.4 319.5l9.7 2.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1011.1 330.6l3.8 1.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1007.3 341.6l3.7 1.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1002.8 352.3l3.7 1.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M997.8 362.8l3.6 1.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M992.3 373.0l8.7 5.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M986.2 382.9l3.4 2.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M979.6 392.5l3.2 2.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M972.5 401.7l3.1 2.5" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M965.0 410.5l3.0 2.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M957.0 419.0l7.1 7.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M948.5 427.0l2.7 3.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M939.7 434.5l2.5 3.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M930.5 441.6l2.4 3.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M920.9 448.2l2.2 3.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M911.0 454.3l5.0 8.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M900.8 459.8l1.8 3.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M890.3 464.8l1.6 3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M879.6 469.3l1.4 3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M868.6 473.1l1.2 3.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M857.5 476.4l2.6 9.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M846.2 479.1l0.8 3.9" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M834.7 481.3l0.6 4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M823.2 482.8l0.4 4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M811.6 483.7l0.2 4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M800.0 484.0l0.0 10.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M788.4 483.7l-0.2 4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M776.8 482.8l-0.4 4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M765.3 481.3l-0.6 4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M753.8 479.1l-0.8 3.9" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M742.5 476.4l-2.6 9.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M731.4 473.1l-1.2 3.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M720.4 469.3l-1.4 3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M709.7 464.8l-1.6 3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M699.2 459.8l-1.8 3.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M689.0 454.3l-5.0 8.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M679.1 448.2l-2.2 3.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M669.5 441.6l-2.4 3.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M660.3 434.5l-2.5 3.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M651.5 427.0l-2.7 3.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M643.0 419.0l-7.1 7.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M635.0 410.5l-3.0 2.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M627.5 401.7l-3.1 2.5" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M620.4 392.5l-3.2 2.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M613.8 382.9l-3.4 2.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M607.7 373.0l-8.7 5.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M602.2 362.8l-3.6 1.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M597.2 352.3l-3.7 1.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M592.7 341.6l-3.7 1.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M588.9 330.6l-3.8 1.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M585.6 319.5l-9.7 2.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M582.9 308.2l-3.9 0.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M580.7 296.7l-4.0 0.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M579.2 285.2l-4.0 0.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M578.3 273.6l-4.0 0.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M578.0 262.0l-10.0 0.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M578.3 250.4l-4.0 -0.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M579.2 238.8l-4.0 -0.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M580.7 227.3l-4.0 -0.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M582.9 215.8l-3.9 -0.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M585.6 204.5l-9.7 -2.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M588.9 193.4l-3.8 -1.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M592.7 182.4l-3.7 -1.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M597.2 171.7l-3.7 -1.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M602.2 161.2l-3.6 -1.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M607.7 151.0l-8.7 -5.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M613.8 141.1l-3.4 -2.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M620.4 131.5l-3.2 -2.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M627.5 122.3l-3.1 -2.5" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M635.0 113.5l-3.0 -2.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M643.0 105.0l-7.1 -7.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M651.5 97.0l-2.7 -3.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M660.3 89.5l-2.5 -3.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M669.5 82.4l-2.4 -3.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M679.1 75.8l-2.2 -3.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M689.0 69.7l-5.0 -8.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M699.2 64.2l-1.8 -3.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M709.7 59.2l-1.6 -3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M720.4 54.7l-1.4 -3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M731.4 50.9l-1.2 -3.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M742.5 47.6l-2.6 -9.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M753.8 44.9l-0.8 -3.9" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M765.3 42.7l-0.6 -4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M776.8 41.2l-0.4 -4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M788.4 40.3l-0.2 -4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M800.0 40.0l-0.0 -10.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M811.6 40.3l0.2 -4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M823.2 41.2l0.4 -4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M834.7 42.7l0.6 -4.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M846.2 44.9l0.8 -3.9" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M857.5 47.6l2.6 -9.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M868.6 50.9l1.2 -3.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M879.6 54.7l1.4 -3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M890.3 59.2l1.6 -3.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M900.8 64.2l1.8 -3.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M911.0 69.7l5.0 -8.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M920.9 75.8l2.2 -3.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M930.5 82.4l2.4 -3.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M939.7 89.5l2.5 -3.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M948.5 97.0l2.7 -3.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M957.0 105.0l7.1 -7.1" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M965.0 113.5l3.0 -2.7" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M972.5 122.3l3.1 -2.5" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M979.6 131.5l3.2 -2.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M986.2 141.1l3.4 -2.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M992.3 151.0l8.7 -5.0" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M997.8 161.2l3.6 -1.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1002.8 171.7l3.7 -1.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1007.3 182.4l3.7 -1.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1011.1 193.4l3.8 -1.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1014.4 204.5l9.7 -2.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1017.1 215.8l3.9 -0.8" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1019.3 227.3l4.0 -0.6" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1020.8 238.8l4.0 -0.4" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1021.7 250.4l4.0 -0.2" fill="none" stroke="var(--art-warm)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <ellipse cx="800" cy="262" rx="318" ry="99" transform="rotate(-30 800 262)" fill="none" stroke="var(--art-warm)" opacity=".65" stroke-width="2" />
+      <ellipse cx="800" cy="262" rx="318" ry="99" transform="rotate(42 800 262)" fill="none" stroke="var(--art-warm)" opacity=".65" stroke-width="2" />
+      <circle cx="800" cy="262" r="47" fill="var(--art-warm)" />
+      <path d="M800 215A47 47 0 1 0 830 298Q784 292 784 254Q784 229 800 215Z" fill="var(--art-mid)" />
+      <path d="M64 315 L135 206 L174 235 L253 181 L326 192" fill="none" stroke="var(--art-mist)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M64 309l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M135 200l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M174 229l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M253 175l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M326 186l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M1016 380 L1093 354 L1155 405 L1265 347 L1290 316" fill="none" stroke="var(--art-mist)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1016 374l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M1093 348l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M1155 399l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M1265 341l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M1290 310l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M403 108 L444 147 L517 115 L550 155" fill="none" stroke="var(--art-mist)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M403 102l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M444 141l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M517 109l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <path d="M550 149l2 4 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="var(--art-snow)" />
+      <circle cx="990" cy="151" r="12" fill="var(--art-glow)" />
+      <circle cx="644" cy="282" r="8" fill="var(--art-snow)" />
+    </g>
+    <g id="artwork-pottery" data-scene="pottery">
+      <defs>
+        <linearGradient id="pottery-wall" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-high)" />
+          <stop offset="100%" stop-color="var(--art-mist)" />
+        </linearGradient>
+        <g id="pottery-vase">
+          <path d="M-14 -115H15L13 -91Q14 -75 31 -62Q54 -44 42 -15Q37 -4 28 0H-28Q-51 -20 -43 -43Q-39 -57 -22 -71Q-10 -84 -14 -98Z" fill="var(--art-other)" />
+          <path d="M-15 -115h31M-39 -45q35 12 82 0M-41 -39q36 11 83 0" fill="none" stroke="var(--art-pale)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </g>
+      </defs>
+      <rect width="1440" height="580" fill="url(#pottery-wall)" />
+      <path d="M0 0H340L38 580H0ZM400 0H650L350 580H99Z" fill="var(--art-pale)" opacity=".73" />
+      <path d="M992 419V205a122 122 0 0 1 244 0v214Z" fill="var(--art-mid)" />
+      <path d="M1015 413V207a99 99 0 0 1 198 0v206Z" fill="var(--art-deep)" />
+      <use href="#pottery-vase" transform="translate(247 310) rotate(0) scale(1.45)" />
+      <use href="#pottery-vase" transform="translate(326 310) rotate(0) scale(0.83)" />
+      <use href="#pottery-vase" transform="translate(1018 464) rotate(0) scale(0.72)" />
+      <use href="#pottery-vase" transform="translate(1193 464) rotate(0) scale(1.05)" />
+      <g transform="translate(618 380) scale(1.6)">
+        <path d="M-44 -49Q-40 -6 -14 0H14Q40 -6 45 -49Z" fill="var(--art-warm)" />
+        <path d="M-44 -48Q0 -39 45 -48M-36 -30Q0 -22 37 -30" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <g transform="translate(1309 464) scale(0.9)">
+        <path d="M-44 -49Q-40 -6 -14 0H14Q40 -6 45 -49Z" fill="var(--art-warm)" />
+        <path d="M-44 -48Q0 -39 45 -48M-36 -30Q0 -22 37 -30" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <path d="M687 376Q665 350 681 314L695 292V264H724V286Q750 302 755 342Q759 361 742 376Z" fill="var(--art-snow)" />
+      <path d="M739 304q41 -16 37 12t-24 27" fill="none" stroke="var(--art-snow)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M706 263q5 -71 -38 -122m39 96q22 -56 54 -92m-72 65q-17 -20 -38 -29" fill="none" stroke="var(--art-deep)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+      <g transform="translate(679 170) rotate(-38)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <g transform="translate(670 150) rotate(-90)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <g transform="translate(689 195) rotate(15)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <g transform="translate(747 164) rotate(-84)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <g transform="translate(726 197) rotate(-53)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <g transform="translate(656 183) rotate(-153)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <g transform="translate(705 227) rotate(-22)">
+        <path d="M0 0Q3 -14 25 -12Q23 5 0 0Z" fill="var(--art-other)" />
+      </g>
+      <rect x="55" y="310" width="411" height="11" fill="var(--art-deep)" />
+      <path d="M64 321h395l-20 13H67Z" fill="var(--art-mid)" />
+      <rect x="467" y="380" width="444" height="11" fill="var(--art-deep)" />
+      <path d="M476 391h428l-20 13H479Z" fill="var(--art-mid)" />
+      <rect x="944" y="464" width="449" height="11" fill="var(--art-deep)" />
+      <path d="M953 475h433l-20 13H956Z" fill="var(--art-mid)" />
+      <path d="M0 509Q375 479 711 535T1440 494V580H0Z" fill="var(--art-paper)" />
+    </g>
+    <g id="artwork-meadow" data-scene="meadow">
+      <defs>
+        <linearGradient id="meadow-air" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-pale)" />
+          <stop offset="80%" stop-color="var(--art-paper)" />
+          <stop offset="100%" stop-color="var(--art-warm)" />
+        </linearGradient>
+        <g id="meadow-daisy">
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(0)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(45)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(90)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(135)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(180)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(225)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(270)" />
+          <ellipse cx="0" cy="-9" rx="3.5" ry="9" fill="var(--art-snow)" transform="rotate(315)" />
+          <circle cx="0" cy="0" r="5" fill="var(--art-warm)" />
+        </g>
+        <g id="meadow-poppy">
+          <path d="M0 2Q-24 -1 -20 -15Q-17 -24 -5 -16Q-4 -30 9 -24Q24 -24 18 -11Q27 -9 20 0Q11 7 0 2Z" fill="var(--art-warm)" />
+          <circle cx="0" cy="-4" r="4" fill="var(--art-ink)" />
+        </g>
+      </defs>
+      <rect width="1440" height="580" fill="url(#meadow-air)" />
+      <circle cx="947" cy="102" r="56" fill="var(--art-warm)" />
+      <path d="M0 312Q325 165 586 271T1139 249T1440 216V580H0Z" fill="var(--art-mist)" />
+      <path d="M0 370Q269 268 539 348T1033 304T1440 280V580H0Z" fill="var(--art-mid)" />
+      <path d="M0 441Q316 325 639 408T1105 381T1440 351V580H0Z" fill="var(--art-deep)" />
+      <path d="M573 434q21 -39 21 -79" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(594 355) rotate(-26) scale(0.62)" />
+      <path d="M997 506q24 -40 24 -81" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M226 408q12 -23 12 -47" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M721 545q23 -34 23 -69" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(744 476) rotate(-28) scale(0.48)" />
+      <path d="M542 548q-15 -45 -15 -91" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M950 586q-3 -29 -3 -59" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M49 458q-5 -24 -5 -49" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(44 409) rotate(-5) scale(0.87)" />
+      <path d="M1033 446q15 -46 15 -93" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1391 423q-16 -49 -16 -98" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M899 521q31 -38 31 -77" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(930 444) rotate(-10) scale(0.83)" />
+      <path d="M114 507q14 -14 14 -28" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1357 587q6 -13 6 -26" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M702 602q-29 -38 -29 -77" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(673 525) rotate(35) scale(0.87)" />
+      <path d="M615 622q12 -32 12 -64" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M165 528q-28 -9 -28 -19" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1095 522q-29 -42 -29 -85" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1066 437) rotate(-6) scale(0.55)" />
+      <path d="M224 415q-15 -26 -15 -52" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M850 409q11 -51 11 -102" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M35 455q27 -16 27 -32" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(62 423) rotate(14) scale(0.45)" />
+      <path d="M147 431q12 -46 12 -93" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M558 453q20 -26 20 -53" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M902 507q9 -37 9 -75" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(911 432) rotate(32) scale(0.54)" />
+      <path d="M1302 585q-6 -11 -6 -23" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M183 555q22 -40 22 -80" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1062 424q0 -47 0 -95" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1062 329) rotate(24) scale(0.75)" />
+      <path d="M845 600q-35 -7 -35 -15" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M102 497q-5 -21 -5 -42" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M204 403q16 -39 16 -79" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(220 324) rotate(-35) scale(0.71)" />
+      <path d="M6 496q-25 -40 -25 -81" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1207 596q10 -51 10 -102" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1224 409q6 -7 6 -15" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1230 394) rotate(-7) scale(0.66)" />
+      <path d="M192 576q-29 -38 -29 -77" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1017 619q-23 -21 -23 -42" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1207 622q-14 -23 -14 -47" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1193 575) rotate(-31) scale(0.79)" />
+      <path d="M1026 503q10 -22 10 -44" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M310 530q-6 -35 -6 -70" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M230 465q-13 -18 -13 -37" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(217 428) rotate(-13) scale(0.51)" />
+      <path d="M140 478q-20 -35 -20 -70" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M209 512q-21 -42 -21 -85" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M663 468q-19 -33 -19 -67" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(644 401) rotate(-10) scale(0.69)" />
+      <path d="M810 517q15 -49 15 -99" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M65 433q-11 -41 -11 -83" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M192 416q-19 -28 -19 -57" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(173 359) rotate(-1) scale(0.39)" />
+      <path d="M1165 490q7 -27 7 -54" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M623 568q-3 -28 -3 -56" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1433 403q0 -45 0 -90" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1433 313) rotate(33) scale(0.83)" />
+      <path d="M313 593q-17 -9 -17 -19" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M45 560q-8 -44 -8 -88" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1397 468q-21 -10 -21 -20" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1376 448) rotate(19) scale(0.51)" />
+      <path d="M859 601q-38 -16 -38 -33" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M546 558q24 -46 24 -93" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M530 536q25 -46 25 -92" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(555 444) rotate(20) scale(0.5)" />
+      <path d="M281 427q-27 -41 -27 -83" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M394 591q-26 -36 -26 -72" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1378 464q-1 -21 -1 -43" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1377 421) rotate(7) scale(0.58)" />
+      <path d="M1129 479q22 -15 22 -31" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M780 462q0 -32 0 -64" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1217 576q11 -29 11 -59" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1228 517) rotate(26) scale(0.49)" />
+      <path d="M1172 559q1 -30 1 -60" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M44 456q6 -49 6 -98" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1058 450q3 -22 3 -44" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1061 406) rotate(24) scale(0.89)" />
+      <path d="M884 537q-32 -36 -32 -73" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M297 525q-18 -7 -18 -15" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M992 423q26 -35 26 -71" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1018 352) rotate(11) scale(0.47)" />
+      <path d="M1031 590q12 -16 12 -33" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M723 557q30 -14 30 -28" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M802 592q-19 -31 -19 -63" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(783 529) rotate(32) scale(0.56)" />
+      <path d="M1091 448q-27 -33 -27 -66" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M811 425q-3 -41 -3 -83" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1365 522q25 -27 25 -55" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1390 467) rotate(-24) scale(0.63)" />
+      <path d="M1094 487q-27 -11 -27 -23" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1001 487q31 -50 31 -101" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1034 569q25 -9 25 -19" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1059 550) rotate(-20) scale(0.75)" />
+      <path d="M1054 471q11 -29 11 -58" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M561 559q23 -13 23 -26" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M987 618q-35 -31 -35 -63" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(952 555) rotate(28) scale(0.85)" />
+      <path d="M84 506q5 -44 5 -89" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1412 414q-7 -14 -7 -28" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M321 407q-6 -27 -6 -54" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(315 353) rotate(-8) scale(0.64)" />
+      <path d="M716 536q-29 -23 -29 -46" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1119 582q-30 -32 -30 -65" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M491 433q25 -38 25 -76" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(516 357) rotate(-16) scale(0.91)" />
+      <path d="M398 514q-27 -20 -27 -40" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M360 478q15 -19 15 -38" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M935 405q-20 -12 -20 -24" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(915 381) rotate(-5) scale(0.61)" />
+      <path d="M365 454q11 -38 11 -77" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M844 461q6 -28 6 -57" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M106 545q-1 -24 -1 -48" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(105 497) rotate(-13) scale(0.83)" />
+      <path d="M175 543q33 -43 33 -87" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M793 615q-38 -35 -38 -70" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M839 476q29 -31 29 -62" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(868 414) rotate(11) scale(0.83)" />
+      <path d="M1085 598q-26 -15 -26 -31" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M651 584q-18 -18 -18 -36" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M984 457q-10 -18 -10 -37" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(974 420) rotate(-16) scale(0.7)" />
+      <path d="M69 461q-32 -26 -32 -52" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M709 429q-9 -33 -9 -67" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M60 541q29 -26 29 -53" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(89 488) rotate(11) scale(0.41)" />
+      <path d="M247 518q-32 -48 -32 -96" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M506 620q-32 -49 -32 -99" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M478 611q16 -30 16 -61" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(494 550) rotate(-16) scale(0.82)" />
+      <path d="M1210 496q6 -31 6 -63" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M754 544q3 -14 3 -29" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M827 524q-37 -26 -37 -53" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(790 471) rotate(13) scale(0.44)" />
+      <path d="M735 500q23 -42 23 -84" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1082 492q-14 -48 -14 -96" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1261 594q-9 -9 -9 -18" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1252 576) rotate(10) scale(0.83)" />
+      <path d="M933 530q4 -36 4 -73" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M298 504q15 -25 15 -51" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1281 555q1 -28 1 -56" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1282 499) rotate(25) scale(0.72)" />
+      <path d="M1277 481q18 -11 18 -23" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1175 489q-40 -33 -40 -66" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M137 570q-25 -48 -25 -97" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(112 473) rotate(15) scale(0.55)" />
+      <path d="M97 406q-17 -21 -17 -43" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M671 420q-35 -15 -35 -31" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1090 588q-20 -15 -20 -30" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1070 558) rotate(-14) scale(0.8)" />
+      <path d="M742 607q-11 -48 -11 -97" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1052 517q6 -26 6 -53" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M604 437q-20 -11 -20 -23" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(584 414) rotate(-2) scale(0.52)" />
+      <path d="M1002 573q1 -27 1 -55" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M530 620q-24 -8 -24 -17" fill="none" stroke="var(--art-mid)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1152 408q-6 -34 -6 -68" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(1146 340) rotate(-11) scale(0.38)" />
+      <path d="M232 505q27 -26 27 -53" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M443 468q-38 -23 -38 -46" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M724 535q10 -40 10 -81" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(734 454) rotate(9) scale(0.46)" />
+      <path d="M1110 461q14 -16 14 -33" fill="none" stroke="var(--art-mid)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1069 606q-7 -42 -7 -85" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M539 620q7 -22 7 -45" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(546 575) rotate(-2) scale(0.55)" />
+      <path d="M671 607q-3 -41 -3 -82" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M990 411q8 -18 8 -36" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M803 572q8 -27 8 -54" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(811 518) rotate(-3) scale(0.43)" />
+      <path d="M1088 422q-11 -34 -11 -69" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M760 593q-14 -9 -14 -19" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M608 534q32 -9 32 -19" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(640 515) rotate(-23) scale(0.81)" />
+      <path d="M340 578q-1 -25 -1 -50" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M473 448q27 -48 27 -97" fill="none" stroke="var(--art-mist)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1225 427q28 -45 28 -91" fill="none" stroke="var(--art-other)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-daisy" transform="translate(1253 336) rotate(14) scale(0.8)" />
+      <path d="M759 547q-32 -45 -32 -90" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M44 415q5 -34 5 -69" fill="none" stroke="var(--art-other)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M748 444q26 -28 26 -56" fill="none" stroke="var(--art-mist)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+      <use href="#meadow-poppy" transform="translate(774 388) rotate(5) scale(0.72)" />
+      <path d="M97 590q80 -99 40 -199" fill="none" stroke="var(--art-mist)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M137 532q-41 -12 -48 -45q42 12 48 45Z" fill="var(--art-mid)" />
+      <use href="#meadow-poppy" transform="translate(137 391) rotate(0) scale(1.4)" />
+      <path d="M259 587q-78 -72 -39 -144" fill="none" stroke="var(--art-mist)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M220 529q-41 -12 -48 -45q42 12 48 45Z" fill="var(--art-mid)" />
+      <use href="#meadow-poppy" transform="translate(220 443) rotate(0) scale(1)" />
+      <path d="M559 601q50 -67 25 -135" fill="none" stroke="var(--art-mist)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M584 543q-41 -12 -48 -45q42 12 48 45Z" fill="var(--art-mid)" />
+      <use href="#meadow-poppy" transform="translate(584 466) rotate(0) scale(1.2)" />
+      <path d="M848 590q-112 -91 -56 -182" fill="none" stroke="var(--art-mist)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M792 532q-41 -12 -48 -45q42 12 48 45Z" fill="var(--art-mid)" />
+      <use href="#meadow-daisy" transform="translate(792 408) rotate(0) scale(1.3)" />
+      <path d="M1118 582q86 -108 43 -217" fill="none" stroke="var(--art-mist)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1161 524q-41 -12 -48 -45q42 12 48 45Z" fill="var(--art-mid)" />
+      <use href="#meadow-daisy" transform="translate(1161 365) rotate(0) scale(1.48)" />
+      <path d="M1310 590q-74 -82 -37 -164" fill="none" stroke="var(--art-mist)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M1273 532q-41 -12 -48 -45q42 12 48 45Z" fill="var(--art-mid)" />
+      <use href="#meadow-daisy" transform="translate(1273 426) rotate(0) scale(1.16)" />
+    </g>
+    <g id="artwork-weave" data-scene="weave">
+      <defs>
+        <linearGradient id="weave-sky" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="var(--art-pale)" />
+          <stop offset="100%" stop-color="var(--art-paper)" />
+        </linearGradient>
+        <pattern id="weave-weft" width="13" height="9" patternUnits="userSpaceOnUse">
+          <path d="M0 2h7m1 5h5" fill="none" stroke="var(--art-paper)" stroke-width="1.7" opacity=".46" />
+          <path d="M4 3v5m7 -7v3" stroke="var(--art-ink)" opacity=".24" />
+        </pattern>
+      </defs>
+      <rect width="1440" height="580" fill="url(#weave-sky)" />
+      <circle cx="951" cy="130" r="74" fill="var(--art-warm)" />
+      <path d="M0 264H0V324H32V312H64V312H96V300H128V288H160V276H192V264H224V252H256V240H288V216H320V204H352V204H384V216H416V216H448V228H480V240H512V252H544V264H576V276H608V288H640V312H672V312H704V300H736V300H768V288H800V276H832V264H864V252H896V240H928V228H960V216H992V204H1024V216H1056V228H1088V228H1120V240H1152V252H1184V252H1216V264H1248V288H1280V300H1312V300H1344V300H1376V288H1408V288H1440V276H1472V264V580H0Z" fill="var(--art-mist)" />
+      <path d="M0 325H0V325H32V313H64V301H96V289H128V265H160V277H192V277H224V289H256V289H288V301H320V313H352V325H384V337H416V349H448V361H480V361H512V361H544V349H576V349H608V337H640V325H672V325H704V313H736V301H768V277H800V277H832V289H864V289H896V289H928V301H960V313H992V313H1024V325H1056V337H1088V349H1120V361H1152V349H1184V349H1216V337H1248V337H1280V325H1312V325H1344V313H1376V301H1408V289H1440V277H1472V289V580H0Z" fill="var(--art-other)" />
+      <path d="M0 389H0V329H32V329H64V341H96V353H128V353H160V365H192V377H224V401H256V413H288V425H320V437H352V425H384V425H416V413H448V401H480V401H512V389H544V377H576V353H608V341H640V329H672V341H704V341H736V353H768V365H800V365H832V377H864V389H896V401H928V413H960V437H992V425H1024V413H1056V413H1088V401H1120V401H1152V389H1184V377H1216V365H1248V353H1280V341H1312V341H1344V353H1376V353H1408V365H1440V365H1472V377V580H0Z" fill="var(--art-mid)" />
+      <path d="M0 444H0V480H32V468H64V456H96V456H128V444H160V432H192V408H224V396H256V396H288V396H320V396H352V408H384V420H416V420H448V432H480V444H512V456H544V480H576V480H608V480H640V468H672V468H704V456H736V456H768V444H800V432H832V420H864V408H896V396H928V396H960V408H992V408H1024V420H1056V420H1088V432H1120V444H1152V456H1184V468H1216V480H1248V468H1280V468H1312V468H1344V456H1376V456H1408V444H1440V432H1472V432V580H0Z" fill="var(--art-deep)" />
+      <path d="M0 510H0V498H32V498H64V510H96V522H128V534H160V534H192V534H224V534H256V534H288V522H320V522H352V510H384V510H416V498H448V486H480V474H512V486H544V486H576V486H608V486H640V498H672V498H704V510H736V510H768V522H800V534H832V522H864V522H896V522H928V522H960V522H992V510H1024V510H1056V498H1088V498H1120V486H1152V486H1184V486H1216V498H1248V498H1280V498H1312V498H1344V510H1376V510H1408V522H1440V522H1472V522V580H0Z" fill="var(--art-pig)" />
+      <path d="M0 511l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M48 518l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M96 524l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M144 527l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M192 529l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M240 528l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M288 524l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M336 519l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M384 512l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M432 505l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M480 499l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M528 495l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M576 493l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M624 494l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M672 497l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M720 502l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M768 509l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M816 515l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M864 522l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M912 526l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M960 529l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1008 529l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1056 526l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1104 521l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1152 515l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1200 508l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1248 501l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1296 496l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1344 494l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1392 493l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <path d="M1440 495l9 -7 9 7 -9 7Z" fill="var(--art-warm)" />
+      <rect width="1440" height="580" fill="url(#weave-weft)" />
+    </g>
   </defs>
 </svg>

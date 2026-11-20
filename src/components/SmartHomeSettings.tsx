@@ -38,7 +38,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   const supportingSources = useRef<HTMLDivElement>(null);
   const design = cardDesigns.find(design => design.id === draft?.type);
   const main = entities.find(entity => entity.preferenceId === draft?.mainEntity && design?.domains.includes(entity.domain));
-  const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(card);
+  const dirty = !!draft && JSON.stringify({ ...draft, illustrated: card?.illustrated }) !== JSON.stringify(card);
   useBeforeUnload(event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
   useEffect(() => { heading.current?.focus(); }, [design?.id]);
   const chooseType = (design: CardDesign) => setDraft({
@@ -124,7 +124,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
         </div>
         <aside className="smart-compose-preview" aria-label={t("Card preview")}>
           <PanelTitle as="h3" icon={Eye}>{t("Card preview")}</PanelTitle><p className="page-note">{t("Your Smart home card, with live data and media. Device controls are disabled.")}</p>
-          <SmartHomeCard entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
+          <SmartHomeCard illustrated={card?.illustrated} entity={main} title={draft.title || main?.name || t(design.subtitle)} design={design} density={draft.density} preview
             entities={supporting.filter(entity => draft.linkedEntities.includes(entity.preferenceId))} />
         </aside>
       </div>

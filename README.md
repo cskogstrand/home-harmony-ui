@@ -24,7 +24,9 @@ Under **Settings → Electric vehicles**, choose a source for each car in the he
 
 Under **Settings → Appearance**, adjust dialog transparency, frost, color saturation and background dimming with a live preview. Dialogs use a lighter glass fill by default; accessibility preferences retain solid surfaces. Glass settings are shared across screens and included in backups.
 
-The **Artwork** picker offers Fjord Morning, Winter Garden, Sunroom, Paper Coast and Northern Lights. Each illustration follows your palette and light or dark mode. Choose **No artwork**, the default, for the original ambient background. The artwork choice is shared across screens and included in backups.
+Under **Artwork**, choose from eleven wall backgrounds. Fjord Morning, Winter Garden, Sunroom, Paper Coast and Northern Lights are joined by Harbor Light, Birch Grove, Star Atlas, Pottery Studio, Wildflower Meadow and Woven Hills. **No artwork** keeps the original ambient background.
+
+Under **Card artwork**, switch illustrated headings and their subtle background pattern on for individual planner types, such as Homework or Calendar. Expand **Smart home cards** to select individual configured cards, even when two use the same device. Card illustrations work with any wall background, including No artwork. All artwork follows your palette and light or dark mode, syncs across screens and is included in configuration backups.
 
 Unfinished to-dos with due dates appear under their assigned person in the month, week and day calendars, including Today’s calendar previews. A small task icon distinguishes them from calendar events. Date-only deadlines appear as all-day items; timed deadlines use the home’s time zone. Choose **Open to-do list** in a dated task to open its assigned list. The calendar excludes completed tasks, undated tasks and shopping items.
 

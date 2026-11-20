@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import type { Language, MessageKey } from "@/lib/i18n";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CardArtworkSettings } from "@/components/CardArtworkSettings";
 import { ModalGlassSettings } from "@/components/ModalGlassSettings";
 import { ArtworkImage } from "@/components/ArtworkImage";
 import { artworkSchema, type Artwork } from "../../shared/configuration";
@@ -13,6 +14,8 @@ import { artworkSchema, type Artwork } from "../../shared/configuration";
 const artworkNames: Record<Artwork, MessageKey> = {
   none: "No artwork", fjord: "Fjord Morning", garden: "Winter Garden",
   sunroom: "Sunroom", paper: "Paper Coast", aurora: "Northern Lights",
+  harbor: "Harbor Light", birch: "Birch Grove", atlas: "Star Atlas",
+  pottery: "Pottery Studio", meadow: "Wildflower Meadow", weave: "Woven Hills",
 };
 
 const palettes = [
@@ -68,6 +71,7 @@ export default function UserSettings({ section = "appearance" }: { section?: "ap
           </RadioGroup>
         </fieldset>
       </section>
+      <CardArtworkSettings disabled={disabled} />
       <section className="settings-card settings-preferences"><PanelHeading icon={Monitor} title={t("Display options")} />
       <label className="settings-control-row"><span>{t("Dark timetables")}<span id="dark-timetables-description" className="page-note block">{t("Dark backgrounds for PDF timetables. Linked images keep their colors.")}</span></span><Switch disabled={disabled} checked={appearance.darkTimetables} onCheckedChange={v => setAppearance({ darkTimetables: v })} aria-label={t("Toggle dark timetables")} aria-describedby="dark-timetables-description" /></label>
       <label className="settings-control-row">{t("Compact mode")}<Switch disabled={disabled} checked={appearance.compactMode} onCheckedChange={v => setAppearance({ compactMode: v })} aria-label={t("Toggle compact mode")} /></label>

@@ -71,7 +71,7 @@ export function SmartHomeCards({ cards, area, editing }: { cards: ReturnType<typ
             </div>
             <Link className="text-link" to={`/settings/smart-home?card=${encodeURIComponent(card.id)}`}>{t("Edit card")}</Link>
           </div>}
-          <div className="smart-card-preview" ref={node => { if (node) node.inert = editing; }}><SmartHomeCard entity={card.main} entities={card.entities} title={card.name} design={card.design} density={card.density} preview={editing} editTo={`/settings/smart-home?card=${encodeURIComponent(card.id)}`} /></div>
+          <div className="smart-card-preview" ref={node => { if (node) node.inert = editing; }}><SmartHomeCard illustrated={card.illustrated} entity={card.main} entities={card.entities} title={card.name} design={card.design} density={card.density} preview={editing} editTo={`/settings/smart-home?card=${encodeURIComponent(card.id)}`} /></div>
         </div>)}</div>
         {editing && <div className={`smart-group-drop${drag.dragging?.target?.group === group && !drag.dragging.target.beforeId ? " is-drop-target" : ""}`}>
           {t(members.length ? "Drop here to place at the end" : "Drop a card here, or choose this group from a card’s menu")}

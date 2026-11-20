@@ -355,9 +355,11 @@ it("restores older settings without artwork and validates artwork in backups", (
   const config = emptyConfiguration();
   const appearance = { theme: "light", colorPalette: "rose", compactMode: true };
   const read = (options: object) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, appearance: { ...appearance, ...options } } })).settings.appearance;
-  expect(read({})).toMatchObject({ ...appearance, artwork: "none" });
+  expect(read({})).toMatchObject({ ...appearance, artwork: "none", plannerArtwork: {} });
   expect(read({ artwork: "paper" })).toMatchObject({ ...appearance, artwork: "paper" });
   expect(() => read({ artwork: "unknown" })).toThrow();
+  expect(() => read({ plannerArtwork: { unknown: true } })).toThrow();
+  expect(() => read({ plannerArtwork: { homework: "yes" } })).toThrow();
 });
 
 it("defaults older settings to Pearl and rejects unknown palettes", () => {

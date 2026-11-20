@@ -94,3 +94,50 @@
   .artwork-background { display: none; }
   [data-artwork] .glow-panel.next-chapter { background: hsl(var(--card)); }
 }
+
+/* Illustrated headings keep the picture beside the label, clear of data and touch targets. */
+.illustrated-icon { display: inline-flex; align-items: center; flex: none; }
+.card-illustration { width: 3.25rem; height: auto; flex: none; }
+.illustrated-icon > .card-illustration + svg,
+.dg-card[data-illustrated] :is(.dg-card-icon, .dg-scene-action) > .device-illustration + svg { display: none; }
+.calendar-period .card-illustration { width: 2.25rem; }
+.dg-card[data-illustrated] .dg-card-icon { background: transparent; width: 2.6rem; flex-basis: 2.6rem; }
+.dg-card[data-illustrated] .device-illustration { width: 2.6rem; height: 2.4rem; flex: none; }
+.card-artwork-settings > .panel-heading { margin-bottom: .35rem; }
+.card-artwork-settings :is(fieldset, details) { margin-top: 1rem; min-width: 0; }
+.card-artwork-settings legend, .card-artwork-settings summary { font-weight: 600; }
+.card-artwork-settings summary { cursor: pointer; align-content: center; min-height: 48px; }
+.card-artwork-settings summary > span { font-weight: 400; color: hsl(var(--muted-foreground)); }
+.card-artwork-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .55rem; margin-top: .5rem; }
+.card-artwork-options label { display: flex; align-items: center; gap: .6rem; min-width: 0; min-height: 3rem; padding: .45rem .65rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-field); cursor: pointer; }
+.card-artwork-options label:has([data-state="checked"]) { border-color: hsl(var(--primary)); }
+.card-artwork-options label:has(:focus-visible) { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.card-artwork-options label:has(:disabled) { cursor: not-allowed; }
+.card-artwork-options label > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .875rem; }
+.card-artwork-options small { display: block; color: hsl(var(--muted-foreground)); }
+.card-artwork-options label > svg { width: 2.6rem; height: 2.25rem; flex: none; }
+@media (forced-colors: active), (prefers-contrast: more) {
+  .card-illustration, .device-illustration { display: none; }
+  .illustrated-icon > .card-illustration + svg,
+  .dg-card[data-illustrated] :is(.dg-card-icon, .dg-scene-action) > .device-illustration + svg { display: block; }
+  .illustrated-icon:not(:has(> svg + svg)) { display: none; }
+}
+
+/* Print the corner of the selected heading, behind its title and actions. */
+:is(.panel-heading, .calendar-navigation, .school-strip > div:first-child):has(.illustrated-icon),
+.dg-card[data-illustrated] :is(.dg-card-header, .dg-scene-action) { position: relative; isolation: isolate; }
+:is(.panel-heading, .calendar-navigation, .school-strip > div:first-child):has(.illustrated-icon)::before,
+.dg-card[data-illustrated] :is(.dg-card-header, .dg-scene-action)::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: min(55%, 16rem);
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / .21) 65%);
+  mask: url("./assets/card-engraving.svg") right center / contain no-repeat;
+}
+@media (forced-colors: active), (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  :is(.panel-heading, .calendar-navigation, .school-strip > div:first-child):has(.illustrated-icon)::before,
+  .dg-card[data-illustrated] :is(.dg-card-header, .dg-scene-action)::before { content: none; }
+}

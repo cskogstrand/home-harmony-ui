@@ -40,7 +40,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   for (let i = 0; i < people.length; i += columns) rows.push(people.slice(i, i + columns));
 
   return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
-    <div className="panel-heading"><PanelTitle icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
+    <div className="panel-heading"><PanelTitle artwork="day" icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
     <HomeAssistantCalendar data={data} />
     <div ref={board} className="family-day-board" style={{ "--day-columns": columns } as CSSProperties}>{rows.map(row => <div className="family-day-row" key={row[0].id}>
       <div className="family-lanes">{row.map(person => <div className="lane-heading" key={person.id}>

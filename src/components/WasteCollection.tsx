@@ -67,7 +67,7 @@ export function WasteCollection() {
   if (!status && !collections.length) return null;
   return <section className="glow-panel col-span-full waste-collection" aria-label={t("Waste collection")} aria-busy={loading}>
     <div className="panel-heading">
-      <PanelTitle icon={Trash2}>{t("Waste collection")}</PanelTitle>
+      <PanelTitle artwork="wasteCollection" icon={Trash2}>{t("Waste collection")}</PanelTitle>
     </div>
     {status ? <div className="space-y-2"><p role={events === null ? "alert" : "status"} className="text-muted-foreground">{status}</p>
       {events === null && <Button variant="outline" onClick={() => setRefresh(value => value + 1)}>{t("Retry")}</Button>}

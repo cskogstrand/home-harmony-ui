@@ -4,6 +4,8 @@ import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { useFamily } from "@/contexts/FamilyContext";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import UserSettings from "@/pages/UserSettings";
+import { configuredCard } from "./device-card-fixtures";
+import { PlannerCardIcon } from "@/components/CardArtwork";
 import { defaultModalGlass, emptyConfiguration, emptyPlanner, parseConfiguration } from "../../shared/configuration";
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { timeZone: "UTC", entities: [] }, configurationRequest: vi.fn() }));
@@ -186,7 +188,7 @@ it("keeps shared artwork, palette and mode independent across reloads", async ()
   await screen.findByText("Shared configuration saved.");
   const artwork = () => within(screen.getByRole("radiogroup", { name: "Artwork" }));
   expect(artwork().getByRole("radio", { name: "No artwork" })).toBeChecked();
-  for (const name of ["Fjord Morning", "Winter Garden", "Sunroom", "Paper Coast", "Northern Lights"]) {
+  for (const name of ["Fjord Morning", "Winter Garden", "Sunroom", "Paper Coast", "Harbor Light", "Birch Grove", "Star Atlas", "Pottery Studio", "Wildflower Meadow", "Woven Hills", "Northern Lights"]) {
     fireEvent.click(artwork().getByRole("radio", { name }));
     await screen.findByText("Shared configuration saved.");
     expect(artwork().getByRole("radio", { name })).toBeChecked();
@@ -206,6 +208,37 @@ it("keeps shared artwork, palette and mode independent across reloads", async ()
   expect(screen.getByRole("switch", { name: "Toggle dark mode" })).not.toBeChecked();
 });
 
+it("restores illustrated planner types and individual Smart home cards independently", async () => {
+  const settings = <FamilyProvider><UserSettings /><ConfigurationBackup /><div data-testid="homework-heading"><PlannerCardIcon kind="homework" /></div></FamilyProvider>;
+  const view = render(settings);
+  await screen.findByText("Shared configuration saved.");
+  const config = emptyConfiguration();
+  config.settings.smartHome.layout = ["a", "b"].map(id => configuredCard("light.example", "light", { id, title: "Studio lamp" }));
+  await upload(JSON.stringify(config));
+  await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
+  fireEvent.click(screen.getByText("Smart home cards", { exact: false, selector: "summary" }));
+  for (const name of [/Homework/, /Studio lamp.*1 of 2/]) {
+    const control = screen.getByRole("switch", { name });
+    expect(control).not.toBeChecked();
+    fireEvent.click(control);
+    await screen.findByText("Shared configuration saved.");
+  }
+  expect(screen.getByTestId("homework-heading").querySelector('[data-illustration="homework"]')).toBeInTheDocument();
+  const body = app.configurationRequest.mock.calls.filter(([method]) => method === "PUT").pop()![1];
+  const saved = parseConfiguration(body).settings;
+  expect(saved.appearance).toMatchObject({ artwork: "none", colorPalette: "pearl", theme: "dark", plannerArtwork: { homework: true } });
+  expect(saved.smartHome.layout.map(card => !!card.illustrated)).toEqual([true, false]);
+  view.unmount();
+  render(settings);
+  await screen.findByText("Shared configuration saved.");
+  fireEvent.click(screen.getByText("Smart home cards", { exact: false, selector: "summary" }));
+  expect(screen.getByRole("switch", { name: /Studio lamp.*1 of 2/ })).toBeChecked();
+  expect(screen.getByRole("switch", { name: /Studio lamp.*2 of 2/ })).not.toBeChecked();
+  expect(screen.getByRole("switch", { name: "Calendar" })).not.toBeChecked();
+  fireEvent.click(screen.getByRole("switch", { name: "Homework" }));
+  expect(screen.getByTestId("homework-heading")).toBeEmptyDOMElement();
+});
+
 it("keeps a failed palette save as an unsaved draft and blocks further choices until recovery", async () => {
   render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
@@ -216,6 +249,7 @@ it("keeps a failed palette save as an unsaved draft and blocks further choices u
   expect(screen.getByRole("radio", { name: "Sand" })).toBeChecked();
   expect(screen.getByRole("radio", { name: "Dusk" })).toBeDisabled();
   expect(screen.getByRole("radio", { name: "Fjord Morning" })).toBeDisabled();
+  expect(screen.getByRole("switch", { name: "Homework" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
 });
 

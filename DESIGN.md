@@ -213,6 +213,14 @@ The labeled radio choices show the current mode's actual background, card and pr
 
 The separate Artwork picker previews the SVG illustrations in the active palette and mode. No artwork keeps the original ambient background and is the default for new installations and older backups. Selected artwork fills the wall, with a panoramic crop behind the header and a lighter touch on secondary pages. The decorative layer ignores touch and is hidden in forced colors, increased contrast and reduced transparency.
 
+### Card artwork
+
+Appearance offers an illustrated heading for each planner card type. Morning summary, Waste collection, Next family plan, Everyone’s day, Everyone’s week and Home favorites decorate the corresponding Today section. Calendar decorates the date selector in every view. The four list types share their choices across Today and Lists, including homework on School. Timetables decorates the Today school strip and each timetable heading on School. The illustration sits beside the title. A faint engraved line pattern fills the far end of the heading, clear of the card body. Person avatars and assigned shopping icons keep their identity.
+
+Each configured Smart home card has its own switch, including multiple cards of the same type or entity. Its palette-colored illustrated badge contains the device glyph. The compact scene button displays the badge beside its action label. The editor preview reflects the saved choice. Generated device tiles on detail pages and individual Today favorites use their existing device icons.
+
+Camera feeds and person snapshots, Sonos covers, vehicle imagery, notification state icons, calendar event markers and Home Assistant status readings convey content or state. Their existing renderers retain ownership of those visuals. Configuration panels keep their heading icons. Illustrated cards default off and restore their ordinary icons in forced colors and increased contrast.
+
 Device card icons, controls, sliders, selected segments, control popovers and decorative illustrations use the selected palette's primary, accent and surface tokens. Card rims and shadows use the shared glass tokens. Card types have no separate fixed color categories. Light-color controls and color-picker samples retain their actual hues; light previews mix any supplied lamp color into the current card surface, with palette-colored controls and text. Without a supplied light color, the preview uses the palette's primary color. Semantic status colors and configured person colors remain independent of the palette.
 
 Shared range thumbs and filled tracks fall back to the palette's primary color outside device cards; thumb borders fall back to the opaque card surface. Loading device-card styles must not make Sonos sliders transparent.

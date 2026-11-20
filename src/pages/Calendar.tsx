@@ -11,6 +11,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
+import { PlannerCardIcon } from "@/components/CardArtwork";
 import { CalendarDay, CalendarMonth } from "@/components/CalendarViews";
 import { AvatarFilters } from "@/components/AvatarFilters";
 import "./calendar.css";
@@ -66,7 +67,7 @@ export default function Calendar() {
         <div className="calendar-date-navigation">
           <Button variant="ghost" size="icon" aria-label={t(previousLabels[view])} onClick={() => navigate(moveCalendarDate(date, view, -1))}><ChevronLeft /></Button>
           <Popover open={jumpOpen} onOpenChange={open => { setJumpDate(date); setJumpOpen(open); }}>
-            <h2 className="calendar-period-heading" aria-label={period}><PopoverTrigger asChild><Button variant="ghost" className="calendar-period" aria-label={`${t("Jump to date")}: ${period}`}><span aria-live="polite">{period}</span><ChevronDown size={16} aria-hidden="true" /></Button></PopoverTrigger></h2>
+            <h2 className="calendar-period-heading" aria-label={period}><PopoverTrigger asChild><Button variant="ghost" className="calendar-period" aria-label={`${t("Jump to date")}: ${period}`}><PlannerCardIcon kind="calendar" /><span aria-live="polite">{period}</span><ChevronDown size={16} aria-hidden="true" /></Button></PopoverTrigger></h2>
             <PopoverContent aria-label={t("Jump to date")}>
               <form className="planner-form" onSubmit={event => { event.preventDefault(); if (isPlannerDate(jumpDate)) { navigate(jumpDate); setJumpOpen(false); } }}>
                 <label>{t("Jump to date")}<input type="date" required value={jumpDate} onChange={event => setJumpDate(event.target.value)} /></label>
