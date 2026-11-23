@@ -7,7 +7,9 @@ import type { Entity } from "@/types/api";
 import { DeviceControl } from "@/components/devices/DeviceControl";
 import { Input } from "@/components/ui/input";
 import { homeDate, useFamily } from "@/contexts/FamilyContext";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+
+const VehicleMap = lazy(() => import("./VehicleMap"));
 
 function VehicleReading({ entity, label = readingName(entity) }: { entity: Entity; label?: string }) {
   const { currentHome } = useApp();
@@ -105,16 +107,10 @@ export function VehicleJourney({ entities, active = true }: { entities: Entity[]
       {destination && <div><dt>{t("Destination")}</dt><dd>{destination}</dd></div>}
       <div><dt>{t("Arrival time")}</dt><dd>{eta ? <time dateTime={eta.toISOString()}>{eta.toLocaleString(locale, { timeZone: zone, hour: "2-digit", minute: "2-digit", ...(day ? { day: "numeric", month: "short" } : {}) })}</time> : t("No arrival estimate")}</dd></div>
     </dl>
-    {coordinates && (active ? <VehicleMap {...coordinates} /> : <div aria-hidden="true" className="vehicle-map" />)}
+    {coordinates && <div className="vehicle-map">
+      {active && <Suspense fallback={null}><VehicleMap {...coordinates} /></Suspense>}
+    </div>}
   </section>;
-}
-
-function VehicleMap({ lat, lon }: { lat: number; lon: number }) {
-  const { t } = useI18n();
-  const dy = .008, dx = dy / Math.max(.1, Math.cos(lat * Math.PI / 180));
-  const bbox = [lon - dx, lat - dy, lon + dx, lat + dy].map(n => n.toFixed(5)).join(",");
-  const params = new URLSearchParams({ bbox, layer: "mapnik", marker: `${lat.toFixed(5)},${lon.toFixed(5)}` });
-  return <iframe className="vehicle-map" title={t("Vehicle position on OpenStreetMap")} src={`https://www.openstreetmap.org/export/embed.html?${params}`} referrerPolicy="no-referrer" />;
 }
 
 const systemIcons = { "Battery & charging": BatteryCharging, "Cabin & seats": Armchair, "Doors & security": LockKeyhole, "Trip & position": Route, "Tyre pressure": CircleDot, "Vehicle & service": Cpu };

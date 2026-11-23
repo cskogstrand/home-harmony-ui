@@ -138,8 +138,30 @@
 .vehicle-wheels { grid-template-columns: minmax(0, 1fr) minmax(3.6rem, .75fr) minmax(0, 1fr); grid-template-areas: "fl car fr" "rl car rr"; align-items: center; min-height: 12rem; }
 .vehicle-tyre-plan { grid-area: car; width: 100%; height: clamp(10rem, 23dvh, 16rem); object-fit: contain; }
 .vehicle-wheels > [data-position] > strong { display: block; }
-.dark .vehicle-map { filter: invert(.9) hue-rotate(180deg) saturate(.78); }
-.vehicle-map { color-scheme: light; display: block; width: 100%; height: clamp(12rem, 27dvh, 20rem); margin-top: .65rem; border: 0; border-radius: var(--radius-field); }
+.vehicle-map { position: relative; height: clamp(12rem, 27dvh, 20rem); margin-top: .65rem; border-radius: var(--radius-field); overflow: hidden; }
+.vehicle-map-host, .vehicle-map-host .leaflet-container { height: 100%; width: 100%; isolation: isolate; }
+.vehicle-map-host .leaflet-container { background: hsl(var(--muted)); }
+.dark .vehicle-map-host .leaflet-tile-pane { filter: invert(.9) hue-rotate(180deg) saturate(.78); }
+.vehicle-map-pin { background: hsl(var(--primary)); border: 3px solid hsl(var(--primary-foreground)); border-radius: 50%; box-shadow: 0 1px 4px hsl(var(--glass-shade)); }
+.vehicle-map-host .leaflet-control-zoom.leaflet-bar { border: 1px solid hsl(var(--border)); box-shadow: 0 2px 8px hsl(var(--glass-shade)); }
+.vehicle-map-host .leaflet-control-zoom.leaflet-bar a {
+  width: 48px; height: 48px; line-height: 48px;
+  background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); border-color: hsl(var(--border));
+}
+.vehicle-map-host .leaflet-control-zoom a:is(:hover, :active, :focus-visible) { background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.vehicle-map-host .leaflet-control-zoom a.leaflet-disabled { background-color: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.vehicle-map-host .leaflet-container .leaflet-control-attribution { background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); }
+.vehicle-map-host .leaflet-control-attribution a { color: hsl(var(--primary)); }
+.vehicle-map-host .leaflet-control a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.vehicle-map-expand, .vehicle-map-fullscreen > button:last-child {
+  position: absolute; top: max(.5rem, env(safe-area-inset-top)); right: max(.5rem, env(safe-area-inset-right));
+  width: 48px; height: 48px; border-radius: var(--radius-capsule); background: hsl(var(--card)); color: hsl(var(--foreground)); opacity: 1;
+}
+.vehicle-map-fullscreen[role="dialog"] { width: 100%; height: 100dvh; max-width: none; max-height: none; padding: 0; border: 0; border-radius: 0; overflow: hidden; }
+.vehicle-map-fullscreen .leaflet-top { top: env(safe-area-inset-top); }
+.vehicle-map-fullscreen .leaflet-left { left: env(safe-area-inset-left); }
+.vehicle-map-fullscreen .leaflet-bottom { bottom: env(safe-area-inset-bottom); }
+.vehicle-map-fullscreen .leaflet-right { right: env(safe-area-inset-right); }
 .vehicle-seats { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "fl . fr" "rl rc rr"; }
 :is(.vehicle-wheels, .vehicle-seats) > div { padding: .65rem; border-radius: var(--radius-field); background: hsl(var(--secondary)); }
 .vehicle-band [data-position="Front left"] { grid-area: fl; }
