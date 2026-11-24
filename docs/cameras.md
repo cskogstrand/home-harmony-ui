@@ -4,7 +4,7 @@ Cameras are created explicitly in Home Harmony. Home Assistant discovery does no
 
 ## Set up connections
 
-Open **Home settings → Camera connections**, or **Manage connections** from camera setup.
+Open **Settings → Devices → Camera connections**, or **Manage connections** from camera setup.
 
 - **Home Assistant** is built in and uses the home's existing authenticated connection. Its `camera.*` entities become choices when adding a camera; its image entities can supply person snapshots.
 - **go2rtc:** choose **Add connection**, give it a name and enter its HTTP API address, for example `http://go2rtc.example:1984`. A working `stream.html?src=example_camera` or `webrtc.html?src=example_camera&media=video+audio` URL is also accepted; its server address is extracted. Multiple cameras can share this connection, and multiple go2rtc servers can be configured separately.
@@ -16,7 +16,7 @@ Connections can be renamed or edited. A connection used by a camera's live video
 
 ## Add a camera
 
-1. Choose **Add camera** under **Smart home → Cameras** or **Home settings → Cameras**.
+1. Choose **Add camera** under **Smart home → Cameras** or **Settings → Devices → Cameras**.
 2. Enter a **Camera name**. This is the name shown in Home Harmony and its notification camera picker.
 3. Choose a **Connection**.
 4. For **Home Assistant**, select a **Home Assistant camera**. For **go2rtc**, choose a **Stream** from the selected server's list. **Refresh streams** reloads the list. If discovery is unavailable, **Enter stream manually** accepts a `stream.html` or `webrtc.html` link, a stream name, or an RTSP restream address such as `rtsp://frigate.example:8554/example_camera`. Only `example_camera` is saved; the selected connection determines the server. A player link for another server is rejected until its matching connection is selected. **Open in go2rtc (new tab)** opens the selected source in the upstream player for comparison.
@@ -39,9 +39,9 @@ The go2rtc list uses the [go2rtc stream API](https://github.com/AlexxIT/go2rtc/b
 
 ## Watch cameras and use them in notifications
 
-Open **Smart home → Cameras**, or use the camera icon in the top-right header beside the notification bell to go directly to `/cameras` from any page. The page shows only cameras you have added. Each camera has a **Configure camera** gear at the top right of its card. Create camera notifications under **Home settings → Notifications**.
+Open **Smart home → Cameras**, or use the camera icon in the top-right header beside the notification bell to go directly to `/cameras` from any page. The page shows only cameras you have added. Each camera has a **Configure camera** gear at the top right of its card. Create camera notifications under **Settings → Screen and alerts → Notifications**.
 
-In **Home settings → Notifications → Camera popup → Camera and image**, **Camera** lists your configured cameras, regardless of connection. **Show in notification** offers that camera's live source and its **Person snapshot**, when configured. **Test camera output** previews the choice. **Configure camera (new tab)** keeps the notification draft open while editing the camera. Changing a camera's connection or source applies wherever that camera is used.
+In **Settings → Screen and alerts → Notifications → Camera popup → Camera and image**, **Camera** lists your configured cameras, regardless of connection. **Show in notification** offers that camera's live source and its **Person snapshot**, when configured. **Test camera output** previews the choice. **Configure camera (new tab)** keeps the notification draft open while editing the camera. Changing a camera's connection or source applies wherever that camera is used.
 
 Camera deletion requires confirmation and is blocked while a notification references it. Delete or reassign those rules first. Removing a camera from Home Harmony leaves its connection, Home Assistant entity and physical camera unchanged.
 

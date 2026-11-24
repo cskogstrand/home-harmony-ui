@@ -2,7 +2,7 @@
 
 Entity selection uses one searchable dropdown throughout notifications, Smart home card settings, alarm selection, vehicle photos and address sensors, calendar and to-do assignments, timetable sources, event editing and dashboard favorites.
 
-Choose a device first to see its entities. **All entities** includes the full eligible list; **Without a device** includes helpers, calendars and other standalone entities. Searching also finds entities directly by name, ID, device, room or integration. Device selection narrows search to that device. **Back to devices** clears that filter.
+Calendar and to-do assignments open directly on the eligible calendars or lists. In device-grouped pickers, choose a device first to see its entities. **All entities** includes the full eligible list; **Without a device** includes helpers, calendars and other standalone entities. Searching also finds entities directly by name, ID, device, room or integration. Device selection narrows search to that device. **Back to devices** clears that filter.
 
 Arrow keys move through results; Tab reaches the other controls. Enter activates buttons, Space toggles checkboxes, and Escape closes the dropdown and returns focus to its field. Multi-selection stays open until **Done**. Existing removal and reassignment confirmations still apply.
 

@@ -1,7 +1,7 @@
 import { PanelTitle } from "@/components/PanelTitle";
 import { useEffect, useRef, useState } from "react";
 import { Link, useBeforeUnload, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2, Eye, TriangleAlert, SlidersHorizontal, Sparkles, Palette, Plug } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronRight, Layers3, Plus, Search, Trash2, Eye, SlidersHorizontal, Sparkles, Palette, Plug } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -140,29 +140,48 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
 export function SmartHomeSettings() {
   const { message: t } = useI18n();
   const { currentHome, homeOnline } = useApp();
-  const { smartHome, clearSmartHome } = useFamily();
+  const { smartHome } = useFamily();
   const shared = useSharedConfiguration();
   const [params, setParams] = useSearchParams();
-  const [reset, setReset] = useState(false);
   const selectedId = params.get("card");
   const selected = smartHome.layout.find(card => card.id === selectedId);
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const cards = smartHomeCards(currentHome.entities, smartHome);
-  const open = (id?: string) => setParams(id ? { card: id } : {});
+  const open = (id?: string) => {
+    const next = new URLSearchParams(params);
+    if (id) next.set("card", id);
+    else next.delete("card");
+    setParams(next);
+  };
   return <div className="smart-settings">
-    {selectedId === "new" || selected ? <CardEditor key={selectedId} card={selected} disabled={disabled} onClose={() => open()} /> : <>
-      <section className="smart-collection" aria-label={t("Your cards")}>
+    {selectedId === "new" || selected ? <CardEditor key={selectedId} card={selected} disabled={disabled} onClose={() => open()} /> : <section className="smart-collection" aria-label={t("Your cards")}>
         <div className="smart-builder-heading"><div><PanelTitle icon={Layers3}>{t("Your cards")}</PanelTitle><p className="page-note">{t("Choose what belongs on your dashboard, one card at a time.")}</p></div><Button disabled={disabled} onClick={() => open("new")}><Plus size={18} aria-hidden="true" />{t("Add card")}</Button></div>
         {!!selectedId && <p role="status">{t("This card no longer exists. Choose another or add a new one.")}</p>}
         {cards.length ? <ul className="smart-card-list">{cards.map(card => <li key={card.id} className="settings-card"><button onClick={() => open(card.id)} className="smart-card-row"><span className="smart-card-row-icon glass-surface"><card.design.icon size={22} strokeWidth={1.7} aria-hidden="true" /></span><span className="smart-card-row-copy"><strong>{card.title || card.main?.name || t(card.design.subtitle)}</strong> <small>{[t(card.design.subtitle), card.group, t(card.linkedEntities.length ? "{count} entities" : "1 entity", { count: card.linkedEntities.length + 1 })].filter(Boolean).join(" · ")}</small> {!card.main && <small className="smart-card-missing">{t("Main entity unavailable · choose a replacement")}</small>}</span><ChevronRight size={18} aria-hidden="true" /></button></li>)}</ul>
           : <div className="smart-collection-empty"><Layers3 size={38} strokeWidth={1.4} aria-hidden="true" /><h3>{t("A place for the things you use")}</h3><p>{t("Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.")}</p></div>}
         <div className="smart-collection-links"><Link className="text-link" to="/home">{t("Open Smart home")}<ArrowUpRight size={16} aria-hidden="true" /></Link>{!!cards.length && <span>{t("Reorder cards and groups from Arrange cards on Smart home.")}</span>}</div>
-      </section>
-      <section className="smart-danger settings-card" aria-labelledby="smart-danger-title"><PanelTitle id="smart-danger-title" icon={TriangleAlert}>{t("Danger zone")}</PanelTitle><div><span><strong>{t("Start from an empty dashboard")}</strong><p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></span><Button variant="outline" className="smart-remove-card" disabled={disabled || !cards.length} onClick={() => setReset(true)}><Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}</Button></div><Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
-    </>}
+      </section>}
     {!homeOnline && <p className="page-note">{t("Home Assistant is offline. Showing the last available devices and entities.")}</p>}
-    <ConfirmDialog open={reset} onOpenChange={setReset} title="Clear Smart home?" destructive disabled={disabled} confirmLabel="Clear Smart home"
+  </div>;
+}
+
+export function DangerZoneSettings() {
+  const { t } = useI18n();
+  const { smartHome, clearSmartHome } = useFamily();
+  const { state } = useSharedConfiguration();
+  const [confirm, setConfirm] = useState(false);
+  const disabled = !state.loaded || !!state.error || !smartHome.layout.length;
+  return <section className="smart-danger settings-card" aria-labelledby="clear-smart-home-title">
+    <div>
+      <div><PanelTitle id="clear-smart-home-title" icon={Layers3}>{t("Smart home")}</PanelTitle>
+        <p>{t("Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.")}</p></div>
+      <Button variant="outline" className="smart-remove-card" disabled={disabled} onClick={() => setConfirm(true)}>
+        <Trash2 size={17} aria-hidden="true" />{t("Clear Smart home")}
+      </Button>
+    </div>
+    <Link className="text-link" to="/settings/backups">{t("Back up settings first")}<ArrowUpRight size={15} aria-hidden="true" /></Link>
+    <ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Clear Smart home?" destructive disabled={disabled} confirmLabel="Clear Smart home"
       description="All Smart home cards, groups and scene cards will be removed from every screen. Today’s favourites, other settings and Home Assistant devices will be kept. Restore a settings backup if you need this layout again."
       onConfirm={clearSmartHome} />
-  </div>;
+  </section>;
 }

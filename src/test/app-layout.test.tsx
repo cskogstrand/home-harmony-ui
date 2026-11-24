@@ -202,10 +202,10 @@ it.each([
   shared.online = online;
   render(layout());
   expect(screen.getByRole("status", { name: "Settings storage" })).toHaveTextContent(message);
-  const settings = screen.getByRole("button", { name: "Open app settings" });
+  const settings = screen.getByRole("link", { name: "Open app settings" });
   expect(settings).toHaveAttribute("title", message);
-  fireEvent.keyDown(settings, { key: "Enter" });
-  expect(screen.getByRole("menuitem", { name: "Storage and backups" })).toHaveAttribute("href", "/settings/backups");
+  expect(settings).toHaveAccessibleDescription(message);
+  expect(settings).toHaveAttribute("href", "/settings");
 });
 
 it("shows music playback only while a connected Sonos group plays music", () => {

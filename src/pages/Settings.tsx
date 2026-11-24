@@ -1,15 +1,15 @@
 import { useContext, useEffect, useRef } from "react";
-import { Link, Navigate, useLocation, useParams } from "react-router-dom";
-import { ArrowLeft, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronRight, CloudSun, Database, Globe, House, ListChecks, Palette, SlidersHorizontal, Users, Wifi, WifiOff } from "lucide-react";
-import { useApp } from "@/contexts/AppContext";
+import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, CloudSun, Database, Globe, ListChecks, Monitor, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi } from "lucide-react";
+import { useHouseholdSetup } from "@/hooks/use-household-setup";
+import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationDebugContext } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
 import { NotificationSettings } from "@/components/NotificationSettings";
-import { SmartHomeSettings } from "@/components/SmartHomeSettings";
+import { DangerZoneSettings, SmartHomeSettings } from "@/components/SmartHomeSettings";
 import { CameraConnections } from "@/components/CameraConnections";
 import { CameraSettings } from "@/components/CameraSettings";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { PanelTitle } from "@/components/PanelTitle";
 import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
@@ -33,28 +33,31 @@ function DebugSettings() {
 }
 
 const groups = [
-  { title: "Preferences", icon: SlidersHorizontal, items: [
-    { id: "appearance", title: "Appearance", description: "Theme, colors, artwork, glass and display density", icon: Palette, content: <UserSettings section="appearance" /> },
-    { id: "language", title: "Language", description: "Language for every connected screen", icon: Globe, content: <UserSettings section="language" /> },
-    { id: "notifications", title: "Notifications", description: "Alerts, ongoing tasks and camera popups", icon: Bell, content: <NotificationSettings /> },
-    { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },
-  ] },
-  { title: "Household", icon: Users, items: [
-    { id: "vehicles", title: "Electric vehicles", description: "Choose which cars appear in the header", icon: CarFront, content: <VehicleSettings /> },
+  { id: "household", title: "Household", description: "People, calendars, lists and timetables", icon: Users, items: [
     { id: "people", title: "People", description: "Visibility, order, colors and timetable access", icon: Users, content: <HomeSettings section="people" /> },
     { id: "calendars", title: "Calendars", description: "Connect calendars to the right people", icon: CalendarDays, content: <HomeSettings section="calendars" /> },
     { id: "lists", title: "To-do lists", description: "Personal tasks, daily lists and shared shopping", icon: ListChecks, content: <HomeSettings section="lists" /> },
     { id: "timetables", title: "Timetables", description: "School calendars, PDF uploads and images", icon: BookOpen, content: <HomeSettings section="timetables" /> },
   ] },
-  { title: "System", icon: Wifi, items: [
+  { id: "screen", title: "Screen and alerts", description: "Appearance, language, weather and notifications", icon: Monitor, items: [
+    { id: "appearance", title: "Appearance", description: "Theme, colors, artwork, glass and display density", icon: Palette, content: <UserSettings section="appearance" /> },
+    { id: "language", title: "Language", description: "Language for every connected screen", icon: Globe, content: <UserSettings section="language" /> },
+    { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },
+    { id: "notifications", title: "Notifications", description: "Alerts, ongoing tasks and camera popups", icon: Bell, content: <NotificationSettings /> },
+  ] },
+  { id: "devices", title: "Devices", description: "Smart home, cars and cameras", icon: SlidersHorizontal, items: [
+    { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
+    { id: "vehicles", title: "Electric vehicles", description: "Choose which cars appear in the header", icon: CarFront, content: <VehicleSettings /> },
     { id: "cameras", title: "Cameras", description: "Add cameras and choose their connections", icon: Camera, content: <CameraSettings /> },
     { id: "camera-connections", title: "Camera connections", description: "Home Assistant, go2rtc and Frigate servers", icon: Wifi, content: <CameraConnections /> },
-    { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
+  ] },
+  { id: "system", title: "System", description: "Home Assistant, backups and troubleshooting", icon: Wifi, items: [
     { id: "connection", title: "Connection & account", description: "Home Assistant connection and instance details", icon: Wifi, content: <HomeSettings section="connection" /> },
     { id: "backups", title: "Storage and backups", description: "Export, restore and recover shared settings", icon: Database, content: <ConfigurationBackup /> },
     { id: "debug", title: "Debug", description: "Test features in this tab until you reload.", icon: Bug, content: <DebugSettings /> },
+    { id: "danger-zone", title: "Danger zone", description: "Clear the Smart home dashboard on every screen", icon: TriangleAlert, content: <DangerZoneSettings /> },
   ] },
-];
+] as const;
 
 const legacySections: Record<string, string> = {
   connection: "connection", notifications: "notifications", "smart-home-visibility": "smart-home",
@@ -64,44 +67,66 @@ const legacySections: Record<string, string> = {
 export default function Settings() {
   const { section } = useParams();
   const { hash, search } = useLocation();
-  const { t, message } = useI18n();
-  const { currentHome, homeOnline } = useApp();
+  const [params, setParams] = useSearchParams();
+  const { t } = useI18n();
+  const remaining = useHouseholdSetup();
+  const shared = useSharedConfiguration();
   const heading = useRef<HTMLHeadingElement>(null);
-  const selected = groups.flatMap(group => group.items).find(item => item.id === section);
-  useEffect(() => { heading.current?.focus({ preventScroll: true }); }, [section]);
+  const group = groups.find(group => group.items.some(item => item.id === section));
+  const selected = group?.items.find(item => item.id === section);
+  useEffect(() => { heading.current?.focus(); }, [section]);
   if (!section && legacySections[hash.slice(1)]) return <Navigate to={`/settings/${legacySections[hash.slice(1)]}${search}`} replace />;
+  if (section === "smart-home" && params.get("panel") === "reset" && !params.has("card")) {
+    const next = new URLSearchParams(params);
+    next.delete("panel");
+    return <Navigate to={{ pathname: "/settings/danger-zone", search: next.toString(), hash }} replace />;
+  }
   if (section && !selected) return <Navigate to="/settings" replace />;
-  const menu = <nav className="settings-menu settings-stack" aria-label={t("Settings navigation")}>
-    {groups.map(group => <section className="settings-group settings-card" key={group.title} aria-label={message(group.title)}>
-      <PanelTitle icon={group.icon}>{message(group.title)}</PanelTitle>
-      <ul>{group.items.map(item => <li key={item.id}><Link to={`/settings/${item.id}`} className="settings-row" aria-current={selected?.id === item.id ? "page" : undefined}>
-        <item.icon className="settings-row-icon" size={20} strokeWidth={1.8} aria-hidden="true" />
-        <span><span className="settings-row-title">{message(item.title)}</span> {!selected && <span className="settings-row-description">{message(item.description)}</span>}</span>
-        <ChevronRight className="settings-chevron" size={17} aria-hidden="true" />
-      </Link></li>)}</ul>
-    </section>)}
-  </nav>;
 
-  return <div className={`settings-page ${selected ? "settings-subpage" : "settings-overview"}`}>
-    <div className="settings-intro">
-      {selected && <Link to="/settings" className="settings-back"><ArrowLeft size={18} aria-hidden="true" />{t("All settings")}</Link>}
-      <PanelTitle as="h1" icon={selected?.icon ?? SlidersHorizontal} ref={heading} tabIndex={-1}>{selected ? message(selected.title) : t("Settings")}</PanelTitle>
-      <p className="page-note">{selected ? message(selected.description) : t("Preferences, people and your connected home.")}</p>
-      {!selected && <>
-        <Link to="/settings/connection" className="settings-home glass-surface">
-          <House size={24} strokeWidth={1.6} aria-hidden="true" />
-          <span><strong>{currentHome.name}</strong><span>{homeOnline ? <Wifi size={14} aria-hidden="true" /> : <WifiOff size={14} aria-hidden="true" />}{homeOnline ? t("Connected") : t("HA offline")}</span></span>
-          <ChevronRight size={17} aria-hidden="true" />
-        </Link>
-        <p className="page-note settings-shared-note">{t("Settings are shared across screens. Debug tools apply only to this tab.")}</p>
-        <Button variant="outline" asChild><Link to="/onboarding">{t("Get started")}</Link></Button>
-      </>}
-    </div>
-    {menu}
-    {selected && <div className="settings-content" key={section}>
+  if (selected && group) return <div className="settings-page settings-subpage">
+    <header className="settings-intro">
+      <Link to={`/settings?group=${group.id}`} className="settings-back"><ArrowLeft size={18} aria-hidden="true" />{t("All settings")}</Link>
+      <PanelTitle as="h1" icon={selected.icon} ref={heading} tabIndex={-1}>{t(selected.title)}</PanelTitle>
+      <p className="page-note">{t(selected.description)}</p>
+    </header>
+    <div className="settings-content" key={section}>
       {section !== "debug" && (section === "backups" ? <p className="shared-settings-status">{t("Applies to every screen connected to this server.")}</p> : <SharedSettingsStatus showRecovery />)}
       {selected.content}
       {section === "people" && <Link className="settings-related text-link" to="/settings/timetables">{t("Configure timetables")}<ChevronRight size={17} aria-hidden="true" /></Link>}
-    </div>}
+    </div>
+  </div>;
+
+  const next = remaining[0];
+  return <div className="settings-page settings-overview">
+    <header className="settings-intro">
+      <PanelTitle as="h1" icon={SlidersHorizontal} ref={heading} tabIndex={-1}>{t("Settings")}</PanelTitle>
+    </header>
+    {(shared?.state.error || shared?.state.dirty) && <SharedSettingsStatus showRecovery />}
+    <Link className="settings-guide-link" to={next ? `/onboarding?step=${next.id}` : "/onboarding"}>
+      <span><strong>{t(next ? "Continue setup" : "Guided setup")}</strong>
+        <span>{next ? t(next.title) : t("Connect your home, then choose people, calendars and lists.")}</span></span>
+      <ArrowRight size={22} aria-hidden="true" />
+    </Link>
+    <nav className="settings-menu settings-card" aria-label={t("Settings navigation")}>
+      {groups.map(group => {
+        const open = params.get("group") === group.id;
+        return <section className="settings-group" key={group.id}>
+          <h2><button type="button" className="settings-row settings-category" aria-expanded={open} aria-controls={`group-${group.id}`}
+            onClick={() => setParams(previous => {
+              if (open) previous.delete("group"); else previous.set("group", group.id);
+              return previous;
+            }, { replace: true, preventScrollReset: true })}>
+            <group.icon size={23} aria-hidden="true" />
+            <span><strong>{t(group.title)}</strong><small>{t(group.description)}</small></span>
+            <ChevronDown className="settings-chevron" size={19} aria-hidden="true" />
+          </button></h2>
+          <ul id={`group-${group.id}`} hidden={!open}>{group.items.map(item => <li key={item.id}>
+            <Link to={`/settings/${item.id}`} className="settings-row settings-item">
+              <item.icon size={18} aria-hidden="true" /><span>{t(item.title)}</span><ChevronRight size={16} aria-hidden="true" />
+            </Link>
+          </li>)}</ul>
+        </section>;
+      })}
+    </nav>
   </div>;
 }

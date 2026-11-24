@@ -19,7 +19,7 @@ Recommendations are explicit add actions, never automatic configuration. A singl
 
 Edits stay in a local draft until **Add card** or **Save changes**. Back and Cancel confirm discarding a changed draft; removing an existing card also requires confirmation. Shared configuration loading, saving and errors stay visible. **Configure** on Smart home retains ordering, group moves and per-card size controls. The ordered `smartHome.layout` stores each card independently of discovery.
 
-The separate **Danger zone** includes a backup link and a confirmation that clears the entire Smart home layout, including groups and scene cards, across screens. Today's favourites, other settings and Home Assistant entities are preserved. No former visibility rules or inferred device cards are migrated.
+**Settings → System → Danger zone** includes a backup link and a confirmation that clears the entire Smart home layout, including groups and scene cards, across screens. Today's favourites, other settings and Home Assistant entities are preserved. No former visibility rules or inferred device cards are migrated.
 
 ## Direction contract
 
@@ -29,7 +29,7 @@ OWN-WORLD: Preserve Afterglow's Liquid Glass card material, pearl/midnight palet
 
 STORY: Scan your cards, choose Add card, select its type and device, attach sources manually or accept relevant suggestions, inspect the resulting card, and save. Preview controls cannot operate devices. Missing sources stay visible and replaceable.
 
-FIRST VIEWPORT: A compact Your cards heading and Add card action above a spaced list of saved-card settings cards. The editor pairs device/source and appearance fields with a separate real card preview; phone layouts stack the preview below the fields. Reset sits below the collection in a clearly separated Danger zone.
+FIRST VIEWPORT: A compact Your cards heading and Add card action above a spaced list of saved-card settings cards. The editor pairs device/source and appearance fields with a separate real card preview; phone layouts stack the preview below the fields. The collection uses the full content width. Reset lives under System on the settings index.
 
 FORM: User-directed card-first composition, code-led extension of the existing visual world; no concept roll for this specified arrangement. No shipping raster assets.
 

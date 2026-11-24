@@ -92,8 +92,7 @@ it("retains every main page across navigation, including visits to settings", as
     headings.set(name, screen.getByRole("heading", { level: 1 }));
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
   }
-  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
-  fireEvent.click(screen.getByRole("menuitem", { name: "All settings" }));
+  fireEvent.click(screen.getByRole("link", { name: "Open app settings" }));
   await screen.findByRole("heading", { level: 1, name: "Settings" });
   for (const [name, heading] of headings) {
     await navigate(name);

@@ -22,7 +22,7 @@ export function ModalGlassSettings({ disabled }: { disabled: boolean }) {
   const dragging = useRef(false);
   const endDrag = () => { dragging.current = false; setDraft({}); };
   const values = { ...appearance, ...draft };
-  return <section className="settings-card modal-glass-settings">
+  return <section className="modal-glass-settings">
     <PanelHeading icon={Layers} title={t("Modal glass")} />
     <p className="page-note">{t("Adjust dialog transparency and frost. Release a slider to save across connected screens.")}</p>
     <div className="modal-glass-preview" style={modalGlassProperties(values) as CSSProperties} aria-hidden="true">

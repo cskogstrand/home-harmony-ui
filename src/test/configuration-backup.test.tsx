@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { useFamily } from "@/contexts/FamilyContext";
@@ -10,6 +11,7 @@ import { defaultModalGlass, emptyConfiguration, emptyPlanner, parseConfiguration
 
 const app = vi.hoisted(() => ({ haUrl: "http://ha.local:8123", homeOnline: true, currentHome: { timeZone: "UTC", entities: [] }, configurationRequest: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
+const selectPanel = (name: string) => fireEvent.click(screen.getByRole("link", { name }));
 const backup = () => ({ ...emptyConfiguration(), settings: { ...emptyPlanner(), memberOrder: ["restored-person"], hiddenMembers: ["restored-person"] } });
 function Probe() {
   const { memberOrder, hiddenMembers, appearance, selectedAlarm, setCalendarSettings, setAppearance, setSelectedAlarm, addItem } = useFamily();
@@ -163,29 +165,34 @@ it.each([
   ["Sage", "sage"], ["Mist", "mist"], ["Rose", "rose"], ["Olive", "olive"],
   ["Clay", "clay"], ["Lavender", "lavender"], ["Seafoam", "seafoam"], ["Honey", "honey"], ["Slate", "slate"],
 ])("applies %s globally, keeps dark mode independent, and restores the choice after reload", async (name, colorPalette) => {
-  const view = render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  const view = render(<FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Color palette");
   expect(screen.getByRole("radio", { name: "Pearl" })).toBeChecked();
   fireEvent.click(screen.getByRole("radio", { name }));
   await screen.findByText("Shared configuration saved.");
   expect(document.documentElement).toHaveAttribute("data-color-palette", colorPalette);
   expect(document.documentElement).toHaveClass("dark");
+  selectPanel("Display");
   fireEvent.click(screen.getByRole("switch", { name: "Toggle dark mode" }));
   await screen.findByText("Shared configuration saved.");
   expect(document.documentElement).not.toHaveClass("dark");
+  selectPanel("Color palette");
   expect(screen.getByRole("radio", { name })).toBeChecked();
   view.unmount();
-  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  render(<FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Color palette");
   expect(screen.getByRole("radio", { name })).toBeChecked();
   expect(document.documentElement).toHaveAttribute("data-color-palette", colorPalette);
   expect(document.documentElement).not.toHaveClass("dark");
 });
 
 it("keeps shared artwork, palette and mode independent across reloads", async () => {
-  const settings = <FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>;
+  const settings = <FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>;
   const view = render(settings);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Artwork");
   const artwork = () => within(screen.getByRole("radiogroup", { name: "Artwork" }));
   expect(artwork().getByRole("radio", { name: "No artwork" })).toBeChecked();
   for (const name of ["Fjord Morning", "Winter Garden", "Sunroom", "Paper Coast", "Harbor Light", "Birch Grove", "Star Atlas", "Pottery Studio", "Wildflower Meadow", "Woven Hills", "Northern Lights"]) {
@@ -193,25 +200,33 @@ it("keeps shared artwork, palette and mode independent across reloads", async ()
     await screen.findByText("Shared configuration saved.");
     expect(artwork().getByRole("radio", { name })).toBeChecked();
   }
+  selectPanel("Color palette");
   expect(screen.getByRole("radio", { name: "Pearl" })).toBeChecked();
+  selectPanel("Display");
   expect(screen.getByRole("switch", { name: "Toggle dark mode" })).toBeChecked();
+  selectPanel("Color palette");
   fireEvent.click(screen.getByRole("radio", { name: "Clay" }));
+  selectPanel("Display");
   fireEvent.click(screen.getByRole("switch", { name: "Toggle dark mode" }));
   await screen.findByText("Shared configuration saved.");
   view.unmount();
   render(settings);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Artwork");
   expect(artwork().getByRole("radio", { name: "Northern Lights" })).toBeChecked();
   fireEvent.click(artwork().getByRole("radio", { name: "No artwork" }));
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Color palette");
   expect(screen.getByRole("radio", { name: "Clay" })).toBeChecked();
+  selectPanel("Display");
   expect(screen.getByRole("switch", { name: "Toggle dark mode" })).not.toBeChecked();
 });
 
 it("restores illustrated planner types and individual Smart home cards independently", async () => {
-  const settings = <FamilyProvider><UserSettings /><ConfigurationBackup /><div data-testid="homework-heading"><PlannerCardIcon kind="homework" /></div></FamilyProvider>;
+  const settings = <FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /><div data-testid="homework-heading"><PlannerCardIcon kind="homework" /></div></FamilyProvider>;
   const view = render(settings);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Card artwork");
   const config = emptyConfiguration();
   config.settings.smartHome.layout = ["a", "b"].map(id => configuredCard("light.example", "light", { id, title: "Studio lamp" }));
   await upload(JSON.stringify(config));
@@ -231,6 +246,7 @@ it("restores illustrated planner types and individual Smart home cards independe
   view.unmount();
   render(settings);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Card artwork");
   fireEvent.click(screen.getByText("Smart home cards", { exact: false, selector: "summary" }));
   expect(screen.getByRole("switch", { name: /Studio lamp.*1 of 2/ })).toBeChecked();
   expect(screen.getByRole("switch", { name: /Studio lamp.*2 of 2/ })).not.toBeChecked();
@@ -240,22 +256,26 @@ it("restores illustrated planner types and individual Smart home cards independe
 });
 
 it("keeps a failed palette save as an unsaved draft and blocks further choices until recovery", async () => {
-  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  render(<FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  selectPanel("Color palette");
   fireEvent.click(screen.getByRole("radio", { name: "Sand" }));
   await screen.findByText(/Another screen changed the configuration/);
   expect(document.documentElement).toHaveAttribute("data-color-palette", "sand");
   expect(screen.getByRole("radio", { name: "Sand" })).toBeChecked();
   expect(screen.getByRole("radio", { name: "Dusk" })).toBeDisabled();
+  selectPanel("Artwork");
   expect(screen.getByRole("radio", { name: "Fjord Morning" })).toBeDisabled();
+  selectPanel("Card artwork");
   expect(screen.getByRole("switch", { name: "Homework" })).toBeDisabled();
   expect(screen.getByRole("button", { name: "Export unsaved configuration" })).toBeEnabled();
 });
 
 it("saves keyboard glass changes, restores them after reload, and resets only glass appearance", async () => {
-  const view = render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  const view = render(<FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Advanced appearance");
   for (const name of ["Transparency", "Frost", "Color saturation", "Background dimming"]) {
     fireEvent.keyDown(screen.getByRole("slider", { name }), { key: "ArrowRight" });
     await screen.findByText("Shared configuration saved.");
@@ -270,24 +290,28 @@ it("saves keyboard glass changes, restores them after reload, and resets only gl
   await upload(JSON.stringify(saved));
   await act(async () => fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restore configuration" })));
   expect(screen.getByRole("slider", { name: "Background dimming" })).toHaveAttribute("aria-valuenow", "30");
+  selectPanel("Color palette");
   fireEvent.click(screen.getByRole("radio", { name: "Sage" }));
   await screen.findByText("Shared configuration saved.");
   view.unmount();
-  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  render(<FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
+  selectPanel("Advanced appearance");
   expect(screen.getByRole("slider", { name: "Transparency" })).toHaveAttribute("aria-valuenow", "71");
   expect(screen.getByRole("slider", { name: "Frost" })).toHaveAttribute("aria-valuenow", "21");
   fireEvent.click(screen.getByRole("button", { name: "Reset glass appearance" }));
   await screen.findByText("Shared configuration saved.");
   expect(screen.getByRole("slider", { name: "Background dimming" })).toHaveAttribute("aria-valuenow", "20");
+  selectPanel("Color palette");
   expect(screen.getByRole("radio", { name: "Sage" })).toBeChecked();
   expect(document.documentElement).toHaveClass("dark");
 });
 
 it("preserves a failed glass save and disables sliders until recovery", async () => {
-  render(<FamilyProvider><UserSettings /><ConfigurationBackup /></FamilyProvider>);
+  render(<FamilyProvider><MemoryRouter><UserSettings /></MemoryRouter><ConfigurationBackup /></FamilyProvider>);
   await screen.findByText("Shared configuration saved.");
   app.configurationRequest.mockResolvedValue({ ok: false, status: 409 });
+  selectPanel("Advanced appearance");
   fireEvent.keyDown(screen.getByRole("slider", { name: "Transparency" }), { key: "ArrowRight" });
   await screen.findByText(/Another screen changed the configuration/);
   expect(screen.getByRole("slider", { name: "Transparency" })).toHaveAttribute("aria-valuenow", "71");

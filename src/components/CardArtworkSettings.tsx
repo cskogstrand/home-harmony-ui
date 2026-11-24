@@ -1,11 +1,11 @@
-import { Image } from "lucide-react";
+import { Paintbrush } from "lucide-react";
+import { PanelTitle } from "./PanelTitle";
 import { plannerArtworkSchema, type PlannerArtwork } from "../../shared/configuration";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import type { MessageKey } from "@/lib/i18n";
 import { smartHomeCards } from "@/lib/smart-home-cards";
-import { PanelHeading } from "./FamilyPlanner";
 import { CardBackdrop, DeviceIllustration, PlannerIllustration } from "./CardArtwork";
 import { Switch } from "./ui/switch";
 
@@ -20,8 +20,8 @@ export function CardArtworkSettings({ disabled }: { disabled: boolean }) {
   const { appearance, smartHome, setAppearance, setSmartHomeCardArtwork } = useFamily();
   const { currentHome } = useApp();
   const cards = smartHomeCards(currentHome.entities, smartHome);
-  return <section className="settings-card card-artwork-settings" aria-label={t("Card artwork")}>
-    <PanelHeading icon={Image} title={t("Card artwork")} />
+  return <section className="settings-card card-artwork-settings">
+    <PanelTitle icon={Paintbrush}>{t("Card artwork")}</PanelTitle>
     <p className="page-note">{t("Choose which cards show corner artwork and an illustrated icon. This also works without a wall background.")}</p>
     <fieldset><legend>{t("Planner cards")}</legend>
       <div className="card-artwork-options">

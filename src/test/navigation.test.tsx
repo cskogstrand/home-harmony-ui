@@ -81,6 +81,7 @@ it("assigns waste collections to an active person and shows the same single coll
   ]));
   window.history.replaceState(null, "", "/settings/calendars");
   render(<App />);
+  fireEvent.click(await screen.findByRole("link", { name: "Tømmevarsler" }));
   const selector = await screen.findByRole("combobox", { name: "Vis tømmevarsler for" });
   await waitFor(() => expect(selector).toBeEnabled());
   expect(within(selector).queryByRole("option", { name: "Skjult eksempelperson" })).not.toBeInTheDocument();
@@ -118,6 +119,7 @@ it.each(["unconfigured", "missing", "offline"])("disables the waste person selec
   window.history.replaceState(null, "", "/settings/calendars");
   render(<App />);
   await saved();
+  fireEvent.click(screen.getByRole("link", { name: "Waste collection" }));
   expect(screen.getByRole("combobox", { name: "Show waste collections for" })).toBeDisabled();
   expect(screen.getByText(condition === "unconfigured" ? "Choose a waste collection calendar in Customize Today." : "Waste collection calendar unavailable. Check the calendar or choose another in Customize Today.")).toBeInTheDocument();
 });
@@ -397,6 +399,10 @@ it("selects weather entities, saves both placement checkboxes across reloads and
   }, { ...emptyRegistries, entities: [{ id: "stable-weather", entity_id: "weather.example" }, { id: "stable-temperature", entity_id: "sensor.temperature" }] }, "home");
   window.history.replaceState(null, "", "/settings/weather");
   const view = render(<App />); await saved();
+  expect(screen.queryByRole("navigation", { name: "Settings sections" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Settings section" })).toBeNull();
+  expect(screen.getByRole("heading", { name: "Weather source" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Show weather" })).toBeVisible();
   expect(screen.queryByRole("button", { name: /^Weather:/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Weather entity" }));
   expect(screen.queryByRole("button", { name: /sensor.example/ })).not.toBeInTheDocument();
@@ -484,16 +490,18 @@ it("uses only Home Assistant people and lets old shared assignments move to a re
   expect(screen.getByLabelText("Who’s going?")).toHaveValue("home|person.example");
   expect(screen.queryByRole("option", { name: "Everyone" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
-  fireEvent.click(screen.getByRole("menuitem", { name: "All settings" }));
+  fireEvent.click(screen.getByRole("link", { name: "Open app settings" }));
   await pageReady();
-  fireEvent.click(screen.getByRole("link", { name: /Calendars Connect calendars/ }));
+  fireEvent.click(screen.getByRole("button", { name: /^Household/ }));
+  fireEvent.click(screen.getByRole("link", { name: "Calendars" }));
   await pageReady();
   chooseEntity(screen.getByRole("button", { name: "Add calendar for Example person" }), "calendar.shared");
   fireEvent.click(screen.getByRole("button", { name: "Move calendar" }));
   await saved();
-  fireEvent.click(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "To-do lists" }));
+  fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+  fireEvent.click(within(await screen.findByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "To-do lists" }));
   await pageReady();
+  fireEvent.click(screen.getByRole("link", { name: "Example person" }));
   chooseEntity(screen.getByRole("button", { name: "Tasks for Example person" }), "todo.shared");
   fireEvent.click(screen.getByRole("button", { name: "Change list" }));
   await saved();
@@ -510,6 +518,7 @@ it("assigns and replaces one homework list per person in shared settings", async
   }, emptyRegistries, "home");
   window.history.replaceState(null, "", "/settings/lists");
   const view = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("link", { name: "Example person" }));
   chooseEntity(screen.getByRole("button", { name: "Homework for Example person" }), "todo.homework");
   await saved();
   expect(settings.settings.todoLists).toEqual({ "home|todo.homework": { kind: "homework", member: "home|person.example" } });
@@ -922,6 +931,7 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   settings.settings.todoLists = { "home|todo.example": { kind: "tasks", member: "home|person.example" } };
   window.history.replaceState(null, "", "/settings/lists");
   const first = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("link", { name: "Example person" }));
   const disclosure = screen.getByLabelText("Display settings for Tasks for Example person");
   fireEvent.click(disclosure);
   const options = within(disclosure.parentElement);
@@ -935,12 +945,15 @@ it("saves list display choices, keeps them on reassignment and restores Add list
   await saved();
   const display = { completed: "collapsed", sort: "due-date", showDetails: false, showDueDate: false, celebrate: true, celebrateFinal: true };
   expect(settings.settings.todoLists["home|todo.example"].display).toEqual(display);
+  fireEvent.click(screen.getByRole("link", { name: "Other example" }));
   chooseEntity("Tasks for Other example", "todo.example");
   fireEvent.click(screen.getByRole("button", { name: "Change list" }));
   await saved();
   expect(settings.settings.todoLists["home|todo.example"]).toMatchObject({ member: "home|person.other", display });
+  fireEvent.click(screen.getByRole("link", { name: "Example person" }));
   expect(screen.getByRole("button", { name: "Tasks for Example person" })).toHaveTextContent("Add list");
   first.unmount(); render(<App />); await saved();
+  fireEvent.click(screen.getByRole("link", { name: "Other example" }));
   fireEvent.click(screen.getByLabelText("Display settings for Tasks for Other example"));
   expect(screen.getByRole("combobox", { name: "Completed items" })).toHaveValue("collapsed");
   expect(screen.getByRole("combobox", { name: "Sort order" })).toHaveValue("due-date");
@@ -1387,6 +1400,10 @@ it.each(["/history", "/integrations"])("offers connection settings when %s has n
 });
 
 it("offers one setup entry on Today and keeps guidance off the everyday boards", async () => {
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home"), "calendar.example": state("calendar.example", "off"),
+    "todo.example": state("todo.example", "0"),
+  }, emptyRegistries, "home");
   render(<App />); await saved();
   expect(screen.getByRole("link", { name: "Get started" })).toHaveAttribute("href", "/onboarding");
   expect(screen.queryByText(/Set up calendars in this app/)).not.toBeInTheDocument();
@@ -1394,26 +1411,23 @@ it("offers one setup entry on Today and keeps guidance off the everyday boards",
   expect(screen.queryByRole("link", { name: "Set up to-do lists" })).not.toBeInTheDocument();
   expect(screen.queryByText(/Set up school timetables/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("link", { name: "Get started" }));
-  expect(await screen.findByRole("heading", { level: 1, name: "Get started" })).toBeInTheDocument();
-  expect(screen.getByRole("list", { name: "Household setup" }).children).toHaveLength(5);
+  expect(await screen.findByRole("heading", { level: 1, name: "Connect Home Assistant" })).toHaveFocus();
+  expect(screen.getByText("Step 1 of 4")).toBeVisible();
   expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
-  expect(document.querySelector("#people details")).not.toHaveAttribute("open");
-  fireEvent.click(document.querySelector("#people summary"));
-  expect(screen.getByRole("link", { name: "Add people in Home Assistant" })).toHaveAttribute("href", "http://ha.local:8123/config/person");
-  expect(screen.getByText(/Daily lists need a Home Assistant automation/)).toBeInTheDocument();
-  for (const [label, section, anchor] of [["Connection settings", "connection", "connection"], ["Choose people", "people", "people-order"], ["Choose calendars", "calendars", "family-calendar"], ["Choose lists", "lists", "family-lists"], ["Configure timetables", "timetables", "timetables"]]) {
-    const step = document.querySelector(`#${section} details`);
-    if (step && !step.hasAttribute("open")) fireEvent.click(step.querySelector("summary"));
-    fireEvent.click(screen.getByRole("link", { name: label }));
-    expect(window.location.pathname).toBe(`/settings/${section}`);
-    expect(window.location.hash).toBe("");
-    await pageReady();
-    await waitFor(() => expect(document.getElementById(anchor)).toBeInTheDocument());
-    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
-    fireEvent.click(await screen.findByRole("link", { name: "Get started" }));
-    await screen.findByRole("heading", { level: 1, name: "Get started" });
+  for (const [index, label] of ["Choose people", "Choose calendars", "Choose lists"].entries()) {
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Household setup" })).getByRole("link", { name: label }));
+    expect(await screen.findByRole("heading", { level: 1, name: label })).toHaveFocus();
+    expect(screen.getByText(`Step ${index + 2} of 4`)).toBeVisible();
+    expect(window.location.pathname).toBe("/onboarding");
   }
+  const shopping = within(screen.getByRole("region", { name: "Shopping lists" }));
+  chooseEntity(shopping.getByRole("button", { name: "Add shopping list" }), "todo.example");
+  await saved();
+  expect(settings.settings.todoLists["home|todo.example"]).toMatchObject({ kind: "shopping", member: "everyone" });
+  expect(window.location.search).toBe("?step=lists");
+  fireEvent.click(screen.getByRole("link", { name: "Back" }));
+  expect(screen.getByRole("heading", { level: 1, name: "Choose calendars" })).toHaveFocus();
+  fireEvent.click(screen.getByRole("link", { name: "Choose lists" }));
   fireEvent.click(screen.getByRole("link", { name: "Go to Today" }));
   expect(window.location.pathname).toBe("/");
   await navigate("Calendar");
@@ -1432,14 +1446,14 @@ it.each([
   { timetables: { "home|person.emma": ["/timetable.png"] } },
   { homeEntities: [] },
   { selectedAlarm: "home|alarm_control_panel.home" },
-])("keeps the setup entry in the menu for configured households: %j", async configuration => {
+])("keeps guided setup reachable from settings for configured households: %j", async configuration => {
   Object.assign(settings.settings, configuration);
   render(<App />); await saved();
   expect(screen.queryByRole("link", { name: "Get started" })).not.toBeInTheDocument();
-  fireEvent.keyDown(screen.getByRole("button", { name: "Open app settings" }), { key: "Enter" });
-  fireEvent.click(screen.getByRole("menuitem", { name: "Get started" }));
+  fireEvent.click(screen.getByRole("link", { name: "Open app settings" }));
+  fireEvent.click(await screen.findByRole("link", { name: /^(Continue setup|Guided setup)/ }));
   expect(window.location.pathname).toBe("/onboarding");
-  expect(await screen.findByRole("heading", { name: "Get started" })).toBeInTheDocument();
+  expect(screen.getByRole("navigation", { name: "Household setup" })).toBeVisible();
 });
 
 it("guides setup from the gear and clears its badge when the basics are ready", async () => {
@@ -1449,13 +1463,13 @@ it("guides setup from the gear and clears its badge when the basics are ready", 
   }, emptyRegistries, "home");
   settings.settings.todoLists = { "home|todo.example": { kind: "shopping", member: "everyone" } };
   render(<App />); await saved();
-  const gear = screen.getByRole("button", { name: "Open app settings" });
+  const gear = screen.getByRole("link", { name: "Open app settings" });
   expect(gear).toHaveAccessibleDescription("One setup step remaining");
-  fireEvent.keyDown(gear, { key: "Enter" });
-  expect(screen.queryByRole("menuitem", { name: "Choose lists" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("menuitem", { name: "Choose calendars" }));
-  await pageReady();
-  expect(window.location.pathname).toBe("/settings/calendars");
+  fireEvent.click(gear);
+  const resume = await screen.findByRole("link", { name: /Continue setup/ });
+  expect(resume).toHaveAttribute("href", "/onboarding?step=calendars");
+  fireEvent.click(resume);
+  expect(await screen.findByRole("heading", { level: 1, name: "Choose calendars" })).toHaveFocus();
   const picker = within(screen.getByRole("group", { name: "Example" })).getByRole("button", { name: /Add calendar/ });
   chooseEntity(picker, "calendar.example");
   await waitFor(() => expect(gear.querySelector(".header-badge")).toBeNull());
@@ -1464,7 +1478,7 @@ it("guides setup from the gear and clears its badge when the basics are ready", 
 it("withholds calendar and list setup prompts while their registry IDs are unavailable", async () => {
   app.entityRegistryAvailable = false;
   render(<App />); await saved();
-  const gear = screen.getByRole("button", { name: "Open app settings" });
+  const gear = screen.getByRole("link", { name: "Open app settings" });
   expect(gear.querySelector(".header-badge")).toBeNull();
 });
 
@@ -1472,11 +1486,11 @@ it.each(["reconnecting", "auth-error"])("only points to connection setup when ac
   app.homeOnline = false;
   app.connectionStatus = status;
   render(<App />); await saved();
-  const gear = screen.getByRole("button", { name: "Open app settings" });
+  const gear = screen.getByRole("link", { name: "Open app settings" });
   expect(!!gear.querySelector(".header-badge")).toBe(status === "auth-error");
-  fireEvent.keyDown(gear, { key: "Enter" });
-  expect(!!screen.queryByRole("menuitem", { name: "Connection settings" })).toBe(status === "auth-error");
-  expect(screen.queryByRole("menuitem", { name: "Choose calendars" })).not.toBeInTheDocument();
+  fireEvent.click(gear);
+  await pageReady();
+  expect(!!screen.queryByRole("link", { name: /Continue setup/ })).toBe(status === "auth-error");
 });
 
 it("keeps onboarding available without a Home Assistant connection", async () => {
@@ -1484,10 +1498,10 @@ it("keeps onboarding available without a Home Assistant connection", async () =>
   app.homeOnline = false;
   window.history.replaceState(null, "", "/onboarding");
   render(<App />); await saved();
-  expect(screen.getByText("Home Assistant not connected")).toBeInTheDocument();
-  expect(screen.queryByRole("link", { name: "Add people in Home Assistant" })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Choose calendars" })).toHaveAttribute("href", "/settings/calendars");
-  expect(screen.getByRole("link", { name: "Go to Today" })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("button", { name: "Reconnect" })).toBeVisible();
+  expect(screen.getByText(/Set your Home Assistant address and token/)).toBeVisible();
+  expect(screen.queryByRole("heading", { name: "Your instance" })).toBeNull();
+  expect(screen.getByRole("link", { name: "All settings" })).toHaveAttribute("href", "/settings");
 });
 
 it.each([
@@ -1502,11 +1516,10 @@ it.each([
     "person.hidden": state("person.hidden", "home", { friendly_name: "Hidden example person" }),
     "todo.example": state("todo.example", "0", { friendly_name: "Example list" }),
   }, emptyRegistries, "home");
-  window.history.replaceState(null, "", "/onboarding");
+  window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
-  const listStep = screen.getByRole("heading", { name: "4. Choose lists" }).closest("li");
-  expect(within(listStep).queryByText("Complete") !== null).toBe(complete);
-  expect(screen.getByText(`${complete ? 3 : 2} of 4 setup steps complete`)).toBeInTheDocument();
+  const gear = screen.getByRole("link", { name: "Open app settings" });
+  expect(gear).toHaveAccessibleDescription(complete ? "One setup step remaining" : "2 setup steps remaining");
 });
 
 it("navigates with empty HA data and shows the server-managed connection", async () => {
@@ -1589,6 +1602,24 @@ it("navigates timetable pages with arrows and keyboard and enlarges the selected
   await waitFor(() => expect(opener).toHaveFocus());
 });
 
+it("retains each person's timetable draft while navigating between settings panels", async () => {
+  settings.settings.timetableEnabled = { "home|person.emma": true, "home|person.leo": true };
+  window.history.replaceState(null, "", "/settings/timetables?from=setup&panel=missing#school");
+  render(<App />); await saved();
+  const menu = within(screen.getByRole("navigation", { name: "Settings sections" }));
+  expect(menu.getByRole("link", { name: "Emma" })).toHaveAttribute("aria-current", "page");
+  fireEvent.click(screen.getByRole("button", { name: "Add timetable images" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Emma timetable image URLs" }), { target: { value: "https://school.example/draft.png" } });
+  fireEvent.click(menu.getByRole("link", { name: "Leo" }));
+  expect(screen.queryByRole("textbox", { name: "Emma timetable image URLs" })).toBeNull();
+  expect(new URLSearchParams(window.location.search).get("panel")).toBe("home|person.leo");
+  expect(new URLSearchParams(window.location.search).get("from")).toBe("setup");
+  expect(window.location.hash).toBe("#school");
+  fireEvent.click(menu.getByRole("link", { name: "Emma" }));
+  expect(screen.getByRole("textbox", { name: "Emma timetable image URLs" })).toHaveValue("https://school.example/draft.png");
+  expect(settings.settings.timetables["home|person.emma"]).toBeUndefined();
+});
+
 it("offers the signed iOS shortcut and copies each person's upload destination", async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", Object.create(navigator, { clipboard: { value: { writeText } } }));
@@ -1597,6 +1628,7 @@ it("offers the signed iOS shortcut and copies each person's upload destination",
   window.history.replaceState(null, "", "/settings/timetables");
   render(<App />); await saved();
   for (const name of ["Emma", "Leo"]) {
+    fireEvent.click(screen.getByRole("link", { name }));
     const card = within(screen.getByRole("heading", { name: name }).closest("article")!);
     fireEvent.click(card.getByText("Share from iPhone"));
     expect(card.getByRole("link", { name: "Download iOS shortcut" })).toHaveAttribute("href", "/shortcuts/Upload%20timetable.shortcut");
@@ -1652,6 +1684,7 @@ it.each([".png", "-dark.svg"])("colors the original PNG for saved %s timetables 
   vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL: vi.fn((blob: Blob) => `blob:${blob.type}`), revokeObjectURL: vi.fn() }));
   window.history.replaceState(null, "", "/user-settings");
   const preferences = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("link", { name: "Advanced appearance" }));
   const toggle = screen.getByRole("switch", { name: "Toggle dark timetables" });
   expect(toggle).not.toBeChecked();
   fireEvent.click(toggle); await saved();
@@ -1677,6 +1710,7 @@ it.each([".png", "-dark.svg"])("colors the original PNG for saved %s timetables 
 
   window.history.replaceState(null, "", "/user-settings");
   const nextPreferences = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("link", { name: "Advanced appearance" }));
   expect(screen.getByRole("switch", { name: "Toggle dark timetables" })).toBeChecked();
   fireEvent.click(screen.getByRole("switch", { name: "Toggle dark timetables" })); await saved();
   nextPreferences.unmount();
@@ -1697,7 +1731,8 @@ it("keeps timetable pages when replacing or hiding them is cancelled", async () 
   fireEvent.click(screen.getByRole("button", { name: "Save image URLs" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetables["home|person.emma"]).toEqual(["/first.svg"]);
-  fireEvent.click(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "People" }));
+  fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+  fireEvent.click(within(await screen.findByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: "People" }));
   fireEvent.click(await screen.findByRole("switch", { name: "Timetable for Emma" }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(settings.settings.timetableEnabled["home|person.emma"]).toBe(true);
@@ -1718,9 +1753,7 @@ it("saves the server language, updates navigation and labels, and restores it on
   await waitFor(() => expect(settings.settings.language).toBe("nb"));
   expect(screen.getByRole("heading", { level: 1, name: "Språk" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "I dag" })).toBeInTheDocument();
-  for (const name of ["Utseende", "Språk", "Varsler", "Personer", "Kalendere", "Gjøremålslister", "Timeplaner", "Smarthjem", "Tilkobling og konto", "Lagring og sikkerhetskopier"]) {
-    expect(within(screen.getByRole("navigation", { name: "Innstillingsmeny" })).getByRole("link", { name })).toBeInTheDocument();
-  }
+  expect(screen.getByRole("link", { name: "Alle innstillinger" })).toHaveAttribute("href", "/settings?group=screen");
   expect(document.documentElement.lang).toBe("nb");
   expect(document.title).toBe("Afterglow · Familien hjemme");
   first.unmount();
@@ -1737,6 +1770,10 @@ it("refreshes language from another screen while a confirmation stays open", asy
   window.history.replaceState(null, "", "/settings/connection");
   render(<App />);
   await waitFor(() => expect(screen.getByRole("button", { name: "Koble fra" })).toBeInTheDocument());
+  expect(screen.getByRole("heading", { name: "Home Assistant-tilkobling" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Din installasjon" })).toBeVisible();
+  expect(screen.queryByRole("navigation", { name: "Innstillingsgrupper" })).toBeNull();
+  expect(screen.queryByRole("combobox", { name: "Innstillingsgruppe" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Koble fra" }));
   expect(screen.getByRole("alertdialog", { name: "Koble fra Home Assistant?" })).toBeInTheDocument();
   settings.settings.language = "en";
@@ -1939,28 +1976,38 @@ it.each([true, false])("previews every saved rule only on Today with notificatio
 it("groups all settings, opens each focused subpage, and returns to the hub", async () => {
   window.history.replaceState(null, "", "/settings");
   render(<App />); await saved();
-  const destinations = [
-    ["Appearance", "appearance"], ["Language", "language"], ["Notifications", "notifications"], ["Weather", "weather"],
-    ["Electric vehicles", "vehicles"], ["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"],
-    ["Cameras", "cameras"], ["Camera connections", "camera-connections"], ["Smart home", "smart-home"], ["Connection & account", "connection"], ["Storage and backups", "backups"], ["Debug", "debug"],
-  ];
-  for (const [title, path] of destinations) {
-    const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));
-    expect(menu.getAllByRole("link")).toHaveLength(destinations.length);
-    expect(menu.getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Preferences", "Household", "System"]);
-    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
-    fireEvent.click(menu.getByRole("link", { name: new RegExp(`^${title} `) }));
-    expect(await screen.findByRole("heading", { name: title, level: 1 })).toHaveFocus();
-    expect(window.location.pathname).toBe(`/settings/${path}`);
-    expect(within(screen.getByRole("navigation", { name: "Settings navigation" })).getByRole("link", { name: title })).toHaveAttribute("aria-current", "page");
-    expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
-    if (path === "appearance") {
-      expect(within(screen.getByRole("radiogroup", { name: "Color palette" })).getAllByRole("radio")).toHaveLength(12);
-      expect(within(screen.getByRole("radiogroup", { name: "Artwork" })).getAllByRole("radio")).toHaveLength(12);
+  const categories = [
+    ["Household", [["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"]]],
+    ["Screen and alerts", [["Appearance", "appearance"], ["Language", "language"], ["Weather", "weather"], ["Notifications", "notifications"]]],
+    ["Devices", [["Smart home", "smart-home"], ["Electric vehicles", "vehicles"], ["Cameras", "cameras"], ["Camera connections", "camera-connections"]]],
+    ["System", [["Connection & account", "connection"], ["Storage and backups", "backups"], ["Debug", "debug"], ["Danger zone", "danger-zone"]]],
+  ] as const;
+  const menu = () => within(screen.getByRole("navigation", { name: "Settings navigation" }));
+  expect(menu().getAllByRole("button")).toHaveLength(4);
+  expect(menu().queryAllByRole("link")).toHaveLength(0);
+  for (const [category, destinations] of categories) {
+    fireEvent.click(menu().getByRole("button", { name: new RegExp(`^${category}`) }));
+    for (const [title, path] of destinations) {
+      expect(menu().getAllByRole("link")).toHaveLength(destinations.length);
+      fireEvent.click(menu().getByRole("link", { name: title }));
+      expect(await screen.findByRole("heading", { name: title, level: 1 })).toHaveFocus();
+      expect(window.location.pathname).toBe(`/settings/${path}`);
+      expect(screen.queryByRole("navigation", { name: "Settings navigation" })).toBeNull();
+      if (path === "appearance") {
+        for (const name of ["Color palette", "Artwork"]) {
+          const link = screen.getByRole("link", { name });
+          expect(screen.queryByRole("radiogroup", { name })).toBeNull();
+          fireEvent.click(link);
+          expect(link).toHaveAttribute("aria-current", "page");
+          expect(screen.getAllByRole("radiogroup")).toHaveLength(1);
+          expect(within(screen.getByRole("radiogroup", { name })).getAllByRole("radio")).toHaveLength(12);
+        }
+      }
+      if (path === "backups") expect(screen.getByRole("button", { name: "Import configuration" })).toBeEnabled();
+      fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+      expect(await screen.findByRole("heading", { name: "Settings", level: 1 })).toHaveFocus();
+      expect(menu().getByRole("button", { name: new RegExp(`^${category}`) })).toHaveAttribute("aria-expanded", "true");
     }
-    if (path === "backups") expect(screen.getByRole("button", { name: "Import configuration" })).toBeEnabled();
-    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
-    expect(await screen.findByRole("heading", { name: "Settings", level: 1 })).toHaveFocus();
   }
 });
 
@@ -1969,6 +2016,7 @@ it.each([
   ["/settings#connection", "connection", "Connection & account"],
   ["/settings#notifications", "notifications", "Notifications"],
   ["/settings#smart-home-visibility", "smart-home", "Smart home"],
+  ["/settings/smart-home?panel=reset", "danger-zone", "Danger zone"],
   ["/settings#people-order", "people", "People"],
   ["/settings#family-calendar", "calendars", "Calendars"],
   ["/settings#family-lists", "lists", "To-do lists"],
@@ -2047,6 +2095,11 @@ it("requires confirmation to clear all Smart home cards and preserves every othe
   const before = structuredClone(settings.settings);
   window.history.replaceState(null, "", "/settings/smart-home");
   render(<App />); await saved();
+  expect(screen.queryByRole("navigation", { name: "Settings sections" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Clear Smart home" })).toBeNull();
+  fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+  fireEvent.click(screen.getByRole("button", { name: /^System/ }));
+  fireEvent.click(screen.getByRole("link", { name: "Danger zone" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear Smart home" }));
   expect(screen.getByRole("alertdialog")).toHaveTextContent("Today’s favourites");
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -2072,7 +2125,16 @@ it("keeps a failed card save visible and disables reset and further changes", as
   fireEvent.click(screen.getAllByRole("button", { name: "Save changes" })[0]);
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Another screen changed the configuration"));
   expect(screen.getByRole("button", { name: /Unsaved lamp Light/ })).toBeVisible();
+  expect(screen.queryByRole("navigation", { name: "Settings sections" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Clear Smart home" })).toBeNull();
+  fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+  fireEvent.click(screen.getByRole("button", { name: /^System/ }));
+  fireEvent.click(screen.getByRole("link", { name: "Danger zone" }));
   expect(screen.getByRole("button", { name: "Clear Smart home" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+  const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));
+  fireEvent.click(menu.getByRole("button", { name: /^Devices/ }));
+  fireEvent.click(menu.getByRole("link", { name: "Smart home" }));
   fireEvent.click(screen.getByRole("button", { name: /Unsaved lamp Light/ }));
   expect(screen.getByRole("textbox", { name: "Card name" })).toHaveValue("Unsaved lamp");
   expect(screen.getByRole("button", { name: "Main entity" })).toBeDisabled();

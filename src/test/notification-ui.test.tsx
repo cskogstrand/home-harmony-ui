@@ -162,11 +162,13 @@ it("changes the shared width without rewriting rules and lets an override follow
   mocks.family.notifications = settings;
   const content = () => <MemoryRouter><NotificationSettings /></MemoryRouter>;
   const view = render(content());
+  fireEvent.click(screen.getByRole("link", { name: "Widget layout" }));
   const defaults = within(screen.getByRole("group", { name: "Default widget width" }));
   fireEvent.click(defaults.getByRole("button", { name: "Up to 3 columns" }));
   expect(setNotifications).toHaveBeenCalledWith({ defaultWidgetWidth: "large" });
   mocks.family.notifications = { ...settings, ...setNotifications.mock.lastCall[0] };
   view.rerender(content());
+  fireEvent.click(screen.getByRole("link", { name: "Notification rules" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Edit widget");
   const widths = within(screen.getByRole("group", { name: "Widget width" }));
@@ -188,6 +190,7 @@ it("applies grid zoom to the board and draft preview independently of widget spa
     <NotificationSettings /><NotificationList compact /><NotificationPreview editing rule={rule} presentation="section" />
   </NotificationContext.Provider></MemoryRouter>;
   const view = render(content());
+  fireEvent.click(screen.getByRole("link", { name: "Widget layout" }));
   const picker = within(screen.getByRole("group", { name: "Widget grid zoom" }));
   expect(picker.getByRole("button", { name: "Medium" })).toHaveAttribute("aria-pressed", "true");
   fireEvent.click(picker.getByRole("button", { name: "Small" }));
@@ -975,6 +978,7 @@ it("saves, reopens and removes an optional task camera with the live source in t
   expect(saved).toMatchObject({ kind: "ongoing", icon: "printer_3d", cameraEntity: "example-camera", cameraMedia: "live" });
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
   view.rerender(content());
+  fireEvent.click(screen.getByRole("link", { name: "Notification rules" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Camera and image");
   expect(screen.getByLabelText("Camera (optional)")).toHaveValue("example-camera");
@@ -1022,6 +1026,7 @@ it("previews, saves and reopens compact camera placement using the same video as
   expect(saved.cameraPlacement).toBe("right");
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
   view.rerender(content());
+  fireEvent.click(screen.getByRole("link", { name: "Notification rules" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Camera and image");
   expect(screen.getByLabelText("Camera placement")).toHaveValue("right");
@@ -1085,6 +1090,7 @@ it("selects, previews, saves, reopens and removes an image independently of the 
   expect(saved).toMatchObject({ imageEntity: "home|stable-image-registry-id", imagePlacement: "right", cameraEntity: "example-camera", cameraPlacement: "left" });
   mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
   view.rerender(content());
+  fireEvent.click(screen.getByRole("link", { name: "Notification rules" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Camera and image");
   expect(screen.getByLabelText("Image placement")).toHaveValue("right");
@@ -1282,6 +1288,7 @@ it("saves page choices per rule and disables editing when storage is unavailable
   expect(setNotifications).toHaveBeenLastCalledWith({ rules });
   mocks.family.notifications = { ...emptyPlanner().notifications, rules };
   view.rerender(content());
+  fireEvent.click(screen.getByRole("link", { name: "Notification rules" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Notification content");
   expect(screen.getByLabelText("Show on")).toHaveValue("today");
@@ -1365,6 +1372,7 @@ it("previews and saves compact activity cards per rule without changing other ca
   expect(setNotifications).toHaveBeenLastCalledWith({ rules });
   mocks.family.notifications = { ...emptyPlanner().notifications, presentation: "activity", rules };
   view.rerender(content());
+  fireEvent.click(screen.getByRole("link", { name: "Notification rules" }));
   fireEvent.click(screen.getByRole("button", { name: "Edit Example doorbell" }));
   await openEditorSection("Display as");
   expect(screen.getByRole("button", { name: "Compact activity card" })).toHaveAttribute("aria-pressed", "true");

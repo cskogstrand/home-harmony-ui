@@ -11,6 +11,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { isNotificationTimeSource, notificationEntity, notificationReadings, notificationStyleLabels, notificationIssueSection } from "@/lib/notifications";
 import { MAX_INLINE_WIDGET_FIELDS, MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger, type NotificationStateTrigger } from "../../shared/notifications";
+import { SettingsPanels } from "./SettingsPanels";
 import { PanelHeading } from "./FamilyPlanner";
 import { Button } from "./ui/button";
 import { Accordion } from "./ui/accordion";
@@ -183,56 +184,65 @@ export function NotificationSettings() {
     source && trigger?.type === "state" ? stateSummary(trigger) : source && source.name;
   const selectedMedia = draft && [draft.kind !== "current" && configuredCamera(cameras, draft.cameraEntity)?.name, notificationEntity(entities, draft.imageEntity ?? "")?.name].filter(Boolean).join(" · ");
   return <section className="settings-stack" id="notifications">
-    <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
-    <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Afterglow is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
-    <RefillReminder disabled={disabled || notifications.rules.length >= 100} />
-    <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
-    <NotificationGridZoomPicker value={notifications.gridZoom} disabled={disabled} onChange={gridZoom => setNotifications({ gridZoom })} />
-    <NotificationWidgetWidthPicker value={notifications.defaultWidgetWidth} disabled={disabled} onChange={defaultWidgetWidth => setNotifications({ defaultWidgetWidth })} />
-    <Dialog open={previewOpen} onOpenChange={open => { setPreviewOpen(open); setPreviewError(false); }}>
-    <div className="notification-settings-toolbar">
-      <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
-    </div>
-    <DialogContent className={`notification-preview-dialog ${boardSpacing}`}>
-      <DialogHeader><DialogTitle asChild><PanelTitle icon={Eye}>{t("Preview notification")}</PanelTitle></DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
-      {previewError && <p role="alert" className="text-destructive">{t("The display choice could not be saved. Check settings storage and try again.")}</p>}
-      <div className="notification-preview-collection">
-        {!notifications.rules.length && <NotificationPreview presentation={notifications.presentation} />}
+    <SettingsPanels panels={[
+      { id: "rules", label: t("Notification rules"), icon: Bell, content: <div className="settings-stack">
+        <PanelHeading icon={Bell} title={t("Notification rules")} to="/notifications" label={t("View notifications")} />
+        <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Afterglow is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
+        <RefillReminder disabled={disabled || notifications.rules.length >= 100} />
+        <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
+        <Dialog open={previewOpen} onOpenChange={open => { setPreviewOpen(open); setPreviewError(false); }}>
+        <div className="notification-settings-toolbar">
+          <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
+        </div>
+        <DialogContent className={`notification-preview-dialog ${boardSpacing}`}>
+          <DialogHeader><DialogTitle asChild><PanelTitle icon={Eye}>{t("Preview notification")}</PanelTitle></DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
+          {previewError && <p role="alert" className="text-destructive">{t("The display choice could not be saved. Check settings storage and try again.")}</p>}
+          <div className="notification-preview-collection">
+            {!notifications.rules.length && <NotificationPreview presentation={notifications.presentation} />}
+            {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
+              const rules = notifications.rules.filter(rule => rule.kind === kind);
+              return rules.length > 0 && <section key={kind} aria-label={t(kinds[kind])}>
+                <PanelTitle as="h3" icon={icons[kind]} className="mb-4 text-muted-foreground">{t(kinds[kind])}</PanelTitle>
+                <div className="notification-preview-gallery">{rules.map(rule => <NotificationPreview key={rule.id} rule={rule} presentation={notifications.presentation} disabled={disabled}
+                  onPresentationChange={presentation => setPreviewError(!setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, presentation } : item) }))} />)}</div>
+              </section>;
+            })}
+          </div>
+        </DialogContent></Dialog>
+        {!homeOnline && <p role="status" className="page-note">{t("Notifications are paused until Home Assistant reconnects.")}</p>}
         {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
           const rules = notifications.rules.filter(rule => rule.kind === kind);
-          return rules.length > 0 && <section key={kind} aria-label={t(kinds[kind])}>
-            <PanelTitle as="h3" icon={icons[kind]} className="mb-4 text-muted-foreground">{t(kinds[kind])}</PanelTitle>
-            <div className="notification-preview-gallery">{rules.map(rule => <NotificationPreview key={rule.id} rule={rule} presentation={notifications.presentation} disabled={disabled}
-              onPresentationChange={presentation => setPreviewError(!setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, presentation } : item) }))} />)}</div>
-          </section>;
+          const Icon = icons[kind];
+          return <section key={kind} className="notification-rule-group settings-card" aria-label={t(kinds[kind])}>
+          <div className="notification-rule-group-heading"><PanelTitle as="h3" icon={Icon}>{t(kinds[kind])}</PanelTitle>
+            <Button variant="outline" disabled={disabled || notifications.rules.length >= 100} aria-label={t("Add {kind}", { kind: t(kinds[kind]) })} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Plus size={18} aria-hidden="true" />{t("Add notification")}</Button>
+          </div>
+          {!rules.length && <p className="page-note">{t("No notifications in this group yet.")}</p>}
+          <ul className="space-y-3">{rules.map(rule => {
+          const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
+          const savedTriggers = notificationTriggers(rule);
+          const groupCount = new Set(initialTriggerGroups(savedTriggers)).size;
+          const Icon = icons[rule.kind];
+          const missing = !!rule.hideTrigger && !notificationEntity(entities, rule.hideTrigger.entity) || !!rule.imageEntity && !notificationEntity(entities, rule.imageEntity) || notificationTriggers(rule).some(trigger => "entity" in trigger && !notificationEntity(entities, trigger.entity)) || ((rule.kind === "camera" || rule.kind === "ongoing" && rule.cameraEntity) && !configuredCamera(cameras, rule.cameraEntity));
+          return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
+            <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}{savedTriggers.length > 1 && <> · {groupCount === 1 ? t("{count} values", { count: savedTriggers.length }) : t("{count} triggers", { count: groupCount })}</>}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
+            <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+            <Switch aria-label={t("Enable {name}", { name: rule.title })} checked={rule.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, enabled } : item) })} />
+            <Button variant="ghost" disabled={disabled} onClick={() => begin(rule, true)} aria-label={t("Edit {name}", { name: rule.title })}>{t("Edit")}</Button>
+            <Button variant="ghost" disabled={disabled} onClick={() => setRemove(rule)} aria-label={t("Delete {name}", { name: rule.title })}>{t("Delete")}</Button>
+            </div>
+          </li>;
+        })}</ul></section>;
         })}
+      </div> },
+      { id: "layout", label: t("Widget layout"), icon: PanelsTopLeft, content: <section className="settings-stack">
+      <PanelTitle icon={PanelsTopLeft}>{t("Widget layout")}</PanelTitle>
+      <div className="settings-stack">
+        <NotificationGridZoomPicker value={notifications.gridZoom} disabled={disabled} onChange={gridZoom => setNotifications({ gridZoom })} />
+        <NotificationWidgetWidthPicker value={notifications.defaultWidgetWidth} disabled={disabled} onChange={defaultWidgetWidth => setNotifications({ defaultWidgetWidth })} />
       </div>
-    </DialogContent></Dialog>
-    {!homeOnline && <p role="status" className="page-note">{t("Notifications are paused until Home Assistant reconnects.")}</p>}
-    {(Object.keys(kinds) as NotificationRule["kind"][]).map(kind => {
-      const rules = notifications.rules.filter(rule => rule.kind === kind);
-      const Icon = icons[kind];
-      return <section key={kind} className="notification-rule-group settings-card" aria-label={t(kinds[kind])}>
-      <div className="notification-rule-group-heading"><PanelTitle as="h3" icon={Icon}>{t(kinds[kind])}</PanelTitle>
-        <Button variant="outline" disabled={disabled || notifications.rules.length >= 100} aria-label={t("Add {kind}", { kind: t(kinds[kind]) })} onClick={() => begin({ id: newPlannerId(), title: "", message: "", kind, enabled: true, trigger: newTrigger("state"), detailEntities: [], cameraEntity: "", durationSeconds: 60, cooldownSeconds: 10 })}><Plus size={18} aria-hidden="true" />{t("Add notification")}</Button>
-      </div>
-      {!rules.length && <p className="page-note">{t("No notifications in this group yet.")}</p>}
-      <ul className="space-y-3">{rules.map(rule => {
-      const source = "entity" in rule.trigger ? notificationEntity(entities, rule.trigger.entity) : undefined;
-      const savedTriggers = notificationTriggers(rule);
-      const groupCount = new Set(initialTriggerGroups(savedTriggers)).size;
-      const Icon = icons[rule.kind];
-      const missing = !!rule.hideTrigger && !notificationEntity(entities, rule.hideTrigger.entity) || !!rule.imageEntity && !notificationEntity(entities, rule.imageEntity) || notificationTriggers(rule).some(trigger => "entity" in trigger && !notificationEntity(entities, trigger.entity)) || ((rule.kind === "camera" || rule.kind === "ongoing" && rule.cameraEntity) && !configuredCamera(cameras, rule.cameraEntity));
-      return <li key={rule.id} className="flex flex-wrap items-center gap-3 py-3">
-        <Icon size={20} aria-hidden="true" /><div className="min-w-0 flex-1 basis-[calc(100%-40px)] break-words sm:basis-0"><strong>{rule.title}</strong><p className="text-sm text-muted-foreground">{t((rule.pages ?? notifications.pages) === "today" ? "Today only" : "All main pages")} · {notificationReadings(rule).find(reading => reading.roles.includes("Source entity"))?.name || source?.name || (rule.trigger.type === "ha-event" ? rule.trigger.eventType : t("Entity unavailable"))}{savedTriggers.length > 1 && <> · {groupCount === 1 ? t("{count} values", { count: savedTriggers.length }) : t("{count} triggers", { count: groupCount })}</>}</p>{missing && <p className="text-sm text-warning">{t("A selected entity is unavailable. Edit this rule to choose a replacement.")}</p>}</div>
-        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-        <Switch aria-label={t("Enable {name}", { name: rule.title })} checked={rule.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, enabled } : item) })} />
-        <Button variant="ghost" disabled={disabled} onClick={() => begin(rule, true)} aria-label={t("Edit {name}", { name: rule.title })}>{t("Edit")}</Button>
-        <Button variant="ghost" disabled={disabled} onClick={() => setRemove(rule)} aria-label={t("Delete {name}", { name: rule.title })}>{t("Delete")}</Button>
-        </div>
-      </li>;
-    })}</ul></section>;
-    })}
+      </section> },
+    ]} />
     <Dialog open={!!draft} onOpenChange={open => { if (!open) setDraft(undefined); }}><DialogContent className={`notification-editor ${boardSpacing}`} data-kind={draft?.kind} onOpenAutoFocus={event => {
       event.preventDefault(); editor.current?.querySelector<HTMLButtonElement>('[data-section="trigger"] > h3 > button')?.focus();
     }}>
