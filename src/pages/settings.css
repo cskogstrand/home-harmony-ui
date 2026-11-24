@@ -25,6 +25,7 @@
 .settings-back { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; margin-bottom: .5rem; color: hsl(var(--primary)); font-size: .9375rem; border-radius: var(--radius-field); }
 .settings-content { display: grid; gap: 1rem; min-width: 0; }
 .settings-content > :is(.glow-panel, .settings-card) { min-width: 0; }
+.settings-content > .home-device-grid { margin-top: 0; }
 .settings-control-row { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 60px; padding-block: 1rem; }
 .settings-control-row + .settings-control-row { margin-top: .5rem; }
 .settings-control-row > [role="switch"] { flex-shrink: 0; }

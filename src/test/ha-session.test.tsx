@@ -2489,7 +2489,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
-it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
+it.each(["/settings/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
   serverConfig.settings.smartHome.layout = [configuredCard("home|automation.sunset", "automation")];
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
