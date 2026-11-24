@@ -49,7 +49,7 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 | 09 | [Energy now and electricity price](09-energy-now-and-price.md) | Feature | 05 | ✅ |
 | 10 | [Home Assistant health in Settings and HomeStatus](10-ha-maintenance.md) | Feature | 04 | ✅ |
 | 11 | [3D printer card](11-printer-card.md) | Feature | 05 | ✅ |
-| 12 | [Type ramp and detector cleanup](12-type-ramp-and-detector.md) | P3 | 01–06 | ⬜ |
+| 12 | [Type ramp and detector cleanup](12-type-ramp-and-detector.md) | P3 | 01–06 | ✅ |
 | 13 | [Final verification and re-critique](13-final-verification.md) | — | all | ⬜ |
 
 Legend: ⬜ not started · 🚧 in progress · ✅ done.
