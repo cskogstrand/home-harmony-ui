@@ -8,6 +8,7 @@ import { AppProvider } from "@/contexts/AppProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FamilyProvider } from "@/contexts/FamilyProvider";
 import { NotificationProvider } from "@/contexts/NotificationProvider";
+import { HaHealthProvider } from "@/contexts/HaHealthProvider";
 import { CameraPersonImageProvider } from "@/contexts/CameraPersonImageProvider";
 import { CameraPreviewImageProvider } from "@/contexts/CameraPreviewImageProvider";
 import { mainPaths } from "@/lib/navigation";
@@ -35,7 +36,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AppProvider>
-          <FamilyProvider>
+          <FamilyProvider><HaHealthProvider>
             <CameraPersonImageProvider><CameraPreviewImageProvider>
             <Toaster />
             <Sonner />
@@ -71,7 +72,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             </AppLayout></NotificationProvider>
-          </BrowserRouter></CameraPreviewImageProvider></CameraPersonImageProvider></FamilyProvider>
+          </BrowserRouter></CameraPreviewImageProvider></CameraPersonImageProvider></HaHealthProvider></FamilyProvider>
         </AppProvider>
       </TooltipProvider>
   </QueryClientProvider>

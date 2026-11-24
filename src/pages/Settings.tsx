@@ -1,8 +1,9 @@
 import { useContext, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, ListChecks, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, HeartPulse, ListChecks, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow, Zap } from "lucide-react";
 import { useHouseholdSetup } from "@/hooks/use-household-setup";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
+import { useHaHealth } from "@/contexts/HaHealthContext";
 import { NotificationDebugContext } from "@/contexts/NotificationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { ConfigurationBackup } from "@/components/ConfigurationBackup";
@@ -15,6 +16,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import { VehicleSettings } from "@/components/VehicleSettings";
 import { EnergySettings } from "@/components/EnergySettings";
+import { HaHealthSettings } from "@/components/HaHealthSettings";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import Automations from "./Automations";
@@ -58,6 +60,7 @@ const groups = [
   ] },
   { id: "system", title: "System", description: "Home Assistant, automations, backups and troubleshooting", icon: Wifi, items: [
     { id: "connection", title: "Connection & account", description: "Home Assistant connection and instance details", icon: Wifi, content: <HomeSettings section="connection" /> },
+    { id: "ha-health", title: "Home Assistant health", description: "Repairs, notifications, backups and updates from Home Assistant", icon: HeartPulse, content: <HaHealthSettings /> },
     { id: "automations", title: "Automations", description: "Turn automations on or off and run their actions", icon: Workflow, content: <Automations /> },
     { id: "integrations", title: "Integrations", description: "Add and manage Home Assistant integrations", icon: Package, content: <Integrations /> },
     { id: "activity", title: "Activity", description: "What has happened at home, from Home Assistant history", icon: Clock, content: <History /> },
@@ -68,7 +71,7 @@ const groups = [
 ] as const;
 
 // These sections act on this tab or directly on Home Assistant, not on the shared settings file. Activity also holds shared Recent at home settings.
-const localSections = new Set<string | undefined>(["debug", "automations", "integrations"]);
+const localSections = new Set<string | undefined>(["debug", "automations", "integrations", "ha-health"]);
 
 const legacySections: Record<string, string> = {
   connection: "connection", notifications: "notifications", "smart-home-visibility": "smart-home",
@@ -83,6 +86,9 @@ export default function Settings() {
   const remaining = useHouseholdSetup();
   const shared = useSharedConfiguration();
   const heading = useRef<HTMLHeadingElement>(null);
+  const health = useHaHealth();
+  // Without an administrator token Home Assistant refuses the health reads; the section stays reachable but out of the menu.
+  const healthHidden = health.repairs.status === "hidden" && health.backup.status === "hidden";
   const group = groups.find(group => group.items.some(item => item.id === section));
   const selected = group?.items.find(item => item.id === section);
   useEffect(() => { heading.current?.focus(); }, [section]);
@@ -131,7 +137,7 @@ export default function Settings() {
             <span><strong>{t(group.title)}</strong><small>{t(group.description)}</small></span>
             <ChevronDown className="settings-chevron" size={19} aria-hidden="true" />
           </button></h2>
-          <ul id={`group-${group.id}`} hidden={!open}>{group.items.map(item => <li key={item.id}>
+          <ul id={`group-${group.id}`} hidden={!open}>{group.items.filter(item => item.id !== "ha-health" || !healthHidden).map(item => <li key={item.id}>
             <Link to={`/settings/${item.id}`} className="settings-row settings-item">
               <item.icon size={18} aria-hidden="true" /><span>{t(item.title)}</span><ChevronRight size={16} aria-hidden="true" />
             </Link>

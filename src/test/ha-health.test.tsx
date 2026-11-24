@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import { applyNotificationEvent, backupProblems, maintenanceItems, parseBackupInfo, parseRepairs, type BackupHealth } from "@/lib/ha-health";
-import { config, services, states, user } from "./ha-fixtures";
+import { AppContext } from "@/contexts/AppContext";
+import { HaHealthContext, noHealth, useHaHealth, type HaHealth } from "@/contexts/HaHealthContext";
+import { FamilyContext } from "@/contexts/FamilyContext";
+import { HaHealthSettings } from "@/components/HaHealthSettings";
+import { MemoryRouter } from "react-router-dom";
+import { mapHome, emptyRegistries } from "@/lib/ha-model";
+import { HEALTH_REFRESH_MS, HaHealthProvider } from "@/contexts/HaHealthProvider";
+import { config, services, state, states, user } from "./ha-fixtures";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -192,5 +199,166 @@ describe("health rules", () => {
   it("ignores messages that are not notification updates", () => {
     expect(applyNotificationEvent([], { type: "unexpected", notifications: {} })).toBeUndefined();
     expect(applyNotificationEvent([], { type: "current", notifications: { bad: { title: "No message" } } })).toEqual([]);
+  });
+});
+
+describe("health refresh", () => {
+  function Probe() {
+    const health = useHaHealth();
+    return <p data-testid="health">{health.repairs.status}/{health.backup.status}/{health.items.length}</p>;
+  }
+  const fakeApp = (overrides: Record<string, unknown> = {}) => ({
+    homeOnline: true, listRepairs: vi.fn(async () => parseRepairs(repairs)), backupInfo: vi.fn(async () => parseBackupInfo(backup())), ...overrides,
+  });
+  const view = (app: ReturnType<typeof fakeApp>) => <AppContext.Provider value={app as never}><HaHealthProvider><Probe /></HaHealthProvider></AppContext.Provider>;
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+  it("reads on connect, every 15 minutes while visible and again when shown after a hidden refresh", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    vi.setSystemTime(now);
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    const app = fakeApp();
+    render(view(app));
+    await act(async () => {});
+    expect(screen.getByTestId("health")).toHaveTextContent("ready/ready/2");
+    expect(app.listRepairs).toHaveBeenCalledWith("en");
+    expect(app.backupInfo).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(HEALTH_REFRESH_MS - 1000); });
+    expect(app.listRepairs).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(app.listRepairs).toHaveBeenCalledTimes(2);
+    visibility.mockReturnValue("hidden");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2 * HEALTH_REFRESH_MS); });
+    expect(app.listRepairs).toHaveBeenCalledTimes(2);
+    visibility.mockReturnValue("visible");
+    await act(async () => { fireEvent(document, new Event("visibilitychange")); });
+    expect(app.listRepairs).toHaveBeenCalledTimes(3);
+    await act(async () => { fireEvent(document, new Event("visibilitychange")); });
+    expect(app.listRepairs).toHaveBeenCalledTimes(3);
+  });
+
+  it("waits for a connection and reads again after a reconnect", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(now);
+    const app = fakeApp({ homeOnline: false });
+    const { rerender } = render(view(app));
+    expect(app.listRepairs).not.toHaveBeenCalled();
+    expect(screen.getByTestId("health")).toHaveTextContent("loading/loading/0");
+    app.homeOnline = true;
+    rerender(view({ ...app }));
+    await waitFor(() => expect(screen.getByTestId("health")).toHaveTextContent("ready/ready/2"));
+    rerender(view({ ...app, homeOnline: false }));
+    rerender(view({ ...app, homeOnline: true }));
+    await waitFor(() => expect(app.listRepairs).toHaveBeenCalledTimes(2));
+  });
+
+  it("hides refused reads and reports failed reads as unavailable", async () => {
+    const app = fakeApp({ listRepairs: vi.fn(async () => undefined), backupInfo: vi.fn(async () => { throw new Error("Backups unavailable"); }) });
+    render(view(app));
+    await waitFor(() => expect(screen.getByTestId("health")).toHaveTextContent("hidden/unavailable/0"));
+  });
+});
+
+describe("Home Assistant health settings", () => {
+  type Receive = (notifications: unknown) => void;
+  let receive: Receive | undefined;
+  const settingsApp = (overrides: Record<string, unknown> = {}) => ({
+    homeOnline: true, haUrl: "http://ha.local:8123",
+    currentHome: mapHome({
+      "update.example_core": state("update.example_core", "on", { friendly_name: "Example core update", title: "Example core", latest_version: "2026.11.1" }),
+      "update.example_current": state("update.example_current", "off", { friendly_name: "Example current" }),
+    }, emptyRegistries, "home"),
+    subscribePersistentNotifications: vi.fn((callback: Receive) => { receive = callback; return () => { receive = undefined; }; }),
+    dismissPersistentNotification: vi.fn(async () => {}),
+    ...overrides,
+  });
+  const health = (overrides: Partial<HaHealth> = {}): HaHealth => ({
+    ...noHealth, refresh: vi.fn(), checkedAt: now,
+    repairs: { status: "ready", value: parseRepairs(repairs) },
+    backup: { status: "ready", value: parseBackupInfo(backup()) }, ...overrides,
+  });
+  const view = (app: ReturnType<typeof settingsApp>, value: HaHealth) => render(<MemoryRouter><AppContext.Provider value={app as never}>
+    <FamilyContext.Provider value={{ now: new Date(now) } as never}><HaHealthContext.Provider value={value}><HaHealthSettings /></HaHealthContext.Provider></FamilyContext.Provider>
+  </AppContext.Provider></MemoryRouter>);
+  const card = (name: string) => screen.getByRole("heading", { name }).closest("section");
+  const notification = (id: string, title: string | undefined, message: string, hoursAgo: number) => ({ id, title, message, created: now - hoursAgo * HOUR });
+
+  it("shows open repairs by severity with their links, and hides ignored ones", () => {
+    const value = health();
+    view(settingsApp(), value);
+    expect(value.refresh).toHaveBeenCalledOnce();
+    const section = within(card("Repairs"));
+    expect(section.getAllByRole("listitem").map(item => item.textContent)).toEqual([
+      expect.stringMatching(/^CriticalExample critical/), expect.stringMatching(/^ErrorExample error.*Learn more/), expect.stringMatching(/^WarningExample warning/),
+    ]);
+    expect(section.getByRole("link", { name: /Learn more/ })).toHaveAttribute("href", "https://example.com/help");
+    expect(section.getByText("1 ignored repair is not shown.")).toBeVisible();
+    expect(section.getByRole("link", { name: /Open repairs in Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/repairs");
+  });
+
+  it("shows notifications live as plain text and dismisses them with pending and failure feedback", async () => {
+    const app = settingsApp();
+    let finish: () => void;
+    app.dismissPersistentNotification.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }))
+      .mockRejectedValueOnce(new Error("Home Assistant did not confirm the dismissal. Check the connection and try again."));
+    view(app, health());
+    const section = within(card("Notifications from Home Assistant"));
+    expect(section.getByRole("status")).toHaveTextContent("Checking Home Assistant…");
+    const first = notification("first", "Example title", "Example **message** with [a guide](/config/example) and [elsewhere](javascript:alert(1)).\nSecond line", 2);
+    const second = notification("second", undefined, "Second example", 1);
+    act(() => receive([first]));
+    expect(section.getByText("Example title")).toBeVisible();
+    const text = section.getByText(/Example message with/);
+    expect(text.innerHTML).not.toContain("<strong>");
+    expect(within(text).getByRole("link", { name: "a guide" })).toHaveAttribute("href", "http://ha.local:8123/config/example");
+    expect(within(text).queryByRole("link", { name: "elsewhere" })).toBeNull();
+    act(() => receive([second, first]));
+    expect(section.getAllByRole("listitem").map(item => item.querySelector("strong").textContent)).toEqual(["Notification", "Example title"]);
+
+    fireEvent.click(section.getByRole("button", { name: "Dismiss Example title" }));
+    expect(app.dismissPersistentNotification).toHaveBeenCalledWith("first");
+    const button = section.getByRole("button", { name: "Dismiss Example title" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("Dismissing…");
+    await act(async () => { finish(); });
+    act(() => receive([second]));
+    expect(section.queryByText("Example title")).toBeNull();
+
+    fireEvent.click(section.getByRole("button", { name: "Dismiss Notification" }));
+    expect(await section.findByRole("alert")).toHaveTextContent("Home Assistant did not confirm the dismissal");
+    expect(section.getByRole("button", { name: "Dismiss Notification" })).toBeEnabled();
+    expect(section.getByText("Second example")).toBeVisible();
+  });
+
+  it("shows backup health with relative times and problems", () => {
+    view(settingsApp(), health({ backup: { status: "ready", value: parseBackupInfo(backup({
+      last_completed_automatic_backup: iso(-72), last_attempted_automatic_backup: iso(-12), agent_errors: { "example.remote": "Example location is full" },
+    })) } }));
+    const section = within(card("Backups"));
+    expect(section.getByText("The last automatic backup failed.")).toBeVisible();
+    expect(section.getByText("The last successful automatic backup is more than 2 days old.")).toBeVisible();
+    expect(section.getByText("Last successful automatic backup").nextSibling).toHaveTextContent("3 days ago");
+    expect(section.getByText("Next scheduled backup").nextSibling).toHaveTextContent("in 14 hours");
+    expect(section.getByText("A backup location reported an error.")).toBeVisible();
+    expect(section.getByText("Example location is full")).toBeVisible();
+  });
+
+  it("lists waiting updates with a link to install them in Home Assistant", () => {
+    view(settingsApp(), health());
+    const section = within(card("Updates"));
+    expect(section.getAllByRole("listitem")).toHaveLength(1);
+    expect(section.getByText("Example core")).toBeVisible();
+    expect(section.getByText("Version 2026.11.1 is available.")).toBeVisible();
+    expect(section.getByRole("link", { name: /Install updates in Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/updates");
+  });
+
+  it("hides what Home Assistant refuses without showing errors", () => {
+    view(settingsApp(), health({ repairs: { status: "hidden" }, backup: { status: "hidden" } }));
+    act(() => receive(undefined));
+    expect(screen.queryByRole("heading", { name: "Repairs" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Backups" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Notifications from Home Assistant" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("Repairs and backup status need a Home Assistant administrator token on the dashboard server.")).toBeVisible();
   });
 });
