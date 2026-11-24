@@ -22,14 +22,11 @@ const EntityDetail = lazy(() => import("./pages/EntityDetail"));
 const Areas = lazy(() => import("./pages/Areas"));
 const Zones = lazy(() => import("./pages/Zones"));
 const Moods = lazy(() => import("./pages/Moods"));
-const Automations = lazy(() => import("./pages/Automations"));
 const EnergySaver = lazy(() => import("./pages/EnergySaver"));
-const History = lazy(() => import("./pages/History"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Support = lazy(() => import("./pages/Support"));
 const Alarm = lazy(() => import("./pages/Alarm"));
-const Integrations = lazy(() => import("./pages/Integrations"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 
 const queryClient = new QueryClient();
@@ -59,13 +56,13 @@ const App = () => (
                 <Route path="/rooms/:areaId" element={<Areas />} />
                 <Route path="/zones" element={<Zones />} />
                 <Route path="/moods" element={<Moods />} />
-                <Route path="/automations" element={<Automations />} />
-                <Route path="/automation" element={<Navigate to="/automations" replace />} />
+                <Route path="/automations" element={<Navigate to="/settings/automations" replace />} />
+                <Route path="/automation" element={<Navigate to="/settings/automations" replace />} />
                 <Route path="/energy" element={<EnergySaver />} />
                 <Route path="/alarm" element={<Alarm />} />
-                <Route path="/integrations" element={<Integrations />} />
-                <Route path="/services" element={<Navigate to="/integrations" replace />} />
-                <Route path="/history" element={<History />} />
+                <Route path="/integrations" element={<Navigate to="/settings/integrations" replace />} />
+                <Route path="/services" element={<Navigate to="/settings/integrations" replace />} />
+                <Route path="/history" element={<Navigate to="/settings/activity" replace />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/:section" element={<Settings />} />

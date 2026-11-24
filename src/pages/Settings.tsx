@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, CloudSun, Database, Globe, ListChecks, Monitor, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, ListChecks, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow } from "lucide-react";
 import { useHouseholdSetup } from "@/hooks/use-household-setup";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationDebugContext } from "@/contexts/NotificationContext";
@@ -16,6 +16,9 @@ import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import { VehicleSettings } from "@/components/VehicleSettings";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
+import Automations from "./Automations";
+import Integrations from "./Integrations";
+import History from "./History";
 import "./settings.css";
 
 function DebugSettings() {
@@ -51,13 +54,19 @@ const groups = [
     { id: "cameras", title: "Cameras", description: "Add cameras and choose their connections", icon: Camera, content: <CameraSettings /> },
     { id: "camera-connections", title: "Camera connections", description: "Home Assistant, go2rtc and Frigate servers", icon: Wifi, content: <CameraConnections /> },
   ] },
-  { id: "system", title: "System", description: "Home Assistant, backups and troubleshooting", icon: Wifi, items: [
+  { id: "system", title: "System", description: "Home Assistant, automations, backups and troubleshooting", icon: Wifi, items: [
     { id: "connection", title: "Connection & account", description: "Home Assistant connection and instance details", icon: Wifi, content: <HomeSettings section="connection" /> },
+    { id: "automations", title: "Automations", description: "Turn automations on or off and run their actions", icon: Workflow, content: <Automations /> },
+    { id: "integrations", title: "Integrations", description: "Add and manage Home Assistant integrations", icon: Package, content: <Integrations /> },
+    { id: "activity", title: "Activity", description: "What has happened at home, from Home Assistant history", icon: Clock, content: <History /> },
     { id: "backups", title: "Storage and backups", description: "Export, restore and recover shared settings", icon: Database, content: <ConfigurationBackup /> },
     { id: "debug", title: "Debug", description: "Test features in this tab until you reload.", icon: Bug, content: <DebugSettings /> },
     { id: "danger-zone", title: "Danger zone", description: "Clear the Smart home dashboard on every screen", icon: TriangleAlert, content: <DangerZoneSettings /> },
   ] },
 ] as const;
+
+// These sections act on this tab or directly on Home Assistant, not on the shared settings file.
+const localSections = new Set<string | undefined>(["debug", "automations", "integrations", "activity"]);
 
 const legacySections: Record<string, string> = {
   connection: "connection", notifications: "notifications", "smart-home-visibility": "smart-home",
@@ -90,7 +99,7 @@ export default function Settings() {
       <p className="page-note">{t(selected.description)}</p>
     </header>
     <div className="settings-content" key={section}>
-      {section !== "debug" && (section === "backups" ? <p className="shared-settings-status">{t("Applies to every screen connected to this server.")}</p> : <SharedSettingsStatus showRecovery />)}
+      {!localSections.has(section) && (section === "backups" ? <p className="shared-settings-status">{t("Applies to every screen connected to this server.")}</p> : <SharedSettingsStatus showRecovery />)}
       {selected.content}
       {section === "people" && <Link className="settings-related text-link" to="/settings/timetables">{t("Configure timetables")}<ChevronRight size={17} aria-hidden="true" /></Link>}
     </div>

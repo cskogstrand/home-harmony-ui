@@ -142,6 +142,18 @@ it("reveals the selected destination inside its row without scrolling the page",
   expect(window.scrollTo).not.toHaveBeenCalled();
 });
 
+it("keeps the selected destination clear of the row's edge fade", () => {
+  render(<MemoryRouter initialEntries={["/home"]}><SmartHomeNav /></MemoryRouter>);
+  const nav = screen.getByRole("link", { name: "Cameras" }).parentElement!;
+  Object.assign(nav.style, { scrollPaddingLeft: "24px", scrollPaddingRight: "24px" });
+  Object.defineProperties(nav, { clientWidth: { value: 320 }, scrollWidth: { value: 800 } });
+  vi.spyOn(nav, "getBoundingClientRect").mockReturnValue(new DOMRect(16, 0, 320, 48));
+  const cameras = screen.getByRole("link", { name: "Cameras" });
+  vi.spyOn(cameras, "getBoundingClientRect").mockReturnValue(new DOMRect(400, 0, 88, 48));
+  fireEvent.click(cameras);
+  expect(nav.scrollLeft).toBe(176);
+});
+
 it("keeps secondary routes discoverable with their current destination visible", () => {
   render(<MemoryRouter initialEntries={["/settings"]}><SmartHomeNav /></MemoryRouter>);
   const trigger = screen.getByRole("button", { name: "Home settings" });

@@ -619,6 +619,14 @@ fieldset.settings-card > legend + * { clear: both; }
 .school-card .planner-form { margin-top: 15px; }
 .smart-nav { display: flex; min-width: 0; align-items: center; gap: .4rem; padding: .5rem; margin-bottom: 1.5rem; border-bottom: 1px solid hsl(var(--border)); }
 .smart-nav-links { display: flex; align-items: center; gap: inherit; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+/* Hidden destinations fade out at the edge instead of cutting a label mid-word. The end padding lets the last
+   destination scroll clear of the fade; the start fade only appears once the row has scrolled. */
+@property --smart-nav-fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes smart-nav-fade-start { from { --smart-nav-fade-start: 0px; } 8%, to { --smart-nav-fade-start: 1.5rem; } }
+.smart-nav-links { padding-inline-end: 1.5rem; scroll-padding-inline: 1.5rem; mask-image: linear-gradient(to right, transparent, #000 var(--smart-nav-fade-start), #000 calc(100% - 1.5rem), transparent); }
+@supports (animation-timeline: scroll()) {
+  .smart-nav-links { animation: smart-nav-fade-start linear both; animation-timeline: scroll(self inline); }
+}
 .smart-nav-links > *, .smart-more { flex: none; white-space: nowrap; }
 .smart-more-short { display: none; }
 .smart-nav :is(a, button):focus-visible { outline-offset: -3px; }

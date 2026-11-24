@@ -12,9 +12,13 @@ export function useRevealSelection<T extends HTMLElement>(selection: string, opt
       if (container.scrollWidth <= container.clientWidth) return;
       const bounds = container.getBoundingClientRect();
       const target = item.getBoundingClientRect();
+      // Keep the selection clear of edge fades, which rows reserve with scroll-padding.
+      const style = getComputedStyle(container);
+      const left = bounds.left + (parseFloat(style.scrollPaddingLeft) || 0);
+      const right = bounds.right - (parseFloat(style.scrollPaddingRight) || 0);
       // Move only this row. Scrolling the page would pull the reader away from the content.
-      if (target.left < bounds.left) container.scrollLeft += target.left - bounds.left;
-      else if (target.right > bounds.right) container.scrollLeft += target.right - bounds.right;
+      if (target.left < left) container.scrollLeft += target.left - left;
+      else if (target.right > right) container.scrollLeft += target.right - right;
     };
     reveal();
     if (!window.ResizeObserver) return;

@@ -2489,7 +2489,7 @@ it("shows unavailable and failed lists separately while keeping readable lists u
   expect(ha.callService).not.toHaveBeenCalled();
 });
 
-it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
+it.each(["/settings/automations", "/devices", "/devices/automation.sunset", "/areas/unassigned", "/home"])("confirms automation disabling from %s", async path => {
   serverConfig.settings.smartHome.layout = [configuredCard("home|automation.sunset", "automation")];
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
@@ -2511,6 +2511,32 @@ it.each(["/automations", "/devices", "/devices/automation.sunset", "/areas/unass
   await waitFor(() => expect(screen.getByRole("button", { name: "Confirm" })).toBeEnabled());
   await confirmAction("Confirm");
   expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "automation", "turn_off", {}, { entity_id: "automation.sunset" });
+});
+
+it("asks before running an automation from Settings, shows progress and never replays a failed run", async () => {
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, automation: { ...services.automation, trigger: { fields: {} } } });
+  window.history.replaceState(null, "", "/settings/automations?auth_callback=1&code=fixture&state=fixture");
+  render(<App />);
+  await act(vi.dynamicImportSettled);
+  const run = await screen.findByRole("button", { name: "Run actions" });
+  await waitFor(() => expect(run).toBeEnabled());
+  fireEvent.click(run);
+  expect(screen.getByRole("alertdialog")).toHaveTextContent("Confirm action for Sunset");
+  expect(screen.getByRole("alertdialog")).toHaveTextContent("This runs the configured actions in Home Assistant.");
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  expect(ha.callService).not.toHaveBeenCalled();
+  const outcome = deferred<never>();
+  vi.mocked(ha.callService).mockReturnValueOnce(outcome.promise);
+  fireEvent.click(run);
+  await confirmAction("Confirm");
+  expect(screen.getByRole("alertdialog")).toHaveAttribute("aria-busy", "true");
+  expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "automation", "trigger", {}, { entity_id: "automation.sunset" });
+  await act(async () => outcome.reject(new Error("Permission denied")));
+  expect(within(screen.getByRole("alertdialog")).getByRole("alert")).toHaveTextContent("Home Assistant rejected");
+  act(() => conn.emit("disconnected"));
+  act(() => conn.emit("ready"));
+  act(() => conn.entityCallback?.({ ...states }));
+  expect(ha.callService).toHaveBeenCalledOnce();
 });
 
 it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation from %s", async path => {

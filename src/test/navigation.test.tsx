@@ -1391,12 +1391,24 @@ it("returns from an unknown address to Today through the app", async () => {
   expect(await screen.findByRole("heading", { name: "Today" })).toBeVisible();
 });
 
-it.each(["/history", "/integrations"])("offers connection settings when %s has no Home Assistant URL", async path => {
+it.each(["/settings/activity", "/settings/integrations"])("offers connection settings when %s has no Home Assistant URL", async path => {
   app.haUrl = "";
   app.homeOnline = false;
   window.history.replaceState(null, "", path);
   render(<App />);
   expect(await screen.findByRole("link", { name: "Open connection settings" })).toHaveAttribute("href", "/settings/connection");
+});
+
+it("lists automations under Settings → System with the Home Assistant editor beside them", async () => {
+  app.currentHome = mapHome({ "automation.example": state("automation.example", "on", { friendly_name: "Example automation" }) }, emptyRegistries, "home");
+  window.history.replaceState(null, "", "/settings/automations");
+  render(<App />); await saved();
+  expect(await screen.findByRole("heading", { level: 1, name: "Automations" })).toBeInTheDocument();
+  expect(screen.getByRole("article", { name: "Example automation" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Edit automations in Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/automation/dashboard");
+  expect(screen.getByRole("link", { name: "All settings" })).toHaveAttribute("href", "/settings?group=system");
+  expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
+  expect(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
 });
 
 it("offers one setup entry on Today and keeps guidance off the everyday boards", async () => {
@@ -1533,7 +1545,7 @@ it("navigates with empty HA data and shows the server-managed connection", async
   expect(await screen.findByRole("button", { name: "Reconnect" })).toBeInTheDocument();
   expect(screen.queryByLabelText("Home Assistant URL")).not.toBeInTheDocument();
   await navigate("Smart home");
-  for (const [link, heading] of [["Devices", "Devices"], ["Cameras", "Cameras"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Automations", "Automations"], ["Scenes", "Scenes"]]) {
+  for (const [link, heading] of [["Devices", "Devices"], ["Cameras", "Cameras"], ["Areas", "Areas"], ["Zones", "Zones"], ["Security", "Alarm"], ["Scenes", "Scenes"]]) {
     const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
     const direct = nav.queryByRole("link", { name: link });
     if (direct) fireEvent.click(direct);
@@ -1545,17 +1557,20 @@ it("navigates with empty HA data and shows the server-managed connection", async
   }
 });
 
-it("opens HA tools directly and keeps Add card visible with existing cards", async () => {
+it("keeps Home Assistant admin pages out of Smart home navigation and keeps Add card visible", async () => {
   app.currentHome = cardEditorHome();
   settings.settings.smartHome.layout = [configuredCard("home|light.example")];
   window.history.replaceState(null, "", "/home");
   render(<App />); await saved();
   expect(screen.getByRole("link", { name: "Add card" })).toHaveAttribute("href", "/settings/smart-home?card=new");
-  fireEvent.keyDown(screen.getByRole("button", { name: "More controls" }), { key: "Enter" });
-  const activity = await screen.findByRole("menuitem", { name: /Activity Home Assistant/ });
-  expect(activity).toHaveAttribute("href", "http://ha.local:8123/history");
-  expect(activity).toHaveAttribute("target", "_blank");
-  expect(screen.getByRole("menuitem", { name: /Integrations Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/integrations");
+  const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
+  fireEvent.keyDown(nav.getByRole("button", { name: "More controls" }), { key: "Enter" });
+  const menu = within(await screen.findByRole("menu"));
+  expect(menu.getAllByRole("menuitem").map(item => item.textContent)).toEqual(["Car & energy", "Zones", "Alerts", "Home settings"]);
+  for (const name of [/Automations/, /Activity/, /Integrations/]) {
+    expect(menu.queryByRole("menuitem", { name })).not.toBeInTheDocument();
+    expect(nav.queryByRole("link", { name })).not.toBeInTheDocument();
+  }
 });
 
 it("shares people visibility, order and timetable preferences with another screen", async () => {
@@ -1905,7 +1920,6 @@ it.each([
   ["/devices", "Device settings", "Manage devices in Home Assistant", "/config/devices/dashboard"],
   ["/areas", "Area settings", "Manage areas in Home Assistant", "/config/areas/dashboard"],
   ["/zones", "Zone settings", "Manage zones in Home Assistant", "/config/zone"],
-  ["/automations", "Automation settings", "Edit automations in Home Assistant", "/config/automation/dashboard"],
 ])("discloses management links in the settings cog on %s", async (path, label, link, target) => {
   window.history.replaceState(null, "", path);
   render(<App />); await saved();
@@ -1980,7 +1994,7 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
     ["Household", [["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"]]],
     ["Screen and alerts", [["Appearance", "appearance"], ["Language", "language"], ["Weather", "weather"], ["Notifications", "notifications"]]],
     ["Devices", [["Smart home", "smart-home"], ["Electric vehicles", "vehicles"], ["Cameras", "cameras"], ["Camera connections", "camera-connections"]]],
-    ["System", [["Connection & account", "connection"], ["Storage and backups", "backups"], ["Debug", "debug"], ["Danger zone", "danger-zone"]]],
+    ["System", [["Connection & account", "connection"], ["Automations", "automations"], ["Integrations", "integrations"], ["Activity", "activity"], ["Storage and backups", "backups"], ["Debug", "debug"], ["Danger zone", "danger-zone"]]],
   ] as const;
   const menu = () => within(screen.getByRole("navigation", { name: "Settings navigation" }));
   expect(menu().getAllByRole("button")).toHaveLength(4);
@@ -2021,12 +2035,21 @@ it.each([
   ["/settings#family-calendar", "calendars", "Calendars"],
   ["/settings#family-lists", "lists", "To-do lists"],
   ["/settings#timetables", "timetables", "Timetables"],
+  ["/automations", "automations", "Automations"],
+  ["/automation", "automations", "Automations"],
+  ["/integrations", "integrations", "Integrations"],
+  ["/services", "integrations", "Integrations"],
+  ["/history", "activity", "Activity"],
 ])("preserves the old settings bookmark %s", async (legacy, path, title) => {
   window.history.replaceState(null, "", legacy);
+  const replace = vi.spyOn(window.history, "replaceState");
   render(<App />); await saved();
   expect(await screen.findByRole("heading", { name: title, level: 1 })).toBeInTheDocument();
   expect(window.location.pathname).toBe(`/settings/${path}`);
   expect(window.location.hash).toBe("");
+  // One redirect straight to the final section, without passing through another old route.
+  expect(replace.mock.calls.filter(call => call[2] !== undefined).map(call => new URL(String(call[2]), window.location.origin).pathname)).toEqual([`/settings/${path}`]);
+  expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
 });
 
 const cardEditorHome = () => mapHome({
