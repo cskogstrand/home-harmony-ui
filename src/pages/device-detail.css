@@ -123,3 +123,29 @@
 .energy-meters > summary span { color: hsl(var(--muted-foreground)); font-weight: 400; }
 .energy-meters > section { margin-top: 1rem; }
 @media (forced-colors: active) { .energy-now-bar > span { background: CanvasText; } }
+
+/* Electricity price: current price, the cheapest window in words, and a day strip with an accessible table. */
+.electricity-price-now { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem 1rem; margin-top: .75rem; }
+.electricity-price-now > span { color: hsl(var(--muted-foreground)); font-size: .875rem; }
+.electricity-price-best { margin-top: .25rem; font-weight: 600; }
+.electricity-price-best small { color: hsl(var(--muted-foreground)); font-size: .875rem; font-weight: 400; }
+.price-day { margin-top: 1.25rem; }
+.price-day figcaption { color: hsl(var(--muted-foreground)); font-size: .875rem; font-weight: 500; }
+.price-strip { display: flex; align-items: flex-end; gap: 1px; height: 5rem; margin-top: .5rem; border-bottom: 1px solid hsl(var(--border)); }
+.price-bar { display: flex; align-items: flex-end; flex: 1 1 0; min-width: 0; height: 100%; }
+.price-bar > span { display: block; width: 100%; border-radius: 2px 2px 0 0; background: hsl(var(--primary) / .3); }
+.price-bar[data-cheapest] > span { background: hsl(var(--primary)); }
+.price-bar[data-now] { position: relative; box-shadow: inset 0 0 0 1px hsl(var(--foreground)); border-radius: 2px; }
+.price-bar[data-now] > span { background: hsl(var(--foreground)); }
+.price-axis { position: relative; height: 1.5rem; color: hsl(var(--muted-foreground)); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.price-axis > span { position: absolute; top: .125rem; }
+.price-table { width: 100%; font-size: .875rem; font-variant-numeric: tabular-nums; border-collapse: collapse; }
+.price-table :is(th, td) { padding: .375rem 0; border-top: 1px solid hsl(var(--border)); text-align: start; font-weight: 400; }
+.price-table thead th { color: hsl(var(--muted-foreground)); font-weight: 500; }
+.price-table td { text-align: end; }
+.price-table tr[aria-current] :is(th, td) { font-weight: 600; }
+@media (forced-colors: active) {
+  .price-bar > span { background: GrayText; }
+  .price-bar[data-cheapest] > span { background: Highlight; }
+  .price-bar[data-now] > span { background: CanvasText; }
+}

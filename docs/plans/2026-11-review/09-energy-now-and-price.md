@@ -27,9 +27,9 @@
 - [x] Owner action: add the Nord Pool integration (or another price source) in Home Assistant and configure Energy. Record the date here. *Do not do this for them.* — 2026-11-24: the owner added Nord Pool price sensors. Energy dashboard setup is not required for the price features.
 - [x] ~~Detect a price source generically: sensor with `device_class: monetary` and unit ending in `/kWh`, or the Nord Pool service `nordpool.get_prices_for_date` (call with `return_response`; verify current service name and fields in HA docs).~~ — skipped: owner chooses the price sensor in Settings
 - [x] Settings: choose the price sensor with the shared entity picker (sensors with a unit ending in `/kWh` or `device_class: monetary` are offered); stored in shared settings, so backups include it. A Nord Pool sensor supplies today and tomorrow through `nordpool.get_prices_for_date` (read-only, `return_response`); other sensors show their current price only.
-- [ ] Price strip: today (and tomorrow when published) hourly/quarter-hourly bars with "now" marker; current price in large type; cheapest window highlighted. Follow the colour rules in [DESIGN.md](../../../DESIGN.md); accessible table fallback.
-- [ ] "Best time" hint: cheapest contiguous 3-hour window in the next 24 h, shown as text ("Cheapest from 02:00 to 05:00"). Display only — never schedule or start devices automatically.
-- [ ] Tests with a fictional price series (including DST change day and missing tomorrow).
+- [x] Price strip: today (and tomorrow when published) hourly/quarter-hourly bars with "now" marker; current price in large type; cheapest window highlighted. Follow the colour rules in [DESIGN.md](../../../DESIGN.md); accessible table fallback.
+- [x] "Best time" hint: cheapest contiguous 3-hour window in the next 24 h, shown as text ("Cheapest from 02:00 to 05:00"). Display only — never schedule or start devices automatically.
+- [x] Tests with a fictional price series (including DST change day and missing tomorrow).
 - [ ] Docs: DOCS.md (how to add a price source), README feature line.
 
 ## Acceptance

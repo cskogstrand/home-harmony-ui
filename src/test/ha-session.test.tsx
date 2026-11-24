@@ -2856,6 +2856,38 @@ it("reads Energy preferences without changing them and reports a missing setup",
   await expect(client.energySetup(controller.signal)).rejects.toThrow("unavailable");
 });
 
+it("reads one day of prices from the chosen Nord Pool sensor's entry without changing anything", async () => {
+  // Fictional entry, area and prices.
+  vi.mocked(ha.getServices).mockResolvedValue({ ...services, nordpool: { get_prices_for_date: { fields: {} } } });
+  conn.sendMessagePromise.mockImplementation(async ({ type }) => ({
+    "config/area_registry/list": [], "config/device_registry/list": [],
+    "config/entity_registry/list": [
+      { id: "price", entity_id: "sensor.example_electricity_price", platform: "nordpool", config_entry_id: "example-entry", unique_id: "XX1-current_price" },
+      { id: "other", entity_id: "sensor.example_other_price", platform: "template" },
+    ],
+  })[type]);
+  const client = await connectedClient();
+  const controller = new AbortController();
+  const slot = { start: "2026-11-23T23:00:00Z", end: "2026-11-23T23:15:00Z", price: 1500 };
+  conn.sendMessagePromise.mockResolvedValueOnce({ response: { XX1: [slot], XX2: [{ ...slot, price: 1 }] } });
+  await expect(client.priceSeries("sensor.example_electricity_price", "2026-11-24", controller.signal)).resolves.toEqual([{ start: Date.parse(slot.start), end: Date.parse(slot.end), price: 1.5 }]);
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "call_service", domain: "nordpool", service: "get_prices_for_date", service_data: { config_entry: "example-entry", date: "2026-11-24" }, return_response: true });
+  // A sensor from another integration has no series to ask for.
+  const calls = conn.sendMessagePromise.mock.calls.length;
+  await expect(client.priceSeries("sensor.example_other_price", "2026-11-24", controller.signal)).resolves.toBeNull();
+  expect(conn.sendMessagePromise.mock.calls.length).toBe(calls);
+  // Tomorrow before publication: Home Assistant refuses or answers empty.
+  conn.sendMessagePromise.mockRejectedValueOnce({ code: "service_validation_error", message: "No data" });
+  await expect(client.priceSeries("sensor.example_electricity_price", "2026-11-25", controller.signal)).rejects.toBeTruthy();
+  conn.sendMessagePromise.mockResolvedValueOnce({ response: { XX1: [] } });
+  await expect(client.priceSeries("sensor.example_electricity_price", "2026-11-25", controller.signal)).rejects.toThrow("unavailable");
+  await expect(client.priceSeries("sensor.example_electricity_price", "tomorrow", controller.signal)).rejects.toThrow("unavailable");
+  const result = deferred<unknown>(); conn.sendMessagePromise.mockReturnValueOnce(result.promise);
+  const pending = client.priceSeries("sensor.example_electricity_price", "2026-11-24", controller.signal);
+  client.disconnect(); result.resolve({ response: { XX1: [slot] } });
+  await expect(pending).rejects.toThrow("cancelled");
+});
+
 const connectedSonosClient = async () => {
   const entities = sonosEntities();
   vi.mocked(ha.getServices).mockResolvedValue(sonosServices);

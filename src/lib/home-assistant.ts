@@ -12,6 +12,7 @@ import { playCameraStream } from "./camera-stream";
 import { MessageError } from "./i18n";
 import { fetchTranslations, noTranslations, type HaTranslations } from "./ha-translations";
 import type { NotificationEvent } from "./notifications";
+import { nordPoolSlots, type PriceSlot } from "./electricity-price";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 type CommandStatus = { pending: boolean; pendingAction?: EntityAction; error?: string; message?: string };
@@ -394,6 +395,23 @@ export class HomeAssistantClient {
     const result = await bounded(conn.sendMessagePromise({ type: "history/history_during_period", entity_ids: [entityId], start_time: start.toISOString(), end_time: end.toISOString(), minimal_response: true, no_attributes: true }));
     if (signal.aborted || generation !== this.generation || epoch !== this.epoch) throw new Error("History request cancelled");
     return historySchema.parse(result)[entityId] ?? [];
+  };
+
+  /**
+   * Read-only price series for one local date from the Nord Pool entry behind a chosen price sensor, through
+   * `nordpool.get_prices_for_date` with `return_response`. Resolves null when the sensor has no such source;
+   * rejects when the prices are not published or cannot be read.
+   */
+  priceSeries = async (entityId: string, date: string, signal: AbortSignal): Promise<PriceSlot[] | null> => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    if (!conn?.connected || this.snapshot.status !== "connected" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Prices unavailable");
+    const entry = this.snapshot.registries.entities.find(item => item.entity_id === entityId);
+    if (entry?.platform !== "nordpool" || !entry.config_entry_id || !this.snapshot.services.nordpool?.get_prices_for_date) return null;
+    const result = await bounded(conn.sendMessagePromise({ type: "call_service", domain: "nordpool", service: "get_prices_for_date", service_data: { config_entry: entry.config_entry_id, date }, return_response: true }));
+    if (signal.aborted || generation !== this.generation || epoch !== this.epoch) throw new Error("Price request cancelled");
+    const slots = nordPoolSlots((result as { response?: unknown } | null)?.response, entry.unique_id);
+    if (!slots.length) throw new Error("Prices unavailable");
+    return slots;
   };
 
   /** Read-only: whether Home Assistant's Energy dashboard has any sources. Rejects when the answer is unknown. */

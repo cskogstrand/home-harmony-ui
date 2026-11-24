@@ -8,7 +8,7 @@ function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistan
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
     entityRegistryAvailable: state.entityRegistryAvailable, connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
-    command: client.command, browseMedia: client.browseMedia, sonosQueue: client.sonosQueue, watchEvents: client.watchEvents, watchCameraStream: client.watchCameraStream, watchForecast: client.watchForecast, entityHistory: client.entityHistory, energySetup: client.energySetup, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
+    command: client.command, browseMedia: client.browseMedia, sonosQueue: client.sonosQueue, watchEvents: client.watchEvents, watchCameraStream: client.watchCameraStream, watchForecast: client.watchForecast, entityHistory: client.entityHistory, energySetup: client.energySetup, priceSeries: client.priceSeries, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
 }
 
 type AppSnapshot = ReturnType<typeof appSnapshot>;

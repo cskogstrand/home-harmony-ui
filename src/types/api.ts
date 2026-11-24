@@ -16,6 +16,7 @@ export interface EntityRegistryEntry {
   unique_id?: string;
   entity_id: string;
   platform?: string;
+  config_entry_id?: string | null;
   area_id?: string | null;
   device_id?: string | null;
   name?: string | null;

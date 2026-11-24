@@ -50,6 +50,13 @@ export function localDate(time: number, timeZone: string) {
   return ["year", "month", "day"].map(type => parts.find(part => part.type === type)!.value).join("-");
 }
 
+/** The calendar date after a YYYY-MM-DD date. */
+export function nextDate(date: string) {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + 1);
+  return value.toISOString().slice(0, 10);
+}
+
 /** Slots that start on a local date. A daylight-saving change day has 23 or 25 hours of them. */
 export function slotsOnDate(slots: PriceSlot[], date: string, timeZone: string) {
   return slots.filter(slot => localDate(slot.start, timeZone) === date);
