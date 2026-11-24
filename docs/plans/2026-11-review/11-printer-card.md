@@ -25,9 +25,9 @@ A device is a printer when it has a sensor whose `translation_key` (or entity id
 - [x] Card in Original, Compact and Super compact densities: progress ring/bar + remaining time as the hero; stage label translated (via 05); media (camera when printing, cover image otherwise) only in Original; trays as colour swatches with accessible names.
   > Note: a new **3D printer** card type (`printer_3d`) is saved against the printer's progress, status or stage sensor (`accepts` in `card-designs.ts`); favorites keep domain-based cards, so the printer is a Smart home card only. Verified with fictional fixtures (`src/test/printer-card.test.tsx`); the browser check at 1440 × 2560 and 390 × 844, light/dark and artwork on is left for workstream 13 because the dev server serves `main`.
 - [x] Idle/finished/error states distinct (finished shows "Done at 14:20"; error shows the HMS/print error text if present). Unavailable vs idle distinguished.
-- [ ] Device detail page: same model, plus chamber light and other controls already handled generically.
+- [x] Device detail page: same model, plus chamber light and other controls already handled generically.
 - [x] Gallery: add a printer card family with a fictional illustration to `/device-gallery`.
-- [ ] No controls that start/stop prints in this workstream (read-only card + existing light/switch controls).
+- [x] No controls that start/stop prints in this workstream (read-only card + existing light/switch controls).
 - [ ] Tests: detection positive/negative, densities render, unavailable vs idle.
 - [ ] Docs: DESIGN.md card family list; README supported devices.
 

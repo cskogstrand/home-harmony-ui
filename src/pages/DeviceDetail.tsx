@@ -11,8 +11,14 @@ import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 import { DeviceTools } from "@/components/devices/DeviceTools";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { deviceDetailSections, deviceName, deviceReadingsLabel, deviceType, entityDetailPath } from "@/lib/device-model";
+import { printerModel } from "@/lib/printer-model";
+import { cardDesigns } from "@/components/devices/card-designs";
+import { CardFrame } from "@/components/devices/CardFrame";
+import { PrinterCardContent } from "@/components/devices/PrinterCardContent";
 import type { Entity } from "@/types/api";
 import "./device-detail.css";
+
+const printerDesign = cardDesigns.find(design => design.id === "printer_3d")!;
 
 export default function DeviceDetail() {
   const { t, message, language } = useI18n();
@@ -42,7 +48,11 @@ export default function DeviceDetail() {
   }
   const area = currentHome.areas.find(area => area.id === device.area_id);
   const sections = deviceDetailSections(entities);
+  // A printer leads with its printer card; its media moves into that card, and its light and switches stay generic.
+  const printer = printerModel(device, currentHome.entities);
+  const primary = sections.primary.filter(entity => entity !== printer?.media);
   const identity = sections.primary.length ? sections.primary : entities;
+  const hasPrimary = !!printer || !!primary.length;
   const availability = deviceReadingsLabel(entities, homeOnline);
   const StatusIcon = availability === "Readings available" ? CheckCircle2 : CircleAlert;
   const entityTitle = (entity: Entity) => {
@@ -64,9 +74,10 @@ export default function DeviceDetail() {
       </div>
       {!!metadataWarnings.length && <p className="page-note" role="status">{t("Device information may be incomplete. {value1}", { value1: metadataWarnings.map(warning => message(warning)).join(" ") })}</p>}
     </section>
-    {!!(sections.primary.length || sections.readings.length) && <div className={`device-detail-layout${sections.primary.length && sections.readings.length ? " device-detail-with-readings" : ""}`}>
-      {!!sections.primary.length && <section className="device-detail-primary" aria-label={t("Device controls")}>
-        {sections.primary.map(entity => <SmartHomeCard key={entity.entityId} entity={entity} density="original" detail />)}
+    {!!(hasPrimary || sections.readings.length) && <div className={`device-detail-layout${hasPrimary && sections.readings.length ? " device-detail-with-readings" : ""}`}>
+      {hasPrimary && <section className="device-detail-primary" aria-label={t("Device controls")}>
+        {printer && <CardFrame design={printerDesign} title={deviceName(device, language)} variant="Original"><PrinterCardContent entity={printer.main} /></CardFrame>}
+        {primary.map(entity => <SmartHomeCard key={entity.entityId} entity={entity} density="original" detail />)}
       </section>}
       {!!sections.readings.length && <section className="device-detail-readings" aria-label={t("Readings and status")}>
         <PanelHeading icon={Activity} title={t("Readings and status")} />
