@@ -80,6 +80,10 @@
   .app-header:has(.vehicle-strip) .header-weather { grid-area: 2 / 2; justify-self: end; }
   .vehicle-strip { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.55rem), 1fr)); }
 }
+/* Portrait wall: the strip matches the 60px header controls beside it; its buttons stretch to fill. */
+@media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
+  .vehicle-strip { min-height: 60px; }
+}
 @media (width <= 499px) {
   .vehicle-glance { gap: .25rem; padding-inline: .3rem; }
   .vehicle-thumbnail { width: clamp(2.1rem, 10.5vw, 3rem); }
