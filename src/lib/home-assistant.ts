@@ -44,7 +44,7 @@ export const forecastSchema = z.array(z.object({
   precipitation_probability: z.number().finite().nullish(), precipitation: z.number().finite().nullish(),
 }));
 export type Forecast = z.infer<typeof forecastSchema>;
-const historySchema = z.record(z.array(z.object({ s: z.string(), lu: z.number().finite(), lc: z.number().finite().optional() })));
+const historySchema = z.record(z.string(), z.array(z.object({ s: z.string(), lu: z.number().finite(), lc: z.number().finite().optional() })));
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
   : "Cannot connect to Home Assistant through the dashboard server. Check the dashboard server logs and its configured Home Assistant URL, port and network connection.";
@@ -284,7 +284,7 @@ export class HomeAssistantClient {
       if (!conn?.connected || this.snapshot.status !== "connected" || !entity || !available(entity) || entity.domain !== "media_player" || entity.integration !== "sonos" || !this.snapshot.services.sonos?.get_queue) throw new Error();
       const result = await bounded(conn.sendMessagePromise({ type: "call_service", domain: "sonos", service: "get_queue", target: { entity_id: entityId }, return_response: true }));
       if (generation !== this.generation || epoch !== this.epoch || !conn.connected) throw new Error();
-      const queue = z.object({ response: z.record(sonosQueueSchema) }).parse(result).response[entityId];
+      const queue = z.object({ response: z.record(z.string(), sonosQueueSchema) }).parse(result).response[entityId];
       if (!queue) throw new Error();
       return queue;
     } catch { throw new Error("The queue could not be loaded. Check the connection and try again."); }

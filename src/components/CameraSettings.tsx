@@ -5,7 +5,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { newPlannerId } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { cameraPersonPipWidths, cameraSettingsSchema, go2rtcLink, homeAssistantPicturePath, type ConfiguredCamera } from "../../shared/cameras";
+import { cameraPersonPipWidths, currentCameraSettingsSchema, go2rtcLink, homeAssistantPicturePath, type ConfiguredCamera } from "../../shared/cameras";
 import { Camera, Check, Image, UserRound, Video } from "lucide-react";
 import { PanelTitle } from "./PanelTitle";
 import { EntityPicker } from "./EntityPicker";
@@ -53,7 +53,7 @@ export function CameraSettings() {
         if (link && current.cameras.connections.find(item => item.id === draft.connectionId)?.url !== link.serverUrl) throw new Error("This link uses a different go2rtc server. Choose its connection first.");
         const existing = current.cameras.items.find(item => item.id === draft.id);
         if (original && JSON.stringify(existing) !== original) throw new Error("This camera changed on another screen. Cancel and reopen it.");
-        const result = cameraSettingsSchema.safeParse({ ...current.cameras, items: existing ? current.cameras.items.map(item => item.id === draft.id ? draft : item) : [...current.cameras.items, draft] });
+        const result = currentCameraSettingsSchema.safeParse({ ...current.cameras, items: existing ? current.cameras.items.map(item => item.id === draft.id ? draft : item) : [...current.cameras.items, draft] });
         if (!result.success) {
           const messages: Record<string, string> = {
             name: "Enter a camera name (1–100 characters).",

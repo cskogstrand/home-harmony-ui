@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2, Sunrise, Heart, Sun, Moon, Coffee, CalendarDays, CalendarCheck, ClipboardList, ListChecks, Bell, House, type LucideIcon } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
-import { available, supportsAction } from "@/lib/ha-model";
+import { available, haDateTime, supportsAction } from "@/lib/ha-model";
 import type { Entity } from "@/types/api";
 import { CommandFeedback } from "@/components/devices/DeviceControl";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
@@ -57,7 +57,7 @@ export function MorningSummary({ dialogTrigger = false }: { dialogTrigger?: bool
     return parsed.success ? [parsed.data] : [];
   }) : [];
   if (summary?.state !== today || !messages.length && (typeof message !== "string" || !message.trim())) return null;
-  const generatedAt = z.string().datetime({ offset: true }).safeParse(summary.attributes.generated_at);
+  const generatedAt = haDateTime.safeParse(summary.attributes.generated_at);
   const timestamp = generatedAt.success ? generatedAt.data : summary.lastUpdated;
   const generatedDate = timestamp ? new Date(timestamp) : null;
   const playback = script && <div className="command-controller flex shrink-0" aria-busy={running}>

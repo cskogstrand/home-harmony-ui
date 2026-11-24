@@ -3,7 +3,7 @@ import { z } from "zod";
 import hlsWorkerUrl from "hls.js/dist/hls.worker.js?url";
 
 const capabilitiesSchema = z.object({ frontend_stream_types: z.array(z.string()) });
-const clientConfigSchema = z.object({ configuration: z.record(z.unknown()), dataChannel: z.string().nullish() });
+const clientConfigSchema = z.object({ configuration: z.record(z.string(), z.unknown()), dataChannel: z.string().nullish() });
 const streamSchema = z.object({ url: z.string().regex(/^\/api\/hls\/[a-f0-9]+\/master_playlist\.m3u8$/) });
 const candidateSchema = z.object({ candidate: z.string(), sdpMid: z.string().nullish(), sdpMLineIndex: z.number().int().nonnegative().nullish(), usernameFragment: z.string().nullish() });
 const eventSchema = z.discriminatedUnion("type", [

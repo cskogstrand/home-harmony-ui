@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { settingsRecord } from "./settings-record.ts";
 
 export const MAX_NOTIFICATION_TRIGGERS = 10;
 const reference = z.string().min(1).max(512);
@@ -88,7 +89,7 @@ export const notificationTriggerSchema = z.discriminatedUnion("type", [
   stateTriggerSchema,
   z.object({ type: z.literal("entity-event"), entity: reference, eventType: z.string().trim().max(100).default("") }).strict(),
   z.object({ type: z.literal("ha-event"), eventType: z.string().trim().regex(/^[a-zA-Z0-9_]+$/).max(100),
-    filters: z.record(field, z.union([z.string().max(512), z.number().finite(), z.boolean()])).refine(value => Object.keys(value).length <= 10).default({}) }).strict(),
+    filters: settingsRecord(field, z.union([z.string().max(512), z.number().finite(), z.boolean()])).refine(value => Object.keys(value).length <= 10).default({}) }).strict(),
   z.object({ type: z.literal("calendar"), entity: reference, leadMinutes: z.number().int().min(0).max(1440).default(0) }).strict(),
 ]);
 export const notificationRuleSchema = z.object({

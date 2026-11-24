@@ -239,4 +239,4 @@ export class NotificationEngine {
 }
 
 const sections: Record<string, string> = { widget: "widget", title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", hideTrigger: "hideTrigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
-export const notificationIssueSection = (issue: ZodIssue) => sections[issue.path[0]] ?? "content";
+export const notificationIssueSection = (issue: ZodIssue) => sections[String(issue.path[0])] ?? "content";

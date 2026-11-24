@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { settingsRecord } from "./settings-record.ts";
 
 const name = z.string().trim().regex(/^[a-zA-Z0-9_-][a-zA-Z0-9_.-]{0,127}$/);
 const id = name.refine(value => !["__proto__", "constructor", "prototype", "home-assistant"].includes(value));
@@ -7,7 +8,7 @@ const serverUrl = z.string().trim().min(1).max(2048).refine(value => {
     const url = new URL(value);
     return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password && !url.search && !url.hash && !value.includes("\\");
   } catch { return false; }
-}, "Use an HTTP or HTTPS server URL without credentials, query or fragment.").transform(value => value.replace(/\/+$/, ""));
+}, "Use an HTTP or HTTPS server URL without credentials, query or fragment.").overwrite(value => value.replace(/\/+$/, ""));
 
 export function go2rtcLink(value: string): { serverUrl: string; stream: string } | undefined {
   try {
@@ -71,7 +72,7 @@ export const configuredCameraSchema = z.object({
     z.object({ type: z.literal("frigate"), connectionId: id, camera: name }).strict(),
   ]).default({ type: "none" }),
 }).strict();
-const settingsSchema = z.object({
+export const currentCameraSettingsSchema = z.object({
   // Preserve settings and backups that used the retired five-column layout.
   columns: z.number().int().min(1).max(5).default(2).transform(columns => Math.min(columns, 4)),
   connections: z.array(cameraConnectionSchema).max(100).default([]),
@@ -93,7 +94,7 @@ const settingsSchema = z.object({
 });
 const legacySchema = z.object({
   go2rtcUrl: z.union([z.literal(""), serverUrl]).default(""), frigateUrl: z.union([z.literal(""), serverUrl]).default(""),
-  sources: z.record(z.string().regex(/^camera\.[a-z0-9_]+$/), z.object({
+  sources: settingsRecord(z.string().regex(/^camera\.[a-z0-9_]+$/), z.object({
     stream: z.string().trim().transform(go2rtcStreamName).pipe(z.union([z.literal(""), name])).default(""),
     personSnapshot: z.discriminatedUnion("type", [
       z.object({ type: z.literal("none") }).strict(),
@@ -101,7 +102,7 @@ const legacySchema = z.object({
       z.object({ type: z.literal("frigate"), camera: name }).strict(),
     ]).default({ type: "none" }),
   }).strict()).refine(sources => Object.keys(sources).length <= 100).default({}),
-}).strict().transform(legacy => ({
+}).strict().transform((legacy): z.input<typeof currentCameraSettingsSchema> => ({
   connections: [
     ...(legacy.go2rtcUrl ? [{ id: "legacy-go2rtc", name: "go2rtc", type: "go2rtc" as const, url: legacy.go2rtcUrl }] : []),
     ...(legacy.frigateUrl ? [{ id: "legacy-frigate", name: "Frigate", type: "frigate" as const, url: legacy.frigateUrl }] : []),
@@ -111,7 +112,7 @@ const legacySchema = z.object({
     personSnapshot: source.personSnapshot.type === "frigate" ? { ...source.personSnapshot, connectionId: "legacy-frigate" } : source.personSnapshot,
   })),
 }));
-export const cameraSettingsSchema = z.union([settingsSchema, legacySchema.pipe(settingsSchema)]);
+export const cameraSettingsSchema = z.union([currentCameraSettingsSchema, legacySchema.pipe(currentCameraSettingsSchema)]);
 export type CameraSettings = z.infer<typeof cameraSettingsSchema>;
 export type CameraConnection = z.infer<typeof cameraConnectionSchema>;
 export type ConfiguredCamera = z.infer<typeof configuredCameraSchema>;

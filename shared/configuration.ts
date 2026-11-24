@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { settingsRecord } from "./settings-record.ts";
 import { notificationSettingsSchema } from "./notifications.ts";
 import { cameraSettingsSchema } from "./cameras.ts";
 
@@ -46,7 +47,7 @@ const timetableRolesSchema = z.union([
 export const timetableSettingsSchema = z.object({
   type: z.enum(["images", "calendar"]).default("images"),
   education: z.enum(["school", "kindergarten"]).default("school"),
-  calendars: z.record(keySchema, timetableRolesSchema).default({}).transform(calendars => {
+  calendars: settingsRecord(keySchema, timetableRolesSchema).default({}).transform(calendars => {
     const hasSections = Object.values(calendars).some(roles => roles.some(role => role in timetableWeekRoles));
     return Object.fromEntries(Object.entries(calendars).flatMap(([id, roles]) => {
       // School selections lead; older week-only configurations inherit matching sections.
@@ -105,12 +106,12 @@ const dashboardHomeworkSchema = z.object({
 }).strict();
 export type DashboardHomeworkOptions = z.infer<typeof dashboardHomeworkSchema>;
 const plannerObjectSchema = z.object({
-  cameras: cameraSettingsSchema.default({}),
-  notifications: notificationSettingsSchema.default({}),
+  cameras: cameraSettingsSchema.prefault({}),
+  notifications: notificationSettingsSchema.prefault({}),
   language: z.enum(["en", "nb"]).default("en"),
-  timetables: z.record(keySchema, z.array(imageUrl).max(100)),
-  timetableEnabled: z.record(keySchema, z.boolean()).default({}),
-  timetableSettings: z.record(keySchema, timetableSettingsSchema).default({}),
+  timetables: settingsRecord(keySchema, z.array(imageUrl).max(100)),
+  timetableEnabled: settingsRecord(keySchema, z.boolean()).default({}),
+  timetableSettings: settingsRecord(keySchema, timetableSettingsSchema).default({}),
   calendar: calendarSettingsSchema.default({ view: "week", startDay: "today" }),
   dashboard: z.object({
     order: z.array(z.enum(dashboardSections)).max(dashboardSections.length).default([])
@@ -129,29 +130,29 @@ const plannerObjectSchema = z.object({
     daily: z.boolean().default(true),
     shopping: z.boolean().default(true),
     homework: z.boolean().default(false),
-    homeworkOptions: dashboardHomeworkSchema.default({}),
+    homeworkOptions: dashboardHomeworkSchema.prefault({}),
     school: z.boolean().default(true),
     home: z.boolean().default(true),
-  }).strict().default({}),
+  }).strict().prefault({}),
   homeEntities: z.array(memberSchema).optional(),
-  homeEntityGroups: z.record(keySchema, z.string().trim().max(80)).default({}),
+  homeEntityGroups: settingsRecord(keySchema, z.string().trim().max(80)).default({}),
   homeGroups: z.array(z.string().trim().min(1).max(80)).default([]),
-  smartHome: smartHomeSchema.default({}),
+  smartHome: smartHomeSchema.prefault({}),
   memberOrder: z.array(memberSchema).default([]),
-  memberColors: z.record(keySchema, memberColorSchema).default({}),
+  memberColors: settingsRecord(keySchema, memberColorSchema).default({}),
   hiddenMembers: z.array(memberSchema).default([]),
   appearance: z.object({
     theme: z.enum(["light", "dark"]),
     colorPalette: z.enum(["pearl", "sage", "sand", "dusk", "mist", "rose", "olive", "clay", "lavender", "seafoam", "honey", "slate"]).default("pearl"),
     artwork: artworkSchema.default("none"),
-    plannerArtwork: z.record(plannerArtworkSchema, z.boolean()).default({}),
+    plannerArtwork: settingsRecord(plannerArtworkSchema, z.boolean()).default({}),
     compactMode: z.boolean(),
     darkTimetables: z.boolean().default(false),
     modalTransparency: z.number().int().min(0).max(85).default(defaultModalGlass.modalTransparency),
     modalBlur: z.number().int().min(8).max(48).default(defaultModalGlass.modalBlur),
     modalSaturation: z.number().int().min(100).max(200).default(defaultModalGlass.modalSaturation),
     modalDimming: z.number().int().min(0).max(60).default(defaultModalGlass.modalDimming),
-  }).strict().default({ theme: "dark", colorPalette: "pearl", compactMode: false, darkTimetables: false }),
+  }).strict().prefault({ theme: "dark", compactMode: false }),
   selectedAlarm: z.union([memberSchema, z.literal("")]).default(""),
   morningSummaryEntity: z.union([memberSchema, z.literal("")]).default("sensor.afterglow_morning_summary"),
   morningSummaryScript: z.union([memberSchema, z.literal("")]).default("script.morning_summary_voice"),
@@ -162,11 +163,11 @@ const plannerObjectSchema = z.object({
   wasteCalendarEntity: z.union([memberSchema, z.literal("")]).default(""),
   wasteCollectionDays: z.number().int().min(0).max(90).default(7),
   weatherTemperatureEntity: z.union([memberSchema, z.literal("")]).default(""),
-  weatherPlacement: z.object({ today: z.boolean().default(true), header: z.boolean().default(false) }).strict().default({}),
-  calendarMembers: z.record(keySchema, memberSchema).default({}),
-  todoLists: z.record(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks", "homework"]), member: memberSchema, display: todoDisplaySchema.optional() }).strict()).default({}),
+  weatherPlacement: z.object({ today: z.boolean().default(true), header: z.boolean().default(false) }).strict().prefault({}),
+  calendarMembers: settingsRecord(keySchema, memberSchema).default({}),
+  todoLists: settingsRecord(keySchema, z.object({ kind: z.enum(["daily", "shopping", "tasks", "homework"]), member: memberSchema, display: todoDisplaySchema.optional() }).strict()).default({}),
 }).strict();
-function preserveCameraNotifications(planner: z.infer<typeof plannerObjectSchema>) {
+function preserveCameraNotifications(planner: z.infer<typeof plannerObjectSchema>): z.input<typeof plannerObjectSchema> {
   for (const rule of planner.notifications.rules) {
     if (rule.kind !== "camera" || !/^(home\|)?camera\.[a-z0-9_]+$/.test(rule.cameraEntity)) continue;
     const entity = rule.cameraEntity.replace(/^home\|/, "");

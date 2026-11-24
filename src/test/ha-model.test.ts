@@ -45,7 +45,7 @@ describe("HA commands", () => {
   it("validates to-do details, respects field capabilities and clears due dates explicitly", () => {
     const todo = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 127 }) }, registries, "test").entities.find(e => e.domain === "todo")!;
     const services = { todo: { add_item: { fields: {} }, update_item: { fields: {} } } };
-    for (const details of [{ due_date: "2026-10-29", description: "Example notes" }, { due_datetime: "2026-10-29T12:00:00+01:00" }, { due_date: null }, { due_datetime: null, description: "" }]) {
+    for (const details of [{ due_date: "2026-10-29", description: "Example notes" }, { due_datetime: "2026-10-29T12:00:00+01:00" }, { due_datetime: "2026-10-29T12:00:00+0100" }, { due_date: null }, { due_datetime: null, description: "" }]) {
       expect(entityCommand(todo, "update_item", services, { item: "example", ...details }).data).toEqual({ item: "example", ...details });
     }
     expect(entityCommand(todo, "add_item", services, { item: "Example", due_date: "2026-10-29", description: "Notes" }).data).toEqual({ item: "Example", due_date: "2026-10-29", description: "Notes" });

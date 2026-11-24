@@ -41,8 +41,8 @@ export function NotificationValidationErrors({ issues, editor, openSection }: { 
   const message = (issue: ZodIssue) => {
     if (issue.code === "custom" && issue.message !== "Invalid input") return t(issue.message);
     if (issue.path.includes("filters")) return t("Use at most 10 event filters with text, number or boolean values.");
-    if (issue.code === "too_small") return issue.type === "string" ? t("Enter a value.") : t("Use a value of {limit} or more.", { limit: String(issue.minimum) });
-    if (issue.code === "too_big") return issue.type === "string" ? t("Use at most {limit} characters.", { limit: String(issue.maximum) }) : t("Use a value of {limit} or less.", { limit: String(issue.maximum) });
+    if (issue.code === "too_small") return issue.origin === "string" ? t("Enter a value.") : t("Use a value of {limit} or more.", { limit: String(issue.minimum) });
+    if (issue.code === "too_big") return issue.origin === "string" ? t("Use at most {limit} characters.", { limit: String(issue.maximum) }) : t("Use a value of {limit} or less.", { limit: String(issue.maximum) });
     return t("Choose a valid value for this field.");
   };
   return <div ref={summary} tabIndex={-1} role="alert" className="notification-validation-errors">

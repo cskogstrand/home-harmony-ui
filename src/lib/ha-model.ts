@@ -20,7 +20,10 @@ const newCalendarEvent = z.union([
   newCalendarEventDetails.extend({ start_date_time: calendarTime, end_date_time: calendarTime }).strict().refine(event => event.end_date_time > event.start_date_time),
   newCalendarEventDetails.extend({ start_date: z.string().date(), end_date: z.string().date() }).strict().refine(event => event.end_date > event.start_date),
 ]);
-const eventTime = z.union([z.string().date(), z.string().datetime({ offset: true })]);
+const isoDateTime = z.regexes.datetime({ offset: true });
+// Home Assistant timestamps can use either +0100 or +01:00. Keep the original value for commands.
+export const haDateTime = z.string().refine(value => isoDateTime.test(value.replace(/([+-]\d{2})(\d{2})$/, "$1:$2")));
+const eventTime = z.union([z.string().date(), haDateTime]);
 const calendarEventIdentity = z.object({
   uid: z.string().min(1), recurrence_id: z.string().min(1).optional(),
 }).strict();
@@ -188,7 +191,7 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
     return { domain: "sonos", service: action, data, target: { entity_id: entity.entityId } };
   }
   if (entity.domain === "script" && action === "turn_on" && value !== undefined) {
-    const parsed = z.object({ variables: z.record(z.unknown()) }).strict().safeParse(value);
+    const parsed = z.object({ variables: z.record(z.string(), z.unknown()) }).strict().safeParse(value);
     if (!parsed.success) throw new Error("Choose valid script variables.");
     data.variables = parsed.data.variables;
   }
@@ -245,7 +248,7 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
     }
     if (action === "add_item" || action === "update_item") {
       const details = z.object({
-        due_date: z.string().date().nullish(), due_datetime: z.string().datetime({ offset: true }).nullish(), description: z.string().nullish(),
+        due_date: z.string().date().nullish(), due_datetime: haDateTime.nullish(), description: z.string().nullish(),
       }).safeParse(value);
       if (!details.success || "due_date" in value && "due_datetime" in value) throw new MessageError("Enter a valid due date or date and time, and a text description.");
       for (const [field, flag] of [["due_date", 16], ["due_datetime", 32], ["description", 64]] as const) {
