@@ -21,7 +21,9 @@
 - [x] Give the selected tab a non-colour cue that survives artwork: primary-tinted fill distinct from `--art-surface` **and** semibold weight (or an inset indicator). Apply to `.list-tabs`, `.smart-nav` and `.calendar-segment` consistently.
 
   > Done: selected list tabs and calendar segments now use semibold labels everywhere (Smart home nav already did). With artwork on, all three use the solid primary fill with primary-foreground text, the same treatment as selected filters, and calendar segments get the opaque `--art-surface` container like the other two. The dead `.smart-summary` selector is gone.
-- [ ] Remove per-label patches behind section-heading links; instead give the whole section heading row (or the section) one surface, or keep artwork out from behind headings via a single masked band.
+- [x] Remove per-label patches behind section-heading links; instead give the whole section heading row (or the section) one surface, or keep artwork out from behind headings via a single masked band.
+
+  > Done: the Smart home section heading row (title, View areas, Add card) shares one `--art-surface` band with field corners. Unselected filter pills keep an opaque fill of their own, without the 4 px spread that made them look like boxes.
 - [ ] Scene buttons: add an opaque base under the tint in artwork mode so labels sit on a solid colour.
 - [ ] Check contrast of selected/unselected text and the selected fill against `--art-surface` for all 12 palettes, light and dark (≥ 4.5:1 text, ≥ 3:1 for the selection indicator). Record the lowest values in a `> Contrast:` note.
 - [ ] Verify forced colours and reduced transparency still show the selected state.

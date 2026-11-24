@@ -78,7 +78,9 @@
 [data-artwork] :is(.list-tabs button, .calendar-segment button)[aria-pressed="true"],
 [data-artwork] .smart-nav a[aria-current="page"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); box-shadow: none; }
 [data-artwork] .smart-nav a[aria-current="page"]:focus-visible { outline-color: hsl(var(--primary-foreground)); }
-[data-artwork] :is(.smart-page > section > .section-heading .panel-title, .smart-page > section > .section-heading .text-link, .filter-row button:not([aria-pressed=true])) { background-color: var(--art-surface); border-radius: 6px; box-shadow: 0 0 0 4px var(--art-surface); }
+/* One surface for the whole heading row, never a patch behind each label or link. */
+[data-artwork] .smart-page > section > .section-heading { padding: .25rem .5rem .25rem 1rem; background-color: var(--art-surface); border-radius: var(--radius-field); }
+[data-artwork] .filter-row > button:not([aria-pressed=true]) { background-color: var(--art-surface); }
 @media (width < 900px) {
   .artwork-background::after { background: linear-gradient(90deg, var(--shield), color-mix(in srgb, var(--art-base) 75%, transparent) 65%, var(--shield)); }
 }
