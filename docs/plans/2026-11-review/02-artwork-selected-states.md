@@ -24,7 +24,9 @@
 - [x] Remove per-label patches behind section-heading links; instead give the whole section heading row (or the section) one surface, or keep artwork out from behind headings via a single masked band.
 
   > Done: the Smart home section heading row (title, View areas, Add card) shares one `--art-surface` band with field corners. Unselected filter pills keep an opaque fill of their own, without the 4 px spread that made them look like boxes.
-- [ ] Scene buttons: add an opaque base under the tint in artwork mode so labels sit on a solid colour.
+- [x] Scene buttons: add an opaque base under the tint in artwork mode so labels sit on a solid colour.
+
+  > Done: with artwork on, the super compact scene action (Today favorites, Smart home) mixes its 12 % / 22 % hover primary tint into the opaque card colour instead of the translucent glass card. The `/moods` pills already sit inside an opaque `glow-panel`, so they are unchanged (workstream 06 replaces them with the same tile).
 - [ ] Check contrast of selected/unselected text and the selected fill against `--art-surface` for all 12 palettes, light and dark (≥ 4.5:1 text, ≥ 3:1 for the selection indicator). Record the lowest values in a `> Contrast:` note.
 - [ ] Verify forced colours and reduced transparency still show the selected state.
 - [ ] Update DESIGN.md (artwork rules, selected-state rule).
