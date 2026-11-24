@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CarFront, CircleHelp, CircleParking, Download, Fan, Gauge, Moon, Pause, Plug, Power, Unplug, Wifi, WifiOff, Zap, type LucideIcon } from "lucide-react";
 import { AppContext, useApp } from "@/contexts/AppContext";
 import { homeDate, useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { deviceName } from "@/lib/device-model";
 import { cabinClimate, cabinState, driveStatus, vehicleImageSource, teslaVehicles, vehicleCommandReport, vehicleGroup, vehicleSystems, vehicleSummary, type Vehicle, type VehicleSystem } from "@/lib/vehicles";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VehicleAccess, VehicleCabin, VehicleJourney, VehicleSystemPanel } from "./VehicleSystems";
 import { VehiclePhoto } from "./VehiclePhoto";
 import { vehicleViews } from "./vehicle-views";
@@ -18,19 +20,49 @@ const activityIcons: Partial<Record<ReturnType<typeof driveStatus>["label"], Luc
   Online: Wifi, Unavailable: WifiOff, Parked: CircleParking, Driving: Gauge, "state.charging": Zap, "Drive status unknown": CircleHelp,
 };
 
-function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehicle; commandVehicle?: Vehicle; selection: Planner["vehicles"][number] }) {
+function vehicleGlance(vehicle: Vehicle | undefined, homeOnline: boolean) {
+  const entities = vehicle?.entities ?? [];
+  const summary = vehicleSummary(homeOnline ? entities : []);
+  const live = homeOnline && !!vehicle;
+  const drive = driveStatus(live ? entities : []);
+  const paused = !live || drive.label === "Asleep" || drive.label === "Offline" || drive.label === "Unavailable" || drive.label === "Polling paused";
+  const charging = !paused && (drive.label === "state.charging" || (summary.charging && drive.label !== "Driving"));
+  const level = summary.battery ? Number(summary.battery.state) : undefined;
+  return { entities, summary, live, drive, paused, charging, level };
+}
+type Glance = ReturnType<typeof vehicleGlance>;
+
+function glanceIcon({ live, charging, paused, drive }: Glance) {
+  if (charging) return Zap;
+  if (paused) return live ? activityIcons[drive.label] ?? WifiOff : WifiOff;
+}
+
+/** Battery, charge or sleep icon and measured fill for the phone header chip. */
+function VehicleChipContent({ glance }: { glance: Glance }) {
+  const { locale } = useI18n();
+  const Icon = glanceIcon(glance);
+  return <>
+    <strong>{glance.level === undefined ? "—" : `${glance.level.toLocaleString(locale)}%`}</strong>
+    {Icon && <Icon size={15} className={glance.charging ? "vehicle-charging-icon" : undefined} aria-hidden="true" />}
+    <span className="vehicle-mini-meter" aria-hidden="true">{glance.level !== undefined && <i style={{ transform: `scaleX(${glance.level / 100})` }} />}</span>
+  </>;
+}
+
+type Variant = "glance" | "chip" | "dialog";
+
+function VehicleWidget({ vehicle, commandVehicle, selection, variant, open, onOpenChange, returnFocus }: {
+  vehicle?: Vehicle; commandVehicle?: Vehicle; selection: Planner["vehicles"][number]; variant: Variant;
+  open: boolean; onOpenChange: (open: boolean) => void; returnFocus?: () => void;
+}) {
   const app = useApp();
   const { currentHome, homeOnline } = app;
   const { now } = useFamily();
   const { t, message, language, locale } = useI18n();
   const name = vehicle ? deviceName(vehicle.device, language) : selection.name;
   const { imageEntity } = selection;
-  const entities = vehicle?.entities ?? [];
-  const { battery, range, charge, charging: chargeReported, plugged, limit, power, finish } = vehicleSummary(homeOnline ? entities : []);
-  const live = homeOnline && !!vehicle;
-  const drive = driveStatus(live ? entities : []);
-  const paused = !live || drive.label === "Asleep" || drive.label === "Offline" || drive.label === "Unavailable" || drive.label === "Polling paused";
-  const charging = !paused && (drive.label === "state.charging" || (chargeReported && drive.label !== "Driving"));
+  const glance = vehicleGlance(vehicle, homeOnline);
+  const { entities, live, drive, paused, charging } = glance;
+  const { battery, range, charge, charging: chargeReported, plugged, limit, power, finish } = glance.summary;
   const activity = live ? t(drive.label) : t(homeOnline ? "Unavailable" : "HA offline");
   const ActivityIcon = live ? activityIcons[drive.label] ?? CarFront : WifiOff;
   const climate = cabinClimate(entities);
@@ -59,8 +91,12 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
     if (!commandVehicle?.entities.some(e => e.entityId === entityId)) return Promise.reject(new Error("Vehicle command source unavailable"));
     return app.command(entityId, action, value, code, home => vehicleCommandReport(home, selection.id, entityId, action, value));
   };
-  return <AppContext.Provider value={{ ...app, command }}><Dialog onOpenChange={open => { if (open) setSection("Overview"); }}>
-    <DialogTrigger asChild><button type="button" className="vehicle-glance" data-charging={charging} data-paused={paused} title={[name, ...summary].join(" · ")} aria-label={t("Open status for {name}. Battery {battery}, range {range}. {status}", { name, battery: percent, range: distance, status: summary.join(". ") })}>
+  const triggerLabel = t("Open status for {name}. Battery {battery}, range {range}. {status}", { name, battery: percent, range: distance, status: summary.join(". ") });
+  return <AppContext.Provider value={{ ...app, command }}><Dialog open={open} onOpenChange={next => { if (!next) setSection("Overview"); onOpenChange(next); }}>
+    {variant === "chip" && <DialogTrigger asChild><button type="button" className="vehicle-chip" data-charging={charging} data-paused={paused} title={[name, ...summary].join(" · ")} aria-label={triggerLabel}>
+      <VehicleChipContent glance={glance} />
+    </button></DialogTrigger>}
+    {variant === "glance" && <DialogTrigger asChild><button type="button" className="vehicle-glance" data-charging={charging} data-paused={paused} title={[name, ...summary].join(" · ")} aria-label={triggerLabel}>
       <span className="vehicle-thumbnail" aria-hidden="true"><VehiclePhoto model={model} name={name} source={source} compact /></span>
       <span className="vehicle-glance-info">
         <strong>{percent}</strong>
@@ -69,8 +105,8 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
         {!paused && <span title={connectionLabel} className="vehicle-charge-symbol"><StatusIcon className={charging ? "vehicle-charging-icon" : undefined} size={16} aria-hidden="true" /></span>}
         <span className="vehicle-mini-meter" aria-hidden="true">{battery && <i style={{ transform: `scaleX(${Number(battery.state) / 100})` }} />}</span>
       </span>
-    </button></DialogTrigger>
-    <DialogContent className="vehicle-modal">
+    </button></DialogTrigger>}
+    <DialogContent className="vehicle-modal" onCloseAutoFocus={returnFocus && (event => { event.preventDefault(); returnFocus(); })}>
       <DialogHeader><DialogTitle>{name}</DialogTitle><DialogDescription>{model || t("Vehicle status")}</DialogDescription></DialogHeader>
       {live ? <Tabs value={view} onValueChange={next => setSection(next as typeof section)} className="vehicle-tabs">
         <TabsList aria-label={t("Vehicle view")} className="vehicle-view-tabs">
@@ -120,18 +156,56 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
   </Dialog></AppContext.Provider>;
 }
 
+// Lowest battery first; at equal charge a car that is not charging needs attention first. Unknown levels go last.
+const byAttention = (a: { glance: Glance }, b: { glance: Glance }) =>
+  Number(a.glance.level === undefined) - Number(b.glance.level === undefined)
+  || (a.glance.level ?? 0) - (b.glance.level ?? 0) || Number(a.glance.charging) - Number(b.glance.charging);
+
 export function VehicleWidgets() {
-  const { currentHome } = useApp();
+  const { currentHome, homeOnline } = useApp();
   const { vehicles } = useFamily();
-  const { t } = useI18n();
+  const { t, language, locale } = useI18n();
+  const phone = useIsMobile();
+  const [openId, setOpenId] = useState<string>();
+  const chip = useRef<HTMLButtonElement>(null);
+  const opening = useRef(false);
   const cars = useMemo(() => vehicles.length ? teslaVehicles(currentHome) : [], [currentHome, vehicles.length]);
   if (!vehicles.length) return null;
-  return <section className="vehicle-strip glass-surface" aria-label={t("Electric vehicles")}>
-    {vehicles.map(car => {
-      const vehicle = cars.find(item => item.id === car.id);
-      const commandVehicle = car.id.startsWith("teslamate:")
-        ? cars.find(item => item.id === car.commandVehicleId && item.source !== "TeslaMate") : vehicle;
-      return <VehicleWidget key={car.id} selection={car} vehicle={vehicle} commandVehicle={commandVehicle} />;
-    })}
+  const items = vehicles.map(selection => {
+    const vehicle = cars.find(item => item.id === selection.id);
+    const commandVehicle = selection.id.startsWith("teslamate:")
+      ? cars.find(item => item.id === selection.commandVehicleId && item.source !== "TeslaMate") : vehicle;
+    const name = vehicle ? deviceName(vehicle.device, language) : selection.name;
+    return { selection, vehicle, commandVehicle, name, glance: vehicleGlance(vehicle, homeOnline) };
+  });
+  // Phones collapse the strip into one chip: one car opens directly, several pick from a menu (worst state first).
+  const menu = phone && items.length > 1;
+  const widgets = items.map(({ selection, vehicle, commandVehicle }, index) => <VehicleWidget key={selection.id} selection={selection} vehicle={vehicle} commandVehicle={commandVehicle}
+    variant={!phone ? "glance" : menu || index ? "dialog" : "chip"} open={openId === selection.id} onOpenChange={open => setOpenId(open ? selection.id : undefined)}
+    returnFocus={menu ? () => chip.current?.focus() : undefined} />);
+  if (!menu) return <section className={`vehicle-strip glass-surface${phone ? " vehicle-chip-strip" : ""}`} aria-label={t("Electric vehicles")}>{widgets}</section>;
+  const ranked = [...items].sort(byAttention);
+  const state = ({ glance: { live, charging, paused, drive } }: typeof items[number]) =>
+    charging ? t("state.charging") : !paused ? "" : live ? t(drive.label) : t(homeOnline ? "Unavailable" : "HA offline");
+  const level = ({ glance }: typeof items[number]) => glance.level === undefined ? "—" : `${glance.level.toLocaleString(locale)}%`;
+  const worst = ranked[0];
+  const label = [t("Electric vehicles · lowest battery: {name}, {battery}", { name: worst.name, battery: level(worst) }), state(worst)].filter(Boolean).join(" · ");
+  return <section className="vehicle-strip glass-surface vehicle-chip-strip" aria-label={t("Electric vehicles")}>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild><button ref={chip} type="button" className="vehicle-chip" data-charging={worst.glance.charging} data-paused={worst.glance.paused} aria-label={label} title={label}>
+        <VehicleChipContent glance={worst.glance} />
+      </button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="vehicle-menu" onCloseAutoFocus={event => { if (opening.current) event.preventDefault(); opening.current = false; }}>
+        {ranked.map(item => {
+          const Icon = glanceIcon(item.glance);
+          return <DropdownMenuItem key={item.selection.id} onSelect={() => { opening.current = true; setOpenId(item.selection.id); }}>
+            <span className="vehicle-menu-name">{item.name}</span>
+            {Icon && <Icon size={16} aria-hidden="true" />}
+            <strong>{level(item)}</strong>{state(item) && <span className="sr-only">{state(item)}</span>}
+          </DropdownMenuItem>;
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+    {widgets}
   </section>;
 }
