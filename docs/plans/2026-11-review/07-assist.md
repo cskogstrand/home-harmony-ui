@@ -30,14 +30,23 @@
 
 ## Phase B — voice (only after the owner confirms a secure context)
 
+> Blocked (all of phase B): the open question in the master plan, whether the wall browser is served over HTTPS (a secure context for the microphone), is not answered. Phase B starts only after the owner confirms it. The proxy boxes do not need the microphone themselves, but they only serve voice, so they wait too rather than widen the WebSocket proxy for nothing.
+
 - [ ] Proxy: allow binary frames after auth, cap frame size (for example 64 KiB) and total stream duration; server tests in `server/connection.test.mjs` or a new test proving text-only clients are unaffected and pre-auth binary still closes the socket.
+  > Blocked: waits for the secure-context answer (see above).
 - [ ] Proxy `GET /api/tts_proxy/*` with the same auth and header hygiene as other HA proxies; server test.
+  > Blocked: waits for the secure-context answer (see above).
 - [ ] Browser capture: `getUserMedia` + `AudioWorklet` downsampling to 16 kHz mono 16-bit PCM; push-to-talk (hold or tap-to-start/tap-to-stop); visible listening state; automatic stop after silence/timeout.
+  > Blocked: the microphone needs a secure context; open question to the owner.
 - [ ] Run the pipeline, show the recognised text (`stt-end`), then the answer; play TTS when the setting allows. Add the "Speak answers" switch to Settings → Assist (`assist.speak`, default off) here.
+  > Blocked: depends on the capture and TTS proxy boxes above.
 - [ ] Graceful fallback: no secure context or no permission → voice button hidden or explained, text still works.
+  > Blocked: part of voice; text already works without it.
 - [ ] Tests for the PCM framing helper and event handling; manual check on the wall browser by the owner (note result here).
+  > Blocked: follows the voice boxes above.
 
 ## Acceptance
 
 - Phase A: typing "Hvilke lys er på?" returns HA's answer in the dialog in Bokmål; failures keep the text.
+  > Handoff: proven with a fake connection and fictional answers (`src/test/assist.test.tsx`, `src/test/assist-ui.test.tsx`). No Assist request was sent to the real Home Assistant, because a sentence can control devices. Left for the owner or workstream 13: turn on Ask the house, ask "Hvilke lys er på?" once on the merged build, and check the header and dialog in the browser at 1440 × 2560 and 390 × 844 (light, dark, artwork on, phone keyboard open).
 - Phase B: push-to-talk round trip works on a secure-context screen; non-secure screens still offer text.
