@@ -78,3 +78,25 @@
 @media (forced-colors: active) {
   .settings-panel-menu a[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -3px; }
 }
+
+.vehicle-settings { display: grid; gap: 1rem; }
+.vehicle-add { justify-self: start; min-height: 48px; }
+.vehicle-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.vehicle-settings-card { min-width: 0; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); }
+.vehicle-settings-photo { display: grid; place-items: center; height: 9rem; padding: 1rem; background: hsl(var(--secondary)); color: hsl(var(--muted-foreground)); }
+.vehicle-settings-photo .vehicle-photo { width: 100%; height: 100%; max-height: 7rem; max-width: 22rem; object-fit: contain; }
+.vehicle-settings-photo svg { width: 4rem; height: 4rem; stroke-width: 1.25; }
+.vehicle-settings-caption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem; }
+.vehicle-settings-caption > div { min-width: 0; flex: 1 1 8rem; overflow-wrap: anywhere; }
+.vehicle-settings h2 { font-size: 1.25rem; font-weight: 600; }
+.vehicle-settings-caption p, .vehicle-source-choice small { color: hsl(var(--muted-foreground)); font-size: .9375rem; }
+.vehicle-settings-caption button, .vehicle-remove { min-height: 44px; }
+.vehicle-settings-empty { display: grid; justify-items: center; gap: .5rem; padding: 2rem 1rem; text-align: center; }
+.vehicle-settings-empty svg { color: hsl(var(--muted-foreground)); }
+.vehicle-settings-dialog { max-height: 85dvh; overflow-y: auto; }
+.vehicle-source-choice { display: grid; grid-template-columns: 4rem minmax(0, 1fr) auto; align-items: center; gap: .75rem; padding: .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-field); text-align: start; }
+.vehicle-source-choice:hover, .vehicle-source-choice:focus-visible { background: hsl(var(--secondary)); }
+.vehicle-source-choice strong, .vehicle-source-choice small { display: block; overflow-wrap: anywhere; }
+.vehicle-choice-photo { display: grid; place-items: center; }
+.vehicle-choice-photo .vehicle-photo { width: 100%; height: 2.5rem; object-fit: contain; }
+.vehicle-remove { justify-self: start; color: hsl(var(--destructive)); }

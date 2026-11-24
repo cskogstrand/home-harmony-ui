@@ -28,6 +28,11 @@ function durationEnd(entity?: Entity) {
 
 export const teslaModelVariant = (model?: string) => model?.match(/\bmodel\s+(3|s)\b/i)?.[1].toLowerCase();
 
+export function vehicleImageSource(entities: Entity[], preferenceId?: string) {
+  const image = preferenceId && entities.find(e => e.preferenceId === preferenceId && e.domain === "image" && available(e));
+  return image ? `/api/image_proxy/${encodeURIComponent(image.entityId)}?v=${encodeURIComponent(image.lastUpdated ?? image.state)}` : undefined;
+}
+
 export function teslaVehicles(home: Home) {
   const groups = new Map<string, Vehicle>();
   for (const entity of home.entities) {

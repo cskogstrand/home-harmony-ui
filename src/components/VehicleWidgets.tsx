@@ -4,10 +4,10 @@ import { AppContext, useApp } from "@/contexts/AppContext";
 import { homeDate, useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { deviceName } from "@/lib/device-model";
-import { available } from "@/lib/ha-model";
-import { cabinClimate, cabinState, driveStatus, teslaModelVariant, teslaVehicles, vehicleCommandReport, vehicleGroup, vehicleSystems, vehicleSummary, type Vehicle, type VehicleSystem } from "@/lib/vehicles";
+import { cabinClimate, cabinState, driveStatus, vehicleImageSource, teslaVehicles, vehicleCommandReport, vehicleGroup, vehicleSystems, vehicleSummary, type Vehicle, type VehicleSystem } from "@/lib/vehicles";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { VehicleAccess, VehicleCabin, VehicleJourney, VehicleSystemPanel } from "./VehicleSystems";
+import { VehiclePhoto } from "./VehiclePhoto";
 import { vehicleViews } from "./vehicle-views";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Planner } from "../../shared/configuration";
@@ -17,18 +17,6 @@ const activityIcons: Partial<Record<ReturnType<typeof driveStatus>["label"], Luc
   Asleep: Moon, Offline: WifiOff, "Polling paused": Pause, Updating: Download, Starting: Power, "Waking up": Power,
   Online: Wifi, Unavailable: WifiOff, Parked: CircleParking, Driving: Gauge, "state.charging": Zap, "Drive status unknown": CircleHelp,
 };
-
-function VehiclePhoto({ model, name, source, compact = false }: { model?: string; name: string; source?: string; compact?: boolean }) {
-  const { t } = useI18n();
-  const [failed, setFailed] = useState<string>();
-  const [failedModel, setFailedModel] = useState<string>();
-  const variant = teslaModelVariant(model);
-  const photo = source && source !== failed;
-  const src = photo ? source : variant && `/vehicles/model-${variant}.webp`;
-  if (!src || src === failedModel) return compact ? <CarFront size={22} aria-hidden="true" /> : null;
-  return <img key={src} className={`vehicle-photo${photo ? " is-photo" : ""}`} src={src} alt={compact ? "" : photo ? t("Photo of {name}", { name }) : t("Model illustration of {model}", { model })}
-    onError={() => { if (photo) setFailed(src); else setFailedModel(src); }} decoding="async" />;
-}
 
 function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehicle; commandVehicle?: Vehicle; selection: Planner["vehicles"][number] }) {
   const app = useApp();
@@ -65,8 +53,7 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
   const finishTime = eta?.toLocaleTimeString(locale, { timeZone, hour: "2-digit", minute: "2-digit" });
   const finishDate = eta && homeDate(eta, timeZone) !== homeDate(now, timeZone) ? eta.toLocaleDateString(locale, { timeZone, day: "numeric", month: "short" }) : "";
   const model = vehicle?.device.model;
-  const image = imageEntity && homeOnline ? currentHome.entities.find(e => e.preferenceId === imageEntity && e.domain === "image" && available(e)) : undefined;
-  const source = image ? `/api/image_proxy/${encodeURIComponent(image.entityId)}?v=${encodeURIComponent(image.lastUpdated ?? image.state)}` : undefined;
+  const source = homeOnline ? vehicleImageSource(currentHome.entities, imageEntity) : undefined;
   const cabin = <VehicleCabin climate={climate} entities={entities} control={control} linked={!!selection.commandVehicleId} />;
   const command: typeof app.command = (entityId, action, value, code) => {
     if (!commandVehicle?.entities.some(e => e.entityId === entityId)) return Promise.reject(new Error("Vehicle command source unavailable"));
