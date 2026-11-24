@@ -1,5 +1,7 @@
+import { useApp } from "@/contexts/AppContext";
+import { cameraPersonSensors } from "@/lib/camera-detection";
 import { Link } from "react-router-dom";
-import { Camera, Check, Settings, Video } from "lucide-react";
+import { Camera, Check, Settings, UserRound, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -16,6 +18,8 @@ export default function Cameras() {
   const { message: t } = useI18n();
   const shared = useSharedConfiguration();
   const settings = shared.state.config.settings.cameras;
+  const { currentHome, homeOnline } = useApp();
+  const detectors = cameraPersonSensors(settings.items, currentHome.entities);
   const setColumns = (columns: number) => {
     try { shared.store.updateSettings(current => ({ ...current, cameras: { ...current.cameras, columns } })); }
     catch (error) { toast.error(t(error instanceof Error ? error.message : "Configuration could not be saved.")); }
@@ -55,7 +59,9 @@ export default function Cameras() {
     {!settings.items.length && <section className="glow-panel space-y-3"><Camera size={28} aria-hidden="true" /><h2 className="text-xl font-semibold">{t("No cameras added yet")}</h2><p className="page-note">{t("Add a camera and choose its connection. Home Assistant cameras are available to select, but are not added automatically.")}</p><Button variant="outline" asChild><Link to="/settings/camera-connections">{t("Manage connections")}</Link></Button></section>}
     <div className={`grid grid-cols-1 gap-6 ${columnClasses[settings.columns - 1]}`}>{settings.items.map(camera => <section key={camera.id} className="glow-panel min-w-0 space-y-4" aria-label={camera.name}>
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0"><h2 className="text-xl font-semibold break-words">{camera.name}</h2></div>
+        <div className="min-w-0"><h2 className="text-xl font-semibold break-words">{camera.name}</h2>
+          {homeOnline && detectors.get(camera.id)?.state === "on" && <p className="flex items-center gap-1.5 text-sm font-medium text-primary"><UserRound size={15} aria-hidden="true" />{t("Person detected")}</p>}
+        </div>
         <Button variant="ghost" size="icon" className="shrink-0" asChild><Link to={`/settings/cameras?camera=${encodeURIComponent(camera.id)}`} aria-label={t("Configure {name}", { name: camera.name })} title={t("Configure camera")}><Settings aria-hidden="true" /></Link></Button>
       </div>
       <EntityMedia camera={camera} showImageChoices />

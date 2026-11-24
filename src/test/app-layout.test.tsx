@@ -9,7 +9,7 @@ import { NotificationContext } from "@/contexts/NotificationContext";
 import { notificationRuleSchema } from "../../shared/notifications";
 
 const media = vi.hoisted(() => ({ state: "paused", source: "Radio" }));
-const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
+const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, metadataWarnings: [] }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
@@ -24,7 +24,7 @@ beforeEach(() => {
   shared.online = true;
   shared.availableVersion = undefined;
   shared.notifications = { presentation: "section", pages: "main" };
-  shared.state = { loaded: true, dirty: false, saving: false, error: "", timetableError: null };
+  shared.state = { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null };
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });

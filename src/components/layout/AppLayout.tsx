@@ -4,6 +4,7 @@ import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useMatch, type Location } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
+import { cameraPersonSensors } from "@/lib/camera-detection";
 import { sonosMusicDestinations, sonosPlayers } from "@/lib/sonos";
 import { MainPages } from "./MainPages";
 import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
@@ -22,7 +23,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { HomeStatus } from "@/components/HomeStatus";
 import { NotificationBell, NotificationCamera } from "@/components/NotificationCenter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Check, LoaderCircle, Moon, Music2, Play, RefreshCw, Settings, TriangleAlert, X } from "lucide-react";
+import { Camera, Check, LoaderCircle, Moon, Music2, Play, RefreshCw, Settings, TriangleAlert, UserRound, X } from "lucide-react";
 
 const ArtworkDefinitions = lazy(() => import("@/components/ArtworkDefinitions"));
 
@@ -41,6 +42,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const musicLabel = musicPlaying ? t("Sonos · Music playing") : t("Sonos");
   const { saved, memberName, appearance, smartHome } = useFamily();
   const shared = useSharedConfiguration();
+  const cameraItems = shared.state.config.settings.cameras.items;
+  const detectedCameras = homeOnline ? [...cameraPersonSensors(cameraItems, currentHome.entities).values()].filter(sensor => sensor.state === "on").length : 0;
+  const cameraLabel = detectedCameras ? t(detectedCameras === 1 ? "Cameras · Person detected on one camera" : "Cameras · Person detected on {count} cameras", { count: detectedCameras }) : t("Cameras");
   const timetableError = shared?.state.timetableError;
   const [dismissedError, setDismissedError] = useState<string>();
   const storageWarning = shared?.state.error || (shared?.state.loaded && !saved && !shared?.state.saving);
@@ -66,7 +70,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
         <Link to="/sonos" className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
           <Music2 size={20} aria-hidden="true" />{musicPlaying && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
         </Link>
-        <Link to="/cameras" className="icon-button glass-surface" aria-label={t("Cameras")} title={t("Cameras")}><Camera size={20} aria-hidden="true" /></Link>
+        <Link to="/cameras" className="icon-button glass-surface" aria-label={cameraLabel} title={cameraLabel}>
+          <Camera size={20} aria-hidden="true" />{detectedCameras > 0 && <span className="header-badge" aria-hidden="true"><UserRound size={13} strokeWidth={2.6} />{detectedCameras > 1 && detectedCameras}</span>}
+        </Link>
         <HomeStatus /><NotificationBell />
         <div className="relative">
           <DropdownMenu><DropdownMenuTrigger className="icon-button glass-surface" aria-label={t("Open app settings")} title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? t("Household dashboard")}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/settings">{t("All settings")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/appearance">{t("Appearance")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/onboarding">{t("Get started")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/backups">{t("Storage and backups")}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>

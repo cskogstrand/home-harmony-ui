@@ -1,4 +1,12 @@
 export const nb = {
+  "Person detection": "Persondeteksjon",
+  "Person sensor": "Personsensor",
+  "The camera badge appears while this sensor reports a person.": "Kameraikonet får et merke mens sensoren registrerer en person.",
+  "Automatic · {name}": "Automatisk · {name}",
+  "Use automatic detection": "Bruk automatisk deteksjon",
+  "Person detected": "Person oppdaget",
+  "Cameras · Person detected on one camera": "Kameraer · Person oppdaget på ett kamera",
+  "Cameras · Person detected on {count} cameras": "Kameraer · Person oppdaget på {count} kameraer",
   "Sonos · Music playing": "Sonos · Musikk spilles av",
   "Create refill alert": "Opprett påfyllingsvarsel",
   "When the sensor reports a refill is needed, the alert lets you add the item to your shopping list.": "Når sensoren melder at det er tid for påfyll, kan du legge varen på handlelisten fra varselet.",

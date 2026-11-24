@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
+import { cameraPersonSensors } from "@/lib/camera-detection";
 import { CameraSettings } from "@/components/CameraSettings";
 import { CameraConnections } from "@/components/CameraConnections";
 import { Go2rtcSourcePicker } from "@/components/Go2rtcSourcePicker";
@@ -24,10 +25,12 @@ vi.mock("@/lib/go2rtc-mse", () => ({ playGo2rtcMse: (...args) => mocks.mse(...ar
 beforeEach(() => {
   vi.clearAllMocks(); mocks.go2rtc.mockReset(); mocks.mse.mockReset(); mocks.ha.mockReset(); mocks.fetch.mockReset();
   mocks.app = { currentHome: mapHome({
+    "binary_sensor.entry_person": state("binary_sensor.entry_person", "on", { friendly_name: "Example person detector" }),
     "camera.example": state("camera.example", "idle", { friendly_name: "HA example camera" }),
     "image.example_person": state("image.example_person", "2026-01-01T00:00:00Z", { friendly_name: "Example person image" }),
     "sensor.example_count": state("sensor.example_count", "1", { friendly_name: "Example count" }),
   }, { ...emptyRegistries, entities: [
+    { id: "stable-detector", entity_id: "binary_sensor.entry_person" },
     { id: "registered-camera", entity_id: "camera.example" },
     { id: "registered-person-image", entity_id: "image.example_person" },
   ] }, "home"), homeOnline: true, watchCameraStream: mocks.ha };
@@ -687,4 +690,30 @@ it("accepts a pasted player link and blocks a link for another connection", asyn
   expect(screen.getByRole("link", { name: "Open in go2rtc (new tab)" })).toHaveAttribute("href", "http://go2rtc.example:1984/stream.html?src=example_sub");
   fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
   expect(mocks.shared.state.config.settings.cameras.items[0].source).toBe("example_sub");
+});
+
+it("saves a person detector by stable reference and shows its state on the camera card", () => {
+  configure();
+  const settings = renderSettings("/settings/cameras?camera=example-camera");
+  chooseEntity("Person sensor", "binary_sensor.entry_person");
+  fireEvent.click(screen.getByRole("button", { name: "Save camera" }));
+  expect(mocks.shared.state.config.settings.cameras.items[0].personDetectionEntity).toBe("home|stable-detector");
+  settings.unmount();
+  const cameras = () => <MemoryRouter><Cameras /></MemoryRouter>;
+  const view = render(cameras());
+  expect(screen.getByText("Person detected")).toBeVisible();
+  mocks.app.homeOnline = false;
+  view.rerender(cameras());
+  expect(screen.queryByText("Person detected")).not.toBeInTheDocument();
+});
+
+it("automatically matches the configured Frigate camera and respects an unavailable override", () => {
+  const camera = cameraSettings().items[0];
+  camera.frigatePreview = { connectionId: "frigate", camera: "driveway" };
+  const sensor = { ...mocks.app.currentHome.entities[0], entityId: "binary_sensor.driveway_person_occupancy", integration: "frigate" };
+  const entities = [sensor, ...mocks.app.currentHome.entities];
+  expect(cameraPersonSensors([camera], entities).get(camera.id)).toBe(sensor);
+  expect(cameraPersonSensors([camera], [{ ...sensor, integration: "other" }]).size).toBe(0);
+  expect(cameraPersonSensors([{ ...camera, personDetectionEntity: "home|missing" }], entities).size).toBe(0);
+  expect(cameraPersonSensors(cameraSettings().items, entities).size).toBe(0);
 });

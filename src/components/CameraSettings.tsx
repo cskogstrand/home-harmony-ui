@@ -1,3 +1,4 @@
+import { cameraPersonSensors } from "@/lib/camera-detection";
 import { notificationUsesCamera } from "@/lib/notifications";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -42,6 +43,7 @@ export function CameraSettings() {
   }, [params, setParams, shared.state.loaded, settings.items, draft]);
   const connection = settings.connections.find(item => item.id === draft?.connectionId);
   const snapshot = draft?.personSnapshot;
+  const automaticDetector = draft && !draft.personDetectionEntity ? cameraPersonSensors([draft], currentHome.entities).get(draft.id) : undefined;
   const personImageEntities = currentHome.entities.filter(entity => ["image", "camera"].includes(entity.domain)
     || ["sensor", "binary_sensor"].includes(entity.domain) && homeAssistantPicturePath(entity.attributes.entity_picture));
   const previewCamera = preview && settings.items.find(item => item.id === preview.id);
@@ -128,6 +130,13 @@ export function CameraSettings() {
             <p className="page-note">{t("Use the camera name from Frigate. It can differ from the go2rtc stream name.")}</p>
             {!settings.connections.some(item => item.type === "frigate") && <Link className="text-primary underline" to="/settings/camera-connections" target="_blank" rel="noreferrer">{t("Add a Frigate connection (new tab)")}</Link>}
           </>}
+        </div>
+        <div className="settings-card space-y-3"><PanelTitle as="h3" icon={UserRound}>{t("Person detection")}</PanelTitle>
+          <p className="page-note" id="camera-person-detection-help">{t("The camera badge appears while this sensor reports a person.")}</p>
+          <EntityPicker label={t("Person sensor")} describedBy="camera-person-detection-help" value={draft.personDetectionEntity ?? ""}
+            entities={currentHome.entities.filter(entity => entity.domain === "binary_sensor")}
+            placeholder={automaticDetector ? t("Automatic · {name}", { name: automaticDetector.name }) : t("Choose a sensor")}
+            clearLabel={t("Use automatic detection")} onChange={value => setDraft({ ...draft, personDetectionEntity: value || undefined })} />
         </div>
         <details className="settings-card" open={snapshot.type !== "none" || undefined}><summary className="settings-disclosure"><span className="panel-title"><UserRound className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Person image (optional)")}</span></span></summary><div className="space-y-4 pt-3">
           <p className="page-note">{t("Shown separately from live video and its startup preview. Updates to show the latest person snapshot.")}</p>
