@@ -37,7 +37,7 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 
 | # | Workstream | Priority | Depends on | Status |
 |---|---|---|---|---|
-| 00 | [Preflight](00-preflight.md) | — | — | ⬜ |
+| 00 | [Preflight](00-preflight.md) | — | — | ✅ |
 | 01 | [Calendar week grid readability](01-calendar-week-grid.md) | P1 | 00 | ⬜ |
 | 02 | [Artwork mode: selected states and patches](02-artwork-selected-states.md) | P1 | 00 | ⬜ |
 | 03 | [Header, bell badge and Today first screen](03-header-and-bell.md) | P1 | 00 | ⬜ |
