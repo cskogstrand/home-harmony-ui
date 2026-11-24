@@ -1,0 +1,29 @@
+/* The current state leads the page: the card's security emblem beside a headline-size state and when it began. */
+.alarm-status { --dg-accent: hsl(var(--primary)); display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 1.25rem; align-items: center; margin: .5rem 0 1.75rem; }
+.alarm-status .dg-security-emblem { grid-row: 1 / span 2; width: 6rem; height: 6rem; min-height: 0; margin: 0; }
+.alarm-status .dg-security-emblem svg { width: 3rem; height: 3rem; }
+.alarm-status-label { align-self: end; color: var(--dg-muted); font-size: .875rem; font-weight: 500; line-height: 1.25rem; }
+.alarm-status .dg-readout { align-self: start; gap: .25rem; padding: 0; text-align: left; }
+.alarm-status .dg-readout strong { font-size: 2.25rem; font-weight: 600; line-height: 1.2; letter-spacing: -.025em; overflow-wrap: break-word; hyphens: auto; }
+.alarm-status .dg-readout > span { font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.alarm-status .dg-readout > span:empty { display: none; }
+
+/* Actions are grouped by intent; the expected next step uses the primary fill and Trigger sits apart. */
+.alarm-actions { display: grid; gap: 1.25rem; }
+.alarm-action-group h3 { margin-bottom: .5rem; color: hsl(var(--muted-foreground)); font-size: .875rem; font-weight: 500; line-height: 1.25rem; }
+.alarm-action-group > div { display: flex; flex-wrap: wrap; gap: .75rem; }
+.alarm-action { min-height: 3rem; padding-inline: 1.25rem; font-size: 1rem; white-space: normal; }
+.alarm-action-group.is-emergency { padding-top: 1.25rem; border-top: 1px solid hsl(var(--border)); }
+.alarm-action.is-emergency { border-color: hsl(var(--destructive) / .55); color: hsl(var(--destructive)); }
+.alarm-action.is-emergency:hover:not(:disabled) { background: hsl(var(--destructive) / .1); color: hsl(var(--destructive)); }
+
+@media (max-width: 480px) {
+  .alarm-status { column-gap: 1rem; }
+  .alarm-status .dg-security-emblem { width: 4rem; height: 4rem; }
+  .alarm-status .dg-security-emblem svg { width: 2rem; height: 2rem; }
+  .alarm-status .dg-readout strong { font-size: 1.75rem; }
+  .alarm-action-group > div > .alarm-action { flex: 1 1 calc(50% - .375rem); }
+}
+@media (forced-colors: active) {
+  .alarm-action.is-emergency { border-color: ButtonText; color: ButtonText; }
+}

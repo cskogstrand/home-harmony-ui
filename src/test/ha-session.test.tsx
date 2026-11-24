@@ -793,9 +793,10 @@ it("keeps non-demo alarm codes transient and shows actual command rejection", as
 it("closes an alarm confirmation if the selected alarm changes", async () => {
   window.history.replaceState(null, "", "/alarm?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  const disarm = await screen.findByRole("button", { name: "Disarm" });
-  await waitFor(() => expect(disarm).toBeEnabled());
-  fireEvent.click(disarm);
+  const arm = await screen.findByRole("button", { name: "Arm home" });
+  await waitFor(() => expect(arm).toBeEnabled());
+  expect(screen.getByRole("button", { name: "Disarm" })).toBeDisabled();
+  fireEvent.click(arm);
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   act(() => conn.entityCallback?.({
     ...Object.fromEntries(Object.entries(states).filter(([id]) => id !== "alarm_control_panel.house")),

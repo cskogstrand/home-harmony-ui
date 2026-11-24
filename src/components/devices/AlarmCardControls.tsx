@@ -3,6 +3,7 @@ import type { AlarmAction, Entity } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { alarmModes, needsCode, supportsAction } from "@/lib/ha-model";
+import { alarmStateAction } from "@/lib/alarm-actions";
 import { Action, More } from "./CardControls";
 import { CardDisabled } from "./card-presentation";
 import { PinPadModal } from "./PinPadModal";
@@ -19,7 +20,7 @@ export function AlarmCardControls({ entity }: { entity: Entity }) {
   return <>
     {!disarm && mode && <label className="dg-choice"><span>{t("Arm mode")}</span><select disabled={disabled} value={mode.action} onChange={event => setSelected(event.target.value as AlarmAction)}>{modes.map(mode => <option key={mode.action} value={mode.action}>{message(mode.label)}</option>)}</select></label>}
     {(disarm || mode) && <Action primary onClick={() => setAction(disarm ? "alarm_disarm" : mode.action)}>{disarm ? t("Disarm") : message(mode.label)}</Action>}
-    {supportsAction(entity, "alarm_trigger", services) && <More><Action onClick={() => setAction("alarm_trigger")}>{t("Trigger")}</Action></More>}
+    {supportsAction(entity, "alarm_trigger", services) && alarmStateAction(entity.state) !== "alarm_trigger" && <More><Action onClick={() => setAction("alarm_trigger")}>{t("Trigger")}</Action></More>}
     {action && <PinPadModal key={`${entity.entityId}:${action}`} open onOpenChange={open => { if (!open) setAction(undefined); }}
       title={`${action === "alarm_disarm" ? t("Disarm") : message(alarmModes.find(mode => mode.action === action)?.label)} · ${entity.name}`}
       description={needsCode(entity, action) ? t("Enter your alarm code to continue.") : t("Confirm to continue.")} codeRequired={needsCode(entity, action)} numeric={entity.attributes.code_format === "number"}
