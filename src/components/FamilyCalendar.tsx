@@ -76,15 +76,15 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
     </div>;
 });
 
-export function HomeAssistantCalendar({ data }: { data: ReturnType<typeof useCalendarPlans> }) {
+export function HomeAssistantCalendar({ data, hasVisiblePlans = !!data.events.length }: { data: ReturnType<typeof useCalendarPlans>; hasVisiblePlans?: boolean }) {
   const { t, message } = useI18n();
   const { homeOnline } = useApp();
   const { connectedPlanner } = useFamily();
   if (!connectedPlanner || (homeOnline && !data.loading && !data.errors.length)) return null;
+  if (!homeOnline) return <p className="page-note">{t(hasVisiblePlans ? "Showing last loaded plans." : "Plans unavailable.")}</p>;
   return <div className="page-note space-y-2">
     {data.loading && <p role="status">{t("Loading plans…")}</p>}
     {data.errors.map(error => <p role="alert" key={message(error)}>{message(error)}</p>)}
     {homeOnline && !!data.errors.length && <Button variant="outline" disabled={data.loading} onClick={data.refresh}>{t("Retry")}</Button>}
-    {!homeOnline && <p role="status">{t("Calendars and to-do lists are unavailable while offline.")}</p>}
   </div>;
 }

@@ -153,7 +153,8 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
       to={homeworkPreview.action === "lists" ? "/lists?tab=homework" : homeworkPreview.action === "school" ? "/school?tab=homework" : undefined}
       label={t(homeworkPreview.action === "school" ? "Open in School" : "Open in Lists")} />
       : <PanelHeading artwork={kind} icon={listIcons[kind]} title={message(listTitles[kind])} to={limit ? `/lists?tab=${kind}` : undefined} label={kind === "shopping" ? t("Shopping") : t("Tasks")} />}
-    {!lists.length && <div className="empty-note"><p>{homeOnline ? t("No lists selected.") : t("Lists unavailable while offline.")}</p><Link className="text-link mt-3" to={homeOnline ? "/settings/lists" : "/settings/connection"}>{t(homeOnline ? "Choose lists" : "Connection settings")}</Link></div>}
+    {!homeOnline && <p className="empty-note">{t("List items unavailable.")}</p>}
+    {homeOnline && !lists.length && <div className="empty-note"><p>{t("No lists selected.")}</p><Link className="text-link mt-3" to="/settings/lists">{t("Choose lists")}</Link></div>}
     {summary ? <ul className="shopping-destinations">{lists.slice(0, limit).map(([id]) => {
       const entity = source(id);
       const online = homeOnline && entity && available(entity);
@@ -175,7 +176,7 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
         <option value="">{t("All lists")}</option>
         {lists.map(([id]) => <option key={id} value={id}>{sourceName(id)}</option>)}
       </select></label>)}
-      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} homeworkPreview={homeworkPreview} hidden={!!selected && id !== selected} />)}
+      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} homeworkPreview={homeworkPreview} hidden={!homeOnline || !!selected && id !== selected} />)}
     </>}
   </article></LayoutGroup>;
 }
@@ -399,7 +400,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
         <ItemSuggestions id={suggestionsId} names={items.map(item => item.summary)} text={text} select={add} isDisabled={name => !can("add_item") || items.some(item => itemName(item.summary) === itemName(name) && (item.status !== "completed" || !can("update_item", item.uid)))} />
       </form>}
     </div>}
-    {!online ? <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("To-do lists are unavailable while offline. Connect to Home Assistant to view and update them.")}</p> : <>
+    {!online ? (homeOnline || school) && <p className="empty-note">{homeOnline ? t("This to-do list is unavailable. Check it in Home Assistant or select another list in Home settings.") : t("List items unavailable.")}</p> : <>
       {loading && !hasResult && <p role="status" className="page-note">{t("Loading to-do items…")}</p>}
       {hasResult && (result.error ? <div className="space-y-2"><p role="alert">{message(result.error)}</p><Button variant="outline" disabled={busy} onClick={() => setRefresh(n => n + 1)}>{t("Retry")}</Button></div> : <>
         {!school && !homeworkPreview && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}

@@ -174,7 +174,7 @@ it("shows the empty state, read-only rows, unavailable state and recoverable err
   failed.unmount();
   mocks.app.homeOnline = false;
   show();
-  expect(screen.getByText(/unavailable while offline/)).toBeVisible();
+  expect(screen.getByText("List items unavailable.")).toBeVisible();
   expect(screen.queryByText("No homework.")).not.toBeInTheDocument();
 });
 

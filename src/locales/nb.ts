@@ -1,4 +1,8 @@
 export const nb = {
+  "Server address unavailable": "Serveradressen er utilgjengelig",
+  "Plans unavailable.": "Avtaler utilgjengelige.",
+  "Showing last loaded plans.": "Viser sist hentede avtaler.",
+  "List items unavailable.": "Listeinnhold utilgjengelig.",
   "Go to timetable": "Gå til timeplan",
   "Go to person": "Gå til person",
   "More": "Flere",

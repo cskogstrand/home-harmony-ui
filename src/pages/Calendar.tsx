@@ -54,7 +54,7 @@ export default function Calendar() {
   const calendars = Object.entries(calendarMembers).filter(([, id]) => people.some(person => person.id === id));
   const hasLists = Object.values(todoLists).some(list => list.kind !== "shopping" && people.some(person => person.id === list.member));
   const missing = calendars.some(([id]) => !currentHome.entities.some(entity => entity.preferenceId === id));
-  const unavailable = !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
+  const unavailable = !homeOnline ? t("Plans unavailable.") : !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
     : data.loading ? t("Loading plans…") : data.errors.length || missing ? t("Some calendars or to-do lists could not be loaded.") : undefined;
   const period = view === "month" ? dateLabel(date, { month: "long", year: "numeric" }) : view === "day" ? dateLabel(date, { day: "numeric", month: "long", year: "numeric" })
     : `${dateLabel(start, { day: "numeric", month: "short" })} — ${dateLabel(addDays(end, -1), { day: "numeric", month: "short", year: "numeric" })}`;
@@ -93,7 +93,7 @@ export default function Calendar() {
         }} />}
       </div>
       {view === "week" && calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === today ? "today-outline" : ""} onClick={() => openDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long" })}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={visible.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
-      <HomeAssistantCalendar data={data} />
+      {(homeOnline || visible.length > 0 || view === "week" || view === "month") && <HomeAssistantCalendar data={data} hasVisiblePlans={!!visible.length} />}
       {homeOnline && !data.loading && !data.errors.length && unavailable && <p className="page-note" role="status">{unavailable}</p>}
       {homeOnline && !calendars.length && !hasLists && <Link className="text-link" to="/settings/calendars">{t("Choose calendars")}</Link>}
       <p className="calendar-local-note page-note">{t("View and person filters apply to this screen only.")}</p>
@@ -103,9 +103,9 @@ export default function Calendar() {
       calendar.view === "week" ? <section className="glow-panel weekly-panel"><PlannerCardBackdrop kind="calendar" /><FamilyWeekGrid start={start} events={visible} members={people} onEdit={openEvent} onAdd={addPlan} onDay={openDay} /></section> :
         <div className="calendar-lanes">{people.map(person => {
           const personal = uniqueCalendarPlans(visible.filter(e => e.member === person.id));
-          return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><PlannerCardBackdrop kind="calendar" /><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2><p>{t(personal.length === 1 ? "{count} plan in these 7 days" : "{count} plans in these 7 days", { count: personal.length })}</p></div></header>
+          return <section className="glow-panel calendar-lane" style={{ "--member": person.color } as React.CSSProperties} key={person.id}><PlannerCardBackdrop kind="calendar" /><header><MemberAvatar member={person.id} /><div><h2>{person.name}</h2>{(homeOnline || personal.length > 0) && <p>{t(personal.length === 1 ? "{count} plan in these 7 days" : "{count} plans in these 7 days", { count: personal.length })}</p>}</div></header>
             {personal.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
-            {!personal.length && <div className="empty-note"><CalendarDays size={25} aria-hidden="true" /><p>{unavailable || t("No plans yet.")}</p></div>}
+            {homeOnline && !personal.length && <div className="empty-note"><CalendarDays size={25} aria-hidden="true" /><p>{unavailable || t("No plans yet.")}</p></div>}
           </section>;
         })}</div>}
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date ?? date} member={newPlan?.member ?? (member === "all" ? undefined : member)} />

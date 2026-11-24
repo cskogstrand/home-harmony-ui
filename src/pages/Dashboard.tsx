@@ -70,6 +70,7 @@ export default function Dashboard() {
         <Link className="text-link" to={`/calendar?date=${next?.date ?? today}&view=day`}>{t("Open calendar")}<ArrowUpRight size={16} aria-hidden="true" /></Link>
         {next?.note && <CollapsibleTrigger asChild><Button type="button" variant="ghost" size="icon" className="group shrink-0" aria-label={t("Show or hide description")} title={t("Show or hide description")}><ChevronDown aria-hidden="true" className="group-data-[state=open]:rotate-180" /></Button></CollapsibleTrigger>}
       </div>
+      {next && connectedPlanner && !homeOnline && <p className="page-note">{t("Showing last loaded plans.")}</p>}
       {next ? <><button type="button" className="event-button next-event press-feedback" style={{ "--member": memberColor(next.member) } as React.CSSProperties} onClick={() => openEvent(next)}>
         <div className="next-event-copy">
           <div className="next-event-title"><h3>{next.title}</h3><Badge variant="secondary" className="next-plan-countdown shrink-0 px-4 py-2 text-sm tabular-nums">{countdown}</Badge></div>
@@ -77,13 +78,13 @@ export default function Dashboard() {
         </div>
         <div className="next-event-time"><time>{eventTimeLabel(next)}</time>{daysAway > 1 && <small>{dateLabel(next.date)}</small>}</div>
       </button>{next.note && <CollapsibleContent><EventDescription value={next.note} /></CollapsibleContent>}</> :
-        <p className="muted">{connectedPlanner && !homeOnline ? t("Calendars and to-do lists are unavailable while offline.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
+        <p className="muted">{connectedPlanner && !homeOnline ? t("Plans unavailable.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
     </section></Collapsible>,
     day: dashboard.day && <FamilyDay data={data} onEdit={openEvent} />,
     week: dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>
       <PlannerCardBackdrop kind="week" />
       <div className="panel-heading calendar-panel-heading"><PanelTitle artwork="week" icon={CalendarDays}>{t("Everyone’s week")}</PanelTitle><CalendarViewControls /></div>
-      <HomeAssistantCalendar data={data} />
+      <HomeAssistantCalendar data={data} hasVisiblePlans={!!weekEvents.length} />
       {calendar.view === "week" ? <FamilyWeekGrid start={start} events={events} members={familyMembers} compact onEdit={openEvent} onAdd={addPlan} /> : <>
       <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <Link key={day} to={`/calendar?date=${day}&week=${start}`} className={day === today ? "is-today" : ""} aria-label={t("View {value1}, week {value2}", { value1: dateLabel(day), value2: weekNumber(day) })} aria-current={day === today ? "date" : undefined}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={weekEvents.some(e => e.date === day) ? "has-events" : ""} /></Link>)}</div>
       <div className="family-lanes">{familyMembers.map(member => {
@@ -91,9 +92,9 @@ export default function Dashboard() {
         const future = personal.filter(e => `${e.date}${e.time}` >= `${today}${time}` || e.date === today && (e.allDay || e.continues));
         const remaining = future.length ? future : personal;
         const shown = uniqueCalendarPlans(remaining).slice(0, 2);
-        return <div className="family-lane" style={{ "--member": member.color } as React.CSSProperties} key={member.id}><div className="lane-heading"><MemberAvatar member={member.id} /><strong>{member.name}</strong><span>{t(uniqueCalendarPlans(personal).length === 1 ? "{count} plan" : "{count} plans", { count: uniqueCalendarPlans(personal).length })}</span></div>
+        return <div className="family-lane" style={{ "--member": member.color } as React.CSSProperties} key={member.id}><div className="lane-heading"><MemberAvatar member={member.id} /><strong>{member.name}</strong>{(homeOnline || !connectedPlanner || personal.length > 0) && <span>{t(uniqueCalendarPlans(personal).length === 1 ? "{count} plan" : "{count} plans", { count: uniqueCalendarPlans(personal).length })}</span>}</div>
           {shown.map(event => <EventButton key={event.id} event={event} showDate onClick={() => openEvent(event)} />)}
-          {shown.length === 0 && <p className="empty-note">{connectedPlanner ? t("No plans yet.") : t("A lovely open week.")}</p>}
+          {(homeOnline || !connectedPlanner) && shown.length === 0 && <p className="empty-note">{connectedPlanner ? t("No plans yet.") : t("A lovely open week.")}</p>}
         </div>;
       })}</div></>}
     </section>,

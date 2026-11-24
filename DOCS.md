@@ -66,6 +66,8 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 ## Household preferences
 
+When Home Assistant disconnects, the banner links to **Settings → Connection** for recovery. Calendars identify previously loaded plans while live list controls pause until reconnection.
+
 Open **Home status** in the header. A green check means every selected source has reported and none requires attention. The warning count includes active exceptions and selected sources with missing readings. Loading, offline and unconfigured households have distinct indicators. The overview pairs the current result with an illustrated house. When several sources need attention, the illustration matches the first listed issue. **View readings** lists the selected sources by category with their rooms and reported values. **Manage sources** opens all ten categories and their source pickers. The initial selection uses the configured alarm, area-assigned smoke detectors and their low-battery signals. Selecting sources in one category preserves the others. Settings sync across screens and are included in backups.
 
 Under **Customize Today → Home status**, enable and position the optional card. It appears only while a selected source needs attention or lacks a reading on a connected dashboard. Both the card and the header open the same overview.

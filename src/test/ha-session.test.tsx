@@ -1912,7 +1912,7 @@ it("keeps successful calendar reads visible alongside errors and during disconne
   act(() => conn.emit("disconnected"));
   expect(screen.getByRole("button", { name: /Shared day/ })).toBe(plan);
   expect(plan).toBeVisible();
-  expect(screen.getByText(/Calendars and to-do lists are unavailable while offline/)).toBeInTheDocument();
+  expect(screen.getByText("Showing last loaded plans.")).toBeInTheDocument();
   expect(screen.queryByText(/Anna|Erik|Emma|Leo/)).not.toBeInTheDocument();
 });
 
@@ -2399,7 +2399,7 @@ it("reads and edits assigned HA lists in the dashboard and Lists without storing
   expect(JSON.stringify({ ...serverConfig.settings, events: [], items: [] })).not.toMatch(/Book holiday|Plan holiday|Book dentist|Pack bag|Pack lunch|Milk|Fix bike/);
   act(() => conn.emit("disconnected"));
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-  expect(screen.getAllByText(/To-do lists are unavailable while offline/)).toHaveLength(2);
+  expect(screen.getByText("List items unavailable.")).toBeVisible();
   expect(screen.queryByText(/Set the table|Oat milk/)).not.toBeInTheDocument();
 });
 

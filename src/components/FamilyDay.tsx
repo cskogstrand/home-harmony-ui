@@ -20,6 +20,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   // People without calendars or lists stay off the shared board; Settings explains that gap. Fall back to everyone so a fresh setup still shows why the board is empty.
   const configured = data.people.filter(person => hasSources(person.id));
   const people = configured.length ? configured : data.people;
+  const hasVisiblePlans = data.events.some(event => days.includes(event.date));
   const board = useRef<HTMLDivElement>(null);
   const [capacity, setCapacity] = useState<number>();
   useLayoutEffect(() => {
@@ -43,8 +44,8 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
     <PlannerCardBackdrop kind="day" />
     <div className="panel-heading"><PanelTitle artwork="day" icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
-    <HomeAssistantCalendar data={data} />
-    <div ref={board} className="family-day-board" style={{ "--day-columns": columns } as CSSProperties}>{rows.map(row => <div className="family-day-row" key={row[0].id}>
+    <HomeAssistantCalendar data={data} hasVisiblePlans={hasVisiblePlans} />
+    <div ref={board} className="family-day-board" hidden={!homeOnline && !hasVisiblePlans} style={{ "--day-columns": columns } as CSSProperties}>{rows.map(row => <div className="family-day-row" key={row[0].id}>
       <div className="family-lanes">{row.map(person => <div className="lane-heading" key={person.id}>
         <span aria-hidden="true"><MemberAvatar member={person.id} /></span><h3>{person.name}</h3>
       </div>)}</div>
@@ -59,19 +60,18 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
             const calendars = Object.keys(calendarMembers).filter(id => calendarMembers[id] === person.id);
             const hasLists = Object.values(todoLists).some(list => list.kind !== "shopping" && list.member === person.id);
             const missing = calendars.some(id => !currentHome.entities.some(entity => entity.preferenceId === id));
-            const unavailableMessage = !homeOnline ? t("Calendars and to-do lists are unavailable while offline.")
-              : !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
+            const unavailableMessage = !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
               : data.loading ? t("Loading plans…")
               : data.errors.length || missing ? t("Some calendars or to-do lists could not be loaded.")
               : null;
             return <div className="family-lane" role="group" aria-label={person.name} key={person.id}>
               {personal.map(event => <EventButton key={event.id} event={event} hideMember onClick={() => onEdit(event)} />)}
-              {!personal.length && (unavailableMessage ? <p className="empty-note">{unavailableMessage}</p> :
+              {homeOnline && !personal.length && (unavailableMessage ? <p className="empty-note">{unavailableMessage}</p> :
                 <div className="flex items-center justify-center gap-2 py-3 text-muted-foreground" role="img" aria-label={t(date === today ? "No plans today." : "No plans tomorrow.")}>
                   <Armchair className="size-5" strokeWidth={1.5} aria-hidden="true" />
                   <span className="text-sm">{t("Free")}</span>
                 </div>)}
-              {!!personal.length && missing && <p className="empty-note">{t("Some calendars could not be loaded.")}</p>}
+              {homeOnline && !!personal.length && missing && <p className="empty-note">{t("Some calendars could not be loaded.")}</p>}
             </div>;
           })}</div>
         </section>;

@@ -1139,9 +1139,14 @@ it.each(["loading", "failed", "offline", "missing"])("does not claim daily plans
   if (condition === "failed") app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive(null));
   render(<App />); await saved();
   const day = within(screen.getByRole("region", { name: "Everyone’s day" }));
+  if (condition === "offline") {
+    expect(day.getByText("Plans unavailable.")).toBeVisible();
+    expect(day.queryByText("Free")).not.toBeInTheDocument();
+    return;
+  }
   for (const label of ["Today", "Tomorrow"]) {
     const person = within(day.getByRole("region", { name: label })).getByRole("group", { name: "Example person" });
-    expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : condition === "offline" ? "Calendars and to-do lists are unavailable while offline." : "Some calendars or to-do lists could not be loaded.");
+    expect(person).toHaveTextContent(condition === "loading" ? "Loading plans…" : "Some calendars or to-do lists could not be loaded.");
     expect(within(person).queryByRole("img")).not.toBeInTheDocument();
   }
   expect(day.queryByText("No plans today.")).not.toBeInTheDocument();
@@ -1805,7 +1810,7 @@ it("distinguishes offline plans and security from successful empty reads", async
   expect(header.queryByText("HA offline")).toBeNull();
   const warning = screen.getByText(/Readings are stale; controls are paused/);
   expect(within(warning).getByRole("link", { name: "Connection settings" })).toHaveAttribute("href", "/settings/connection");
-  expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Calendars and to-do lists are unavailable while offline.");
+  expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Plans unavailable.");
   expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   await navigate("Smart home");
   expect(screen.queryByText("No visible alarm")).not.toBeInTheDocument();

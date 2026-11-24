@@ -118,7 +118,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
       {!homeOnline && <p role="status" className="page-note">{t("Weather updates resume when Home Assistant reconnects.")}</p>}
     </section>}
     {section === "connection" && <section className="glow-panel" id="connection"><PanelHeading icon={Wifi} title={t("Home Assistant connection")} />
-      <p className="break-all">{t("Home Assistant: {value1}", { value1: haUrl || t("Loading server configuration…") })}</p>
+      <p className="break-all">{t("Home Assistant: {value1}", { value1: haUrl || t(busy ? "Loading server configuration…" : "Server address unavailable") })}</p>
       <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? t("Connecting…") : t("Reconnect")}</Button><Button variant="outline" onClick={() => setConfirmation({ title: msg("Disconnect Home Assistant?"), description: msg("Pause live controls in this tab until you reconnect or reload? Shared settings remain available."), confirmLabel: msg("Disconnect"), onConfirm: disconnect })}>{t("Disconnect")}</Button></div>
       <p role="status" className="page-note">{t("Connection: {value1}", { value1: message(connectionStatus) })}</p>
       {connectionError && <p role="alert" className="text-destructive">{message(connectionError)}</p>}
