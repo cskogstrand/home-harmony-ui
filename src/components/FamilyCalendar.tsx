@@ -41,11 +41,11 @@ interface FamilyWeekGridProps {
 }
 
 export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, members, compact = false, onEdit, onAdd, onDay }: FamilyWeekGridProps) {
-  const { t, dateLabel } = useI18n();
+  const { t, dateLabel, language } = useI18n();
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label={t("Family weekly calendar")} tabIndex={0}>
-      <table className="family-week-table">
+      <table className="family-week-table" lang={language}>
         <caption className="sr-only">{t("Family plans from {value1} to {value2}", { value1: dateLabel(start), value2: dateLabel(addDays(start, 6)) })}</caption>
         <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
         <thead><tr><th scope="col"><span className="week-member-label">{t("Family")}</span></th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
