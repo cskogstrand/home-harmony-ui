@@ -24,6 +24,7 @@ import { DashboardSettings } from "@/components/DashboardSettings";
 import { FamilyDay } from "@/components/FamilyDay";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { WasteCollection } from "@/components/WasteCollection";
+import { HomeStatus } from "@/components/HomeStatus";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
@@ -60,6 +61,7 @@ export default function Dashboard() {
   const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
   const quietSummary = t(planDays === 0 ? "No more plans today." : planDays === 1 ? "No plans today or tomorrow." : "No plans in the next {days} days.", { days: planDays });
   const sections: Record<DashboardSection, ReactNode> = {
+    homeStatus: dashboard.homeStatus && <HomeStatus card />,
     morningSummary: dashboard.morningSummary && <MorningSummary />,
     wasteCollection: dashboard.wasteCollection && <WasteCollection />,
     nextPlan: dashboard.nextPlan && <Collapsible key={`${next?.id}:${dashboard.hideNextPlanDescription}`} defaultOpen={!dashboard.hideNextPlanDescription} asChild><section className="glow-panel next-chapter" aria-label={t("Next family plan")}>

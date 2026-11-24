@@ -760,7 +760,7 @@ it("reorders Today sections, preserves hidden positions across reload and resets
     expect(within(row).getByRole("switch", { name: heading.textContent })).toHaveAttribute("aria-labelledby", heading.id);
   }
   expect(within(dialog).getByRole("button", { name: "Move Morning summary earlier" })).toBeDisabled();
-  expect(within(dialog).getByRole("button", { name: "Move Home favorites later" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Move Home status later" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();
   for (let i = 0; i < 6; i++) fireEvent.click(within(dialog).getByRole("button", { name: "Move Shopping earlier" }));
   expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
@@ -781,14 +781,14 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   fireEvent.click(within(restored).getByRole("switch", { name: "Shopping" }));
   fireEvent.keyDown(restored, { key: "Escape" });
   await saved();
-  expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Shopping");
+  expect(screen.getAllByRole("heading", { level: 2 })[0].textContent).toBe("Shopping");
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   fireEvent.click(screen.getByRole("switch", { name: "Everyone’s week" }));
   fireEvent.click(screen.getByRole("button", { name: "Reset section order" }));
   await waitFor(() => expect(settings.settings.dashboard.order).toEqual(dashboardSections));
   expect(settings.settings.dashboard.week).toBe(false);
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-  expect(screen.getAllByRole("heading", { level: 2 })[0]).toHaveTextContent("Next family plan");
+  expect(screen.getAllByRole("heading", { level: 2 })[0].textContent).toBe("Next family plan");
 });
 
 it("disables reordering when shared configuration fails to load", async () => {
@@ -1715,6 +1715,87 @@ it("applies shared compact density and restores it on reload", async () => {
   expect(screen.getByRole("main").closest(".afterglow-app")).toHaveClass("compact-mode");
 });
 
+it("opens categorized home status and counts both a room alert and a missing reading", async () => {
+  settings.settings.dashboard.statusSources = ["home|binary_sensor.example_smoke", "home|sensor.removed"];
+  app.currentHome = mapHome({
+    "binary_sensor.example_smoke": state("binary_sensor.example_smoke", "on", { friendly_name: "Example detector", device_class: "smoke" }),
+    "binary_sensor.example_leak": state("binary_sensor.example_leak", "off", { friendly_name: "Example leak sensor", device_class: "moisture" }),
+    "climate.example_car": state("climate.example_car", "heat", { friendly_name: "Example car", current_temperature: 30 }),
+  }, { ...emptyRegistries, areas: [{ area_id: "entry", name: "Example entry" }], entities: [{ id: "binary_sensor.example_smoke", entity_id: "binary_sensor.example_smoke", area_id: "entry" }] }, "home");
+  render(<App />); await saved();
+  const trigger = screen.getByRole("button", { name: "Home status · 2 issues" });
+  expect(screen.queryByRole("button", { name: /Example detector/ })).toBeNull();
+  fireEvent.click(trigger);
+  const modal = screen.getByRole("dialog", { name: "Home status" });
+  const status = within(modal);
+  expect(status.getByRole("link", { name: /Example detector.*Example entry.*Smoke detected/ })).toBeVisible();
+  expect(status.getByText("No reading")).toBeVisible();
+  expect(status.queryByText(/Example car/)).toBeNull();
+  expect(status.queryByRole("button", { name: /Water and leaks/ })).toBeNull();
+  fireEvent.click(status.getByRole("button", { name: "View readings" }));
+  expect(status.getByRole("heading", { name: "Readings" })).toHaveFocus();
+  expect(status.getByRole("heading", { name: "Fire and gas" })).toBeVisible();
+  fireEvent.click(status.getByRole("button", { name: "Back" }));
+  expect(status.getByRole("button", { name: "View readings" })).toHaveFocus();
+  fireEvent.click(status.getByRole("button", { name: "Manage sources" }));
+  const water = status.getByRole("button", { name: /Water and leaks/ });
+  fireEvent.click(water);
+  expect(status.getByRole("heading", { name: "Water and leaks" })).toHaveFocus();
+  fireEvent.click(status.getByRole("button", { name: "Choose sources for Water and leaks" }));
+  const picker = screen.getByRole("dialog", { name: "Choose sources for Water and leaks" });
+  fireEvent.click(within(picker).getByRole("checkbox", { name: "Example leak sensor" }));
+  fireEvent.click(within(picker).getByRole("button", { name: "Done" }));
+  await waitFor(() => expect(settings.settings.dashboard.statusSources).toEqual(["home|binary_sensor.example_smoke", "home|sensor.removed", "home|binary_sensor.example_leak"]));
+  fireEvent.click(status.getByRole("button", { name: "Back" }));
+  expect(status.getByRole("button", { name: /Water and leaks/ })).toHaveFocus();
+  fireEvent.keyDown(modal, { key: "Escape" });
+  await waitFor(() => expect(trigger).toHaveFocus());
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Home status" }));
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await saved();
+  const card = screen.getByRole("button", { name: /Home status · 2 issues.*Example detector/ });
+  fireEvent.click(card);
+  expect(screen.getByRole("dialog", { name: "Home status" })).toBeVisible();
+});
+
+it("puts an active smoke alarm ahead of maintenance issues in the short overview", async () => {
+  const batteries = Array.from({ length: 3 }, (_, i) => "binary_sensor.test_battery_" + i);
+  const smoke = "binary_sensor.test_smoke";
+  settings.settings.dashboard.statusSources = [...batteries, smoke].map(id => "home|" + id);
+  app.currentHome = mapHome(Object.fromEntries([...batteries, smoke].map(id => [id, state(id, "on", {
+    device_class: id === smoke ? "smoke" : "battery", friendly_name: id === smoke ? "Test smoke alarm" : "Test battery",
+  })])), emptyRegistries, "home");
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Home status · 4 issues" }));
+  const modal = within(screen.getByRole("dialog"));
+  expect(modal.getAllByRole("listitem")[0]).toHaveTextContent("Test smoke alarm");
+  expect(modal.getByText("More issues (1)")).toBeVisible();
+});
+
+it("updates the home illustration as readings and connectivity change in an open dialog", async () => {
+  const id = "binary_sensor.example_water";
+  settings.settings.dashboard.statusSources = ["home|" + id];
+  const report = (value: string, deviceClass = "moisture") => {
+    app.currentHome = mapHome({ [id]: state(id, value, { device_class: deviceClass }) }, emptyRegistries, "home");
+  };
+  report("off");
+  const view = render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Home status · No issues reported" }));
+  const scene = screen.getByRole("dialog").querySelector(".housing-scene");
+  const expectScene = (name: string) => expect(scene.querySelector("use").getAttribute("href")).toMatch(new RegExp("#" + name + "$"));
+  expect(scene).toHaveAttribute("aria-hidden", "true");
+  expectScene("healthy");
+  report("on"); view.rerender(<App />); expectScene("leak");
+  report("on", "smoke"); view.rerender(<App />); expectScene("alarm");
+  report("on", "battery"); view.rerender(<App />); expectScene("battery");
+  report("on", "problem"); view.rerender(<App />); expectScene("attention");
+  report("unavailable"); view.rerender(<App />); expectScene("missing");
+  app.homeOnline = false;
+  app.connectionStatus = "syncing"; view.rerender(<App />); expectScene("loading");
+  app.connectionStatus = "disconnected"; view.rerender(<App />); expectScene("offline");
+});
+
 it("distinguishes offline plans and security from successful empty reads", async () => {
   settings.settings.smartHome.layout = [configuredCard("home|missing")];
   app.homeOnline = false;
@@ -1728,7 +1809,7 @@ it("distinguishes offline plans and security from successful empty reads", async
   expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   await navigate("Smart home");
   expect(screen.queryByText("No visible alarm")).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Security Offline" })).toBeInTheDocument();
+  expect(header.getByRole("button", { name: "Home status · Home status unavailable" })).toBeVisible();
   app.homeOnline = true;
   app.connectionStatus = "connected";
   view.rerender(<App />);
@@ -1794,7 +1875,7 @@ it.each([true, false])("previews every saved rule only on Today with notificatio
   expect(within(dialog).getByText(/Starts at/)).toBeVisible();
   expect(within(dialog).getByRole("button", { name: "Dismiss notification" })).toBeDisabled();
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-  expect(screen.getByRole("link", { name: `Notifications: ${enabled ? 1 : 0} active` })).toBeVisible();
+  expect(screen.getByRole("link", { name: enabled ? "Notifications: 1 active" : "Notifications are turned off in settings." })).toBeVisible();
 
   await navigate("Calendar");
   expect(screen.queryByRole("region", { name: "Notification preview" })).toBeNull();

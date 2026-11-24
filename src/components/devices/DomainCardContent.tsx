@@ -1,11 +1,35 @@
 import { useContext, useEffect, useState, type ReactNode } from "react";
 import { House, LocateFixed, Minus, Pause, Play, Plus, Power, RotateCcw, Siren, Square, Volume2, VolumeX, Wind, Zap } from "lucide-react";
 import type { Entity, EntityAction } from "@/types/api";
-import { feature, humanizeState, numberValue, stringValues } from "@/lib/ha-model";
+import { feature, humanizeState, numberValue, stringValues, vacuumRoomMap } from "@/lib/ha-model";
 import { useI18n } from "@/hooks/use-i18n";
 import { Action, Choice, More, Range, Readout, Toggle } from "./CardControls";
 import { FanCard, HumidityCard, MediaCard, RobotCard, SecurityCard, ValveCard, WaterHeaterCard } from "./CardLayouts";
 import { CardDisabled, CardPresentation } from "./card-presentation";
+import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+
+function VacuumRoomPicker({ rooms, start }: { rooms: { id: number; name: string }[]; start: (segments: number[]) => void }) {
+  const { t } = useI18n();
+  const disabled = useContext(CardDisabled);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+  return <Dialog open={open} onOpenChange={next => { setOpen(next); setSelected([]); }}>
+    <DialogTrigger asChild><Button variant="outline" disabled={disabled}>{t("Choose rooms")}</Button></DialogTrigger>
+    <DialogContent><DialogHeader><DialogTitle>{t("Clean rooms")}</DialogTitle><DialogDescription>{t("Choose one or more rooms from the robot’s current map.")}</DialogDescription></DialogHeader>
+      <fieldset disabled={disabled} className="grid max-h-[50dvh] gap-2 overflow-y-auto sm:grid-cols-2"><legend className="sr-only">{t("Rooms")}</legend>
+        {rooms.map(room => <label key={room.id} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg bg-secondary px-4 py-2">
+          <Checkbox className="size-5 min-h-0 rounded" checked={selected.includes(room.id)} disabled={disabled} onCheckedChange={checked =>
+            setSelected(previous => checked === true ? [...previous, room.id] : previous.filter(id => id !== room.id))} />
+          <span className="min-w-0 break-words">{room.name}</span></label>)}
+      </fieldset>
+      <DialogFooter className="gap-2 sm:space-x-0"><DialogClose asChild><Button variant="outline">{t("Cancel")}</Button></DialogClose>
+        <Button disabled={disabled || !selected.length} onClick={() => { start(selected); setOpen(false); }}>{t("Clean selected rooms ({count})", { count: selected.length })}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>;
+}
 
 function SirenSettings({ entity, supports, send }: Pick<Parameters<typeof DomainCardContent>[0], "entity" | "supports" | "send">) {
   const { message: t } = useI18n();
@@ -101,8 +125,11 @@ export function DomainCardContent({ entity, status, reported, temperatureUnit, s
   }
   if (["vacuum", "lawn_mower"].includes(entity.domain)) {
     const mower = entity.domain === "lawn_mower", working = ["cleaning", "mowing"].includes(entity.state);
+    const roomMap = supports("vacuum_clean_segment") && vacuumRoomMap(entity);
     return <RobotCard status={status} battery={reported ? numeric("battery_level") : undefined}
-      actions={<div className="dg-actions">{action(working ? "pause" : mower ? "start_mowing" : "start", working ? "Pause" : "Start", working ? Pause : Play, true)}{action(mower ? "dock" : "return_to_base", "Return to dock", House)}</div>}
+      actions={<div className="dg-actions">{action(working ? "pause" : mower ? "start_mowing" : "start", working ? "Pause" : "Start", working ? Pause : Play, true)}{action(mower ? "dock" : "return_to_base", "Return to dock", House)}
+        {roomMap && <VacuumRoomPicker key={JSON.stringify([entity.entityId, roomMap])} rooms={roomMap.rooms} start={segments => send("vacuum_clean_segment", { map: roomMap.map, segments })} />}
+      </div>}
       more={extras(choice("set_fan_speed", "Suction", "fan_speed", stringValues(a.fan_speed_list)), action("locate", "Locate device", LocateFixed), action("stop", "Stop", Square))} />;
   }
   if (entity.domain === "valve") return <ValveCard value={status} position={reported ? numeric("current_position") : undefined} caption="">

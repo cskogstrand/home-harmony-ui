@@ -66,7 +66,7 @@ export type EntityAction = "turn_on" | "turn_off" | "brightness" | "rgb_color" |
   | "volume_set" | "volume_mute" | "volume_up" | "volume_down" | "select_source" | "select_sound_mode" | "shuffle_set" | "repeat_set"
   | "play_media" | "clear_playlist" | "join" | "unjoin" | "play_queue" | "remove_from_queue" | "set_sleep_timer" | "clear_sleep_timer"
   | "set_percentage" | "oscillate" | "set_direction" | "set_mode" | "set_operation_mode" | "set_away_mode"
-  | "start" | "pause" | "stop" | "return_to_base" | "locate" | "set_fan_speed" | "start_mowing" | "dock"
+  | "start" | "pause" | "stop" | "return_to_base" | "locate" | "set_fan_speed" | "vacuum_clean_segment" | "start_mowing" | "dock"
   | "open_valve" | "close_valve" | "stop_valve" | "set_valve_position"
   | "set_value" | "select_option" | "increment" | "decrement" | "reset" | "cancel" | "finish" | "press" | "trigger"
   | "lock" | "unlock" | "create_event" | "update_event" | "delete_event" | AlarmAction | TodoAction;

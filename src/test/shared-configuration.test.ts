@@ -233,11 +233,12 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { order, showTomorrow, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
+  const { order, showTomorrow, homeStatus, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
   expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
+  expect(homeStatus).toBe(false);
   expect(homework).toBe(false);
   expect(homeworkOptions).toEqual({ period: "through-today", includeUndated: true, showCompleted: false, action: "check" });
   expect(hideMorningSummaryContent).toBe(false);

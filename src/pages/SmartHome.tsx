@@ -1,11 +1,9 @@
 import { NotificationList } from "@/components/NotificationCenter";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useI18n } from "@/hooks/use-i18n";
-import { entityDetailPath, smartHomeEntities } from "@/lib/device-model";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Shield, Thermometer, Lightbulb, ArrowUpRight, PlugZap, PencilLine, Check, Layers3, Plus } from "lucide-react";
-import { available, entityStateLabel, numberValue } from "@/lib/ha-model";
+import { ArrowUpRight, PlugZap, PencilLine, Check, Layers3, Plus } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { PageHeading } from "@/components/FamilyPlanner";
@@ -15,21 +13,15 @@ import { smartHomeCards } from "@/lib/smart-home-cards";
 import { SettingsPopover } from "@/components/common/SettingsPopover";
 import { PopoverClose } from "@/components/ui/popover";
 export default function SmartHome() {
-  const { t, message, language } = useI18n();
+  const { t, message } = useI18n();
   const { currentHome, homeOnline, haUrl } = useApp();
   const { smartHome } = useFamily();
   const [area, setArea] = useState("all");
   const [editing, setEditing] = useState(false);
-  const entities = smartHomeEntities(currentHome.entities, smartHome);
   const devices = smartHomeCards(currentHome.entities, smartHome);
   const areas = currentHome.areas.filter(room => devices.some(card => card.main?.areaId === room.id));
   if (area !== "all" && !areas.some(room => room.id === area)) setArea("all");
   const visibleDevices = devices.filter(card => area === "all" || card.main?.areaId === area);
-  const lights = entities.filter(e => e.domain === "light");
-  const lightsOn = lights.filter(e => e.state === "on").length;
-  const climate = entities.find(e => e.domain === "climate");
-  const temperature = climate && available(climate) ? numberValue(climate.attributes.current_temperature) : undefined;
-  const alarms = entities.filter(e => e.domain === "alarm_control_panel");
   return <div className="planner-page smart-page"><PageHeading title={t("Smart home")}><div className="flex flex-wrap items-center gap-3"><span className={`connection-pill ${homeOnline ? "" : "attention"}`}><i />{homeOnline ? t("Connected") : t("Offline")}</span>
       {editing && <Button onClick={() => setEditing(false)}><Check size={17} aria-hidden="true" />{message("Done")}</Button>}
       <SettingsPopover label={t("Smart home settings")}>
@@ -39,12 +31,6 @@ export default function SmartHome() {
       </SettingsPopover>
     </div></PageHeading>
     <NotificationList compact />
-    {/* Online, summarize only what this home has; offline, keep every tile so unavailable never reads as absent. */}
-    {!!devices.length && (!homeOnline || !!lights.length || climate || !!alarms.length) && <div className="smart-summary">
-      {(!homeOnline || !!lights.length) && <Link to="/devices"><Lightbulb /><span>{t("Lighting")} <strong>{!homeOnline ? t("Offline") : !lightsOn ? t("All lights off") : t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn })}</strong></span><ArrowUpRight size={18} /></Link>}
-      {(!homeOnline || climate) && <Link to={climate ? entityDetailPath(climate) : "/devices"}><Thermometer /><span>{t("Climate")} <strong>{!homeOnline ? t("Offline") : temperature !== undefined ? t("{temperature} {unit} inside", { temperature, unit: currentHome.temperatureUnit ?? "" }) : t("No reading")}</strong></span><ArrowUpRight size={18} /></Link>}
-      {(!homeOnline || !!alarms.length) && <Link to="/alarm"><Shield /><span>{t("Security")} <strong>{!homeOnline ? t("Offline") : alarms.map(alarm => entityStateLabel(alarm, language)).join(" · ")}</strong></span><ArrowUpRight size={18} /></Link>}
-    </div>}
     <section><div className="section-heading"><div><PanelTitle icon={Layers3}>{message("Your cards")}</PanelTitle></div><div className="flex flex-wrap items-center gap-3"><Link to="/areas" className="text-link">{t("View areas")}<ArrowUpRight size={17} /></Link>{!!devices.length && <Button asChild variant="outline"><Link to="/settings/smart-home?card=new"><Plus size={17} aria-hidden="true" />{t("Add card")}</Link></Button>}</div></div>
       {!!devices.length && <div className="filter-row"><button aria-pressed={area === "all"} onClick={() => setArea("all")}>{t("All areas")}</button>{areas.map(r => <button key={r.id} aria-pressed={area === r.id} onClick={() => setArea(r.id)}>{r.id === "unassigned" ? t("Unassigned") : r.name}</button>)}</div>}
       <SmartHomeCards key={area} cards={devices} area={area} editing={editing} />

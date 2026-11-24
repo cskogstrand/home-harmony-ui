@@ -66,6 +66,12 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 ## Household preferences
 
+Open **Home status** in the header. A green check means every selected source has reported and none requires attention. The warning count includes active exceptions and selected sources with missing readings. Loading, offline and unconfigured households have distinct indicators. The overview pairs the current result with an illustrated house. When several sources need attention, the illustration matches the first listed issue. **View readings** lists the selected sources by category with their rooms and reported values. **Manage sources** opens all ten categories and their source pickers. The initial selection uses the configured alarm, area-assigned smoke detectors and their low-battery signals. Selecting sources in one category preserves the others. Settings sync across screens and are included in backups.
+
+Under **Customize Today → Home status**, enable and position the optional card. It appears only while a selected source needs attention or lacks a reading on a connected dashboard. Both the card and the header open the same overview.
+
+The Dreame room selector uses the robot’s active map and requires the integration’s segment-cleaning service. Selecting rooms prepares a request. **Clean selected rooms** sends it once.
+
 **Settings → Appearance → Advanced appearance → Modal glass** controls dialog transparency (0–85%), frost (8–48px), color saturation (100–200%) and background dimming (0–60%). Defaults are 70%, 20px, 150% and 20%. The preview updates while dragging; releasing a slider saves the setting across screens. **Reset glass appearance** restores only these four values. Older settings and backups receive the defaults, and new backups include the choices. Reduced transparency, increased contrast, forced colors and browsers without backdrop filtering retain solid dialog surfaces. Menus, navigation and normal reading panels retain their existing material.
 
 In **Home settings**, choose who appears on the board and in what order. Link each person’s calendars, tasks, daily tasks and homework, and choose which shopping lists the household shares. Hidden people keep their assignments and timetable files. All people come from Home Assistant; add a person there for shared plans and tasks, then assign its calendars and lists in Home settings. Favorites, dark mode, compact mode, calendar view/start day and alarm selection are shared too.

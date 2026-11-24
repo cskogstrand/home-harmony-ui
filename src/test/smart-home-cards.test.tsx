@@ -22,6 +22,19 @@ const climate = () => mapHome({ "climate.example": state("climate.example", "hea
 }) }, emptyRegistries, "example").entities[0];
 const open = (entity = climate(), density: "supercompact" | "compact" | "original" = "supercompact") => render(<MemoryRouter><TooltipProvider><SmartHomeCard entity={entity} density={density} /></TooltipProvider></MemoryRouter>);
 
+it("starts room cleaning once for the checked rooms and clears the selection when reopened", () => {
+  mocks.app.services = { dreame_vacuum: { vacuum_clean_segment: { fields: {} } } };
+  open({ ...cardEntity("vacuum", "docked", { selected_map: "Example", rooms: { Example: [{ id: 1, name: "Entry" }, { id: 3, name: "Studio" }] } }), integration: "dreame_vacuum" });
+  fireEvent.click(screen.getByRole("button", { name: "Choose rooms" }));
+  expect(screen.getByRole("button", { name: "Clean selected rooms (0)" })).toBeDisabled();
+  for (const name of ["Entry", "Studio"]) fireEvent.click(screen.getByRole("checkbox", { name }));
+  expect(mocks.command).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Clean selected rooms (2)" }));
+  expect(mocks.command).toHaveBeenCalledExactlyOnceWith("vacuum.example", "vacuum_clean_segment", { map: "Example", segments: [1, 3] });
+  fireEvent.click(screen.getByRole("button", { name: "Choose rooms" }));
+  expect(screen.getByRole("checkbox", { name: "Entry" })).not.toBeChecked();
+});
+
 beforeEach(() => {
   mocks.card.mockReset(); mocks.forecast.mockReset(); mocks.history.mockReset().mockResolvedValue([]);
   mocks.camera.mockReset().mockImplementation((_id, _video, _signal, onError) => onError());

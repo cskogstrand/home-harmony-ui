@@ -1,10 +1,17 @@
 import { expect, it } from "vitest";
-import { todoDetailChanges, todoDueInput } from "@/lib/todo-items";
+import { todoDetailChanges, todoDueInput, urgentShoppingCount } from "@/lib/todo-items";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
 const entity = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 127 }) }, emptyRegistries, "home").entities[0];
 const zone = "Europe/Oslo";
+it("pairs an urgent count only with the same Bring! list device and ignores missing readings", () => {
+  const list = { ...entity, integration: "bring", device: { id: "fictional-list" } };
+  const sensor = { ...list, domain: "sensor", registryName: "urgent", state: "2" };
+  expect(urgentShoppingCount(list, [{ ...sensor, device: { id: "other-list" }, state: "7" }, sensor])).toBe(2);
+  expect(urgentShoppingCount(list, [{ ...sensor, state: "unavailable" }])).toBe(0);
+  expect(urgentShoppingCount({ ...list, integration: "local_todo" }, [sensor])).toBe(0);
+});
 it("converts timed deadlines in the home's zone and rejects nonexistent local times", () => {
   expect(todoDueInput("2026-10-28T23:30:00Z", zone)).toBe("2026-10-29T00:30:00");
   expect(todoDetailChanges({}, { due: "2026-10-29T09:30", description: "" }, entity, zone)).toEqual({ due_datetime: "2026-10-29T08:30:00.000Z" });

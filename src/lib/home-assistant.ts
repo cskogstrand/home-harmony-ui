@@ -334,7 +334,7 @@ export class HomeAssistantClient {
     }).catch(() => { if (current()) receive(null); });
   };
 
-  watchEvents = (eventType: string, signal: AbortSignal, receive: (event: NotificationEvent | null) => void) => {
+  watchEvents = (eventType: string, signal: AbortSignal, receive: (event: NotificationEvent | null) => void, ready?: () => void) => {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;
     const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
     if (!current() || !/^[a-zA-Z0-9_]{1,100}$/.test(eventType)) { if (!signal.aborted) receive(null); return; }
@@ -349,7 +349,7 @@ export class HomeAssistantClient {
     void conn.subscribeMessage<NotificationEvent>(event => {
       if (current() && event?.event_type === eventType && event.data && typeof event.data === "object" && !Array.isArray(event.data)) receive(event);
     }, { type: "subscribe_events", event_type: eventType }, { resubscribe: false }).then(unsub => {
-      if (current()) unsubscribe = unsub;
+      if (current()) { unsubscribe = unsub; ready?.(); }
       else void unsub().catch(() => {});
     }).catch(() => { if (current()) receive(null); });
   };

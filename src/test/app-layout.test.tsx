@@ -10,7 +10,7 @@ import { notificationRuleSchema } from "../../shared/notifications";
 
 const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home", entities: [] }, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], members: [], memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
 vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));
@@ -43,6 +43,7 @@ it.each(["banner", "section", "activity", "activity-compact"])("keeps the bell i
         expect(screen.getByRole("heading", { name: "School" }).closest("header").nextElementSibling).toContainElement(region);
       } else expect(region).toBeNull();
       expect(screen.getByRole("link", { name: "Notifications: 1 active" })).toBeVisible();
+      expect(screen.getByRole("button", { name: "Home status · No sources selected" })).toBeVisible();
     }
   }
 });

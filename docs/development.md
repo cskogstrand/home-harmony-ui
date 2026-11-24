@@ -13,6 +13,8 @@ npm run dev
 
 Vite serves the dashboard and the same authenticated API/WebSocket proxy on port 8080. Development and preview use the same data directory unless `DATA_DIR` is changed. Never run two servers against one data directory.
 
+If a dependency upgrade leaves a previously running development server serving a blank page with module or schema errors, stop that Vite process and restart it with `npm run dev -- --force`. Keep any explicit port option. Open Settings in a fresh tab to verify the dependency cache was rebuilt.
+
 For the production Node server:
 
 ```sh

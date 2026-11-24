@@ -6,6 +6,14 @@ import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityStates, Ho
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
 export const stringValues = (value: unknown): string[] => Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+const robotRooms = z.array(z.object({ id: z.number().int().positive(), name: z.string().trim().min(1) })).min(1);
+export function vacuumRoomMap(entity: Entity) {
+  if (entity.domain !== "vacuum" || entity.integration !== "dreame_vacuum") return;
+  const { selected_map: map, rooms } = entity.attributes;
+  if (typeof map !== "string" || !map || !rooms || typeof rooms !== "object" || !Object.prototype.hasOwnProperty.call(rooms, map)) return;
+  const parsed = robotRooms.safeParse((rooms as Record<string, unknown>)[map]);
+  if (parsed.success && new Set(parsed.data.map(room => room.id)).size === parsed.data.length) return { map, rooms: parsed.data };
+}
 export const available = (entity: Entity) => !(["unavailable", "missing"].includes(entity.state) || (entity.state === "unknown" && !["scene", "button", "input_button"].includes(entity.domain)));
 export const isTemperatureEntity = (entity: Entity) => ["sensor", "number", "input_number"].includes(entity.domain)
   && (entity.attributes.device_class === "temperature" || ["°C", "°F", "K"].includes(String(entity.attributes.unit_of_measurement)));
@@ -44,7 +52,7 @@ export function entityStateLabel(entity: Entity, language: Language = "en") {
     const labels: Record<string, [string, string]> = {
       door: ["Closed", "state.open"], window: ["Closed", "state.open"], opening: ["Closed", "state.open"], garage_door: ["Closed", "state.open"],
       motion: ["Clear", "Motion detected"], occupancy: ["Clear", "Occupied"], presence: ["Away", "Home"],
-      smoke: ["Clear", "Smoke detected"], moisture: ["state.dry", "Leak detected"], gas: ["Clear", "Gas detected"],
+      smoke: ["Clear", "Smoke detected"], moisture: ["state.dry", "Leak detected"], gas: ["Clear", "Gas detected"], carbon_monoxide: ["Clear", "Carbon monoxide detected"],
       safety: ["Safe", "Unsafe"], problem: ["OK", "Problem"], battery: ["OK", "Low battery"],
       connectivity: ["Disconnected", "Connected"], plug: ["Unplugged", "Plugged in"], lock: ["Locked", "Unlocked"],
     };
@@ -129,6 +137,7 @@ const optionAttributes: Partial<Record<EntityAction, string>> = {
 };
 export function supportsAction(entity: Entity, action: EntityAction, services: HassServices) {
   const { domain, attributes: a } = entity;
+  if (action === "vacuum_clean_segment") return !!services.dreame_vacuum?.vacuum_clean_segment && !!vacuumRoomMap(entity);
   if (["play_queue", "remove_from_queue", "set_sleep_timer", "clear_sleep_timer"].includes(action))
     return domain === "media_player" && entity.integration === "sonos" && !!services.sonos?.[action];
   if (domain === "calendar" && action === "update_event") return feature(entity, 4);
@@ -171,6 +180,14 @@ export function entityCommand(entity: Entity, action: EntityAction, services: Ha
   let service: string = actionServices[action] ?? action;
   const data: Record<string, unknown> = {};
   const a = entity.attributes;
+  if (action === "vacuum_clean_segment") {
+    const current = vacuumRoomMap(entity);
+    const selection = z.object({ map: z.string(), segments: z.array(z.number().int().positive()).min(1) }).safeParse(value);
+    if (!current || !selection.success || selection.data.map !== current.map
+      || new Set(selection.data.segments).size !== selection.data.segments.length
+      || !selection.data.segments.every(id => current.rooms.some(room => room.id === id))) throw new Error("Choose rooms from the current robot map.");
+    return { domain: "dreame_vacuum", service: action, data: { segments: selection.data.segments }, target: { entity_id: entity.entityId } };
+  }
   if (action === "play_media") {
     const parsed = z.object({ media_content_id: z.string().min(1).max(8192), media_content_type: z.string().min(1).max(256), enqueue: z.enum(["replace", "next", "add", "play"]).optional() }).strict().safeParse(value);
     if (!parsed.success) throw new Error("Choose valid media to play.");

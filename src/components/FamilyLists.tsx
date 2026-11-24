@@ -12,7 +12,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily, addDays, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
 import type { Entity, TodoAction, TodoItem } from "@/types/api";
-import { todoDetailChanges, todoDueInput, todoDueTimestamp, type TodoDetails } from "@/lib/todo-items";
+import { todoDetailChanges, todoDueInput, todoDueTimestamp, urgentShoppingCount, type TodoDetails } from "@/lib/todo-items";
 import { TodoDueLabel, TodoItemFields } from "./TodoItemDetails";
 import { MemberAvatar, MemberOptions, PanelHeading } from "./FamilyPlanner";
 import { AvatarFilters } from "./AvatarFilters";
@@ -158,9 +158,10 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
     {summary ? <ul className="shopping-destinations">{lists.slice(0, limit).map(([id]) => {
       const entity = source(id);
       const online = homeOnline && entity && available(entity);
+      const urgent = online ? urgentShoppingCount(entity, currentHome.entities) : 0;
       const to = `/lists?${new URLSearchParams({ tab: kind, list: id })}`;
       return <li key={id}><Link className="shopping-destination" to={to}><ShoppingListAvatar icon={todoLists[id].display?.shoppingIcon} small /><strong>{sourceName(id)}</strong>
-        <small>{online && /^\d+$/.test(entity.state) ? t("{count} to pick up", { count: entity.state }) : t("Count unavailable")}</small></Link>
+        <small>{online && /^\d+$/.test(entity.state) ? t("{count} to pick up", { count: entity.state }) : t("Count unavailable")}{urgent > 0 && <> · <b>{t("{count} urgent", { count: urgent })}</b></>}</small></Link>
         {online && supportsAction(entity, "add_item", services) && <Button asChild size="icon" variant="outline"><Link to={to} state={{ addToList: id }} aria-label={t("Add to {list}", { list: sourceName(id) })}><Plus aria-hidden="true" /></Link></Button>}
       </li>;
     })}</ul> : <>
@@ -190,6 +191,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
   const entity = currentHome.entities.find(e => e.domain === "todo" && e.preferenceId === preferenceId);
   const entityId = entity?.entityId;
   const online = homeOnline && !!entity && available(entity);
+  const urgent = online && kind === "shopping" ? urgentShoppingCount(entity, currentHome.entities) : 0;
   const editable = kind !== "homework" && !school;
   const [refresh, setRefresh] = useState(0);
   const changes = useRef(new Map<string, { refresh?: number; completion?: TodoCompletion }>());
@@ -379,7 +381,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
     {school ? <div className="panel-heading"><PanelTitle as="h3" artwork="homework" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className={editable ? "list-composer" : "py-2"}>
       <div className="list-action-bar flex-wrap">
-        <div className="list-identity flex-1 basis-44">{kind === "shopping" ? <ShoppingListAvatar icon={display.shoppingIcon} small /> : <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
+        <div className="list-identity flex-1 basis-44">{kind === "shopping" ? <ShoppingListAvatar icon={display.shoppingIcon} small /> : <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{urgent > 0 && <strong className="text-sm">{t("{count} urgent", { count: urgent })}</strong>}{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
         {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
       </div>
       {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>

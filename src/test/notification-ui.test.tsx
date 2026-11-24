@@ -864,6 +864,52 @@ it("announces incoming titles and same-count replacements without repeating sens
   expect(screen.getByRole("status")).toBeEmptyDOMElement();
 });
 
+it("announces an all-clear only after the connection and calendar source are ready", () => {
+  const watchCalendarEvents = vi.fn();
+  mocks.app.watchCalendarEvents = watchCalendarEvents;
+  mocks.family.notifications = { ...emptyPlanner().notifications, enabled: true, rules: [notificationRuleSchema.parse({
+    ...cameraRule(), kind: "current", trigger: { type: "calendar", entity: "home|calendar.example", leadMinutes: 0 },
+  })] };
+  mocks.app.currentHome = mapHome({ "calendar.example": state("calendar.example", "off") }, emptyRegistries, "home");
+  mocks.app.homeOnline = false;
+  mocks.app.connectionStatus = "syncing";
+  const content = () => <MemoryRouter><NotificationProvider><NotificationBell /></NotificationProvider></MemoryRouter>;
+  const view = render(content());
+  expect(screen.getByRole("link", { name: "Checking notifications…" })).toBeVisible();
+  mocks.app.connectionStatus = "disconnected";
+  view.rerender(content());
+  expect(screen.getByRole("status")).toHaveTextContent("Notifications unavailable");
+  mocks.app.connectionStatus = "connected";
+  mocks.app.homeOnline = true;
+  view.rerender(content());
+  expect(screen.getByRole("status")).toHaveTextContent("Checking notifications…");
+  const receive = watchCalendarEvents.mock.lastCall[4];
+  act(() => receive(null));
+  expect(screen.getByRole("status")).toHaveTextContent("Some notification sources are unavailable");
+  act(() => receive([]));
+  expect(screen.getByRole("status")).toHaveTextContent("No active notifications");
+});
+
+it("keeps an unknown state reading off Today and names the waiting rule in Notifications", () => {
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), title: "Example cycle", kind: "current",
+    trigger: { type: "state", entity: "home|sensor.example", operator: "eq", value: "running" } });
+  mocks.family.notifications = { ...emptyPlanner().notifications, enabled: true, rules: [rule] };
+  const reading = (value: string) => { mocks.app.currentHome = mapHome({ "sensor.example": state("sensor.example", value) }, emptyRegistries, "home"); };
+  const content = (compact: boolean) => <MemoryRouter><NotificationProvider><NotificationBell /><NotificationList compact={compact} /></NotificationProvider></MemoryRouter>;
+  reading("unknown");
+  const view = render(content(true));
+  expect(screen.getByRole("link", { name: "Waiting for notification readings" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+  view.rerender(content(false));
+  expect(screen.getByText("Waiting for a reading for Example cycle.")).toBeVisible();
+  reading("unavailable");
+  view.rerender(content(false));
+  expect(screen.getByText("Could not read sources for Example cycle.")).toBeVisible();
+  reading("idle");
+  view.rerender(content(true));
+  expect(screen.getByRole("link", { name: "Notifications: 0 active" })).toBeVisible();
+});
+
 it("configures ongoing tasks with a stable entity reference", async () => {
   render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
   fireEvent.click(screen.getByRole("button", { name: "Add Ongoing tasks" }));

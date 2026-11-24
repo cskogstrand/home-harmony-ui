@@ -4,6 +4,13 @@ import type { Entity, TodoItem } from "@/types/api";
 
 export type TodoDetails = { due: string; description: string };
 
+export function urgentShoppingCount(list: Entity | undefined, entities: Entity[]) {
+  if (list?.integration !== "bring" || !list.device || list.domain !== "todo") return 0;
+  const sensor = entities.find(entity => entity.device?.id === list.device.id && entity.integration === "bring"
+    && entity.domain === "sensor" && entity.registryName === "urgent");
+  return sensor && /^\d+$/.test(sensor.state) ? Number(sensor.state) : 0;
+}
+
 export function todoDueInput(due: TodoItem["due"], timeZone: string) {
   if (!due) return "";
   if (!due.includes("T")) return isPlannerDate(due) ? due : "";

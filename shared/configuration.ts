@@ -94,9 +94,10 @@ export const todoDisplaySchema = z.object({
 }).strict();
 export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
-export const dashboardSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
+const plannerSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
+export const dashboardSections = [...plannerSections, "homeStatus"] as const;
 export type DashboardSection = typeof dashboardSections[number];
-export const plannerArtworkSchema = z.enum([...dashboardSections, "calendar", "tasks"]);
+export const plannerArtworkSchema = z.enum([...plannerSections, "calendar", "tasks"]);
 export type PlannerArtwork = z.infer<typeof plannerArtworkSchema>;
 const dashboardHomeworkSchema = z.object({
   period: z.enum(["through-today", "through-tomorrow", "today", "tomorrow", "all"]).default("through-today"),
@@ -133,6 +134,8 @@ const plannerObjectSchema = z.object({
     homeworkOptions: dashboardHomeworkSchema.prefault({}),
     school: z.boolean().default(true),
     home: z.boolean().default(true),
+    homeStatus: z.boolean().default(false),
+    statusSources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
   }).strict().prefault({}),
   homeEntities: z.array(memberSchema).optional(),
   homeEntityGroups: settingsRecord(keySchema, z.string().trim().max(80)).default({}),

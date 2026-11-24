@@ -28,11 +28,14 @@ import "./notifications.css";
 
 export function NotificationBell() {
   const { message: t } = useI18n();
-  const { notifications, errors } = useNotifications();
+  const { notifications, errors, statusMessage } = useNotifications();
   const titles = notifications.filter(item => item.rule.kind !== "camera").map(item => item.eventTitle || item.rule.title).join(", ");
-  return <><Link id="notification-bell" to="/notifications" className="icon-button glass-surface relative" aria-label={t("Notifications: {count} active", { count: notifications.length })}>
-    <Bell size={20} aria-hidden="true" />{(notifications.length > 0 || errors.length > 0) && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length || "!"}</span>}
-  </Link><span role="status" aria-atomic="true" className="sr-only">{titles ? t("Active notifications: {titles}", { titles }) : notifications.length ? "" : t("No active notifications")}</span></>;
+  const status = statusMessage ? t(statusMessage) : errors.length ? t("Some notification sources are unavailable") : "";
+  const count = t("Notifications: {count} active", { count: notifications.length });
+  const label = [(!status || notifications.length > 0) && count, status].filter(Boolean).join(" · ");
+  return <><Link id="notification-bell" to="/notifications" className="icon-button glass-surface relative" aria-label={label} title={label}>
+    <Bell size={20} aria-hidden="true" />{(notifications.length > 0 || status) && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length || (statusMessage === "Checking notifications…" || statusMessage === "Waiting for notification readings" ? "…" : "!")}</span>}
+  </Link><span role="status" aria-atomic="true" className="sr-only">{[titles && t("Active notifications: {titles}", { titles }), status || (!notifications.length && t("No active notifications"))].filter(Boolean).join(" · ")}</span></>;
 }
 
 type PreviewMode = "current" | "sample";
@@ -413,7 +416,7 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { observer.disconnect(); window.removeEventListener("scroll", onScroll); };
   }, [active, compact, pathname]);
-  const { notifications: allNotifications, errors, retry, dismiss, camera } = useNotifications();
+  const { notifications: allNotifications, errors, waitingRules, statusMessage, retry, dismiss, camera } = useNotifications();
   const { previewStartedAt } = useContext(NotificationDebugContext);
   const previewAll = compact && pathname === "/" && previewStartedAt !== undefined;
   const [selectedId, select] = useState<string>();
@@ -430,10 +433,11 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
   const selected = active && selectedId ? eligible.find(item => item.id === selectedId) : undefined;
   if (selectedId && !selected) select(undefined);
   if (!active) return null;
-  const sourceErrors = !!errors.length && <div ref={errorRow} role="status" className="notification-source-error"><p>{t("Some notification sources could not be loaded. Check the Home Assistant connection and permissions.")}</p><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>;
+  const sourceErrors = !!errors.length && <div ref={errorRow} role="status" className="notification-source-error"><p>{t("Could not read sources for {rules}.", { rules: errors.join(", ") })}</p><Link className="text-link min-h-11" to="/settings/notifications">{t("Notification settings")}</Link><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>;
   if (!compact) return <NotificationSurface items={allNotifications} compact={false} presentation={style}>
     {sourceErrors}
-    {!allNotifications.length && !errors.length && <p className="empty-note">{t("Nothing needs your attention right now.")}</p>}
+    {!!waitingRules?.length && <p className="page-note">{t("Waiting for a reading for {rules}.", { rules: waitingRules.join(", ") })}</p>}
+    {!allNotifications.length && !errors.length && !waitingRules?.length && <p className="empty-note">{t(statusMessage ?? "Nothing needs your attention right now.")}</p>}
   </NotificationSurface>;
   const hasMedia = ({ rule }: HomeNotification) => rule.kind !== "camera" && notificationWidgetMedia(rule).type !== "none";
   const media = eligible.filter(hasMedia);

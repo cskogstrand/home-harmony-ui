@@ -4,6 +4,16 @@ import { entityCommand, supportsAction } from "@/lib/ha-model";
 import { cardEntity, cardServices, mediaEntity } from "./device-card-fixtures";
 
 describe("live card commands", () => {
+  it("sends selected Dreame segments only when they still belong to the selected map", () => {
+    const services = { dreame_vacuum: { vacuum_clean_segment: { fields: {} } } };
+    const vacuum = { ...cardEntity("vacuum", "docked", { selected_map: "Example", rooms: { Example: [{ id: 4, name: "Entry" }, { id: 8, name: "Studio" }] } }), integration: "dreame_vacuum" };
+    const request = (map: string, segments: number[]) => entityCommand(vacuum, "vacuum_clean_segment", services, { map, segments });
+    expect(request("Example", [8, 4])).toEqual({ domain: "dreame_vacuum", service: "vacuum_clean_segment", target: { entity_id: vacuum.entityId }, data: { segments: [8, 4] } });
+    for (const ids of [[], [1], [4, 4]]) expect(() => request("Example", ids)).toThrow();
+    expect(() => request("Old map", [4])).toThrow();
+    expect(supportsAction(vacuum, "vacuum_clean_segment", {})).toBe(false);
+    expect(supportsAction({ ...vacuum, integration: "other" }, "vacuum_clean_segment", services)).toBe(false);
+  });
   it("maps media controls to HA payloads without changing units or targets", () => {
     const media = mediaEntity();
     expect(entityCommand(media, "media_play", cardServices)).toEqual({ domain: "media_player", service: "media_play", data: {}, target: { entity_id: media.entityId } });

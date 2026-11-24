@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 198">
+  <defs>
+    <linearGradient id="metal" x2=".85" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#80918b"/><stop offset=".48" stop-color="#526965"/><stop offset="1" stop-color="#354b4b"/>
+    </linearGradient>
+    <linearGradient id="cedar" x2="0" y2="1">
+      <stop stop-color="#ab8056"/><stop offset=".28" stop-color="#d5af7e"/><stop offset="1" stop-color="#deb887"/>
+    </linearGradient>
+    <linearGradient id="glass" x2=".85" y2="1">
+      <stop stop-color="#547372"/><stop offset=".43" stop-color="#a0b9a9"/><stop offset=".46" stop-color="#809e93"/><stop offset="1" stop-color="#465957"/>
+    </linearGradient>
+    <linearGradient id="lit" x2=".8" y2="1">
+      <stop stop-color="#ffe6a8"/><stop offset=".55" stop-color="#efc883"/><stop offset="1" stop-color="#bd8a52"/>
+    </linearGradient>
+    <linearGradient id="leaves" x2="1" y2=".8">
+      <stop stop-color="#a3b596"/><stop offset=".5" stop-color="#7f987f"/><stop offset="1" stop-color="#516f66"/>
+    </linearGradient>
+    <g id="tree">
+      <path d="M0 0v-33m0 19 9-10m-9 3-6-7" fill="none" stroke="#756d56" stroke-width="3" stroke-linecap="round"/>
+      <path d="M-2-16c-10 0-15-6-14-14 0-5 3-9 6-12-1-6 3-13 9-14 8-2 13 4 14 11 7 4 9 10 6 17-3 8-11 12-21 12Z" fill="url(#leaves)"/>
+      <path d="M0-17c7-8 11-22 8-34 7 3 7 10 7 10 8 6 6 16-1 21-3 2-8 3-14 3Z" fill="#405e58" opacity=".22"/>
+    </g>
+    <g id="plot">
+      <ellipse cx="154" cy="151" rx="111" ry="15" transform="rotate(-5 154 151)" fill="#15292b" opacity=".14"/>
+      <path d="m19 123 132 54 149-59-133-52Z" fill="#879988"/>
+      <path d="m19 123 132 54v5L19 129Zm132 54 149-59v5l-149 59Z" fill="#63796f"/>
+      <path d="m23 123 128 51 145-56-129-51Z" fill="#adbaa1"/>
+      <path d="m51 129 86 34 117-46-86-35Z" fill="#81927d"/>
+      <path d="m103 147 32 13-18 7-32-13Z" fill="#d3cbb3"/>
+      <path d="m89 157 19 7m-9-11 18 7" stroke="#aca795" stroke-width="1" />
+      <use href="#tree" transform="translate(46 127) scale(.78)"/>
+      <use href="#tree" transform="translate(273 115) scale(.65)"/>
+    </g>
+    <g id="cottage">
+      <!-- The glazed gable and the long eave meet at the front corner. -->
+      <path d="m59 78 38-32 39 61v44l-77-30Z" fill="url(#cedar)"/>
+      <path d="m136 107 103-40v44l-103 40Z" fill="#af895f"/>
+      <path d="m59 120 77 30 103-40v5l-103 40-77-31Z" fill="#64716d"/>
+      <path d="M64 81v39m6-44v47m6-53v55m7-62v65m7-71v74m14-70v75m8-62v65m7-55v58m8-47v50"
+            fill="none" stroke="#795f48" stroke-opacity=".42" stroke-width="1.15"/>
+      <path d="m72 86 25-23 25 39v34l-50-20Z" fill="#405453"/>
+      <path d="m75 87 22-20 22 35v30l-44-17Z" fill="var(--house-glass, url(#lit))"/>
+      <path d="m75 102 44 17v13l-44-17Z" fill="#594c3a" opacity=".2"/>
+      <path d="m75 86 44 17m-29-29v47m15-41v47" fill="none" stroke="#485954" stroke-width="2.1"/>
+      <path d="m68 116 57 22-5 2-57-22Z" fill="#efe0bf"/>
+      <path d="m148 111 16-6v31l-16 6Z" fill="#344b49"/>
+      <path d="m151 113 9-4v16l-9 3Z" fill="url(#glass)"/>
+      <path d="m146 142 18-7 6 2-18 8Zm6 3 18-8v3l-18 8Z" fill="#d5c6a7"/>
+      <path d="m54 77 43-35 108-42-44 36Z" fill="#9caaa0"/>
+      <path d="m97 42 108-42 40 65-108 43Z" fill="url(#metal)"/>
+      <path d="m108 38 40 65m-24-71 40 65m-24-71 40 65m-24-72 40 65m-24-71 40 65m-24-72 40 65"
+            fill="none" stroke="#b7c3b6" stroke-opacity=".46" stroke-width="1.35"/>
+      <path d="m54 77 43-35 40 66v4L96 49 54 82Z" fill="#d1c3a5"/>
+      <path d="m137 108 108-43v4l-108 43Z" fill="#374b49"/>
+      <path d="m97 42 108-42" stroke="#d3dac9" stroke-width="1.5"/>
+      <!-- The lower wing has a planting roof and floor-to-ceiling glazing. -->
+      <path d="m166 104 32 13v32l-32-13Z" fill="#d1ad7b"/>
+      <path d="m198 117 56-22v32l-56 22Z" fill="#354c4c"/>
+      <path d="m202 119 48-19v24l-48 19Z" fill="url(#glass)"/>
+      <path d="m204 139 19-29 7-3-19 30Zm26-9 16-25v10l-8 12Z" fill="#d1ddd0" opacity=".38"/>
+      <path d="M217 111v29m17-35v28" stroke="#3a504d" stroke-width="2.4"/>
+      <path d="m170 109 24 10m-24-5 24 10m-24-5 24 10m-24-5 24 10m-24-5 24 10" stroke="#8b6e51" stroke-width="1" opacity=".65"/>
+      <path d="m161 103 60-24 37 14-60 25Z" fill="#66796e"/>
+      <path d="m168 103 53-21 29 11-53 21Z" fill="#93a28b"/>
+      <path d="m161 103 37 15 60-25v4l-60 25-37-15Z" fill="#455c57"/>
+      <path d="m197 149 58-23 5 2-58 23Zm5 2 58-23v3l-58 23Z" fill="#b9ad93"/>
+    </g>
+    <g id="model">
+      <use href="#plot"/>
+      <use href="#cottage" y="5"/>
+      <ellipse cx="60" cy="136" rx="6" ry="3.3" fill="#718874"/>
+      <ellipse cx="68" cy="139" rx="4" ry="2.6" fill="#8b9c82"/>
+    </g>
+    <g id="drawing" fill="none" stroke="currentColor" stroke-linejoin="round" stroke-linecap="round">
+      <path d="m20 123 131 54 148-58-132-53Z" stroke-dasharray="3 5" opacity=".7"/>
+      <path d="m56 84 41-36 40 65v42l-78-31V84m78 29 107-42-39-64L97 48m147 23v43l-107 41" stroke-width="2.3"/>
+      <path d="m73 91 24-21 24 38v28l-48-19Zm23-20v55m-23-34 48 18m45-2 55-22 35 14-58 23-32-13v29l32 13 58-23v-29m-58 23v29m18-37v30m19-38v30" stroke-width="1.5"/>
+    </g>
+    <!-- The callout attaches to the model, outside the text column. -->
+    <g id="leader" fill="none" stroke="currentColor" opacity=".62">
+      <path d="m248 82 17-8V60" stroke-dasharray="2 3" stroke-width="1.6"/><circle cx="248" cy="82" r="2" fill="currentColor"/>
+    </g>
+    <g id="disc"><use href="#leader"/><circle cx="265" cy="44" r="17" fill="currentColor"/></g>
+    <g id="healthy">
+      <use href="#model"/><use href="#disc"/>
+      <path d="m257 44 5 5 10-11" fill="none" stroke="var(--house-mark, white)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="attention">
+      <use href="#model"/><use href="#leader"/>
+      <path d="m262 29-14 24q-2 4 3 4h28q5 0 3-4l-14-24q-3-5-6 0Z" fill="currentColor"/>
+      <path d="M265 37v9m0 5v.2" stroke="var(--house-mark, white)" stroke-width="3.2" stroke-linecap="round"/>
+    </g>
+    <g id="alarm">
+      <use href="#model"/><use href="#leader"/>
+      <g stroke="currentColor" stroke-width="2.7" stroke-linecap="round"><path d="M265 24v-5m-13 10-4-4m30 4 4-4"/></g>
+      <path d="M252 52v-8a13 13 0 0 1 26 0v8Z" fill="currentColor"/>
+      <path d="M257 43a8 8 0 0 1 5-7" fill="none" stroke="var(--house-mark, white)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M250 56h30" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+    <g id="leak">
+      <use href="#model"/><use href="#leader"/>
+      <path d="M265 23c-3 7-14 18-14 25a14 14 0 0 0 28 0c0-7-11-18-14-25Z" fill="currentColor"/>
+      <path d="M257 48a8 8 0 0 0 7 7" fill="none" stroke="var(--house-mark, white)" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+    <g id="battery">
+      <use href="#model"/><use href="#leader"/>
+      <g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linejoin="round">
+        <rect x="248" y="34" width="31" height="19" rx="4"/>
+        <path d="M282 40v7" stroke-linecap="round"/>
+      </g>
+      <rect x="252" y="38" width="5" height="11" rx="1.5" fill="currentColor"/>
+    </g>
+    <g id="missing">
+      <use href="#model" opacity=".8"/><use href="#leader"/>
+      <circle cx="265" cy="44" r="16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-dasharray="4 4"/>
+      <path d="M258 44h14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <g id="offline">
+      <use href="#drawing"/><use href="#disc"/>
+      <g fill="none" stroke="var(--house-mark, white)" stroke-width="2.3" stroke-linecap="round">
+        <path d="M254 40q4-4 8-4m6 0q5 1 9 5m-19 5q3-3 7-3m-1 7 2-1m-10-14 18 18"/>
+      </g>
+    </g>
+    <g id="loading">
+      <use href="#drawing"/><use href="#disc"/>
+      <g fill="var(--house-mark, white)"><circle cx="258" cy="44" r="1.8"/><circle cx="265" cy="44" r="1.8"/><circle cx="272" cy="44" r="1.8"/></g>
+    </g>
+    <g id="setup">
+      <use href="#drawing"/><use href="#disc"/>
+      <path d="M258 44h14m-7-7v14" stroke="var(--house-mark, white)" stroke-width="2.7" stroke-linecap="round"/>
+    </g>
+  </defs>
+  <use href="#healthy" color="#47745c"/>
+</svg>

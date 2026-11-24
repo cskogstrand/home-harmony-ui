@@ -20,8 +20,6 @@ export default function Notifications() {
   }
   const unknown = unavailable.filter(entity => entity.state === "unknown").length;
   return <div className="planner-page"><PageHeading title={t("Notifications")} description={message("Running tasks, current events and camera alerts")}><Button variant="outline" asChild><Link to="/settings/notifications">{message("Notification settings")}</Link></Button></PageHeading>
-    {!homeOnline && <p role="status" className="page-note">{message("Notifications are paused until Home Assistant reconnects.")}</p>}
-    {!notifications.enabled && <p role="status" className="page-note">{message("Notifications are turned off in settings.")}</p>}
     {!notifications.rules.length && <p className="page-note">{message("No rules yet. Add an ongoing task for an appliance, a current alert for a state or calendar, or a camera popup for your doorbell.")}</p>}
     <NotificationList presentation={notifications.presentation} />
     <details className="glow-panel availability-diagnostics"><summary><Activity size={20} aria-hidden="true" /><strong>{t("Device availability")}</strong><span>{unavailable.length}</span></summary>
