@@ -17,7 +17,7 @@
 ## Checklist
 
 - [x] Measure the current state at 1440 × 2560 and 390 × 844 (column widths, title font size, number of add buttons) and write the numbers in a `> Before:` note below this list.
-- [ ] Narrow the person column on wide/portrait layouts to the avatar (≈ 4rem) with the name as accessible label and tooltip; give the freed width to the day columns. Keep the full name on phone if it fits.
+- [x] Narrow the person column on wide/portrait layouts to the avatar (≈ 4rem) with the name as accessible label and tooltip; give the freed width to the day columns. Keep the full name on phone if it fits.
 - [ ] Stop mid-word breaking in week cells: replace `overflow-wrap: anywhere`/manual breaks with `hyphens: auto` plus a `lang` attribute from the active locale, and clamp long titles to two lines with ellipsis. Full title stays in the accessible name and the event dialog.
 - [ ] Render waste pickups in the week grid as a compact chip (icons from `WasteTypeIcons` + short label), not a full event card. Several fractions on the same day become one chip with several icons.
 - [ ] Replace the per-cell add row with one add affordance per person row (opens the editor with that person preselected, day chosen in the editor), or reveal the cell's "+" only on focus/hover/tap of the cell. Keyboard and screen-reader users must still reach "add on this day" (for example via the day header button).

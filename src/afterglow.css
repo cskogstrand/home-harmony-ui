@@ -680,7 +680,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .weekly-panel { padding: 12px; }
 .weekly-scroll { overflow-x: auto; scrollbar-width: thin; border-radius: 13px; min-width: 0; }
 .family-week-table { width: 100%; min-width: 63rem; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; }
-.week-member-column { width: 108px; }
+.week-member-column { width: 120px; }
 .family-week-table th, .family-week-table td { padding: 10px .375rem; border-bottom: 1px solid hsl(var(--border) / .6); border-right: 1px solid hsl(var(--border) / .45); }
 .family-week-table tr > :last-child { border-right: 0; }
 .family-week-table .week-event-row:not(:last-child) td { border-bottom: 0; }
@@ -694,7 +694,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .family-week-table thead th:first-child, .family-week-table tbody th { position: sticky; left: 0; z-index: 1; background: hsl(var(--card)); }
 .family-week-table tbody th { vertical-align: middle; font-weight: 500; text-align: left; }
 .family-week-table td { vertical-align: middle; }
-.week-person { display: flex; flex-direction: column; align-items: center; gap: .5rem; text-align: center; overflow-wrap: anywhere; }
+.week-person { display: flex; flex-direction: column; align-items: center; gap: .5rem; text-align: center; overflow-wrap: break-word; hyphens: auto; }
 .family-week-table .event-button { padding-block: .5rem; padding-right: .5rem; }
 .family-week-table .event-continues-before { border-top-left-radius: 2px; border-bottom-left-radius: 2px; }
 .family-week-table .event-continues-after { border-top-right-radius: 2px; border-bottom-right-radius: 2px; }
@@ -703,6 +703,12 @@ fieldset.settings-card > legend + * { clear: both; }
 .week-add-plan:hover, .week-add-plan:focus-visible { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
 /* Long homework stays scannable in the grid; the event dialog shows the full title. */
 .family-week-table .event-button strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+/* Beside a phone's sideways scroll the name fits; wider grids give its width to the days and keep the name as the row header's accessible text and tooltip. */
+@media (min-width: 700px) {
+  .week-member-column { width: 4rem; }
+  .week-person .member-avatar { width: 3.25rem; height: 3.25rem; font-size: 1rem; }
+  .week-member-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+}
 
 /* Capability-aware home controls and dashboard favorites. */
 .home-device .control-stack { margin-top: auto; }
@@ -791,7 +797,6 @@ fieldset.settings-card > legend + * { clear: both; }
 .calendar-pagination { margin-bottom: 1rem; }
 .calendar-pagination > .calendar-view-controls { margin-left: auto; }
 .family-week > .page-note { margin: 0 0 .75rem; }
-.week-member-column { width: 120px; }
 .family-week-table .event-button strong { font-size: .9375rem; }
 .family-week-table .event-time { font-size: .875rem; }
 .week-add-plan { font-size: .8125rem; min-height: 48px; }
@@ -838,7 +843,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .panel-heading h2 { font-size: 1.4rem; }
   .text-link, .hub-state, .empty-note, .muted, .page-note, .planner-form label { font-size: .95rem; }
   .family-week-table { font-size: 1rem; }
-  .week-member-column { width: 6rem; }
+  .week-member-column { width: 4rem; }
   .family-week-table th, .family-week-table td { padding: .3rem .25rem; }
   .family-week-table .event-button strong, .family-week-table thead time > strong { font-size: 1rem; }
   .family-week-table .event-time, .family-week-table thead time > span, .week-add-plan { font-size: .9rem; }

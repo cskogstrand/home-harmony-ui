@@ -48,7 +48,7 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
       <table className="family-week-table">
         <caption className="sr-only">{t("Family plans from {value1} to {value2}", { value1: dateLabel(start), value2: dateLabel(addDays(start, 6)) })}</caption>
         <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
-        <thead><tr><th scope="col">{t("Family")}</th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
+        <thead><tr><th scope="col"><span className="week-member-label">{t("Family")}</span></th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
           <small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small>
           {onDay ? <button className="calendar-week-day" onClick={() => onDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}><time dateTime={day} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time></button> :
             <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>}
@@ -58,7 +58,7 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
           const rows = weekEventRows(personal, start);
           return <tbody key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
             {rows.map((row, index) => <tr key={index} className="week-event-row">
-              {index === 0 && <th scope="rowgroup" rowSpan={rows.length + (compact ? 0 : 1)}><div className="week-person"><span aria-hidden="true"><MemberAvatar member={person.id} /></span><span>{person.name}</span></div></th>}
+              {index === 0 && <th scope="rowgroup" rowSpan={rows.length + (compact ? 0 : 1)}><div className="week-person" title={person.name}><span aria-hidden="true"><MemberAvatar member={person.id} /></span><span className="week-member-label">{person.name}</span></div></th>}
               {days.map((day, column) => {
                 if (row.some(span => span.start < column && span.end > column)) return null;
                 const span = row.find(span => span.start === column);
