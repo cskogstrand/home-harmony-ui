@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, type ReactNode } from "react";
 import { ChevronDown, Play, SlidersHorizontal, Sparkles, X, type LucideIcon } from "lucide-react";
 import { DeviceIllustration } from "../CardArtwork";
 import { useI18n } from "@/hooks/use-i18n";
+import { withUnit } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -34,7 +35,7 @@ export function Range({ label, value, set, min = 0, max = 100, step = 1, unit = 
   const [dragging, setDragging] = useState(false);
   useEffect(() => setDraft(value), [value, disabled]);
   const current = commitOnly && dragging && !disabled ? draft : value;
-  const shown = current === undefined ? "—" : `${number(current)}${unit}`;
+  const shown = current === undefined ? "—" : withUnit(number(current), unit);
   const slider = <Slider min={min} max={max} step={step} value={[Math.min(max, Math.max(min, current ?? min))]} disabled={disabled}
     onPointerDown={() => { if (!disabled) setDragging(true); }} onPointerCancel={() => setDragging(false)} onLostPointerCapture={() => setDragging(false)} onBlur={() => setDragging(false)}
     onValueChange={([next]) => commitOnly ? setDraft(next) : set(next)} onValueCommit={commitOnly ? ([next]) => { setDragging(false); set(next); } : undefined}

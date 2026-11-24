@@ -14,7 +14,7 @@ import "@/components/devices/device-cards.css";
 export function WeatherWidget({ placement }: { placement: "header" | "today" }) {
   const { currentHome, homeOnline } = useApp();
   const { weatherEntity, weatherTemperatureEntity, weatherPlacement } = useFamily();
-  const { t, language, number } = useI18n();
+  const { t, language, reading: formatReading } = useI18n();
   const titleId = useId();
   if (!weatherEntity || !weatherPlacement[placement]) return null;
   const entity = currentHome.entities.find(entity => entity.preferenceId === weatherEntity && entity.domain === "weather");
@@ -26,7 +26,7 @@ export function WeatherWidget({ placement }: { placement: "header" | "today" }) 
     : reported ? numberValue(entity.attributes.temperature) : undefined;
   const reportedUnit = weatherTemperatureEntity ? temperatureEntity?.attributes.unit_of_measurement : entity?.attributes.temperature_unit;
   const unit = typeof reportedUnit === "string" ? reportedUnit : currentHome.temperatureUnit ?? "";
-  const reading = temperature === undefined ? "—" : `${number(temperature)}${unit}`;
+  const reading = temperature === undefined ? "—" : formatReading(temperature, { unit, deviceClass: "temperature", precision: weatherTemperatureEntity ? temperatureEntity?.displayPrecision : undefined });
   return <Popover>
     <PopoverTrigger asChild><Button variant="ghost" className={`weather-widget ${placement === "header" ? "header-weather glass-surface" : "today-weather"}`} data-weather-condition={reported ? entity.state : "unavailable"} aria-label={t("Weather: {condition}. Open forecast", { condition: `${condition} · ${reading}` })} title={condition}>
       <span className="weather-symbol">{reported ? <WeatherIcon condition={entity.state} /> : <CloudOff aria-hidden="true" />}</span>

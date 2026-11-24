@@ -18,10 +18,30 @@ export const locales = { en: "en-GB", nb: "nb-NO" } as const;
 const dateFormatters = new Map<string, Intl.DateTimeFormat>();
 const calendarCategories = ["Activities", "Meetings", "Pedagogy", "Closure days", "Invitations", "Opening hours"] as const;
 
+/** How a reading is shown: its unit, Home Assistant device class and display precision when the entity has one. */
+export interface ReadingFormat { unit?: unknown; deviceClass?: unknown; precision?: number }
+const units = (unit: unknown) => typeof unit === "string" ? unit.trim() : "";
+// One precision rule for readings: Home Assistant's display precision, else by quantity. Other values keep their reported digits.
+export function readingDigits(value: number, { unit, deviceClass, precision }: ReadingFormat = {}): Intl.NumberFormatOptions {
+  if (precision !== undefined && Number.isInteger(precision) && precision >= 0 && precision <= 20) return { minimumFractionDigits: precision, maximumFractionDigits: precision };
+  const symbol = units(unit);
+  if (deviceClass === "temperature" || ["°C", "°F"].includes(symbol)) return { maximumFractionDigits: 1 };
+  if (/^(m?W|Wh|VA|var)$/.test(symbol)) return { maximumFractionDigits: 0 };
+  if (/^[kMG](W|Wh|VA|var)$/.test(symbol)) return { maximumFractionDigits: Math.abs(value) < 10 ? 2 : 1 };
+  return { maximumFractionDigits: 20 };
+}
+/** One spacing rule in every language: a no-break space before the unit ("−2,4 °C"); "%" and an angle's "°" attach to the number. */
+export function withUnit(value: string, unit?: unknown) {
+  const symbol = units(unit);
+  return symbol ? `${value}${["%", "°"].includes(symbol) ? "" : " "}${symbol}` : value;
+}
+
 // English source messages are keys, so the default language needs no duplicate catalogue.
 export function createI18n(language: Language) {
   const locale = locales[language];
-  const number = (value: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 20 }).format(value);
+  const number = (value: number, options: Intl.NumberFormatOptions = { maximumFractionDigits: 20 }) => new Intl.NumberFormat(locale, options).format(value);
+  /** A measured value with the shared precision and unit spacing rules. */
+  const reading = (value: number, format: ReadingFormat = {}) => withUnit(number(value, readingDigits(value, format)), format.unit);
   const message = (input: Message = "", values: MessageValues = {}): string => {
     if (typeof input !== "string") return message(input.key, input.values);
     const key = input;
@@ -59,5 +79,5 @@ export function createI18n(language: Language) {
     const key = [...calendarCategories, "Daily focus" as const].find(key => title.trim().toLowerCase() === key.toLowerCase());
     return language !== "en" && key ? message(key) : title;
   };
-  return { language, locale, number, dateLabel, eventTimeLabel, calendarName, calendarTitle, message, t: (key: MessageKey, values?: MessageValues) => message(key, values) };
+  return { language, locale, number, reading, dateLabel, eventTimeLabel, calendarName, calendarTitle, message, t: (key: MessageKey, values?: MessageValues) => message(key, values) };
 }

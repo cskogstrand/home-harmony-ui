@@ -2,6 +2,7 @@ import { CircleAlert, CircleHelp, WifiOff } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
+import { withUnit } from "@/lib/i18n";
 import type { Entity } from "@/types/api";
 import { DeviceIcon } from "./DeviceControl";
 import { EntityDetails } from "./EntityDetails";
@@ -20,7 +21,7 @@ export function DeviceReading({ entity }: { entity: Entity }) {
   return <article id={entity.entityId} tabIndex={-1} aria-label={entity.name} className={`device-reading${entity.domain === "sensor" ? " device-reading-with-history" : ""}`} data-state={!reported ? "unavailable" : attention ? "attention" : "reported"}>
     <div className="device-reading-heading"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-4 w-4" /><div><h3>{entity.name}</h3>{area && <small>{area.id === "unassigned" ? t("Unassigned") : area.name}</small>}</div></div>
     <div className="device-reading-result">
-      <p className={`device-reading-value${numeric ? " sensor-reading" : ""}`}>{StatusIcon && <StatusIcon size={20} aria-hidden="true" />}<span>{homeOnline ? entityStateLabel(entity, language) : t("Offline")}{unit && <small> {unit}</small>}</span></p>
+      <p className={`device-reading-value${numeric ? " sensor-reading" : ""}`}>{StatusIcon && <StatusIcon size={20} aria-hidden="true" />}<span>{homeOnline ? entityStateLabel(entity, language) : t("Offline")}{unit && <small>{withUnit("", unit)}</small>}</span></p>
       {battery && <span className="device-reading-battery" aria-hidden="true"><span style={{ width: `${Number(entity.state)}%` }} /></span>}
     </div>
     {entity.domain === "sensor" && <EntityHistory entity={entity} icon />}

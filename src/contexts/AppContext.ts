@@ -2,6 +2,7 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import { mapHome } from "@/lib/ha-model";
 import type { Entity, Home } from "@/types/api";
+import { AppStoreContext } from "./AppStoreContext";
 
 function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistantClient["getSnapshot"]>, currentHome: Home) {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
@@ -20,19 +21,19 @@ export function createAppStore() {
   function getSnapshot() {
     const state = client.getSnapshot();
     if (state !== previous) {
-      // HA preserves untouched state objects. A registry refresh can change their names, devices or areas.
-      if (state.registries !== previous?.registries) entityCache = new WeakMap();
-      const currentHome = state.states === previous?.states && state.registries === previous?.registries && state.config === previous?.config
-        ? app.currentHome : mapHome(state.states, state.registries, "home", state.config, entityCache);
+      // HA preserves untouched state objects. A registry or language refresh can change their names, devices or areas.
+      if (state.registries !== previous?.registries || state.translations !== previous?.translations) entityCache = new WeakMap();
+      const currentHome = state.states === previous?.states && state.registries === previous?.registries && state.config === previous?.config && state.translations === previous?.translations
+        ? app.currentHome : mapHome(state.states, state.registries, "home", state.config, entityCache, state.translations);
       app = appSnapshot(client, state, currentHome);
       previous = state;
     }
     return app;
   }
-  return { getSnapshot, subscribe: client.subscribe, start: client.start, dispose: client.dispose };
+  return { getSnapshot, subscribe: client.subscribe, start: client.start, dispose: client.dispose, setLanguage: client.setLanguage };
 }
 
-export const AppStoreContext = createContext<ReturnType<typeof createAppStore> | null>(null);
+export { AppStoreContext };
 // Vehicle controls can override command routing for their subtree.
 export const AppContext = createContext<AppSnapshot | null>(null);
 const noSubscription = () => () => {};

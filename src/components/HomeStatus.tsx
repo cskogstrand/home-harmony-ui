@@ -6,7 +6,7 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { entityDetailPath } from "@/lib/device-model";
-import { entityStateLabel } from "@/lib/ha-model";
+import { entityReading, entityStateLabel } from "@/lib/ha-model";
 import { defaultHomeStatusSources, homeReadingState, homeStatusGroup, homeStatusGroups, type HomeStatusGroup } from "@/lib/home-status";
 import type { Entity } from "@/types/api";
 import { EntityPicker } from "./EntityPicker";
@@ -28,7 +28,7 @@ const examples = {
 } as const satisfies Record<HomeStatusGroup, string>;
 
 export function HomeStatus({ card = false }: { card?: boolean }) {
-  const { t, number, language } = useI18n();
+  const { t, number, language, reading: formatReading } = useI18n();
   const { currentHome, homeOnline, connectionStatus } = useApp();
   const { dashboard, setDashboard, selectedAlarm } = useFamily();
   const shared = useSharedConfiguration();
@@ -74,8 +74,8 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
   const label = [t("Home status"), summary].join(" · ");
   function readingValue(entity?: Entity) {
     if (!live || !entity || homeReadingState(entity) === "unavailable") return t("No reading");
-    if (entity.domain === "climate") return [number(Number(entity.attributes.current_temperature)), currentHome.temperatureUnit].filter(Boolean).join(" ");
-    return [entityStateLabel(entity, language), entity.domain === "sensor" && entity.attributes.unit_of_measurement].filter(Boolean).join(" ");
+    if (entity.domain === "climate") return formatReading(Number(entity.attributes.current_temperature), { unit: currentHome.temperatureUnit, deviceClass: "temperature" });
+    return entity.domain === "sensor" ? entityReading(entity, language) : entityStateLabel(entity, language);
   }
   function readingRow(r: typeof readings[number]) {
     const room = r.entity && r.entity.areaId !== "unassigned" && currentHome.areas.find(area => area.id === r.entity.areaId)?.name;

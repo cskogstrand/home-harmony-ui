@@ -48,7 +48,7 @@ function LightColorControl({ entity, disabled, commit }: { entity: Entity; disab
   </form>;
 }
 export function DeviceControl({ entity, card = false, setting = false, cabinMode, cabinSetpoint }: { entity: Entity; card?: boolean; setting?: boolean; cabinMode?: string; cabinSetpoint?: number | null }) {
-  const { t, message, language, number } = useI18n();
+  const { t, message, language, number, reading } = useI18n();
   const homeOnline = useApp(app => app.homeOnline);
   const command = useApp(app => app.command);
   const services = useApp(app => app.services);
@@ -150,7 +150,7 @@ export function DeviceControl({ entity, card = false, setting = false, cabinMode
   </LightCard> : entity.domain === "climate" ? <ClimateCard name={entity.name} value={reported ? temperature : undefined} unit={temperatureUnit ?? ""}
     min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? .1}
     set={supports("temperature") ? value => send("temperature", value) : undefined}
-    caption={reported && currentTemperature !== undefined ? `${status} · ${t("Inside")} ${number(currentTemperature)}${temperatureUnit ?? ""}` : status}>
+    caption={reported && currentTemperature !== undefined ? `${status} · ${t("Inside")} ${reading(currentTemperature, { unit: temperatureUnit, deviceClass: "temperature" })}` : status}>
     {variant !== "Super compact" && climateMode}{climateMore.length > 0 && <More>{climateMore}</More>}
   </ClimateCard> : entity.domain === "cover" ? <CoverCard position={reported ? position : undefined} tilt={numberValue(entity.attributes.current_tilt_position) ?? 0}>
     {showState && <Readout value={status} caption="" />}{coverControls}

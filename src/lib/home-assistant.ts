@@ -10,6 +10,7 @@ import { available, emptyRegistries, entityCommand, feature, mapHome, supportsAc
 import { mediaBrowserSchema, sonosQueueSchema, type MediaItem } from "./sonos";
 import { playCameraStream } from "./camera-stream";
 import { MessageError } from "./i18n";
+import { fetchTranslations, noTranslations, type HaTranslations } from "./ha-translations";
 import type { NotificationEvent } from "./notifications";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
@@ -26,6 +27,8 @@ interface Snapshot {
   config?: HassConfig;
   user?: HassUser;
   services: HassServices;
+  /** Home Assistant names and state labels for the dashboard language; empty until loaded or when unavailable. */
+  translations: HaTranslations;
   commands: Record<string, CommandStatus & { items?: Record<string, CommandStatus> }>;
 }
 const calendarDate = z.string().refine(value => /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(value) && Number.isFinite(Date.parse(value)));
@@ -70,9 +73,12 @@ export class HomeAssistantClient {
   private fresh = false;
   private metadataReady = false;
   private metadataVersion = 0;
+  private language?: string;
+  // One request per language for this screen; failures are dropped so a reconnect can retry.
+  private translationRequests = new Map<string, Promise<HaTranslations>>();
 
   constructor() {
-    this.snapshot = { url: "", status: "disconnected", error: "", warnings: [], states: {}, registries: emptyRegistries, entityRegistryAvailable: false, services: {}, commands: {} };
+    this.snapshot = { url: "", status: "disconnected", error: "", warnings: [], states: {}, registries: emptyRegistries, entityRegistryAvailable: false, services: {}, translations: noTranslations, commands: {} };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -119,6 +125,7 @@ export class HomeAssistantClient {
         this.metadataReady = false;
         this.update({ status: "syncing", error: "" });
         void this.loadMetadata(conn, generation);
+        void this.loadTranslations(conn, generation);
       };
       const disconnected = () => {
         if (!current()) return;
@@ -170,6 +177,29 @@ export class HomeAssistantClient {
         error: error instanceof Error && error.message === "unsupported-version" ? "Home Assistant 2023.9 or newer is required." : connectionError(error) });
     }
   };
+  /** Selects the dashboard language for Home Assistant names and states. Cached languages apply immediately. */
+  setLanguage = (language: string) => {
+    if (language === this.language) return;
+    this.language = language;
+    // Never show another language's labels while this one loads.
+    if (this.snapshot.translations !== noTranslations) this.update({ translations: noTranslations });
+    if (this.connection?.connected) void this.loadTranslations(this.connection, this.generation);
+  };
+  private async loadTranslations(conn: Connection, generation: number) {
+    const language = this.language;
+    if (!language) return;
+    let request = this.translationRequests.get(language);
+    if (!request) {
+      const pending = bounded(fetchTranslations(conn, language));
+      this.translationRequests.set(language, pending);
+      pending.catch(() => { if (this.translationRequests.get(language) === pending) this.translationRequests.delete(language); });
+      request = pending;
+    }
+    try {
+      const translations = await request;
+      if (generation === this.generation && language === this.language && translations !== this.snapshot.translations) this.update({ translations });
+    } catch { /* Translations are optional; the app's own labels remain. */ }
+  }
   private async loadMetadata(conn: Connection, generation: number) {
     const epoch = this.epoch;
     const version = ++this.metadataVersion;

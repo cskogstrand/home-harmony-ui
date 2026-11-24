@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createI18n, MessageError, msg } from "@/lib/i18n";
 import { nb } from "@/locales/nb";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
-import { entityStateLabel, mapHome, emptyRegistries } from "@/lib/ha-model";
+import { entityReading, entityStateLabel, mapHome, emptyRegistries } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
 it("defaults older backups to English and validates server languages", () => {
@@ -92,6 +92,36 @@ describe("device readings", () => {
     }, emptyRegistries, "home");
     expect(home.entities[0].name).toBe("Home");
     expect(home.entities.map(entity => entityStateLabel(entity, "nb"))).toEqual(["På", "21,123456", "Åpen", "Tørt", "Avfukting", "My custom value"]);
+  });
+
+  it("rounds readings by display precision, then by quantity, in each language", () => {
+    const { reading: nbReading } = createI18n("nb"), { reading: enReading } = createI18n("en");
+    expect(nbReading(20.37, { unit: "°C" })).toBe("20,4 °C");
+    expect(enReading(20.37, { unit: "°C" })).toBe("20.4 °C");
+    expect(nbReading(-2.44, { deviceClass: "temperature", unit: "°C" })).toBe("−2,4 °C");
+    expect(nbReading(20.37, { unit: "°C", precision: 2 })).toBe("20,37 °C");
+    expect(nbReading(20, { unit: "°C", precision: 1 })).toBe("20,0 °C");
+    expect(enReading(1234.56, { unit: "W" })).toBe("1,235 W");
+    expect(enReading(3.456, { unit: "kWh" })).toBe("3.46 kWh");
+    expect(enReading(12.345, { unit: "kW" })).toBe("12.3 kW");
+    expect(enReading(1013.25, { unit: "hPa" })).toBe("1,013.25 hPa");
+  });
+
+  it("puts one no-break space before units, but attaches percent and bare degrees", () => {
+    const { reading } = createI18n("nb");
+    expect(reading(45, { unit: "%" })).toBe("45%");
+    expect(reading(270, { unit: "°" })).toBe("270°");
+    expect(reading(3.5, { unit: "m/s" })).toBe("3,5 m/s");
+    expect(reading(7)).toBe("7");
+  });
+
+  it("uses the entity registry's display precision before the integration's suggestion", () => {
+    const sensor = (options: Record<string, unknown>) => mapHome({ "sensor.example_temperature": state("sensor.example_temperature", "20.37", { unit_of_measurement: "°C", device_class: "temperature" }) },
+      { ...emptyRegistries, entities: [{ id: "temperature-entry", entity_id: "sensor.example_temperature", options: { sensor: options } }] }, "home").entities[0];
+    expect(entityStateLabel(sensor({}), "nb")).toBe("20,4");
+    expect(entityStateLabel(sensor({ suggested_display_precision: 2 }), "nb")).toBe("20,37");
+    expect(entityStateLabel(sensor({ suggested_display_precision: 2, display_precision: 0 }), "en")).toBe("20");
+    expect(entityReading(sensor({}), "nb")).toBe("20,4 °C");
   });
 });
 

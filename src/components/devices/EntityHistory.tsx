@@ -3,6 +3,8 @@ import type { Entity } from "@/types/api";
 import { usePageActive } from "@/contexts/PageActivityContext";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
+import { readingFormat } from "@/lib/ha-model";
+import { readingDigits, withUnit } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { ChartNoAxesCombined } from "lucide-react";
 
@@ -35,12 +37,14 @@ export function EntityHistory({ entity, icon = false, trend = false }: { entity:
     const command = gap ? "M" : "L"; gap = false;
     return `${command}${x(point.time)},${y(point.value)}`;
   }).join(" ");
+  const amount = (value: number) => number(value, readingDigits(value, readingFormat(entity)));
+  const reading = (value: number) => withUnit(amount(value), entity.attributes.unit_of_measurement);
   const time = (value: number) => new Intl.DateTimeFormat(locale, { timeZone: timeZone, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(value);
   const label = t("History for {name}", { name: entity.name });
   const chart = <>
     {!homeOnline || !history || !values.length ? <p role="status">{t(!homeOnline ? "Offline" : history === undefined ? "Loading history…" : history === null ? "History unavailable" : "No numeric history available.")}</p> : <>
-      <svg className="smart-history" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label={t("Recorded history for {name}", { name: entity.name })}><title>{`${time(start)} – ${time(end)} · ${number(min)}–${number(max)} ${String(entity.attributes.unit_of_measurement ?? "")}`}</title><path d={path} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />{isolated.map((point, index) => <path key={index} d={`M${x(point.time)},${y(point.value)}h0`} stroke="currentColor" strokeWidth="5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />)}</svg>
-      <div className="smart-history-range"><span>{time(start)}</span><span>{time(end)}</span></div><p>{t("Low")} {number(min)} · {t("High")} {number(max)} {String(entity.attributes.unit_of_measurement ?? "")}</p>
+      <svg className="smart-history" viewBox="0 0 300 100" preserveAspectRatio="none" role="img" aria-label={t("Recorded history for {name}", { name: entity.name })}><title>{`${time(start)} – ${time(end)} · ${amount(min)}–${reading(max)}`}</title><path d={path} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />{isolated.map((point, index) => <path key={index} d={`M${x(point.time)},${y(point.value)}h0`} stroke="currentColor" strokeWidth="5" strokeLinecap="round" vectorEffect="non-scaling-stroke" />)}</svg>
+      <div className="smart-history-range"><span>{time(start)}</span><span>{time(end)}</span></div><p>{t("Low")} {reading(min)} · {t("High")} {reading(max)}</p>
     </>}{history === null && homeOnline && <Button variant="outline" onClick={() => setRetry(value => value + 1)}>{t("Retry")}</Button>}
   </>;
   if (trend) return <div className="meter-trend">{chart}</div>;
