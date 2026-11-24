@@ -38,12 +38,12 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 | # | Workstream | Priority | Depends on | Status |
 |---|---|---|---|---|
 | 00 | [Preflight](00-preflight.md) | — | — | ✅ |
-| 01 | [Calendar week grid readability](01-calendar-week-grid.md) | P1 | 00 | ⬜ |
-| 02 | [Artwork mode: selected states and patches](02-artwork-selected-states.md) | P1 | 00 | ⬜ |
-| 03 | [Header, bell badge and Today first screen](03-header-and-bell.md) | P1 | 00 | ⬜ |
-| 04 | [Move admin pages into Settings](04-admin-to-settings.md) | P2 | 00 | ⬜ |
-| 05 | [Home Assistant language, numbers and noise](05-ha-language-and-numbers.md) | P2 | 00 | ⬜ |
-| 06 | [Scenes and alarm consistency](06-scenes-and-alarm.md) | P2 | 00 | ⬜ |
+| 01 | [Calendar week grid readability](01-calendar-week-grid.md) | P1 | 00 | 🚧 light theme and artwork-on browser check left for 13 |
+| 02 | [Artwork mode: selected states and patches](02-artwork-selected-states.md) | P1 | 00 | ✅ |
+| 03 | [Header, bell badge and Today first screen](03-header-and-bell.md) | P1 | 00 | ✅ |
+| 04 | [Move admin pages into Settings](04-admin-to-settings.md) | P2 | 00 | ✅ |
+| 05 | [Home Assistant language, numbers and noise](05-ha-language-and-numbers.md) | P2 | 00 | ✅ |
+| 06 | [Scenes and alarm consistency](06-scenes-and-alarm.md) | P2 | 00 | ✅ |
 | 07 | [Ask the house (Assist)](07-assist.md) | Feature | 04, 05 | ⬜ |
 | 08 | [Activity feed](08-activity-feed.md) | Feature | 04 | ⬜ |
 | 09 | [Energy now and electricity price](09-energy-now-and-price.md) | Feature | 05 | ⬜ |
