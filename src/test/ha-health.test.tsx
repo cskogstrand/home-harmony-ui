@@ -8,6 +8,7 @@ import { AppContext } from "@/contexts/AppContext";
 import { HaHealthContext, noHealth, useHaHealth, type HaHealth } from "@/contexts/HaHealthContext";
 import { FamilyContext } from "@/contexts/FamilyContext";
 import { HaHealthSettings } from "@/components/HaHealthSettings";
+import { HomeStatus } from "@/components/HomeStatus";
 import { MemoryRouter } from "react-router-dom";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { HEALTH_REFRESH_MS, HaHealthProvider } from "@/contexts/HaHealthProvider";
@@ -360,5 +361,47 @@ describe("Home Assistant health settings", () => {
     expect(screen.queryByRole("heading", { name: "Notifications from Home Assistant" })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByText("Repairs and backup status need a Home Assistant administrator token on the dashboard server.")).toBeVisible();
+  });
+});
+
+describe("Home status maintenance", () => {
+  const homeApp = (entities = {}) => ({ homeOnline: true, connectionStatus: "connected", currentHome: mapHome(entities, emptyRegistries, "home") });
+  const withItems = (value: { repairs?: unknown; backup?: Record<string, unknown> }): HaHealth => {
+    const health = {
+      repairs: parseRepairs(value.repairs ?? { issues: [] }),
+      backup: parseBackupInfo(backup(value.backup)),
+    };
+    return { ...noHealth, checkedAt: now, repairs: { status: "ready", value: health.repairs }, backup: { status: "ready", value: health.backup }, items: maintenanceItems(health, now) };
+  };
+  const view = (value: HaHealth, { sources = [] as string[], entities = {}, card = false } = {}) => render(<MemoryRouter><AppContext.Provider value={homeApp(entities) as never}>
+    <FamilyContext.Provider value={{ dashboard: { statusSources: sources }, setDashboard: vi.fn(), selectedAlarm: "" } as never}>
+      <HaHealthContext.Provider value={value}><HomeStatus card={card} /></HaHealthContext.Provider>
+    </FamilyContext.Provider></AppContext.Provider></MemoryRouter>);
+
+  it("counts error and critical repairs and backup problems, linking each to Home Assistant health", () => {
+    view(withItems({ repairs, backup: { last_completed_automatic_backup: iso(-50), last_attempted_automatic_backup: iso(-50) } }));
+    fireEvent.click(screen.getByRole("button", { name: "Home status · 3 issues" }));
+    const rows = within(screen.getByRole("dialog", { name: "Home status" })).getAllByRole("link");
+    expect(rows.map(row => row.textContent)).toEqual(["Example criticalHome AssistantCritical", "Example errorHome AssistantError", "Automatic backupHome AssistantMore than 2 days old"]);
+    expect(rows.every(row => row.getAttribute("href") === "/settings/ha-health")).toBe(true);
+  });
+
+  it("stays calm for warnings, ignored repairs and notifications", () => {
+    view(withItems({ repairs: { issues: [issue("example_warning", "warning"), issue("example_ignored", "critical", { ignored: true })] } }),
+      { sources: ["home|binary_sensor.example_smoke"], entities: { "binary_sensor.example_smoke": state("binary_sensor.example_smoke", "off", { device_class: "smoke" }) } });
+    const button = screen.getByRole("button", { name: "Home status · No issues reported" });
+    expect(button.querySelector(".header-badge")).toBeNull();
+  });
+
+  it("puts safety alerts ahead of maintenance and shows maintenance on the Today card", () => {
+    const failed = withItems({ backup: { last_attempted_automatic_backup: iso(-1) } });
+    const { unmount } = view(failed, { card: true });
+    expect(screen.getByRole("button", { name: /Home status · 1 issue.*Automatic backup · Failed/ })).toBeVisible();
+    unmount();
+    view(failed, { sources: ["home|binary_sensor.example_smoke"], entities: { "binary_sensor.example_smoke": state("binary_sensor.example_smoke", "on", { device_class: "smoke", friendly_name: "Example smoke alarm" }) } });
+    fireEvent.click(screen.getByRole("button", { name: "Home status · 2 issues" }));
+    expect(within(screen.getByRole("dialog")).getAllByRole("listitem").map(item => item.textContent)).toEqual([
+      expect.stringContaining("Example smoke alarm"), expect.stringContaining("Automatic backup"),
+    ]);
   });
 });

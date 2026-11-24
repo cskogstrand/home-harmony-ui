@@ -4,9 +4,11 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
+import { useHaHealth } from "@/contexts/HaHealthContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { entityDetailPath } from "@/lib/device-model";
 import { entityReading, entityStateLabel } from "@/lib/ha-model";
+import { fallbackRepairTitle, type MaintenanceItem } from "@/lib/ha-health";
 import { defaultHomeStatusSources, homeReadingState, homeStatusGroup, homeStatusGroups, type HomeStatusGroup } from "@/lib/home-status";
 import type { Entity } from "@/types/api";
 import { EntityPicker } from "./EntityPicker";
@@ -26,11 +28,19 @@ const examples = {
   lighting: "Lights and illuminance", appliances: "Appliance switches, cycles and robots", outdoors: "Weather, rainfall and garden sensors",
   maintenance: "Batteries, connectivity and updates",
 } as const satisfies Record<HomeStatusGroup, string>;
+type Reading = { id: string; entity?: Entity; group: Group; state: ReturnType<typeof homeReadingState> };
+// Safety alerts first, then other alerts and Home Assistant maintenance, then missing readings.
+const readingPriority = (reading: Reading) => reading.state === "unavailable" ? 2 : ["fire", "water", "security"].includes(reading.group) ? 0 : 1;
+type Issue = { kind: "reading"; reading: Reading } | { kind: "health"; item: MaintenanceItem };
+const healthLabels = {
+  failed: ["Automatic backup", "Failed"], stale: ["Automatic backup", "More than 2 days old"], "agent-errors": ["Backup location", "Error"],
+} as const;
 
 export function HomeStatus({ card = false }: { card?: boolean }) {
   const { t, number, language, reading: formatReading } = useI18n();
   const { currentHome, homeOnline, connectionStatus } = useApp();
   const { dashboard, setDashboard, selectedAlarm } = useFamily();
+  const health = useHaHealth();
   const shared = useSharedConfiguration();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"overview" | "readings" | "sources" | Group>("overview");
@@ -43,41 +53,54 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
     const sources = dashboard.statusSources ?? defaultHomeStatusSources(currentHome.entities, selectedAlarm);
     const selected = new Set(sources);
     const byId = new Map(currentHome.entities.filter(e => selected.has(e.preferenceId)).map(e => [e.preferenceId, e]));
-    const readings = sources.map(id => {
+    const readings = sources.map((id): Reading => {
       const entity = byId.get(id);
       return { id, entity, group: entity && homeStatusGroup(entity) || "missing" as const, state: homeReadingState(entity) };
     });
-    const issuePriority = (reading: typeof readings[number]) => {
-      if (reading.state === "unavailable") return 2;
-      return ["fire", "water", "security"].includes(reading.group) ? 0 : 1;
-    };
-    const issues = readings.filter(r => r.state !== "reported").sort((a, b) => issuePriority(a) - issuePriority(b));
+    const issues = readings.filter(r => r.state !== "reported").sort((a, b) => readingPriority(a) - readingPriority(b));
     return { sources, readings, issues };
   }, [currentHome.entities, dashboard.statusSources, selectedAlarm]);
   const loading = shared && !shared.state.loaded && !shared.state.error || ["connecting", "syncing"].includes(connectionStatus);
   const offline = !homeOnline || shared && !shared.state.loaded;
   const live = !loading && !offline;
-  const count = live ? issues.length : 0;
-  const status = loading ? "loading" : offline ? "offline" : !sources.length ? "setup" : count ? "attention" : "healthy";
+  // Only actionable Home Assistant maintenance joins the readings: error and critical repairs and backup problems.
+  const attention: Issue[] = live ? [...issues.map(reading => ({ kind: "reading" as const, reading })), ...health.items.map(item => ({ kind: "health" as const, item }))]
+    .sort((a, b) => (a.kind === "reading" ? readingPriority(a.reading) : 1) - (b.kind === "reading" ? readingPriority(b.reading) : 1)) : [];
+  const count = attention.length;
+  const status = loading ? "loading" : offline ? "offline" : count ? "attention" : !sources.length ? "setup" : "healthy";
   const StatusIcon = statusIcons[status];
   const tone = status === "healthy" || status === "attention" ? status : "neutral";
   let scene: string = status;
-  if (status === "attention") {
-    const first = issues[0];
+  const first = attention[0]?.kind === "reading" ? attention[0].reading : undefined;
+  if (first) {
     if (first.state === "unavailable") scene = "missing";
     else if (first.group === "fire" || first.entity?.domain === "alarm_control_panel") scene = "alarm";
     else if (first.group === "water") scene = "leak";
     else if (first.entity?.attributes.device_class === "battery") scene = "battery";
   }
-  const summary = loading ? t("Checking home status…") : offline ? t("Home status unavailable") : !sources.length ? t("No sources selected")
-    : count ? t(count === 1 ? "1 issue" : "{count} issues", { count }) : t("No issues reported");
+  const summary = loading ? t("Checking home status…") : offline ? t("Home status unavailable")
+    : count ? t(count === 1 ? "1 issue" : "{count} issues", { count }) : !sources.length ? t("No sources selected") : t("No issues reported");
   const label = [t("Home status"), summary].join(" · ");
   function readingValue(entity?: Entity) {
     if (!live || !entity || homeReadingState(entity) === "unavailable") return t("No reading");
     if (entity.domain === "climate") return formatReading(Number(entity.attributes.current_temperature), { unit: currentHome.temperatureUnit, deviceClass: "temperature" });
     return entity.domain === "sensor" ? entityReading(entity, language) : entityStateLabel(entity, language);
   }
-  function readingRow(r: typeof readings[number]) {
+  function healthText(item: MaintenanceItem) {
+    if (item.kind === "repair") return { name: item.issue.title ?? fallbackRepairTitle(item.issue), value: t(item.issue.severity === "critical" ? "Critical" : "Error") };
+    const [name, value] = healthLabels[item.kind];
+    return { name: t(name), value: t(value) };
+  }
+  function issueRow(issue: Issue) {
+    if (issue.kind === "reading") return readingRow(issue.reading);
+    const { name, value } = healthText(issue.item);
+    return <li key={issue.item.id}><Link to="/settings/ha-health" onClick={() => onOpenChange(false)}>
+      <span className="housing-source-name"><strong>{name}</strong><small>{t("Home Assistant")}</small></span>
+      <span className="housing-issue-value">{value}</span><ChevronRight size={16} aria-hidden="true" /></Link></li>;
+  }
+  const firstIssue = attention[0] && (attention[0].kind === "reading"
+    ? { name: attention[0].reading.entity?.name ?? t("Unavailable"), value: readingValue(attention[0].reading.entity) } : healthText(attention[0].item));
+  function readingRow(r: Reading) {
     const room = r.entity && r.entity.areaId !== "unassigned" && currentHome.areas.find(area => area.id === r.entity.areaId)?.name;
     const name = r.entity?.name ?? r.id.slice(r.id.indexOf("|") + 1);
     const content = <><span className="housing-source-name"><strong>{name}</strong>{room && <small>{room}</small>}</span>
@@ -107,7 +130,7 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
   return <Dialog open={open} onOpenChange={onOpenChange}>
     {card ? count > 0 && <DialogTrigger asChild><button ref={trigger} type="button" className="glow-panel housing-card col-span-full">
       <TriangleAlert aria-hidden="true" /><span><strong>{t("Home status")} · {summary}</strong>
-        <small>{issues[0].entity?.name ?? t("Unavailable")} · {readingValue(issues[0].entity)}</small></span><ChevronRight aria-hidden="true" /></button></DialogTrigger>
+        <small>{firstIssue.name} · {firstIssue.value}</small></span><ChevronRight aria-hidden="true" /></button></DialogTrigger>
       : <DialogTrigger asChild><button type="button" id="home-status-button" className="icon-button glass-surface" data-tone={tone} aria-label={label} title={label}>
         <House size={21} aria-hidden="true" />
         {status !== "healthy" && <span className="header-badge" data-tone={tone} aria-hidden="true"><StatusIcon size={13} strokeWidth={2.6} />{count > 0 && number(count)}</span>}
@@ -131,8 +154,8 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
               <use href={houseArtwork + "#" + scene} />
             </svg>
           </div>
-          {count > 0 && <ul className="housing-readings housing-issues">{issues.slice(0, 3).map(readingRow)}</ul>}
-          {count > 3 && <details className="housing-more"><summary>{t("More issues ({count})", { count: count - 3 })}</summary><ul className="housing-readings">{issues.slice(3).map(readingRow)}</ul></details>}
+          {count > 0 && <ul className="housing-readings housing-issues">{attention.slice(0, 3).map(issueRow)}</ul>}
+          {count > 3 && <details className="housing-more"><summary>{t("More issues ({count})", { count: count - 3 })}</summary><ul className="housing-readings">{attention.slice(3).map(issueRow)}</ul></details>}
           <div className="housing-actions">
             {!!sources.length && <button type="button" data-to="readings" onClick={() => setView("readings")}>{t("View readings")}<ChevronRight size={16} aria-hidden="true" /></button>}
             <button type="button" data-to="sources" onClick={() => setView("sources")}><SlidersHorizontal size={16} aria-hidden="true" />{t("Manage sources")}</button>
