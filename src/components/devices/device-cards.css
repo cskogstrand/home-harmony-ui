@@ -340,6 +340,12 @@
 .dg-scene-action > span { flex: 1; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 .dg-card .dg-scene-action > svg { width: 1.5rem; height: 1.5rem; color: hsl(var(--primary)); }
 .dg-card .dg-scene-action:hover:not(:disabled) { background: hsl(var(--primary) / .22); }
+/* Two scene tiles side by side on a phone: give the name the room instead of breaking words. */
+.dg-card.dg-supercompact[data-card-kind="scene"] { container: scene-tile / inline-size; }
+@container scene-tile (max-width: 12rem) {
+  .dg-card .dg-scene-action { padding: .75rem; gap: .5rem; }
+  .dg-card .dg-scene-action > svg:last-child { display: none; }
+}
 .dg-supercompact[data-card-kind="scene"]:has(.dg-scene-action) > :is(.smart-card-readings, .smart-supporting-media, .dg-state-message, .dg-card-footer), .dg-supercompact[data-card-kind="scene"] .dg-card-body > :is(.dg-readout, p) { margin: .5rem .75rem; }
 .dg-supercompact[data-card-kind="scene"] .dg-readout strong { font-size: .875rem; }
 .dg-supercompact:has(.dg-adjust-trigger) .dg-card-header { padding-right: 48px; }
