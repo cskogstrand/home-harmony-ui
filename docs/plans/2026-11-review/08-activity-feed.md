@@ -26,7 +26,7 @@ Include by default: doors/garage doors/windows (open/close), locks, alarm state 
 
 ## Checklist
 
-- [ ] Client: `subscribeLogbook({ start, entityIds })` returning an unsubscribe; reconnect-safe; bounded backfill (for example last 24 h).
+- [x] Client: `subscribeLogbook({ start, entityIds })` returning an unsubscribe; reconnect-safe; bounded backfill (for example last 24 h).
 - [ ] Pure function `curateActivity(events, entities, preferences)` → display items (icon, sentence, relative time, entity link). Unit-tested with fictional events.
 - [ ] Sentences come from i18n templates per class ("{name} opened", "{name} finished", "{name} docked"), not HA's raw message, so Bokmål reads naturally; fall back to HA's `message` for unknown classes in the full log only.
 - [ ] Curated panel "Recent at home" (max ~6 items, newest first, collapses same-entity flapping within 2 minutes). Empty state distinguishes "nothing happened" from "activity unavailable".
