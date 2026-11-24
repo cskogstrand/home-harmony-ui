@@ -25,8 +25,8 @@
 - [x] Unit spacing consistent with locale (`−2,4 °C` in nb); pick one rule and apply everywhere.
   > Rule (`withUnit` in `src/lib/i18n.ts`): a no-break space before every unit in both languages; `%` and an angle's bare `°` attach to the number. Large dial/readout numerals that set the unit in a separate `<small>` keep their composition. Notification progress (`NotificationCenter`, `NotificationProgress`) was left to workstream 03's files; its percentages already follow the rule.
 - [x] Areas: hide zero counts ("0 lights on") — show the count only when > 0, otherwise nothing or a neutral "All off" only if it adds meaning.
-- [ ] Tests with fictional entities: translation_key mapping, user name precedence, number precision per device class and locale.
-- [ ] Update DESIGN.md (number formatting rule) and DOCS.md if it mentions language behaviour.
+- [x] Tests with fictional entities: translation_key mapping, user name precedence, number precision per device class and locale.
+- [x] Update DESIGN.md (number formatting rule) and DOCS.md if it mentions language behaviour.
 
 ## Acceptance
 
