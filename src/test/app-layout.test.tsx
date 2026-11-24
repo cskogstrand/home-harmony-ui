@@ -124,7 +124,8 @@ it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device 
 
 it("reveals the selected destination inside its row without scrolling the page", () => {
   render(<MemoryRouter initialEntries={["/home"]}><SmartHomeNav /></MemoryRouter>);
-  const nav = screen.getByRole("navigation", { name: "Smart home navigation" });
+  const nav = screen.getByRole("link", { name: "Cameras" }).parentElement!;
+  expect(nav).not.toContainElement(screen.getByRole("button", { name: "More controls" }));
   Object.defineProperties(nav, { clientWidth: { value: 320 }, scrollWidth: { value: 800 } });
   vi.spyOn(nav, "getBoundingClientRect").mockReturnValue(new DOMRect(16, 0, 320, 48));
   const cameras = screen.getByRole("link", { name: "Cameras" });

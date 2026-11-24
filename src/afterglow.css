@@ -604,8 +604,10 @@ fieldset.settings-card > legend + * { clear: both; }
 .school-reminder { border-block: 1px solid hsl(var(--border)); padding-block: 21px; margin-bottom: 9px; }
 .school-reminder p { margin-top: 10px; line-height: 1.7; color: hsl(var(--muted-foreground)); font-size: 0.9375rem; }
 .school-card .planner-form { margin-top: 15px; }
-.smart-nav { display: flex; overflow-x: auto; scrollbar-width: thin; align-items: center; gap: .4rem; padding: 0 0 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid hsl(var(--border)); }
-.smart-nav > * { flex-shrink: 0; white-space: nowrap; }
+.smart-nav { display: flex; min-width: 0; align-items: center; gap: .4rem; padding: 0 0 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid hsl(var(--border)); }
+.smart-nav-links { display: flex; align-items: center; gap: inherit; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.smart-nav-links > *, .smart-more { flex: none; white-space: nowrap; }
+.smart-more-short { display: none; }
 .smart-nav :is(a, button):focus-visible { outline-offset: -3px; }
 .smart-nav a { display: flex; align-items: center; gap: .5rem; padding: .65rem .8rem; min-height: 48px; font-size: .9375rem; color: hsl(var(--muted-foreground)); border-radius: var(--radius-capsule); }
 .smart-nav a[aria-current="page"] { font-weight: 600; color: hsl(var(--primary)); background: hsl(var(--secondary)); }
@@ -906,7 +908,8 @@ fieldset.settings-card > legend + * { clear: both; }
   .smart-nav { gap: .25rem; padding-bottom: .5rem; margin-bottom: 1rem; }
   .smart-nav a, .smart-more > button { font-size: .8125rem; padding: .5rem; }
   .smart-nav a svg { width: 16px; }
-  .smart-more { margin-left: 0; }
+  .smart-more-full { display: none; }
+  .smart-more-short { display: inline; }
   .favorite-heading-actions { gap: .75rem; flex-wrap: wrap; }
   .favorite-heading-actions .text-link { font-size: .8125rem; }
   .compact-mode { --panel-space: .75rem; }

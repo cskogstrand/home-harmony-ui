@@ -1,4 +1,5 @@
 export const nb = {
+  "More": "Flere",
   "Last 24 hours": "Siste døgn",
   "Pinned meters": "Festede målere",
   "Choose up to three meters": "Velg opptil tre målere",

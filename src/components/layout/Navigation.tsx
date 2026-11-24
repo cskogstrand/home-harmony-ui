@@ -22,14 +22,15 @@ export function SmartHomeNav() {
   const { haUrl } = useApp();
   const { t, message } = useI18n();
   const { pathname } = useLocation();
-  const nav = useRevealSelection<HTMLElement>(pathname);
+  const nav = useRevealSelection<HTMLDivElement>(pathname);
   const current = pathname.toLowerCase();
   const active = (path: string) => current === path || current.startsWith(`${path}/`) || path === "/devices" && current.startsWith("/entities/");
   const selectedMore = moreItems.find(item => active(item.path));
-  return <nav ref={nav} className="smart-nav" aria-label={t("Smart home navigation")}>
-    {smartItems.map(item => <Link key={item.path} to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>)}
+  const moreLabel = selectedMore ? message(selectedMore.label) : t("More controls");
+  return <nav className="smart-nav" aria-label={t("Smart home navigation")}>
+    <div ref={nav} className="smart-nav-links">{smartItems.map(item => <Link key={item.path} to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>)}</div>
     <div className="smart-more"><DropdownMenu>
-      <DropdownMenuTrigger data-active={!!selectedMore}>{selectedMore ? message(selectedMore.label) : t("More controls")}<ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>
+      <DropdownMenuTrigger data-active={!!selectedMore} aria-label={moreLabel}><span className="smart-more-full">{moreLabel}</span><span className="smart-more-short" aria-hidden="true">{selectedMore ? moreLabel : t("More")}</span><ChevronDown size={16} aria-hidden="true" /></DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="smart-menu">{moreItems.map(item => <DropdownMenuItem asChild key={item.path}>{haUrl && ["/history", "/integrations"].includes(item.path) ? <a href={`${haUrl}${item.path === "/history" ? "/history" : "/config/integrations"}`} target="_blank" rel="noreferrer"><item.icon size={18} aria-hidden="true" />{message(item.label)} <span className="text-xs">{t("Home Assistant")}</span> <ExternalLink size={14} aria-label={t("Opens in a new tab")} /></a> : <Link to={item.path} aria-current={active(item.path) ? "page" : undefined}><item.icon size={18} aria-hidden="true" />{message(item.label)}</Link>}</DropdownMenuItem>)}</DropdownMenuContent>
     </DropdownMenu></div>
   </nav>;
