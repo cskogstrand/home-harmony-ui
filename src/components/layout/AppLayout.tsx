@@ -4,6 +4,7 @@ import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useMatch, type Location } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
+import { sonosMusicDestinations, sonosPlayers } from "@/lib/sonos";
 import { MainPages } from "./MainPages";
 import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
@@ -21,7 +22,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { HomeStatus } from "@/components/HomeStatus";
 import { NotificationBell, NotificationCamera } from "@/components/NotificationCenter";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Check, LoaderCircle, Moon, Music2, RefreshCw, Settings, TriangleAlert, X } from "lucide-react";
+import { Camera, Check, LoaderCircle, Moon, Music2, Play, RefreshCw, Settings, TriangleAlert, X } from "lucide-react";
 
 const ArtworkDefinitions = lazy(() => import("@/components/ArtworkDefinitions"));
 
@@ -35,7 +36,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   }, []);
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
-  const { currentUser } = useApp();
+  const { currentUser, currentHome, homeOnline } = useApp();
+  const musicPlaying = homeOnline && sonosMusicDestinations(sonosPlayers(currentHome.entities)).some(({ player }) => player.state === "playing");
+  const musicLabel = musicPlaying ? t("Sonos · Music playing") : t("Sonos");
   const { saved, memberName, appearance, smartHome } = useFamily();
   const shared = useSharedConfiguration();
   const timetableError = shared?.state.timetableError;
@@ -60,7 +63,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
     </div>}
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <VehicleWidgets /><WeatherWidget placement="header" /><div className="header-actions">
-        <Link to="/sonos" className="icon-button glass-surface" aria-label={t("Sonos")} title={t("Sonos")}><Music2 size={20} aria-hidden="true" /></Link>
+        <Link to="/sonos" className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
+          <Music2 size={20} aria-hidden="true" />{musicPlaying && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
+        </Link>
         <Link to="/cameras" className="icon-button glass-surface" aria-label={t("Cameras")} title={t("Cameras")}><Camera size={20} aria-hidden="true" /></Link>
         <HomeStatus /><NotificationBell />
         <div className="relative">

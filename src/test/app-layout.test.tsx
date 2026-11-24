@@ -8,8 +8,9 @@ import { SmartHomeNav } from "@/components/layout/Navigation";
 import { NotificationContext } from "@/contexts/NotificationContext";
 import { notificationRuleSchema } from "../../shared/notifications";
 
+const media = vi.hoisted(() => ({ state: "paused", source: "Radio" }));
 const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: true, currentHome: { name: "Home", entities: [] }, metadataWarnings: [] }) }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, metadataWarnings: [] }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
@@ -17,6 +18,8 @@ vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));
 
 beforeEach(() => {
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+  media.state = "paused";
+  media.source = "Radio";
   shared.enabled = true;
   shared.online = true;
   shared.availableVersion = undefined;
@@ -203,4 +206,20 @@ it.each([
   expect(settings).toHaveAttribute("title", message);
   fireEvent.keyDown(settings, { key: "Enter" });
   expect(screen.getByRole("menuitem", { name: "Storage and backups" })).toHaveAttribute("href", "/settings/backups");
+});
+
+it("shows music playback only while a connected Sonos group plays music", () => {
+  const atSonos = () => <MemoryRouter initialEntries={["/sonos"]}><AppLayout /></MemoryRouter>;
+  const view = render(atSonos());
+  const shortcut = screen.getByRole("banner").querySelector('a[href="/sonos"]');
+  for (const [state, source, online, playing] of [
+    ["playing", "Radio", true, true], ["paused", "Radio", true, false],
+    ["playing", "TV", true, false], ["playing", "Radio", false, false],
+  ] as const) {
+    Object.assign(media, { state, source });
+    shared.online = online;
+    view.rerender(atSonos());
+    expect(shortcut).toHaveAccessibleName(playing ? "Sonos · Music playing" : "Sonos");
+    expect(!!shortcut!.querySelector(".header-badge")).toBe(playing);
+  }
 });

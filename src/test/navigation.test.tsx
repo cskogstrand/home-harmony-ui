@@ -1730,8 +1730,8 @@ it("opens categorized home status and counts both a room alert and a missing rea
   render(<App />); await saved();
   const trigger = screen.getByRole("button", { name: "Home status · 2 issues" });
   expect(trigger.querySelector(":scope > .lucide-house")).toBeInTheDocument();
-  expect(trigger.querySelector(".housing-badge .lucide-triangle-alert")).toBeInTheDocument();
-  expect(trigger.querySelector(".housing-badge")).toHaveTextContent("2");
+  expect(trigger.querySelector(".header-badge .lucide-triangle-alert")).toBeInTheDocument();
+  expect(trigger.querySelector(".header-badge")).toHaveTextContent("2");
   expect(screen.queryByRole("button", { name: /Example detector/ })).toBeNull();
   fireEvent.click(trigger);
   const modal = screen.getByRole("dialog", { name: "Home status" });

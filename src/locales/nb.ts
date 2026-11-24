@@ -1,4 +1,5 @@
 export const nb = {
+  "Sonos · Music playing": "Sonos · Musikk spilles av",
   "Create refill alert": "Opprett påfyllingsvarsel",
   "When the sensor reports a refill is needed, the alert lets you add the item to your shopping list.": "Når sensoren melder at det er tid for påfyll, kan du legge varen på handlelisten fra varselet.",
   "Refill {item}": "Fyll på {item}",

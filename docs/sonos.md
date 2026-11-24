@@ -6,6 +6,8 @@ Open the **Sonos music-note shortcut** in the top-right header, beside the camer
 
 ## Playback across the dashboard
 
+The header music note shows a play badge while a Sonos group plays music. Pausing the last group clears the badge immediately, including during the mini player’s dismissal countdown.
+
 When a native Sonos group plays a source other than TV, one mini player appears above bottom navigation on every screen except settings, user settings, onboarding and the dedicated Sonos page. It offers previous/next, play/pause and balanced group volume. When the last music group pauses or stops, **Hides in 10 s** counts down beside the room selector before the mini player disappears. Playback in any eligible group cancels the countdown. Opening the full player keeps it available; closing it starts a fresh ten seconds if nothing is playing. Old paused or idle sessions alone do not summon it. TV, an unavailable speaker and an offline Home Assistant connection hide it immediately.
 
 Open the mini player's room dropdown to choose a destination. Each option names its rooms, track and playback state; the selected stopped group remains available during the countdown. A visible **playing separately** count identifies multiple independent groups; the menu repeats that count. Choosing a destination only changes which group the controls target; it does not join groups or move music. The mini player follows the navigation dock's rounded shape, with circular artwork, a prominent play/pause button and inline volume.

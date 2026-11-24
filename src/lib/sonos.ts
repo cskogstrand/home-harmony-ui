@@ -29,6 +29,9 @@ export function sonosDestinations(players: Entity[]) {
     return [{ player: group.coordinator ?? player, members: group.members, coordinator: group.coordinator }];
   });
 }
+export function sonosMusicDestinations(players: Entity[]) {
+  return sonosDestinations(players).filter(({ coordinator }) => coordinator && coordinator.attributes.source !== "TV");
+}
 export const volumePercent = (entity: Entity) => {
   const value = numberValue(entity.attributes.volume_level);
   return value === undefined ? undefined : Math.round(Math.max(0, Math.min(1, value)) * 100);

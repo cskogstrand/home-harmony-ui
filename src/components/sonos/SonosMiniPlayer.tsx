@@ -4,7 +4,7 @@ import { useLocation } from "react-router-dom";
 import { AudioLines, ChevronDown, Speaker, Timer } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { sonosDestinations, sonosPlayers } from "@/lib/sonos";
+import { sonosMusicDestinations, sonosPlayers } from "@/lib/sonos";
 import { SonosSession } from "./SonosSession";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -17,9 +17,8 @@ export function SonosMiniPlayer() {
   const [expanded, setExpanded] = useState(false);
   const [seconds, setSeconds] = useState(10);
   const players = sonosPlayers(currentHome.entities);
-  const destinations = sonosDestinations(players).filter(({ coordinator, members }) => coordinator
-    && coordinator.attributes.source !== "TV" && (["playing", "paused"].includes(coordinator.state)
-      || coordinator.state === "idle" && members.some(member => member.entityId === selectedId)));
+  const destinations = sonosMusicDestinations(players).filter(({ player, members }) => ["playing", "paused"].includes(player.state)
+    || player.state === "idle" && members.some(member => member.entityId === selectedId));
   const playing = destinations.filter(({ player }) => player.state === "playing");
   const destination = destinations.find(({ members }) => members.some(member => member.entityId === selectedId)) ?? playing[0];
   const selected = destination?.members.find(member => member.entityId === selectedId) ?? destination?.player;
