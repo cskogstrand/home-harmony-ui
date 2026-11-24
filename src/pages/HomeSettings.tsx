@@ -121,12 +121,13 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
       <p className="break-all">{t("Home Assistant: {value1}", { value1: haUrl || t(busy ? "Loading server configuration…" : "Server address unavailable") })}</p>
       <div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void connect()}>{busy ? t("Connecting…") : t("Reconnect")}</Button><Button variant="outline" onClick={() => setConfirmation({ title: msg("Disconnect Home Assistant?"), description: msg("Pause live controls in this tab until you reconnect or reload? Shared settings remain available."), confirmLabel: msg("Disconnect"), onConfirm: disconnect })}>{t("Disconnect")}</Button></div>
       <p role="status" className="page-note">{t("Connection: {value1}", { value1: message(connectionStatus) })}</p>
+      {!homeOnline && !busy && <p className="page-note">{t("Set your Home Assistant address and token in the HAOS app’s Configuration tab, or the dashboard server’s .env file. The token stays on the server.")}</p>}
       {connectionError && <p role="alert" className="text-destructive">{message(connectionError)}</p>}
       {metadataWarnings.map(warning => <p key={warning} role="alert">{message(warning)}</p>)}
     </section>}
     {section === "people" && <section className="settings-stack" id="people-order"><PanelHeading icon={Users} title={t("People, colors and timetables")} />
       <p className="page-note">{t("Person colors appear in calendars, lists and timetables on every screen.")}</p>
-      {!members.length && <p className="empty-note">{t("No people available.")}</p>}
+      {!members.length && <p className="empty-note">{t("No people available.")} {homeOnline && haUrl && <a className="text-link" href={`${haUrl}/config/person`} target="_blank" rel="noreferrer">{t("Add people in Home Assistant")}</a>}</p>}
       <ol className="settings-stack" aria-label={t("People order")}>{members.map((person, index) => <li key={person.id} className="settings-card flex flex-wrap items-center gap-3">
         <MemberAvatar member={person.id} small /><span className="min-w-0 flex-1 break-words font-medium">{person.name}</span>
         <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
@@ -145,7 +146,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     </section>}
     {section === "calendars" && <section className="settings-stack" id="family-calendar"><PanelHeading icon={CalendarDays} title={t("People and calendars")} />
       {!homeOnline && <p role="status">{t("Calendars unavailable while offline.")}</p>}
-      {homeOnline && !calendars.length && <p className="empty-note">{t("No calendars available.")}</p>}
+      {homeOnline && !calendars.length && <p className="empty-note">{t("No calendars available.")} {haUrl && <a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Add a calendar integration")}</a>}</p>}
       <div className="settings-card space-y-3">
         <PanelTitle as="h3" icon={Trash2}>{t("Waste collection")}</PanelTitle>
         <p id="waste-person-help" className="text-sm text-muted-foreground">{t("Show waste collections for this person in Calendar and Everyone’s day, using the same dates as Waste collection on Today.")}</p>
@@ -178,7 +179,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
     </section>}
     {section === "lists" && <section className="settings-stack" id="family-lists"><PanelHeading icon={ListChecks} title={t("People and to-do lists")} />
       {!homeOnline && <p role="status">{t("Lists unavailable while offline.")}</p>}
-      {homeOnline && !lists.length && <p className="empty-note">{t("No to-do lists available.")}</p>}
+      {homeOnline && !lists.length && <p className="empty-note">{t("No to-do lists available.")} {haUrl && <a className="text-link" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Add a to-do integration")}</a>}</p>}
       {listPeople.map(person => <div key={person.id} role="group" aria-label={t("To-do lists for {value1}", { value1: person.name })} className="settings-card flex flex-wrap items-start gap-3">
         <PanelTitle as="h3" icon={Users} className="w-full">{person.name}</PanelTitle>
         <div className="flex w-full min-w-0 flex-wrap gap-3 sm:w-auto sm:flex-1">{listSelector("tasks", person)}{listSelector("daily", person)}{listSelector("homework", person)}</div>

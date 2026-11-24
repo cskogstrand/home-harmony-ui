@@ -2,6 +2,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { Wifi, Users, CalendarDays, ListChecks, BookOpen, Palette, CheckCircle2, ChevronDown } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Link } from "react-router-dom";
+import { householdSetup, setupSteps } from "@/lib/household-setup";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { PageHeading } from "@/components/FamilyPlanner";
@@ -10,27 +11,14 @@ import { Button } from "@/components/ui/button";
 export default function Onboarding() {
   const { t } = useI18n();
   const { haUrl, homeOnline, currentHome } = useApp();
-  const { members, calendarMembers, todoLists, timetables, timetableSettings, hasTimetable, isMemberVisible } = useFamily();
-  const complete = {
-    connection: homeOnline,
-    people: members.length > 0,
-    calendars: currentHome.entities.some(entity => entity.domain === "calendar" && members.some(person => person.id === calendarMembers[entity.preferenceId])),
-    lists: currentHome.entities.some(entity => {
-      const list = entity.domain === "todo" && todoLists[entity.preferenceId];
-      return list && (list.kind === "shopping" || isMemberVisible(list.member));
-    }),
-    timetables: members.some(person => hasTimetable(person.id) && (timetables[person.id]?.length || timetableSettings[person.id]?.type === "calendar")),
-  };
-  const steps = [
-    { id: "connection", title: "Connection settings", to: "/settings/connection" },
-    { id: "people", title: "Choose people", to: "/settings/people" },
-    { id: "calendars", title: "Choose calendars", to: "/settings/calendars" },
-    { id: "lists", title: "Choose lists", to: "/settings/lists" },
-  ] as const;
-  const next = steps.find(step => !complete[step.id]);
+  const family = useFamily();
+  const { members, hasTimetable, timetables, timetableSettings } = family;
+  const complete = householdSetup(homeOnline, currentHome.entities, family);
+  const timetableComplete = members.some(person => hasTimetable(person.id) && (timetables[person.id]?.length || timetableSettings[person.id]?.type === "calendar"));
+  const next = setupSteps.find(step => !complete[step.id]);
   return <div className="planner-page mx-auto max-w-4xl">
     <PageHeading title={t("Get started")} description={t("Connect your home, then choose what your household shares.")} />
-    <div className="setup-next"><p>{t("{done} of {total} setup steps complete", { done: steps.filter(step => complete[step.id]).length, total: steps.length })}</p>
+    <div className="setup-next"><p>{t("{done} of {total} setup steps complete", { done: setupSteps.filter(step => complete[step.id]).length, total: setupSteps.length })}</p>
       {next ? <><p className="page-note">{t(next.title)}</p><Button asChild><Link to={next.to}>{t("Continue setup")}</Link></Button></> : <p>{t("Your household basics are ready. Timetables are optional.")}</p>}
     </div>
     <ol className="space-y-5" aria-label={t("Household setup")}>
@@ -70,8 +58,8 @@ export default function Onboarding() {
         </div>
       </div>
       </details></li>
-      <li className="glow-panel setup-step" id="timetables"><details open={!complete.timetables}>
-        <summary><PanelTitle icon={BookOpen}>{t("5. Add school timetables ")}<span className="text-sm text-muted-foreground">{t("Optional")}</span></PanelTitle><span className="setup-step-state">{complete.timetables ? <><CheckCircle2 size={18} aria-hidden="true" />{t("Complete")}</> : <ChevronDown size={18} aria-hidden="true" />}</span></summary><div className="space-y-3">
+      <li className="glow-panel setup-step" id="timetables"><details open={!timetableComplete}>
+        <summary><PanelTitle icon={BookOpen}>{t("5. Add school timetables ")}<span className="text-sm text-muted-foreground">{t("Optional")}</span></PanelTitle><span className="setup-step-state">{timetableComplete ? <><CheckCircle2 size={18} aria-hidden="true" />{t("Complete")}</> : <ChevronDown size={18} aria-hidden="true" />}</span></summary><div className="space-y-3">
         <p className="page-note">{t("Enable Timetable for the people who need it, then choose PDF / images or Calendars in Settings → Timetables. Read the result on School or the dashboard.")}</p>
         <div className="flex flex-wrap gap-4">
           <Link className="text-link" to="/settings/timetables">{t("Configure timetables")}</Link>

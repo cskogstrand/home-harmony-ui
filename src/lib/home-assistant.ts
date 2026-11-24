@@ -22,6 +22,7 @@ interface Snapshot {
   warnings: string[];
   states: EntityStates;
   registries: Registries;
+  entityRegistryAvailable: boolean;
   config?: HassConfig;
   user?: HassUser;
   services: HassServices;
@@ -71,7 +72,7 @@ export class HomeAssistantClient {
   private metadataVersion = 0;
 
   constructor() {
-    this.snapshot = { url: "", status: "disconnected", error: "", warnings: [], states: {}, registries: emptyRegistries, services: {}, commands: {} };
+    this.snapshot = { url: "", status: "disconnected", error: "", warnings: [], states: {}, registries: emptyRegistries, entityRegistryAvailable: false, services: {}, commands: {} };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
@@ -187,6 +188,7 @@ export class HomeAssistantClient {
       config: config.status === "fulfilled" ? config.value : undefined,
       user: user.status === "fulfilled" ? user.value : undefined,
       services: services.status === "fulfilled" ? services.value : {},
+      entityRegistryAvailable: entities.status === "fulfilled",
       registries: { areas: areas.status === "fulfilled" ? areas.value : [], devices: devices.status === "fulfilled" ? devices.value : [], entities: entities.status === "fulfilled" ? entities.value : [] },
       warnings, status: this.metadataReady && this.fresh ? "connected" : "syncing",
     });

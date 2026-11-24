@@ -12,7 +12,7 @@ import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
 vi.mock("@/contexts/AppContext", async importOriginal => {
   const { AppContext } = await importOriginal<typeof import("@/contexts/AppContext")>();
   const { useContext } = await import("react");
@@ -26,6 +26,7 @@ beforeEach(() => {
   app.services = {};
   app.watchCalendarEvents.mockReset();
   app.todoItems.mockReset().mockResolvedValue([]);
+  app.entityRegistryAvailable = true;
   app.homeOnline = true;
   app.connectionStatus = "connected";
   app.haUrl = "http://ha.local:8123";
@@ -1439,6 +1440,43 @@ it.each([
   fireEvent.click(screen.getByRole("menuitem", { name: "Get started" }));
   expect(window.location.pathname).toBe("/onboarding");
   expect(await screen.findByRole("heading", { name: "Get started" })).toBeInTheDocument();
+});
+
+it("guides setup from the gear and clears its badge when the basics are ready", async () => {
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home"), "calendar.example": state("calendar.example", "off"),
+    "todo.example": state("todo.example", "0"),
+  }, emptyRegistries, "home");
+  settings.settings.todoLists = { "home|todo.example": { kind: "shopping", member: "everyone" } };
+  render(<App />); await saved();
+  const gear = screen.getByRole("button", { name: "Open app settings" });
+  expect(gear).toHaveAccessibleDescription("One setup step remaining");
+  fireEvent.keyDown(gear, { key: "Enter" });
+  expect(screen.queryByRole("menuitem", { name: "Choose lists" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Choose calendars" }));
+  await pageReady();
+  expect(window.location.pathname).toBe("/settings/calendars");
+  const picker = within(screen.getByRole("group", { name: "Example" })).getByRole("button", { name: /Add calendar/ });
+  chooseEntity(picker, "calendar.example");
+  await waitFor(() => expect(gear.querySelector(".header-badge")).toBeNull());
+});
+
+it("withholds calendar and list setup prompts while their registry IDs are unavailable", async () => {
+  app.entityRegistryAvailable = false;
+  render(<App />); await saved();
+  const gear = screen.getByRole("button", { name: "Open app settings" });
+  expect(gear.querySelector(".header-badge")).toBeNull();
+});
+
+it.each(["reconnecting", "auth-error"])("only points to connection setup when actionable during %s", async status => {
+  app.homeOnline = false;
+  app.connectionStatus = status;
+  render(<App />); await saved();
+  const gear = screen.getByRole("button", { name: "Open app settings" });
+  expect(!!gear.querySelector(".header-badge")).toBe(status === "auth-error");
+  fireEvent.keyDown(gear, { key: "Enter" });
+  expect(!!screen.queryByRole("menuitem", { name: "Connection settings" })).toBe(status === "auth-error");
+  expect(screen.queryByRole("menuitem", { name: "Choose calendars" })).not.toBeInTheDocument();
 });
 
 it("keeps onboarding available without a Home Assistant connection", async () => {

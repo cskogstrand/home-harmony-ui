@@ -1,4 +1,7 @@
 export const nb = {
+  "Remaining setup": "Gjenstående oppsett",
+  "One setup step remaining": "Ett oppsettsteg gjenstår",
+  "{count} setup steps remaining": "{count} oppsettsteg gjenstår",
   "Person detection": "Persondeteksjon",
   "Person sensor": "Personsensor",
   "The camera badge appears while this sensor reports a person.": "Kameraikonet får et merke mens sensoren registrerer en person.",

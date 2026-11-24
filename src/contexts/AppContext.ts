@@ -5,7 +5,7 @@ import type { Entity, Home } from "@/types/api";
 
 function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistantClient["getSnapshot"]>, currentHome: Home) {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
-    connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
+    entityRegistryAvailable: state.entityRegistryAvailable, connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
     command: client.command, browseMedia: client.browseMedia, sonosQueue: client.sonosQueue, watchEvents: client.watchEvents, watchCameraStream: client.watchCameraStream, watchForecast: client.watchForecast, entityHistory: client.entityHistory, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
 }

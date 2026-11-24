@@ -10,7 +10,7 @@ import { notificationRuleSchema } from "../../shared/notifications";
 
 const media = vi.hoisted(() => ({ state: "paused", source: "Radio" }));
 const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, metadataWarnings: [] }) }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, entityRegistryAvailable: true, metadataWarnings: [] }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
@@ -177,7 +177,7 @@ it("keeps save feedback in the header without inserting a page row during saves"
   const pageRows = Array.from(view.container.firstElementChild!.children);
   const status = screen.getByRole("status", { name: "Settings storage" });
   expect(status.closest("header")).toBe(screen.getByRole("banner"));
-  expect(status).toHaveClass("absolute");
+  expect(status).toHaveClass("sr-only");
   expect(status).toHaveTextContent("Shared settings saved.");
 
   shared.state.dirty = true;

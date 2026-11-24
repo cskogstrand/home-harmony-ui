@@ -4,6 +4,7 @@ import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useMatch, type Location } from "react-router-dom";
 import { MainNav, SmartHomeNav } from "./Navigation";
+import { householdSetup, setupSteps } from "@/lib/household-setup";
 import { cameraPersonSensors } from "@/lib/camera-detection";
 import { sonosMusicDestinations, sonosPlayers } from "@/lib/sonos";
 import { MainPages } from "./MainPages";
@@ -22,8 +23,8 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { HomeStatus } from "@/components/HomeStatus";
 import { NotificationBell, NotificationCamera } from "@/components/NotificationCenter";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Camera, Check, LoaderCircle, Moon, Music2, Play, RefreshCw, Settings, TriangleAlert, UserRound, X } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Camera, LoaderCircle, Moon, Music2, Play, RefreshCw, Settings, TriangleAlert, UserRound, X } from "lucide-react";
 
 const ArtworkDefinitions = lazy(() => import("@/components/ArtworkDefinitions"));
 
@@ -37,10 +38,11 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   }, []);
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
-  const { currentUser, currentHome, homeOnline } = useApp();
+  const { currentUser, currentHome, homeOnline, haUrl, connectionStatus, connectionError, entityRegistryAvailable } = useApp();
   const musicPlaying = homeOnline && sonosMusicDestinations(sonosPlayers(currentHome.entities)).some(({ player }) => player.state === "playing");
   const musicLabel = musicPlaying ? t("Sonos · Music playing") : t("Sonos");
-  const { saved, memberName, appearance, smartHome } = useFamily();
+  const family = useFamily();
+  const { saved, memberName, appearance, smartHome } = family;
   const shared = useSharedConfiguration();
   const cameraItems = shared.state.config.settings.cameras.items;
   const detectedCameras = homeOnline ? [...cameraPersonSensors(cameraItems, currentHome.entities).values()].filter(sensor => sensor.state === "on").length : 0;
@@ -50,6 +52,11 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const storageWarning = shared?.state.error || (shared?.state.loaded && !saved && !shared?.state.saving);
   const storageBusy = shared?.state.saving || !shared?.state.loaded;
   const storageMessage = (shared?.state.error && message(shared.state.error)) || (shared.state.saving ? t("Saving shared settings…") : !shared.state.loaded ? t("Loading shared settings…") : !saved ? t("Shared settings are not saved yet.") : t("Shared settings saved."));
+  const complete = householdSetup(homeOnline, currentHome.entities, family);
+  const connectionNeedsSetup = connectionStatus === "auth-error" || (connectionStatus === "disconnected" && !haUrl && !!connectionError);
+  const missingSteps = setupSteps.filter(step => step.id === "connection" ? connectionNeedsSetup
+    : homeOnline && shared.state.loaded && !shared.state.error && (step.id === "people" || entityRegistryAvailable) && !complete[step.id]);
+  const setupMessage = missingSteps.length ? t(missingSteps.length === 1 ? "One setup step remaining" : "{count} setup steps remaining", { count: missingSteps.length }) : "";
   const location = useLocation();
   const appearanceSettings = useMatch("/settings/appearance");
   const { pathname } = location;
@@ -75,11 +82,29 @@ export function AppLayout({ children }: { children?: ReactNode }) {
         </Link>
         <HomeStatus /><NotificationBell />
         <div className="relative">
-          <DropdownMenu><DropdownMenuTrigger className="icon-button glass-surface" aria-label={t("Open app settings")} title={storageMessage}><Settings size={20} /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel>{currentUser?.name ?? t("Household dashboard")}</DropdownMenuLabel><DropdownMenuItem asChild><Link to="/settings">{t("All settings")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/appearance">{t("Appearance")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/onboarding">{t("Get started")}</Link></DropdownMenuItem><DropdownMenuItem asChild><Link to="/settings/backups">{t("Storage and backups")}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-          <span role="status" aria-label={t("Settings storage")} className={`pointer-events-none absolute bottom-1 right-1 rounded-full bg-background p-0.5 ${storageWarning ? "text-warning" : "text-muted-foreground"}`}>
-            {storageWarning ? <TriangleAlert size={12} aria-hidden="true" /> : storageBusy ? <LoaderCircle size={12} aria-hidden="true" className="motion-safe:animate-spin" /> : <Check size={12} aria-hidden="true" />}
-            <span className="sr-only">{storageMessage}</span>
-          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="icon-button glass-surface" aria-label={t("Open app settings")} aria-describedby={setupMessage ? "header-setup-status" : undefined}
+              title={storageWarning || storageBusy ? storageMessage : setupMessage || t("Open app settings")}>
+              <Settings size={20} aria-hidden="true" />
+              {(storageWarning || storageBusy || setupMessage) && <span className="header-badge" data-tone={storageWarning || setupMessage ? "attention" : undefined} aria-hidden="true">
+                {storageWarning ? <TriangleAlert size={13} /> : storageBusy ? <LoaderCircle size={13} className="motion-safe:animate-spin" /> : missingSteps.length}
+              </span>}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              {missingSteps.length > 0 && <>
+                <DropdownMenuLabel>{t("Remaining setup")}</DropdownMenuLabel>
+                {missingSteps.map(step => <DropdownMenuItem asChild key={step.id}><Link to={step.to}>{t(step.title)}</Link></DropdownMenuItem>)}
+                <DropdownMenuSeparator />
+              </>}
+              <DropdownMenuLabel>{currentUser?.name ?? t("Household dashboard")}</DropdownMenuLabel>
+              <DropdownMenuItem asChild><Link to="/settings">{t("All settings")}</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/settings/appearance">{t("Appearance")}</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/onboarding">{t("Get started")}</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link to="/settings/backups">{t("Storage and backups")}</Link></DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {setupMessage && <span className="sr-only" id="header-setup-status">{setupMessage}</span>}
+          <span role="status" aria-label={t("Settings storage")} className="sr-only">{storageMessage}</span>
         </div>
       </div>
     </header>

@@ -243,4 +243,6 @@ New calendar plans can be All day. The shown end date is inclusive; the app send
 
 To remove a list item, open its three-dot action menu, choose Remove and confirm. Empty list and calendar views link to their setup pages.
 
+The settings gear shows how many household setup steps need attention. Open the gear and choose a step under **Remaining setup** to go directly to its settings. People, calendars and lists are checked once the home is connected and shared settings are loaded.
+
 Get started reports progress from the live household and saved assignments. Completed steps collapse but can be reopened. Continue setup links to the next incomplete basic step; school timetables remain optional.
