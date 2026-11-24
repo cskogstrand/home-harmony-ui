@@ -442,7 +442,7 @@ it("renders reported weather and forecast, switches supported periods and cleans
   const view = open(cardEntity("weather", "rainy", { temperature: 19, temperature_unit: "°C", wind_speed: 3, wind_speed_unit: "m/s", humidity: 48, supported_features: 3 }));
   expect(screen.getByText("19")).toBeVisible();
   expect(screen.getByText("48%")).toBeVisible();
-  expect(screen.getByText("18°C")).toBeVisible();
+  expect(screen.getByText("18 °C")).toBeVisible();
   const signal = mocks.forecast.mock.calls[0][2];
   fireEvent.change(screen.getByRole("combobox", { name: "Forecast" }), { target: { value: "daily" } });
   expect(signal.aborted).toBe(true);

@@ -5,14 +5,14 @@ import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { DoorOpen, ArrowUpRight } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { PageHeading } from "@/components/FamilyPlanner";
-import { available } from "@/lib/ha-model";
+import { available, entityReading } from "@/lib/ha-model";
 import { deviceDetailSections, smartHomeEntities } from "@/lib/device-model";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 import { DeviceReading } from "@/components/devices/DeviceReading";
 import "./device-detail.css";
 import { EntityCard } from "@/components/devices/EntityCard";
 export default function Areas() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { currentHome, haUrl, homeOnline } = useApp();
   const { areaId } = useParams();
   const { pathname } = useLocation();
@@ -35,7 +35,7 @@ export default function Areas() {
       const temperature = entities.find(entity => available(entity) && entity.attributes.device_class === "temperature" && entity.state.trim() !== "" && Number.isFinite(Number(entity.state)));
       const count = new Set(entities.map(entity => entity.device?.id ?? entity.entityId)).size;
       return <Link key={room.id} to={`/areas/${encodeURIComponent(room.id)}`} className="glow-panel space-y-3"><PanelTitle icon={DoorOpen}>{room.id === "unassigned" ? t("Unassigned") : room.name}</PanelTitle>
-        <p>{!homeOnline ? t("Offline") : [reportedLights.length ? t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn }) : "", reportedLights.length < lights.length ? t("Some readings unavailable") : "", temperature ? `${temperature.state} ${temperature.attributes.unit_of_measurement ?? ""}`.trim() : ""].filter(Boolean).join(" · ") || t(count === 1 ? "{count} device" : "{count} devices", { count })}</p><ArrowUpRight aria-hidden="true" />
+        <p>{!homeOnline ? t("Offline") : [reportedLights.length ? t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn }) : "", reportedLights.length < lights.length ? t("Some readings unavailable") : "", temperature ? entityReading(temperature, language) : ""].filter(Boolean).join(" · ") || t(count === 1 ? "{count} device" : "{count} devices", { count })}</p><ArrowUpRight aria-hidden="true" />
       </Link>;
     })}</div>}
     {!currentHome.areas.length && <p className="glow-panel empty-note">{t("No areas available.")}</p>}

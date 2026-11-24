@@ -24,6 +24,8 @@ export interface EntityRegistryEntry {
   disabled_by?: string | null;
   hidden_by?: string | null;
   entity_category?: string | null;
+  /** Per-domain registry options, such as `sensor.display_precision`. */
+  options?: Record<string, Record<string, unknown> | null> | null;
 }
 export interface Registries {
   areas: AreaRegistryEntry[];
@@ -43,6 +45,8 @@ export interface Entity {
   state: string;
   /** Home Assistant's translation of the current state in the dashboard language, when it has one. */
   stateLabel?: string;
+  /** Decimals Home Assistant shows for this sensor: the user's display precision, else the integration's suggestion. */
+  displayPrecision?: number;
   attributes: Record<string, unknown>;
   areaId: string;
   device?: PhysicalDevice;

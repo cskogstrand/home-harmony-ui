@@ -416,7 +416,7 @@ it("selects weather entities, saves both placement checkboxes across reloads and
   fireEvent.click(screen.getByRole("checkbox", { name: "Beside the clock on Today" }));
   await saved();
   expect(settings.settings.weatherPlacement).toEqual({ today: false, header: true });
-  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18°C");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18 °C");
   fireEvent.click(screen.getByRole("button", { name: "Temperature entity (optional)" }));
   expect(screen.queryByRole("button", { name: /sensor.example/ })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /sensor.humidity/ })).not.toBeInTheDocument();
@@ -425,19 +425,19 @@ it("selects weather entities, saves both placement checkboxes across reloads and
   fireEvent.click(screen.getByRole("button", { name: "Example temperature · sensor.temperature" }));
   await saved();
   expect(settings.settings.weatherTemperatureEntity).toBe("home|stable-temperature");
-  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21°F");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21 °F");
   view.unmount();
   render(<App />); await saved();
   expect(screen.getByRole("button", { name: "Weather entity" })).toHaveTextContent("Example forecast");
   expect(screen.getByRole("checkbox", { name: "Beside the clock on Today" })).not.toBeChecked();
   expect(screen.getByRole("checkbox", { name: "In the header" })).toBeChecked();
   expect(screen.getByRole("button", { name: "Temperature entity (optional)" })).toHaveTextContent("Example temperature");
-  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21°F");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21 °F");
   fireEvent.click(screen.getByRole("button", { name: "Temperature entity (optional)" }));
   fireEvent.click(screen.getByRole("button", { name: "Use weather entity" }));
   await saved();
   expect(settings.settings.weatherTemperatureEntity).toBe("");
-  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18°C");
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18 °C");
   fireEvent.click(screen.getByRole("checkbox", { name: "In the header" }));
   await saved();
   expect(screen.getByText("Weather is hidden. Your selected source is kept.")).toBeVisible();
@@ -2383,7 +2383,7 @@ it("uses TeslaMate readings and sends commands only to the explicitly paired Tes
   }
   expect(widget.querySelector(".vehicle-glance-climate")).toBeInTheDocument();
   expect(app.command).not.toHaveBeenCalled();
-  expect(within(dialog).getByText("Climate on · 18°C")).toBeVisible();
+  expect(within(dialog).getByText("Climate on · 18 °C")).toBeVisible();
   expect(within(dialog).getByText("Locked")).toBeVisible();
   expect(within(dialog).queryByRole("switch", { name: "Cabin climate" })).toBeNull();
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
@@ -2396,7 +2396,7 @@ it("uses TeslaMate readings and sends commands only to the explicitly paired Tes
   expect(screen.getAllByRole("button", { name: /^Open status for/ })).toHaveLength(1);
   fireEvent.click(screen.getByRole("button", { name: /Example car.*64%.*Climate on/ }));
   const paired = screen.getByRole("dialog", { name: "Example car" });
-  expect(within(paired).getByText("Climate on · 18°C")).toBeVisible();
+  expect(within(paired).getByText("Climate on · 18 °C")).toBeVisible();
   const toggle = within(paired).getByRole("switch", { name: "Cabin climate" });
   expect(toggle).toBeChecked();
   fireEvent.click(toggle);
@@ -2418,7 +2418,7 @@ it("uses TeslaMate readings and sends commands only to the explicitly paired Tes
 
   app.currentHome = { ...home, entities: home.entities.filter(e => e.device.id !== commands.id) };
   view.rerender(<App />);
-  expect(within(paired).getByText("Climate on · 18°C")).toBeVisible();
+  expect(within(paired).getByText("Climate on · 18 °C")).toBeVisible();
   expect(within(paired).getByText("Climate control unavailable")).toBeVisible();
   expect(within(paired).queryByRole("switch", { name: "Cabin climate" })).toBeNull();
   fireEvent.click(within(paired).getByRole("button", { name: "Close" }));

@@ -2,6 +2,7 @@ import type { Entity } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, humanizeState } from "@/lib/ha-model";
+import { readingDigits, withUnit } from "@/lib/i18n";
 
 const facts: Record<string, readonly string[]> = {
   light: ["color_mode", "color_temp_kelvin", "effect"], climate: ["current_humidity", "hvac_action", "preset_mode"],
@@ -32,15 +33,16 @@ export function EntityFacts({ entity }: { entity: Entity }) {
   const keys = [...new Set([...(facts[entity.domain] ?? []), ...(!["vacuum", "lawn_mower"].includes(entity.domain) ? ["battery_level"] : [])])];
   const rows = keys.flatMap(key => {
     const value = a[key];
-    const text = typeof value === "boolean" ? t(value ? "Yes" : "No") : typeof value === "number" && Number.isFinite(value) ? number(value) : typeof value === "string" ? value : Array.isArray(value) && value.every(v => typeof v === "string") ? value.join(", ") : "";
+    const temperature = ["current_temperature", "apparent_temperature", "dew_point"].includes(key);
+    const text = typeof value === "boolean" ? t(value ? "Yes" : "No") : typeof value === "number" && Number.isFinite(value) ? number(value, readingDigits(value, temperature ? { deviceClass: "temperature" } : {})) : typeof value === "string" ? value : Array.isArray(value) && value.every(v => typeof v === "string") ? value.join(", ") : "";
     if (!text) return [];
     let unit = units[key] ?? "";
-    if (["current_temperature", "apparent_temperature", "dew_point"].includes(key)) unit = String(a.temperature_unit ?? temperatureUnit ?? "");
+    if (temperature) unit = String(a.temperature_unit ?? temperatureUnit ?? "");
     if (key === "pressure") unit = String(a.pressure_unit ?? "");
     if (key === "visibility") unit = String(a.visibility_unit ?? "");
     if (key === "wind_gust_speed") unit = String(a.wind_speed_unit ?? "");
     const date = ["last_triggered", "finishes_at"].includes(key) && typeof value === "string" && Number.isFinite(Date.parse(value));
-    return [{ label: t(humanizeState(key)), value: date ? new Intl.DateTimeFormat(locale, { timeZone: timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(text)) : `${t(text)}${unit ? ` ${unit}` : ""}` }];
+    return [{ label: t(humanizeState(key)), value: date ? new Intl.DateTimeFormat(locale, { timeZone: timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(text)) : withUnit(t(text), unit) }];
   });
   if (entity.lastUpdated && Number.isFinite(Date.parse(entity.lastUpdated))) rows.push({ label: t("Last updated"), value: new Intl.DateTimeFormat(locale, { timeZone: timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(entity.lastUpdated)) });
   if (!rows.length) return null;

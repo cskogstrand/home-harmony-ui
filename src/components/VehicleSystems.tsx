@@ -3,6 +3,7 @@ import { vehicleViews } from "./vehicle-views";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel, humanizeState } from "@/lib/ha-model";
+import { withUnit } from "@/lib/i18n";
 import { accessStatus, cabinSetpoint, cabinState, metricKey, readingName, teslaModelVariant, tyrePressureBar, vehicleGroup, vehicleSystems, vehicleTrip, type VehicleSystem } from "@/lib/vehicles";
 import type { Entity } from "@/types/api";
 import { DeviceControl } from "@/components/devices/DeviceControl";
@@ -22,7 +23,7 @@ function VehicleReading({ entity, label = readingName(entity) }: { entity: Entit
   const wheel = vehicleGroup(entity) === "Wheel pressures" && (entity.attributes.device_class === "pressure" || /tpms|pressure/.test(metricKey(entity)) && !/warning|alert|fault|last_seen/.test(metricKey(entity)) && entity.domain === "sensor");
   const pressure = wheel ? tyrePressureBar(entity) : undefined;
   const unit = !wheel && reported && typeof entity.attributes.unit_of_measurement === "string" ? entity.attributes.unit_of_measurement : "";
-  const value = wheel ? pressure === undefined ? t("Not reported") : `${pressure.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} bar` : `${message(state)}${unit ? " " + unit : ""}`;
+  const value = wheel ? pressure === undefined ? t("Not reported") : `${pressure.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} bar` : withUnit(message(state), unit);
   // Include Tesla's extra readings (such as individual doors), but omit HA metadata and media access URLs.
   const attributes = reported ? Object.entries(entity.attributes).flatMap(([key, value]) => {
     if (/^(friendly_name|icon|device_class|state_class|unit_of_measurement|attribution|supported_features|options|entity_picture.*)$/i.test(key)
@@ -49,7 +50,7 @@ function VehicleReading({ entity, label = readingName(entity) }: { entity: Entit
 
 
 export function VehicleCabin({ climate, entities, control, linked }: { climate?: Entity; entities: Entity[]; control?: Entity; linked: boolean }) {
-  const { t, number } = useI18n();
+  const { t, reading } = useI18n();
   const { currentHome } = useApp();
   const running = cabinState(climate);
   const target = linked && cabinSetpoint(entities, control?.attributes.temperature_unit || currentHome.temperatureUnit);
@@ -60,7 +61,7 @@ export function VehicleCabin({ climate, entities, control, linked }: { climate?:
   const unit = typeof current === "number" ? climate.attributes.temperature_unit || currentHome.temperatureUnit : inside?.attributes.unit_of_measurement;
   return <section className="vehicle-cabin vehicle-module">
     <h3><Fan size={20} data-running={running} aria-hidden="true" />{t("Cabin")}</h3>
-    <p>{t(running === undefined ? "Climate unknown" : running ? "Climate on" : "Climate off")}{typeof temp === "number" && ` · ${number(temp)}${unit || ""}`}</p>
+    <p>{t(running === undefined ? "Climate unknown" : running ? "Climate on" : "Climate off")}{typeof temp === "number" && ` · ${reading(temp, { unit, deviceClass: "temperature", precision: typeof current === "number" ? undefined : inside?.displayPrecision })}`}</p>
     {control?.domain === "climate" && <DeviceControl key={control.entityId} entity={control} cabinMode={running === undefined ? "" : climate.state} cabinSetpoint={target ? target.value ?? null : undefined} />}
     {linked && (control?.domain !== "climate" || !available(control)) && <p role="status">{t("Climate control unavailable")}</p>}
   </section>;
@@ -171,7 +172,7 @@ export function VehicleSystemPanel({ system, entities, addressEntity, model, ver
           const fields = (highlightedFields[group] ?? []).flatMap(([key, label, unit]) => {
             const value = rows.find(e => available(e) && e.attributes[key] != null)?.attributes[key];
             return typeof value === "number" || typeof value === "string" && value.length > 0
-              ? [{ label, value: [typeof value === "number" ? number(value) : value, unit].filter(Boolean).join(" ") }] : [];
+              ? [{ label, value: withUnit(typeof value === "number" ? number(value) : value, unit) }] : [];
           });
           return <section key={group} className="vehicle-band"><h4>{t(group)}</h4>
             {group === "Doors and windows" && <OpeningPositions entities={rows} />}

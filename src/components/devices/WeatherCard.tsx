@@ -14,7 +14,7 @@ export function WeatherCard({ entity, currentTemperature }: { entity: Entity; cu
   const watchForecast = useApp(app => app.watchForecast);
   const timeZone = useApp(app => app.currentHome.timeZone);
   const temperatureUnit = useApp(app => app.currentHome.temperatureUnit);
-  const { message: t, language, locale, number } = useI18n();
+  const { message: t, language, locale, number, reading } = useI18n();
   const [period, setPeriod] = useState<"hourly" | "daily" | "twice_daily">("hourly");
   const [forecast, setForecast] = useState<Forecast | null>(), [retry, setRetry] = useState(0);
   const types = (["hourly", "daily", "twice_daily"] as const).filter(type => feature(entity, { daily: 1, hourly: 2, twice_daily: 4 }[type]));
@@ -34,13 +34,13 @@ export function WeatherCard({ entity, currentTemperature }: { entity: Entity; cu
   const showTemperature = homeOnline && temperature !== undefined && (reported || !!currentTemperature);
   return <div className="dg-card-body smart-weather">
     <div className="dg-weather"><WeatherIcon condition={entity.state} size={48} /><Readout value={showTemperature ? temperature : reported ? "—" : t(homeOnline ? "Unavailable" : "Offline")} unit={showTemperature ? currentTemperature?.unit ?? unit : ""} caption={reported ? entityStateLabel(entity, language) : ""} /></div>
-    {reported && <><div className="dg-facts">{wind !== undefined && <span><Wind size={16} aria-hidden="true" />{number(wind)} {String(a.wind_speed_unit ?? "")}<span className="sr-only">{t("Wind speed")}</span></span>}{humidity !== undefined && <span><Droplets size={16} aria-hidden="true" />{number(humidity)}%<span className="sr-only">{t("Humidity")}</span></span>}</div>
+    {reported && <><div className="dg-facts">{wind !== undefined && <span><Wind size={16} aria-hidden="true" />{reading(wind, { unit: a.wind_speed_unit })}<span className="sr-only">{t("Wind speed")}</span></span>}{humidity !== undefined && <span><Droplets size={16} aria-hidden="true" />{number(humidity)}%<span className="sr-only">{t("Humidity")}</span></span>}</div>
       {!!types.length && <div className="smart-forecast">
         <label className="dg-choice"><span>{t("Forecast")}</span><select value={type} onChange={event => setPeriod(event.target.value as typeof period)}>{types.map(type => <option value={type} key={type}>{t(type === "hourly" ? "Hourly" : type === "daily" ? "Daily" : "Twice daily")}</option>)}</select></label>
         {forecast?.length ? <div className="dg-forecast">{forecast.slice(0, 8).map((item, index) => <div key={`${item.datetime}-${index}`}>
           <time dateTime={item.datetime}>{new Intl.DateTimeFormat(locale, { timeZone: timeZone, ...(type === "hourly" ? { hour: "2-digit", minute: "2-digit" } as const : { weekday: "short", ...(type === "twice_daily" ? { hour: "2-digit" } as const : {}) }) }).format(new Date(item.datetime))}</time>
-          <span>{entityStateLabel({ ...entity, state: item.condition ?? "unknown" }, language)}</span><strong>{item.temperature == null ? "—" : number(item.temperature)}{item.temperature == null ? "" : unit}</strong>
-          {item.templow != null && <small>{t("Low")} {number(item.templow)}{unit}</small>}{item.precipitation_probability != null && <small>{number(item.precipitation_probability)}% {t("Rain")}</small>}
+          <span>{entityStateLabel({ ...entity, state: item.condition ?? "unknown" }, language)}</span><strong>{item.temperature == null ? "—" : reading(item.temperature, { unit, deviceClass: "temperature" })}</strong>
+          {item.templow != null && <small>{t("Low")} {reading(item.templow, { unit, deviceClass: "temperature" })}</small>}{item.precipitation_probability != null && <small>{number(item.precipitation_probability)}% {t("Rain")}</small>}
         </div>)}</div> : <p role="status">{t(forecast === undefined ? "Loading forecast…" : "Forecast unavailable")}</p>}
         {forecast === null && <Button variant="outline" onClick={() => setRetry(value => value + 1)}>{t("Retry")}</Button>}
       </div>}

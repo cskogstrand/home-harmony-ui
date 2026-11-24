@@ -33,7 +33,7 @@ it("leads with the thermostat controls, keeps readings separate and defers maint
   expect(within(controls).queryByRole("link")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Increase temperature for Thermostat" }));
   expect(command).toHaveBeenCalledExactlyOnceWith("climate.example", "temperature", 21.5);
-  expect(screen.getByRole("region", { name: "Readings and status" })).toHaveTextContent("46 %");
+  expect(screen.getByRole("region", { name: "Readings and status" })).toHaveTextContent("46%");
   expect(screen.queryByRole("tab", { name: "Diagnostics" })).not.toBeInTheDocument();
   expect(screen.queryByText("Device configuration")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Device settings" })).toHaveAttribute("aria-expanded", "false");
