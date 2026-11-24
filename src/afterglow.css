@@ -709,6 +709,15 @@ fieldset.settings-card > legend + * { clear: both; }
   .week-person .member-avatar { width: 3.25rem; height: 3.25rem; font-size: 1rem; }
   .week-member-label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 }
+/* Waste pickups read as one compact, person-tinted chip per day instead of a full event card. */
+.week-waste-chip { --event-tint: 30%; --event-surface: color-mix(in srgb, var(--member) var(--event-tint), hsl(var(--card))); --event-ink: color-mix(in srgb, var(--member) 20%, hsl(var(--foreground))); display: flex; align-items: center; gap: .375rem; width: 100%; min-height: 44px; padding: .25rem .625rem; border: 1px solid transparent; border-radius: var(--radius-capsule); background: var(--event-surface); color: var(--event-ink); font-size: .875em; font-weight: 600; line-height: 1.2; text-align: left; }
+.dark .week-waste-chip { --event-tint: 18%; }
+.week-waste-chip .waste-collection-icons { gap: .125rem; margin-top: 0; }
+.week-waste-chip > svg { flex-shrink: 0; }
+.week-waste-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (hover: hover) { .week-waste-chip:hover { background: color-mix(in srgb, var(--event-ink) 8%, var(--event-surface)); } }
+@media (prefers-contrast: more) { .week-waste-chip { border-color: currentColor; } }
+@media (forced-colors: active) { .week-waste-chip { background: Canvas; color: ButtonText; border-color: ButtonText; } }
 
 /* Capability-aware home controls and dashboard favorites. */
 .home-device .control-stack { margin-top: auto; }

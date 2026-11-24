@@ -24,7 +24,7 @@ const renderGrid = (events: FamilyEvent[], props: Partial<Parameters<typeof Fami
   return { grid: within(screen.getByRole("region", { name: /weekly calendar|ukekalender/ })), onEdit, onAdd, onDay };
 };
 
-beforeEach(() => { mocks.language = "en"; mocks.today = "2026-10-28"; });
+beforeEach(() => { mocks.language = "en"; mocks.today = "2026-10-28"; mocks.time = "08:00"; });
 afterEach(cleanup);
 
 it("keeps the full title as the event's accessible name and marks the grid with the active language for hyphenation", () => {
@@ -35,6 +35,26 @@ it("keeps the full title as the event's accessible name and marks the grid with 
   cleanup();
   mocks.language = "nb";
   expect(renderGrid([plan({ title })]).grid.getByRole("table")).toHaveAttribute("lang", "nb");
+});
+
+it("shows a day's waste pickups as one chip that opens the combined read-only entry", () => {
+  const pickup = (title: string, note = "") => plan({ id: `waste-${title}`, title, note, date: "2026-10-27", allDay: true, time: "00:00", wasteCollection: true, calendarId: "calendar.waste" });
+  const { grid, onEdit } = renderGrid([pickup("Paper", "Example notes"), pickup("Plastic"), plan({ id: "glass", title: "Glass", date: "2026-10-29", allDay: true, wasteCollection: true, calendarId: "calendar.waste" }), plan({ title: "Example plan", date: "2026-10-27" })]);
+  const chip = grid.getByRole("button", { name: "2 pickups: Paper · Plastic, Waste collection" });
+  expect(chip).toHaveClass("week-waste-chip");
+  expect(chip).toHaveAttribute("title", "Paper · Plastic");
+  expect(chip.querySelectorAll(".waste-collection-icons svg")).toHaveLength(2);
+  expect(grid.getByRole("button", { name: "Glass, Waste collection" })).toHaveClass("week-waste-chip");
+  expect(grid.getAllByRole("button", { name: /Paper|Plastic/ })).toEqual([chip]);
+  expect(grid.getByRole("button", { name: /^Example plan/ })).toHaveClass("event-button");
+  chip.click();
+  expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ title: "Paper · Plastic", note: "Example notes", wasteCollection: true }));
+});
+
+it("marks a chip picked up from 09:00 on its day", () => {
+  mocks.today = "2026-10-27"; mocks.time = "09:00";
+  const { grid } = renderGrid([plan({ title: "Paper", date: "2026-10-27", allDay: true, wasteCollection: true, calendarId: "calendar.waste" })]);
+  expect(grid.getByRole("button", { name: "Paper, Picked up today" })).toHaveAttribute("data-state", "collected");
 });
 
 it("names each person row while their avatar stands in for the visible name on wide screens", () => {

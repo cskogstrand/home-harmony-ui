@@ -1,11 +1,13 @@
 import { memo } from "react";
-import { weekEventRows } from "@/lib/family-calendar";
+import { groupWasteCollections, weekEventRows } from "@/lib/family-calendar";
+import { isWasteCollected } from "@/lib/waste-collection";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
-import { CalendarDays, Columns3, Table2, Plus } from "lucide-react";
+import { CalendarDays, Check, Columns3, Table2, Plus } from "lucide-react";
 import { useFamily, addDays, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
+import { WasteTypeIcons } from "./WasteCollection";
 import { Button } from "./ui/button";
 import { SharedSettingsStatus } from "./common/SharedSettingsStatus";
 import { SettingsPopover } from "./common/SettingsPopover";
@@ -28,6 +30,20 @@ export function CalendarViewControls({ onChange }: { onChange?: (settings: Parti
       </div></fieldset>
     </SettingsPopover>
   </div>;
+}
+
+/** A day's waste pickups as one compact chip; the read-only dialog lists every fraction. */
+function WasteChip({ event, count, onClick }: { event: FamilyEvent; count: number; onClick: () => void }) {
+  const { t } = useI18n();
+  const { today, time, memberColor } = useFamily();
+  const collected = isWasteCollected(event.date, today, time);
+  const label = count === 1 ? event.title || t("Waste collection") : t("{count} pickups", { count });
+  return <button type="button" className="week-waste-chip press-feedback" data-state={collected ? "collected" : undefined} style={{ "--member": memberColor(event.member) } as React.CSSProperties} title={event.title || undefined} onClick={onClick}>
+    <WasteTypeIcons title={event.title} size={16} />
+    <span className="week-waste-label">{label}</span>
+    {collected && <Check size={14} aria-hidden="true" />}
+    <span className="sr-only">{count > 1 && event.title ? `: ${event.title}` : ""}, {t(collected ? "Picked up today" : "Waste collection")}</span>
+  </button>;
 }
 
 interface FamilyWeekGridProps {
@@ -54,7 +70,7 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
             <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>}
         </th>)}</tr></thead>
         {(members ?? familyMembers).map(person => {
-          const personal = events.filter(event => event.member === person.id);
+          const { events: personal, pickups } = groupWasteCollections(events.filter(event => event.member === person.id));
           const rows = weekEventRows(personal, start);
           return <tbody key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
             {rows.map((row, index) => <tr key={index} className="week-event-row">
@@ -63,7 +79,8 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
                 if (row.some(span => span.start < column && span.end > column)) return null;
                 const span = row.find(span => span.start === column);
                 return <td key={day} colSpan={span ? span.end - span.start : 1}>
-                  {span && <EventButton event={span.event} continuesBefore={span.event.calendarSpan?.firstDay < start} continuesAfter={span.event.calendarSpan?.lastDay > days[6]} onClick={() => onEdit(span.event)} />}
+                  {span?.event.wasteCollection ? <WasteChip event={span.event} count={pickups.get(span.event.id)?.length ?? 1} onClick={() => onEdit(span.event)} /> :
+                    span && <EventButton event={span.event} continuesBefore={span.event.calendarSpan?.firstDay < start} continuesAfter={span.event.calendarSpan?.lastDay > days[6]} onClick={() => onEdit(span.event)} />}
                 </td>;
               })}
             </tr>)}

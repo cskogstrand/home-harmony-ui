@@ -58,6 +58,31 @@ export function weekEventRows(events: FamilyEvent[], start: string) {
   return rows;
 }
 
+/**
+ * Folds each person's same-day waste pickups into one entry, so a busy collection day takes a single chip.
+ * The entry keeps every fraction in its title and notes for the read-only detail dialog; `pickups` lists the originals by entry id.
+ */
+export function groupWasteCollections(events: FamilyEvent[]) {
+  const days = new Map<string, FamilyEvent[]>();
+  for (const event of events) if (event.wasteCollection) {
+    const key = JSON.stringify([event.member, event.date]);
+    days.set(key, [...days.get(key) ?? [], event]);
+  }
+  const pickups = new Map<string, FamilyEvent[]>();
+  const entries = new Map<FamilyEvent, FamilyEvent>();
+  for (const [key, group] of days) {
+    const [first] = group;
+    const entry = group.length === 1 ? first : {
+      ...first, id: JSON.stringify(["waste", ...JSON.parse(key)]),
+      title: group.map(event => event.title).filter(Boolean).join(" · "),
+      note: [...new Set(group.map(event => event.note).filter(Boolean))].join("\n\n"),
+    };
+    pickups.set(entry.id, group);
+    entries.set(first, entry);
+  }
+  return { events: events.flatMap(event => !event.wasteCollection ? [event] : entries.has(event) ? [entries.get(event)!] : []), pickups };
+}
+
 export function wasteCalendarPlans(event: CalendarEvent, calendarId: string, member: string, start: string, end: string, timeZone: string, index: number): FamilyEvent[] {
   const date = wasteCollectionDate(event, timeZone);
   if (date < start || date >= end) return [];

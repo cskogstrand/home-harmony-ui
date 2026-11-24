@@ -1903,6 +1903,7 @@ export const nb = {
   "{count} controls": "{count} kontroller",
   "{count} plan": "{count} plan",
   "{count} plans": "{count} planer",
+  "{count} pickups": "{count} tømminger",
   "{count} plan on {day}": "{count} plan på {day}",
   "{count} plans on {day}": "{count} planer på {day}",
   "{count} plan in these 7 days": "{count} plan i disse 7 dagene",
