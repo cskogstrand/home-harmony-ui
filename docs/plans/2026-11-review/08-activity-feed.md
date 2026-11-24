@@ -26,15 +26,17 @@ Include by default: doors/garage doors/windows (open/close), locks, alarm state 
 
 ## Checklist
 
-- [ ] Client: `subscribeLogbook({ start, entityIds })` returning an unsubscribe; reconnect-safe; bounded backfill (for example last 24 h).
-- [ ] Pure function `curateActivity(events, entities, preferences)` → display items (icon, sentence, relative time, entity link). Unit-tested with fictional events.
-- [ ] Sentences come from i18n templates per class ("{name} opened", "{name} finished", "{name} docked"), not HA's raw message, so Bokmål reads naturally; fall back to HA's `message` for unknown classes in the full log only.
-- [ ] Curated panel "Recent at home" (max ~6 items, newest first, collapses same-entity flapping within 2 minutes). Empty state distinguishes "nothing happened" from "activity unavailable".
-- [ ] Full log in Settings → System → Activity: filter by area/type, day picker (today/yesterday), "Open in Home Assistant" link kept as secondary.
-- [ ] Settings: choose curated sources, person events opt-in (default off), panel on/off.
-- [ ] Offline: show cached items marked stale, like other stale readings.
-- [ ] Tests: curation, flapping collapse, person opt-in, unsubscribe on unmount, stale state.
-- [ ] Docs: README, PRODUCT.md (capability), DOCS.md (what the feed shows and privacy note); i18n en/nb.
+- [x] Client: `subscribeLogbook({ start, entityIds })` returning an unsubscribe; reconnect-safe; bounded backfill (for example last 24 h).
+- [x] Pure function `curateActivity(events, entities, preferences)` → display items (icon, sentence, relative time, entity link). Unit-tested with fictional events.
+- [x] Sentences come from i18n templates per class ("{name} opened", "{name} finished", "{name} docked"), not HA's raw message, so Bokmål reads naturally; fall back to HA's `message` for unknown classes in the full log only.
+- [x] Curated panel "Recent at home" (max ~6 items, newest first, collapses same-entity flapping within 2 minutes). Empty state distinguishes "nothing happened" from "activity unavailable".
+- [x] Full log in Settings → System → Activity: filter by area/type, day picker (today/yesterday), "Open in Home Assistant" link kept as secondary.
+- [x] Settings: choose curated sources, person events opt-in (default off), panel on/off.
+- [x] Offline: show cached items marked stale, like other stale readings.
+- [x] Tests: curation, flapping collapse, person opt-in, unsubscribe on unmount, stale state.
+- [x] Docs: README, PRODUCT.md (capability), DOCS.md (what the feed shows and privacy note); i18n en/nb.
+
+> Handoff: behaviour is proven with unit and component tests on fictional fixtures (`src/test/activity-feed.test.tsx`). Not yet checked in a browser (the shared dev server serves `main`): the panel and log at 1440 × 2560 and 390 × 844, light/dark and artwork on, and the real logbook stream's volume for a full day. Placement follows the default answer to the master plan's open question (panel on Smart home).
 
 ## Acceptance
 

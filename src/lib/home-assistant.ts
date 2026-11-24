@@ -12,6 +12,7 @@ import { playCameraStream } from "./camera-stream";
 import { MessageError } from "./i18n";
 import { fetchTranslations, noTranslations, type HaTranslations } from "./ha-translations";
 import type { NotificationEvent } from "./notifications";
+import { MAX_LOGBOOK_BACKFILL_MS, parseLogbookMessage, type LogbookEvent } from "./activity";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 type CommandStatus = { pending: boolean; pendingAction?: EntityAction; error?: string; message?: string };
@@ -385,6 +386,38 @@ export class HomeAssistantClient {
       if (current()) { unsubscribe = unsub; ready?.(); }
       else void unsub().catch(() => {});
     }).catch(() => { if (current()) receive(null); });
+  };
+
+  /**
+   * Logbook for the given entities, or every logged entity when `entityIds` is omitted: history since `start` first, then live
+   * events until `end` (live when omitted). The backfill is capped at two days. `receive(null)` reports an unavailable logbook.
+   * The subscription belongs to the current connection; subscribe again after a reconnect. Returns the unsubscribe.
+   */
+  subscribeLogbook = ({ start, end, entityIds }: { start: Date; end?: Date; entityIds?: string[] }, receive: (events: LogbookEvent[] | null) => void) => {
+    const controller = new AbortController(), signal = controller.signal;
+    const unsubscribeLogbook = () => controller.abort();
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
+    const from = Math.max(start.getTime(), Date.now() - MAX_LOGBOOK_BACKFILL_MS);
+    if (!current() || !Number.isFinite(from) || entityIds?.some(id => !/^[a-z0-9_]+\.[a-z0-9_]+$/.test(id))) { receive(null); return unsubscribeLogbook; }
+    if (entityIds?.length === 0 || end && end.getTime() <= from) { receive([]); return unsubscribeLogbook; }
+    let unsubscribe: (() => Promise<void>) | undefined;
+    const stop = () => {
+      void unsubscribe?.().catch(() => {});
+      signal.removeEventListener("abort", stop);
+      this.cleanup = this.cleanup.filter(cleanup => cleanup !== stop);
+    };
+    this.cleanup.push(stop);
+    signal.addEventListener("abort", stop, { once: true });
+    void conn.subscribeMessage<unknown>(message => {
+      if (!current()) return;
+      const events = parseLogbookMessage(message);
+      if (events) receive(events);
+    }, { type: "logbook/event_stream", start_time: new Date(from).toISOString(), ...(end ? { end_time: end.toISOString() } : {}), ...(entityIds ? { entity_ids: entityIds } : {}) }, { resubscribe: false }).then(unsub => {
+      if (current()) unsubscribe = unsub;
+      else void unsub().catch(() => {});
+    }).catch(() => { if (current()) receive(null); });
+    return unsubscribeLogbook;
   };
 
   entityHistory = async (entityId: string, days: 1 | 7, signal: AbortSignal) => {

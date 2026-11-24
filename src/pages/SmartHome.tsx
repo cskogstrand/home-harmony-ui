@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { smartHomeCards } from "@/lib/smart-home-cards";
 import { SettingsPopover } from "@/components/common/SettingsPopover";
 import { PopoverClose } from "@/components/ui/popover";
+import { RecentActivity } from "@/components/ActivityFeed";
 export default function SmartHome() {
   const { t, message } = useI18n();
   const { currentHome, homeOnline, haUrl } = useApp();
@@ -26,8 +27,8 @@ export default function SmartHome() {
       {editing && <Button onClick={() => setEditing(false)}><Check size={17} aria-hidden="true" />{message("Done")}</Button>}
       <SettingsPopover label={t("Smart home settings")}>
         <PopoverClose asChild><Button variant="outline" aria-pressed={editing} onClick={() => setEditing(value => !value)}><PencilLine size={17} aria-hidden="true" />{message(editing ? "Done" : "Arrange cards")}</Button></PopoverClose>
-        {[["/settings/smart-home", "Edit cards"], ["/automations", "Automations"], ["/settings/connection", "Connection & settings"]].map(([to, label]) => <PopoverClose asChild key={to}><Link to={to} className="text-link min-h-11">{message(label)}<ArrowUpRight size={17} aria-hidden="true" /></Link></PopoverClose>)}
-        {haUrl && <><a className="text-link min-h-11" href={`${haUrl}/history`} target="_blank" rel="noreferrer">{t("Open Home Assistant history")}<ArrowUpRight size={17} aria-hidden="true" /></a><a className="text-link min-h-11" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Open Home Assistant integrations")}<ArrowUpRight size={17} aria-hidden="true" /></a></>}
+        {[["/settings/smart-home", "Edit cards"], ["/automations", "Automations"], ["/settings/activity", "Activity"], ["/settings/connection", "Connection & settings"]].map(([to, label]) => <PopoverClose asChild key={to}><Link to={to} className="text-link min-h-11">{message(label)}<ArrowUpRight size={17} aria-hidden="true" /></Link></PopoverClose>)}
+        {haUrl && <a className="text-link min-h-11" href={`${haUrl}/config/integrations`} target="_blank" rel="noreferrer">{t("Open Home Assistant integrations")}<ArrowUpRight size={17} aria-hidden="true" /></a>}
       </SettingsPopover>
     </div></PageHeading>
     <NotificationList compact />
@@ -36,5 +37,6 @@ export default function SmartHome() {
       <SmartHomeCards key={area} cards={devices} area={area} editing={editing} />
       {!visibleDevices.length && <div className="glow-panel empty-note"><PlugZap size={32} aria-hidden="true" /><h3>{message(area === "all" ? "Make room for your home" : "No cards in this area")}</h3><p>{message("Choose a card type, then attach the entities you want to see.")}</p><Button asChild className="mt-4"><Link to="/settings/smart-home?card=new">{message("Add card")}</Link></Button></div>}
     </section>
+    <RecentActivity />
   </div>;
 }

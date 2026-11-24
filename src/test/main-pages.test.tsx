@@ -7,7 +7,7 @@ import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import type { CalendarEvent } from "@/types/api";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "https://ha.example", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], commands: {}, services: {}, configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), todoItems: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "https://ha.example", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], commands: {}, services: {}, configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("@/contexts/AppProvider", () => ({ AppProvider: ({ children }) => children }));
 let config = emptyConfiguration();
