@@ -30,7 +30,9 @@
 - [x] Price strip: today (and tomorrow when published) hourly/quarter-hourly bars with "now" marker; current price in large type; cheapest window highlighted. Follow the colour rules in [DESIGN.md](../../../DESIGN.md); accessible table fallback.
 - [x] "Best time" hint: cheapest contiguous 3-hour window in the next 24 h, shown as text ("Cheapest from 02:00 to 05:00"). Display only — never schedule or start devices automatically.
 - [x] Tests with a fictional price series (including DST change day and missing tomorrow).
-- [ ] Docs: DOCS.md (how to add a price source), README feature line.
+- [x] Docs: DOCS.md (how to add a price source), README feature line.
+
+> Handoff: Phase B is implemented with fictional fixtures (`src/test/electricity-price.test.tsx`, `src/test/energy-settings.test.tsx`, the `priceSeries` case in `src/test/ha-session.test.tsx`). Still open: the browser check of Settings → Devices → Electricity price and the price panel on `/energy` at 1440 × 2560 and 390 × 844, light/dark and artwork on; on a phone, check that 96 quarter-hour bars stay legible. The price area is taken from the sensor's unique ID; if the owner's Nord Pool entry covers several areas, confirm the right one is shown.
 
 ## Acceptance
 
