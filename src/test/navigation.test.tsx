@@ -365,7 +365,12 @@ it("jumps to a date, pages months and returns to today without changing dashboar
   expect(screen.getByRole("heading", { name: "January 2024" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Next month" }));
   expect(window.location.search).toContain("date=2024-02-29");
-  fireEvent.click(screen.getByRole("button", { name: "Today" }));
+  const todayAction = screen.getByRole("button", { name: "Today" });
+  // Today is an action beside the view segments, never styled or exposed as a selected state.
+  expect(todayAction).not.toHaveAttribute("aria-pressed");
+  expect(todayAction).not.toHaveClass("border");
+  expect(screen.getByRole("button", { name: "Month" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(todayAction);
   expect(screen.getByRole("heading", { name: "October 2026" })).toBeVisible();
   expect(settings.settings.calendar).toEqual({ view: "week", startDay: "today" });
   fireEvent.click(screen.getByRole("button", { name: "Week" }));

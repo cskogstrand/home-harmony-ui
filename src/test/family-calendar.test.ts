@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { calendarPlans, calendarRange, moveCalendarDate, todoPlans, uniqueCalendarPlans, wasteCalendarPlans, weekEventRows } from "@/lib/family-calendar";
+import { calendarPlans, calendarRange, groupWasteCollections, moveCalendarDate, todoPlans, uniqueCalendarPlans, wasteCalendarPlans, weekEventRows } from "@/lib/family-calendar";
 import { addDays, eventTimeLabel, weekNumber } from "@/contexts/FamilyContext";
 import type { CalendarEvent, TodoItem } from "@/types/api";
 
@@ -130,4 +130,23 @@ it.each([
   expect(rows[0]).toHaveLength(1);
   expect(rows[0][0].end - rows[0][0].start).toBe(width);
   expect(rows[0][0].event.calendarSpan).toMatchObject({ firstDay, lastDay });
+});
+
+it("folds each person's same-day waste pickups into one entry that keeps every fraction", () => {
+  const pickup = (summary: string, date: string, description = "") => wasteCalendarPlans({ uid: summary, summary, description, start: date, end: addDays(date, 1) }, "calendar.waste", "example", "2026-10-26", "2026-11-02", "Europe/Oslo", 0)[0];
+  const paper = pickup("Paper", "2026-10-27", "Example notes"), plastic = pickup("Plastic", "2026-10-27", "Example notes"), glass = pickup("Glass", "2026-10-29");
+  const other = { ...pickup("Food waste", "2026-10-27"), member: "other" };
+  const plan = { id: "plan", title: "Example plan", date: "2026-10-27", time: "09:00", member: "example", location: "", note: "" };
+  const { events, pickups } = groupWasteCollections([plan, paper, glass, plastic, other]);
+  expect(events.map(event => [event.title, event.date, event.member])).toEqual([
+    ["Example plan", "2026-10-27", "example"], ["Paper · Plastic", "2026-10-27", "example"], ["Glass", "2026-10-29", "example"], ["Food waste", "2026-10-27", "other"],
+  ]);
+  const [, day] = events;
+  expect(day).toMatchObject({ wasteCollection: true, allDay: true, calendarId: "calendar.waste", note: "Example notes" });
+  expect(new Set(events.map(event => event.id)).size).toBe(events.length);
+  expect(pickups.get(day.id)).toEqual([paper, plastic]);
+  expect(events[2]).toBe(glass);
+  expect(pickups.get(glass.id)).toEqual([glass]);
+  const spans = weekEventRows(events.filter(event => event.member === "example"), "2026-10-26").flat().filter(span => span.event.wasteCollection);
+  expect(spans.map(span => [span.start, span.end])).toEqual([[1, 2], [3, 4]]);
 });
