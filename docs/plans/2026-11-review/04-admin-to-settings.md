@@ -24,7 +24,9 @@
 
 - [x] Add `automations`, `integrations`, `activity` items to the System group with icons (`Workflow`, `Package`, `Clock`) and en/nb titles + descriptions.
 - [x] Convert the three pages into section components rendered inside Settings; remove their own page headings.
-- [ ] Add confirmation before "Run actions" on an automation; keep pending/failed feedback; no automatic replay.
+- [x] Add confirmation before "Run actions" on an automation; keep pending/failed feedback; no automatic replay.
+
+  > Note: `DeviceControl` already confirmed `automation.trigger` ("Confirm action for …"); no code change was needed. A Settings test now proves the confirmation, the busy dialog, the error and that a reconnect does not replay the run.
 - [x] Replace routes with redirects; keep `/automation` redirect chain working (single hop to the final URL).
 - [x] Remove the three entries from `moreItems`; make sure `isHomeSection` no longer treats them as Smart home pages and the Settings dock item highlights instead.
 
