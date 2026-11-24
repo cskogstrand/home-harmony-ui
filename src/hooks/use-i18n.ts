@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo } from "react";
-import { AppStoreContext } from "@/contexts/AppContext";
+import { AppStoreContext } from "@/contexts/AppStoreContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { createI18n, type Language } from "@/lib/i18n";
 

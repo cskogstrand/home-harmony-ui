@@ -2,6 +2,7 @@ import { createContext, useContext, useSyncExternalStore } from "react";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import { mapHome } from "@/lib/ha-model";
 import type { Entity, Home } from "@/types/api";
+import { AppStoreContext } from "./AppStoreContext";
 
 function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistantClient["getSnapshot"]>, currentHome: Home) {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
@@ -32,7 +33,7 @@ export function createAppStore() {
   return { getSnapshot, subscribe: client.subscribe, start: client.start, dispose: client.dispose, setLanguage: client.setLanguage };
 }
 
-export const AppStoreContext = createContext<ReturnType<typeof createAppStore> | null>(null);
+export { AppStoreContext };
 // Vehicle controls can override command routing for their subtree.
 export const AppContext = createContext<AppSnapshot | null>(null);
 const noSubscription = () => () => {};
