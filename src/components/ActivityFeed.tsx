@@ -12,20 +12,20 @@ const icons: Record<ActivityIcon, LucideIcon> = {
   door: DoorOpen, garage: Warehouse, window: AppWindow, lock: Lock, alarm: ShieldCheck, appliance: WashingMachine, robot: Bot, mower: Tractor,
   camera: Cctv, doorbell: BellRing, person: UserRound, power: Power, activity: Activity,
 };
-export function ActivityRow({ item, now }: { item: ActivityItem; now: number }) {
+/** One event: icon, sentence linking to the entity, folded change count and time (relative, or the clock time with `clock`). */
+export function ActivityRow({ item, now, clock = false }: { item: ActivityItem; now: number; clock?: boolean }) {
   const { message, t, locale } = useI18n();
   const { timeZone } = useApp().currentHome;
   const Icon = icons[item.icon];
   const sentence = message(item.sentence);
+  const time = clock ? new Intl.DateTimeFormat(locale, { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(item.when) : activityTime(item.when, now, locale, timeZone);
   return <li className="activity-row">
     <Icon size={20} aria-hidden="true" />
     <span className="activity-sentence">
       {item.path ? <Link to={item.path}>{sentence}</Link> : sentence}
       {item.count > 1 && <small>{t("{count} changes", { count: item.count })}</small>}
     </span>
-    <time dateTime={new Date(item.when).toISOString()} title={new Intl.DateTimeFormat(locale, { timeZone, dateStyle: "medium", timeStyle: "short" }).format(item.when)}>
-      {activityTime(item.when, now, locale, timeZone)}
-    </time>
+    <time dateTime={new Date(item.when).toISOString()} title={new Intl.DateTimeFormat(locale, { timeZone, dateStyle: "medium", timeStyle: "short" }).format(item.when)}>{time}</time>
   </li>;
 }
 

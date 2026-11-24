@@ -2874,4 +2874,13 @@ export const nb = {
   "Activity is unavailable right now.": "Aktiviteten er ikke tilgjengelig akkurat nå.",
   "Nothing has happened in the last 24 hours.": "Ingenting har skjedd det siste døgnet.",
   "Cached activity is stale while Home Assistant is offline.": "Lagret aktivitet er utdatert når Home Assistant er frakoblet.",
+  "Activity log": "Aktivitetslogg",
+  "Yesterday": "I går",
+  "Area": "Område",
+  "Type": "Type",
+  "All types": "Alle typer",
+  "Nothing was logged on this day.": "Ingenting ble logget denne dagen.",
+  "No activity matches these filters.": "Ingen aktivitet passer med disse filtrene.",
+  "Showing the latest {count} events.": "Viser de siste {count} hendelsene.",
+  "Open logbook in Home Assistant": "Åpne loggboken i Home Assistant",
 } as const;

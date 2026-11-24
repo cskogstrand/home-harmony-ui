@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection, HassEntities } from "home-assistant-js-websocket";
@@ -11,10 +11,11 @@ import { createI18n } from "@/lib/i18n";
 import { config, registries, services, state, states, user } from "./ha-fixtures";
 import { AppContext } from "@/contexts/AppContext";
 import { RecentActivity } from "@/components/ActivityFeed";
+import History from "@/pages/History";
 import type { Entity } from "@/types/api";
 
 const family = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => family.value }));
+vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/FamilyContext")>(), useFamily: () => family.value }));
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -322,5 +323,65 @@ describe("Recent at home", () => {
     render(view(false));
     expect(subscribeLogbook).not.toHaveBeenCalled();
     expect(panel().getByText("Activity is unavailable right now.")).toBeVisible();
+  });
+});
+
+describe("Activity log", () => {
+  type Subscriber = { options: { start: Date; end?: Date; entityIds?: string[] }; receive: (events: LogbookEvent[] | null) => void; stop: ReturnType<typeof vi.fn> };
+  let subscribers: Subscriber[];
+  const subscribeLogbook = vi.fn((options: Subscriber["options"], receive: Subscriber["receive"]) => {
+    const stop = vi.fn();
+    subscribers.push({ options, receive, stop });
+    return stop;
+  });
+  const home = mapHome(activityStates, {
+    areas: [{ area_id: "garage", name: "Garage" }, { area_id: "hall", name: "Hall" }], devices: [],
+    entities: [{ id: "garage-sensor", entity_id: "binary_sensor.example_garage", area_id: "garage" }, { id: "front-lock", entity_id: "lock.example_front", area_id: "hall" }],
+  }, "home", config);
+  const view = (homeOnline = true) => <AppContext.Provider value={{ homeOnline, subscribeLogbook, haUrl: "http://ha.local:8123", currentHome: home } as never}>
+    <MemoryRouter><History /></MemoryRouter></AppContext.Provider>;
+  const log = () => within(screen.getByRole("region", { name: "Activity log" }));
+  const rows = () => log().queryAllByRole("listitem").map(row => row.textContent);
+  const events = [event("binary_sensor.example_garage", "on", 5), event("lock.example_front", "unlocked", 10), event("light.example_lamp", "on", 15),
+    { entityId: "automation.example_lights", when: base - 20 * minute, message: "triggered by time" }, event("person.example_parent", "home", 25)];
+  beforeEach(() => {
+    subscribers = [];
+    subscribeLogbook.mockClear();
+    family.value = { activity: { panel: true, people: false }, now: new Date(base), today: "2026-10-06", cameras: { items: [] } };
+  });
+
+  it("logs every entity for today in the home's time zone with clock times and keeps people private by default", () => {
+    render(view());
+    expect(log().getByRole("status")).toHaveTextContent("Loading activity…");
+    expect(subscribers[0].options).toEqual({ start: new Date("2026-10-05T22:00:00.000Z"), end: undefined, entityIds: undefined });
+    act(() => subscribers[0].receive(events));
+    expect(rows()).toEqual(["Garage door opened13:55", "Front door unlocked13:50", "Reading lamp turned on13:45", "Evening lights triggered by time13:40"]);
+    expect(log().getByRole("link", { name: /Open logbook in Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/logbook");
+  });
+
+  it("filters by area and type and explains an empty result", () => {
+    render(view());
+    act(() => subscribers[0].receive(events));
+    fireEvent.change(log().getByLabelText("Area"), { target: { value: "garage" } });
+    expect(rows()).toEqual(["Garage door opened13:55"]);
+    fireEvent.change(log().getByLabelText("Type"), { target: { value: "lighting" } });
+    expect(log().getByText("No activity matches these filters.")).toBeVisible();
+    fireEvent.change(log().getByLabelText("Area"), { target: { value: "all" } });
+    expect(rows()).toEqual(["Reading lamp turned on13:45"]);
+  });
+
+  it("switches to yesterday with a closed window and marks cached entries stale while offline", () => {
+    const { rerender } = render(view());
+    act(() => subscribers[0].receive(events));
+    fireEvent.click(log().getByRole("button", { name: "Yesterday" }));
+    expect(subscribers[0].stop).toHaveBeenCalledOnce();
+    expect(subscribers[1].options).toEqual({ start: new Date("2026-10-04T22:00:00.000Z"), end: new Date("2026-10-05T22:00:00.000Z"), entityIds: undefined });
+    expect(log().getByRole("button", { name: "Yesterday" })).toHaveAttribute("aria-pressed", "true");
+    act(() => subscribers[1].receive([]));
+    expect(log().getByText("Nothing was logged on this day.")).toBeVisible();
+    act(() => subscribers[1].receive([event("lock.example_front", "locked", 900)]));
+    rerender(view(false));
+    expect(log().getByText("Cached activity is stale while Home Assistant is offline.")).toBeVisible();
+    expect(rows()).toEqual(["Front door locked23:00"]);
   });
 });
