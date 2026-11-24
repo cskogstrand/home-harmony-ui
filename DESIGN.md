@@ -472,7 +472,7 @@ Camera overview keeps Add camera beside a single Camera settings control, puts m
 
 Car & energy opens with the household’s pinned meters. Choose up to three power or energy sensors for their current reading and recorded 24-hour trend. The selection syncs with board preferences.
 
-On phones the Smart home navigation scrolls its primary destinations independently. The **More** menu stays in reach at the right edge.
+Smart home navigation has an even .5rem inset around the controls. On phones the primary destinations scroll independently. The **More** menu stays in reach at the right edge.
 
 Energy readings group by physical device, with standalone readings grouped by integration. Power, energy and cost are named separately and retain their reported units. Energy shows an authoritative last-reset timestamp when provided; otherwise the reporting period is explicitly unknown. No daily totals are inferred or added across overlapping meters.
 
