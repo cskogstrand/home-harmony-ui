@@ -1,6 +1,6 @@
 import type { Entity } from "@/types/api";
 import type { Planner } from "../../shared/configuration";
-import { cardDesigns } from "@/components/devices/card-designs";
+import { cardDesigns, designAccepts } from "@/components/devices/card-designs";
 import { smartHomeEntities } from "./device-model";
 
 export function smartHomeCards(entities: Entity[], settings: Planner["smartHome"]) {
@@ -8,7 +8,7 @@ export function smartHomeCards(entities: Entity[], settings: Planner["smartHome"
   return settings.layout.map(config => {
     const design = cardDesigns.find(design => design.id === config.type)!;
     const source = byId.get(config.mainEntity);
-    const main = source && design.domains.includes(source.domain) ? source : undefined;
+    const main = source && designAccepts(design, source) ? source : undefined;
     const linked = config.linkedEntities.map(id => byId.get(id)).filter((entity): entity is Entity => !!entity);
     return { ...config, main, design, name: config.title || main?.name || design.subtitle, entities: [...(main ? [main] : []), ...linked] };
   });

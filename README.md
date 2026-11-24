@@ -42,6 +42,8 @@ Today, Calendar, Lists, School and Smart home preload shortly after startup and 
 
 Bring! shopping lists show their urgent item count when positive. On a compatible Dreame vacuum card, choose **Choose rooms**, check one or more rooms on the current robot map, then start cleaning the selection.
 
+3D printers from the Bambu Lab integration get their own **3D printer** card on Smart home. Under **Settings → Devices → Smart home**, choose **Add card**, pick **3D printer** and select the printer's progress, status or stage sensor; the rest of the printer is found automatically, including filament units connected to it. The card leads with progress and time left, then shows the stage, nozzle and bed temperatures and the loaded filament colours. The Original size adds the printer camera while a print runs and the model's cover image otherwise. A finished print shows when it was done, a failed print shows the printer's error text, and an offline printer says so instead of showing old readings. The printer's device page opens with the same card; its chamber light keeps its normal light control. The card only reads the printer and cannot start, pause or stop a print. Other printer integrations can be added as a second key map in `src/lib/printer-model.ts`.
+
 ## Get started
 
 ### Home Assistant OS

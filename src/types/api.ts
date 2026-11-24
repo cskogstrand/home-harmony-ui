@@ -10,6 +10,8 @@ export interface PhysicalDevice {
   manufacturer?: string | null;
   model?: string | null;
   sw_version?: string | null;
+  /** The device this one connects through, such as a printer's filament unit. */
+  via_device_id?: string | null;
 }
 export interface EntityRegistryEntry {
   id: string;

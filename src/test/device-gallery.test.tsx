@@ -29,10 +29,10 @@ const card = (id: string, variant = "Original") => within(document.querySelector
 
 it("covers the entity families, searches helper aliases and keeps changed values when filtered", () => {
   open();
-  expect(screen.getByText("39 designs")).toBeInTheDocument();
-  expect(document.querySelectorAll('[data-variant="Original"]')).toHaveLength(39);
-  expect(document.querySelectorAll('[data-variant="Compact"]')).toHaveLength(39);
-  expect(document.querySelectorAll('[data-variant="Super compact"]')).toHaveLength(39);
+  expect(screen.getByText("40 designs")).toBeInTheDocument();
+  expect(document.querySelectorAll('[data-variant="Original"]')).toHaveLength(40);
+  expect(document.querySelectorAll('[data-variant="Compact"]')).toHaveLength(40);
+  expect(document.querySelectorAll('[data-variant="Super compact"]')).toHaveLength(40);
   fireEvent.keyDown(card("light").getByRole("slider", { name: "Brightness" }), { key: "End" });
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "input_number" } });
   expect(screen.getByText("1 design")).toBeInTheDocument();
@@ -83,7 +83,7 @@ it("uses stable option values in Norwegian and provides search recovery", () => 
   fireEvent.change(screen.getByRole("searchbox"), { target: { value: "no-such-device" } });
   expect(screen.getByText("Ingen treff")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Nullstill filtre" }));
-  expect(screen.getByText("39 design")).toBeInTheDocument();
+  expect(screen.getByText("40 design")).toBeInTheDocument();
 });
 
 it("keeps all three versions independent through view changes, filters and reset", () => {
@@ -199,4 +199,22 @@ it("shows the water heater mode after its controls close", () => {
   fireEvent.click(within(screen.getByRole("dialog", { name: "Water heater controls" })).getByRole("button", { name: "Off" }));
   fireEvent.click(screen.getByRole("button", { name: "Close controls" }));
   expect(card("water_heater", "Super compact").getByText("Hot water target · Off")).toBeVisible();
+});
+
+it("demonstrates the printer family with fictional progress, states, trays and temperatures", () => {
+  open();
+  fireEvent.change(screen.getByRole("searchbox"), { target: { value: "printer" } });
+  expect(screen.getByText("1 design")).toBeInTheDocument();
+  expect(card("printer_3d").getByRole("progressbar", { name: "Print progress" })).toHaveAttribute("aria-valuenow", "64");
+  expect(card("printer_3d").getByText("48 min")).toBeVisible();
+  expect(card("printer_3d").getByText("Fictional printer · no camera stream is loaded")).toBeVisible();
+  expect(card("printer_3d").getByRole("img", { name: "Tray 1: PLA, In use" })).toBeVisible();
+  expect(card("printer_3d", "Compact").queryByText("Fictional printer · no camera stream is loaded")).toBeNull();
+  fireEvent.click(card("printer_3d").getByRole("button", { name: "Finished" }));
+  expect(card("printer_3d").getByText("Done at 14:20")).toBeVisible();
+  fireEvent.click(card("printer_3d").getByRole("button", { name: "Failed" }));
+  expect(card("printer_3d").getByText("Example: filament ran out in tray 2.")).toBeVisible();
+  expect(card("printer_3d", "Super compact").queryByText("38 °C")).toBeNull();
+  fireEvent.click(card("printer_3d", "Super compact").getByRole("button", { name: "Temperatures" }));
+  expect(within(screen.getByRole("dialog", { name: "3D printer controls" })).getByText("219.6 °C")).toBeVisible();
 });

@@ -62,7 +62,7 @@ export const cardDensitySchema = z.enum(["supercompact", "compact", "original"])
 export type CardDensity = z.infer<typeof cardDensitySchema>;
 export const deviceCardSchema = z.object({
   id: memberSchema,
-  type: z.enum(["light", "climate", "cover", "media_player", "lock", "vacuum", "switch", "fan", "humidifier", "water_heater", "alarm_control_panel", "siren", "valve", "camera", "remote", "image", "lawn_mower", "sensor", "air_quality", "binary_sensor", "weather", "event", "presence", "scene", "script", "automation", "timer", "counter", "number", "select", "text", "datetime", "button", "calendar", "todo", "update", "voice", "ai_task", "notify"]),
+  type: z.enum(["light", "climate", "cover", "media_player", "lock", "vacuum", "switch", "fan", "humidifier", "water_heater", "alarm_control_panel", "siren", "valve", "camera", "remote", "image", "lawn_mower", "printer_3d", "sensor", "air_quality", "binary_sensor", "weather", "event", "presence", "scene", "script", "automation", "timer", "counter", "number", "select", "text", "datetime", "button", "calendar", "todo", "update", "voice", "ai_task", "notify"]),
   title: z.string().trim().max(100).default(""),
   mainEntity: memberSchema,
   linkedEntities: z.array(memberSchema).max(100).default([]),

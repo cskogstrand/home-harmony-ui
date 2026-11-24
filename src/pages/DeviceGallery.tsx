@@ -11,7 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Action, Range, Segments, Choice, Toggle, More, Readout, SceneAction } from "@/components/devices/CardControls";
 import { CardDisabled as DemoDisabled, CardPresentation, cardVariants, type CardVariant as Variant } from "@/components/devices/card-presentation";
 import { CardFrame } from "@/components/devices/CardFrame";
-import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard, FanCard, HumidityCard, WaterHeaterCard, RobotCard, ValveCard } from "@/components/devices/CardLayouts";
+import { LightCard, ClimateCard, CoverCard, PowerCard, SecurityCard, MediaCard, FanCard, HumidityCard, WaterHeaterCard, RobotCard, ValveCard, PrinterCard } from "@/components/devices/CardLayouts";
 import { cardDesigns, type CardDesign } from "@/components/devices/card-designs";
 
 type DemoStatus = "Ready" | "Unavailable" | "Waiting" | "Command failed";
@@ -141,6 +141,36 @@ function ImageDemo() {
   const { message: t } = useI18n();
   const [floor, setFloor] = useState("Ground floor");
   return <><div className="dg-floorplan" data-floor={floor}><span>{t("Living")}</span><span>{t("Kitchen")}</span><span>{t("Hall")}</span></div><Segments label="Example image" options={["Ground floor", "Upper floor"]} value={floor} set={setFloor} /><p>{t("A fictional floor plan. Image entities display snapshots without playback controls.")}</p></>;
+}
+
+// A drawn print bed stands in for the camera; the model grows with progress.
+function PrinterScene({ progress }: { progress: number }) {
+  const height = 44 * progress / 100;
+  return <svg className="dg-printer-scene" viewBox="0 0 160 96" aria-hidden="true">
+    <rect className="dg-printer-scene-frame" x="16" y="6" width="128" height="84" rx="12" />
+    <path className="dg-printer-scene-rail" d="M16 22h128" />
+    <path className="dg-printer-scene-nozzle" d={`M80 22v${Math.max(4, 48 - height)}m-6 0h12l-6 6z`} />
+    <rect className="dg-printer-scene-model" x="64" y={76 - height} width="32" height={height} rx="4" />
+    <rect className="dg-printer-scene-bed" x="30" y="76" width="100" height="6" rx="3" />
+  </svg>;
+}
+
+function PrinterDemo() {
+  const superCompact = useContext(CardPresentation).variant === "Super compact";
+  const { message: t, reading } = useI18n();
+  const [phase, setPhase] = useState("Printing");
+  const progress = phase === "Printing" ? 64 : phase === "Finished" ? 100 : 37;
+  const celsius = (value: number) => reading(value, { unit: "°C", deviceClass: "temperature" });
+  const trays = [["#f4efe6", "PLA", true], ["#d9482b", "PLA", false], ["#2f6f73", "PETG", false], [undefined, undefined, false]] as const;
+  return <><PrinterCard phase={phase.toLowerCase()} progress={progress}
+    label={t(phase === "Printing" ? "Time left" : phase === "Finished" ? "Finished" : "Printer")}
+    time={phase === "Printing" ? t("{minutes} min", { minutes: 48 }) : phase === "Finished" ? t("Done at {time}", { time: "14:20" }) : t("Print failed")}
+    status={phase === "Printing" ? t("Printing") : undefined} error={phase === "Failed" ? t("Example: filament ran out in tray 2.") : undefined}
+    temperatures={phase === "Printing" ? [{ label: t("Nozzle"), value: celsius(219.6), target: celsius(220) }, { label: t("Bed"), value: celsius(54.8), target: celsius(55) }] : [{ label: t("Nozzle"), value: celsius(38) }, { label: t("Bed"), value: celsius(31.5) }]}
+    trays={trays.map(([color, type, active], index) => ({ id: String(index), color, type, active, empty: !type,
+      label: `${t("Tray {number}", { number: index + 1 })}: ${type ? [type, active && t("In use")].filter(Boolean).join(", ") : t("Empty")}` }))}
+    media={<div className="dg-camera"><PrinterScene progress={progress} /><small>{t("Fictional printer · no camera stream is loaded")}</small></div>} />
+    {!superCompact && <Segments label="Demo print state" options={["Printing", "Finished", "Failed"]} value={phase} set={setPhase} />}</>;
 }
 
 function RobotDemo({ mower = false }: { mower?: boolean } = {}) {
@@ -288,6 +318,7 @@ const demoContents: Record<string, () => ReactNode> = {
   remote: RemoteDemo,
   image: ImageDemo,
   lawn_mower: () => <RobotDemo mower />,
+  printer_3d: PrinterDemo,
   sensor: SensorDemo,
   air_quality: () => <SensorDemo air />,
   binary_sensor: BinaryDemo,

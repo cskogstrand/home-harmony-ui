@@ -50,7 +50,8 @@ export function FavoritePicker({ selected, groups, savedGroups, onSave, onCancel
   const duplicateGroup = groupNames.some(group => group.toLocaleLowerCase(language) === newGroup.trim().toLocaleLowerCase(language));
   const [removal, setRemoval] = useState<{ ids: string[]; description: Message }>();
   const [type, setType] = useState<string>();
-  const types = cardDesigns.map(design => ({ id: design.id, label: message(design.subtitle), entities: currentHome.entities.filter(entity => design.domains.includes(entity.domain)) }));
+  // Favorites save one entity and render by its domain, so device-level families such as printers stay on Smart home.
+  const types = cardDesigns.filter(design => !design.accepts).map(design => ({ id: design.id, label: message(design.subtitle), entities: currentHome.entities.filter(entity => design.domains.includes(entity.domain)) }));
   types.push({ id: "other", label: t("Other entities"), entities: currentHome.entities.filter(entity => !cardDesignFor(entity.domain)) });
   const availableTypes = types.filter(type => type.entities.length);
   const active = availableTypes.find(item => item.id === type) ?? availableTypes[0];

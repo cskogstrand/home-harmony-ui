@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AppContext } from "@/contexts/AppContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DeviceDetail from "@/pages/DeviceDetail";
-import { cardEntity, cardServices, mediaEntity } from "./device-card-fixtures";
+import { cardEntity, cardServices, mediaEntity, printerHome } from "./device-card-fixtures";
 import type { Entity } from "@/types/api";
 
 const device = { id: "example", name: "Example device", area_id: "example-room", manufacturer: "Example maker", model: "T100", sw_version: "1.2" };
@@ -168,5 +168,25 @@ it("disables settings and avoids stale diagnostic values while offline", () => {
   fireEvent.mouseDown(screen.getByRole("tab", { name: "Diagnostics" }), { button: 0, ctrlKey: false });
   expect(screen.getByRole("tabpanel")).toHaveTextContent("Home Assistant offline");
   expect(screen.queryByText("-61 dBm")).not.toBeInTheDocument();
+  expect(command).not.toHaveBeenCalled();
+});
+
+it("leads a printer with its read-only printer card and keeps the chamber light as a generic control", () => {
+  open(printerHome().entities);
+  const controls = screen.getByRole("region", { name: "Device controls" });
+  const printer = within(controls).getByRole("article", { name: "Example device" });
+  expect(printer).toHaveAttribute("data-card-kind", "printer_3d");
+  expect(within(printer).getByText("1 h 15 min")).toBeVisible();
+  expect(within(printer).getByRole("button", { name: "Expand Workshop printer camera" })).toBeVisible();
+  // The camera moved into the printer card; the cover image and chamber light keep their own cards.
+  expect(within(controls).queryByRole("article", { name: "Workshop printer camera" })).not.toBeInTheDocument();
+  expect(within(controls).getByRole("article", { name: "Workshop printer cover image" })).toBeVisible();
+  const light = within(controls).getByRole("article", { name: "Workshop printer chamber light" });
+  expect(light).toHaveAttribute("data-card-kind", "light");
+  // No print job controls: only the light's own power control can send a command.
+  expect(within(printer).queryAllByRole("button").map(button => button.getAttribute("aria-label") ?? button.textContent)).toEqual(["Connecting…", "Expand Workshop printer camera"]);
+  expect(within(controls).queryByRole("button", { name: /\b(start|stop|pause|resume|cancel)\b/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Readings and status" })).toHaveTextContent("Workshop printer print progress");
+  expect(document.querySelectorAll(`[id="sensor.workshop_printer_print_progress"]`)).toHaveLength(1);
   expect(command).not.toHaveBeenCalled();
 });
