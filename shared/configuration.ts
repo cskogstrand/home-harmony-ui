@@ -165,6 +165,7 @@ const plannerObjectSchema = z.object({
   vehicles: z.array(z.object({ id: memberSchema, name: memberSchema, imageEntity: memberSchema.optional(), addressEntity: memberSchema.optional(), commandVehicleId: memberSchema.optional() }).strict()).max(100).default([])
     .refine(cars => new Set(cars.map(car => car.id)).size === cars.length, "Choose each vehicle only once."),
   energyMeters: z.array(memberSchema).max(3).refine(ids => new Set(ids).size === ids.length).default([]),
+  electricityPriceEntity: z.union([memberSchema, z.literal("")]).default(""),
   weatherEntity: z.union([memberSchema, z.literal("")]).default(""),
   wasteCalendarEntity: z.union([memberSchema, z.literal("")]).default(""),
   wasteCollectionDays: z.number().int().min(0).max(90).default(7),

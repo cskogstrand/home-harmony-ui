@@ -88,6 +88,7 @@ const FamilyStore = memo(function FamilyStore({ children, people, timeZone }: { 
       ? (p.vehicles.some(car => car.id === vehicle.id) ? p.vehicles : [...p.vehicles, vehicle])
       : p.vehicles.filter(car => car.id !== vehicle.id) })),
     setEnergyMeters: energyMeters => setPlanner(p => ({ ...p, energyMeters })),
+    setElectricityPriceEntity: id => setPlanner(p => ({ ...p, electricityPriceEntity: id })),
     setWeatherEntity: id => setPlanner(p => ({ ...p, weatherEntity: id })),
     setWasteCalendarEntity: id => setPlanner(p => ({ ...p, wasteCalendarEntity: id })),
     setWasteCollectionDays: days => setPlanner(p => ({ ...p, wasteCollectionDays: days })),

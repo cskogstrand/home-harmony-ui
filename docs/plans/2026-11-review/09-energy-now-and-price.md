@@ -22,20 +22,15 @@
 
 > Handoff: Phase A is implemented and covered by `src/test/energy-now.test.ts`, `src/test/energy-page.test.tsx` and the `energySetup` case in `src/test/ha-session.test.tsx`. The browser check (1440 × 2560 portrait, 390 × 844 phone, light/dark, artwork on) is still open: it was built on a branch the running dev server does not serve. Check that "Using power now" sits on the first portrait screen below the pinned meters. The sum of the five listed consumers is always labelled "Total of listed circuits"; the app has no way to mark a pinned meter as the house total, so no house total is shown.
 
-## Phase B — price (blocked until the owner adds a price source in HA)
+## Phase B — price
 
-- [ ] Owner action: add the Nord Pool integration (or another price source) in Home Assistant and configure Energy. Record the date here. *Do not do this for them.*
-  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
-- [ ] Detect a price source generically: sensor with `device_class: monetary` and unit ending in `/kWh`, or the Nord Pool service `nordpool.get_prices_for_date` (call with `return_response`; verify current service name and fields in HA docs).
-  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
+- [x] Owner action: add the Nord Pool integration (or another price source) in Home Assistant and configure Energy. Record the date here. *Do not do this for them.* — 2026-11-24: the owner added Nord Pool price sensors. Energy dashboard setup is not required for the price features.
+- [x] ~~Detect a price source generically: sensor with `device_class: monetary` and unit ending in `/kWh`, or the Nord Pool service `nordpool.get_prices_for_date` (call with `return_response`; verify current service name and fields in HA docs).~~ — skipped: owner chooses the price sensor in Settings
+- [x] Settings: choose the price sensor with the shared entity picker (sensors with a unit ending in `/kWh` or `device_class: monetary` are offered); stored in shared settings, so backups include it. A Nord Pool sensor supplies today and tomorrow through `nordpool.get_prices_for_date` (read-only, `return_response`); other sensors show their current price only.
 - [ ] Price strip: today (and tomorrow when published) hourly/quarter-hourly bars with "now" marker; current price in large type; cheapest window highlighted. Follow the colour rules in [DESIGN.md](../../../DESIGN.md); accessible table fallback.
-  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] "Best time" hint: cheapest contiguous 3-hour window in the next 24 h, shown as text ("Cheapest from 02:00 to 05:00"). Display only — never schedule or start devices automatically.
-  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] Tests with a fictional price series (including DST change day and missing tomorrow).
-  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] Docs: DOCS.md (how to add a price source), README feature line.
-  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 
 ## Acceptance
 

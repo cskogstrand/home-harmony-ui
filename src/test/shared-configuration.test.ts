@@ -186,6 +186,25 @@ it("defaults weather to Today and shares and restores the source and placements"
   expect(a.getSnapshot().config.settings.weatherPlacement).toEqual({ today: false, header: true });
 });
 
+it("shares the chosen electricity price sensor and restores it from a backup", async () => {
+  const config = emptyConfiguration();
+  delete config.settings.electricityPriceEntity;
+  expect(parseConfiguration(JSON.stringify(config)).settings.electricityPriceEntity).toBe("");
+  for (const electricityPriceEntity of [null, [], 42, "x".repeat(513)]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, electricityPriceEntity } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, electricityPriceEntity: "home|example-price" }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.electricityPriceEntity).toBe("home|example-price");
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  await b.replace(emptyConfiguration());
+  await b.replace(backup);
+  await a.refresh();
+  expect(a.getSnapshot().config.settings.electricityPriceEntity).toBe("home|example-price");
+});
+
 it("shares notification rules across screens and restores them with the existing backup flow", async () => {
   const backend = server(), a = await backend.start(), b = await backend.start();
   a.updateSettings(p => ({ ...p, notifications: { enabled: true, defaultWidgetWidth: "large", gridZoom: "small", presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntities: ["home|example-progress", "home|example-remaining"], progress: { current: { type: "entity", entity: "home|example-progress", attribute: "" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 } }, icon: "washing", animateIcon: false, entityDisplay: [{ entity: "home|example-remaining", attribute: "", name: "Time left", placement: "right" }], durationSeconds: 60, cooldownSeconds: 10 }] } }));
