@@ -12,7 +12,8 @@ import { usePageActive } from "@/contexts/PageActivityContext";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { available, entityStateLabel } from "@/lib/ha-model";
+import { matchingTodoItem } from "@/lib/todo-items";
+import { available, entityStateLabel, supportsAction } from "@/lib/ha-model";
 import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, previewNotificationEvent, progressSourceValue, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
@@ -123,6 +124,45 @@ function useReadingValue() {
   };
 }
 
+function ShoppingAction({ action, preview }: { action: NotificationRule["shoppingAction"]; preview?: PreviewMode }) {
+  const { currentHome, homeOnline, services, todoItems, command } = useApp();
+  const { todoLists } = useFamily();
+  const { message: t } = useI18n();
+  const list = todoLists[action.list]?.kind === "shopping" && currentHome.entities.find(entity => entity.domain === "todo" && entity.preferenceId === action.list);
+  const listId = list ? list.entityId : undefined;
+  const writable = homeOnline && !!list && available(list) && supportsAction(list, "add_item", services);
+  const request = useRef<AbortController>();
+  const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  useEffect(() => {
+    setBusy(false); setFeedback("");
+    return () => { request.current?.abort(); request.current = undefined; };
+  }, [listId, action.item, writable, preview]);
+  const add = async () => {
+    if (!writable || preview || request.current) return;
+    const attempt = new AbortController();
+    request.current = attempt;
+    setBusy(true); setFeedback("");
+    try {
+      const existing = matchingTodoItem(await todoItems(list.entityId), action.item);
+      if (attempt.signal.aborted) return;
+      if (existing && existing.status !== "completed") { setFeedback("This item is already on the list."); return; }
+      if (existing && !supportsAction(list, "update_item", services)) { setFeedback("This list cannot reopen completed items."); return; }
+      if (existing) await command(list.entityId, "update_item", { item: existing.uid, status: "needs_action" });
+      else await command(list.entityId, "add_item", { item: action.item });
+      if (!attempt.signal.aborted) setFeedback("Added to shopping list.");
+    } catch (error) {
+      if (!attempt.signal.aborted) setFeedback(error instanceof Error ? error.message : "List unavailable");
+    } finally {
+      if (request.current === attempt) { request.current = undefined; setBusy(false); }
+    }
+  };
+  return <div className="mt-3 grid justify-items-start gap-1">
+    <Button type="button" variant="outline" className="max-w-full whitespace-normal [overflow-wrap:anywhere]" disabled={!!preview || !writable || busy} onClick={add}>{t("Add {item} to shopping list", { item: action.item })}</Button>
+    <small role="status">{busy ? t("Updating list…") : !preview && !writable ? t("List unavailable") : t(feedback)}</small>
+  </div>;
+}
+
 export function NotificationRow({ item, condensed = false, activity = false, compactActivity = false, inDialog = false, preview, entities: previewEntities }: { item: HomeNotification; condensed?: boolean; activity?: boolean; compactActivity?: boolean; inDialog?: boolean; preview?: PreviewMode; entities?: Entity[] }) {
   const { message: t } = useI18n();
   const readingValue = useReadingValue();
@@ -190,6 +230,7 @@ export function NotificationRow({ item, condensed = false, activity = false, com
       {cameraPosition === "footer" && cameraContent}
       {footer && <div data-placement="footer" className="notification-reading-footer">{footer}</div>}
       {!inDialog && progress}
+      {item.rule.kind === "current" && item.rule.shoppingAction && <ShoppingAction action={item.rule.shoppingAction} preview={preview} />}
     </div>
     {!inDialog && !activity && dismissAction}
   </Tag>;

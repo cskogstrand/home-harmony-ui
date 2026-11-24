@@ -12,7 +12,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily, addDays, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
 import { available, supportsAction } from "@/lib/ha-model";
 import type { Entity, TodoAction, TodoItem } from "@/types/api";
-import { todoDetailChanges, todoDueInput, todoDueTimestamp, urgentShoppingCount, type TodoDetails } from "@/lib/todo-items";
+import { itemName, matchingTodoItem, todoDetailChanges, todoDueInput, todoDueTimestamp, urgentShoppingCount, type TodoDetails } from "@/lib/todo-items";
 import { TodoDueLabel, TodoItemFields } from "./TodoItemDetails";
 import { MemberAvatar, MemberOptions, PanelHeading } from "./FamilyPlanner";
 import { AvatarFilters } from "./AvatarFilters";
@@ -30,7 +30,6 @@ const homeworkTitles = {
   "through-today": "Homework due by today", "through-tomorrow": "Homework due by tomorrow",
   today: "Homework due today", tomorrow: "Homework due tomorrow", all: "All homework",
 } as const;
-const itemName = (name: string) => name.trim().toLocaleLowerCase();
 const rowTransition = { duration: .8, ease: [.77, 0, .175, 1] } as const;
 type ListPresence = { itemIds: string[]; completedIds: string[] };
 type TodoCompletion = { index: number; checkbox: HTMLInputElement; origin: { x: number; y: number }; confirmed?: boolean; finale?: boolean; onComplete: () => void };
@@ -327,8 +326,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
   };
   const add = async (name = text) => {
     if (!can("add_item") || !name.trim()) return;
-    const matches = items.filter(item => itemName(item.summary) === itemName(name));
-    const existing = matches.find(item => item.status !== "completed") ?? matches[0];
+    const existing = matchingTodoItem(items, name);
     if (existing?.status === "completed" && !can("update_item", existing.uid)) { toast.error(t("This list cannot reopen completed items.")); return; }
     if (existing && existing.status !== "completed") toast.info(t("This item is already on the list."));
     else {

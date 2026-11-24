@@ -2,6 +2,13 @@ import { isPlannerDate } from "../../shared/configuration";
 import { calendarBoundary, calendarTimeInput, calendarTimeValue, feature } from "./ha-model";
 import type { Entity, TodoItem } from "@/types/api";
 
+export const itemName = (name: string) => name.trim().toLocaleLowerCase();
+
+export function matchingTodoItem(items: TodoItem[], name: string) {
+  const matches = items.filter(item => itemName(item.summary) === itemName(name));
+  return matches.find(item => item.status !== "completed") ?? matches[0];
+}
+
 export type TodoDetails = { due: string; description: string };
 
 export function urgentShoppingCount(list: Entity | undefined, entities: Entity[]) {

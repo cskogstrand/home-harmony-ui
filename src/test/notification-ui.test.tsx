@@ -2215,3 +2215,27 @@ it.each(["subtitle", "left", "right", "footer"] as const)("hides only the activi
     expect(screen.getByText("Detection · Off")).not.toHaveClass("sr-only");
   }
 });
+
+it("adds a shopping reminder once, reopens completed items and keeps previews inert", async () => {
+  const shopping = mapHome({ "todo.example": state("todo.example", "1", { supported_features: 5 }) }, emptyRegistries, "home");
+  const list = shopping.entities[0];
+  const todoItems = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([{ uid: "old", summary: " SALT ", status: "completed" }])
+    .mockResolvedValueOnce([{ uid: "open", summary: "Salt", status: "needs_action" }]);
+  const command = vi.fn();
+  Object.assign(mocks.app, { currentHome: shopping, services: { todo: { add_item: {}, update_item: {} } }, todoItems, command });
+  mocks.family.todoLists = { [list.preferenceId]: { kind: "shopping", member: "everyone" } };
+  const rule = notificationRuleSchema.parse({ ...cameraRule(), kind: "current", shoppingAction: { list: list.preferenceId, item: "Salt" } });
+  const item = { id: rule.id, rule, startedAt: 0, popup: false };
+  const view = render(<NotificationRow item={item} preview="current" />);
+  const button = screen.getByRole("button", { name: "Add Salt to shopping list" });
+  expect(button).toBeDisabled();
+  view.rerender(<NotificationRow item={item} />);
+  fireEvent.click(button); fireEvent.click(button);
+  await screen.findByText("Added to shopping list.");
+  expect(command).toHaveBeenCalledWith(list.entityId, "add_item", { item: "Salt" });
+  fireEvent.click(button);
+  await waitFor(() => expect(command).toHaveBeenCalledWith(list.entityId, "update_item", { item: "old", status: "needs_action" }));
+  fireEvent.click(button);
+  await screen.findByText("This item is already on the list.");
+  expect(command).toHaveBeenCalledTimes(2);
+});

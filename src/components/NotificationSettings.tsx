@@ -46,7 +46,7 @@ function initialTriggerGroups(triggers: NotificationTrigger[]) {
 
 export function NotificationSettings() {
   const { message: t } = useI18n();
-  const { notifications, setNotifications, appearance } = useFamily();
+  const { notifications, setNotifications, appearance, todoLists } = useFamily();
   const boardSpacing = `board-spacing${appearance.compactMode ? " compact-mode" : ""}`;
   const [params, setParams] = useSearchParams();
   const requestedCamera = params.get("camera");
@@ -329,6 +329,13 @@ export function NotificationSettings() {
         <NotificationEditorSection value="content" title={t("Notification content")} icon={MessageSquare} summary={[draft.title.trim() || t("Add a title"), t((draft.pages ?? notifications.pages) === "main" ? "All main pages" : "Today only")].join(" · ")} open={openSections.includes("content")}>
         <label>{t("Title")}<input name="title" ref={titleInput} required maxLength={100} value={draft.title} onChange={event => setDraft({ ...draft, title: event.target.value })} /></label>
         <label>{t("Message (optional)")}<textarea name="message" maxLength={300} rows={2} value={draft.message} onChange={event => setDraft({ ...draft, message: event.target.value })} /></label>
+        {draft.kind === "current" && <>
+          <div className="notification-toggle"><span>{t("Add to shopping list")}</span><Switch aria-label={t("Add to shopping list")} checked={!!draft.shoppingAction} disabled={disabled} onCheckedChange={on => setDraft({ ...draft, shoppingAction: on ? { list: "", item: "" } : undefined })} /></div>
+          {draft.shoppingAction && <div className="grid gap-3 sm:grid-cols-2">
+            <EntityPicker name="shoppingAction.list" label={t("Shopping list")} entities={entities.filter(entity => entity.domain === "todo" && todoLists[entity.preferenceId]?.kind === "shopping")} value={draft.shoppingAction.list} disabled={disabled} onChange={list => setDraft({ ...draft, shoppingAction: { ...draft.shoppingAction, list } })} />
+            <label>{t("Item")}<input name="shoppingAction.item" maxLength={120} required value={draft.shoppingAction.item} onChange={event => setDraft({ ...draft, shoppingAction: { ...draft.shoppingAction, item: event.target.value } })} /></label>
+          </div>}
+        </>}
         <label>{t("Show on")}<select name="pages" value={draft.pages ?? notifications.pages} disabled={disabled} onChange={event => setDraft({ ...draft, pages: event.target.value as NotificationRule["pages"] })}>
           <option value="today">{t("Today only")}</option><option value="main">{t("All main pages")}</option>
         </select></label>

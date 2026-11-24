@@ -1,4 +1,8 @@
 export const nb = {
+  "Add to shopping list": "Legg på handlelisten",
+  "Shopping list": "Handleliste",
+  "Add {item} to shopping list": "Legg {item} på handlelisten",
+  "Added to shopping list.": "Lagt på handlelisten.",
   "Checking notifications…": "Henter varselstatus …",
   "Notifications unavailable": "Varselstatus utilgjengelig",
   "Some notification sources are unavailable": "Enkelte varselkilder er utilgjengelige",

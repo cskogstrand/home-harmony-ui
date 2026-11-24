@@ -93,6 +93,7 @@ export const notificationTriggerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("calendar"), entity: reference, leadMinutes: z.number().int().min(0).max(1440).default(0) }).strict(),
 ]);
 export const notificationRuleSchema = z.object({
+  shoppingAction: z.object({ list: reference, item: z.string().trim().min(1).max(120) }).strict().optional(),
   id: reference, title: z.string().trim().min(1).max(100), message: z.string().trim().max(300).default(""),
   enabled: z.boolean().default(true), kind: z.enum(["ongoing", "current", "camera"]), trigger: notificationTriggerSchema,
   additionalTriggers: z.array(notificationTriggerSchema).max(MAX_NOTIFICATION_TRIGGERS - 1).optional(),

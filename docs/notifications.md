@@ -21,6 +21,8 @@ Rules, titles, messages and selected entities are saved in shared settings and i
 
 The notification area fades in or out over 160 ms. When it changes above the viewport, the page keeps the reader’s place. If a cleared alert contained keyboard focus, focus returns to the header bell. Dismissed controls become inactive immediately.
 
+For a dishwasher refill reminder, create a current notification for the low salt or rinse-aid sensor. Under **Notification content**, enable **Add to shopping list**, choose a linked shopping list and enter the item name. Tap the action in the active notification to add the item. An existing open item stays on the list, and a completed item reopens if the integration supports it. Leave the action off for maintenance reminders such as cleaning the filter.
+
 ## Choose triggers
 
 Under **When to show it** (**Når varselet skal vises**), use **Add trigger** (**Legg til utløser**) to configure up to 10 triggers for one notification. **Any** trigger can activate it. For example, one camera popup can respond to both a doorbell event and a motion sensor. Each trigger has its own source, condition or event filters, and can be removed while at least one remains. Existing single-trigger rules keep working, and extra triggers are shared across screens and included in backups.
