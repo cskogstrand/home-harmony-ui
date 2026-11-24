@@ -35,7 +35,7 @@ export default function Areas() {
       const temperature = entities.find(entity => available(entity) && entity.attributes.device_class === "temperature" && entity.state.trim() !== "" && Number.isFinite(Number(entity.state)));
       const count = new Set(entities.map(entity => entity.device?.id ?? entity.entityId)).size;
       return <Link key={room.id} to={`/areas/${encodeURIComponent(room.id)}`} className="glow-panel space-y-3"><PanelTitle icon={DoorOpen}>{room.id === "unassigned" ? t("Unassigned") : room.name}</PanelTitle>
-        <p>{!homeOnline ? t("Offline") : [reportedLights.length ? t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn }) : "", reportedLights.length < lights.length ? t("Some readings unavailable") : "", temperature ? entityReading(temperature, language) : ""].filter(Boolean).join(" · ") || t(count === 1 ? "{count} device" : "{count} devices", { count })}</p><ArrowUpRight aria-hidden="true" />
+        <p>{!homeOnline ? t("Offline") : [lightsOn ? t(lightsOn === 1 ? "{count} light on" : "{count} lights on", { count: lightsOn }) : "", reportedLights.length < lights.length ? t("Some readings unavailable") : "", temperature ? entityReading(temperature, language) : ""].filter(Boolean).join(" · ") || t(count === 1 ? "{count} device" : "{count} devices", { count })}</p><ArrowUpRight aria-hidden="true" />
       </Link>;
     })}</div>}
     {!currentHome.areas.length && <p className="glow-panel empty-note">{t("No areas available.")}</p>}

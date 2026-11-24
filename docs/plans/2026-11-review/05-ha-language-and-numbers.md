@@ -24,7 +24,7 @@
 - [x] Number formatting: format readings with `Intl.NumberFormat(locale)` and a precision rule: use the entity's `display_precision` (entity registry `options.sensor.display_precision` / `suggested_display_precision`) when present, else temperatures 1 decimal, power/energy by magnitude (W 0 decimals, kW/kWh 1–2). One helper used by `DeviceReading`, area cards and the header weather.
 - [x] Unit spacing consistent with locale (`−2,4 °C` in nb); pick one rule and apply everywhere.
   > Rule (`withUnit` in `src/lib/i18n.ts`): a no-break space before every unit in both languages; `%` and an angle's bare `°` attach to the number. Large dial/readout numerals that set the unit in a separate `<small>` keep their composition. Notification progress (`NotificationCenter`, `NotificationProgress`) was left to workstream 03's files; its percentages already follow the rule.
-- [ ] Areas: hide zero counts ("0 lights on") — show the count only when > 0, otherwise nothing or a neutral "All off" only if it adds meaning.
+- [x] Areas: hide zero counts ("0 lights on") — show the count only when > 0, otherwise nothing or a neutral "All off" only if it adds meaning.
 - [ ] Tests with fictional entities: translation_key mapping, user name precedence, number precision per device class and locale.
 - [ ] Update DESIGN.md (number formatting rule) and DOCS.md if it mentions language behaviour.
 
