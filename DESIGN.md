@@ -61,6 +61,7 @@ colors:
   ambient-blue: "hsl(209 75% 85% / .55)"
   dark-ambient-blue: "hsl(214 65% 24% / .5)"
   ambient-warm: "hsl(28 80% 89% / .48)"
+  media-backing: "hsl(0 0% 96%)"
   dark-ambient-warm: "hsl(264 35% 20% / .32)"
 typography:
   display:
@@ -69,18 +70,46 @@ typography:
     fontWeight: 300
     lineHeight: 1
     letterSpacing: "-.04em"
+  display-small:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "4.5rem"
+    fontWeight: 300
+    lineHeight: 1
+  readout:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "3rem"
+    lineHeight: 1.15
   headline:
     fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
     fontSize: "2.25rem"
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "-.025em"
+  headline-small:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "2rem"
+  heading:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.75rem"
+  heading-small:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.5rem"
+  title-large:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.375rem"
   title:
     fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.35
     letterSpacing: "-.02em"
+  subtitle:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 600
+  body-large:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1rem"
   body:
     fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
     fontSize: ".9375rem"
@@ -91,7 +120,20 @@ typography:
     fontSize: ".875rem"
     fontWeight: 500
     lineHeight: "1.25rem"
+  meta:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: ".8125rem"
+  caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: ".75rem"
+  nav-caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: ".6875rem"
+    fontWeight: 500
 rounded:
+  checkbox: "6px"
+  surface-small: "8px"
+  row: "12px"
   sm: "12px"
   md: "14px"
   lg: "16px"
@@ -236,6 +278,7 @@ Shared range thumbs and filled tracks fall back to the palette's primary color o
 - **Pearl ground** (`background`) sits behind **white work surfaces** (`card`) and the cool `popover` layer.
 - **Blue-black ink** (`foreground`) carries task content; `muted-foreground` is for supporting text.
 - `secondary`, `muted` and `accent` are cool tints for secondary controls and selected or hovered surfaces. `border` divides groups; `input` gives editable controls a stronger edge.
+- `media-backing` is a fixed light gray behind trimmed transparent images (printer models, device pictures). It has no dark counterpart and ignores the palette, so dark models stay visible in both themes.
 - `nav-background` and `nav-border` define the glass control layer's fill and rim. `glass-highlight` and `glass-shade` provide its light and shade; `ambient-blue` and `ambient-warm` belong to the app ground.
 - The `dark-` counterparts preserve the same roles over midnight ground. Dark navigation has its own fill, ink, rim and highlight values.
 
@@ -249,11 +292,36 @@ Shared range thumbs and filled tracks fall back to the palette's primary color o
 
 **Display and body font:** the shared `--font-ui` stack selects `-apple-system`, then `BlinkMacSystemFont`, self-hosted Public Sans and generic sans-serif. This gives Apple platforms their system typography while preserving the bundled fallback elsewhere. Public Sans normal weights (400–700), Latin and Latin Extended WOFF2 files, `font-display: swap` and the OFL license remain in `public/fonts`; no external font request is required.
 
-The frontmatter records the base roles: the light-weight display clock; semibold page headlines; panel titles; regular supporting copy; and medium compact labels. The Today heading uses a slightly tighter line height (1.2). Times and primary numerical readings use tabular numerals. Page descriptions stop at a readable measure (65ch).
+The frontmatter records the whole type ramp. Its anchor roles are the light-weight display clock, semibold page headlines, panel titles, regular supporting copy and medium compact labels; the other steps fill the gaps between them. The Today heading uses a slightly tighter line height (1.2). Times and primary numerical readings use tabular numerals. Page descriptions stop at a readable measure (65ch).
+
+### Type ramp
+
+Every CSS font size uses one of these steps through its `--type-*` custom property in `src/index.css`; the frontmatter records the same values. Sizes set in `em` (units beside a large numeral, text inside a scaled widget) and fluid `clamp()` headings derive from a step and stay relative. Tailwind's own `text-*` utilities in shared UI primitives keep their built-in scale.
+
+| Role | Token | Size | Use |
+| --- | --- | --- | --- |
+| Display | `--type-display` | 6rem | The ambient clock. |
+| Display small | `--type-display-small` | 4.5rem | The compact and portrait clock. |
+| Readout | `--type-readout` | 3rem | The phone clock and the thermostat dial. |
+| Headline | `--type-headline` | 2.25rem | Page and Today headings, weather, Sonos and alarm titles. |
+| Headline small | `--type-headline-small` | 2rem | Short-window Sonos titles, compact device readouts and progress amounts. |
+| Heading | `--type-heading` | 1.75rem | Next family plan title, phone page titles, sensor readings and compact light levels. |
+| Heading small | `--type-heading-small` | 1.5rem | Phone Today heading, section headings and super compact readouts. |
+| Title large | `--type-title-large` | 1.375rem | Next plan time, dialog titles and portrait panel headings. |
+| Title | `--type-title` | 1.25rem | Panel titles and empty-state headings. |
+| Subtitle | `--type-subtitle` | 1.125rem | Settings card headings, card group titles, portrait list rows and dock links. |
+| Body large | `--type-body-large` | 1rem | Device card titles, scene names, list rows and phone form fields. |
+| Body | `--type-body` | .9375rem | Supporting copy and navigation labels. |
+| Label | `--type-label` | .875rem | Labels, controls, device metadata and event times. |
+| Meta | `--type-meta` | .8125rem | Dense secondary metadata, timetable cells and chips. |
+| Caption | `--type-caption` | .75rem | Phone metadata, badges and illustration captions; the smallest content size. |
+| Navigation caption | `--type-nav-caption` | .6875rem | Phone dock captions and the phone week number only, beside an icon or inside a larger target. |
+
+**The Ramp Floor Rule.** No visible text goes below 11px: content stops at Caption (12px), and Navigation caption (11px) is reserved for labels that sit inside a larger named target. Notification widget zoom multiplies Body large by 1.1 and 1.2 rather than adding steps.
 
 **The One Reading Format Rule.** Home Assistant readings go through the shared reading helper (`reading`/`withUnit` in `src/lib/i18n.ts`), so one view never mixes separators or precision. Numbers use the dashboard language's separators and minus sign (`−2,4 °C` in Bokmål, `-2.4 °C` in English). Precision follows the entity's Home Assistant display precision (the user's setting, then the integration's suggestion); without one, temperatures show at most one decimal, W and Wh none, and kW/kWh two decimals below 10 and one from 10. Other values keep their reported digits. A no-break space separates every unit from its number in both languages; `%` and a bare angle `°` attach to it. Large dial and readout numerals that set the unit in a smaller element keep that composition.
 
-For the large portrait display, the root uses 125% of the browser’s default text size (normally 20px), the clock uses (5rem), the Today heading (2.2rem), panel headings (1.4rem), list labels (1.1rem), event titles (1rem), and supporting event times (.9rem). This yields readable content around (18–28px). At phone width, the clock uses (3.25rem), the Today heading (1.5rem) and page title (1.8rem). Small navigation captions are an exception to the content scale; their full links remain large touch areas.
+For the large portrait display, the root uses 125% of the browser’s default text size (normally 20px), the clock uses (4.5rem), the Today heading (2.25rem), panel headings (1.375rem), list labels and dock links (1.125rem), event titles (1rem), and supporting event times (.875rem). This yields readable content around (18–28px). At phone width, the clock uses (3rem), the Today heading (1.5rem) and page title (1.75rem). Phone dock captions use the 11px navigation caption step; their full links remain large touch areas.
 
 **The Read Before Decoration Rule.** Use the existing sentence-case heading hierarchy and concise action labels. Give content the strongest typographic emphasis.
 
@@ -325,7 +393,9 @@ This is a scoped glass exception for the shared device cards in Smart home, Toda
 
 ## Shapes
 
-The system pairs rounded work panels with capsule controls. Work panels use the `panel` radius, planner fields the `field` radius, transient menus the `menu` radius and standard dialogs the `dialog` radius. Shared component radii use a fixed 16px base, so portrait typography does not change their corners. CSS `--radius-*` tokens define small surfaces (8px), calendar events (12px), fields (14px), settings and insets (16px), favorites (20px), menus and popovers (22px), panels (24px), dialogs (28px), capsules (999px), and phone dock/destinations (34px/27px). Original and compact device surfaces use the panel radius; super compact insets retain 16px corners except in favorites, where cards and scene actions use 20px, including picker previews and unavailable cards. Calendar events use `--radius-calendar-event` across the shared event button and month entries. Illustration geometry is independent. Calendar events retain tighter corners for aligned rows.
+The system pairs rounded work panels with capsule controls. Work panels use the `panel` radius, planner fields the `field` radius, transient menus the `menu` radius and standard dialogs the `dialog` radius. Shared component radii use a fixed 16px base, so portrait typography does not change their corners. CSS `--radius-*` tokens define checkboxes and check marks (6px), small surfaces such as media insets and timetable images (8px), rows, thumbnails and small choices inside a card (12px), calendar events (12px), fields, selects and device card icon badges (14px), settings and insets (16px), favorites (20px), menus and popovers (22px), panels (24px), dialogs (28px), capsules (999px), and phone dock/destinations (34px/27px). Original and compact device surfaces use the panel radius; super compact insets retain 16px corners except in favorites, where cards and scene actions use 20px, including picker previews and unavailable cards. Calendar events use `--radius-calendar-event` across the shared event button and month entries. Calendar events retain tighter corners for aligned rows. Nested shapes stay concentric: Smart home segment choices use 12px inside their 16px track with a 4px inset.
+
+**The Illustration Radius Rule.** Illustration geometry is independent of the scale and keeps its literal radii: camera settings miniatures (person-size examples and the layout board), the notification style and size sketches, the device gallery's floor plan, robot map walls, camera reticle and history bars, the electricity price bars, and list celebration confetti. Real surfaces always use a `--radius-*` token.
 
 Shared buttons, the desktop dock, its destinations and segmented controls use full capsules. Phone navigation uses the smaller `phoneDock` and `phoneDestination` radii so the two-line controls nest within the outer shape. Header icon controls and avatars remain circular. Borders are normally thin (1px), with opacity separating major boundaries from row dividers.
 
@@ -389,7 +459,7 @@ The player reuses the shared glass surface and panel opacity, with artwork and p
 
 **Group settings** places room volumes, group mute and membership selection directly in one scrolling body, without internal tabs. Volume changes are immediate; membership changes require **Apply group**. The footer stays visible and Apply is disabled until the selection changes. **Speaker settings** contains the source picker, physical speaker selector, sound controls and sleep timer. Source is absent from the main player; reported TV and line-in inputs remain available in settings. Dialogs retain focus return, capability checks and command errors.
 
-Playback uses a (72px) primary control and sliders keep (44px) interaction height. Player action targets are (56px) on wide screens and (48px) on phones. Phone library tabs use two rows with (.875rem) labels and (48px) targets. Desktop titles use (2.25rem), short-window titles (2rem), tablet titles (1.8rem) and phone titles (1.25rem). Destination status uses (.875rem); phone playing-room metadata uses (.75rem). Room choices retain (24px) square checkboxes with (56px) labeled rows. These local sizes follow existing navigation/content roles without changing global tokens.
+Playback uses a (72px) primary control and sliders keep (44px) interaction height. Player action targets are (56px) on wide screens and (48px) on phones. Phone library tabs use two rows with (.875rem) labels and (48px) targets. Desktop titles use (2.25rem), short-window titles (2rem), tablet titles (1.75rem) and phone titles (1.25rem). Destination status uses (.875rem); phone playing-room metadata uses (.75rem). Room choices retain (24px) square checkboxes with (56px) labeled rows. These local sizes follow existing navigation/content roles without changing global tokens.
 
 Selected destinations and library views expose pressed state; the playing queue row exposes current state. Shared focus, reduced-motion, opaque reduced-transparency and contrast fallbacks remain in force, while forced colors outline selected states. No shipping raster assets are added. Sources: [Sonos page](src/pages/Sonos.tsx), [shared player](src/components/sonos/SonosSession.tsx), [mini player](src/components/sonos/SonosMiniPlayer.tsx), [library](src/components/sonos/SonosLibrary.tsx), [styles](src/pages/sonos.css), [surface evidence](.impeccable/surfaces/src-pages-sonos-tsx.md).
 
@@ -460,7 +530,7 @@ Use Framer Motion layout transforms with `LayoutGroup` and `AnimatePresence mode
 - **Don't** turn a timetable preview into a cropped substitute for the full, pageable view.
 - **Don't** describe CSS blur and specular edges as native optical refraction.
 
-On linked device cards, the icon, title, room and chevron form one details link at least 48px high. The controls below the heading retain their own touch targets. Shared device sliders retain a 44px interaction height and enlarged thumb hit area at every density. The Smart home grid uses a 17.5rem minimum card width, giving three columns on the portrait wall at its default reading size. Compact mode fits four columns there. Device metadata uses at least .875rem; headings use 1.0625rem or the established hierarchy. Appearance and Language use the same 16px settings surfaces and 1rem padding as other settings.
+On linked device cards, the icon, title, room and chevron form one details link at least 48px high. The controls below the heading retain their own touch targets. Shared device sliders retain a 44px interaction height and enlarged thumb hit area at every density. The Smart home grid uses a 17.5rem minimum card width, giving three columns on the portrait wall at its default reading size. Compact mode fits four columns there. Device metadata uses at least .875rem; card titles use 1rem (1.125rem on phones) or the established hierarchy. Appearance and Language use the same 16px settings surfaces and 1rem padding as other settings.
 
 Automations, Integrations and Activity are Settings → System sections, outside the family dock and Smart home navigation. Automations shows the usual automation cards with the Home Assistant editor link below them; Integrations links to its Home Assistant destination in a new tab. `/automations`, `/automation`, `/integrations`, `/services` and `/history` redirect in one step to their section. Automations and Integrations skip the shared-settings status because they act on Home Assistant directly; Activity shows it because its Recent at home settings are shared.
 

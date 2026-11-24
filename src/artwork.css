@@ -109,7 +109,7 @@
 .card-artwork-options label:has([data-state="checked"]) { border-color: hsl(var(--primary)); }
 .card-artwork-options label:has(:focus-visible) { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .card-artwork-options label:has(:disabled) { cursor: not-allowed; }
-.card-artwork-options label > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .875rem; }
+.card-artwork-options label > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: var(--type-label); }
 .card-artwork-options small { display: block; color: hsl(var(--muted-foreground)); }
 .card-artwork-options label > svg { width: 2.6rem; height: 2.25rem; flex: none; }
 @media (forced-colors: active), (prefers-contrast: more) {

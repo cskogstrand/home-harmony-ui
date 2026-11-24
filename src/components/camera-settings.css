@@ -7,7 +7,7 @@
 .camera-person-size-example > span > svg { width: 60%; height: 60%; }
 .camera-person-size-label { display: flex; align-items: center; justify-content: space-between; gap: .25rem; text-align: left; }
 .camera-person-size-label > svg { flex-shrink: 0; }
-.camera-person-size-percent { color: hsl(var(--muted-foreground)); font-size: .875rem; font-weight: 400; text-align: left; }
+.camera-person-size-percent { color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 400; text-align: left; }
 @media (min-width: 700px) { .camera-person-size-options { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 52rem; } }
 .settings-popover.camera-layout-popover { width: 36rem; }
 .camera-layout-option { display: flex; flex-direction: column; height: auto; min-width: 0; padding: 1rem; gap: 1rem; border-radius: 16px; white-space: normal; }
@@ -24,11 +24,11 @@
 .camera-layout-modes > i { flex: 1; height: .25rem; }
 .camera-layout-modes > i:first-child { opacity: 1; }
 .camera-layout-video { display: grid; place-items: center; height: 3.25rem; border-radius: 4px; background: hsl(var(--primary) / .12); }
-.camera-layout-label { display: flex; align-items: center; justify-content: center; gap: .375rem; width: 100%; font-size: .9375rem; }
+.camera-layout-label { display: flex; align-items: center; justify-content: center; gap: .375rem; width: 100%; font-size: var(--type-body); }
 @media (max-width: 499px) {
   .camera-layout-option { padding: .75rem .375rem; gap: .5rem; }
   .camera-layout-board { padding: .25rem; }
   .camera-layout-example { height: 7rem; }
-  .camera-layout-label { font-size: .875rem; }
+  .camera-layout-label { font-size: var(--type-label); }
 }
 @media (forced-colors: active) { .camera-person-size-option[aria-pressed="true"], .camera-layout-option[aria-pressed="true"] { outline: 2px solid Highlight; } }

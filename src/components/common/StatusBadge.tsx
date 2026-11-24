@@ -22,7 +22,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ variant, children, className, dot = true }: StatusBadgeProps) {
   return (
-    <Badge variant="outline" className={cn("gap-1.5 text-2xs font-medium", variantClasses[variant], className)}>
+    <Badge variant="outline" className={cn("gap-1.5 text-xs font-medium", variantClasses[variant], className)}>
       {dot && <span className={cn("h-1.5 w-1.5 rounded-full", {
         "bg-success": variant === "online",
         "bg-muted-foreground/40": variant === "offline",

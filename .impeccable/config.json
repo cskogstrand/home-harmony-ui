@@ -1,3 +1,162 @@
 {
-  "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "src/lib/member-colors.ts"
+        ],
+        "createdAt": "2026-11-24T21:25:35.933Z",
+        "reason": "Workstream 12 plan: confirmed false positive: configurable person colours, not brand tokens (DESIGN.md Status and assignment)"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#c4d5a3",
+        "files": [
+          "src/hooks/use-calendar-plans.ts"
+        ],
+        "createdAt": "2026-11-24T21:25:35.958Z",
+        "reason": "Workstream 12 plan: confirmed false positive: fallback person colour for an unavailable person"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "src/test/**"
+        ],
+        "createdAt": "2026-11-24T21:25:35.983Z",
+        "reason": "Workstream 12 plan: confirmed false positive: test fixtures"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#000",
+        "files": [
+          "src/afterglow.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.007Z",
+        "reason": "Agent: mask-image gradient, only the alpha channel is used"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/devices/device-cards.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.032Z",
+        "reason": "Workstream 12 plan: confirmed false positive: robot map wall illustration in the device gallery"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/components/devices/device-cards.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.055Z",
+        "reason": "Workstream 12 plan: confirmed false positive: robot map wall illustration in the device gallery"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "files": [
+          "src/afterglow.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.078Z",
+        "reason": "Workstream 12 plan: confirmed false positive: list celebration confetti (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "9px",
+        "files": [
+          "src/afterglow.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.102Z",
+        "reason": "Workstream 12 plan: confirmed false positive: list celebration confetti (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "files": [
+          "src/components/camera-settings.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.127Z",
+        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "3px",
+        "files": [
+          "src/components/camera-settings.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.150Z",
+        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "4px",
+        "files": [
+          "src/components/camera-settings.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.172Z",
+        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "3px",
+        "files": [
+          "src/components/devices/device-cards.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.196Z",
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "4px",
+        "files": [
+          "src/components/devices/device-cards.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.219Z",
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "5px",
+        "files": [
+          "src/components/devices/device-cards.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.243Z",
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "10px",
+        "files": [
+          "src/components/devices/device-cards.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.267Z",
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "files": [
+          "src/components/notifications.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.291Z",
+        "reason": "Workstream 12 plan: confirmed false positive: notification style and size sketches (DESIGN.md Illustration Radius Rule)"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "files": [
+          "src/pages/device-detail.css"
+        ],
+        "createdAt": "2026-11-24T21:25:36.315Z",
+        "reason": "Agent: electricity price bar tops (DESIGN.md Illustration Radius Rule)"
+      }
+    ]
+  }
 }

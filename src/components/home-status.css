@@ -2,7 +2,7 @@
 .housing-modal.glass-modal { display: flex; flex-direction: column; gap: 0; width: min(calc(100% - 1.5rem), 34rem); max-width: none; max-height: calc(100dvh - 2rem); padding: 0; overflow: hidden; }
 .housing-modal > button:last-child { display: grid; place-items: center; width: 44px; height: 44px; right: .5rem; top: .35rem; }
 .housing-head { display: flex; flex-direction: row; align-items: center; gap: .5rem; min-height: 3.5rem; padding: .35rem 3.5rem .35rem 1.4rem; border-bottom: 1px solid hsl(var(--border)); }
-.housing-head > h2 { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.housing-head > h2 { margin: 0; font-size: var(--type-body-large); overflow-wrap: anywhere; }
 .housing-head button { flex-shrink: 0; margin-left: -.65rem; }
 .housing-scroll { padding: 0 1.4rem; background: hsl(var(--card)); overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
 .housing-summary {
@@ -14,12 +14,12 @@
   background: radial-gradient(ellipse at 80% 56%, hsl(var(--primary) / .10), transparent 65%);
 }
 .housing-summary-copy { min-width: 0; overflow-wrap: anywhere; }
-.housing-summary h3 { font-size: 1.55rem; font-weight: 650; line-height: 1.16; text-wrap: balance; }
+.housing-summary h3 { font-size: var(--type-heading-small); font-weight: 650; line-height: 1.16; text-wrap: balance; }
 .housing-scene { display: block; width: 100%; height: auto; color: hsl(var(--muted-foreground)); --house-mark: hsl(var(--card)); }
 .housing-summary[data-tone="healthy"] .housing-scene { color: hsl(var(--success)); --house-mark: hsl(var(--success-foreground)); }
 .housing-summary[data-tone="attention"] .housing-scene { color: hsl(var(--warning)); --house-mark: hsl(var(--warning-foreground)); }
 .housing-summary[data-scene="missing"] .housing-scene { --house-glass: #8daba7; }
-.housing-summary p, .housing-note, .housing-source-name small, .housing-card small, .housing-catalog small { display: block; margin-top: .3rem; color: hsl(var(--muted-foreground)); font-size: .9rem; line-height: 1.45; }
+.housing-summary p, .housing-note, .housing-source-name small, .housing-card small, .housing-catalog small { display: block; margin-top: .3rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); line-height: 1.45; }
 .housing-actions, .housing-catalog button, .housing-actions button, .housing-card { display: flex; align-items: center; gap: .6rem; }
 .housing-actions { flex-wrap: wrap; justify-content: space-between; padding-block: .3rem; border-top: 1px solid hsl(var(--border)); }
 .housing-actions button { min-height: 44px; color: hsl(var(--foreground)); font-weight: 550; }
@@ -35,13 +35,13 @@
 .housing-catalog button:hover, .housing-readings a:hover { background: hsl(var(--accent)); }
 .housing-measurements, .housing-setup { padding-block: 1rem; }
 .housing-measurements + .housing-measurements { padding-top: 0; }
-.housing-measurements h3 { font-size: 1rem; font-weight: 650; margin-bottom: .3rem; }
+.housing-measurements h3 { font-size: var(--type-body-large); font-weight: 650; margin-bottom: .3rem; }
 .housing-setup .housing-note { margin: 0 0 .8rem; }
 .housing-readings { margin: 0; padding: 0; list-style: none; }
 .housing-issues { margin: 0 0 .7rem; }
 .housing-readings li > :is(a,div) { display: flex; align-items: center; gap: .65rem; min-height: 3.15rem; padding-block: .55rem; overflow-wrap: anywhere; }
 .housing-readings li > :is(a,div) > span:nth-child(2) { max-width: 44%; text-align: end; }
-.housing-source-name strong { font-size: 1rem; font-weight: 600; }
+.housing-source-name strong { font-size: var(--type-body-large); font-weight: 600; }
 .housing-more summary { cursor: pointer; min-height: 44px; align-content: center; color: hsl(var(--primary)); }
 .housing-card { width: 100%; gap: .75rem; text-align: start; }
 .housing-card > svg { flex: none; }
