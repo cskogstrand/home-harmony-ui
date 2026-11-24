@@ -8,7 +8,9 @@ Known false positives (do not "fix"): `device-cards.css:160` side-tab/border-acc
 
 ## Checklist
 
-- [ ] Re-run the detector with the Impeccable launcher (`~/.claude/skills/impeccable/scripts/impeccable detect --json src`, from the project root) and save counts in a `> Before:` note.
+- [x] Re-run the detector with the Impeccable launcher (`~/.claude/skills/impeccable/scripts/impeccable detect --json src`, from the project root) and save counts in a `> Before:` note.
+
+  > Before (2026-11-24, after workstreams 00–11 merged): 241 advisory findings. 170 `design-system-font-size` across 41 distinct values (`afterglow.css` 89, `device-cards.css` 34, `notifications.css` 21, `sonos.css` 8, `home-status.css` 4, 2 each in `ha-health.css`, `waste-collection.css`, `alarm.css`, `calendar.css`, `settings.css`, 1 each in `favorite-picker.css`, `smart-home-settings.css`, `device-detail.css`, `ui/calendar.tsx`). Most frequent: `1rem` 33, `.8125rem` 32 (both spellings), `.75rem` 30 (both spellings), `1.125rem` 8, `1.8rem` 7, `2rem` 6, `1.1rem` 6. 49 `design-system-radius` (2–18px one-offs: `afterglow.css` 13, `device-cards.css` 10, `notifications.css` 8, `camera-settings.css` 6, `sonos.css` 5, `smart-home-settings.css` 3, others 1 each). 20 `design-system-color` (12 person colours in `member-colors.ts`, 1 in `use-calendar-plans.ts`, 5 in `src/test/*`, `#000` in `afterglow.css`, `hsl(0 0% 96%)` in `device-cards.css`). 1 `side-tab` and 1 `border-accent-on-rounded` (robot map wall, `device-cards.css`).
 - [ ] Fix the robot/lawn map caption to ≥ 0.75rem (≥ 12 px at the 16 px root).
 - [ ] Decide the type ramp: add the sizes DESIGN.md already uses in prose (for example .75rem phone metadata, 1.375/1.75rem next-plan title/time, 2/1.8rem Sonos titles) to the typography token block, and define CSS custom properties for each step if not present.
 - [ ] Replace one-off sizes in `src/afterglow.css`, `src/components/devices/device-cards.css`, `src/components/notifications.css`, `src/pages/sonos.css` with the nearest ramp step; check visually at 1440 × 2560 and 390 × 844 that nothing reflows badly.
