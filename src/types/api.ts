@@ -41,6 +41,8 @@ export interface Entity {
   registryName?: string;
   category?: string | null;
   state: string;
+  /** Home Assistant's translation of the current state in the dashboard language, when it has one. */
+  stateLabel?: string;
   attributes: Record<string, unknown>;
   areaId: string;
   device?: PhysicalDevice;

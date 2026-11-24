@@ -63,7 +63,8 @@ export function entityStateLabel(entity: Entity, language: Language = "en") {
   if (entity.state === "open") return message("state.open");
   if (entity.state.trim() && Number.isFinite(Number(entity.state))) return number(Number(entity.state));
   const known = ["on", "off", "open", "closed", "opening", "closing", "locked", "unlocked", "locking", "unlocking", "jammed", "home", "not_home", "heat", "cool", "heat_cool", "auto", "dry", "fan_only", "idle", "heating", "cooling", "armed_home", "armed_away", "armed_night", "armed_vacation", "armed_custom_bypass", "disarmed", "arming", "disarming", "pending", "triggered", "unknown", "unavailable"];
-  return [...known, "playing", "paused", "docked", "cleaning", "mowing", "returning"].includes(entity.state) ? message(humanizeState(entity.state)) : humanizeState(entity.state);
+  // The app's labels own core states; Home Assistant's translations cover integration states such as enum sensors.
+  return [...known, "playing", "paused", "docked", "cleaning", "mowing", "returning"].includes(entity.state) ? message(humanizeState(entity.state)) : entity.stateLabel ?? humanizeState(entity.state);
 }
 export const alarmModes: { action: AlarmAction; label: string; flag: number }[] = [
   { action: "alarm_arm_home", label: "Arm home", flag: 1 },
@@ -82,6 +83,13 @@ function translatedName(name: string, entry: EntityRegistryEntry | undefined, do
   if (!entry?.translation_key || entry.name || !entry.original_name || !name.endsWith(entry.original_name)) return name;
   const translated = translations[`component.${entry.platform}.entity.${domain}.${entry.translation_key}.name`];
   return translated && !translated.includes("{") ? name.slice(0, name.length - entry.original_name.length) + translated : name;
+}
+// The integration's label for this entity's translation_key comes first, then the domain's shared state labels.
+function translatedState(state: EntityStates[string] | undefined, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations) {
+  if (!state?.state) return;
+  return (entry?.translation_key && translations[`component.${entry.platform}.entity.${domain}.${entry.translation_key}.state.${state.state}`])
+    || translations[`component.${domain}.entity_component.${String(state.attributes.device_class ?? "_")}.state.${state.state}`]
+    || translations[`component.${domain}.entity_component._.state.${state.state}`] || undefined;
 }
 
 // A caller that reuses entities keeps the cache local to one instance, registry snapshot and translation set.
@@ -109,7 +117,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
         entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain,
         // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
         name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
-        state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
+        state: state?.state ?? "missing", stateLabel: translatedState(state, entry, domain, translations), attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
         registryName: entry?.translation_key || entry?.original_name || undefined, uniqueId: entry?.unique_id,
         lastChanged: state?.last_changed, lastUpdated: state?.last_updated,
       };

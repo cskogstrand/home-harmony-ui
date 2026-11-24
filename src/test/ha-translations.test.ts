@@ -3,7 +3,7 @@ import { waitFor } from "@testing-library/react";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
-import { mapHome } from "@/lib/ha-model";
+import { entityStateLabel, mapHome } from "@/lib/ha-model";
 import { createAppStore } from "@/contexts/AppContext";
 import type { EntityRegistryEntry } from "@/types/api";
 import { config, registries, services, state, states, user } from "./ha-fixtures";
@@ -81,6 +81,22 @@ describe("translated entity names", () => {
     const parameterised = mapHome({ [entry.entity_id]: state(entry.entity_id, "1", { friendly_name: "Example car Charging state" }) },
       { areas: [], devices: [device], entities: [entry] }, "home", undefined, undefined, { "component.example_car.entity.sensor.charging_state.name": "Lader {number}" }).entities[0];
     expect(parameterised.name).toBe("Example car Charging state");
+  });
+});
+
+describe("translated states", () => {
+  const vacuum = (value: string) => mapHome({ "vacuum.example": state("vacuum.example", value) }, { areas: [], devices: [], entities: [] }, "home", undefined, undefined,
+    { ...catalogues.nb.entity_component, "component.vacuum.entity_component._.state.docked": "Ladestasjon" }).entities[0];
+
+  it("uses the integration's label for enum states and the reported text without one", () => {
+    expect(entityStateLabel(mapped(), "nb")).toBe("Lading fullført");
+    expect(entityStateLabel(mapped({}, undefined, "no_error"), "nb")).toBe("No error");
+    expect(entityStateLabel(mapped({ translation_key: null }), "nb")).toBe("Complete");
+  });
+
+  it("keeps the app's labels for core states and fills other core states from Home Assistant", () => {
+    expect(entityStateLabel(vacuum("docked"), "nb")).toBe("I ladestasjonen");
+    expect(entityStateLabel(vacuum("error"), "nb")).toBe("Feil");
   });
 });
 
