@@ -205,6 +205,20 @@ it("shares the chosen electricity price sensor and restores it from a backup", a
   expect(a.getSnapshot().config.settings.electricityPriceEntity).toBe("home|example-price");
 });
 
+it("keeps Ask the house off by default and shares the chosen agent", async () => {
+  const config = emptyConfiguration();
+  delete config.settings.assist;
+  expect(parseConfiguration(JSON.stringify(config)).settings.assist).toEqual({ enabled: false, agentId: "" });
+  for (const assist of [null, { enabled: "yes" }, { agentId: "bad id" }, { agentId: "x".repeat(256) }, { enabled: true, extra: 1 }]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, assist } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, assist: { enabled: true, agentId: "conversation.example_agent" } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.assist).toEqual({ enabled: true, agentId: "conversation.example_agent" });
+});
+
 it("shares notification rules across screens and restores them with the existing backup flow", async () => {
   const backend = server(), a = await backend.start(), b = await backend.start();
   a.updateSettings(p => ({ ...p, notifications: { enabled: true, defaultWidgetWidth: "large", gridZoom: "small", presentation: "banner", pages: "today", rules: [{ id: "fictional-rule", title: "Example task", message: "", enabled: true, kind: "ongoing", trigger: { type: "state", entity: "home|example", attribute: "", operator: "eq", value: "running" }, cameraEntity: "", detailEntities: ["home|example-progress", "home|example-remaining"], progress: { current: { type: "entity", entity: "home|example-progress", attribute: "" }, start: { type: "value", value: 0 }, end: { type: "value", value: 100 } }, icon: "washing", animateIcon: false, entityDisplay: [{ entity: "home|example-remaining", attribute: "", name: "Time left", placement: "right" }], durationSeconds: 60, cooldownSeconds: 10 }] } }));

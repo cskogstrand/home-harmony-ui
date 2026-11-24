@@ -22,6 +22,7 @@ import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { HomeStatus } from "@/components/HomeStatus";
+import { AskTheHouse } from "@/components/AskTheHouse";
 import { NotificationBell, NotificationCamera } from "@/components/NotificationCenter";
 import { Camera, LoaderCircle, Moon, Music2, Play, RefreshCw, Settings, TriangleAlert, UserRound, X } from "lucide-react";
 
@@ -69,6 +70,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
     </div>}
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <VehicleWidgets /><WeatherWidget placement="header" /><div className="header-actions">
+        <AskTheHouse />
         <Link to={playingGroup ? `/sonos?player=${encodeURIComponent(playingGroup.player.entityId)}` : "/sonos"} className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
           <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
         </Link>

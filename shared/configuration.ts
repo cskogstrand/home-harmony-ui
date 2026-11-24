@@ -149,6 +149,11 @@ const plannerObjectSchema = z.object({
     people: z.boolean().default(false),
     sources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
   }).strict().prefault({}),
+  // Ask the house: off until the owner turns it on. An empty agent uses Home Assistant's default agent.
+  assist: z.object({
+    enabled: z.boolean().default(false),
+    agentId: z.string().max(255).regex(/^[A-Za-z0-9_.-]*$/).default(""),
+  }).strict().prefault({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: settingsRecord(keySchema, memberColorSchema).default({}),
   hiddenMembers: z.array(memberSchema).default([]),
