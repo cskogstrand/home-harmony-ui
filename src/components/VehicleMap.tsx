@@ -1,16 +1,18 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import { control, divIcon, map, marker, tileLayer, type LatLngTuple, type Map, type Marker } from "leaflet";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { Control, control, divIcon, map, marker, tileLayer, type LatLngTuple, type Map, type Marker } from "leaflet";
 import { Maximize2 } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import "leaflet/dist/leaflet.css";
 
-export default function VehicleMap({ lat, lon }: { lat: number; lon: number }) {
+export default function VehicleMap({ lat, lon, children }: { lat: number; lon: number; children: ReactNode }) {
   const { t } = useI18n();
   const inline = useRef<HTMLDivElement>(null);
   const [fullscreenHost, setFullscreenHost] = useState<HTMLDivElement | null>(null);
   const [container] = useState(() => document.createElement("div"));
+  const [readout] = useState(() => document.createElement("div"));
   const initialPosition = useRef<LatLngTuple>([lat, lon]);
   const live = useRef<{ view: Map; pin: Marker }>();
 
@@ -31,6 +33,10 @@ export default function VehicleMap({ lat, lon }: { lat: number; lon: number }) {
       referrerPolicy: "strict-origin",
       attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
     }).addTo(view);
+    const drivingControl = new Control({ position: "bottomright" });
+    readout.className = "vehicle-map-readout";
+    drivingControl.onAdd = () => readout;
+    drivingControl.addTo(view);
     const pin = marker(initialPosition.current, {
       icon: divIcon({ className: "vehicle-map-pin", iconSize: [18, 18] }),
       interactive: false, keyboard: false,
@@ -43,7 +49,7 @@ export default function VehicleMap({ lat, lon }: { lat: number; lon: number }) {
       view.remove();
       live.current = undefined;
     };
-  }, [container, t]);
+  }, [container, readout, t]);
 
   useLayoutEffect(() => {
     const { view, pin } = live.current;
@@ -54,6 +60,7 @@ export default function VehicleMap({ lat, lon }: { lat: number; lon: number }) {
   }, [lat, lon, t]);
 
   return <Dialog>
+    {createPortal(children, readout)}
     <div ref={inline} className="vehicle-map-host" />
     <DialogTrigger asChild>
       <Button type="button" variant="outline" size="icon" className="vehicle-map-expand"

@@ -2142,6 +2142,7 @@ it("uses TeslaMate readings and sends commands only to the explicitly paired Tes
     ["sensor.renamed_range", "rated_battery_range", "283", { unit_of_measurement: "km" }],
     ["binary_sensor.example_plug", "plugged_in", "on", { device_class: "plug" }],
     ["binary_sensor.example_brake", "park_brake", "on", {}],
+    ["sensor.example_state", "state", "online", {}],
     ["binary_sensor.example_fan", "is_climate_on", "on", { device_class: "running" }],
     ["sensor.example_temp", "inside_temp", "18", { unit_of_measurement: "°C" }],
     ["binary_sensor.example_lock", "locked", "off", { device_class: "lock" }],
@@ -2166,8 +2167,25 @@ it("uses TeslaMate readings and sends commands only to the explicitly paired Tes
   fireEvent.click(native);
   fireEvent.click(screen.getByRole("switch", { description: /TeslaMate/ }));
   await waitFor(() => expect(settings.settings.vehicles.map(car => car.id)).toEqual(["teslamate:example-car"]));
-  fireEvent.click(screen.getByRole("button", { name: /Example car.*64%.*283 km.*Plugged in.*Parked.*Climate on/ }));
+  const widget = screen.getByRole("button", { name: /Example car.*64%.*283 km.*Plugged in.*Parked.*Climate on/ });
+  fireEvent.click(widget);
   const dialog = screen.getByRole("dialog", { name: "Example car" });
+  const scene = within(dialog.querySelector<HTMLElement>(".vehicle-scene"));
+  const vehicleState = app.currentHome.entities.find(e => e.entityId === "sensor.example_state");
+  expect(scene.getByText("Parked")).toBeVisible();
+  for (const [state, label] of [["driving", "Driving"], ["asleep", "Asleep"], ["offline", "Offline"], ["online", "Parked"]]) {
+    vehicleState.state = state;
+    view.rerender(<App />);
+    expect(widget).toHaveAccessibleName(expect.stringContaining(label));
+    expect(scene.getByText(label)).toBeVisible();
+    if (state === "asleep" || state === "offline") {
+      expect(widget.querySelector(".vehicle-glance-climate")).toBeNull();
+      expect(widget.querySelector(".vehicle-charge-symbol")).toBeNull();
+      expect(widget).toHaveTextContent("64%");
+    }
+  }
+  expect(widget.querySelector(".vehicle-glance-climate")).toBeInTheDocument();
+  expect(app.command).not.toHaveBeenCalled();
   expect(within(dialog).getByText("Climate on · 18°C")).toBeVisible();
   expect(within(dialog).getByText("Locked")).toBeVisible();
   expect(within(dialog).queryByRole("switch", { name: "Cabin climate" })).toBeNull();
@@ -2224,6 +2242,7 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   const entries = [
     { entity_id: "sensor.example_front", device_id: "demo-a", original_name: "Tpms front left" },
     { entity_id: "sensor.example_gear", device_id: "demo-a", original_name: "Shift state" },
+    { entity_id: "sensor.example_speed", device_id: "demo-a", translation_key: "drive_state_speed" },
     { entity_id: "climate.example_cabin", device_id: "demo-a", original_name: "Hvac (climate) system" },
     { entity_id: "lock.example_doors", device_id: "demo-a", original_name: "Doors" },
     { entity_id: "device_tracker.example_destination", device_id: "demo-a", original_name: "Destination location tracker" },
@@ -2251,6 +2270,9 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
     "sensor.demo_a_power": state("sensor.demo_a_power", "3.5", { unit_of_measurement: "kW" }),
     "sensor.example_front": state("sensor.example_front", "42", { unit_of_measurement: "psi", device_class: "pressure" }),
     "sensor.example_gear": state("sensor.example_gear", "P"),
+    "sensor.example_speed": state("sensor.example_speed", "0", { unit_of_measurement: "km/h" }),
+    "sensor.example_address": state("sensor.example_address", "Example Street 42"),
+    "zone.example_park": state("zone.example_park", "0", { friendly_name: "Example Park" }),
     "climate.example_cabin": state("climate.example_cabin", "off", { hvac_modes: ["off", "heat_cool"], supported_features: 1, current_temperature: 15, temperature: 19, min_temp: 15, max_temp: 28, temperature_unit: "°C" }),
     "lock.example_doors": state("lock.example_doors", "unlocked"),
     "device_tracker.example_destination": state("device_tracker.example_destination", "not_home"),
@@ -2276,6 +2298,8 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   fireEvent.click(screen.getByRole("button", { name: "Photo for Example One" }));
   fireEvent.click(screen.getByRole("button", { name: /Example car photo · image.demo_car/ }));
   await waitFor(() => expect(settings.settings.vehicles[0].imageEntity).toBe("home|image.demo_car"));
+  chooseEntity("Address sensor for Example One", "sensor.example_address");
+  await waitFor(() => expect(settings.settings.vehicles[0].addressEntity).toBe("home|sensor.example_address"));
   expect(screen.getByRole("button", { name: /Example Two.*88%.*Complete/ })).toBeVisible();
   const widget = screen.getByRole("button", { name: /Example One.*0%.*102 mi.*Charging.*Parked.*Climate off/ });
   expect(widget).not.toHaveTextContent(/Example One|Charging|Off/);
@@ -2297,8 +2321,18 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   const pan = vi.spyOn(LeafletMap.prototype, "panTo");
   const movePin = vi.spyOn(Marker.prototype, "setLatLng");
   const gps = app.currentHome.entities.find(e => e.entityId === "device_tracker.example_location");
+  const readings = within(map).getByRole("group", { name: "Driving information" });
+  expect(readings).toHaveTextContent("Speed 0 km/h");
+  expect(readings).toHaveTextContent("Gear P");
+  expect(within(dialog).queryByTitle("Example Street 42")).toBeNull();
+  gps.state = "not_home";
+  gps.attributes.heading = 90;
   gps.attributes.latitude = 12.001;
+  app.currentHome.entities.find(e => e.entityId === "sensor.example_speed").state = "55";
   view.rerender(<App />);
+  expect(within(dialog).getByTitle("Example Street 42")).toBeVisible();
+  expect(readings).toHaveTextContent("Speed 55 km/h");
+  expect(readings).toHaveTextContent("Heading 90°");
   expect(pan).toHaveBeenCalledWith([12.001, 34], expect.anything());
   expect(movePin).toHaveBeenCalledWith([12.001, 34]);
   const mapView = pan.mock.results[0].value;
@@ -2307,7 +2341,9 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   fireEvent.click(expand);
   const fullscreen = await screen.findByRole("dialog", { name: mapName });
   expect(within(fullscreen).getByRole("region", { name: mapName })).toBe(map);
+  expect(within(fullscreen).getByRole("group", { name: "Driving information" })).toBe(readings);
   gps.attributes.longitude = 34.002;
+  gps.attributes.in_zones = ["zone.example_park"];
   view.rerender(<App />);
   expect(pan).toHaveLastReturnedWith(mapView);
   expect(movePin).toHaveBeenLastCalledWith([12.001, 34.002]);
@@ -2315,9 +2351,11 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   fireEvent.keyDown(fullscreen, { key: "Escape" });
   await waitFor(() => expect(expand).toHaveFocus());
   expect(within(dialog).getByRole("region", { name: mapName })).toBe(map);
+  expect(within(dialog).getByTitle("Example Park")).toBeVisible();
   fireEvent.mouseDown(within(dialog).getByRole("tab", { name: "Trip" }), { button: 0 });
   expect(within(dialog).getAllByRole("region", { name: mapName })).toHaveLength(1);
   expect(within(dialog).getByRole("button", { name: "Show map fullscreen" })).toBeVisible();
+  expect(within(dialog).getByRole("group", { name: "Driving information" })).toHaveTextContent("Speed 55 km/h");
   fireEvent.mouseDown(within(dialog).getByRole("tab", { name: "Overview" }), { button: 0 });
   const climateSwitch = within(dialog).getByRole("switch", { name: "Cabin climate" });
   expect(climateSwitch).not.toBeChecked();

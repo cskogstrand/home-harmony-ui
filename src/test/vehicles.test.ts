@@ -98,6 +98,31 @@ it.each([["psi", "40.6", "2.8"], ["bar", "3", "3.0"], ["kPa", "294", "2.9"], ["M
   expect(tyrePressureBar(wheel)?.toFixed(1)).toBe(result);
 });
 
+it("resolves the car's address and driving readings independently of its route and other cars", () => {
+  const sensors = [
+    state("sensor.car_destination_address", "Example destination"),
+    state("sensor.car_ip_address", "192.0.2.1"),
+    state("sensor.car_geocoded_location", "Example road"),
+    state("sensor.car_fan_speed", "2", { unit_of_measurement: "%" }),
+    state("sensor.car_speed", "unavailable", { unit_of_measurement: "km/h" }),
+    state("sensor.car_heading", "-1"), state("sensor.car_gear", "REVERSE"),
+    state("device_tracker.car", "Example zone", { heading: 0, speed: 10, speed_unit: "mph" }),
+    state("zone.example", "0", { friendly_name: "Example zone" }),
+    state("sensor.other_address", "Other road"),
+  ];
+  const home = mapHome(Object.fromEntries(sensors.map(s => [s.entity_id, s])), emptyRegistries, "home");
+  const car = home.entities.filter(e => !e.entityId.startsWith("sensor.other") && e.domain !== "zone");
+  const trip = () => vehicleTrip(car, new Date(), home.entities);
+  expect(trip()).toMatchObject({ address: "Example road", zone: { name: "Example zone" }, coordinates: undefined,
+    speed: { value: 10, unit: "mph" }, heading: 0, gear: "R" });
+  car.find(e => e.entityId === "sensor.car_geocoded_location").state = "unknown";
+  const tracker = car.find(e => e.domain === "device_tracker");
+  tracker.state = "not_home";
+  tracker.attributes.speed = -1;
+  tracker.attributes.heading = 361;
+  expect(trip()).toMatchObject({ zone: undefined, address: undefined, speed: undefined, heading: undefined });
+});
+
 it.each([
   ["P", "off", 0, "Parked"], ["D", "off", 0, "Drive gear"], ["D", "off", 12, "Driving"],
   ["R", "off", 0, "Reverse gear"], ["N", "off", 0, "Neutral gear"],
@@ -106,4 +131,38 @@ it.each([
   const readings = [state("sensor.example_shift_state", String(gear)), state("binary_sensor.example_parking_brake", String(brake)), state("device_tracker.example", "home", { speed })];
   const car = mapHome(Object.fromEntries(readings.map(r => [r.entity_id, r])), emptyRegistries, "home");
   expect(driveStatus(car.entities).label).toBe(label);
+});
+
+it("follows TeslaMate's reported state even while the last gear remains parked", () => {
+  const values = [state("sensor.renamed", "online"), state("sensor.example_gear", "P")];
+  const home = mapHome(Object.fromEntries(values.map(e => [e.entity_id, e])), { ...emptyRegistries,
+    entities: [{ id: "status", entity_id: "sensor.renamed", unique_id: "teslamate_demo_2_1_state", platform: "mqtt" }],
+  }, "home");
+  const sensor = home.entities.find(e => e.entityId === "sensor.renamed");
+  for (const [value, label] of Object.entries({ online: "Parked", driving: "Driving", charging: "state.charging",
+    suspended: "Polling paused", asleep: "Asleep", offline: "Offline", updating: "Updating", start: "Starting" })) {
+    sensor.state = value;
+    expect(driveStatus(home.entities).label).toBe(label);
+  }
+});
+
+it("distinguishes Tesla sleep reports from loss of connectivity and ignores a disconnected charge cable", () => {
+  const values = [state("binary_sensor.example_status", "off", { device_class: "connectivity" }),
+    state("binary_sensor.example_asleep", "off"), state("binary_sensor.example_charge_cable", "off", { device_class: "connectivity" }),
+    state("sensor.example_gear", "D")];
+  const { entities } = mapHome(Object.fromEntries(values.map(e => [e.entity_id, e])), { ...emptyRegistries,
+    entities: [{ id: "connection", entity_id: "binary_sensor.example_status", translation_key: "state", platform: "tesla_fleet" }],
+  }, "home");
+  const [online, sleep] = entities;
+  expect(driveStatus(entities).label).toBe("Offline");
+  sleep.state = "on";
+  expect(driveStatus(entities).label).toBe("Asleep");
+  sleep.state = "unavailable";
+  online.attributes.state = "asleep";
+  expect(driveStatus(entities).label).toBe("Asleep");
+  online.state = "on";
+  online.attributes.state = "online";
+  expect(driveStatus(entities).label).toBe("Drive gear");
+  online.state = "unavailable";
+  expect(driveStatus(entities).label).toBe("Drive gear");
 });

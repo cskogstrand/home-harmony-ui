@@ -1,4 +1,5 @@
-import { Armchair, BatteryCharging, ChevronDown, CircleDot, Cpu, Fan, LockKeyhole, Route, Search } from "lucide-react";
+import { ArrowUp, ChevronDown, Fan, Gauge, LockKeyhole, Route, Search } from "lucide-react";
+import { vehicleViews } from "./vehicle-views";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel, humanizeState } from "@/lib/ha-model";
@@ -94,26 +95,32 @@ function OpeningPositions({ entities }: { entities: Entity[] }) {
   </table>;
 }
 
-export function VehicleJourney({ entities, active = true }: { entities: Entity[]; active?: boolean }) {
-  const { t, language, locale } = useI18n();
+export function VehicleJourney({ entities, addressEntity, active = true }: { entities: Entity[]; addressEntity?: string; active?: boolean }) {
+  const { t, language, locale, number } = useI18n();
   const { now } = useFamily();
   const { currentHome } = useApp();
-  const { location, coordinates, destination, eta } = vehicleTrip(entities, now);
+  const { location, zone: haZone, address, coordinates, destination, eta, speed, gear, heading } = vehicleTrip(entities, now, currentHome.entities, addressEntity);
+  const zoneName = haZone?.entityId === "zone.home" && haZone.name === "Home" ? t("Home") : haZone?.name;
+  const trackerLabel = location ? entityStateLabel(location, language) : t("Not reported");
+  const position = zoneName ?? (location?.state === "home" ? t("Home") : address || trackerLabel);
+  const driving = (speed?.unit || gear || heading !== undefined) && <span className="vehicle-driving" role="group" aria-label={t("Driving information")}>
+    {speed?.unit && <span title={t("Speed")}><Gauge aria-hidden="true" /><span className="sr-only">{t("Speed")} </span><b>{number(Math.round(speed.value))}</b> {speed.unit}</span>}
+    {gear && <span title={t("Gear")}><span className="sr-only">{t("Gear")} </span>{gear}</span>}
+    {heading !== undefined && <span title={t("Heading")}><ArrowUp aria-hidden="true" style={{ transform: `rotate(${heading}deg)` }} /><span className="sr-only">{t("Heading")} </span>{number(Math.round(heading) % 360)}°</span>}
+  </span>;
   const zone = currentHome.timeZone;
   const day = eta && homeDate(eta, zone) !== homeDate(now, zone);
   return <section className="vehicle-module vehicle-journey"><h3><Route size={19} aria-hidden="true" />{t("Trip & position")}</h3>
-    <dl><div><dt>{t("Vehicle position")}</dt><dd>{location ? entityStateLabel(location, language) : t("Not reported")}</dd>
+    <dl><div><dt>{t("Vehicle position")}</dt><dd className="vehicle-position"><span className="vehicle-position-text" title={position}>{position}</span>{!coordinates && driving}</dd>
       </div>
       {destination && <div><dt>{t("Destination")}</dt><dd>{destination}</dd></div>}
       <div><dt>{t("Arrival time")}</dt><dd>{eta ? <time dateTime={eta.toISOString()}>{eta.toLocaleString(locale, { timeZone: zone, hour: "2-digit", minute: "2-digit", ...(day ? { day: "numeric", month: "short" } : {}) })}</time> : t("No arrival estimate")}</dd></div>
     </dl>
     {coordinates && <div className="vehicle-map">
-      {active && <Suspense fallback={null}><VehicleMap {...coordinates} /></Suspense>}
+      {active && <Suspense fallback={null}><VehicleMap {...coordinates}>{driving}</VehicleMap></Suspense>}
     </div>}
   </section>;
 }
-
-const systemIcons = { "Battery & charging": BatteryCharging, "Cabin & seats": Armchair, "Doors & security": LockKeyhole, "Trip & position": Route, "Tyre pressure": CircleDot, "Vehicle & service": Cpu };
 
 const positions = [
   ["Front left", /front_left|left_front|(?:^|_)fl$|heated_seat_left$/],
@@ -137,7 +144,7 @@ function readingLabel(entity: Entity) {
   return readingName(entity);
 }
 
-export function VehicleSystemPanel({ system, entities, model, version }: { system: VehicleSystem; entities: Entity[]; model?: string; version?: string }) {
+export function VehicleSystemPanel({ system, entities, addressEntity, model, version }: { system: VehicleSystem; entities: Entity[]; addressEntity?: string; model?: string; version?: string }) {
   const { t, message, locale, number } = useI18n();
   const [filter, setFilter] = useState("");
   const term = filter.trim().toLocaleLowerCase(locale);
@@ -148,12 +155,12 @@ export function VehicleSystemPanel({ system, entities, model, version }: { syste
   return <div className="vehicle-systems">
     <label className="vehicle-search"><Search size={18} aria-hidden="true" /><Input type="search" value={filter} onChange={event => setFilter(event.target.value)} aria-label={t("Search this car")} placeholder={t("Search this car")} /></label>
     {systems.map(name => {
-      const Icon = systemIcons[name];
+      const Icon = vehicleViews[name].icon;
       const groups = vehicleSystems[name].map(group => ({ group, rows: matches.filter(e => vehicleGroup(e) === group) })).filter(g => g.rows.length);
       if (!groups.length && (term || name !== "Vehicle & service" || !version)) return null;
       return <section className="vehicle-system" key={name}>
         {(term || !["Trip & position", "Doors & security"].includes(name)) && <h3><Icon size={22} aria-hidden="true" />{t(name)}</h3>}
-        {!term && name === "Trip & position" && <VehicleJourney entities={entities} />}
+        {!term && name === "Trip & position" && <VehicleJourney entities={entities} addressEntity={addressEntity} />}
         {!term && name === "Doors & security" && <VehicleAccess entities={entities} />}
         {!term && name === "Vehicle & service" && version && <p className="vehicle-version">{t("Software version")} <strong>{version}</strong></p>}
         {groups.map(({ group, rows }) => {

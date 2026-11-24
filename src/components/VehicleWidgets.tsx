@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CarFront, CircleHelp, Fan, Gauge, Plug, Unplug, WifiOff, Zap } from "lucide-react";
+import { CarFront, CircleHelp, CircleParking, Download, Fan, Gauge, Moon, Pause, Plug, Power, Unplug, Wifi, WifiOff, Zap, type LucideIcon } from "lucide-react";
 import { AppContext, useApp } from "@/contexts/AppContext";
 import { homeDate, useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -8,11 +8,15 @@ import { available } from "@/lib/ha-model";
 import { cabinClimate, cabinState, driveStatus, teslaModelVariant, teslaVehicles, vehicleCommandReport, vehicleGroup, vehicleSystems, vehicleSummary, type Vehicle, type VehicleSystem } from "@/lib/vehicles";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { VehicleAccess, VehicleCabin, VehicleJourney, VehicleSystemPanel } from "./VehicleSystems";
+import { vehicleViews } from "./vehicle-views";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Planner } from "../../shared/configuration";
 import "./vehicle-widgets.css";
 
-const tabNames = { Overview: "Overview", "Battery & charging": "Charging", "Cabin & seats": "Cabin", "Doors & security": "Access", "Trip & position": "Trip", "Tyre pressure": "Tyres", "Vehicle & service": "Service" } as const;
+const activityIcons: Partial<Record<ReturnType<typeof driveStatus>["label"], LucideIcon>> = {
+  Asleep: Moon, Offline: WifiOff, "Polling paused": Pause, Updating: Download, Starting: Power, "Waking up": Power,
+  Online: Wifi, Unavailable: WifiOff, Parked: CircleParking, Driving: Gauge, "state.charging": Zap, "Drive status unknown": CircleHelp,
+};
 
 function VehiclePhoto({ model, name, source, compact = false }: { model?: string; name: string; source?: string; compact?: boolean }) {
   const { t } = useI18n();
@@ -34,22 +38,28 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
   const name = vehicle ? deviceName(vehicle.device, language) : selection.name;
   const { imageEntity } = selection;
   const entities = vehicle?.entities ?? [];
-  const { battery, range, charge, charging, plugged, limit, power, finish } = vehicleSummary(homeOnline ? entities : []);
+  const { battery, range, charge, charging: chargeReported, plugged, limit, power, finish } = vehicleSummary(homeOnline ? entities : []);
   const live = homeOnline && !!vehicle;
+  const drive = driveStatus(live ? entities : []);
+  const paused = !live || drive.label === "Asleep" || drive.label === "Offline" || drive.label === "Unavailable" || drive.label === "Polling paused";
+  const charging = !paused && (drive.label === "state.charging" || (chargeReported && drive.label !== "Driving"));
+  const activity = live ? t(drive.label) : t(homeOnline ? "Unavailable" : "HA offline");
+  const ActivityIcon = live ? activityIcons[drive.label] ?? CarFront : WifiOff;
   const climate = cabinClimate(entities);
   const control = commandVehicle === vehicle ? climate : commandVehicle && cabinClimate(commandVehicle.entities);
   const climateOn = live ? cabinState(climate) : undefined;
   const climateLabel = t(climateOn === undefined ? "Climate unknown" : climateOn ? "Climate on" : "Climate off");
-  const drive = driveStatus(live ? entities : []);
   const [section, setSection] = useState<VehicleSystem | "Overview">("Overview");
   const groups = new Set(entities.map(vehicleGroup));
   const systems = (Object.keys(vehicleSystems) as VehicleSystem[]).filter(system => vehicleSystems[system].some(group => groups.has(group)) || system === "Vehicle & service" && vehicle?.device.sw_version);
   const view = section !== "Overview" && systems.includes(section) ? section : "Overview";
   const percent = battery ? `${Number(battery.state).toLocaleString(locale)}%` : "—";
   const distance = range ? `${Number(range.state).toLocaleString(locale, { maximumFractionDigits: 0 })} ${range.attributes.unit_of_measurement}` : "—";
-  const status = !live ? t(homeOnline ? "Unavailable" : "HA offline") : charge ? message(charge === "Charging" ? "state.charging" : charge) : t("Charge status unavailable");
+  const chargeLabel = drive.label === "state.charging" ? activity : charge && (!chargeReported || charging) ? message(charge === "Charging" ? "state.charging" : charge) : undefined;
+  const status = chargeLabel ?? t("Charge status unavailable");
   const StatusIcon = !live ? WifiOff : charging ? Zap : plugged === true ? Plug : plugged === false ? Unplug : CircleHelp;
   const connectionLabel = !live || charging || plugged === undefined ? status : t(plugged ? "Plugged in" : "Unplugged");
+  const summary = paused ? [activity] : [...new Set([status, connectionLabel, activity, climateLabel])];
   const eta = Number.isFinite(finish) && finish >= now.getTime() ? new Date(finish) : null;
   const timeZone = currentHome.timeZone;
   const finishTime = eta?.toLocaleTimeString(locale, { timeZone, hour: "2-digit", minute: "2-digit" });
@@ -63,13 +73,13 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
     return app.command(entityId, action, value, code, home => vehicleCommandReport(home, selection.id, entityId, action, value));
   };
   return <AppContext.Provider value={{ ...app, command }}><Dialog onOpenChange={open => { if (open) setSection("Overview"); }}>
-    <DialogTrigger asChild><button type="button" className="vehicle-glance" data-charging={charging} title={[name, t(drive.label), status, climateLabel].join(" · ")} aria-label={t("Open status for {name}. Battery {battery}, range {range}. {status}", { name, battery: percent, range: distance, status: [status, connectionLabel !== status && connectionLabel, t(drive.label), climateLabel].filter(Boolean).join(". ") })}>
+    <DialogTrigger asChild><button type="button" className="vehicle-glance" data-charging={charging} data-paused={paused} title={[name, ...summary].join(" · ")} aria-label={t("Open status for {name}. Battery {battery}, range {range}. {status}", { name, battery: percent, range: distance, status: summary.join(". ") })}>
       <span className="vehicle-thumbnail" aria-hidden="true"><VehiclePhoto model={model} name={name} source={source} compact /></span>
       <span className="vehicle-glance-info">
         <strong>{percent}</strong>
-        <span className="vehicle-drive" title={t(drive.label)}><span>{t(drive.label)}</span><b>{drive.symbol}</b></span>
-        <span className="vehicle-glance-climate" title={climateLabel}><Fan size={15} data-running={climateOn} strokeWidth={climateOn ? 2.5 : 1.5} aria-hidden="true" /></span>
-        <span title={connectionLabel} className="vehicle-charge-symbol"><StatusIcon className={charging ? "vehicle-charging-icon" : undefined} size={16} aria-hidden="true" /></span>
+        <span className="vehicle-drive" title={activity}><span>{activity}</span><b>{live && drive.symbol ? drive.symbol : <ActivityIcon size={16} aria-hidden="true" />}</b></span>
+        {!paused && <span className="vehicle-glance-climate" title={climateLabel}><Fan size={15} data-running={climateOn} strokeWidth={climateOn ? 2.5 : 1.5} aria-hidden="true" /></span>}
+        {!paused && <span title={connectionLabel} className="vehicle-charge-symbol"><StatusIcon className={charging ? "vehicle-charging-icon" : undefined} size={16} aria-hidden="true" /></span>}
         <span className="vehicle-mini-meter" aria-hidden="true">{battery && <i style={{ transform: `scaleX(${Number(battery.state) / 100})` }} />}</span>
       </span>
     </button></DialogTrigger>
@@ -77,14 +87,20 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
       <DialogHeader><DialogTitle>{name}</DialogTitle><DialogDescription>{model || t("Vehicle status")}</DialogDescription></DialogHeader>
       {live ? <Tabs value={view} onValueChange={next => setSection(next as typeof section)} className="vehicle-tabs">
         <TabsList aria-label={t("Vehicle view")} className="vehicle-view-tabs">
-          {(["Overview", ...systems] as const).map(item => <TabsTrigger key={item} value={item}>{t(tabNames[item])}</TabsTrigger>)}
+          {(["Overview", ...systems] as const).map(item => {
+            const { label, icon: Icon } = vehicleViews[item];
+            return <TabsTrigger key={item} value={item}><Icon size={16} aria-hidden="true" />{t(label)}</TabsTrigger>;
+          })}
         </TabsList>
         <div className="vehicle-pane-stack">
           <TabsContent value="Overview" forceMount aria-hidden={view !== "Overview" || undefined} className="vehicle-tab-body vehicle-sizing-pane">
             <div className="vehicle-overview" data-charging={charging}>
               <div className="vehicle-scene">
                 <div className="vehicle-session">
-                  <span className="vehicle-session-state"><StatusIcon className={charging ? "vehicle-charging-icon" : undefined} size={16} aria-hidden="true" />{status}</span>
+                  <div className="vehicle-session-states">
+                    <span className="vehicle-session-state"><ActivityIcon size={17} aria-hidden="true" />{activity}</span>
+                    {!paused && chargeLabel && activity !== chargeLabel && <span className="vehicle-session-charge"><StatusIcon className={charging ? "vehicle-charging-icon" : undefined} size={15} aria-hidden="true" />{chargeLabel}</span>}
+                  </div>
                   <dl><dt>{charging ? t("Expected finish") : t("Range")}{charging && finishDate && ` · ${finishDate}`}</dt>
                     <dd className={charging && !eta ? "vehicle-no-estimate" : ""}>{charging ? eta ? <time dateTime={eta.toISOString()}>{finishTime}</time> : t("No estimate yet") : distance}</dd></dl>
                 </div>
@@ -101,12 +117,12 @@ function VehicleWidget({ vehicle, commandVehicle, selection }: { vehicle?: Vehic
             </div>
             <div className="vehicle-front-facts">
               {cabin}
-              <VehicleJourney entities={entities} active={view === "Overview"} />
+              <VehicleJourney entities={entities} addressEntity={selection.addressEntity} active={view === "Overview"} />
               <VehicleAccess entities={entities} />
             </div>
           </TabsContent>
           {view !== "Overview" && <TabsContent value={view} key={view} className="vehicle-tab-body vehicle-detail-pane">
-            <VehicleSystemPanel system={view} entities={entities} model={model} version={vehicle.device.sw_version} />
+            <VehicleSystemPanel system={view} entities={entities} addressEntity={selection.addressEntity} model={model} version={vehicle.device.sw_version} />
           </TabsContent>}
         </div>
       </Tabs> : homeOnline && commandVehicle ? <>

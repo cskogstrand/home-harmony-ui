@@ -20,6 +20,7 @@ export function VehicleSettings() {
   const disabled = !state.loaded || !!state.error;
   const selected = new Map(vehicles.map(car => [car.id, car]));
   const images = currentHome.entities.filter(entity => entity.domain === "image");
+  const sensors = currentHome.entities.filter(entity => entity.domain === "sensor");
   const missing = vehicles.filter(car => !discovered.some(device => device.id === car.id));
   const choices = [...discovered, ...missing.map(car => ({ ...car, detail: t(homeOnline ? "Unavailable" : "Offline") }))];
   return <section className="settings-card" aria-label={t("Electric vehicles")}>
@@ -45,6 +46,9 @@ export function VehicleSettings() {
           <EntityPicker label={t("Photo for {name}", { name })} entities={images} value={car.imageEntity ?? ""}
             onChange={image => updateVehicle(id, { imageEntity: image || undefined })} groupByDevice={false} disabled={disabled}
             placeholder={t("Use default vehicle image")} clearLabel={t("Use default vehicle image")} />
+          <EntityPicker label={t("Address sensor for {name}", { name })} entities={sensors} value={car.addressEntity ?? ""}
+            onChange={address => updateVehicle(id, { addressEntity: address || undefined })} disabled={disabled}
+            placeholder={t("Use vehicle address sensor")} clearLabel={t("Use vehicle address sensor")} />
         </div>}
       </div>;
     })}

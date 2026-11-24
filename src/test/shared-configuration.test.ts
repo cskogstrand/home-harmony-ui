@@ -604,11 +604,11 @@ it("keeps older backups vehicle-free and rejects duplicate or invalid vehicle re
   expect(parseConfiguration(JSON.stringify(config)).settings.vehicles).toEqual([]);
   const car = { id: "fictional-registry-id", name: "Example car" };
   for (const selection of [car, { ...car, imageEntity: "home|image.example" },
-    { ...car, id: "teslamate:example", commandVehicleId: car.id, imageEntity: "home|image.example" }]) {
+    { ...car, id: "teslamate:example", commandVehicleId: car.id, imageEntity: "home|image.example", addressEntity: "home|sensor.example_address" }]) {
     const backup = { ...config, settings: { ...config.settings, vehicles: [selection] } };
     expect(parseConfiguration(JSON.stringify(backup)).settings.vehicles).toEqual([selection]);
   }
-  for (const vehicles of [[car, car], [{ ...car, id: "" }], [{ ...car, commandVehicleId: "" }], [null]]) {
+  for (const vehicles of [[car, car], [{ ...car, id: "" }], [{ ...car, commandVehicleId: "" }], [{ ...car, addressEntity: "" }], [null]]) {
     expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, vehicles } }))).toThrow();
   }
 });

@@ -1,6 +1,6 @@
 # Entity picker
 
-Entity selection uses one searchable dropdown throughout notifications, Smart home card settings, alarm selection, vehicle photos, calendar and to-do assignments, timetable sources, event editing and dashboard favorites.
+Entity selection uses one searchable dropdown throughout notifications, Smart home card settings, alarm selection, vehicle photos and address sensors, calendar and to-do assignments, timetable sources, event editing and dashboard favorites.
 
 Choose a device first to see its entities. **All entities** includes the full eligible list; **Without a device** includes helpers, calendars and other standalone entities. Searching also finds entities directly by name, ID, device, room or integration. Device selection narrows search to that device. **Back to devices** clears that filter.
 

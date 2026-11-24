@@ -15,6 +15,10 @@ function teslaMateIdentifier([domain, id]: [string, string]) {
 
 export const metricKey = (entity: Entity) => (teslaMateMetric(entity) || entity.registryName || entity.entityId.split(".")[1]).toLowerCase().replace(/[\s-]+/g, "_");
 const rangeKey = /(?:^|_)range$/;
+const vehicleTracker = (entities: Entity[]) => entities.find(e => e.domain === "device_tracker" && !/destination|route/.test(metricKey(e)));
+const isVehicleState = (key: string) => key === "state" || key === "status" || /(?:^|_)(?:car|vehicle|tesla|teslamate|sleep)_(?:state|status)$/.test(key);
+const isAddressSensor = (e: Entity) => e.domain === "sensor" && /(?:^|_)(?:address|geocoded_location)$/.test(metricKey(e))
+  && !/(?:^|_)(?:destination|route|ip|mac|bluetooth|network)(?:_|$)/.test(metricKey(e));
 
 function durationEnd(entity?: Entity) {
   if (!entity?.lastUpdated || !Number.isFinite(Number(entity.state)) || Number(entity.state) <= 0) return NaN;
@@ -99,7 +103,7 @@ export function vehicleGroup(entity: Entity): VehicleGroup {
   if (/seat.*heat|heat.*seat/.test(key)) return "Seat heating";
   if (/overheat|heated_steering|steering_wheel|defrost|keeper/.test(key)) return "Cabin protection";
   if (entity.domain === "climate" || /temp|climate|hvac|preconditioning/.test(key)) return "Cabin temperature";
-  if (/arrival|destination|active_route|geofence/.test(key) || entity.domain === "device_tracker") return "Navigation";
+  if (/arrival|destination|active_route|geofence/.test(key) || entity.domain === "device_tracker" || isAddressSensor(entity)) return "Navigation";
   if (/frunk|trunk|liftgate/.test(key)) return "Luggage compartments";
   if (entity.domain === "lock" || entity.attributes.device_class === "lock" || /(?:^|_)locked$/.test(key)) return "Locks";
   if (entity.domain === "cover" || /door|window|sunroof/.test(key)) return "Doors and windows";
@@ -109,7 +113,7 @@ export function vehicleGroup(entity: Entity): VehicleGroup {
   if (/charg|cable|energy_added|plugged_in/.test(key)) return "Charge session";
   if (entity.domain === "button") return "Last commands";
   if (entity.domain === "update" || /software|firmware|^(update_available|update_version|version|download_perc|install_perc)$/.test(key)) return "Software";
-  if (/online|connect|asleep|polling|last_update/.test(key)) return "Vehicle connection";
+  if (isVehicleState(key) || /online|connect|asleep|polling|last_update/.test(key)) return "Vehicle connection";
   return "Vehicle information";
 }
 
@@ -174,21 +178,57 @@ export function vehicleCommandReport(before: Home, vehicleId: string, targetId: 
   };
 }
 
-export function driveStatus(entities: Entity[]) {
-  const live = entities.filter(available);
+function vehicleGear(live: Entity[]) {
   const shift = live.find(e => e.domain === "sensor" && /(?:^|_)(?:shift_state|gear|gear_position)$/.test(metricKey(e)));
   const gear = shift?.state.trim().toUpperCase();
-  const speedSensor = live.find(e => e.domain === "sensor" && /(?:^|_)(?:vehicle_|drive_state_)?speed$/.test(metricKey(e)) && !/charg|fan|limit/.test(metricKey(e)));
-  const tracker = live.find(e => e.domain === "device_tracker" && !/destination|route/.test(metricKey(e)));
-  const speed = speedSensor?.state ?? tracker?.attributes.speed;
-  const moving = speed != null && Number(speed) > 0;
-  if (gear === "P" || gear === "PARK") return { symbol: "P", label: "Parked" } as const;
-  if (gear === "R" || gear === "REVERSE") return { symbol: "R", label: "Reverse gear" } as const;
-  if (gear === "N" || gear === "NEUTRAL") return { symbol: "N", label: "Neutral gear" } as const;
-  if (gear === "D" || gear === "DRIVE") return { symbol: "D", label: moving ? "Driving" : "Drive gear" } as const;
+  if (gear === "P" || gear === "PARK") return "P";
+  if (gear === "R" || gear === "REVERSE") return "R";
+  if (gear === "N" || gear === "NEUTRAL") return "N";
+  if (gear === "D" || gear === "DRIVE") return "D";
+}
+
+function roadReading(value: unknown, max = Infinity) {
+  const n = typeof value === "string" && value.trim() ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= max ? n : undefined;
+}
+
+function vehicleSpeed(live: Entity[], tracker?: Entity) {
+  const sensor = live.find(e => e.domain === "sensor" && /(?:^|_)speed$/.test(metricKey(e))
+    && !/charg|fan|limit|average|max|wind/.test(metricKey(e)) && roadReading(e.state) !== undefined);
+  const value = sensor ? Number(sensor.state) : roadReading(tracker?.attributes.speed);
+  // Tesla Custom exposes raw Tesla drive-state speed (mph) on its location tracker.
+  const unit = sensor ? sensor.attributes.unit_of_measurement : tracker?.attributes.speed_unit ?? (tracker?.integration === "tesla_custom" ? "mph" : undefined);
+  return value === undefined ? undefined : { value, unit: typeof unit === "string" ? unit : undefined };
+}
+
+export function driveStatus(entities: Entity[]) {
+  const live = entities.filter(available);
+  if (entities.length && !live.length) return { label: "Unavailable", symbol: null } as const;
+  const stateSensor = live.find(e => e.domain === "sensor" && isVehicleState(metricKey(e)));
+  const online = live.find(e => e.domain === "binary_sensor" && (/(?:^|_)online$/.test(metricKey(e))
+    || (isVehicleState(metricKey(e)) && e.attributes.device_class === "connectivity")));
+  const state = String(stateSensor?.state ?? online?.attributes.state ?? "").trim().toLowerCase();
+  if (state === "asleep" || state === "sleeping" || live.some(e => e.domain === "binary_sensor" && /(?:^|_)(?:asleep|sleeping)$/.test(metricKey(e)) && e.state === "on")) {
+    return { label: "Asleep", symbol: null } as const;
+  }
+  if (state === "offline" || (!state && online?.state === "off")) return { label: "Offline", symbol: null } as const;
+  if (state === "suspended") return { label: "Polling paused", symbol: null } as const;
+  if (state === "updating") return { label: "Updating", symbol: null } as const;
+  if (state === "start") return { label: "Starting", symbol: null } as const;
+  if (state === "waking") return { label: "Waking up", symbol: null } as const;
+  if (state === "charging") return { label: "state.charging", symbol: null } as const;
+  const gear = vehicleGear(live);
+  const speed = vehicleSpeed(live, vehicleTracker(live))?.value;
+  const moving = speed > 0;
+  if (state === "driving" && gear !== "R") return { symbol: gear === "D" ? "D" : "↗", label: "Driving" } as const;
+  if (gear === "P") return { symbol: gear, label: "Parked" } as const;
+  if (gear === "R") return { symbol: gear, label: "Reverse gear" } as const;
+  if (gear === "N") return { symbol: gear, label: "Neutral gear" } as const;
+  if (gear === "D") return { symbol: gear, label: moving ? "Driving" : "Drive gear" } as const;
   if (moving) return { symbol: "↗", label: "Driving" } as const;
   if (live.some(e => e.domain === "binary_sensor" && /(?:^|_)park(?:ing)?_brake$/.test(metricKey(e)) && e.state === "on")) return { symbol: "P", label: "Parked" } as const;
-  if (speed != null && String(speed).trim() && Number(speed) === 0) return { symbol: "0", label: "Stationary" } as const;
+  if (speed === 0) return { symbol: "0", label: "Stationary" } as const;
+  if (state === "online" || state === "awake" || online?.state === "on") return { label: "Online", symbol: null } as const;
   return { symbol: "—", label: "Drive status unknown" } as const;
 }
 
@@ -225,9 +265,17 @@ export function accessStatus(entities: Entity[]) {
     closed: openings.length > 0 && !unknown && open.length === 0 };
 }
 
-export function vehicleTrip(entities: Entity[], now: Date) {
+export function vehicleTrip(entities: Entity[], now: Date, homeEntities: Entity[] = [], addressEntity?: string) {
   const live = entities.filter(available);
-  const location = live.find(e => e.domain === "device_tracker" && !/destination|route/.test(metricKey(e)));
+  const location = vehicleTracker(live);
+  const zones = homeEntities.filter(e => e.domain === "zone" && available(e));
+  const memberships = location?.attributes.in_zones;
+  const zone = (Array.isArray(memberships) ? memberships : []).map(id => zones.find(z => z.entityId === id)).find(Boolean)
+    ?? zones.find(z => location && (z.name === location.state || z.entityId === location.state || z.entityId === `zone.${location.state}`));
+  const selectedAddress = addressEntity && homeEntities.find(e => e.preferenceId === addressEntity && e.domain === "sensor" && available(e));
+  const address = (selectedAddress && selectedAddress.state.trim()) || live.find(e => isAddressSensor(e) && e.state.trim())?.state.trim();
+  const headingSensor = live.find(e => e.domain === "sensor" && /(?:^|_)heading$/.test(metricKey(e)) && roadReading(e.state, 360) !== undefined);
+  const heading = roadReading(headingSensor?.state, 360) ?? roadReading(location?.attributes.heading, 360) ?? roadReading(location?.attributes.course, 360);
   const arrival = live.find(e => e.domain === "sensor" && /(?:arrival_time|time_of_arrival|route_arrival)$/.test(metricKey(e)));
   const reportedFinish = arrival?.attributes.device_class === "timestamp" || (arrival && /^\d{4}-\d{2}-\d{2}T/.test(arrival.state)) ? Date.parse(arrival.state) : NaN;
   const finish = Number.isFinite(reportedFinish) ? reportedFinish : durationEnd(live.find(e => e.domain === "sensor" && /(?:time|minutes)_to_arrival$/.test(metricKey(e))));
@@ -236,5 +284,6 @@ export function vehicleTrip(entities: Entity[], now: Date) {
   const destination = arrival?.attributes.Destination ?? destinationSensor?.state;
   const lat = location?.attributes.latitude, lon = location?.attributes.longitude;
   const coordinates = typeof lat === "number" && Math.abs(lat) <= 90 && typeof lon === "number" && Math.abs(lon) <= 180 ? { lat, lon } : undefined;
-  return { location, coordinates, eta, destination: (eta || !Number.isFinite(finish)) && typeof destination === "string" && destination.trim() ? destination : undefined };
+  return { location, zone, address, coordinates, speed: vehicleSpeed(live, location), gear: vehicleGear(live), heading, eta,
+    destination: (eta || !Number.isFinite(finish)) && typeof destination === "string" && destination.trim() ? destination : undefined };
 }
