@@ -21,7 +21,7 @@
 
 ## Checklist
 
-- [ ] Client methods: `listRepairs()`, `backupInfo()`, `subscribePersistentNotifications(cb)`; all tolerate `unauthorized` by returning `undefined`.
+- [x] Client methods: `listRepairs()`, `backupInfo()`, `subscribePersistentNotifications(cb)`; all tolerate `unauthorized` by returning `undefined`.
 - [ ] Settings → System → Home Assistant health: three blocks — Repairs (non-ignored issues, severity, translated title, "Learn more"/"Open in Home Assistant" links), Notifications from Home Assistant (title, message rendered as plain text or sanitised markdown, Dismiss with pending/failure feedback), Backups (last successful automatic backup with relative time, next scheduled, agent errors). Updates available list may join here (link to HA for installing).
 - [ ] HomeStatus `maintenance`: count only actionable items — repair issues with severity `error`/`critical`, last automatic backup failed or older than 48 h, `agent_errors` present. Warnings and persistent notifications stay in Settings only (no family-surface noise).
 - [ ] Refresh: repairs and backup info on connect and every 15 min while visible; notifications live.

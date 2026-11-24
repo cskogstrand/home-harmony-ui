@@ -878,6 +878,9 @@ export const nb = {
   "Start with a light, thermostat or any card you need. Then attach its entities and see it take shape.": "Start med et lys, en termostat eller et annet kort du trenger. Koble til entiteter og se kortet ta form.",
   "Open Smart home": "Åpne Smarthjem",
   "Reorder cards and groups from Arrange cards on Smart home.": "Endre rekkefølge og grupper via Ordne kort på Smarthjem.",
+  // Settings → System → Home Assistant health
+  "Home Assistant is offline. The notification was not dismissed.": "Home Assistant er frakoblet. Varselet ble ikke avvist.",
+  "Home Assistant did not confirm the dismissal. Check the connection and try again.": "Home Assistant bekreftet ikke at varselet ble avvist. Sjekk tilkoblingen og prøv igjen.",
   "Danger zone": "Faresone",
   "Clear the Smart home dashboard on every screen": "Tøm Smarthjem-dashbordet på alle skjermer",
   "Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.": "Fjern alle kort og grupper på Smarthjem. Favoritter på I dag og enheter i Home Assistant beholdes.",

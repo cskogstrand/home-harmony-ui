@@ -14,6 +14,7 @@ import { fetchTranslations, noTranslations, type HaTranslations } from "./ha-tra
 import type { NotificationEvent } from "./notifications";
 import { MAX_LOGBOOK_BACKFILL_MS, parseLogbookMessage, type LogbookEvent } from "./activity";
 import { nordPoolSlots, type PriceSlot } from "./electricity-price";
+import { applyNotificationEvent, parseBackupInfo, parseRepairs, repairTitle, type BackupHealth, type PersistentNotification, type RepairIssue } from "./ha-health";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
 type CommandStatus = { pending: boolean; pendingAction?: EntityAction; error?: string; message?: string };
@@ -55,6 +56,9 @@ const historySchema = z.record(z.string(), z.array(z.object({ s: z.string(), lu:
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
   : "Cannot connect to Home Assistant through the dashboard server. Check the dashboard server logs and its configured Home Assistant URL, port and network connection.";
+
+// Health reads need an administrator token; a refusal or a missing integration hides the block instead of showing an error.
+const hiddenHealthError = (error: unknown) => ["unauthorized", "unknown_command"].includes(String((error as { code?: unknown } | null)?.code));
 
 async function bounded<T>(promise: Promise<T>, milliseconds = 15000): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
@@ -463,6 +467,83 @@ export class HomeAssistantClient {
     if (!current()) throw new Error("Energy preferences request cancelled");
     const prefs = energyPrefsSchema.parse(result);
     return prefs.energy_sources.length || prefs.device_consumption.length ? "configured" : "missing";
+  };
+
+  /** One read that needs an administrator token. Resolves undefined when Home Assistant refuses it or lacks the command. */
+  private async adminRead(message: { type: string }, label: string) {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    if (!conn?.connected || this.snapshot.status !== "connected") throw new Error(`${label} unavailable`);
+    let result: unknown;
+    try {
+      result = await bounded(conn.sendMessagePromise(message));
+    } catch (error) {
+      if (hiddenHealthError(error)) return { conn, result: undefined };
+      throw new Error(`${label} unavailable`);
+    }
+    if (generation !== this.generation || epoch !== this.epoch || !conn.connected) throw new Error(`${label} request cancelled`);
+    return { conn, result };
+  }
+
+  /**
+   * Read-only: Home Assistant repair issues, with titles in `language` when given. Resolves undefined without an administrator
+   * token (or without the repairs integration); rejects when the list cannot be read.
+   */
+  listRepairs = async (language?: string): Promise<RepairIssue[] | undefined> => {
+    const { conn, result } = await this.adminRead({ type: "repairs/list_issues" }, "Repairs");
+    if (result === undefined) return undefined;
+    const issues = parseRepairs(result);
+    if (!language || !issues.length) return issues;
+    try {
+      const domains = [...new Set(issues.map(issue => issue.domain))].sort();
+      const translations = z.object({ resources: z.record(z.string(), z.unknown()) })
+        .parse(await bounded(conn.sendMessagePromise({ type: "frontend/get_translations", language, category: "issues", integration: domains }))).resources;
+      return issues.map(issue => ({ ...issue, title: repairTitle(issue, translations) }));
+    } catch { return issues; /* Titles are optional; the issue id remains readable. */ }
+  };
+
+  /** Read-only: automatic backup status. Resolves undefined without an administrator token or backup support. */
+  backupInfo = async (): Promise<BackupHealth | undefined> => {
+    const { result } = await this.adminRead({ type: "backup/info" }, "Backups");
+    return result === undefined ? undefined : parseBackupInfo(result);
+  };
+
+  /**
+   * Live persistent notifications, newest first. `receive(undefined)` means Home Assistant refused the subscription
+   * (hide notifications); `receive(null)` means it is unavailable right now. Subscribe again after a reconnect. Returns the unsubscribe.
+   */
+  subscribePersistentNotifications = (receive: (notifications: PersistentNotification[] | null | undefined) => void) => {
+    const controller = new AbortController(), signal = controller.signal;
+    const unsubscribeNotifications = () => controller.abort();
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
+    if (!current()) { receive(null); return unsubscribeNotifications; }
+    let unsubscribe: (() => Promise<void>) | undefined;
+    let notifications: PersistentNotification[] = [];
+    const stop = () => {
+      void unsubscribe?.().catch(() => {});
+      signal.removeEventListener("abort", stop);
+      this.cleanup = this.cleanup.filter(cleanup => cleanup !== stop);
+    };
+    this.cleanup.push(stop);
+    signal.addEventListener("abort", stop, { once: true });
+    void conn.subscribeMessage<unknown>(message => {
+      if (!current()) return;
+      const next = applyNotificationEvent(notifications, message);
+      if (next) receive(notifications = next);
+    }, { type: "persistent_notification/subscribe" }, { resubscribe: false }).then(unsub => {
+      if (current()) unsubscribe = unsub;
+      else void unsub().catch(() => {});
+    }).catch(error => { if (current()) receive(hiddenHealthError(error) ? undefined : null); });
+    return unsubscribeNotifications;
+  };
+
+  /** Dismisses one persistent notification. The live subscription reports its removal. */
+  dismissPersistentNotification = async (notificationId: string) => {
+    const conn = this.connection;
+    if (!conn?.connected || this.snapshot.status !== "connected") throw new Error("Home Assistant is offline. The notification was not dismissed.");
+    try {
+      await bounded(callService(conn, "persistent_notification", "dismiss", { notification_id: notificationId }));
+    } catch { throw new Error("Home Assistant did not confirm the dismissal. Check the connection and try again."); }
   };
 
   watchCalendarEvents = (entityId: string, start: string, end: string, signal: AbortSignal, receive: (events: CalendarEvent[] | null) => void) => {
