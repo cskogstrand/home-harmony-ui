@@ -359,7 +359,7 @@ Settings card headings use 1.125rem semibold text; Today's reorderable section h
 
 The main glass dock has five labeled destinations, with `aria-current` for the active route. The selected destination uses navigation blue, semibold text and an opaque secondary fill. The large portrait layout emphasizes generous horizontal links. Phone and compact tablet layouts align icons above captions inside an inset floating dock. Focus uses an inset outline in the navigation selection color. Smart home destinations share one horizontally scrollable row. Opening a route brings its selected destination into view. Less frequent destinations live in the labeled menu.
 
-During Sonos music playback, the music shortcut carries a small play badge. It clears on pause, TV input or loss of the live connection. Status badges share the upper corner of each circular control and include their meaning in its accessible name.
+During Sonos music playback, the music shortcut carries a small play badge. It clears on pause, TV input or loss of the live connection. Status badges share the upper corner of each circular control and include their meaning in its accessible name. The notification bell's filled count appears only for active alerts and its name stays **Notifications** with that count; startup, waiting, disabled and failed sources leave it unmarked and are explained on Today and the Notifications page.
 
 The camera shortcut gains a person glyph during current detections. A count appears when multiple configured cameras detect someone. Each active camera repeats that state beneath its name in the overview.
 
