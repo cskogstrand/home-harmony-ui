@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { EntityPicker } from "@/components/EntityPicker";
@@ -18,7 +19,15 @@ const topConsumers = 5;
 
 export default function EnergySaver() {
   const { t, language, locale, reading } = useI18n();
-  const { currentHome, haUrl, homeOnline } = useApp();
+  const { currentHome, haUrl, homeOnline, energySetup } = useApp();
+  const [setup, setSetup] = useState<"configured" | "missing">();
+  useEffect(() => {
+    if (!homeOnline) return;
+    const controller = new AbortController();
+    // An unknown answer keeps the ordinary link rather than guessing that Energy is missing.
+    void energySetup(controller.signal).then(result => { if (!controller.signal.aborted) setSetup(result); }).catch(() => { if (!controller.signal.aborted) setSetup(undefined); });
+    return () => controller.abort();
+  }, [homeOnline, energySetup]);
   const { energyMeters = [], setEnergyMeters } = useFamily();
   const shared = useSharedConfiguration();
   const meters = currentHome.entities.filter(entity => entity.domain === "sensor" && ["energy", "power", "monetary"].includes(String(entity.attributes.device_class)));
@@ -74,7 +83,8 @@ export default function EnergySaver() {
         {!!idle.length && <details className="energy-more"><summary>{t("Show idle ({count})", { count: idle.length })}</summary><ol className="energy-now-list">{idle.map(consumer)}</ol></details>}
       </>}
     </section>}
-    <div className="energy-layout"><VehicleCard /><section className="glow-panel"><PanelHeading icon={Zap} title={t("Energy in Home Assistant")} />{haUrl && <a className="text-link" href={`${haUrl}/energy`} target="_blank" rel="noreferrer">{t("Open Home Assistant Energy")}</a>}</section></div>
+    <div className="energy-layout"><VehicleCard /><section className="glow-panel"><PanelHeading icon={Zap} title={t("Energy in Home Assistant")} />{setup === "missing" && <p className="page-note mt-2">{t("Energy is not set up in Home Assistant yet. Add your electricity meters there to follow use over days and months.")}</p>}
+      {haUrl && <a className="text-link" href={setup === "missing" ? `${haUrl}/config/energy` : `${haUrl}/energy`} target="_blank" rel="noreferrer">{t(setup === "missing" ? "Set up Energy in Home Assistant" : "Open Home Assistant Energy")}</a>}</section></div>
     {!!groups.size && <details className="glow-panel energy-meters"><summary>{t("Meters")} <span>({counters})</span></summary>
       {[...groups].map(([key, entities]) => {
         const title = entities[0].device ? deviceName(entities[0].device, language) : entities[0].integration || t("Other readings");

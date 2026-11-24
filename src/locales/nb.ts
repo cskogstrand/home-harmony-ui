@@ -387,6 +387,8 @@ export const nb = {
   "More in use ({count})": "Flere i bruk ({count})",
   "Show idle ({count})": "Vis inaktive ({count})",
   "Meters": "Målere",
+  "Set up Energy in Home Assistant": "Sett opp Energi i Home Assistant",
+  "Energy is not set up in Home Assistant yet. Add your electricity meters there to follow use over days and months.": "Energi er ikke satt opp i Home Assistant ennå. Legg til strømmålerne dine der for å følge forbruket over dager og måneder.",
   "Current state": "Nåværende status",
   "Live": "Direkte",
   "Arm home": "Slå på hjemmemodus",

@@ -1,15 +1,15 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import EnergySaver from "@/pages/EnergySaver";
 import { mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
-const mocks = vi.hoisted(() => ({ home: null, online: true, pins: [] as string[], setEnergyMeters: vi.fn(), history: vi.fn() }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: (select = app => app) => select({ currentHome: mocks.home, homeOnline: mocks.online, entityHistory: mocks.history }) }));
+const mocks = vi.hoisted(() => ({ home: null, online: true, pins: [] as string[], setEnergyMeters: vi.fn(), history: vi.fn(), energySetup: vi.fn(async (): Promise<string> => "configured") }));
+vi.mock("@/contexts/AppContext", () => ({ useApp: (select = app => app) => select({ currentHome: mocks.home, homeOnline: mocks.online, haUrl: "http://ha.example.test", entityHistory: mocks.history, energySetup: mocks.energySetup }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ language: "en", energyMeters: mocks.pins, setEnergyMeters: mocks.setEnergyMeters }) }));
 vi.mock("@/components/HomePanels", () => ({ VehicleCard: () => <section aria-label="Example vehicle" /> }));
 vi.mock("@/components/devices/DeviceReading", () => ({ DeviceReading: ({ entity }) => <p>{entity.name}: {entity.state} {entity.attributes.unit_of_measurement}</p> }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => ({ state: { loaded: true } }) }));
-afterEach(() => { cleanup(); mocks.pins = []; mocks.online = true; });
+afterEach(() => { cleanup(); mocks.pins = []; mocks.online = true; mocks.energySetup.mockReset(); });
 it("groups physical meters and never calls an unspecified energy reading a daily total", () => {
   mocks.home = mapHome({
     "sensor.example_power": state("sensor.example_power", "450", { friendly_name: "Example power", device_class: "power", unit_of_measurement: "W" }),
@@ -93,4 +93,23 @@ it("keeps pinned meters above power now and vehicle cards", () => {
   const { container } = render(<EnergySaver />);
   const regions = [...container.querySelectorAll("section[aria-label]")].map(region => region.getAttribute("aria-label"));
   expect(regions.slice(0, 3)).toEqual(["Pinned meters", "Using power now", "Example vehicle"]);
+});
+
+it("links to Home Assistant Energy when it is set up and to its setup page when it is not", async () => {
+  mocks.home = circuits({ oven: ["2000"] });
+  mocks.energySetup.mockResolvedValue("configured");
+  render(<EnergySaver />);
+  expect(await screen.findByRole("link", { name: "Open Home Assistant Energy" })).toHaveAttribute("href", "http://ha.example.test/energy");
+  cleanup();
+  mocks.energySetup.mockResolvedValue("missing");
+  render(<EnergySaver />);
+  expect(await screen.findByRole("link", { name: "Set up Energy in Home Assistant" })).toHaveAttribute("href", "http://ha.example.test/config/energy");
+  expect(screen.getByText(/Energy is not set up in Home Assistant yet/)).toBeVisible();
+  expect(screen.queryByRole("link", { name: "Open Home Assistant Energy" })).not.toBeInTheDocument();
+  cleanup();
+  mocks.energySetup.mockRejectedValue(new Error("Energy preferences unavailable"));
+  render(<EnergySaver />);
+  await waitFor(() => expect(mocks.energySetup).toHaveBeenCalled());
+  expect(screen.getByRole("link", { name: "Open Home Assistant Energy" })).toHaveAttribute("href", "http://ha.example.test/energy");
+  expect(screen.queryByText(/not set up/)).not.toBeInTheDocument();
 });
