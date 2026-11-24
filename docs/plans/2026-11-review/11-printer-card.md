@@ -20,7 +20,8 @@ A device is a printer when it has a sensor whose `translation_key` (or entity id
 
 ## Checklist
 
-- [ ] `printerModel(device, entities)` pure helper returning progress, remaining, stage, temps (current/target), trays (colour, type, active), media entity; unit-tested with a fictional device.
+- [x] `printerModel(device, entities)` pure helper returning progress, remaining, stage, temps (current/target), trays (colour, type, active), media entity; unit-tested with a fictional device.
+  > Note: verified against ha-bambulab `definitions.py`: the stage sensor's translation key is `stage` (entity ids often end in `current_stage`), errors come from the `print_error` and `hms_errors` binary sensors, and filament trays (`tray`) sit on filament-unit devices linked through `via_device_id`; the printer itself carries `external_spool`. The key map is `printerAdapters` in `src/lib/printer-model.ts`.
 - [ ] Card in Original, Compact and Super compact densities: progress ring/bar + remaining time as the hero; stage label translated (via 05); media (camera when printing, cover image otherwise) only in Original; trays as colour swatches with accessible names.
 - [ ] Idle/finished/error states distinct (finished shows "Done at 14:20"; error shows the HMS/print error text if present). Unavailable vs idle distinguished.
 - [ ] Device detail page: same model, plus chamber light and other controls already handled generically.
