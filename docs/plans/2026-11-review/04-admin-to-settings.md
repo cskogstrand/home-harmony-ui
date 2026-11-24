@@ -34,8 +34,8 @@
 - [x] Phone: confirm the Smart home sub-nav no longer clips a label mid-word at 375 px; if it still does, fade/scroll the overflow with a clear "More" affordance rather than clipping text.
 
   > Note: at 375 px the primary row still overflowed (253 px visible of 652 px; the third label was cut at the edge), because the seven primary destinations did not change. The row now fades hidden destinations at its edges (a 1.5rem mask; the start fade follows a scroll timeline where supported), reserves end padding so the last destination scrolls clear, and the reveal hook honours `scroll-padding` so the selected destination never sits under a fade. The **More** button stays at the right edge. Checked read-only in the browser at 375 × 812 by injecting the same CSS; no settings or devices were touched.
-- [ ] Tests: redirects land on the right section; More menu no longer lists the moved items; confirmation required before running an automation.
-- [ ] Update README.md (navigation), PRODUCT.md (capabilities: admin detail in Settings), DESIGN.md if navigation counts are documented.
+- [x] Tests: redirects land on the right section; More menu no longer lists the moved items; confirmation required before running an automation.
+- [x] Update README.md (navigation), PRODUCT.md (capabilities: admin detail in Settings), DESIGN.md if navigation counts are documented.
 
 ## Acceptance
 

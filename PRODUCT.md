@@ -25,6 +25,7 @@ Home Assistant owns people, calendars, to-do items, device state and permissions
 - Sonos puts now-playing and room selection first, with a shared music library, group controls and speaker settings in separate dialogs. One mini player keeps non-TV playback available above navigation outside settings and the dedicated Sonos page, and expands into the full player; it explicitly distinguishes groups playing separately and counts down for ten seconds before hiding when no music group is playing. Sonos supports automatic native-integration discovery, grouping, balanced group volume, favorites, playlists and queues. Changing rooms preserves library navigation; queues remain specific to their playback group. Home Assistant remains the source of truth.
 - Never insert private household information or credentials into source, examples or screenshots. Preview data must be explicitly fictional.
 - Physical commands are never replayed automatically. Failed writes retain drafts and destructive actions retain confirmation.
+- Home Assistant administration (automations, integrations and activity) lives in Settings → System, not in the family dock or Smart home navigation. Running or disabling an automation asks for confirmation.
 
 ## Brand Commitments
 
