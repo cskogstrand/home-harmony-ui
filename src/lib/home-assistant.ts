@@ -48,6 +48,7 @@ export const forecastSchema = z.array(z.object({
   precipitation_probability: z.number().finite().nullish(), precipitation: z.number().finite().nullish(),
 }));
 export type Forecast = z.infer<typeof forecastSchema>;
+const energyPrefsSchema = z.object({ energy_sources: z.array(z.unknown()).default([]), device_consumption: z.array(z.unknown()).default([]) });
 const historySchema = z.record(z.string(), z.array(z.object({ s: z.string(), lu: z.number().finite(), lc: z.number().finite().optional() })));
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
@@ -393,6 +394,24 @@ export class HomeAssistantClient {
     const result = await bounded(conn.sendMessagePromise({ type: "history/history_during_period", entity_ids: [entityId], start_time: start.toISOString(), end_time: end.toISOString(), minimal_response: true, no_attributes: true }));
     if (signal.aborted || generation !== this.generation || epoch !== this.epoch) throw new Error("History request cancelled");
     return historySchema.parse(result)[entityId] ?? [];
+  };
+
+  /** Read-only: whether Home Assistant's Energy dashboard has any sources. Rejects when the answer is unknown. */
+  energySetup = async (signal: AbortSignal): Promise<"configured" | "missing"> => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch;
+    if (!conn?.connected || this.snapshot.status !== "connected") throw new Error("Energy preferences unavailable");
+    let result: unknown;
+    try {
+      result = await bounded(conn.sendMessagePromise({ type: "energy/get_prefs" }));
+    } catch (error) {
+      // Home Assistant answers not_found until someone saves the Energy configuration.
+      if (current() && (error as { code?: unknown } | null)?.code === "not_found") return "missing";
+      throw new Error("Energy preferences unavailable");
+    }
+    if (!current()) throw new Error("Energy preferences request cancelled");
+    const prefs = energyPrefsSchema.parse(result);
+    return prefs.energy_sources.length || prefs.device_consumption.length ? "configured" : "missing";
   };
 
   watchCalendarEvents = (entityId: string, start: string, end: string, signal: AbortSignal, receive: (events: CalendarEvent[] | null) => void) => {

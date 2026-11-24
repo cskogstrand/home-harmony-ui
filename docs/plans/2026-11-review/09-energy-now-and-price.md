@@ -13,21 +13,29 @@
 
 ## Phase A — "Using power now" (no HA changes needed)
 
-- [ ] Pure helper `powerNow(entities)`: sensors with `device_class: power`, normalised to W (W/kW), available only, sorted descending; excludes entities the owner hid.
-- [ ] Top section "Using power now": top 5 consumers with name, area and live value; total of the listed sensors labelled as "of listed circuits" (not as house total) unless the owner pins a total meter.
-- [ ] Hide idle meters (< 5 W, configurable later only if asked) behind a "Show idle (n)" disclosure; energy (kWh) counters move to a collapsed "Meters" section.
-- [ ] Keep pinned meters (max three) above everything; keep vehicle cards.
-- [ ] If `energy/get_prefs` returns preferences, link "Open Home Assistant Energy"; if `not_found`, change the link text to "Set up Energy in Home Assistant" pointing to `/config/energy`.
-- [ ] Tests: unit normalisation, sorting, idle threshold, total labelling, prefs not_found copy.
+- [x] Pure helper `powerNow(entities)`: sensors with `device_class: power`, normalised to W (W/kW), available only, sorted descending; excludes entities the owner hid.
+- [x] Top section "Using power now": top 5 consumers with name, area and live value; total of the listed sensors labelled as "of listed circuits" (not as house total) unless the owner pins a total meter.
+- [x] Hide idle meters (< 5 W, configurable later only if asked) behind a "Show idle (n)" disclosure; energy (kWh) counters move to a collapsed "Meters" section.
+- [x] Keep pinned meters (max three) above everything; keep vehicle cards.
+- [x] If `energy/get_prefs` returns preferences, link "Open Home Assistant Energy"; if `not_found`, change the link text to "Set up Energy in Home Assistant" pointing to `/config/energy`.
+- [x] Tests: unit normalisation, sorting, idle threshold, total labelling, prefs not_found copy.
+
+> Handoff: Phase A is implemented and covered by `src/test/energy-now.test.ts`, `src/test/energy-page.test.tsx` and the `energySetup` case in `src/test/ha-session.test.tsx`. The browser check (1440 × 2560 portrait, 390 × 844 phone, light/dark, artwork on) is still open: it was built on a branch the running dev server does not serve. Check that "Using power now" sits on the first portrait screen below the pinned meters. The sum of the five listed consumers is always labelled "Total of listed circuits"; the app has no way to mark a pinned meter as the house total, so no house total is shown.
 
 ## Phase B — price (blocked until the owner adds a price source in HA)
 
 - [ ] Owner action: add the Nord Pool integration (or another price source) in Home Assistant and configure Energy. Record the date here. *Do not do this for them.*
+  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] Detect a price source generically: sensor with `device_class: monetary` and unit ending in `/kWh`, or the Nord Pool service `nordpool.get_prices_for_date` (call with `return_response`; verify current service name and fields in HA docs).
+  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] Price strip: today (and tomorrow when published) hourly/quarter-hourly bars with "now" marker; current price in large type; cheapest window highlighted. Follow the colour rules in [DESIGN.md](../../../DESIGN.md); accessible table fallback.
+  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] "Best time" hint: cheapest contiguous 3-hour window in the next 24 h, shown as text ("Cheapest from 02:00 to 05:00"). Display only — never schedule or start devices automatically.
+  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] Tests with a fictional price series (including DST change day and missing tomorrow).
+  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 - [ ] Docs: DOCS.md (how to add a price source), README feature line.
+  > Blocked: waits for the owner to add a price source and configure Energy in Home Assistant (open question in the master plan, unanswered).
 
 ## Acceptance
 

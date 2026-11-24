@@ -2837,6 +2837,25 @@ it("requests only one sensor's history, validates data and rejects responses aft
   await expect(pending).rejects.toThrow("History request cancelled");
 });
 
+it("reads Energy preferences without changing them and reports a missing setup", async () => {
+  const client = await connectedClient();
+  const controller = new AbortController();
+  conn.sendMessagePromise.mockResolvedValueOnce({ energy_sources: [{ type: "grid" }], device_consumption: [] });
+  await expect(client.energySetup(controller.signal)).resolves.toBe("configured");
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "energy/get_prefs" });
+  conn.sendMessagePromise.mockResolvedValueOnce({ energy_sources: [], device_consumption: [] });
+  await expect(client.energySetup(controller.signal)).resolves.toBe("missing");
+  conn.sendMessagePromise.mockRejectedValueOnce({ code: "not_found", message: "No prefs" });
+  await expect(client.energySetup(controller.signal)).resolves.toBe("missing");
+  conn.sendMessagePromise.mockRejectedValueOnce({ code: "unauthorized", message: "Unauthorized" });
+  await expect(client.energySetup(controller.signal)).rejects.toThrow("unavailable");
+  const result = deferred<unknown>(); conn.sendMessagePromise.mockReturnValueOnce(result.promise);
+  const pending = client.energySetup(controller.signal);
+  client.disconnect(); result.resolve({ energy_sources: [] });
+  await expect(pending).rejects.toThrow("cancelled");
+  await expect(client.energySetup(controller.signal)).rejects.toThrow("unavailable");
+});
+
 const connectedSonosClient = async () => {
   const entities = sonosEntities();
   vi.mocked(ha.getServices).mockResolvedValue(sonosServices);
