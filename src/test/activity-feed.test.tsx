@@ -15,6 +15,7 @@ import History from "@/pages/History";
 import type { Entity } from "@/types/api";
 
 const family = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
+vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => ({ state: { loaded: true, error: "" } }) }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/FamilyContext")>(), useFamily: () => family.value }));
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
@@ -383,5 +384,43 @@ describe("Activity log", () => {
     rerender(view(false));
     expect(log().getByText("Cached activity is stale while Home Assistant is offline.")).toBeVisible();
     expect(rows()).toEqual(["Front door locked23:00"]);
+  });
+});
+
+describe("Recent at home settings", () => {
+  const setActivity = vi.fn(() => true);
+  const view = () => <AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { entities: activityEntities, areas: [], timeZone: "Europe/Oslo" } } as never}>
+    <MemoryRouter initialEntries={["/settings/activity?panel=recent"]}><History /></MemoryRouter></AppContext.Provider>;
+  beforeEach(() => {
+    setActivity.mockClear();
+    family.value = { activity: { panel: true, people: false }, setActivity, now: new Date(base), today: "2026-10-06", cameras: { items: [] } };
+  });
+
+  it("turns the panel off and people on, with people off by default", () => {
+    render(view());
+    const panel = screen.getByRole("switch", { name: "Show on Smart home" }), people = screen.getByRole("switch", { name: "Include people coming and going" });
+    expect(panel).toBeChecked();
+    expect(people).not.toBeChecked();
+    fireEvent.click(panel);
+    expect(setActivity).toHaveBeenLastCalledWith({ panel: false });
+    fireEvent.click(people);
+    expect(setActivity).toHaveBeenLastCalledWith({ people: true });
+  });
+
+  it("adds a source to the suggested ones and restores the suggestions", () => {
+    const { unmount } = render(view());
+    expect(screen.queryByRole("button", { name: "Use suggested sources" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Choose activity sources" }));
+    const picker = within(screen.getByRole("dialog", { name: "Choose activity sources" }));
+    fireEvent.change(picker.getByRole("searchbox", { name: "Search devices and entities" }), { target: { value: "light.example_lamp" } });
+    fireEvent.click(picker.getByRole("checkbox", { name: "Reading lamp" }));
+    fireEvent.click(picker.getByRole("button", { name: "Done" }));
+    const [[{ sources }]] = setActivity.mock.calls as unknown as [[{ sources: string[] }]];
+    expect(sources).toEqual(expect.arrayContaining([...defaultActivitySources(activityEntities), id("light.example_lamp")]));
+    unmount();
+    family.value = { ...family.value, activity: { panel: true, people: false, sources: [id("light.example_lamp")] } };
+    render(view());
+    fireEvent.click(screen.getByRole("button", { name: "Use suggested sources" }));
+    expect(setActivity).toHaveBeenLastCalledWith({ sources: undefined });
   });
 });

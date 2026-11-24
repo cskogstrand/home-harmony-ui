@@ -1,14 +1,19 @@
 import { useId, useState } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, ListOrdered } from "lucide-react";
+import { ExternalLink, History as HistoryIcon, ListChecks, ListOrdered } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily } from "@/contexts/FamilyContext";
 import { useActivityPersonSensors, useLogbook } from "@/hooks/use-activity-feed";
 import { ActivityRow } from "@/components/ActivityFeed";
+import { EntityPicker } from "@/components/EntityPicker";
 import { PanelTitle } from "@/components/PanelTitle";
+import { SettingsPanels } from "@/components/SettingsPanels";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { calendarBoundary } from "@/lib/ha-model";
-import { curateActivity, type ActivityGroup } from "@/lib/activity";
+import { activitySourceCandidates, curateActivity, defaultActivitySources, type ActivityGroup } from "@/lib/activity";
 import { homeStatusGroups } from "@/lib/home-status";
 import "@/components/activity-feed.css";
 
@@ -57,7 +62,44 @@ function ActivityLog() {
   </section>;
 }
 
-/** Settings → System → Activity. */
+/** Recent at home on Smart home: visibility, people and curated sources, shared across screens. */
+function RecentActivitySettings() {
+  const { t } = useI18n();
+  const { currentHome } = useApp();
+  const { activity, setActivity } = useFamily();
+  const shared = useSharedConfiguration();
+  const personSensors = useActivityPersonSensors();
+  const id = useId();
+  const disabled = !shared?.state.loaded || !!shared.state.error;
+  const sources = activity.sources ?? defaultActivitySources(currentHome.entities, Object.keys(personSensors));
+  return <div className="settings-stack">
+    <section className="settings-card settings-preferences" aria-labelledby={`${id}-recent`}>
+      <PanelTitle icon={HistoryIcon} id={`${id}-recent`}>{t("Recent at home")}</PanelTitle>
+      <label className="settings-control-row">
+        <span>{t("Show on Smart home")}<span className="page-note block" id={`${id}-panel`}>{t("The latest changes from your activity sources, below your cards.")}</span></span>
+        <Switch aria-label={t("Show on Smart home")} aria-describedby={`${id}-panel`} checked={activity.panel} disabled={disabled} onCheckedChange={panel => setActivity({ panel })} />
+      </label>
+      <label className="settings-control-row">
+        <span>{t("Include people coming and going")}<span className="page-note block" id={`${id}-people`}>{t("Off by default, so a shared screen does not show where people are. Also applies to the activity log.")}</span></span>
+        <Switch aria-label={t("Include people coming and going")} aria-describedby={`${id}-people`} checked={activity.people} disabled={disabled} onCheckedChange={people => setActivity({ people })} />
+      </label>
+    </section>
+    <section className="settings-card" aria-labelledby={`${id}-sources`}>
+      <PanelTitle icon={ListChecks} id={`${id}-sources`}>{t("Activity sources")}</PanelTitle>
+      <p className="page-note" id={`${id}-sources-note`}>{t(activity.sources ? "Your chosen sources." : "Suggested: doors, windows, locks, the alarm, appliances, robots, doorbells and camera person detection.")}</p>
+      <EntityPicker multiple label={t("Choose activity sources")} hideLabel describedBy={`${id}-sources-note`} entities={activitySourceCandidates(currentHome.entities)}
+        value={sources} disabled={disabled} onChange={ids => setActivity({ sources: ids })} missingLabel={() => t("Source unavailable")} />
+      {activity.sources && <Button variant="outline" className="mt-4" disabled={disabled} onClick={() => setActivity({ sources: undefined })}>{t("Use suggested sources")}</Button>}
+    </section>
+  </div>;
+}
+
+/** Settings → System → Activity: the full log and the Recent at home settings. */
 export default function History() {
-  return <div className="settings-stack"><ActivityLog /></div>;
+  const { t } = useI18n();
+  const { activity } = useFamily();
+  return <SettingsPanels panels={[
+    { id: "log", label: t("Activity log"), icon: ListOrdered, content: <ActivityLog /> },
+    { id: "recent", label: t("Recent at home"), detail: t(activity.panel ? "Shown on Smart home" : "Hidden"), icon: HistoryIcon, content: <RecentActivitySettings /> },
+  ]} />;
 }

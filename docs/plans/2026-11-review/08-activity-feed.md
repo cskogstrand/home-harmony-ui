@@ -31,9 +31,9 @@ Include by default: doors/garage doors/windows (open/close), locks, alarm state 
 - [x] Sentences come from i18n templates per class ("{name} opened", "{name} finished", "{name} docked"), not HA's raw message, so Bokmål reads naturally; fall back to HA's `message` for unknown classes in the full log only.
 - [x] Curated panel "Recent at home" (max ~6 items, newest first, collapses same-entity flapping within 2 minutes). Empty state distinguishes "nothing happened" from "activity unavailable".
 - [x] Full log in Settings → System → Activity: filter by area/type, day picker (today/yesterday), "Open in Home Assistant" link kept as secondary.
-- [ ] Settings: choose curated sources, person events opt-in (default off), panel on/off.
+- [x] Settings: choose curated sources, person events opt-in (default off), panel on/off.
 - [x] Offline: show cached items marked stale, like other stale readings.
-- [ ] Tests: curation, flapping collapse, person opt-in, unsubscribe on unmount, stale state.
+- [x] Tests: curation, flapping collapse, person opt-in, unsubscribe on unmount, stale state.
 - [ ] Docs: README, PRODUCT.md (capability), DOCS.md (what the feed shows and privacy note); i18n en/nb.
 
 ## Acceptance
