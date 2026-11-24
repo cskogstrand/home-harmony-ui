@@ -14,10 +14,10 @@
   color: hsl(var(--foreground));
   line-height: 1.1;
 }
-.waste-collection-date > span { font-size: .875rem; font-weight: 500; margin-bottom: .25rem; }
-.waste-collection-date > strong { font-size: 2rem; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.waste-collection-date > span { font-size: var(--type-label); font-weight: 500; margin-bottom: .25rem; }
+.waste-collection-date > strong { font-size: var(--type-headline-small); font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .waste-collection-copy { min-width: 0; overflow-wrap: anywhere; }
-.waste-collection-copy h3 { display: flex; align-items: flex-start; gap: .5rem; font-size: 1.1rem; font-weight: 600; line-height: 1.35; }
+.waste-collection-copy h3 { display: flex; align-items: flex-start; gap: .5rem; font-size: var(--type-subtitle); font-weight: 600; line-height: 1.35; }
 .waste-collection-icons { display: flex; flex-shrink: 0; gap: .25rem; margin-top: .1rem; }
 .waste-collection-countdown { display: flex; align-items: center; gap: .35rem; margin-top: .3rem; font-weight: 500; color: hsl(var(--muted-foreground)); }
 .waste-collection-countdown svg { flex-shrink: 0; }

@@ -2,15 +2,15 @@
 .health-list { display: grid; margin-bottom: .5rem; }
 .health-list > li { display: grid; justify-items: start; gap: .375rem; padding-block: .875rem; overflow-wrap: anywhere; }
 .health-list > li + li { border-top: 1px solid hsl(var(--border) / .6); }
-.health-list strong { font-size: 1rem; font-weight: 600; line-height: 1.4; }
+.health-list strong { font-size: var(--type-body-large); font-weight: 600; line-height: 1.4; }
 .health-list .text-link { min-height: 44px; }
 .health-item-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; width: 100%; }
-.health-item-head time { color: hsl(var(--muted-foreground)); font-size: .875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.health-message { max-width: 65ch; color: hsl(var(--muted-foreground)); font-size: .9375rem; line-height: 1.5; white-space: pre-line; }
+.health-item-head time { color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.health-message { max-width: 65ch; color: hsl(var(--muted-foreground)); font-size: var(--type-body); line-height: 1.5; white-space: pre-line; }
 .health-message a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: .2em; }
 .health-action { margin-top: .25rem; }
 /* Severity is spelled out; the tint only reinforces it. */
-.health-severity { display: inline-flex; align-items: center; min-height: 1.5rem; padding: 0 .625rem; border: 1px solid currentColor; border-radius: 999px; font-size: .8125rem; font-weight: 600; color: hsl(var(--muted-foreground)); }
+.health-severity { display: inline-flex; align-items: center; min-height: 1.5rem; padding: 0 .625rem; border: 1px solid currentColor; border-radius: 999px; font-size: var(--type-meta); font-weight: 600; color: hsl(var(--muted-foreground)); }
 .health-severity[data-severity="error"], .health-severity[data-severity="critical"] { color: hsl(var(--destructive)); }
 .health-severity[data-severity="warning"] { color: hsl(var(--warning)); }
 .health-problem { margin-bottom: .75rem; padding: .75rem 1rem; border: 1px solid hsl(var(--warning)); border-radius: var(--radius-field); color: hsl(var(--warning)); font-weight: 500; }

@@ -105,9 +105,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --text-2xs: 0.625rem;
-  --text-2xs--line-height: 0.875rem;
-
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;

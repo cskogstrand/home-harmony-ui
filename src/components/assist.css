@@ -5,7 +5,7 @@
 .assist-dialog > button:last-child { display: grid; place-items: center; width: 44px; height: 44px; right: .5rem; top: .5rem; }
 .assist-head { padding: 1rem 3.5rem .75rem 1.25rem; text-align: start; }
 .assist-head .panel-title { margin: 0; }
-.assist-head p { color: hsl(var(--muted-foreground)); font-size: .875rem; }
+.assist-head p { color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
 .assist-scroll { flex: 1 1 auto; min-height: 7rem; overflow-y: auto; overscroll-behavior: contain; background: hsl(var(--card)); border-block: 1px solid hsl(var(--border)); }
 .assist-empty { padding: 1.25rem; color: hsl(var(--muted-foreground)); }
 .assist-transcript { margin: 0; padding: 0 1.25rem; list-style: none; }
@@ -20,7 +20,7 @@
 .assist-answer[data-kind="pending"] { color: hsl(var(--muted-foreground)); }
 .assist-retry { min-height: 44px; margin-inline-start: auto; }
 .assist-form { display: grid; gap: .5rem; padding: .75rem 1.25rem 1rem; }
-.assist-offline { font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.assist-offline { font-size: var(--type-label); color: hsl(var(--muted-foreground)); }
 .assist-compose { display: flex; gap: .5rem; }
 .assist-input {
   flex: 1; min-width: 0; min-height: 48px; padding: 9px 14px;
