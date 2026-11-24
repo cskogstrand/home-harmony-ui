@@ -69,18 +69,46 @@ typography:
     fontWeight: 300
     lineHeight: 1
     letterSpacing: "-.04em"
+  display-small:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "4.5rem"
+    fontWeight: 300
+    lineHeight: 1
+  readout:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "3rem"
+    lineHeight: 1.15
   headline:
     fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
     fontSize: "2.25rem"
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "-.025em"
+  headline-small:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "2rem"
+  heading:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.75rem"
+  heading-small:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.5rem"
+  title-large:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.375rem"
   title:
     fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.35
     letterSpacing: "-.02em"
+  subtitle:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 600
+  body-large:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: "1rem"
   body:
     fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
     fontSize: ".9375rem"
@@ -91,6 +119,16 @@ typography:
     fontSize: ".875rem"
     fontWeight: 500
     lineHeight: "1.25rem"
+  meta:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: ".8125rem"
+  caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: ".75rem"
+  nav-caption:
+    fontFamily: "-apple-system, BlinkMacSystemFont, \"Public Sans\", sans-serif"
+    fontSize: ".6875rem"
+    fontWeight: 500
 rounded:
   sm: "12px"
   md: "14px"
@@ -249,7 +287,32 @@ Shared range thumbs and filled tracks fall back to the palette's primary color o
 
 **Display and body font:** the shared `--font-ui` stack selects `-apple-system`, then `BlinkMacSystemFont`, self-hosted Public Sans and generic sans-serif. This gives Apple platforms their system typography while preserving the bundled fallback elsewhere. Public Sans normal weights (400–700), Latin and Latin Extended WOFF2 files, `font-display: swap` and the OFL license remain in `public/fonts`; no external font request is required.
 
-The frontmatter records the base roles: the light-weight display clock; semibold page headlines; panel titles; regular supporting copy; and medium compact labels. The Today heading uses a slightly tighter line height (1.2). Times and primary numerical readings use tabular numerals. Page descriptions stop at a readable measure (65ch).
+The frontmatter records the whole type ramp. Its anchor roles are the light-weight display clock, semibold page headlines, panel titles, regular supporting copy and medium compact labels; the other steps fill the gaps between them. The Today heading uses a slightly tighter line height (1.2). Times and primary numerical readings use tabular numerals. Page descriptions stop at a readable measure (65ch).
+
+### Type ramp
+
+Every CSS font size uses one of these steps through its `--type-*` custom property in `src/index.css`; the frontmatter records the same values. Sizes set in `em` (units beside a large numeral, text inside a scaled widget) and fluid `clamp()` headings derive from a step and stay relative. Tailwind's own `text-*` utilities in shared UI primitives keep their built-in scale.
+
+| Role | Token | Size | Use |
+| --- | --- | --- | --- |
+| Display | `--type-display` | 6rem | The ambient clock. |
+| Display small | `--type-display-small` | 4.5rem | The compact and portrait clock. |
+| Readout | `--type-readout` | 3rem | The phone clock and the thermostat dial. |
+| Headline | `--type-headline` | 2.25rem | Page and Today headings, weather, Sonos and alarm titles. |
+| Headline small | `--type-headline-small` | 2rem | Short-window Sonos titles, compact device readouts and progress amounts. |
+| Heading | `--type-heading` | 1.75rem | Next family plan title, phone page titles, sensor readings and compact light levels. |
+| Heading small | `--type-heading-small` | 1.5rem | Phone Today heading, section headings and super compact readouts. |
+| Title large | `--type-title-large` | 1.375rem | Next plan time, dialog titles and portrait panel headings. |
+| Title | `--type-title` | 1.25rem | Panel titles and empty-state headings. |
+| Subtitle | `--type-subtitle` | 1.125rem | Settings card headings, card group titles, portrait list rows and dock links. |
+| Body large | `--type-body-large` | 1rem | Device card titles, scene names, list rows and phone form fields. |
+| Body | `--type-body` | .9375rem | Supporting copy and navigation labels. |
+| Label | `--type-label` | .875rem | Labels, controls, device metadata and event times. |
+| Meta | `--type-meta` | .8125rem | Dense secondary metadata, timetable cells and chips. |
+| Caption | `--type-caption` | .75rem | Phone metadata, badges and illustration captions; the smallest content size. |
+| Navigation caption | `--type-nav-caption` | .6875rem | Phone dock captions and the phone week number only, beside an icon or inside a larger target. |
+
+**The Ramp Floor Rule.** No visible text goes below 11px: content stops at Caption (12px), and Navigation caption (11px) is reserved for labels that sit inside a larger named target. Notification widget zoom multiplies Body large by 1.1 and 1.2 rather than adding steps.
 
 **The One Reading Format Rule.** Home Assistant readings go through the shared reading helper (`reading`/`withUnit` in `src/lib/i18n.ts`), so one view never mixes separators or precision. Numbers use the dashboard language's separators and minus sign (`−2,4 °C` in Bokmål, `-2.4 °C` in English). Precision follows the entity's Home Assistant display precision (the user's setting, then the integration's suggestion); without one, temperatures show at most one decimal, W and Wh none, and kW/kWh two decimals below 10 and one from 10. Other values keep their reported digits. A no-break space separates every unit from its number in both languages; `%` and a bare angle `°` attach to it. Large dial and readout numerals that set the unit in a smaller element keep that composition.
 
