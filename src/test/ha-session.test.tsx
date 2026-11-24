@@ -1058,7 +1058,7 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   if (date) {
     expect(next.getByRole("heading", { level: 3, name: "Next appointment" })).toBeInTheDocument();
     expect(next.getByText("15:00 – 16:00")).toBeInTheDocument();
-  } else expect(next.getByText("No more plans today.")).toBeInTheDocument();
+  } else expect(next.getByText("No more timed plans today.")).toBeInTheDocument();
 });
 const setupWritableCalendars = (features = 1) => {
   vi.useFakeTimers({ toFake: ["Date"] });

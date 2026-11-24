@@ -260,7 +260,7 @@ it.each(["2026-10-28", "2026-10-26"])("ignores all-day plans starting %s in the 
   render(<App />); await saved();
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
   expect(next.getByRole("heading", { level: 2, name: "Next family plan" })).toBeVisible();
-  expect(await next.findByText("No more plans today.")).toBeVisible();
+  expect(await next.findByText("No more timed plans today.")).toBeVisible();
   expect(next.queryByText("Example all-day plan")).not.toBeInTheDocument();
   expect(within(screen.getByRole("region", { name: "Everyone’s day" })).getByText("Example all-day plan")).toBeVisible();
 });
@@ -306,7 +306,7 @@ it("looks ahead beyond a Monday-based week for the next family plan", async () =
   expect(app.watchCalendarEvents).toHaveBeenCalledWith("calendar.example", "2026-10-25T23:00:00.000Z", "2026-11-07T23:00:00.000Z", expect.any(AbortSignal), expect.any(Function));
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
   expect(await next.findByText("In 2 days")).toBeVisible();
-  expect(next.queryByText("No more plans today.")).not.toBeInTheDocument();
+  expect(next.queryByText("No more timed plans today.")).not.toBeInTheDocument();
 });
 
 it("switches calendar periods, loads the whole month, filters people and drills into a multi-day event", async () => {
@@ -905,7 +905,7 @@ it("saves a custom next-plan window, fetches the full range and returns to Auto"
   fireEvent.change(days, { target: { value: "91" } }); fireEvent.blur(days);
   expect(settings.settings.dashboard.nextPlanDays).toBe(14);
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-  expect(await within(screen.getByRole("region", { name: "Next family plan" })).findByText("No plans in the next 14 days.")).toBeVisible();
+  expect(await within(screen.getByRole("region", { name: "Next family plan" })).findByText("No more timed plans today or in the next 14 days.")).toBeVisible();
   first.unmount(); render(<App />); await saved();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   expect(screen.getByRole("spinbutton", { name: "Days ahead" })).toHaveValue(14);
@@ -913,7 +913,7 @@ it("saves a custom next-plan window, fetches the full range and returns to Auto"
   fireEvent.click(screen.getByRole("switch", { name: "Show tomorrow’s plans" }));
   await waitFor(() => expect(settings.settings.dashboard.nextPlanDays).toBe("auto"));
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-  expect(await within(screen.getByRole("region", { name: "Next family plan" })).findByText("No plans today or tomorrow.")).toBeVisible();
+  expect(await within(screen.getByRole("region", { name: "Next family plan" })).findByText("No more timed plans today or tomorrow.")).toBeVisible();
 });
 
 it("saves list display choices, keeps them on reassignment and restores Add list when unlinked", async () => {

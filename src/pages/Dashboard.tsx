@@ -59,7 +59,7 @@ export default function Dashboard() {
     && !events.some(e => !e.allDay && e.date >= today && e.date < planEnd
       && (e.date > today || e.continues || (e.endTime ?? e.time) >= time));
   const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
-  const quietSummary = t(planDays === 0 ? "No more plans today." : planDays === 1 ? "No plans today or tomorrow." : "No plans in the next {days} days.", { days: planDays });
+  const quietSummary = t(planDays === 0 ? "No more timed plans today." : planDays === 1 ? "No more timed plans today or tomorrow." : "No more timed plans today or in the next {days} days.", { days: planDays });
   const sections: Record<DashboardSection, ReactNode> = {
     homeStatus: dashboard.homeStatus && <HomeStatus card />,
     morningSummary: dashboard.morningSummary && <MorningSummary />,
