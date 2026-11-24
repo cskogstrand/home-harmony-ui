@@ -30,7 +30,7 @@
 - [x] Vehicle buttons match neighbour height (60 px) on the portrait wall media query.
   > Verified at 1440 × 2560 by injecting the rule into the running page: strip 56 → 60 px (top 20, same as the 60 px icon buttons); each vehicle button stretches to 52 px inside the 3 px padding and 1 px border.
 - [ ] Phone (< 768 px): collapse the vehicle strip into one compact chip (worst battery/charging state first; tap opens the existing vehicle detail) so the next family plan is visible on the first screen at 390 × 844.
-- [ ] Waste on Today: merge pickups that share a date into one row with several fraction icons (`WasteTypeIcons`) and one date.
+- [x] Waste on Today: merge pickups that share a date into one row with several fraction icons (`WasteTypeIcons`) and one date.
 - [ ] Measure first-screen content at 390 × 844 and 1440 × 2560 before/after (y-position of "Next family plan" title) and note both in `> Before/After:` lines; compare with docs/family-board-review.md numbers so nothing regresses.
 - [ ] Tests: bell badge absent for waiting-only state and present for active notifications; accessible name; waste merge grouping; vehicle chip on narrow viewport.
 - [ ] Update docs/notifications.md (bell behaviour) and DESIGN.md (header).

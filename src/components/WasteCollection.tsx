@@ -25,9 +25,12 @@ const wasteIconRules: [RegExp, LucideIcon][] = [
   [/\b(tekstil(?:er)?|klær|toey|tøy|textiles?|clothes|clothing)\b/iu, Shirt],
 ];
 
-export function WasteTypeIcons({ title, size = 20 }: { title: string; size?: number }) {
-  const icons = wasteIconRules.filter(([pattern]) => pattern.test(title)).map(([, icon]) => icon);
-  if (!icons.length) icons.push(Trash2);
+export function WasteTypeIcons({ title, size = 20 }: { title: string | string[]; size?: number }) {
+  // Several titles share one deduplicated icon row; each unmatched title contributes the general bin.
+  const icons = [...new Set([title].flat().flatMap(item => {
+    const matched = wasteIconRules.filter(([pattern]) => pattern.test(item)).map(([, icon]) => icon);
+    return matched.length ? matched : [Trash2];
+  }))];
   return <span className="waste-collection-icons" aria-hidden="true">{icons.map((Icon, index) => <Icon key={index} size={size} />)}</span>;
 }
 
@@ -54,11 +57,18 @@ export function WasteCollection() {
     return () => controller.abort();
   }, [ready, entityId, from, to, key, watchCalendarEvents]);
   const events = ready && result?.key === key ? result.events : undefined;
-  const collections = (events ?? []).map(event => {
-    const start = wasteCollectionDate(event, currentHome.timeZone);
-    return { event, start, daysAway: differenceInCalendarDays(parseISO(start.slice(0, 10)), parseISO(today)) };
+  const pickups = (events ?? []).map(event => {
+    const date = wasteCollectionDate(event, currentHome.timeZone);
+    return { title: event.summary || t("Waste collection"), date, daysAway: differenceInCalendarDays(parseISO(date), parseISO(today)) };
   }).filter(({ daysAway }) => daysAway >= 0 && daysAway <= wasteCollectionDays)
-    .sort((a, b) => a.start.localeCompare(b.start)).slice(0, 3);
+    .sort((a, b) => a.date.localeCompare(b.date));
+  // Pickups on the same date share one row with every fraction's icon.
+  const collections: { date: string; daysAway: number; titles: string[] }[] = [];
+  for (const { title, date, daysAway } of pickups) {
+    const row = collections[collections.length - 1];
+    if (row?.date === date) { if (!row.titles.includes(title)) row.titles.push(title); }
+    else collections.push({ date, daysAway, titles: [title] });
+  }
   const status = !wasteCalendarEntity ? t("Choose a waste collection calendar in Customize Today.")
     : !homeOnline ? t("Calendars unavailable while offline.")
     : !ready ? t("Waste collection calendar unavailable. Check the calendar or choose another in Customize Today.")
@@ -74,17 +84,16 @@ export function WasteCollection() {
     {status ? <div className="space-y-2"><p role={events === null ? "alert" : "status"} className="text-muted-foreground">{status}</p>
       {events === null && <Button variant="outline" onClick={() => setRefresh(value => value + 1)}>{t("Retry")}</Button>}
     </div> : <ul className="waste-collection-list">
-      {collections.map(({ event, start, daysAway }, index) => {
-        const date = start.slice(0, 10);
+      {collections.slice(0, 3).map(({ date, daysAway, titles }) => {
         const pickedUp = isWasteCollected(date, today, time);
         const label = pickedUp ? t("Picked up today") : daysAway === 0 ? t("Today") : daysAway === 1 ? t("Tomorrow") : t("In {count} days", { count: daysAway });
-        return <li key={`${start}:${event.uid ?? index}`} className="waste-collection-item" data-state={pickedUp ? "collected" : daysAway === 0 ? "today" : daysAway === 1 ? "tomorrow" : "upcoming"}>
+        return <li key={date} className="waste-collection-item" data-state={pickedUp ? "collected" : daysAway === 0 ? "today" : daysAway === 1 ? "tomorrow" : "upcoming"}>
           <time dateTime={date} className="waste-collection-date" aria-label={dateLabel(date, { day: "numeric", month: "long", year: "numeric" })}>
             <span aria-hidden="true">{dateLabel(date, { month: "short" })}</span>
             <strong aria-hidden="true">{dateLabel(date, { day: "numeric" })}</strong>
           </time>
           <div className="waste-collection-copy">
-            <h3><WasteTypeIcons title={event.summary} /><span>{event.summary || t("Waste collection")}</span></h3>
+            <h3><WasteTypeIcons title={titles} /><span>{titles.join(", ")}</span></h3>
             <p className="waste-collection-countdown">{pickedUp && <Check size={17} aria-hidden="true" />}{label}</p>
           </div>
         </li>;

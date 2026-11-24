@@ -202,3 +202,23 @@ it("aborts and ignores old results on calendar changes, disconnection, date roll
   view.unmount();
   expect(fourth[3].aborted).toBe(true);
 });
+
+it("merges pickups that share a date into one row with every fraction's icon", () => {
+  data.app.watchCalendarEvents.mockImplementation((_id, _from, _to, _signal, receive) => receive([
+    { summary: "Paper", start: "2026-10-27", end: "2026-10-28" },
+    { summary: "Food waste", start: "2026-10-24", end: "2026-10-25" },
+    { summary: "Plastic packaging", start: "2026-10-27", end: "2026-10-28" },
+    { summary: "Residual waste", start: { dateTime: "2026-10-27T05:00:00Z" }, end: { dateTime: "2026-10-27T06:00:00Z" } },
+    { summary: "Paper", start: "2026-10-27", end: "2026-10-28" },
+    { summary: "Glass", start: "2026-10-29", end: "2026-10-30" },
+    { summary: "Garden waste", start: "2026-10-30", end: "2026-10-31" },
+  ]));
+  render(<WasteCollection />);
+  const rows = screen.getAllByRole("listitem");
+  expect(rows).toHaveLength(3);
+  expect(rows.map(row => row.querySelector("time")?.getAttribute("datetime"))).toEqual(["2026-10-24", "2026-10-27", "2026-10-29"]);
+  const merged = within(rows[1]).getByRole("heading", { level: 3, name: "Paper, Plastic packaging, Residual waste" });
+  expect([...merged.querySelectorAll("svg")].map(icon => [...icon.classList].find(name => name.startsWith("lucide-")))).toEqual(["lucide-newspaper", "lucide-milk", "lucide-trash2"]);
+  expect(rows[1]).toHaveTextContent("In 3 days");
+  expect(screen.queryByText("Garden waste")).not.toBeInTheDocument();
+});
