@@ -1,6 +1,6 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { FamilyWeekGrid } from "@/components/FamilyCalendar";
+import { CalendarViewControls, FamilyWeekGrid } from "@/components/FamilyCalendar";
 import { createI18n, type Language } from "@/lib/i18n";
 import type { FamilyEvent, FamilyMember } from "@/contexts/FamilyContext";
 
@@ -11,7 +11,7 @@ const members: FamilyMember[] = [
 const mocks = vi.hoisted(() => ({ language: "en" as Language, today: "2026-10-28", time: "08:00" }));
 vi.mock("@/hooks/use-i18n", () => ({ useI18n: () => createI18n(mocks.language) }));
 vi.mock("@/contexts/FamilyContext", async original => ({ ...await original<typeof import("@/contexts/FamilyContext")>(), useFamily: () => ({
-  today: mocks.today, time: mocks.time, members, allMembers: members,
+  today: mocks.today, time: mocks.time, members, allMembers: members, calendar: { view: "week", startDay: "monday" }, setCalendarSettings: () => {},
   memberName: (id: string) => members.find(member => member.id === id)?.name ?? id,
   memberColor: (id: string) => members.find(member => member.id === id)?.color ?? "#888888",
 }) }));
@@ -73,6 +73,18 @@ it("offers one add control per person row that opens the editor for that person,
   expect(later.onAdd).toHaveBeenCalledExactlyOnceWith(start, "alex");
   cleanup();
   expect(renderGrid([], { compact: true }).grid.queryAllByRole("button", { name: /^Add a plan/ })).toEqual([]);
+});
+
+it("explains local filters inside the calendar settings popover instead of beneath the toolbar", async () => {
+  render(<CalendarViewControls note="View and person filters apply to this screen only." />);
+  expect(screen.queryByText("View and person filters apply to this screen only.")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
+  expect(await screen.findByText("View and person filters apply to this screen only.")).toBeInTheDocument();
+  cleanup();
+  render(<CalendarViewControls />);
+  fireEvent.click(screen.getByRole("button", { name: "Calendar settings" }));
+  expect(await screen.findByRole("button", { name: /Weekly grid/ })).toBeInTheDocument();
+  expect(screen.queryByText(/apply to this screen only/)).not.toBeInTheDocument();
 });
 
 it("names each person row while their avatar stands in for the visible name on wide screens", () => {

@@ -88,7 +88,7 @@ export default function Calendar() {
           { id: "all", label: t("All people") },
           ...familyMembers.map(m => ({ id: m.id, label: m.name, avatar: <MemberAvatar member={m.id} /> })),
         ]} />
-        {view === "week" && <CalendarViewControls onChange={change => {
+        {view === "week" && <CalendarViewControls note={t("View and person filters apply to this screen only.")} onChange={change => {
           if (change.startDay) setParams({});
         }} />}
       </div>
@@ -96,7 +96,6 @@ export default function Calendar() {
       {(homeOnline || visible.length > 0 || view === "week" || view === "month") && <HomeAssistantCalendar data={data} hasVisiblePlans={!!visible.length} />}
       {homeOnline && !data.loading && !data.errors.length && unavailable && <p className="page-note" role="status">{unavailable}</p>}
       {homeOnline && !calendars.length && !hasLists && <Link className="text-link" to="/settings/calendars">{t("Choose calendars")}</Link>}
-      <p className="calendar-local-note page-note">{t("View and person filters apply to this screen only.")}</p>
     </section>
     {view === "month" ? <CalendarMonth date={date} start={start} end={end} events={visible} unavailable={unavailable} onDay={openDay} onEdit={openEvent} /> :
       view === "day" ? <CalendarDay date={date} events={visible} unavailable={unavailable} onEdit={openEvent} /> :

@@ -12,7 +12,8 @@ import { Button } from "./ui/button";
 import { SharedSettingsStatus } from "./common/SharedSettingsStatus";
 import { SettingsPopover } from "./common/SettingsPopover";
 
-export function CalendarViewControls({ onChange }: { onChange?: (settings: Partial<CalendarSettings>) => void }) {
+/** Shared layout settings; `note` explains what stays local to this screen, beside the shared save status. */
+export function CalendarViewControls({ onChange, note }: { onChange?: (settings: Partial<CalendarSettings>) => void; note?: string }) {
   const { t } = useI18n();
   const { calendar, setCalendarSettings, today } = useFamily();
   const change = (settings: Partial<CalendarSettings>) => { setCalendarSettings(settings); onChange?.(settings); };
@@ -20,6 +21,7 @@ export function CalendarViewControls({ onChange }: { onChange?: (settings: Parti
     <span className="calendar-current-week">{t("Today · Week {value1}", { value1: weekNumber(today) })}</span>
     <SettingsPopover label={t("Calendar settings")}>
       <SharedSettingsStatus />
+      {note && <p className="calendar-local-note">{note}</p>}
       <fieldset className="settings-card"><legend className="panel-title text-sm font-semibold"><Table2 className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Calendar layout")}</span></legend><div className="calendar-segment">
         <button aria-pressed={calendar.view === "week"} onClick={() => change({ view: "week" })}><Table2 size={16} aria-hidden="true" />{t("Weekly grid")}</button>
         <button aria-pressed={calendar.view === "people"} onClick={() => change({ view: "people" })}><Columns3 size={16} aria-hidden="true" />{t("By person")}</button>
