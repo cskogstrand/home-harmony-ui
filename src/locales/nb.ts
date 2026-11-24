@@ -1,4 +1,10 @@
 export const nb = {
+  "Last 24 hours": "Siste døgn",
+  "Pinned meters": "Festede målere",
+  "Choose up to three meters": "Velg opptil tre målere",
+  "Pin meters": "Fest målere",
+  "Unpin a meter first.": "Fjern en festet måler først.",
+  "Meter unavailable": "Måler utilgjengelig",
   "Frequent items": "Faste varer",
   "Item name": "Varenavn",
   "Add shortcut": "Legg til hurtigknapp",
