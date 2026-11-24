@@ -630,7 +630,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .calendar-segment button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); font-weight: 600; }
 .calendar-segment button:hover { background: hsl(var(--secondary)); }
 .weekly-panel { padding: 12px; }
-.weekly-scroll { overflow-x: auto; scrollbar-width: thin; border-radius: var(--radius-row); min-width: 0; }
+.weekly-scroll { position: relative; overflow-x: auto; scrollbar-width: thin; border-radius: var(--radius-row); min-width: 0; }
 .family-week-table { width: 100%; min-width: 63rem; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: var(--type-label); }
 .week-member-column { width: 120px; }
 .family-week-table th, .family-week-table td { padding: 10px .375rem; border-bottom: 1px solid hsl(var(--border) / .6); border-right: 1px solid hsl(var(--border) / .45); }
