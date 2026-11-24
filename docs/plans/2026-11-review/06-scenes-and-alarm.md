@@ -23,7 +23,7 @@
 - [x] Hide or disable the action matching the current state (no "Disarm" while disarmed); disabled actions explain why via accessible description.
 - [x] Keep the PIN gate and confirmation exactly as today; no replay after reconnect.
 - [x] Tests: current-state action disabled/hidden for each alarm state; scenes page uses the shared tile component.
-- [ ] Update DESIGN.md (scene tile and alarm page rules).
+- [x] Update DESIGN.md (scene tile and alarm page rules).
 
 ## Acceptance
 
