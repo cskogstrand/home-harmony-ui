@@ -1,7 +1,8 @@
 import { createI18n, MessageError, type Language } from "./i18n";
 import type { HassConfig, HassServices } from "home-assistant-js-websocket";
 import { z } from "zod";
-import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityStates, Home, Registries } from "@/types/api";
+import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityRegistryEntry, EntityStates, Home, Registries } from "@/types/api";
+import { noTranslations, type HaTranslations } from "./ha-translations";
 
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -75,8 +76,16 @@ export const alarmModes: { action: AlarmAction; label: string; flag: number }[] 
 export const needsCode = (entity: Entity, action: EntityAction) => !!entity.attributes.code_format &&
   (!action.startsWith("alarm_arm_") || entity.attributes.code_arm_required !== false);
 
-// A caller that reuses entities keeps the cache local to one instance and registry snapshot.
-export function mapHome(states: EntityStates, registries: Registries, instance: string, config?: HassConfig, cache?: WeakMap<object, Entity>): Home {
+// Home Assistant composes friendly names in its own language as "<device> <entity name>". Swap only the
+// entity part for the dashboard language. Names set by the user, and names with placeholders, stay as reported.
+function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations) {
+  if (!entry?.translation_key || entry.name || !entry.original_name || !name.endsWith(entry.original_name)) return name;
+  const translated = translations[`component.${entry.platform}.entity.${domain}.${entry.translation_key}.name`];
+  return translated && !translated.includes("{") ? name.slice(0, name.length - entry.original_name.length) + translated : name;
+}
+
+// A caller that reuses entities keeps the cache local to one instance, registry snapshot and translation set.
+export function mapHome(states: EntityStates, registries: Registries, instance: string, config?: HassConfig, cache?: WeakMap<object, Entity>, translations: HaTranslations = noTranslations): Home {
   const registered = new Map(registries.entities.map(e => [e.entity_id, e]));
   const devices = new Map(registries.devices.map(d => [d.id, d]));
   const areas = new Map(registries.areas.map(a => [a.area_id, { id: a.area_id, name: a.name, entities: [] as Entity[] }]));
@@ -93,10 +102,11 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     const source = state ?? entry;
     let entity = cache?.get(source);
     if (!entity) {
-      const name = entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1));
+      const domain = id.split(".")[0];
+      const name = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations);
       const deviceLabel = (device?.name_by_user || device?.name)?.trim();
       entity = {
-        entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain: id.split(".")[0],
+        entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain,
         // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
         name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
         state: state?.state ?? "missing", attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,

@@ -19,7 +19,7 @@
 
 - [x] Load HA translations for the active language after connect and on language change (`frontend/get_translations`, categories `entity` and `state`); cache per language in memory; failure must fall back silently to current labels.
   > Note: the legacy `state` category is empty on current Home Assistant; core-domain states live in `entity_component`, which is loaded instead (`src/lib/ha-translations.ts`).
-- [ ] Use translated entity names when the registry entry has `translation_key` and no user-set `name`; user-set names always win.
+- [x] Use translated entity names when the registry entry has `translation_key` and no user-set `name`; user-set names always win.
 - [ ] Use translated states for enum/sensor states with `translation_key`; keep app-owned labels for core domains.
 - [ ] Number formatting: format readings with `Intl.NumberFormat(locale)` and a precision rule: use the entity's `display_precision` (entity registry `options.sensor.display_precision` / `suggested_display_precision`) when present, else temperatures 1 decimal, power/energy by magnitude (W 0 decimals, kW/kWh 1–2). One helper used by `DeviceReading`, area cards and the header weather.
 - [ ] Unit spacing consistent with locale (`−2,4 °C` in nb); pick one rule and apply everywhere.
