@@ -19,7 +19,8 @@
 ## Phase A — text
 
 - [x] Client: add `assist(text, { agentId, conversationId, language })` to `HomeAssistantClient` in `src/lib/home-assistant.ts` using `sendMessagePromise`, with the existing `bounded` timeout and error mapping.
-- [ ] Shared setting (Settings → Screen and alerts, new item "Assist"): enable/disable, agent (from `conversation/agent/list`), whether answers are spoken. Default: disabled until chosen. Store in shared configuration like other screen settings.
+- [x] Shared setting (Settings → Screen and alerts, new item "Assist"): enable/disable, agent (from `conversation/agent/list`), whether answers are spoken. Default: disabled until chosen. Store in shared configuration like other screen settings.
+  > Note: stored as `assist: { enabled, agentId }`; an empty agent is Home Assistant's built-in agent (what `conversation/process` uses without `agent_id`), so the built-in agent is not listed twice. The "answers are spoken" switch moved to phase B (see "Run the pipeline…"): without the TTS proxy there is nothing to play, and a switch that does nothing would mislead.
 - [ ] UI: an "Ask the house" button in the header actions (only when enabled) opening a dialog: input, send, conversation transcript for this session, clear. Generous touch targets; works with the on-screen keyboard; Escape closes and returns focus.
 - [ ] Show `action_done` answers with a subtle confirmation; `error` responses in plain language with retry; keep the typed text on failure.
 - [ ] Offline/HA disconnected: button disabled with reason.
@@ -31,7 +32,7 @@
 - [ ] Proxy: allow binary frames after auth, cap frame size (for example 64 KiB) and total stream duration; server tests in `server/connection.test.mjs` or a new test proving text-only clients are unaffected and pre-auth binary still closes the socket.
 - [ ] Proxy `GET /api/tts_proxy/*` with the same auth and header hygiene as other HA proxies; server test.
 - [ ] Browser capture: `getUserMedia` + `AudioWorklet` downsampling to 16 kHz mono 16-bit PCM; push-to-talk (hold or tap-to-start/tap-to-stop); visible listening state; automatic stop after silence/timeout.
-- [ ] Run the pipeline, show the recognised text (`stt-end`), then the answer; play TTS when the setting allows.
+- [ ] Run the pipeline, show the recognised text (`stt-end`), then the answer; play TTS when the setting allows. Add the "Speak answers" switch to Settings → Assist (`assist.speak`, default off) here.
 - [ ] Graceful fallback: no secure context or no permission → voice button hidden or explained, text still works.
 - [ ] Tests for the PCM framing helper and event handling; manual check on the wall browser by the owner (note result here).
 

@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, ListChecks, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, ListChecks, MessageCircleQuestion, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow, Zap } from "lucide-react";
 import { useHouseholdSetup } from "@/hooks/use-household-setup";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationDebugContext } from "@/contexts/NotificationContext";
@@ -15,6 +15,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import { VehicleSettings } from "@/components/VehicleSettings";
 import { EnergySettings } from "@/components/EnergySettings";
+import { AssistSettings } from "@/components/AssistSettings";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import Automations from "./Automations";
@@ -43,11 +44,12 @@ const groups = [
     { id: "lists", title: "To-do lists", description: "Personal tasks, daily lists and shared shopping", icon: ListChecks, content: <HomeSettings section="lists" /> },
     { id: "timetables", title: "Timetables", description: "School calendars, PDF uploads and images", icon: BookOpen, content: <HomeSettings section="timetables" /> },
   ] },
-  { id: "screen", title: "Screen and alerts", description: "Appearance, language, weather and notifications", icon: Monitor, items: [
+  { id: "screen", title: "Screen and alerts", description: "Appearance, language, weather, notifications and Assist", icon: Monitor, items: [
     { id: "appearance", title: "Appearance", description: "Theme, colors, artwork, glass and display density", icon: Palette, content: <UserSettings section="appearance" /> },
     { id: "language", title: "Language", description: "Language for every connected screen", icon: Globe, content: <UserSettings section="language" /> },
     { id: "weather", title: "Weather", description: "Weather source and where to show it", icon: CloudSun, content: <HomeSettings section="weather" /> },
     { id: "notifications", title: "Notifications", description: "Alerts, ongoing tasks and camera popups", icon: Bell, content: <NotificationSettings /> },
+    { id: "assist", title: "Assist", description: "Ask Home Assistant from the header", icon: MessageCircleQuestion, content: <AssistSettings /> },
   ] },
   { id: "devices", title: "Devices", description: "Smart home, cars and cameras", icon: SlidersHorizontal, items: [
     { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },

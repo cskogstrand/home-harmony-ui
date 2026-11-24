@@ -76,6 +76,24 @@ it("maps failures to plain language and never resends a question", async () => {
   expect(sent()).toBe(3);
 });
 
+it("lists only the conversation agents that understand the dashboard language", async () => {
+  const client = await connectedClient();
+  conn.sendMessagePromise.mockResolvedValueOnce({ agents: [
+    { id: "conversation.home_assistant", name: "Home Assistant", supported_languages: ["nb"] },
+    { id: "conversation.example_llm", name: "Example LLM", supported_languages: "*" },
+    { id: "conversation.example_english", name: "Example English", supported_languages: [] },
+    { id: "01EXAMPLEAGENT", name: " ", supported_languages: ["nb"] },
+  ] });
+  await expect(client.assistAgents("nb")).resolves.toEqual([
+    { id: "conversation.home_assistant", name: "Home Assistant" }, { id: "conversation.example_llm", name: "Example LLM" }, { id: "01EXAMPLEAGENT", name: "01EXAMPLEAGENT" },
+  ]);
+  expect(conn.sendMessagePromise).toHaveBeenLastCalledWith({ type: "conversation/agent/list", language: "nb" });
+  conn.sendMessagePromise.mockResolvedValueOnce({ agents: "none" });
+  await expect(client.assistAgents("nb")).rejects.toThrow("could not be loaded");
+  client.disconnect();
+  await expect(client.assistAgents("nb")).rejects.toThrow("could not be loaded");
+});
+
 it("reports an unanswered question as possibly still running", async () => {
   const client = await connectedClient();
   vi.useFakeTimers();

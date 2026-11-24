@@ -59,6 +59,10 @@ const assistResultSchema = z.object({
     data: z.object({ code: z.string().nullish() }).nullish(),
   }),
 });
+const assistAgentsSchema = z.object({ agents: z.array(z.object({
+  id: z.string().min(1).max(255), name: z.string().max(255), supported_languages: z.union([z.literal("*"), z.array(z.string())]),
+})) });
+export interface AssistAgent { id: string; name: string }
 /** One Assist answer: Home Assistant's reply, its kind and, for follow-ups, the conversation it belongs to. */
 export interface AssistAnswer { type: "action_done" | "query_answer" | "error"; speech: string; conversationId?: string; code?: string }
 const historySchema = z.record(z.string(), z.array(z.object({ s: z.string(), lu: z.number().finite(), lc: z.number().finite().optional() })));
@@ -500,6 +504,20 @@ export class HomeAssistantClient {
     const { response, conversation_id } = parsed.data;
     return { type: response.response_type, speech: response.speech?.plain?.speech.trim() ?? "",
       ...(conversation_id ? { conversationId: conversation_id } : {}), ...(response.data?.code ? { code: response.data.code } : {}) };
+  };
+
+  /** Read-only: the conversation agents that understand `language`, as Home Assistant lists them. */
+  assistAgents = async (language: string): Promise<AssistAgent[]> => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    try {
+      if (!conn?.connected || this.snapshot.status !== "connected") throw new Error();
+      const result = await bounded(conn.sendMessagePromise({ type: "conversation/agent/list", language }));
+      if (generation !== this.generation || epoch !== this.epoch) throw new Error();
+      // Home Assistant narrows each agent's languages to the requested one; an empty list means it does not understand it.
+      return assistAgentsSchema.parse(result).agents
+        .filter(agent => agent.supported_languages === "*" || agent.supported_languages.length > 0)
+        .map(({ id, name }) => ({ id, name: name.trim() || id }));
+    } catch { throw new Error("Conversation agents could not be loaded. Check the connection to Home Assistant."); }
   };
 
   watchCalendarEvents = (entityId: string, start: string, end: string, signal: AbortSignal, receive: (events: CalendarEvent[] | null) => void) => {

@@ -12,7 +12,7 @@ import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn() }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn(), assistAgents: vi.fn(async () => []) }));
 vi.mock("@/contexts/AppContext", async importOriginal => {
   const { AppContext } = await importOriginal<typeof import("@/contexts/AppContext")>();
   const { useContext } = await import("react");
@@ -1999,7 +1999,7 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
   render(<App />); await saved();
   const categories = [
     ["Household", [["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"]]],
-    ["Screen and alerts", [["Appearance", "appearance"], ["Language", "language"], ["Weather", "weather"], ["Notifications", "notifications"]]],
+    ["Screen and alerts", [["Appearance", "appearance"], ["Language", "language"], ["Weather", "weather"], ["Notifications", "notifications"], ["Assist", "assist"]]],
     ["Devices", [["Smart home", "smart-home"], ["Electric vehicles", "vehicles"], ["Electricity price", "electricity-price"], ["Cameras", "cameras"], ["Camera connections", "camera-connections"]]],
     ["System", [["Connection & account", "connection"], ["Automations", "automations"], ["Integrations", "integrations"], ["Activity", "activity"], ["Storage and backups", "backups"], ["Debug", "debug"], ["Danger zone", "danger-zone"]]],
   ] as const;
