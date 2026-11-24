@@ -80,6 +80,7 @@ Home Assistant capabilities available but unused by the app (verified read-only 
 Record answers here when given; agents should not block on them unless a box says so.
 
 - [ ] Activity feed placement: the plan puts a curated "Recent at home" panel on the Smart home overview and the full log in Settings → System. Confirm, or move the curated panel to Today. (08)
-- [ ] Electricity price: add the Nord Pool integration and configure the Energy dashboard in Home Assistant? Workstream 09 phase B waits for this. (09)
+- [x] Electricity price: add the Nord Pool integration and configure the Energy dashboard in Home Assistant? Workstream 09 phase B waits for this. (09)
+  > Answer (2026-11-24): the owner added Nord Pool price sensors in Home Assistant. The app only needs to let the owner choose the price sensor in Settings; no automatic detection and no Energy dashboard setup is required.
 - [ ] Voice input on the wall screen needs a secure context (HTTPS or localhost) for the microphone. Is the wall browser served over HTTPS? (07 phase B)
 - [ ] Should the portrait wall fill the empty lower part of secondary pages (for example the week under Today)? Not planned; a candidate for a later `/impeccable shape`.
