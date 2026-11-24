@@ -15,6 +15,8 @@
 .settings-row small, .settings-guide-link span span { display: block; margin-top: .2rem; font-size: .9375rem; line-height: 1.45; font-weight: 400; color: hsl(var(--muted-foreground)); }
 .settings-chevron, .settings-item svg { color: hsl(var(--muted-foreground)); }
 .settings-category[aria-expanded="true"] .settings-chevron { transform: rotate(180deg); }
+.settings-count { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: 1.625rem; height: 1.625rem; padding-inline: .45rem; border-radius: 999px; background: hsl(var(--warning)); color: hsl(var(--warning-foreground)); font-size: .875rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+@media (forced-colors: active) { .settings-count { border: 1px solid CanvasText; } }
 .settings-group ul { padding-top: .5rem; }
 .settings-item { min-height: 48px; padding: .55rem 1rem .55rem 2.5rem; }
 .settings-row:hover { background: hsl(var(--secondary)); }

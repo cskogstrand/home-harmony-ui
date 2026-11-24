@@ -70,6 +70,8 @@ When Home Assistant disconnects, the banner links to **Settings → System → C
 
 Open the house button for **Home status** in the header. A house without a badge means every selected source has reported and none requires attention. The warning count includes active exceptions and selected sources with missing readings. Loading, offline and unconfigured households have distinct indicators. The overview pairs the current result with an illustrated house. When several sources need attention, the illustration matches the first listed issue. **View readings** lists the selected sources by category with their rooms and reported values. **Manage sources** opens all ten categories and their source pickers. The initial selection uses the configured alarm, area-assigned smoke detectors and their low-battery signals. Selecting sources in one category preserves the others. Settings sync across screens and are included in backups.
 
+Home status also counts Home Assistant maintenance that needs action: repair issues with severity *error* or *critical* that are not ignored, an automatic backup whose last attempt failed, a last successful automatic backup older than 48 hours (or, for a less frequent schedule, older than the spacing between the two latest automatic backups plus a day), and backup locations that report an error. These rows link to **Settings → System → Home Assistant health**. Repair warnings and Home Assistant's own notifications never appear on the family surface.
+
 Under **Customize Today → Home status**, enable and position the optional card. It appears only while a selected source needs attention or lacks a reading on a connected dashboard. Both the card and the header open the same overview.
 
 The Dreame room selector uses the robot’s active map and requires the integration’s segment-cleaning service. Selecting rooms prepares a request. **Clean selected rooms** sends it once.
@@ -123,6 +125,17 @@ Select a camera or image preview to open a full-width viewer. Cameras use an aut
 Settings use stable registry/entity references within this deployment, so changing the same HA instance's address does not create a new household. A different HA installation may require resetting or reassigning references. People use their `person.<name>` entity IDs; renaming that entity ID requires reassigning its timetable and preferences.
 
 Calendar integrations and to-do lists stay in HA. The app uses reported capabilities to enable creation, editing, deletion and controls. Recurring event edits/deletions require an occurrence ID. Failed writes keep the draft; physical commands are never automatically replayed. Daily task resets belong in an HA automation, which can run while the dashboard is closed.
+
+### Home Assistant health
+
+**Settings → System → Home Assistant health** collects the housekeeping that otherwise only shows inside Home Assistant:
+
+- **Repairs**: open repair issues, critical first, with Home Assistant's title in the dashboard language, a **Learn more** link when the issue has one and a link to Repairs in Home Assistant. Ignored issues are counted but not listed.
+- **Notifications from Home Assistant**: persistent notifications, updated live, shown as plain text (Markdown links to Home Assistant pages or `https` addresses stay clickable). **Dismiss** removes a notification in Home Assistant for everyone; the button shows progress and an error when Home Assistant does not confirm.
+- **Backups**: when the last automatic backup completed, when the next one is scheduled, and whether the last attempt failed, the last backup is overdue or a backup location reported an error. Backups are started and restored in Home Assistant.
+- **Updates**: update entities with a new version waiting, with a link to install them in Home Assistant.
+
+Repairs and backup status are read when the dashboard connects, when the section opens and every 15 minutes while the screen is visible; notifications arrive live. The System group and the Home Assistant health entry show a count when something needs action. Repairs and backup status need the server token to belong to a Home Assistant **administrator**. With another account, Home Assistant refuses these reads: the blocks and the menu entry stay hidden, without an error. Nothing in this section changes Home Assistant except **Dismiss**.
 
 ## Configuration and storage
 
