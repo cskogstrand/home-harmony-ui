@@ -27,7 +27,9 @@
 - [x] Scene buttons: add an opaque base under the tint in artwork mode so labels sit on a solid colour.
 
   > Done: with artwork on, the super compact scene action (Today favorites, Smart home) mixes its 12 % / 22 % hover primary tint into the opaque card colour instead of the translucent glass card. The `/moods` pills already sit inside an opaque `glow-panel`, so they are unchanged (workstream 06 replaces them with the same tile).
-- [ ] Check contrast of selected/unselected text and the selected fill against `--art-surface` for all 12 palettes, light and dark (≥ 4.5:1 text, ≥ 3:1 for the selection indicator). Record the lowest values in a `> Contrast:` note.
+- [x] Check contrast of selected/unselected text and the selected fill against `--art-surface` for all 12 palettes, light and dark (≥ 4.5:1 text, ≥ 3:1 for the selection indicator). Record the lowest values in a `> Contrast:` note.
+
+  > Contrast (WCAG ratios measured from computed colours in the built CSS, artwork on, all 12 palettes × light/dark; list tabs, calendar segments and Smart home nav give identical values): selected label on primary fill ≥ 6.30:1 (Honey light; dark ≥ 8.09:1, Pearl). Unselected label on `--art-surface` ≥ 5.53:1 (Olive light; dark ≥ 7.93:1, Lavender). Selected fill against `--art-surface` ≥ 6.19:1 (Honey light; dark ≥ 8.11:1, Rose). Section-heading links ≥ 6.19:1, unselected filter pills ≥ 5.53:1, scene action labels on the new opaque base ≥ 10.21:1 (Olive dark). Before the change the selected fill was 1.00:1 everywhere.
 - [ ] Verify forced colours and reduced transparency still show the selected state.
 - [ ] Update DESIGN.md (artwork rules, selected-state rule).
 
