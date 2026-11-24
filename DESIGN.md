@@ -61,6 +61,7 @@ colors:
   ambient-blue: "hsl(209 75% 85% / .55)"
   dark-ambient-blue: "hsl(214 65% 24% / .5)"
   ambient-warm: "hsl(28 80% 89% / .48)"
+  media-backing: "hsl(0 0% 96%)"
   dark-ambient-warm: "hsl(264 35% 20% / .32)"
 typography:
   display:
@@ -277,6 +278,7 @@ Shared range thumbs and filled tracks fall back to the palette's primary color o
 - **Pearl ground** (`background`) sits behind **white work surfaces** (`card`) and the cool `popover` layer.
 - **Blue-black ink** (`foreground`) carries task content; `muted-foreground` is for supporting text.
 - `secondary`, `muted` and `accent` are cool tints for secondary controls and selected or hovered surfaces. `border` divides groups; `input` gives editable controls a stronger edge.
+- `media-backing` is a fixed light gray behind trimmed transparent images (printer models, device pictures). It has no dark counterpart and ignores the palette, so dark models stay visible in both themes.
 - `nav-background` and `nav-border` define the glass control layer's fill and rim. `glass-highlight` and `glass-shade` provide its light and shade; `ambient-blue` and `ambient-warm` belong to the app ground.
 - The `dark-` counterparts preserve the same roles over midnight ground. Dark navigation has its own fill, ink, rim and highlight values.
 

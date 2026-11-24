@@ -260,6 +260,8 @@
     --online: 145.0 43.5% 27.1%;
     --offline: 146.7 8.3% 42.7%;
     --pending: 36.6 89.8% 26.9%;
+    /* Fixed in every theme and palette: dark models stay visible through transparent image pixels. */
+    --media-backing: 0 0% 96%;
     --radius: 16px;
     --radius-checkbox: 6px;
     --radius-event: 8px;
