@@ -8,6 +8,7 @@ import App from "@/App";
 import { dashboardSections, emptyConfiguration, parseConfiguration } from "../../shared/configuration";
 import { notificationRuleSchema } from "../../shared/notifications";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
+import { parseRepairs } from "@/lib/ha-health";
 import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
@@ -2030,6 +2031,26 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
       expect(menu().getByRole("button", { name: new RegExp(`^${category}`) })).toHaveAttribute("aria-expanded", "true");
     }
   }
+});
+
+it("badges System and Home Assistant health when repairs or backups need attention, and hides health without an admin token", async () => {
+  const issue = { domain: "example_integration", issue_id: "example_error", severity: "error", ignored: false, translation_key: "example_error" };
+  Object.assign(app, { listRepairs: vi.fn(async () => parseRepairs({ issues: [issue] })), backupInfo: vi.fn(async () => undefined) });
+  try {
+    window.history.replaceState(null, "", "/settings");
+    const view = render(<App />); await saved();
+    const menu = within(screen.getByRole("navigation", { name: "Settings navigation" }));
+    const system = await menu.findByRole("button", { name: /^System.*1 item needs attention/ });
+    fireEvent.click(system);
+    expect(menu.getByRole("link", { name: /Home Assistant health.*1 item needs attention/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Home status · 1 issue" })).toBeVisible();
+    view.unmount();
+    Object.assign(app, { listRepairs: vi.fn(async () => undefined) });
+    window.history.replaceState(null, "", "/settings?group=system");
+    render(<App />); await saved();
+    await waitFor(() => expect(within(screen.getByRole("navigation", { name: "Settings navigation" })).queryByRole("link", { name: "Home Assistant health" })).toBeNull());
+    expect(screen.queryByText("1 item needs attention")).toBeNull();
+  } finally { Reflect.deleteProperty(app, "listRepairs"); Reflect.deleteProperty(app, "backupInfo"); }
 });
 
 it.each([

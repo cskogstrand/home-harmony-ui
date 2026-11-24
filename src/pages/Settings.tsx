@@ -82,13 +82,17 @@ export default function Settings() {
   const { section } = useParams();
   const { hash, search } = useLocation();
   const [params, setParams] = useSearchParams();
-  const { t } = useI18n();
+  const { t, number } = useI18n();
   const remaining = useHouseholdSetup();
   const shared = useSharedConfiguration();
   const heading = useRef<HTMLHeadingElement>(null);
   const health = useHaHealth();
   // Without an administrator token Home Assistant refuses the health reads; the section stays reachable but out of the menu.
   const healthHidden = health.repairs.status === "hidden" && health.backup.status === "hidden";
+  const attention = health.items.length;
+  // A small count on System and Home Assistant health when repairs or backups need the owner.
+  const countBadge = attention > 0 && <span className="settings-count"><span aria-hidden="true">{number(attention)}</span>
+    <span className="sr-only">{t(attention === 1 ? "1 item needs attention" : "{count} items need attention", { count: attention })}</span></span>;
   const group = groups.find(group => group.items.some(item => item.id === section));
   const selected = group?.items.find(item => item.id === section);
   useEffect(() => { heading.current?.focus(); }, [section]);
@@ -135,11 +139,12 @@ export default function Settings() {
             }, { replace: true, preventScrollReset: true })}>
             <group.icon size={23} aria-hidden="true" />
             <span><strong>{t(group.title)}</strong><small>{t(group.description)}</small></span>
+            {group.id === "system" && countBadge}
             <ChevronDown className="settings-chevron" size={19} aria-hidden="true" />
           </button></h2>
           <ul id={`group-${group.id}`} hidden={!open}>{group.items.filter(item => item.id !== "ha-health" || !healthHidden).map(item => <li key={item.id}>
             <Link to={`/settings/${item.id}`} className="settings-row settings-item">
-              <item.icon size={18} aria-hidden="true" /><span>{t(item.title)}</span><ChevronRight size={16} aria-hidden="true" />
+              <item.icon size={18} aria-hidden="true" /><span>{t(item.title)}</span>{item.id === "ha-health" && countBadge}<ChevronRight size={16} aria-hidden="true" />
             </Link>
           </li>)}</ul>
         </section>;

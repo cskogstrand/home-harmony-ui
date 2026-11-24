@@ -919,6 +919,8 @@ export const nb = {
   "Automatic backup": "Automatisk sikkerhetskopi",
   "Backup location": "Lagringssted for sikkerhetskopi",
   "More than 2 days old": "Over 2 dager gammel",
+  "1 item needs attention": "1 element trenger tilsyn",
+  "{count} items need attention": "{count} elementer trenger tilsyn",
   "Danger zone": "Faresone",
   "Clear the Smart home dashboard on every screen": "Tøm Smarthjem-dashbordet på alle skjermer",
   "Remove every Smart home card and group. Today’s favourites and Home Assistant devices stay as they are.": "Fjern alle kort og grupper på Smarthjem. Favoritter på I dag og enheter i Home Assistant beholdes.",
