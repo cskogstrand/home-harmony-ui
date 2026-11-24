@@ -219,6 +219,7 @@ it("shows music playback only while a connected Sonos group plays music", () => 
     Object.assign(media, { state, source });
     shared.online = online;
     view.rerender(atSonos());
+    expect(shortcut).toHaveAttribute("href", playing ? "/sonos?player=media_player.example" : "/sonos");
     expect(shortcut).toHaveAccessibleName(playing ? "Sonos · Music playing" : "Sonos");
     expect(!!shortcut!.querySelector(".header-badge")).toBe(playing);
   }

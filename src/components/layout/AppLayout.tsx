@@ -39,8 +39,8 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const availableVersion = useAppUpdate();
   const { t, message } = useI18n();
   const { currentUser, currentHome, homeOnline, haUrl, connectionStatus, connectionError, entityRegistryAvailable } = useApp();
-  const musicPlaying = homeOnline && sonosMusicDestinations(sonosPlayers(currentHome.entities)).some(({ player }) => player.state === "playing");
-  const musicLabel = musicPlaying ? t("Sonos · Music playing") : t("Sonos");
+  const playingGroup = homeOnline ? sonosMusicDestinations(sonosPlayers(currentHome.entities)).find(({ player }) => player.state === "playing") : undefined;
+  const musicLabel = playingGroup ? t("Sonos · Music playing") : t("Sonos");
   const family = useFamily();
   const { saved, memberName, appearance, smartHome } = family;
   const shared = useSharedConfiguration();
@@ -74,8 +74,8 @@ export function AppLayout({ children }: { children?: ReactNode }) {
     </div>}
     <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
       <VehicleWidgets /><WeatherWidget placement="header" /><div className="header-actions">
-        <Link to="/sonos" className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
-          <Music2 size={20} aria-hidden="true" />{musicPlaying && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
+        <Link to={playingGroup ? `/sonos?player=${encodeURIComponent(playingGroup.player.entityId)}` : "/sonos"} className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
+          <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
         </Link>
         <Link to="/cameras" className="icon-button glass-surface" aria-label={cameraLabel} title={cameraLabel}>
           <Camera size={20} aria-hidden="true" />{detectedCameras > 0 && <span className="header-badge" aria-hidden="true"><UserRound size={13} strokeWidth={2.6} />{detectedCameras > 1 && detectedCameras}</span>}
