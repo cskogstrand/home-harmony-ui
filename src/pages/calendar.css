@@ -10,6 +10,8 @@
 .calendar-filter-bar { justify-content: space-between; gap: 1rem; }
 .calendar-filter-bar > .calendar-view-controls { margin-left: auto; }
 .calendar-toolbar > .week-ribbon { margin: 1rem 0 0; }
+/* Today is an action, not a state: a borderless primary-ink button with an icon, unlike the filled selected view segment. */
+.calendar-today { min-height: 48px; padding-inline: .75rem; color: hsl(var(--primary)); font-weight: 600; }
 .calendar-local-note { color: hsl(var(--muted-foreground)); font-size: .875rem; line-height: 1.5; }
 .calendar-week-day { width: 100%; min-height: 48px; border-radius: 14px; }
 .calendar-week-day:hover { background: hsl(var(--secondary)); }

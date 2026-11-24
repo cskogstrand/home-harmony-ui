@@ -4,7 +4,7 @@ import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarCheck, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useApp } from "@/contexts/AppContext";
@@ -78,7 +78,7 @@ export default function Calendar() {
           </Popover>
           <Button variant="ghost" size="icon" aria-label={t(nextLabels[view])} onClick={() => navigate(moveCalendarDate(date, view, 1))}><ChevronRight /></Button>
         </div>
-        <Button variant="outline" className="calendar-today" onClick={() => navigate(today)}>{t("Today")}</Button>
+        <Button variant="ghost" className="calendar-today" onClick={() => navigate(today)}><CalendarCheck aria-hidden="true" />{t("Today")}</Button>
         <div className="calendar-segment calendar-view-switch" role="group" aria-label={t("Calendar view")}>
           {(Object.keys(views) as CalendarView[]).map(mode => <button key={mode} aria-pressed={view === mode} onClick={() => navigate(date, mode)}>{t(views[mode])}</button>)}
         </div>

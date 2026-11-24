@@ -22,7 +22,9 @@
 - [x] Render waste pickups in the week grid as a compact chip (icons from `WasteTypeIcons` + short label), not a full event card. Several fractions on the same day become one chip with several icons.
 - [x] Replace the per-cell add row with one add affordance per person row (opens the editor with that person preselected, day chosen in the editor), or reveal the cell's "+" only on focus/hover/tap of the cell. Keyboard and screen-reader users must still reach "add on this day" (for example via the day header button).
 - [x] Move the permanent "View and person filter apply to this screen only" hint into the calendar cog popover or show it once per screen (persist dismissal per screen, not shared).
-- [ ] Phone: verify "Today" and the selected "Day" segment are visually distinguishable (one is an action, one is a state). Give the selected segment the segment-selected style and keep "Today" as an outline/ghost button.
+- [x] Phone: verify "Today" and the selected "Day" segment are visually distinguishable (one is an action, one is a state). Give the selected segment the segment-selected style and keep "Today" as an outline/ghost button.
+
+  > Done in code: "Today" is now a borderless ghost button in primary ink with a calendar-check icon and no pressed state; the selected segment keeps the shared filled segment style (its stronger non-colour cue belongs to [02](02-artwork-selected-states.md), which restyles `.calendar-segment` for every view switch). The on-screen look at 390 × 844 is part of the browser check below.
 - [ ] Unit tests: waste chip grouping per day; add affordance presence (one per person row) and that it passes the person to the editor; title clamping does not drop the accessible name.
 - [ ] Browser check at both sizes, light/dark, artwork on and off; write the `> After:` numbers next to the `> Before:` note.
 - [ ] Update DESIGN.md (calendar section) and `.impeccable/surfaces/src-pages-calendar-tsx.md` with the new week-grid rules.
