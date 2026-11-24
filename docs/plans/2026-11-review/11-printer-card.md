@@ -28,8 +28,8 @@ A device is a printer when it has a sensor whose `translation_key` (or entity id
 - [x] Device detail page: same model, plus chamber light and other controls already handled generically.
 - [x] Gallery: add a printer card family with a fictional illustration to `/device-gallery`.
 - [x] No controls that start/stop prints in this workstream (read-only card + existing light/switch controls).
-- [ ] Tests: detection positive/negative, densities render, unavailable vs idle.
-- [ ] Docs: DESIGN.md card family list; README supported devices.
+- [x] Tests: detection positive/negative, densities render, unavailable vs idle.
+- [x] Docs: DESIGN.md card family list; README supported devices.
 
 ## Acceptance
 
