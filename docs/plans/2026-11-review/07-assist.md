@@ -21,10 +21,11 @@
 - [x] Client: add `assist(text, { agentId, conversationId, language })` to `HomeAssistantClient` in `src/lib/home-assistant.ts` using `sendMessagePromise`, with the existing `bounded` timeout and error mapping.
 - [x] Shared setting (Settings → Screen and alerts, new item "Assist"): enable/disable, agent (from `conversation/agent/list`), whether answers are spoken. Default: disabled until chosen. Store in shared configuration like other screen settings.
   > Note: stored as `assist: { enabled, agentId }`; an empty agent is Home Assistant's built-in agent (what `conversation/process` uses without `agent_id`), so the built-in agent is not listed twice. The "answers are spoken" switch moved to phase B (see "Run the pipeline…"): without the TTS proxy there is nothing to play, and a switch that does nothing would mislead.
-- [ ] UI: an "Ask the house" button in the header actions (only when enabled) opening a dialog: input, send, conversation transcript for this session, clear. Generous touch targets; works with the on-screen keyboard; Escape closes and returns focus.
-- [ ] Show `action_done` answers with a subtle confirmation; `error` responses in plain language with retry; keep the typed text on failure.
-- [ ] Offline/HA disconnected: button disabled with reason.
-- [ ] Tests (mock connection): request shape, follow-up keeps `conversation_id`, error keeps draft, disabled when offline.
+- [x] UI: an "Ask the house" button in the header actions (only when enabled) opening a dialog: input, send, conversation transcript for this session, clear. Generous touch targets; works with the on-screen keyboard; Escape closes and returns focus.
+  > Note: the button leads the header actions. With it, phones up to 449 px move the vehicle chip to the second header row, and phones below 380 px use 44 px header targets so six controls fit. Proven with tests and fictional fixtures only; the dev server serves `main`, so the layout at 1440 × 2560 and 390 × 844 (light, dark, artwork, on-screen keyboard) still needs a browser check in workstream 13.
+- [x] Show `action_done` answers with a subtle confirmation; `error` responses in plain language with retry; keep the typed text on failure.
+- [x] Offline/HA disconnected: button disabled with reason.
+- [x] Tests (mock connection): request shape, follow-up keeps `conversation_id`, error keeps draft, disabled when offline.
 - [ ] Docs: README (feature), DOCS.md (enable Assist, exposure is managed in HA), PRODUCT.md capability line; i18n en/nb.
 
 ## Phase B — voice (only after the owner confirms a secure context)

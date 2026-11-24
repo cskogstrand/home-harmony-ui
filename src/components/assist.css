@@ -1,0 +1,56 @@
+/* Ask the house: glass dialog shell, opaque transcript, compose row in reach above the on-screen keyboard. */
+.assist-trigger[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+.assist-trigger[aria-disabled="true"]:hover { background: none; }
+.assist-dialog.glass-modal { display: flex; flex-direction: column; gap: 0; width: min(calc(100% - 1.5rem), 36rem); max-width: none; max-height: calc(100dvh - 2rem); padding: 0; overflow: hidden; }
+.assist-dialog > button:last-child { display: grid; place-items: center; width: 44px; height: 44px; right: .5rem; top: .5rem; }
+.assist-head { padding: 1rem 3.5rem .75rem 1.25rem; text-align: start; }
+.assist-head .panel-title { margin: 0; }
+.assist-head p { color: hsl(var(--muted-foreground)); font-size: .875rem; }
+.assist-scroll { flex: 1 1 auto; min-height: 7rem; overflow-y: auto; overscroll-behavior: contain; background: hsl(var(--card)); border-block: 1px solid hsl(var(--border)); }
+.assist-empty { padding: 1.25rem; color: hsl(var(--muted-foreground)); }
+.assist-transcript { margin: 0; padding: 0 1.25rem; list-style: none; }
+.assist-transcript > li { display: grid; gap: .4rem; padding-block: .9rem; scroll-margin-block: .5rem; }
+.assist-transcript > li + li { border-top: 1px solid hsl(var(--border)); }
+.assist-question { font-weight: 600; overflow-wrap: anywhere; }
+.assist-answer { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .5rem; overflow-wrap: anywhere; }
+.assist-answer > svg { flex: none; margin-top: .2em; color: hsl(var(--muted-foreground)); }
+.assist-answer > span { flex: 1 1 12rem; min-width: 0; }
+.assist-answer[data-kind="action_done"] > svg { color: hsl(var(--success)); }
+.assist-answer[data-kind="error"] > svg { color: hsl(var(--warning)); }
+.assist-answer[data-kind="pending"] { color: hsl(var(--muted-foreground)); }
+.assist-retry { min-height: 44px; margin-inline-start: auto; }
+.assist-form { display: grid; gap: .5rem; padding: .75rem 1.25rem 1rem; }
+.assist-offline { font-size: .875rem; color: hsl(var(--muted-foreground)); }
+.assist-compose { display: flex; gap: .5rem; }
+.assist-input {
+  flex: 1; min-width: 0; min-height: 48px; padding: 9px 14px;
+  border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground));
+}
+.assist-input:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.assist-send { min-height: 48px; flex: none; }
+.assist-clear { justify-self: start; min-height: 44px; color: hsl(var(--muted-foreground)); }
+@media (max-width: 699px) {
+  .assist-head { padding-inline-start: 1rem; }
+  .assist-transcript, .assist-empty { padding-inline: 1rem; }
+  .assist-form { padding-inline: 1rem; }
+  .assist-send > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .assist-send { width: 48px; padding-inline: 0; }
+}
+@media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
+  .assist-dialog.glass-modal { width: min(calc(100% - 1.5rem), 44rem); }
+}
+/* A sixth header control: the vehicle chip moves to the second row sooner, and the narrowest phones use 44px targets. */
+@media (width <= 449px) {
+  .app-header:has(.assist-trigger):has(.vehicle-chip-strip) { grid-template-columns: minmax(0, 1fr) auto; }
+  .app-header:has(.assist-trigger) .vehicle-chip-strip { grid-area: 2 / 1; justify-self: start; }
+  .app-header:has(.assist-trigger):has(.vehicle-chip-strip) .header-actions { grid-area: 1 / 2; }
+  .app-header:has(.assist-trigger):has(.vehicle-chip-strip) .header-weather { grid-area: 2 / 2; }
+}
+@media (width <= 379px) {
+  .app-header:has(.assist-trigger) .header-actions .icon-button { min-width: 44px; min-height: 44px; }
+  .app-header:has(.assist-trigger) .brand { min-width: 44px; }
+}
+@media (forced-colors: active) {
+  .assist-answer > svg { color: CanvasText; }
+  .assist-input { border-color: ButtonText; }
+}

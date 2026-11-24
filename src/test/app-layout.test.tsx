@@ -9,9 +9,9 @@ import { NotificationContext } from "@/contexts/NotificationContext";
 import { notificationRuleSchema } from "../../shared/notifications";
 
 const media = vi.hoisted(() => ({ state: "paused", source: "Radio" }));
-const shared = vi.hoisted(() => ({ enabled: true, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
+const shared = vi.hoisted(() => ({ enabled: true, assist: false, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, entityRegistryAvailable: true, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ saved: shared.state.loaded && !shared.state.dirty, assist: { enabled: shared.assist, agentId: "" }, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
 vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));
@@ -21,6 +21,7 @@ beforeEach(() => {
   media.state = "paused";
   media.source = "Radio";
   shared.enabled = true;
+  shared.assist = false;
   shared.online = true;
   shared.availableVersion = undefined;
   shared.notifications = { presentation: "section", pages: "main" };
@@ -116,6 +117,15 @@ it("offers an update without reloading until the user chooses to refresh", () =>
   expect(reload).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Refresh app" }));
   expect(reload).toHaveBeenCalledOnce();
+});
+
+it("leads the header actions with Ask the house only when it is turned on", () => {
+  const view = render(layout());
+  expect(screen.queryByRole("button", { name: "Ask the house" })).not.toBeInTheDocument();
+  shared.assist = true;
+  view.rerender(layout());
+  expect(screen.getByRole("button", { name: "Ask the house" }).parentElement).toHaveClass("header-actions");
+  expect(screen.getByRole("button", { name: "Ask the house" }).parentElement.firstElementChild).toBe(screen.getByRole("button", { name: "Ask the house" }));
 });
 
 it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device section on %s", path => {
