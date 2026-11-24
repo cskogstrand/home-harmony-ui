@@ -18,6 +18,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { isTemperatureEntity } from "@/lib/ha-model";
 import { defaultTodoDisplay, type TodoDisplay } from "../../shared/configuration";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
+function ShoppingShortcuts({ items, save }: { items: string[]; save: (items: string[]) => boolean }) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState("");
+  const name = draft.trim();
+  const duplicate = items.some(item => item.toLowerCase() === name.toLowerCase());
+  return <form className="planner-form grid gap-2" onSubmit={event => {
+    event.preventDefault();
+    if (name && !duplicate && items.length < 30 && save([...items, name])) setDraft("");
+  }}>
+    <label>{t("Frequent items")}<input maxLength={120} value={draft} placeholder={t("Item name")} onChange={event => setDraft(event.target.value)} /></label>
+    <Button className="justify-self-start" variant="outline" type="submit" disabled={!name || duplicate || items.length >= 30}>{t("Add shortcut")}</Button>
+    {duplicate && <p className="page-note" role="status">{t("This shortcut already exists.")}</p>}
+    {items.length >= 30 && <p className="page-note">{t("All 30 shortcuts are in use.")}</p>}
+    {!!items.length && <ul className="flex flex-wrap gap-2">{items.map(item => <li className="min-w-0 max-w-full" key={item}><Button className="h-auto min-h-11 max-w-full whitespace-normal" type="button" variant="secondary" aria-label={t("Remove shortcut for {item}", { item })} onClick={() => save(items.filter(value => value !== item))}><span className="break-all">{item}</span><X size={16} aria-hidden="true" /></Button></li>)}</ul>}
+  </form>;
+}
+
 export default function HomeSettings({ section }: { section: "connection" | "people" | "timetables" | "calendars" | "lists" | "weather" }) {
   const { t, message } = useI18n();
   const { haUrl, connect, disconnect, connectionStatus, connectionError, currentHome, currentUser, metadataWarnings, homeOnline } = useApp();
@@ -68,6 +85,7 @@ export default function HomeSettings({ section }: { section: "connection" | "peo
       {selected && <details className="todo-display-settings" key={selected}>
         <summary aria-label={t("Display settings for {list}", { list: label })}><span className="panel-title"><SlidersHorizontal className="panel-title-icon" strokeWidth={1.8} aria-hidden="true" /><span>{t("Display settings")}</span></span></summary>
         <fieldset disabled={!shared?.state.loaded || !!shared.state.error} className="grid gap-3 py-3">
+          {kind === "shopping" && <ShoppingShortcuts items={display.quickItems ?? []} save={quickItems => setTodoListDisplay(selected, { quickItems })} />}
           <label className="grid gap-2 text-sm">{t("Completed items")}
             <select className="w-full rounded-lg border border-input bg-background p-2" value={display.completed} onChange={event => setTodoListDisplay(selected, { completed: event.target.value as TodoDisplay["completed"] })}>
               <option value="inline">{t("Show finished inline")}</option><option value="under">{t("Show finished underneath")}</option><option value="collapsed">{t("Hide finished underneath")}</option><option value="hide">{t("Hide finished")}</option>

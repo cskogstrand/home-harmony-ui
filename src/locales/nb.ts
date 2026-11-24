@@ -1,4 +1,12 @@
 export const nb = {
+  "Frequent items": "Faste varer",
+  "Item name": "Varenavn",
+  "Add shortcut": "Legg til hurtigknapp",
+  "Remove shortcut for {item}": "Fjern hurtigknapp for {item}",
+  "This shortcut already exists.": "Denne varen har allerede en hurtigknapp.",
+  "All 30 shortcuts are in use.": "Alle 30 hurtigknappene er i bruk.",
+  "{item} is on the list": "{item} står på listen",
+  "Add {item}": "Legg til {item}",
   "Add to shopping list": "Legg på handlelisten",
   "Shopping list": "Handleliste",
   "Add {item} to shopping list": "Legg {item} på handlelisten",

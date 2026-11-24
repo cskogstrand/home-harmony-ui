@@ -440,3 +440,13 @@ it.each([false, true])("ignores an old command after reconnecting (rejected: %s)
   expect(checkbox).toBeEnabled();
   expect(document.querySelector(".todo-celebration")).toBeNull();
 });
+
+it("uses the selected list's frequent items and reopens a purchased item by its ID", async () => {
+  family.todoLists["home|todo.example"].display.quickItems = ["Oats", "Rice"];
+  app.currentHome.entities[0].attributes.supported_features = 5;
+  app.todoItems.mockResolvedValue([{ ...pendingItem, summary: "oats" }, { uid: "b", summary: "Rice", status: "completed" }]);
+  renderList();
+  expect(await screen.findByRole("button", { name: "Oats is on the list" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Add Rice" }));
+  await waitFor(() => expect(app.command).toHaveBeenCalledWith("todo.example", "update_item", { item: "b", status: "needs_action" }));
+});

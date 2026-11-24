@@ -82,6 +82,8 @@ Turn on **Show completed homework** to include finished items in the selected pe
 
 **Settings → To-do lists → Shopping lists** lets you connect another Home Assistant list with **Add shopping list**. Tap **Choose list icon** beside a linked list. Browse the categories or search for an icon, such as **Christmas tree**, then tap it to save. Closing the dialog keeps the current icon. Each list’s **Display settings** control sort order and completed-item visibility. Existing shopping lists use a basket until you choose another icon. To unlink a list, open its picker, choose **No list selected** and confirm **Unlink list**. Its items stay in Home Assistant.
 
+In **Settings → To-do lists → Shopping lists**, open **Display settings** for a list and add or remove **Frequent items**. Each item becomes a one-tap shortcut on that shopping list. A checkmark means the item is already there. A completed item reopens when supported.
+
 With multiple shopping lists, Today shows up to three named lists and their reported outstanding counts. Tap a name to open the list or its plus button to start adding there. With a single list, Today shows up to three items in total. **Lists → Shopping** gives access to every linked list. Tap a list’s icon and name in the horizontal filter to switch lists. Item suggestions, edits and drafts stay with that list. **Lists → Family tasks** uses the same row with person avatars. Tap **All lists** to see everyone’s tasks.
 
 Reassign calendars and task lists previously linked to the built-in Everyone person in **Home settings**. Their events and items stay in Home Assistant.

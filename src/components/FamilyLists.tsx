@@ -324,7 +324,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
     }
     await change("update_item", { item: item.uid, status: item.status === "completed" ? "needs_action" : "completed" }, completion);
   };
-  const add = async (name = text) => {
+  const add = async (name = text, shortcut = false) => {
     if (!can("add_item") || !name.trim()) return;
     const existing = matchingTodoItem(items, name);
     if (existing?.status === "completed" && !can("update_item", existing.uid)) { toast.error(t("This list cannot reopen completed items.")); return; }
@@ -333,7 +333,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
       setAddError("");
       setAddingItem(existing?.uid ?? name);
       try {
-        const changes = todoDetailChanges(existing ?? {}, details, entity, currentHome.timeZone);
+        const changes: ReturnType<typeof todoDetailChanges> = shortcut ? {} : todoDetailChanges(existing ?? {}, details, entity, currentHome.timeZone);
         // Reopening a suggestion keeps its existing details unless the draft supplies replacements.
         if (existing && !details.due) { delete changes.due_date; delete changes.due_datetime; }
         if (existing && !details.description) delete changes.description;
@@ -341,7 +341,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
       } catch (error) { setAddError(error instanceof Error ? error.message : t("Configuration could not be saved.")); return; }
       finally { setAddingItem(undefined); }
     }
-    setText(""); setDetails({ due: "", description: "" }); setAdding(false);
+    if (!shortcut) { setText(""); setDetails({ due: "", description: "" }); setAdding(false); }
   };
   const period = homeworkPreview?.period ?? "all";
   const cutoff = period === "tomorrow" || period === "through-tomorrow" ? addDays(today, 1) : today;
@@ -382,6 +382,15 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
         <div className="list-identity flex-1 basis-44">{kind === "shopping" ? <ShoppingListAvatar icon={display.shoppingIcon} small /> : <MemberAvatar member={member} small />}<div><h3>{kind === "shopping" ? entity?.name ?? t("List unavailable") : memberName(member)}</h3>{urgent > 0 && <strong className="text-sm">{t("{count} urgent", { count: urgent })}</strong>}{kind !== "shopping" && <span>{entity?.name ?? t("List unavailable")}</span>}</div></div>
         {editable && <Button className="list-add-button mobile-icon-button" variant={adding ? "outline" : "default"} disabled={adding ? !!addingItem : !can("add_item")} aria-expanded={adding} aria-controls={formId} onClick={() => setAdding(!adding)}>{adding ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}<span className="max-[359px]:sr-only">{t(adding ? "Cancel" : kind === "shopping" ? "Add item" : "Add task")}</span></Button>}
       </div>
+      {kind === "shopping" && !limit && !adding && !!display.quickItems?.length && <div role="group" aria-label={t("Frequent items")} className="mt-2 flex flex-wrap gap-2">
+        {display.quickItems.map(name => {
+          const existing = matchingTodoItem(items, name);
+          const onList = existing && existing.status !== "completed";
+          const Icon = onList ? Check : Plus;
+          return <Button key={name} type="button" variant="outline" className="h-auto min-h-11 max-w-full whitespace-normal" disabled={onList || !can("add_item", name) || !!existing && !can("update_item", existing.uid)}
+            aria-label={t(onList ? "{item} is on the list" : "Add {item}", { item: name })} onClick={() => void add(name, true)}><Icon size={16} aria-hidden="true" /><span className="break-all">{name}</span></Button>;
+        })}
+      </div>}
       {editable && adding && <form id={formId} className="quick-add" onSubmit={event => { event.preventDefault(); void add(); }}>
         <label className="quick-add-field"><span>{t(kind === "shopping" ? "Item" : "Task")}</span><input ref={input} aria-label={t("New item in {value1}", { value1: entity?.name ?? t("List unavailable") })} aria-controls={suggestionsId} autoComplete="off" autoFocus required maxLength={120} disabled={!can("add_item")} value={text} onChange={event => setText(event.target.value)} placeholder={kind === "shopping" ? t("What do we need?") : t("What needs doing?")} /></label>
         <Button type="submit" disabled={!can("add_item") || !text.trim()} aria-label={t("Save item to {value1}", { value1: entity?.name ?? t("List unavailable") })}>{addingItem ? t("Saving…") : t("Add")}</Button>

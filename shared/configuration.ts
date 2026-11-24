@@ -84,6 +84,8 @@ export const shoppingListIcons = [
   "cabin", "camping", "travel", "hiking", "boating", "cycling", "winter-sports", "sports", "crafts", "sewing", "school", "gaming", "music",
 ] as const;
 export const todoDisplaySchema = z.object({
+  quickItems: z.array(z.string().trim().min(1).max(120)).max(30)
+    .refine(items => new Set(items.map(item => item.toLowerCase())).size === items.length).optional(),
   shoppingIcon: z.enum(shoppingListIcons).optional(),
   completed: z.enum(["inline", "under", "collapsed", "hide"]).default("collapsed"),
   sort: z.enum(["home-assistant", "alphabetical", "due-date"]).default("home-assistant"),
