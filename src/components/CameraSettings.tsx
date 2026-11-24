@@ -43,7 +43,7 @@ export function CameraSettings() {
   }, [params, setParams, shared.state.loaded, settings.items, draft]);
   const connection = settings.connections.find(item => item.id === draft?.connectionId);
   const snapshot = draft?.personSnapshot;
-  const automaticDetector = draft && !draft.personDetectionEntity ? cameraPersonSensors([draft], currentHome.entities).get(draft.id) : undefined;
+  const automaticDetector = draft && !draft.personDetectionEntity ? cameraPersonSensors([...settings.items.filter(camera => camera.id !== draft.id), draft], currentHome.entities).get(draft.id) : undefined;
   const personImageEntities = currentHome.entities.filter(entity => ["image", "camera"].includes(entity.domain)
     || ["sensor", "binary_sensor"].includes(entity.domain) && homeAssistantPicturePath(entity.attributes.entity_picture));
   const previewCamera = preview && settings.items.find(item => item.id === preview.id);

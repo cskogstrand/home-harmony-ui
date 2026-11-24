@@ -710,9 +710,13 @@ it("saves a person detector by stable reference and shows its state on the camer
 it("automatically matches the configured Frigate camera and respects an unavailable override", () => {
   const camera = cameraSettings().items[0];
   camera.frigatePreview = { connectionId: "frigate", camera: "driveway" };
-  const sensor = { ...mocks.app.currentHome.entities[0], entityId: "binary_sensor.driveway_person_occupancy", integration: "frigate" };
+  const sensor = { ...mocks.app.currentHome.entities[0], entityId: "binary_sensor.driveway_person_occupancy", preferenceId: "home|driveway-occupancy", integration: "frigate" };
   const entities = [sensor, ...mocks.app.currentHome.entities];
   expect(cameraPersonSensors([camera], entities).get(camera.id)).toBe(sensor);
+  const other = { ...camera, id: "other", frigatePreview: { camera: "driveway", connectionId: "second-server" } };
+  expect(cameraPersonSensors([camera, other], entities).size).toBe(0);
+  expect(cameraPersonSensors([camera, { ...other, personDetectionEntity: sensor.preferenceId }], entities).get(other.id)).toBe(sensor);
+  expect(cameraPersonSensors([camera], [...entities, { ...sensor, entityId: sensor.entityId + "_2" }]).size).toBe(0);
   expect(cameraPersonSensors([camera], [{ ...sensor, integration: "other" }]).size).toBe(0);
   expect(cameraPersonSensors([{ ...camera, personDetectionEntity: "home|missing" }], entities).size).toBe(0);
   expect(cameraPersonSensors(cameraSettings().items, entities).size).toBe(0);
