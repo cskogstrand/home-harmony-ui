@@ -14,9 +14,9 @@
 ## Phase A — "Using power now" (no HA changes needed)
 
 - [x] Pure helper `powerNow(entities)`: sensors with `device_class: power`, normalised to W (W/kW), available only, sorted descending; excludes entities the owner hid.
-- [ ] Top section "Using power now": top 5 consumers with name, area and live value; total of the listed sensors labelled as "of listed circuits" (not as house total) unless the owner pins a total meter.
-- [ ] Hide idle meters (< 5 W, configurable later only if asked) behind a "Show idle (n)" disclosure; energy (kWh) counters move to a collapsed "Meters" section.
-- [ ] Keep pinned meters (max three) above everything; keep vehicle cards.
+- [x] Top section "Using power now": top 5 consumers with name, area and live value; total of the listed sensors labelled as "of listed circuits" (not as house total) unless the owner pins a total meter.
+- [x] Hide idle meters (< 5 W, configurable later only if asked) behind a "Show idle (n)" disclosure; energy (kWh) counters move to a collapsed "Meters" section.
+- [x] Keep pinned meters (max three) above everything; keep vehicle cards.
 - [ ] If `energy/get_prefs` returns preferences, link "Open Home Assistant Energy"; if `not_found`, change the link text to "Set up Energy in Home Assistant" pointing to `/config/energy`.
 - [ ] Tests: unit normalisation, sorting, idle threshold, total labelling, prefs not_found copy.
 
