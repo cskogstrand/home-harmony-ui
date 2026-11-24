@@ -45,10 +45,10 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 | 05 | [Home Assistant language, numbers and noise](05-ha-language-and-numbers.md) | P2 | 00 | ✅ |
 | 06 | [Scenes and alarm consistency](06-scenes-and-alarm.md) | P2 | 00 | ✅ |
 | 07 | [Ask the house (Assist)](07-assist.md) | Feature | 04, 05 | ⬜ |
-| 08 | [Activity feed](08-activity-feed.md) | Feature | 04 | ⬜ |
-| 09 | [Energy now and electricity price](09-energy-now-and-price.md) | Feature | 05 | ⬜ |
+| 08 | [Activity feed](08-activity-feed.md) | Feature | 04 | ✅ |
+| 09 | [Energy now and electricity price](09-energy-now-and-price.md) | Feature | 05 | ✅ |
 | 10 | [Home Assistant health in Settings and HomeStatus](10-ha-maintenance.md) | Feature | 04 | ⬜ |
-| 11 | [3D printer card](11-printer-card.md) | Feature | 05 | ⬜ |
+| 11 | [3D printer card](11-printer-card.md) | Feature | 05 | ✅ |
 | 12 | [Type ramp and detector cleanup](12-type-ramp-and-detector.md) | P3 | 01–06 | ⬜ |
 | 13 | [Final verification and re-critique](13-final-verification.md) | — | all | ⬜ |
 
