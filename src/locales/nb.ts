@@ -2939,4 +2939,11 @@ export const nb = {
   "Source unavailable": "Kilden er utilgjengelig",
   "Use suggested sources": "Bruk foreslåtte kilder",
   "Shown on Smart home": "Vises på Smarthjem",
+  "Type a question first.": "Skriv et spørsmål først.",
+  "Home Assistant is offline. Your question was not sent.": "Home Assistant er frakoblet. Spørsmålet ble ikke sendt.",
+  "The connection was lost before Home Assistant answered. Anything you asked for may already have happened; check before asking again.": "Forbindelsen ble brutt før Home Assistant svarte. Det du ba om, kan allerede ha skjedd. Sjekk før du spør igjen.",
+  "Home Assistant did not answer in time. Anything you asked for may still happen; check before asking again.": "Home Assistant svarte ikke i tide. Det du ba om, kan fortsatt skje. Sjekk før du spør igjen.",
+  "Home Assistant could not handle the question. Check that Assist is set up in Home Assistant, then try again.": "Home Assistant kunne ikke behandle spørsmålet. Sjekk at Assist er satt opp i Home Assistant, og prøv igjen.",
+  "The connection changed before Home Assistant answered. Check the home before asking again.": "Forbindelsen endret seg før Home Assistant svarte. Sjekk hjemmet før du spør igjen.",
+  "Home Assistant sent an answer this screen cannot read.": "Home Assistant sendte et svar denne skjermen ikke kan lese.",
 } as const;

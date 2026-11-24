@@ -51,6 +51,16 @@ export const forecastSchema = z.array(z.object({
 }));
 export type Forecast = z.infer<typeof forecastSchema>;
 const energyPrefsSchema = z.object({ energy_sources: z.array(z.unknown()).default([]), device_consumption: z.array(z.unknown()).default([]) });
+const assistResultSchema = z.object({
+  conversation_id: z.string().nullish(),
+  response: z.object({
+    response_type: z.enum(["action_done", "query_answer", "error"]),
+    speech: z.object({ plain: z.object({ speech: z.string() }).nullish() }).nullish(),
+    data: z.object({ code: z.string().nullish() }).nullish(),
+  }),
+});
+/** One Assist answer: Home Assistant's reply, its kind and, for follow-ups, the conversation it belongs to. */
+export interface AssistAnswer { type: "action_done" | "query_answer" | "error"; speech: string; conversationId?: string; code?: string }
 const historySchema = z.record(z.string(), z.array(z.object({ s: z.string(), lu: z.number().finite(), lc: z.number().finite().optional() })));
 const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error === ERR_INVALID_AUTH_CALLBACK
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
@@ -463,6 +473,33 @@ export class HomeAssistantClient {
     if (!current()) throw new Error("Energy preferences request cancelled");
     const prefs = energyPrefsSchema.parse(result);
     return prefs.energy_sources.length || prefs.device_consumption.length ? "configured" : "missing";
+  };
+
+  /**
+   * Sends one sentence to Home Assistant Assist (`conversation/process`). Assist can act on whatever the owner exposed
+   * to it in Home Assistant, so a failed or unanswered request is never resent automatically.
+   */
+  assist = async (text: string, { agentId, conversationId, language }: { agentId?: string; conversationId?: string; language: string }): Promise<AssistAnswer> => {
+    const conn = this.connection, generation = this.generation, epoch = this.epoch;
+    const sentence = text.trim();
+    if (!sentence) throw new Error("Type a question first.");
+    if (!conn?.connected || this.snapshot.status !== "connected") throw new Error("Home Assistant is offline. Your question was not sent.");
+    let result: unknown;
+    try {
+      // Conversation agents backed by a language model can take longer than ordinary requests.
+      result = await bounded(conn.sendMessagePromise({ type: "conversation/process", text: sentence, language,
+        ...(agentId ? { agent_id: agentId } : {}), ...(conversationId ? { conversation_id: conversationId } : {}) }), 30000);
+    } catch (error) {
+      if (error === ERR_CONNECTION_LOST || !conn.connected) throw new Error("The connection was lost before Home Assistant answered. Anything you asked for may already have happened; check before asking again.");
+      if ((error as { message?: unknown } | null)?.message === "Request timed out") throw new Error("Home Assistant did not answer in time. Anything you asked for may still happen; check before asking again.");
+      throw new Error("Home Assistant could not handle the question. Check that Assist is set up in Home Assistant, then try again.");
+    }
+    if (generation !== this.generation || epoch !== this.epoch) throw new Error("The connection changed before Home Assistant answered. Check the home before asking again.");
+    const parsed = assistResultSchema.safeParse(result);
+    if (!parsed.success) throw new Error("Home Assistant sent an answer this screen cannot read.");
+    const { response, conversation_id } = parsed.data;
+    return { type: response.response_type, speech: response.speech?.plain?.speech.trim() ?? "",
+      ...(conversation_id ? { conversationId: conversation_id } : {}), ...(response.data?.code ? { code: response.data.code } : {}) };
   };
 
   watchCalendarEvents = (entityId: string, start: string, end: string, signal: AbortSignal, receive: (events: CalendarEvent[] | null) => void) => {

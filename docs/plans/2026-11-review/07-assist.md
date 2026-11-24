@@ -18,7 +18,7 @@
 
 ## Phase A — text
 
-- [ ] Client: add `assist(text, { agentId, conversationId, language })` to `HomeAssistantClient` in `src/lib/home-assistant.ts` using `sendMessagePromise`, with the existing `bounded` timeout and error mapping.
+- [x] Client: add `assist(text, { agentId, conversationId, language })` to `HomeAssistantClient` in `src/lib/home-assistant.ts` using `sendMessagePromise`, with the existing `bounded` timeout and error mapping.
 - [ ] Shared setting (Settings → Screen and alerts, new item "Assist"): enable/disable, agent (from `conversation/agent/list`), whether answers are spoken. Default: disabled until chosen. Store in shared configuration like other screen settings.
 - [ ] UI: an "Ask the house" button in the header actions (only when enabled) opening a dialog: input, send, conversation transcript for this session, clear. Generous touch targets; works with the on-screen keyboard; Escape closes and returns focus.
 - [ ] Show `action_done` answers with a subtle confirmation; `error` responses in plain language with retry; keep the typed text on failure.
