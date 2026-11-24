@@ -856,12 +856,14 @@ it("announces incoming titles and same-count replacements without repeating sens
   const content = () => <MemoryRouter><NotificationContext.Provider value={value}><NotificationBell /></NotificationContext.Provider></MemoryRouter>;
   const view = render(content());
   expect(screen.getByRole("status")).toHaveTextContent("Active notifications: Example doorbell");
+  expect(screen.getByRole("link", { name: "Notifications: 1 active" }).textContent).toBe("1");
   value.notifications = [{ ...notification, rule: { ...notification.rule, title: "Example window" } }];
   view.rerender(content());
   expect(screen.getByRole("status")).toHaveTextContent("Active notifications: Example window");
   value.notifications = [];
   view.rerender(content());
   expect(screen.getByRole("status")).toHaveTextContent("No active notifications");
+  expect(screen.getByRole("link", { name: "Notifications" }).textContent).toBe("");
   const cameraValue = { ...value, notifications: [{ ...notification, rule: cameraRule(), popup: true }] };
   view.rerender(<MemoryRouter><NotificationContext.Provider value={cameraValue}><NotificationBell /></NotificationContext.Provider></MemoryRouter>);
   expect(screen.getByRole("status")).toBeEmptyDOMElement();
@@ -878,7 +880,7 @@ it("announces an all-clear only after the connection and calendar source are rea
   mocks.app.connectionStatus = "syncing";
   const content = () => <MemoryRouter><NotificationProvider><NotificationBell /></NotificationProvider></MemoryRouter>;
   const view = render(content());
-  expect(screen.getByRole("link", { name: "Checking notifications…" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Notifications" }).textContent).toBe("");
   mocks.app.connectionStatus = "disconnected";
   view.rerender(content());
   expect(screen.getByRole("status")).toHaveTextContent("Notifications unavailable");
@@ -889,6 +891,7 @@ it("announces an all-clear only after the connection and calendar source are rea
   const receive = watchCalendarEvents.mock.lastCall[4];
   act(() => receive(null));
   expect(screen.getByRole("status")).toHaveTextContent("Some notification sources are unavailable");
+  expect(screen.getByRole("link", { name: "Notifications" }).textContent).toBe("");
   act(() => receive([]));
   expect(screen.getByRole("status")).toHaveTextContent("No active notifications");
 });
@@ -901,7 +904,9 @@ it("keeps an unknown state reading off Today and names the waiting rule in Notif
   const content = (compact: boolean) => <MemoryRouter><NotificationProvider><NotificationBell /><NotificationList compact={compact} /></NotificationProvider></MemoryRouter>;
   reading("unknown");
   const view = render(content(true));
-  expect(screen.getByRole("link", { name: "Waiting for notification readings" })).toBeVisible();
+  const bell = screen.getByRole("link", { name: "Notifications" });
+  expect(bell.textContent).toBe("");
+  expect(screen.getByRole("status")).toHaveTextContent("Waiting for notification readings");
   expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
   view.rerender(content(false));
   expect(screen.getByText("Waiting for a reading for Example cycle.")).toBeVisible();
@@ -910,7 +915,7 @@ it("keeps an unknown state reading off Today and names the waiting rule in Notif
   expect(screen.getByText("Could not read sources for Example cycle.")).toBeVisible();
   reading("idle");
   view.rerender(content(true));
-  expect(screen.getByRole("link", { name: "Notifications: 0 active" })).toBeVisible();
+  expect(screen.getByRole("link", { name: "Notifications" })).toBeVisible();
 });
 
 it("configures ongoing tasks with a stable entity reference", async () => {

@@ -24,8 +24,8 @@
 
 ## Checklist
 
-- [ ] Bell: show a filled badge only for real active notifications. "Waiting for a reading" shows nothing on the bell (or at most a hollow neutral dot) and is explained on `/notifications`.
-- [ ] Bell accessible name is always "Notifications" (+ count when > 0); the waiting/status sentence stays in the existing sr-only live region only when it changes.
+- [x] Bell: show a filled badge only for real active notifications. "Waiting for a reading" shows nothing on the bell (or at most a hollow neutral dot) and is explained on `/notifications`.
+- [x] Bell accessible name is always "Notifications" (+ count when > 0); the waiting/status sentence stays in the existing sr-only live region only when it changes.
 - [ ] Home status badge: neutral/no icon when all is well; colour and icon only when something needs attention. Keep the accessible summary.
 - [ ] Vehicle buttons match neighbour height (60 px) on the portrait wall media query.
 - [ ] Phone (< 768 px): collapse the vehicle strip into one compact chip (worst battery/charging state first; tap opens the existing vehicle detail) so the next family plan is visible on the first screen at 390 × 844.

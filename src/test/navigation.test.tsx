@@ -1958,7 +1958,7 @@ it.each([true, false])("previews every saved rule only on Today with notificatio
   expect(within(dialog).getByText(/Starts at/)).toBeVisible();
   expect(within(dialog).getByRole("button", { name: "Dismiss notification" })).toBeDisabled();
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
-  expect(screen.getByRole("link", { name: enabled ? "Notifications: 1 active" : "Notifications are turned off in settings." })).toBeVisible();
+  expect(screen.getByRole("link", { name: enabled ? "Notifications: 1 active" : "Notifications" })).toBeVisible();
 
   await navigate("Calendar");
   expect(screen.queryByRole("region", { name: "Notification preview" })).toBeNull();
