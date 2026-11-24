@@ -1,4 +1,4 @@
-import { Activity, ArrowLeft, BatteryCharging, ChevronRight, CircleCheck, CircleDashed, CloudSun, Droplets, Flame, Lamp, LockKeyhole, Radar, SlidersHorizontal, Thermometer, TriangleAlert, WashingMachine, WifiOff, Zap } from "lucide-react";
+import { Activity, ArrowLeft, BatteryCharging, Check, ChevronRight, CircleDashed, CloudSun, Droplets, Flame, House, Lamp, LockKeyhole, Radar, SlidersHorizontal, Thermometer, TriangleAlert, WashingMachine, WifiOff, Zap } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import houseArtwork from "@/assets/home-status.svg?no-inline";
 import "./home-status.css";
 
-const statusIcons = { loading: Activity, offline: WifiOff, setup: CircleDashed, attention: TriangleAlert, healthy: CircleCheck };
+const statusIcons = { loading: Activity, offline: WifiOff, setup: CircleDashed, attention: TriangleAlert, healthy: Check };
 const groups = { ...homeStatusGroups, missing: "Unmatched sources" } as const;
 type Group = keyof typeof groups;
 const icons = { fire: Flame, water: Droplets, access: LockKeyhole, security: Radar, climate: Thermometer, energy: Zap,
@@ -109,7 +109,9 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
       <TriangleAlert aria-hidden="true" /><span><strong>{t("Home status")} · {summary}</strong>
         <small>{issues[0].entity?.name ?? t("Unavailable")} · {readingValue(issues[0].entity)}</small></span><ChevronRight aria-hidden="true" /></button></DialogTrigger>
       : <DialogTrigger asChild><button type="button" id="home-status-button" className="icon-button glass-surface housing-trigger" data-tone={tone} aria-label={label} title={label}>
-        <StatusIcon size={21} aria-hidden="true" />{count > 0 && <span className="housing-badge" aria-hidden="true">{number(count)}</span>}</button></DialogTrigger>}
+        <House size={21} aria-hidden="true" />
+        <span className="housing-badge" aria-hidden="true"><StatusIcon size={13} strokeWidth={2.6} />{count > 0 && number(count)}</span>
+      </button></DialogTrigger>}
     {!card && <span className="sr-only" role="status" aria-atomic="true">{label}</span>}
     {open && <DialogContent className="housing-modal" onOpenAutoFocus={event => { event.preventDefault(); heading.current?.focus(); }}
       onCloseAutoFocus={event => {

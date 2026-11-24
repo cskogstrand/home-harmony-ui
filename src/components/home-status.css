@@ -1,7 +1,14 @@
 .housing-trigger { position: relative; }
-.housing-trigger[data-tone="healthy"] { color: hsl(var(--success)); }
-.housing-trigger[data-tone="attention"], .housing-issue-value { color: hsl(var(--warning)); }
-.housing-badge { position: absolute; inset: -.25rem -.25rem auto auto; min-width: 1.25rem; padding-inline: .32rem; border-radius: 1rem; background: hsl(var(--warning)); color: hsl(var(--background)); font-size: .75rem; line-height: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.housing-badge {
+  position: absolute; inset-block-start: -.22rem; inset-inline-end: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: .14rem;
+  min-width: 1.2rem; height: 1.2rem; padding-inline: .2rem; border-radius: var(--radius-capsule);
+  background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); box-shadow: 0 0 0 2px hsl(var(--background));
+  font-size: .75rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.housing-trigger[data-tone="healthy"] .housing-badge { background: hsl(var(--success)); color: hsl(var(--success-foreground)); }
+.housing-trigger[data-tone="attention"] .housing-badge { background: hsl(var(--warning)); color: hsl(var(--warning-foreground)); }
+.housing-issue-value { color: hsl(var(--warning)); }
 .housing-modal.glass-modal { display: flex; flex-direction: column; gap: 0; width: min(calc(100% - 1.5rem), 34rem); max-width: none; max-height: calc(100dvh - 2rem); padding: 0; overflow: hidden; }
 .housing-modal > button:last-child { display: grid; place-items: center; width: 44px; height: 44px; right: .5rem; top: .35rem; }
 .housing-head { display: flex; flex-direction: row; align-items: center; gap: .5rem; min-height: 3.5rem; padding: .35rem 3.5rem .35rem 1.4rem; border-bottom: 1px solid hsl(var(--border)); }
