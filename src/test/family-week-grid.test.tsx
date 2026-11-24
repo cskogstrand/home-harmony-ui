@@ -57,6 +57,24 @@ it("marks a chip picked up from 09:00 on its day", () => {
   expect(grid.getByRole("button", { name: "Paper, Picked up today" })).toHaveAttribute("data-state", "collected");
 });
 
+it("offers one add control per person row that opens the editor for that person, starting today when it is in view", () => {
+  const { grid, onAdd, onDay } = renderGrid([plan({ title: "Example plan" }), plan({ title: "Overlap", time: "09:30" })]);
+  const adds = grid.getAllByRole("button", { name: /^Add a plan/ });
+  expect(adds.map(button => button.getAttribute("aria-label"))).toEqual(["Add a plan for Alex Example", "Add a plan for Sam Sample"]);
+  for (const button of adds) expect(button.closest("th")).toHaveAttribute("scope", "rowgroup");
+  adds[1].click();
+  expect(onAdd).toHaveBeenCalledExactlyOnceWith("2026-10-28", "sam");
+  grid.getByRole("button", { name: "Thursday, 29 October 2026" }).click();
+  expect(onDay).toHaveBeenCalledExactlyOnceWith("2026-10-29");
+  cleanup();
+  mocks.today = "2026-11-10";
+  const later = renderGrid([]);
+  later.grid.getByRole("button", { name: "Add a plan for Alex Example" }).click();
+  expect(later.onAdd).toHaveBeenCalledExactlyOnceWith(start, "alex");
+  cleanup();
+  expect(renderGrid([], { compact: true }).grid.queryAllByRole("button", { name: /^Add a plan/ })).toEqual([]);
+});
+
 it("names each person row while their avatar stands in for the visible name on wide screens", () => {
   const { grid } = renderGrid([]);
   for (const member of members) {

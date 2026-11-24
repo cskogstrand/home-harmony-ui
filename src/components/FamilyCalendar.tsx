@@ -60,6 +60,8 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
   const { t, dateLabel, language } = useI18n();
   const { today, members: familyMembers } = useFamily();
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  // One add control per person; the editor starts on today when it is in view, and the day header leads to a single day's own Add a plan.
+  const addDay = days.includes(today) ? today : start;
   return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label={t("Family weekly calendar")} tabIndex={0}>
       <table className="family-week-table" lang={language}>
         <caption className="sr-only">{t("Family plans from {value1} to {value2}", { value1: dateLabel(start), value2: dateLabel(addDays(start, 6)) })}</caption>
@@ -74,7 +76,9 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
           const rows = weekEventRows(personal, start);
           return <tbody key={person.id} style={{ "--member": person.color } as React.CSSProperties}>
             {rows.map((row, index) => <tr key={index} className="week-event-row">
-              {index === 0 && <th scope="rowgroup" rowSpan={rows.length + (compact ? 0 : 1)}><div className="week-person" title={person.name}><span aria-hidden="true"><MemberAvatar member={person.id} /></span><span className="week-member-label">{person.name}</span></div></th>}
+              {index === 0 && <th scope="rowgroup" rowSpan={rows.length} aria-label={person.name}><div className="week-person" title={person.name}><span aria-hidden="true"><MemberAvatar member={person.id} /></span><span className="week-member-label">{person.name}</span>
+                {!compact && <button type="button" className="week-add-plan" aria-label={t("Add a plan for {value1}", { value1: person.name })} title={t("Add a plan for {value1}", { value1: person.name })} onClick={() => onAdd(addDay, person.id)}><Plus size={18} aria-hidden="true" /></button>}
+              </div></th>}
               {days.map((day, column) => {
                 if (row.some(span => span.start < column && span.end > column)) return null;
                 const span = row.find(span => span.start === column);
@@ -84,9 +88,6 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
                 </td>;
               })}
             </tr>)}
-            {!compact && <tr className="week-add-row">{days.map(day => <td key={day}>
-              <button className="week-add-plan" aria-label={t("Add a plan for {value1} on {value2}", { value1: person.name, value2: dateLabel(day) })} onClick={() => onAdd(day, person.id)}><Plus size={18} aria-hidden="true" /></button>
-            </td>)}</tr>}
           </tbody>;
         })}
       </table>

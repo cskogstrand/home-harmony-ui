@@ -1198,7 +1198,7 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
   expect(train).toHaveTextContent("22:00 – Thu 8 Oct, 08:00");
   expect(train.closest("tr")).not.toBe(trip.closest("tr"));
   expect(grid.getByRole("button", { name: /Midnight finish/ }).closest("td")).toHaveAttribute("colspan", "1");
-  expect(grid.queryAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(path === "/calendar" ? 7 : 0);
+  expect(grid.queryAllByRole("button", { name: /Add a plan for Everyone/ })).toHaveLength(path === "/calendar" ? 1 : 0);
   if (path === "/calendar") expect(screen.getByRole("button", { name: "Add a plan" })).toBeEnabled();
   else expect(screen.queryByRole("button", { name: "Add a family plan" })).not.toBeInTheDocument();
   fireEvent.click(train);
@@ -1391,9 +1391,9 @@ it("preserves a failed calendar draft and blocks writes offline or without a wri
   render(<App />);
   await waitFor(() => expect(haFetch).toHaveBeenCalled());
   await waitFor(() => expect(screen.queryByText("Loading plans…")).not.toBeInTheDocument());
-  fireEvent.click(screen.getByRole("button", { name: "Add a plan for Morgan on Thu 8 Oct" }));
-  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-08");
-  expect(screen.getByLabelText("End date")).toHaveValue("2026-10-08");
+  fireEvent.click(screen.getByRole("button", { name: "Add a plan for Morgan" }));
+  expect(await screen.findByLabelText("Date")).toHaveValue("2026-10-07");
+  expect(screen.getByLabelText("End date")).toHaveValue("2026-10-07");
   expect(screen.getByRole("button", { name: "Calendar" })).toHaveTextContent("Morgan calendar");
   fireEvent.change(screen.getByLabelText("What’s happening?"), { target: { value: "Keep this draft" } });
   vi.mocked(ha.callService).mockRejectedValueOnce(new Error("Permission denied with private details"));

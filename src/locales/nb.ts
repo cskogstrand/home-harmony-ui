@@ -1274,7 +1274,7 @@ export const nb = {
   "Add a calendar integration in Home Assistant and assign calendars to your Home Assistant people. Plans and edits are saved to the source calendar when it supports them.": "Legg til en kalenderintegrasjon i Home Assistant og knytt kalendere til personene dine i Home Assistant. Planer og endringer lagres i kildekalenderen når den støtter det.",
   "Add a place": "Legg til et sted",
   "Add a plan": "Legg til en plan",
-  "Add a plan for {value1} on {value2}": "Legg til en plan for {value1} den {value2}",
+  "Add a plan for {value1}": "Legg til en plan for {value1}",
   "Add a to-do integration": "Legg til en listeintegrasjon",
   "Add calendar for {value1}": "Legg til kalender for {value1}",
   "Add calendar…": "Legg til kalender…",
