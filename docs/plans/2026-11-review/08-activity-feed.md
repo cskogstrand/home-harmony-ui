@@ -34,7 +34,9 @@ Include by default: doors/garage doors/windows (open/close), locks, alarm state 
 - [x] Settings: choose curated sources, person events opt-in (default off), panel on/off.
 - [x] Offline: show cached items marked stale, like other stale readings.
 - [x] Tests: curation, flapping collapse, person opt-in, unsubscribe on unmount, stale state.
-- [ ] Docs: README, PRODUCT.md (capability), DOCS.md (what the feed shows and privacy note); i18n en/nb.
+- [x] Docs: README, PRODUCT.md (capability), DOCS.md (what the feed shows and privacy note); i18n en/nb.
+
+> Handoff: behaviour is proven with unit and component tests on fictional fixtures (`src/test/activity-feed.test.tsx`). Not yet checked in a browser (the shared dev server serves `main`): the panel and log at 1440 × 2560 and 390 × 844, light/dark and artwork on, and the real logbook stream's volume for a full day. Placement follows the default answer to the master plan's open question (panel on Smart home).
 
 ## Acceptance
 
