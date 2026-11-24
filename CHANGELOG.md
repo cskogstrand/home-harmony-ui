@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.40
+
+<!-- release-source: 66531754a14cec0a85e4f2940ca7d48da236c50c -->
+
+- feat: add vehicle status, map details and tab icons
+- feat: pan and expand the live vehicle map
+
 ## 0.10.39
 
 <!-- release-source: b3a88ffc0e952afbb002d37a5962ada21bcd60ec -->
