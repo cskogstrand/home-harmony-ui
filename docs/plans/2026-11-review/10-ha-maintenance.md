@@ -26,8 +26,10 @@
 - [x] HomeStatus `maintenance`: count only actionable items — repair issues with severity `error`/`critical`, last automatic backup failed or older than 48 h, `agent_errors` present. Warnings and persistent notifications stay in Settings only (no family-surface noise).
 - [x] Refresh: repairs and backup info on connect and every 15 min while visible; notifications live.
 - [x] Settings group card shows a small count badge when actionable items exist (so the owner finds it).
-- [ ] Tests with fictional payloads: severity filtering, stale backup rule, unauthorized hides section, dismiss call shape.
-- [ ] Docs: DOCS.md (admin token needed for health; what is shown), README; i18n en/nb.
+- [x] Tests with fictional payloads: severity filtering, stale backup rule, unauthorized hides section, dismiss call shape.
+
+  > Note: `src/test/ha-health.test.tsx` covers the client reads (unauthorized and unknown_command resolve undefined), the dismiss service call, the actionable and stale rules (48 h, or a weekly schedule's spacing plus a day), the 15-minute visible refresh, the Settings blocks and Home status; `src/test/navigation.test.tsx` covers the Settings count badge and the hidden menu entry. The stale rule reads the spacing of the two latest automatic backups because `backup/info` does not include the schedule. Not checked in the browser: the dev server on port 8081 serves `main`, not this branch.
+- [x] Docs: DOCS.md (admin token needed for health; what is shown), README; i18n en/nb.
 
 ## Acceptance
 

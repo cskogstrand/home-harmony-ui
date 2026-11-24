@@ -26,6 +26,7 @@ Home Assistant owns people, calendars, to-do items, device state and permissions
 - Never insert private household information or credentials into source, examples or screenshots. Preview data must be explicitly fictional.
 - Physical commands are never replayed automatically. Failed writes retain drafts and destructive actions retain confirmation.
 - Home Assistant administration (automations, integrations and activity) lives in Settings → System, not in the family dock or Smart home navigation. Running or disabling an automation asks for confirmation.
+- Home Assistant health (repairs, persistent notifications, backup status and waiting updates) lives in Settings → System. Only actionable maintenance (error or critical repairs and failed, overdue or erroring backups) reaches Home status; warnings and notifications stay in Settings.
 - Smart home shows a curated, live **Recent at home** list from the Home Assistant logbook, written in the dashboard's language; Settings → System → Activity holds the full log and the panel's sources. People's comings and goings are opt-in for privacy on a shared screen.
 
 ## Brand Commitments
