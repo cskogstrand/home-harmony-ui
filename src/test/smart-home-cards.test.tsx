@@ -7,7 +7,8 @@ import { SmartHomeCards } from "@/components/devices/SmartHomeCards";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cardDesigns, cardDesignFor } from "@/components/devices/card-designs";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
-import { smartHomeCards } from "@/lib/smart-home-cards";
+import { orderedScenes, smartHomeCards } from "@/lib/smart-home-cards";
+import Moods from "@/pages/Moods";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { services, state } from "./ha-fixtures";
 import { cardEntity, cardServices, configuredCard, mediaEntity } from "./device-card-fixtures";
@@ -125,6 +126,34 @@ it("keeps scene cards minimal while preserving confirmation, pending, errors and
     if (state === "offline") expect(screen.getByText("Offline")).toBeVisible();
     if (state === "unavailable") expect(screen.getByText("Unavailable")).toBeVisible();
   }
+});
+
+it("renders the Scenes page with the shared super compact scene card in saved order", async () => {
+  const scenes = mapHome(Object.fromEntries(["Alpha", "Bravo", "Charlie", "Delta"].map(name => [`scene.${name.toLowerCase()}`, state(`scene.${name.toLowerCase()}`, "unknown", { friendly_name: `Example ${name}` })])), emptyRegistries, "example").entities;
+  const [alpha, bravo, charlie, delta] = scenes;
+  mocks.app.currentHome.entities = [climate(), ...scenes];
+  mocks.family = { ...mocks.family, smartHome: { layout: [configuredCard(charlie.preferenceId, "scene"), configuredCard(alpha.preferenceId, "light")] }, homeEntities: [delta.preferenceId, charlie.preferenceId] };
+  expect(orderedScenes(mocks.app.currentHome.entities, mocks.family.smartHome, mocks.family.homeEntities)).toEqual([charlie, delta, alpha, bravo]);
+  render(<MemoryRouter><TooltipProvider><Moods /></TooltipProvider></MemoryRouter>);
+  const cards = within(screen.getByRole("region", { name: "Scenes" })).getAllByRole("article");
+  expect(cards.map(card => card.getAttribute("aria-label"))).toEqual(["Example Charlie", "Example Delta", "Example Alpha", "Example Bravo"]);
+  for (const card of cards) {
+    expect(card).toHaveAttribute("data-card-kind", "scene");
+    expect(card).toHaveAttribute("data-variant", "Super compact");
+  }
+  expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Activate Example Delta" }));
+  expect(mocks.command).not.toHaveBeenCalled();
+  expect(screen.getByRole("alertdialog")).toHaveTextContent("Activate Example Delta?");
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Confirm" }));
+  await waitFor(() => expect(mocks.command).toHaveBeenCalledExactlyOnceWith(delta.entityId, "turn_on", undefined));
+});
+
+it("shows an empty Scenes page without placeholder tiles", () => {
+  mocks.family = { ...mocks.family, homeEntities: undefined };
+  render(<MemoryRouter><TooltipProvider><Moods /></TooltipProvider></MemoryRouter>);
+  expect(screen.getByText("No scenes yet.")).toBeVisible();
+  expect(screen.queryByRole("article")).not.toBeInTheDocument();
 });
 
 it("keeps a media card mounted and in saved order as its neighboring scene changes density", () => {

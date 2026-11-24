@@ -16,13 +16,14 @@
 
 ## Checklist
 
-- [ ] `/moods`: render scenes with the same tile component as Today (Super compact density), same confirmation/pending/failure behaviour, same ordering source.
-- [ ] Re-run the scene layout matrix from family-board-review (0, 1, 3, 4, 5, 7 scenes; long label) at 1440 × 2560 and 390 × 844.
-- [ ] `/alarm`: large state headline (state + since when), using the alarm card layout; actions grouped by intent with the safest action visually primary.
-- [ ] Hide or disable the action matching the current state (no "Disarm" while disarmed); disabled actions explain why via accessible description.
-- [ ] Keep the PIN gate and confirmation exactly as today; no replay after reconnect.
-- [ ] Tests: current-state action disabled/hidden for each alarm state; scenes page uses the shared tile component.
-- [ ] Update DESIGN.md (scene tile and alarm page rules).
+- [x] `/moods`: render scenes with the same tile component as Today (Super compact density), same confirmation/pending/failure behaviour, same ordering source.
+- [x] Re-run the scene layout matrix from family-board-review (0, 1, 3, 4, 5, 7 scenes; long label) at 1440 × 2560 and 390 × 844.
+  > Checked `/moods` rendered from fictional scenes with the production CSS build, light and dark. 1440 × 2560: 305 px tiles, four per row, last row centred (3 scenes start 162 px in, matching the earlier review), tiles 90–175 px high, no overflow. 390 × 844: two 154 px tiles per row with a centred last tile, ≥72 px high, no overflow. The phone pass found names breaking mid-word ("Examp-le") because the play icon left 50 px for the label; narrow scene tiles (≤12rem) now drop the trailing play icon and tighten padding, giving the name 98 px.
+- [x] `/alarm`: large state headline (state + since when), using the alarm card layout; actions grouped by intent with the safest action visually primary.
+- [x] Hide or disable the action matching the current state (no "Disarm" while disarmed); disabled actions explain why via accessible description.
+- [x] Keep the PIN gate and confirmation exactly as today; no replay after reconnect.
+- [x] Tests: current-state action disabled/hidden for each alarm state; scenes page uses the shared tile component.
+- [x] Update DESIGN.md (scene tile and alarm page rules).
 
 ## Acceptance
 
