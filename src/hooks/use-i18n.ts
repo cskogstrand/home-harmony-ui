@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
+import { AppStoreContext } from "@/contexts/AppContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { createI18n, type Language } from "@/lib/i18n";
 
@@ -16,8 +17,11 @@ export function useI18n() {
   return useMemo(() => createI18n(language), [language]);
 }
 
-/** Call once near the root: remembers the shared language for the next load on this screen. */
+/** Call once near the root: remembers the shared language for the next load on this screen and loads Home Assistant's labels for it. */
 export function useRememberLanguage() {
   const configured = useLoadedLanguage();
+  const language = configured ?? remembered();
+  const store = useContext(AppStoreContext);
   useEffect(() => { if (configured) try { localStorage.setItem(storageKey, configured); } catch { /* storage unavailable: next load falls back to English until settings arrive */ } }, [configured]);
+  useEffect(() => { store?.setLanguage(language); }, [store, language]);
 }

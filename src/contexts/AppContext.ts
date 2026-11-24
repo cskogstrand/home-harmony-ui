@@ -29,7 +29,7 @@ export function createAppStore() {
     }
     return app;
   }
-  return { getSnapshot, subscribe: client.subscribe, start: client.start, dispose: client.dispose };
+  return { getSnapshot, subscribe: client.subscribe, start: client.start, dispose: client.dispose, setLanguage: client.setLanguage };
 }
 
 export const AppStoreContext = createContext<ReturnType<typeof createAppStore> | null>(null);
