@@ -591,7 +591,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .lists-page { max-width: 1050px; margin: auto; }
 .list-tabs { display: flex; overflow-x: auto; scrollbar-width: thin; padding: .3rem; gap: .3rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-capsule); background: hsl(var(--secondary) / .7); }
 .list-tabs button { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .8rem .5rem; border-radius: var(--radius-capsule); font-size: 1rem; color: hsl(var(--muted-foreground)); }
-.list-tabs button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); }
+.list-tabs button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); font-weight: 600; }
 .list-tabs button > span { background: hsl(var(--background) / .15); padding: 2px 7px; font-size: 0.8125rem; border-radius: 20px; }
 .lists-page .check-row { display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid hsl(var(--border) / .55); min-height: 56px; }
 .lists-page .check-row :is(label, .edit-item) { min-height: 64px; font-size: 1rem; }
@@ -675,7 +675,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .calendar-week-number { display: block; min-height: 18px; color: hsl(var(--primary)); font-size: 0.75rem; font-weight: 600; line-height: 18px; white-space: nowrap; }
 .calendar-segment { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid hsl(var(--border)); background: hsl(var(--secondary) / .7); border-radius: var(--radius-capsule); }
 .calendar-segment button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; padding: 7px 12px; border-radius: var(--radius-capsule); font-size: 0.875rem; color: hsl(var(--muted-foreground)); white-space: nowrap; }
-.calendar-segment button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); }
+.calendar-segment button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); font-weight: 600; }
 .calendar-segment button:hover { background: hsl(var(--secondary)); }
 .weekly-panel { padding: 12px; }
 .weekly-scroll { overflow-x: auto; scrollbar-width: thin; border-radius: 13px; min-width: 0; }
