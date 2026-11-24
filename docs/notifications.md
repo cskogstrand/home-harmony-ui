@@ -21,7 +21,7 @@ Rules, titles, messages and selected entities are saved in shared settings and i
 
 The notification area fades in or out over 160 ms. When it changes above the viewport, the page keeps the reader’s place. If a cleared alert contained keyboard focus, focus returns to the header bell. Dismissed controls become inactive immediately.
 
-For a dishwasher refill reminder, create a current notification for the low salt or rinse-aid sensor. Under **Notification content**, enable **Add to shopping list**, choose a linked shopping list and enter the item name. Tap the action in the active notification to add the item. An existing open item stays on the list, and a completed item reopens if the integration supports it. Leave the action off for maintenance reminders such as cleaning the filter.
+Choose **Settings → Notifications → Create refill alert** (**Innstillinger → Varsler → Opprett påfyllingsvarsel**). Select the salt or rinse-aid sensor and the state that means it needs refilling. For a numeric level sensor, enter the level below which the alert should appear. Enter the item name, select a linked shopping list and save. The rule appears under **Current alerts**, where **Edit** opens the regular notification editor. Tap the action in the active notification to add the item. An existing open item stays on the list, and a completed item reopens if the integration supports it. Leave the action off for maintenance reminders such as cleaning the filter.
 
 ## Choose triggers
 

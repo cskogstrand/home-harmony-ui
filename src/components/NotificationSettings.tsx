@@ -1,4 +1,5 @@
 import type { ZodIssue } from "zod";
+import { RefillReminder } from "./RefillReminder";
 import { NotificationValidationErrors } from "./NotificationValidationErrors";
 import { configuredCamera } from "../../shared/cameras";
 import { useSearchParams } from "react-router-dom";
@@ -184,6 +185,7 @@ export function NotificationSettings() {
   return <section className="settings-stack" id="notifications">
     <PanelHeading icon={Bell} title={t("Notifications")} to="/notifications" label={t("View notifications")} />
     <p className="page-note">{t("Keep track of running tasks, current events and camera alerts while Afterglow is open. Rules are shared across screens; dismissals apply to this screen.")}</p>
+    <RefillReminder disabled={disabled || notifications.rules.length >= 100} />
     <label className="my-4 flex items-center justify-between gap-4"><span>{t("Enable notifications")}</span><Switch aria-label={t("Enable notifications")} checked={notifications.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ enabled })} /></label>
     <NotificationGridZoomPicker value={notifications.gridZoom} disabled={disabled} onChange={gridZoom => setNotifications({ gridZoom })} />
     <NotificationWidgetWidthPicker value={notifications.defaultWidgetWidth} disabled={disabled} onChange={defaultWidgetWidth => setNotifications({ defaultWidgetWidth })} />

@@ -353,6 +353,9 @@
 @container (max-width: 440px) {
   .notification-entity-settings .notification-range { grid-template-columns: minmax(0, 1fr); }
 }
+.refill-dialog.glass-modal { display: flex; flex-direction: column; max-height: calc(100dvh - 2rem); }
+.refill-dialog form { display: flex; flex-direction: column; min-height: 0; }
+.refill-dialog .dialog-form-body { max-height: none; }
 .notification-settings-toolbar { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
 .notification-preview-dialog { width: min(1120px, calc(100% - 24px)); max-width: 1120px; max-height: calc(100dvh - 24px); display: flex; flex-direction: column; overflow: hidden; }
 .notification-preview-collection { min-height: 0; overflow-y: auto; padding: .25rem; display: grid; gap: 2rem; }

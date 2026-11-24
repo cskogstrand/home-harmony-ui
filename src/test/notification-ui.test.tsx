@@ -2239,3 +2239,34 @@ it("adds a shopping reminder once, reopens completed items and keeps previews in
   await screen.findByText("This item is already on the list.");
   expect(command).toHaveBeenCalledTimes(2);
 });
+
+it.each([
+  { attributes: { options: ["ok", "low"] }, reading: "ok", field: "Value that triggers the alert", entered: "low", operator: "eq", value: "low" },
+  { attributes: { unit_of_measurement: "%" }, reading: "8", field: "Alert below · %", entered: "2,5", operator: "lt", value: "2.5" },
+])("creates a refill alert for $field using the selected sensor and shopping list", async ({ attributes, reading, field, entered, operator, value }) => {
+  const entities = mapHome({
+    "sensor.salt": state("sensor.salt", reading, attributes),
+    "todo.example": state("todo.example", "0", { supported_features: 1 }),
+  }, emptyRegistries, "home");
+  Object.assign(mocks.app, { currentHome: entities, services: { todo: { add_item: {} } } });
+  mocks.family.todoLists = { "home|todo.example": { member: "everyone", kind: "shopping" } };
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Create refill alert" }));
+  const form = within(screen.getByRole("dialog", { name: "Create refill alert" }));
+  const submit = form.getByRole("button", { name: "Save notification" });
+  expect(submit).toBeDisabled();
+  chooseEntity(form.getByRole("button", { name: "Refill sensor" }), "sensor.salt");
+  fireEvent.change(form.getByLabelText(field), { target: { value: entered } });
+  fireEvent.change(form.getByLabelText("Item"), { target: { value: "Salt" } });
+  fireEvent.click(submit);
+  expect(setNotifications.mock.lastCall?.[0].rules).toMatchObject([{ kind: "current", title: "Refill Salt",
+    trigger: { entity: "home|sensor.salt", operator, value }, shoppingAction: { list: "home|todo.example", item: "Salt" } }]);
+  await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+});
+
+it("links to shopping list settings when a refill alert has no writable list", () => {
+  render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Create refill alert" }));
+  expect(screen.getByRole("link", { name: "Set up shopping lists" })).toHaveAttribute("href", "/settings/lists");
+  expect(setNotifications).not.toHaveBeenCalled();
+});
