@@ -110,7 +110,7 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
         <small>{issues[0].entity?.name ?? t("Unavailable")} · {readingValue(issues[0].entity)}</small></span><ChevronRight aria-hidden="true" /></button></DialogTrigger>
       : <DialogTrigger asChild><button type="button" id="home-status-button" className="icon-button glass-surface" data-tone={tone} aria-label={label} title={label}>
         <House size={21} aria-hidden="true" />
-        <span className="header-badge" data-tone={tone} aria-hidden="true"><StatusIcon size={13} strokeWidth={2.6} />{count > 0 && number(count)}</span>
+        {status !== "healthy" && <span className="header-badge" data-tone={tone} aria-hidden="true"><StatusIcon size={13} strokeWidth={2.6} />{count > 0 && number(count)}</span>}
       </button></DialogTrigger>}
     {!card && <span className="sr-only" role="status" aria-atomic="true">{label}</span>}
     {open && <DialogContent className="housing-modal" onOpenAutoFocus={event => { event.preventDefault(); heading.current?.focus(); }}

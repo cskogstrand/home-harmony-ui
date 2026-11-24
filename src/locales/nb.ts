@@ -272,6 +272,7 @@ export const nb = {
   "Remove {name}?": "Fjerne {name}?",
   "The header widget and its saved settings will be removed.": "Bilens visning i toppfeltet og de lagrede bilinnstillingene fjernes.",
   "Electric vehicles": "Elbiler",
+  "Electric vehicles · lowest battery: {name}, {battery}": "Elbiler · lavest batteri: {name}, {battery}",
   "Choose which cars appear in the header": "Velg hvilke biler som vises i toppfeltet",
   "Connect to Home Assistant to discover vehicles.": "Koble til Home Assistant for å finne biler.",
   "Vehicle discovery is incomplete. Check the Home Assistant connection.": "Kunne ikke hente alle bilene. Sjekk tilkoblingen til Home Assistant.",

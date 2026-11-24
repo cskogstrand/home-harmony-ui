@@ -32,10 +32,10 @@ export function NotificationBell() {
   const { notifications, errors, statusMessage } = useNotifications();
   const titles = notifications.filter(item => item.rule.kind !== "camera").map(item => item.eventTitle || item.rule.title).join(", ");
   const status = statusMessage ? t(statusMessage) : errors.length ? t("Some notification sources are unavailable") : "";
-  const count = t("Notifications: {count} active", { count: notifications.length });
-  const label = [(!status || notifications.length > 0) && count, status].filter(Boolean).join(" · ");
+  // Only real alerts earn the filled count. Startup, waiting and source states are explained on Today and /notifications.
+  const label = notifications.length ? t("Notifications: {count} active", { count: notifications.length }) : t("Notifications");
   return <><Link id="notification-bell" to="/notifications" className="icon-button glass-surface relative" aria-label={label} title={label}>
-    <Bell size={20} aria-hidden="true" />{(notifications.length > 0 || status) && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length || (statusMessage === "Checking notifications…" || statusMessage === "Waiting for notification readings" ? "…" : "!")}</span>}
+    <Bell size={20} aria-hidden="true" />{notifications.length > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length}</span>}
   </Link><span role="status" aria-atomic="true" className="sr-only">{[titles && t("Active notifications: {titles}", { titles }), status || (!notifications.length && t("No active notifications"))].filter(Boolean).join(" · ")}</span></>;
 }
 
