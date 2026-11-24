@@ -10,7 +10,7 @@ export function isPriceSensor(entity: Entity) {
   return /\/\s*kWh$/i.test(unit) || entity.attributes.device_class === "monetary";
 }
 
-/** The currency in a "NOK/kWh"-style unit, or the whole unit when it names none. */
+/** The currency in a "EUR/kWh"-style unit, or the whole unit when it names none. */
 export function priceCurrency(unit: unknown) {
   const text = String(unit ?? "").trim();
   return text.replace(/\s*\/\s*kWh$/i, "") || text;
