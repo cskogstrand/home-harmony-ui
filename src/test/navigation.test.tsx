@@ -1864,7 +1864,9 @@ it("updates the home illustration as readings and connectivity change in an open
   };
   report("off");
   const view = render(<App />); await saved();
-  fireEvent.click(screen.getByRole("button", { name: "Home status · No issues reported" }));
+  const healthy = screen.getByRole("button", { name: "Home status · No issues reported" });
+  expect(healthy.querySelector(".header-badge")).toBeNull();
+  fireEvent.click(healthy);
   const scene = screen.getByRole("dialog").querySelector(".housing-scene");
   const expectScene = (name: string) => expect(scene.querySelector("use").getAttribute("href")).toMatch(new RegExp("#" + name + "$"));
   expect(scene).toHaveAttribute("aria-hidden", "true");
