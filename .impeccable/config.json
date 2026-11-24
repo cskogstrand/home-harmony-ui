@@ -65,7 +65,7 @@
           "src/afterglow.css"
         ],
         "createdAt": "2026-11-24T21:25:36.078Z",
-        "reason": "Workstream 12 plan: confirmed false positive: list celebration confetti (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: list celebration confetti (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -74,7 +74,7 @@
           "src/afterglow.css"
         ],
         "createdAt": "2026-11-24T21:25:36.102Z",
-        "reason": "Workstream 12 plan: confirmed false positive: list celebration confetti (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: list celebration confetti (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -83,7 +83,7 @@
           "src/components/camera-settings.css"
         ],
         "createdAt": "2026-11-24T21:25:36.127Z",
-        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -92,7 +92,7 @@
           "src/components/camera-settings.css"
         ],
         "createdAt": "2026-11-24T21:25:36.150Z",
-        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -101,7 +101,7 @@
           "src/components/camera-settings.css"
         ],
         "createdAt": "2026-11-24T21:25:36.172Z",
-        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: person-size and layout miniatures (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -110,7 +110,7 @@
           "src/components/devices/device-cards.css"
         ],
         "createdAt": "2026-11-24T21:25:36.196Z",
-        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -119,7 +119,7 @@
           "src/components/devices/device-cards.css"
         ],
         "createdAt": "2026-11-24T21:25:36.219Z",
-        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -128,7 +128,7 @@
           "src/components/devices/device-cards.css"
         ],
         "createdAt": "2026-11-24T21:25:36.243Z",
-        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -137,7 +137,7 @@
           "src/components/devices/device-cards.css"
         ],
         "createdAt": "2026-11-24T21:25:36.267Z",
-        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: gallery floor plan, robot map walls, history bars, camera reticle (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -146,7 +146,7 @@
           "src/components/notifications.css"
         ],
         "createdAt": "2026-11-24T21:25:36.291Z",
-        "reason": "Workstream 12 plan: confirmed false positive: notification style and size sketches (DESIGN.md Illustration Radius Exception)"
+        "reason": "Workstream 12 plan: confirmed false positive: notification style and size sketches (DESIGN.md Illustration Radius Rule)"
       },
       {
         "rule": "design-system-radius",
@@ -155,7 +155,7 @@
           "src/pages/device-detail.css"
         ],
         "createdAt": "2026-11-24T21:25:36.315Z",
-        "reason": "Agent: electricity price bar tops (DESIGN.md Illustration Radius Exception)"
+        "reason": "Agent: electricity price bar tops (DESIGN.md Illustration Radius Rule)"
       }
     ]
   }

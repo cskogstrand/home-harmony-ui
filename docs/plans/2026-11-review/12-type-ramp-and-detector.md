@@ -18,10 +18,10 @@ Known false positives (do not "fix"): `device-cards.css:160` side-tab/border-acc
 - [x] Normalise `0.75rem`/`.75rem` style duplicates.
   > Done by the token conversion above: no literal `rem` font sizes remain in the stylesheets.
 - [x] Radii: map real-surface radii to the documented scale; leave illustration radii and list them as intentional in DESIGN.md.
-  > New tokens `--radius-checkbox` (6px) and `--radius-row` (12px, replacing `calc(var(--radius) - 4px)`); real surfaces in `afterglow.css`, `device-cards.css`, `notifications.css`, `entity-picker.css`, `calendar.css`, `sonos.css`, `smart-home-settings.css` and `waste-collection.css` now use `--radius-*` tokens. The remaining 13 detector radius findings are illustration geometry listed under **The Illustration Radius Exception** in DESIGN.md.
+  > New tokens `--radius-checkbox` (6px) and `--radius-row` (12px, replacing `calc(var(--radius) - 4px)`); real surfaces in `afterglow.css`, `device-cards.css`, `notifications.css`, `entity-picker.css`, `calendar.css`, `sonos.css`, `smart-home-settings.css` and `waste-collection.css` now use `--radius-*` tokens. The remaining 13 detector radius findings are illustration geometry listed under **The Illustration Radius Rule** in DESIGN.md.
 - [x] Token-ise the deliberate light backing `hsl(0 0% 96%)` in `device-cards.css` (~442) or document it.
 - [x] Add the confirmed false positives to `.impeccable/critique/ignore.md`.
-- [ ] Refresh `.impeccable/design.json` with `/impeccable document` (preserve DESIGN.md).
+- [x] Refresh `.impeccable/design.json` with `/impeccable document` (preserve DESIGN.md).
 - [ ] Re-run detect; `> After:` counts. Target: no font-size findings outside documented exceptions.
 
 ## Acceptance

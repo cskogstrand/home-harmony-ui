@@ -11,7 +11,7 @@ Confirmed false positives for `/impeccable critique` and `impeccable detect`. Dr
 ## Shapes
 
 - **Robot map wall** in `src/components/devices/device-cards.css` (`.dg-robot-map::after`): the `side-tab` and `border-accent-on-rounded` findings describe an illustrated room wall, not a card accent.
-- **Illustration radii** listed under The Illustration Radius Exception in DESIGN.md:
+- **Illustration radii** listed under The Illustration Radius Rule in DESIGN.md:
   - list celebration confetti in `src/afterglow.css` (2px, 9px);
   - camera settings person-size and layout miniatures in `src/components/camera-settings.css` (2–4px);
   - device gallery floor plan, robot map walls, history bars and camera reticle in `src/components/devices/device-cards.css` (3px, 4px, 5px, 10px);
