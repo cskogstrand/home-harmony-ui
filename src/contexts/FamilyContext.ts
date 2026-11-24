@@ -59,6 +59,7 @@ interface FamilyContextValue extends FamilyState {
   setVehicleVisible: (vehicle: Planner["vehicles"][number], visible: boolean) => boolean;
   setEnergyMeters: (meters: string[]) => boolean;
   setActivity: (settings: Partial<Planner["activity"]>) => boolean;
+  setElectricityPriceEntity: (id: string) => boolean;
   setWeatherEntity: (id: string) => boolean;
   setWasteCalendarEntity: (id: string) => boolean;
   setWasteCollectionDays: (days: number) => boolean;

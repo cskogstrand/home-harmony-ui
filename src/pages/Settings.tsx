@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef } from "react";
 import { Link, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, ListChecks, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, BookOpen, Bug, CalendarDays, Camera, CarFront, ChevronDown, ChevronRight, Clock, CloudSun, Database, Globe, ListChecks, Monitor, Package, Palette, SlidersHorizontal, TriangleAlert, Users, Wifi, Workflow, Zap } from "lucide-react";
 import { useHouseholdSetup } from "@/hooks/use-household-setup";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { NotificationDebugContext } from "@/contexts/NotificationContext";
@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { PanelTitle } from "@/components/PanelTitle";
 import { SharedSettingsStatus } from "@/components/common/SharedSettingsStatus";
 import { VehicleSettings } from "@/components/VehicleSettings";
+import { EnergySettings } from "@/components/EnergySettings";
 import HomeSettings from "./HomeSettings";
 import UserSettings from "./UserSettings";
 import Automations from "./Automations";
@@ -51,6 +52,7 @@ const groups = [
   { id: "devices", title: "Devices", description: "Smart home, cars and cameras", icon: SlidersHorizontal, items: [
     { id: "smart-home", title: "Smart home", description: "Cards, entities and dashboard layout", icon: SlidersHorizontal, content: <SmartHomeSettings /> },
     { id: "vehicles", title: "Electric vehicles", description: "Choose which cars appear in the header", icon: CarFront, content: <VehicleSettings /> },
+    { id: "electricity-price", title: "Electricity price", description: "Price sensor for Car & energy", icon: Zap, content: <EnergySettings /> },
     { id: "cameras", title: "Cameras", description: "Add cameras and choose their connections", icon: Camera, content: <CameraSettings /> },
     { id: "camera-connections", title: "Camera connections", description: "Home Assistant, go2rtc and Frigate servers", icon: Wifi, content: <CameraConnections /> },
   ] },

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({ home: null, online: true, pins: [] as string[]
 vi.mock("@/contexts/AppContext", () => ({ useApp: (select = app => app) => select({ currentHome: mocks.home, homeOnline: mocks.online, haUrl: "http://ha.example.test", entityHistory: mocks.history, energySetup: mocks.energySetup }) }));
 vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ language: "en", energyMeters: mocks.pins, setEnergyMeters: mocks.setEnergyMeters }) }));
 vi.mock("@/components/HomePanels", () => ({ VehicleCard: () => <section aria-label="Example vehicle" /> }));
+vi.mock("@/components/ElectricityPrice", () => ({ ElectricityPrice: () => <section aria-label="Electricity price" /> }));
 vi.mock("@/components/devices/DeviceReading", () => ({ DeviceReading: ({ entity }) => <p>{entity.name}: {entity.state} {entity.attributes.unit_of_measurement}</p> }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => ({ state: { loaded: true } }) }));
 afterEach(() => { cleanup(); mocks.pins = []; mocks.online = true; mocks.energySetup.mockReset(); });
@@ -87,12 +88,12 @@ it("says when nothing draws power and never lists stale readings while offline",
   expect(offline.queryByText("Example oven")).not.toBeInTheDocument();
 });
 
-it("keeps pinned meters above power now and vehicle cards", () => {
+it("keeps pinned meters above power now, then the electricity price and vehicle cards", () => {
   mocks.home = circuits({ oven: ["2000"], heater: ["700"] });
   mocks.pins = ["home|oven"];
   const { container } = render(<EnergySaver />);
   const regions = [...container.querySelectorAll("section[aria-label]")].map(region => region.getAttribute("aria-label"));
-  expect(regions.slice(0, 3)).toEqual(["Pinned meters", "Using power now", "Example vehicle"]);
+  expect(regions.slice(0, 4)).toEqual(["Pinned meters", "Using power now", "Electricity price", "Example vehicle"]);
 });
 
 it("links to Home Assistant Energy when it is set up and to its setup page when it is not", async () => {

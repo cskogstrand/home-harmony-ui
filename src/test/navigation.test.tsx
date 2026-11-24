@@ -2000,7 +2000,7 @@ it("groups all settings, opens each focused subpage, and returns to the hub", as
   const categories = [
     ["Household", [["People", "people"], ["Calendars", "calendars"], ["To-do lists", "lists"], ["Timetables", "timetables"]]],
     ["Screen and alerts", [["Appearance", "appearance"], ["Language", "language"], ["Weather", "weather"], ["Notifications", "notifications"]]],
-    ["Devices", [["Smart home", "smart-home"], ["Electric vehicles", "vehicles"], ["Cameras", "cameras"], ["Camera connections", "camera-connections"]]],
+    ["Devices", [["Smart home", "smart-home"], ["Electric vehicles", "vehicles"], ["Electricity price", "electricity-price"], ["Cameras", "cameras"], ["Camera connections", "camera-connections"]]],
     ["System", [["Connection & account", "connection"], ["Automations", "automations"], ["Integrations", "integrations"], ["Activity", "activity"], ["Storage and backups", "backups"], ["Debug", "debug"], ["Danger zone", "danger-zone"]]],
   ] as const;
   const menu = () => within(screen.getByRole("navigation", { name: "Settings navigation" }));

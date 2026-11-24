@@ -10,6 +10,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { VehicleCard } from "@/components/HomePanels";
+import { ElectricityPrice } from "@/components/ElectricityPrice";
 import { DeviceReading } from "@/components/devices/DeviceReading";
 import { deviceName } from "@/lib/device-model";
 import "./device-detail.css";
@@ -83,6 +84,7 @@ export default function EnergySaver() {
         {!!idle.length && <details className="energy-more"><summary>{t("Show idle ({count})", { count: idle.length })}</summary><ol className="energy-now-list">{idle.map(consumer)}</ol></details>}
       </>}
     </section>}
+    <ElectricityPrice />
     <div className="energy-layout"><VehicleCard /><section className="glow-panel"><PanelHeading icon={Zap} title={t("Energy in Home Assistant")} />{setup === "missing" && <p className="page-note mt-2">{t("Energy is not set up in Home Assistant yet. Add your electricity meters there to follow use over days and months.")}</p>}
       {haUrl && <a className="text-link" href={setup === "missing" ? `${haUrl}/config/energy` : `${haUrl}/energy`} target="_blank" rel="noreferrer">{t(setup === "missing" ? "Set up Energy in Home Assistant" : "Open Home Assistant Energy")}</a>}</section></div>
     {!!groups.size && <details className="glow-panel energy-meters"><summary>{t("Meters")} <span>({counters})</span></summary>
