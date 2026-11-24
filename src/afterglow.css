@@ -178,6 +178,7 @@
 .settings-stack { display: grid; gap: 1rem; min-width: 0; }
 .settings-card { min-width: 0; padding: 1rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); }
 .settings-card > .panel-title { font-size: var(--type-subtitle); font-weight: 600; }
+.settings-card > .text-link, .settings-related.text-link { max-width: 100%; white-space: normal; }
 fieldset.settings-card > legend { float: left; width: 100%; margin-bottom: 1rem; }
 fieldset.settings-card > legend + * { clear: both; }
 .dashboard-settings-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; min-height: 44px; }
