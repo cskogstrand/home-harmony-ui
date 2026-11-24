@@ -8,6 +8,8 @@ import { entityDetailPath } from "./device-model";
 /** One Home Assistant logbook entry: a state change (`state`) or a described event (`message`). `when` is in milliseconds. */
 export interface LogbookEvent { entityId: string; when: number; state?: string; message?: string; name?: string }
 
+/** Items in Recent at home on Smart home. */
+export const RECENT_ACTIVITY_LIMIT = 6;
 /** The logbook backfill never reaches further back than this, so a subscription cannot request days of history. */
 export const MAX_LOGBOOK_BACKFILL_MS = 2 * 86400000;
 

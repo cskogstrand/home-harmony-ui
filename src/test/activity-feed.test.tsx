@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection, HassEntities } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
@@ -8,6 +9,12 @@ import { activitySourceCandidates, activityTime, curateActivity, curatedActivity
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { createI18n } from "@/lib/i18n";
 import { config, registries, services, state, states, user } from "./ha-fixtures";
+import { AppContext } from "@/contexts/AppContext";
+import { RecentActivity } from "@/components/ActivityFeed";
+import type { Entity } from "@/types/api";
+
+const family = vi.hoisted(() => ({ value: {} as Record<string, unknown> }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => family.value }));
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -53,7 +60,7 @@ beforeEach(() => {
   vi.mocked(ha.getServices).mockResolvedValue(services);
   vi.mocked(ha.subscribeEntities).mockImplementation((_conn, callback) => { (callback as (states: HassEntities) => void)(states); return () => {}; });
 });
-afterEach(() => { clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("logbook subscription", () => {
   it("requests a bounded backfill for the chosen entities and delivers validated events", async () => {
@@ -221,5 +228,99 @@ describe("logbook events", () => {
     const replay = parseLogbookMessage({ events: [{ entity_id: "cover.example_garage", state: "closed", when: 200 }, { entity_id: "lock.example", state: "locked", when: 300 }] })!;
     expect(mergeLogbook(first, replay).map(event => event.when)).toEqual([300000, 200000, 100000]);
     expect(mergeLogbook(first, replay, 2)).toHaveLength(2);
+  });
+});
+
+describe("Recent at home", () => {
+  type Subscriber = { options: { start: Date; entityIds?: string[] }; receive: (events: LogbookEvent[] | null) => void; stop: ReturnType<typeof vi.fn> };
+  let subscribers: Subscriber[];
+  const subscribeLogbook = vi.fn((options: Subscriber["options"], receive: Subscriber["receive"]) => {
+    const stop = vi.fn();
+    subscribers.push({ options, receive, stop });
+    return stop;
+  });
+  const now = new Date(base);
+  const app = (homeOnline = true, entities: Entity[] = activityEntities) => ({ homeOnline, subscribeLogbook, currentHome: { entities, areas: [], timeZone: "Europe/Oslo" } });
+  const view = (homeOnline = true, entities?: Entity[]) => <AppContext.Provider value={app(homeOnline, entities) as never}><MemoryRouter><RecentActivity /></MemoryRouter></AppContext.Provider>;
+  const panel = () => within(screen.getByRole("region", { name: "Recent at home" }));
+  const rows = () => panel().queryAllByRole("listitem").map(row => row.textContent);
+  beforeEach(() => {
+    subscribers = [];
+    subscribeLogbook.mockClear();
+    family.value = { activity: { panel: true, people: false }, now, cameras: { items: [] } };
+  });
+
+  it("subscribes to the curated sources for 24 hours, shows the six newest items and updates live", () => {
+    render(view());
+    expect(panel().getByText("Loading activity…")).toBeVisible();
+    const [{ options, receive }] = subscribers;
+    expect(options.entityIds).toEqual(curatedActivityEntityIds(activityEntities, { people: false }));
+    expect(options.entityIds).not.toContain("person.example_parent");
+    expect(Date.now() - options.start.getTime()).toBeGreaterThanOrEqual(86400000 - 60000);
+    act(() => receive([1, 2, 3, 4, 5, 6, 7].map(step => event("binary_sensor.example_garage", step % 2 ? "on" : "off", step * 10))));
+    expect(rows()).toHaveLength(6);
+    expect(rows()[0]).toBe("Garage door opened10 minutes ago");
+    expect(panel().getAllByRole("link", { name: "Garage door opened" })[0]).toHaveAttribute("href", "/entities/binary_sensor.example_garage");
+    act(() => receive([event("lock.example_front", "unlocked", 1)]));
+    expect(rows()[0]).toBe("Front door unlocked1 minute ago");
+    expect(rows()).toHaveLength(6);
+  });
+
+  it("distinguishes a quiet day from unavailable activity and missing sources", () => {
+    const { unmount } = render(view());
+    act(() => subscribers[0].receive([event("sensor.example_temperature", "22", 5)]));
+    expect(panel().getByText("Nothing has happened in the last 24 hours.")).toBeVisible();
+    act(() => subscribers[0].receive(null));
+    expect(panel().getByText("Activity is unavailable right now.")).toBeVisible();
+    unmount();
+    family.value = { ...family.value, activity: { panel: true, people: false, sources: [] } };
+    render(view());
+    expect(panel().getByText("No activity sources are selected.")).toBeVisible();
+    expect(panel().getByRole("link", { name: "Choose sources" })).toHaveAttribute("href", "/settings/activity?panel=recent");
+    expect(subscribeLogbook).toHaveBeenCalledOnce();
+  });
+
+  it("follows people only when opted in and stays hidden when turned off", () => {
+    family.value = { ...family.value, activity: { panel: true, people: true } };
+    const { unmount } = render(view());
+    expect(subscribers[0].options.entityIds).toContain("person.example_parent");
+    act(() => subscribers[0].receive([event("person.example_parent", "home", 3)]));
+    expect(rows()).toEqual(["Example parent came home3 minutes ago"]);
+    unmount();
+    subscribeLogbook.mockClear();
+    family.value = { ...family.value, activity: { panel: false, people: false } };
+    render(view());
+    expect(screen.queryByRole("region", { name: "Recent at home" })).toBeNull();
+    expect(subscribeLogbook).not.toHaveBeenCalled();
+  });
+
+  it("unsubscribes on unmount and when the sources change", () => {
+    const { rerender, unmount } = render(view());
+    const first = subscribers[0];
+    rerender(view(true, activityEntities.filter(entity => entity.entityId !== "lock.example_front")));
+    expect(first.stop).toHaveBeenCalledOnce();
+    expect(subscribers[1].options.entityIds).not.toContain("lock.example_front");
+    unmount();
+    expect(subscribers[1].stop).toHaveBeenCalledOnce();
+  });
+
+  it("keeps cached items marked stale while offline and resubscribes after reconnecting", () => {
+    const { rerender } = render(view());
+    act(() => subscribers[0].receive([event("binary_sensor.example_garage", "on", 5)]));
+    rerender(view(false));
+    expect(subscribers[0].stop).toHaveBeenCalledOnce();
+    expect(panel().getByRole("status")).toHaveTextContent("Cached activity is stale while Home Assistant is offline.");
+    expect(rows()).toEqual(["Garage door opened5 minutes ago"]);
+    rerender(view(true));
+    expect(subscribers).toHaveLength(2);
+    act(() => subscribers[1].receive([event("binary_sensor.example_garage", "off", 2), event("binary_sensor.example_garage", "on", 5)]));
+    expect(rows()).toEqual(["Garage door closed2 minutes ago", "Garage door opened5 minutes ago"]);
+    expect(panel().queryByText(/stale/)).toBeNull();
+  });
+
+  it("shows activity as unavailable while offline without a cache", () => {
+    render(view(false));
+    expect(subscribeLogbook).not.toHaveBeenCalled();
+    expect(panel().getByText("Activity is unavailable right now.")).toBeVisible();
   });
 });

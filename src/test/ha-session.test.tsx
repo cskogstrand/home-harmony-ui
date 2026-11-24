@@ -1418,6 +1418,7 @@ it("keeps calendar subscriptions across navigation and replaces them for date ra
   const subscriptions: { id: string; receive: (message: { events: unknown }) => void; unsubscribe: typeof haFetch }[] = [];
   conn.subscribeMessage.mockImplementation(async (receive, message) => {
     const unsubscribe = vi.fn(async () => {});
+    if (message.type !== "calendar/event/subscribe") return unsubscribe;
     subscriptions.push({ id: message.entity_id, receive, unsubscribe });
     queueMicrotask(() => receive({ events: [] }));
     return unsubscribe;

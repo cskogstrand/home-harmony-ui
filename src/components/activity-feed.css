@@ -1,0 +1,21 @@
+/* Recent at home and the Activity log: divided rows on the opaque panel surface, newest first. */
+.activity-list { display: grid; }
+.activity-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 56px; padding-block: .5rem; }
+.activity-row + .activity-row { border-top: 1px solid hsl(var(--border) / .6); }
+.activity-row > svg { flex-shrink: 0; color: hsl(var(--primary)); }
+.activity-sentence { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .5rem; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.activity-sentence a { display: inline-flex; align-items: center; min-height: 44px; color: inherit; text-decoration: underline; text-decoration-color: hsl(var(--border)); text-underline-offset: .2em; }
+.activity-sentence a:hover { text-decoration-color: currentColor; }
+.activity-sentence small, .activity-row time { color: hsl(var(--muted-foreground)); font-size: .875rem; font-weight: 400; }
+.activity-row time { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.activity-list[data-stale] .activity-sentence { color: hsl(var(--muted-foreground)); }
+.activity-stale { margin: 0 0 .5rem; }
+
+.activity-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; margin-bottom: 1rem; }
+.activity-filters label { display: grid; gap: .375rem; min-width: min(100%, 12rem); font-size: .875rem; font-weight: 500; }
+.activity-filters select { min-height: 48px; border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: 9px 12px; }
+
+@media (max-width: 699px) {
+  .activity-row { grid-template-columns: auto minmax(0, 1fr); }
+  .activity-row time { grid-column: 2; }
+}

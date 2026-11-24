@@ -2865,4 +2865,13 @@ export const nb = {
   "{name} reported an event": "{name} meldte en hendelse",
   "{name} turned on": "{name} ble slått på",
   "{name} turned off": "{name} ble slått av",
+  "{count} changes": "{count} endringer",
+  "Recent at home": "Nylig hjemme",
+  "All activity": "All aktivitet",
+  "No activity sources are selected.": "Ingen aktivitetskilder er valgt.",
+  "Choose sources": "Velg kilder",
+  "Loading activity…": "Laster aktivitet…",
+  "Activity is unavailable right now.": "Aktiviteten er ikke tilgjengelig akkurat nå.",
+  "Nothing has happened in the last 24 hours.": "Ingenting har skjedd det siste døgnet.",
+  "Cached activity is stale while Home Assistant is offline.": "Lagret aktivitet er utdatert når Home Assistant er frakoblet.",
 } as const;

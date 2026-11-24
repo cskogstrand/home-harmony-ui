@@ -143,6 +143,12 @@ const plannerObjectSchema = z.object({
   homeEntityGroups: settingsRecord(keySchema, z.string().trim().max(80)).default({}),
   homeGroups: z.array(z.string().trim().min(1).max(80)).default([]),
   smartHome: smartHomeSchema.prefault({}),
+  // Recent at home on Smart home. Omitted sources follow the suggested defaults; people stay out unless opted in.
+  activity: z.object({
+    panel: z.boolean().default(true),
+    people: z.boolean().default(false),
+    sources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
+  }).strict().prefault({}),
   memberOrder: z.array(memberSchema).default([]),
   memberColors: settingsRecord(keySchema, memberColorSchema).default({}),
   hiddenMembers: z.array(memberSchema).default([]),
