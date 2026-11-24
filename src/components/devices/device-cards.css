@@ -211,6 +211,41 @@
 .dg-add-item button { height: 48px; width: 48px; flex-shrink: 0; padding: 0; }
 .dg-update { display: flex; flex-direction: column; align-items: center; gap: 1.3rem; color: var(--dg-accent); padding: 1rem 0; }
 .dg-update span { display: flex; align-items: center; gap: .8rem; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+/* 3D printer: the progress ring (Original) or bar and the time left are the hero, readable across the room. */
+.dg-printer { display: grid; gap: .9rem; }
+.dg-printer-media { border-radius: 18px; overflow: hidden; }
+.dg-printer-hero { display: flex; align-items: center; gap: 1.25rem; }
+.dg-printer-ring { display: grid; flex: 0 0 132px; width: 132px; height: 132px; padding: 10px; border-radius: 50%; background: conic-gradient(var(--dg-accent) 0 var(--progress), var(--dg-tint) var(--progress) 100%); }
+.dg-printer-ring > span { display: grid; place-items: center; border-radius: 50%; background: var(--dg-surface); box-shadow: inset 0 2px 8px hsl(var(--glass-shade)); font-size: 1.75rem; font-weight: 500; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.dg-printer-ring[data-unknown] { background: repeating-conic-gradient(var(--dg-line) 0 6deg, transparent 6deg 12deg); }
+.dg-printer-time { display: grid; gap: .2rem; min-width: 0; }
+.dg-printer-time > span, .dg-printer-time small { color: var(--dg-muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.dg-printer-time strong { font-size: clamp(1.8rem, 2.5vw, 2.7rem); line-height: 1.15; font-weight: 500; letter-spacing: -.035em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.dg-compact .dg-printer-hero { flex-direction: column-reverse; align-items: stretch; gap: .6rem; }
+.dg-compact .dg-printer-time { grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: .75rem; }
+.dg-compact .dg-printer-time > span { grid-column: 1 / -1; }
+.dg-printer-bar { height: 12px; border-radius: 999px; background: var(--dg-tint); overflow: hidden; }
+.dg-printer-bar > i { display: block; width: var(--progress); height: 100%; border-radius: inherit; background: var(--dg-accent); transition: width 300ms var(--ease-out); }
+.dg-printer-bar[data-unknown] { background: transparent; border: 2px dashed var(--dg-line); }
+.dg-printer-status, .dg-printer-notice { color: var(--dg-muted); font-size: .875rem; line-height: 1.5; }
+.dg-printer-error { display: flex; align-items: start; gap: .5rem; padding: .7rem .85rem; border-radius: 14px; background: hsl(var(--destructive) / .1); color: hsl(var(--destructive)); font-size: .875rem; line-height: 1.5; }
+.dg-printer-error > svg { flex-shrink: 0; margin-top: .1rem; }
+.dg-printer-temps { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .5rem; }
+.dg-printer-temps > div { display: grid; gap: .15rem; padding: .6rem .75rem; border-radius: 14px; background: hsl(var(--secondary)); }
+.dg-printer-temps dt, .dg-printer-temps dd span { color: var(--dg-muted); font-size: .875rem; }
+.dg-printer-temps dd { display: grid; }
+.dg-printer-temps b { font-size: 1.25rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.dg-printer-trays { display: flex; flex-wrap: wrap; gap: .75rem; }
+.dg-printer-trays li { display: grid; justify-items: center; gap: .35rem; min-width: 44px; }
+.dg-printer-trays small { color: var(--dg-muted); font-size: .875rem; }
+.dg-printer-swatch { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--dg-line); background: var(--filament, transparent); box-shadow: inset 0 1px 2px hsl(var(--glass-highlight)); }
+.dg-printer-trays li[data-empty] .dg-printer-swatch { background: repeating-linear-gradient(135deg, transparent 0 4px, var(--dg-line) 4px 6px); }
+.dg-printer-trays li[data-active] .dg-printer-swatch { outline: 3px solid var(--dg-accent); outline-offset: 3px; }
+.dg-printer-scene { width: min(100%, 15rem); height: auto; }
+.dg-printer-scene-frame, .dg-printer-scene-rail { fill: none; stroke: var(--dg-line); stroke-width: 3; }
+.dg-printer-scene-nozzle { fill: var(--dg-ink); stroke: var(--dg-ink); stroke-width: 3; stroke-linejoin: round; }
+.dg-printer-scene-model { fill: var(--dg-accent); transition: height 300ms var(--ease-out), y 300ms var(--ease-out); }
+.dg-printer-scene-bed { fill: var(--dg-muted); }
 .dg-state-message { display: grid; gap: .5rem; background: hsl(var(--muted)); border-radius: 16px; padding: 1rem; margin-top: 1rem; font-size: .875rem; }
 .dg-state-message p { font-size: .875rem; color: var(--dg-muted); }
 .dg-state-message[role="alert"] strong { color: hsl(var(--destructive)); }
@@ -407,6 +442,12 @@
   :is(.device-gallery, .device-card-designs) [aria-pressed="true"] { outline: 2px solid Highlight; }
   .dg-light-well::before { display: none; }
   .dg-card-icon, .dg-light-well > div, .dg-light-well > svg, .dg-readout > span { color: CanvasText; }
+  .dg-printer-ring, .dg-printer-bar { border: 2px solid CanvasText; }
+  .dg-printer-bar > i { background: Highlight; forced-color-adjust: none; }
+  .dg-printer-error { border: 1px solid CanvasText; }
+  /* Filament colours are information; every swatch also has a text name. */
+  .dg-printer-swatch { forced-color-adjust: none; border-color: CanvasText; }
+  .dg-printer-trays li[data-active] .dg-printer-swatch { outline-color: Highlight; }
 }
 
 .smart-device-grid { container: smart-devices / inline-size; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--smart-card-min, 17.5rem)), 1fr)); gap: 1rem; }

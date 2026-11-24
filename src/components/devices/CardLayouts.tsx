@@ -1,5 +1,5 @@
 import { useContext, type CSSProperties, type ReactNode } from "react";
-import { Battery, Droplets, Fan, Lightbulb, Minus, Pause, Play, Plus, SkipBack, SkipForward, Waves, type LucideIcon } from "lucide-react";
+import { Battery, Droplets, Fan, Lightbulb, Minus, Pause, Play, Plus, SkipBack, SkipForward, TriangleAlert, Waves, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { Action, More, Readout } from "./CardControls";
 import { CardPresentation } from "./card-presentation";
@@ -76,4 +76,41 @@ export function RobotCard({ status, battery, map, context, actions, more }: { st
 
 export function ValveCard({ position, value, caption, children }: { position?: number; value: string; caption: string; children: ReactNode }) {
   return <><div className="dg-valve" style={{ transform: `rotate(${(position ?? 0) * .9}deg)` }}><Plus size={80} strokeWidth={1.3} aria-hidden="true" /></div><Readout value={value} caption={caption} />{children}</>;
+}
+
+export interface PrinterCardTray { id: string; label: string; color?: string; type?: string; active: boolean; empty: boolean }
+/**
+ * A 3D printer: a progress ring (Original) or bar with the time as the hero. `label` names `time`, which holds the
+ * time left, the finish time or the state. Media shows only in Original; Super compact moves temperatures behind a popover.
+ */
+export function PrinterCard({ phase, progress, label, time, status, error, notice, temperatures, trays, media }: {
+  phase: string; progress?: number; label: string; time: string; status?: string; error?: string; notice?: string;
+  temperatures: { label: string; value: string; target?: string }[]; trays: PrinterCardTray[]; media?: ReactNode;
+}) {
+  const { variant } = useContext(CardPresentation);
+  const { t, number } = useI18n();
+  const original = variant === "Original", superCompact = variant === "Super compact";
+  const percent = progress === undefined ? undefined : Math.floor(Math.min(100, Math.max(0, progress)));
+  const shown = percent === undefined ? "—" : `${number(percent)}%`;
+  const temperatureList = !!temperatures.length && <dl className="dg-printer-temps">{temperatures.map(item => <div key={item.label}>
+    <dt>{item.label}</dt><dd><b>{item.value}</b>{item.target && <span>{t("Target {value}", { value: item.target })}</span>}</dd>
+  </div>)}</dl>;
+  return <div className="dg-printer" data-phase={phase}>
+    {original && media && <div className="dg-printer-media">{media}</div>}
+    <div className="dg-printer-hero">
+      <div className={original ? "dg-printer-ring" : "dg-printer-bar"} role="progressbar" aria-label={t("Print progress")} aria-valuemin={0} aria-valuemax={100}
+        aria-valuenow={percent} aria-valuetext={percent === undefined ? t("Not reported") : shown} data-unknown={percent === undefined || undefined}
+        style={{ "--progress": `${percent ?? 0}%` } as CSSProperties}>{original ? <span aria-hidden="true">{shown}</span> : <i />}</div>
+      <div className="dg-printer-time"><span>{label}</span><strong>{time}</strong>{!original && percent !== undefined && <small aria-hidden="true">{shown}</small>}</div>
+    </div>
+    {status && <p className="dg-printer-status">{status}</p>}
+    {error && <p className="dg-printer-error"><TriangleAlert size={18} aria-hidden="true" /><span><span className="sr-only">{t("Printer error")}: </span>{error}</span></p>}
+    {notice && <p className="dg-printer-notice">{notice}</p>}
+    {!superCompact && temperatureList}
+    {!!trays.length && <ul className="dg-printer-trays" aria-label={t("Filament")}>{trays.map(tray => <li key={tray.id} data-active={tray.active || undefined} data-empty={tray.empty || undefined}>
+      <span className="dg-printer-swatch" role="img" aria-label={tray.label} title={tray.label} style={tray.color ? { "--filament": tray.color } as CSSProperties : undefined} />
+      {!superCompact && <small aria-hidden="true">{tray.type ?? "—"}</small>}
+    </li>)}</ul>}
+    {superCompact && temperatureList && <More label="Temperatures">{temperatureList}</More>}
+  </div>;
 }

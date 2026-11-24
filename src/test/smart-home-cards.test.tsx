@@ -97,9 +97,11 @@ it("applies explicit card sizes and disables all device commands in the editor p
 });
 
 it("maps library aliases consistently and keeps unknown domains usable", () => {
-  const domains = cardDesigns.flatMap(design => design.domains);
+  // Device-level families (the printer) narrow a domain with `accepts` and are only chosen explicitly.
+  const domainDesigns = cardDesigns.filter(design => !design.accepts);
+  const domains = domainDesigns.flatMap(design => design.domains);
   expect(new Set(domains).size).toBe(domains.length);
-  for (const design of cardDesigns) for (const domain of design.domains) expect(cardDesignFor(domain)).toBe(design);
+  for (const design of domainDesigns) for (const domain of design.domains) expect(cardDesignFor(domain)).toBe(design);
   open({ ...climate(), domain: "future_domain", entityId: "future_domain.example", state: "idle", attributes: {} });
   expect(screen.getByRole("article")).toHaveAttribute("data-card-kind", "future_domain");
   expect(screen.getByText("Idle")).toBeVisible();

@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { cardDensitySchema, type DeviceCardSettings } from "../../shared/configuration";
-import { cardDesigns, type CardDesign } from "./devices/card-designs";
+import { cardDesigns, designAccepts, type CardDesign } from "./devices/card-designs";
 import { cardVariants } from "./devices/card-presentation";
 import { SmartHomeCard } from "./devices/SmartHomeCard";
 import "./devices/device-cards.css";
@@ -37,7 +37,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   const mainSources = useRef<HTMLDivElement>(null);
   const supportingSources = useRef<HTMLDivElement>(null);
   const design = cardDesigns.find(design => design.id === draft?.type);
-  const main = entities.find(entity => entity.preferenceId === draft?.mainEntity && design?.domains.includes(entity.domain));
+  const main = entities.find(entity => entity.preferenceId === draft?.mainEntity && designAccepts(design, entity));
   const dirty = !!draft && JSON.stringify({ ...draft, illustrated: card?.illustrated }) !== JSON.stringify(card);
   useBeforeUnload(event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
   useEffect(() => { heading.current?.focus(); }, [design?.id]);
@@ -46,7 +46,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   });
   const change = (fields: Partial<Draft>) => setDraft(current => current ? { ...current, ...fields } : current);
   const groups = [...new Set(smartHome.layout.map(card => card.group).filter(Boolean))];
-  const candidates = entities.filter(entity => design?.domains.includes(entity.domain));
+  const candidates = entities.filter(entity => designAccepts(design, entity));
   const selectedDevice = device ?? (main ? main.device?.id ?? "none" : undefined);
   const devices = [...new Map(candidates.flatMap(entity => entity.device ? [[entity.device.id, entity.device] as const] : [])).values()]
     .sort((a, b) => deviceName(a, language).localeCompare(deviceName(b, language), language));
@@ -62,7 +62,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
   const suggestedMain = !draft?.mainEntity && homeOnline ? recommendedMainEntity(deviceCandidates) : undefined;
   const suggestions = draft && homeOnline ? recommendedSupportingEntities(draft.type, main, entities, draft.linkedEntities) : [];
   const selectMain = (mainEntity: string) => change({ mainEntity, linkedEntities: draft?.linkedEntities.filter(id => id !== mainEntity) ?? [] });
-  const types = cardDesigns.filter(design => (showAll || entities.some(entity => design.domains.includes(entity.domain)))
+  const types = cardDesigns.filter(design => (showAll || entities.some(entity => designAccepts(design, entity)))
     && `${t(design.subtitle)} ${t(design.group)} ${design.domains.join(" ")}`.toLocaleLowerCase(language).includes(search.trim().toLocaleLowerCase(language)));
   const title = card ? t("Edit card") : design ? t("New {type} card", { type: t(design.subtitle).toLocaleLowerCase(language) }) : t("Choose a card type");
   return <section className="smart-builder" aria-label={t("Card editor")}>
@@ -74,7 +74,7 @@ function CardEditor({ card, disabled, onClose }: { card?: Draft; disabled: boole
         <label className="smart-type-all"><input type="checkbox" checked={showAll} onChange={event => setShowAll(event.target.checked)} />{t("Show all types")}</label>
       </div>
       <div className="smart-type-catalog">{[...new Set(types.map(type => type.group))].map(group => <section key={group} className="settings-card"><PanelTitle as="h3" icon={cardDesigns.find(type => type.group === group)!.icon}>{t(group)}</PanelTitle><div className="smart-type-grid">{types.filter(design => design.group === group).map(design => {
-        const count = entities.filter(entity => design.domains.includes(entity.domain)).length;
+        const count = entities.filter(entity => designAccepts(design, entity)).length;
         return <button className="smart-type-choice" key={design.id} disabled={disabled} onClick={() => chooseType(design)}><design.icon size={23} strokeWidth={1.7} aria-hidden="true" /><span><strong>{t(design.subtitle)}</strong> <small>{count ? t("{count} available", { count }) : t("No matching entities")}</small></span><ChevronRight size={16} aria-hidden="true" /></button>;
       })}</div></section>)}</div>
       {!types.length && <p className="empty-note">{t("No matching card types. Change your search or show all types.")}</p>}

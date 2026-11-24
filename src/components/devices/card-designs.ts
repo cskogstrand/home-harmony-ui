@@ -1,6 +1,16 @@
-import { Activity, Bell, Blinds, CalendarDays, Camera, Check, Clock3, CloudSun, Droplets, Fan, Gauge, Hash, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Music2, Plug, Power, Radio, ShieldCheck, Siren, SlidersHorizontal, Sparkles, Thermometer, ToggleLeft, Type, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap, type LucideIcon } from "lucide-react";
+import { Activity, Bell, Blinds, CalendarDays, Camera, Check, Clock3, CloudSun, Droplets, Fan, Gauge, Hash, Image, Leaf, Lightbulb, Lock, MapPin, Mic, Music2, Plug, Power, Radio, ShieldCheck, Siren, SlidersHorizontal, Sparkles, Thermometer, ToggleLeft, Type, Upload, CircleDot as Vacuum, Wand2, Waves, Wind, Zap, createLucideIcon, type LucideIcon } from "lucide-react";
+import type { Entity } from "@/types/api";
+import { isPrinterMainEntity } from "@/lib/printer-model";
 
-export interface CardDesign { id: string; title: string; subtitle: string; group: string; domains: string[]; icon: LucideIcon }
+export const Printer3D = createLucideIcon("Printer3D", [
+  ["path", { d: "M4 19V3h16v16M4 7h16", key: "frame" }],
+  ["path", { d: "M10 7v3l2 2 2-2V7", key: "nozzle" }],
+  ["path", { d: "M9 19v-4h6v4", key: "print" }],
+  ["rect", { x: "2", y: "19", width: "20", height: "3", rx: "1", key: "bed" }],
+]);
+
+/** `accepts` narrows a family whose main entity is one sensor of a larger device, such as a 3D printer. */
+export interface CardDesign { id: string; title: string; subtitle: string; group: string; domains: string[]; icon: LucideIcon; accepts?: (entity: Entity) => boolean }
 export const cardDesigns: CardDesign[] = [
   { id: "light", title: "A softer glow", subtitle: "Light", group: "Comfort", domains: ["light"], icon: Lightbulb },
   { id: "climate", title: "Just right", subtitle: "Climate", group: "Comfort", domains: ["climate"], icon: Thermometer },
@@ -19,6 +29,7 @@ export const cardDesigns: CardDesign[] = [
   { id: "remote", title: "One less remote", subtitle: "Remote & signals", group: "Media", domains: ["remote", "infrared", "radio_frequency"], icon: Radio },
   { id: "image", title: "The bigger picture", subtitle: "Image", group: "Media", domains: ["image"], icon: Image },
   { id: "lawn_mower", title: "Weekends, reclaimed", subtitle: "Lawn mower", group: "Appliances", domains: ["lawn_mower"], icon: Leaf },
+  { id: "printer_3d", title: "Made while you wait", subtitle: "3D printer", group: "Appliances", domains: ["sensor"], icon: Printer3D, accepts: isPrinterMainEntity },
   { id: "sensor", title: "The little details", subtitle: "Sensor", group: "Insight", domains: ["sensor"], icon: Activity },
   { id: "air_quality", title: "A breath of fresh air", subtitle: "Air quality", group: "Insight", domains: ["air_quality"], icon: Wind },
   { id: "binary_sensor", title: "Good to know", subtitle: "Binary sensor", group: "Insight", domains: ["binary_sensor"], icon: ShieldCheck },
@@ -43,4 +54,5 @@ export const cardDesigns: CardDesign[] = [
   { id: "notify", title: "A gentle heads-up", subtitle: "Notification", group: "Helpers", domains: ["notify"], icon: Bell },
 ];
 
-export const cardDesignFor = (domain: string) => cardDesigns.find(design => design.domains.includes(domain));
+export const cardDesignFor = (domain: string) => cardDesigns.find(design => !design.accepts && design.domains.includes(domain));
+export const designAccepts = (design: CardDesign | undefined, entity: Entity) => !!design?.domains.includes(entity.domain) && (design.accepts?.(entity) ?? true);

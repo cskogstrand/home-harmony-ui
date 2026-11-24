@@ -22,10 +22,11 @@ A device is a printer when it has a sensor whose `translation_key` (or entity id
 
 - [x] `printerModel(device, entities)` pure helper returning progress, remaining, stage, temps (current/target), trays (colour, type, active), media entity; unit-tested with a fictional device.
   > Note: verified against ha-bambulab `definitions.py`: the stage sensor's translation key is `stage` (entity ids often end in `current_stage`), errors come from the `print_error` and `hms_errors` binary sensors, and filament trays (`tray`) sit on filament-unit devices linked through `via_device_id`; the printer itself carries `external_spool`. The key map is `printerAdapters` in `src/lib/printer-model.ts`.
-- [ ] Card in Original, Compact and Super compact densities: progress ring/bar + remaining time as the hero; stage label translated (via 05); media (camera when printing, cover image otherwise) only in Original; trays as colour swatches with accessible names.
-- [ ] Idle/finished/error states distinct (finished shows "Done at 14:20"; error shows the HMS/print error text if present). Unavailable vs idle distinguished.
+- [x] Card in Original, Compact and Super compact densities: progress ring/bar + remaining time as the hero; stage label translated (via 05); media (camera when printing, cover image otherwise) only in Original; trays as colour swatches with accessible names.
+  > Note: a new **3D printer** card type (`printer_3d`) is saved against the printer's progress, status or stage sensor (`accepts` in `card-designs.ts`); favorites keep domain-based cards, so the printer is a Smart home card only. Verified with fictional fixtures (`src/test/printer-card.test.tsx`); the browser check at 1440 × 2560 and 390 × 844, light/dark and artwork on is left for workstream 13 because the dev server serves `main`.
+- [x] Idle/finished/error states distinct (finished shows "Done at 14:20"; error shows the HMS/print error text if present). Unavailable vs idle distinguished.
 - [ ] Device detail page: same model, plus chamber light and other controls already handled generically.
-- [ ] Gallery: add a printer card family with a fictional illustration to `/device-gallery`.
+- [x] Gallery: add a printer card family with a fictional illustration to `/device-gallery`.
 - [ ] No controls that start/stop prints in this workstream (read-only card + existing light/switch controls).
 - [ ] Tests: detection positive/negative, densities render, unavailable vs idle.
 - [ ] Docs: DESIGN.md card family list; README supported devices.
