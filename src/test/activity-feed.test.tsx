@@ -3,8 +3,11 @@ import { waitFor } from "@testing-library/react";
 import * as ha from "home-assistant-js-websocket";
 import type { Connection, HassEntities } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
-import { MAX_LOGBOOK_BACKFILL_MS, mergeLogbook, parseLogbookMessage } from "@/lib/activity";
-import { config, registries, services, states, user } from "./ha-fixtures";
+import { activitySourceCandidates, activityTime, curateActivity, curatedActivityEntityIds, defaultActivitySources, MAX_LOGBOOK_BACKFILL_MS, mergeLogbook, parseLogbookMessage,
+  type ActivityItem, type ActivityOptions, type LogbookEvent } from "@/lib/activity";
+import { emptyRegistries, mapHome } from "@/lib/ha-model";
+import { createI18n } from "@/lib/i18n";
+import { config, registries, services, state, states, user } from "./ha-fixtures";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -104,6 +107,110 @@ describe("logbook subscription", () => {
     const receive = vi.fn();
     new HomeAssistantClient().subscribeLogbook({ start: new Date() }, receive);
     expect(receive).toHaveBeenCalledWith(null);
+  });
+});
+
+const activityStates = {
+  "binary_sensor.example_garage": state("binary_sensor.example_garage", "off", { device_class: "garage_door", friendly_name: "Garage door" }),
+  "lock.example_front": state("lock.example_front", "locked", { friendly_name: "Front door" }),
+  "vacuum.example_robot": state("vacuum.example_robot", "docked", { friendly_name: "Robot vacuum" }),
+  "binary_sensor.example_dishwasher": state("binary_sensor.example_dishwasher", "off", { device_class: "running", friendly_name: "Dishwasher" }),
+  "sensor.example_washer": state("sensor.example_washer", "run", { device_class: "enum", options: ["ready", "run", "finished"], friendly_name: "Washer" }),
+  "sensor.example_temperature": state("sensor.example_temperature", "21.5", { device_class: "temperature", unit_of_measurement: "°C", friendly_name: "Hall temperature" }),
+  "update.example_firmware": state("update.example_firmware", "off", { friendly_name: "Firmware" }),
+  "automation.example_lights": state("automation.example_lights", "on", { friendly_name: "Evening lights" }),
+  "person.example_parent": state("person.example_parent", "home", { friendly_name: "Example parent" }),
+  "alarm_control_panel.example_house": state("alarm_control_panel.example_house", "disarmed", { friendly_name: "House alarm" }),
+  "event.example_doorbell": state("event.example_doorbell", "2026-10-06T10:00:00Z", { device_class: "doorbell", friendly_name: "Front doorbell" }),
+  "light.example_lamp": state("light.example_lamp", "off", { friendly_name: "Reading lamp" }),
+  "binary_sensor.example_person": state("binary_sensor.example_person", "off", { device_class: "occupancy", friendly_name: "Driveway person occupancy" }),
+};
+const activityEntities = mapHome(activityStates, emptyRegistries, "home").entities;
+const id = (entityId: string) => `home|${entityId}`;
+const minute = 60000, base = Date.parse("2026-10-06T12:00:00Z");
+const event = (entityId: string, state: string, minutesAgo: number) => ({ entityId, state, when: base - minutesAgo * minute });
+const english = createI18n("en"), norwegian = createI18n("nb");
+const sentences = (items: ActivityItem[], i18n = english) => items.map(item => i18n.message(item.sentence));
+const curated = (events: LogbookEvent[], options: Partial<ActivityOptions> = {}) => curateActivity(events, activityEntities, { mode: "curated", language: "en", people: false, ...options });
+
+describe("activity curation", () => {
+  it("suggests openings, locks, alarms, appliances, robots, doorbells and camera person sensors, never readings or administration", () => {
+    expect(defaultActivitySources(activityEntities, ["binary_sensor.example_person"]).sort()).toEqual([
+      "alarm_control_panel.example_house", "binary_sensor.example_dishwasher", "binary_sensor.example_garage", "binary_sensor.example_person",
+      "event.example_doorbell", "lock.example_front", "sensor.example_washer", "vacuum.example_robot",
+    ].map(id));
+    const candidates = activitySourceCandidates(activityEntities).map(entity => entity.entityId);
+    expect(candidates).toContain("light.example_lamp");
+    for (const excluded of ["sensor.example_temperature", "update.example_firmware", "automation.example_lights", "person.example_parent"]) expect(candidates).not.toContain(excluded);
+  });
+
+  it("writes readable sentences from templates, newest first, and keeps starts, readings and administration out", () => {
+    const events = [
+      event("binary_sensor.example_garage", "on", 50), event("binary_sensor.example_dishwasher", "on", 45), event("binary_sensor.example_dishwasher", "off", 40),
+      event("vacuum.example_robot", "cleaning", 35), event("vacuum.example_robot", "docked", 30), event("sensor.example_washer", "finished", 25),
+      event("lock.example_front", "unlocked", 20), event("alarm_control_panel.example_house", "armed_away", 15), event("event.example_doorbell", "2026-10-06T11:50:00Z", 10),
+      event("sensor.example_temperature", "22", 9), event("automation.example_lights", "off", 8), event("update.example_firmware", "on", 7), event("light.example_lamp", "on", 6),
+      { entityId: "automation.example_lights", when: base - 5 * minute, message: "triggered by time" },
+    ];
+    const items = curated(events);
+    expect(sentences(items)).toEqual([
+      "Front doorbell rang", "House alarm: Armed away", "Front door unlocked", "Washer finished", "Robot vacuum docked", "Dishwasher finished", "Garage door opened",
+    ]);
+    expect(sentences(curated(events, { language: "nb" }), norwegian)).toEqual([
+      "Det ringte på Front doorbell", "House alarm: Aktivert borte", "Front door ble låst opp", "Washer er ferdig", "Robot vacuum er tilbake i ladestasjonen", "Dishwasher er ferdig", "Garage door ble åpnet",
+    ]);
+    expect(items[items.length - 1]).toMatchObject({ icon: "garage", group: "access", path: "/entities/binary_sensor.example_garage", count: 1 });
+    expect(curated(events, { limit: 2 })).toHaveLength(2);
+  });
+
+  it("follows chosen sources, including turned on and off for an added light", () => {
+    const events = [event("light.example_lamp", "on", 3), event("binary_sensor.example_garage", "on", 2)];
+    expect(sentences(curated(events, { sources: [id("light.example_lamp")] }))).toEqual(["Reading lamp turned on"]);
+    expect(sentences(curated(events, { sources: [] }))).toEqual([]);
+  });
+
+  it("folds same-entity flapping within two minutes into the newest change", () => {
+    const flapping = [event("binary_sensor.example_garage", "on", 10), event("binary_sensor.example_garage", "off", 9), event("binary_sensor.example_garage", "on", 8.5),
+      event("lock.example_front", "unlocked", 8.2), event("binary_sensor.example_garage", "off", 4)];
+    const items = curated(flapping);
+    expect(sentences(items)).toEqual(["Garage door closed", "Front door unlocked", "Garage door opened"]);
+    expect(items.map(item => item.count)).toEqual([1, 1, 3]);
+    expect(curateActivity(flapping, activityEntities, { mode: "full", language: "en", people: false })).toHaveLength(5);
+  });
+
+  it("shows people coming and going only when opted in", () => {
+    const events = [event("person.example_parent", "not_home", 30), event("person.example_parent", "Example school", 20), event("person.example_parent", "home", 10)];
+    expect(curated(events)).toEqual([]);
+    expect(curatedActivityEntityIds(activityEntities, { people: false })).not.toContain("person.example_parent");
+    expect(curatedActivityEntityIds(activityEntities, { people: true })).toContain("person.example_parent");
+    expect(sentences(curated(events, { people: true }))).toEqual(["Example parent came home", "Example parent arrived at Example school", "Example parent left home"]);
+    expect(curateActivity(events, activityEntities, { mode: "full", language: "en", people: false })).toEqual([]);
+  });
+
+  it("names camera person detections after the camera and skips recoveries after an outage", () => {
+    const personSensors = { "binary_sensor.example_person": "Driveway" };
+    const events = [event("binary_sensor.example_person", "on", 5), event("binary_sensor.example_person", "off", 1),
+      event("lock.example_front", "unavailable", 30), event("lock.example_front", "locked", 29)];
+    expect(sentences(curated(events, { personSensors }))).toEqual(["Person at Driveway"]);
+    expect(curated(events, { personSensors })[0]).toMatchObject({ icon: "camera", group: "security" });
+  });
+
+  it("falls back to generic templates and Home Assistant's message in the full log only", () => {
+    const events = [{ entityId: "automation.example_lights", when: base, message: "triggered by time" }, event("vacuum.example_robot", "returning", 1), event("sensor.example_gone", "on", 2)];
+    expect(sentences(curateActivity(events, activityEntities, { mode: "full", language: "en", people: false }))).toEqual([
+      "Evening lights triggered by time", "Robot vacuum changed to Returning", "sensor.example_gone turned on",
+    ]);
+    expect(curated(events)).toEqual([]);
+  });
+
+  it("formats relative and clock times in the home's time zone", () => {
+    const now = Date.parse("2026-10-06T12:00:00Z"), zone = "Europe/Oslo";
+    expect(activityTime(now - 20000, now, "en-GB", zone)).toBe("now");
+    expect(activityTime(now - 5 * minute, now, "en-GB", zone)).toBe("5 minutes ago");
+    expect(activityTime(now - 5 * minute, now, "nb-NO", zone)).toBe("for 5 minutter siden");
+    expect(activityTime(Date.parse("2026-10-06T08:02:00Z"), now, "en-GB", zone)).toBe("10:02");
+    expect(activityTime(Date.parse("2026-10-05T20:15:00Z"), now, "en-GB", zone)).toBe("yesterday 22:15");
+    expect(activityTime(Date.parse("2026-10-05T20:15:00Z"), now, "nb-NO", zone)).toBe("i går 22:15");
   });
 });
 
