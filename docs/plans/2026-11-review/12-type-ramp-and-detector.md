@@ -22,7 +22,8 @@ Known false positives (do not "fix"): `device-cards.css:160` side-tab/border-acc
 - [x] Token-ise the deliberate light backing `hsl(0 0% 96%)` in `device-cards.css` (~442) or document it.
 - [x] Add the confirmed false positives to `.impeccable/critique/ignore.md`.
 - [x] Refresh `.impeccable/design.json` with `/impeccable document` (preserve DESIGN.md).
-- [ ] Re-run detect; `> After:` counts. Target: no font-size findings outside documented exceptions.
+- [x] Re-run detect; `> After:` counts. Target: no font-size findings outside documented exceptions.
+  > After (2026-11-24, `impeccable detect --json src`): 0 findings, down from 241. Font size 170 → 0 (no literal `rem` font sizes left in the stylesheets; every size is a `--type-*` ramp step, the 11px navigation caption is the smallest). Radius 49 → 13, all illustration geometry under The Illustration Radius Rule and skipped by file-scoped ignores. Colour 20 → 19, all person colours, test fixtures or mask alpha, skipped the same way (`.impeccable/critique/ignore.md`). `side-tab` and `border-accent-on-rounded` (robot map wall) skipped by file-scoped ignores. Smallest rendered text: 12px content captions and dense widget labels (`.75em` of the 1rem Small zoom), 11px phone dock captions and week number.
 
 ## Acceptance
 
