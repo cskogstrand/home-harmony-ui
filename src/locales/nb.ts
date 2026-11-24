@@ -1,4 +1,6 @@
 export const nb = {
+  "Go to timetable": "Gå til timeplan",
+  "Go to person": "Gå til person",
   "More": "Flere",
   "Last 24 hours": "Siste døgn",
   "Pinned meters": "Festede målere",
