@@ -261,7 +261,9 @@
     --offline: 146.7 8.3% 42.7%;
     --pending: 36.6 89.8% 26.9%;
     --radius: 16px;
+    --radius-checkbox: 6px;
     --radius-event: 8px;
+    --radius-row: 12px;
     --radius-calendar-event: 12px;
     --radius-favorite: 20px;
     --radius-field: 14px;

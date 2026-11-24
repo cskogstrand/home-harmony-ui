@@ -50,7 +50,7 @@
 }
 .dg-card[hidden] { display: none; }
 .dg-card-header { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.5rem; }
-.dg-card-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: 15px; color: var(--dg-accent); background: var(--dg-tint); }
+.dg-card-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 44px; border-radius: var(--radius-field); color: var(--dg-accent); background: var(--dg-tint); }
 .dg-card-header h2 { font-size: var(--type-body-large); line-height: 1.35; font-weight: 600; letter-spacing: -.02em; overflow-wrap: break-word; hyphens: auto; }
 .dg-card-header p { color: var(--dg-muted); font-size: var(--type-label); margin-top: .2rem; }
 .dg-card-body { display: flex; flex-direction: column; gap: 1.1rem; flex: 1; min-width: 0; }
@@ -64,8 +64,8 @@
 .dg-card :disabled { opacity: .5; cursor: not-allowed; }
 .dg-actions { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 .dg-actions > button { flex: 1; }
-.dg-segments { display: flex; flex-wrap: wrap; align-items: stretch; background: hsl(var(--secondary) / .7); border-radius: 18px; padding: 4px; gap: 2px; }
-.dg-segments .dg-action { flex: 1 0 auto; max-width: 100%; padding: .45rem .35rem; background: transparent; border: 0; border-radius: 14px; color: var(--dg-muted); font-size: var(--type-label); min-width: 0; overflow-wrap: anywhere; }
+.dg-segments { display: flex; flex-wrap: wrap; align-items: stretch; background: hsl(var(--secondary) / .7); border-radius: var(--radius-inset); padding: 4px; gap: 2px; }
+.dg-segments .dg-action { flex: 1 0 auto; max-width: 100%; padding: .45rem .35rem; background: transparent; border: 0; border-radius: var(--radius-row); color: var(--dg-muted); font-size: var(--type-label); min-width: 0; overflow-wrap: anywhere; }
 .dg-segments .dg-action[aria-pressed="true"] { background: var(--dg-surface); color: var(--dg-ink); box-shadow: 0 2px 5px hsl(var(--glass-shade)); }
 .dg-range { display: grid; gap: .45rem; }
 .dg-range > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; font-size: var(--type-label); }
@@ -147,7 +147,7 @@
 .dg-dpad .dg-action:nth-child(4) { grid-column: 3; grid-row: 2; }
 .dg-dpad .dg-action:nth-child(5) { grid-column: 2; grid-row: 3; }
 .dg-feedback { text-align: center; min-height: 1.5rem; }
-.dg-camera { position: relative; min-height: 180px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; background: hsl(var(--muted)); color: var(--dg-ink); }
+.dg-camera { position: relative; min-height: 180px; border-radius: var(--radius-inset); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; background: hsl(var(--muted)); color: var(--dg-ink); }
 .dg-camera > span { font-size: var(--type-label); }
 .dg-camera > small { font-size: var(--type-label); color: var(--dg-muted); }
 .dg-camera-reticle { position: absolute; inset: 12px; border: 1px solid hsl(var(--border)); border-radius: 10px; pointer-events: none; }
@@ -155,7 +155,7 @@
 .dg-floorplan span { background: var(--dg-tint); display: grid; place-items: center; font-size: var(--type-label); }
 .dg-floorplan span:first-child { grid-row: span 2; }
 .dg-floorplan[data-floor="Upper floor"] { grid-template-columns: 1fr 1.5fr; }
-.dg-robot-map { position: relative; height: 165px; border-radius: 17px; overflow: hidden; background: hsl(var(--secondary)); isolation: isolate; }
+.dg-robot-map { position: relative; height: 165px; border-radius: var(--radius-inset); overflow: hidden; background: hsl(var(--secondary)); isolation: isolate; }
 .dg-robot-map::before { content: ""; position: absolute; inset: 14px 20px 25px; border: 5px solid hsl(var(--border)); border-radius: 4px; }
 .dg-robot-map::after { content: ""; position: absolute; width: 35%; height: 55%; top: 14px; right: 20px; border-left: 5px solid hsl(var(--border)); border-bottom: 5px solid hsl(var(--border)); z-index: -1; }
 .dg-cleaned { position: absolute; inset: 25px 45% 35px 30px; background: hsl(var(--primary) / .2); opacity: .65; }
@@ -213,7 +213,7 @@
 .dg-update span { display: flex; align-items: center; gap: .8rem; font-size: var(--type-title); font-variant-numeric: tabular-nums; }
 /* 3D printer: the progress ring (Original) or bar and the time left are the hero, readable across the room. */
 .dg-printer { display: grid; gap: .9rem; }
-.dg-printer-media { border-radius: 18px; overflow: hidden; }
+.dg-printer-media { border-radius: var(--radius-inset); overflow: hidden; }
 .dg-printer-hero { display: flex; align-items: center; gap: 1.25rem; }
 .dg-printer-ring { display: grid; flex: 0 0 132px; width: 132px; height: 132px; padding: 10px; border-radius: 50%; background: conic-gradient(var(--dg-accent) 0 var(--progress), var(--dg-tint) var(--progress) 100%); }
 .dg-printer-ring > span { display: grid; place-items: center; border-radius: 50%; background: var(--dg-surface); box-shadow: inset 0 2px 8px hsl(var(--glass-shade)); font-size: var(--type-heading); font-weight: 500; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
@@ -524,7 +524,7 @@
 .smart-entity-media .smart-person-pip:has(img) { aspect-ratio: auto; max-height: none; }
 /* Extend the touch target without enlarging the image beyond its video-width percentage. */
 .smart-person-pip::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: max(100%, 44px); height: max(100%, 44px); }
-.smart-entity-media .smart-person-pip img { width: 100%; height: auto; min-height: 0; border-radius: 10px; }
+.smart-entity-media .smart-person-pip img { width: 100%; height: auto; min-height: 0; border-radius: var(--radius-event); }
 .smart-person-pip > svg { max-width: 100%; max-height: 100%; }
 .smart-person-pip-error { position: absolute; right: .25rem; bottom: .25rem; background: hsl(var(--card)); border-radius: 50%; }
 .smart-camera-preview > p { padding: 1rem; font-size: var(--type-label); text-align: center; }

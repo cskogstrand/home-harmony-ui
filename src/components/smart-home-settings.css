@@ -6,7 +6,7 @@
 .smart-collection, .smart-builder { min-width: 0; }
 .smart-card-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
 .smart-card-list > li { padding: 0; }
-.smart-card-row { width: 100%; display: flex; align-items: center; gap: 1rem; padding: 1rem; text-align: left; border-radius: calc(var(--radius) - 4px); transition: background-color 160ms ease-out; }
+.smart-card-row { width: 100%; display: flex; align-items: center; gap: 1rem; padding: 1rem; text-align: left; border-radius: var(--radius-row); transition: background-color 160ms ease-out; }
 .smart-card-row:hover, .smart-type-choice:hover { background: hsl(var(--muted) / .7); }
 .smart-card-row-icon { display: grid; place-items: center; width: 3rem; height: 3rem; flex-shrink: 0; border-radius: 1rem; }
 .smart-card-row-copy { flex: 1; min-width: 0; }
@@ -35,7 +35,7 @@
 .smart-type-catalog section + section { margin-top: 2rem; }
 .smart-type-catalog h3 { font-size: var(--type-body); font-weight: 650; margin-bottom: .75rem; }
 .smart-type-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem 1rem; }
-.smart-type-choice { display: flex; align-items: center; gap: .9rem; padding: .9rem .65rem; border-radius: calc(var(--radius) - 4px); text-align: left; min-width: 0; }
+.smart-type-choice { display: flex; align-items: center; gap: .9rem; padding: .9rem .65rem; border-radius: var(--radius-row); text-align: left; min-width: 0; }
 .smart-type-choice > svg { flex-shrink: 0; color: hsl(var(--primary)); }
 .smart-type-choice span { flex: 1; min-width: 0; }
 .smart-type-choice strong { display: block; font-size: var(--type-body); font-weight: 550; overflow-wrap: anywhere; }
@@ -58,7 +58,7 @@
 .smart-other-entities > summary { cursor: pointer; min-height: 44px; padding: .65rem 0; color: hsl(var(--primary)); font-size: var(--type-label); }
 .smart-suggestions { margin-top: 1rem; }
 .smart-suggestions > button { margin-top: .5rem; }
-.smart-suggestion { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 44px; padding: .65rem .75rem; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 4px); text-align: left; }
+.smart-suggestion { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-height: 44px; padding: .65rem .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-row); text-align: left; }
 .smart-suggestion:hover { background: hsl(var(--muted)); }
 .smart-suggestion:disabled { opacity: .5; cursor: not-allowed; }
 .smart-suggestion strong, .smart-suggestion small { display: block; overflow-wrap: anywhere; }

@@ -31,7 +31,7 @@
 .calendar-month-events { display: grid; grid-template-columns: minmax(0, 1fr); gap: .375rem; }
 .calendar-month-events .event-button { padding: .45rem .4rem .45rem .85rem; }
 .calendar-month-events :is(.event-title strong, .event-button small) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.calendar-month-more { min-height: 44px; padding: .375rem; text-align: left; border-radius: 8px; color: hsl(var(--primary)); font-size: var(--type-label); }
+.calendar-month-more { min-height: 44px; padding: .375rem; text-align: left; border-radius: var(--radius-event); color: hsl(var(--primary)); font-size: var(--type-label); }
 .calendar-agenda > h2 { font-size: var(--type-title); font-weight: 500; }
 .calendar-agenda-group { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 1.5rem; margin-top: 1.5rem; }
 .calendar-agenda-group + .calendar-agenda-group { padding-top: 1.5rem; border-top: 1px solid hsl(var(--border) / .6); }

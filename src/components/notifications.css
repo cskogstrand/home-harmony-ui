@@ -79,7 +79,7 @@
 @container notification-large (min-width: 67rem) { .notification-glance { --span-three: 3; } }
 .notification-live-thumbnail .notification-body { display: flex; align-items: center; gap: .5em; }
 .notification-preview-copy { flex: 1; min-width: 0; }
-.notification-live-thumbnail :is(.notification-camera-feed, .notification-image-feed) { display: grid; align-content: center; flex: 0 0 min(var(--thumbnail-share, 45%), calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; margin: 0; overflow: hidden; border-radius: 6px; background: hsl(var(--muted)); }
+.notification-live-thumbnail :is(.notification-camera-feed, .notification-image-feed) { display: grid; align-content: center; flex: 0 0 min(var(--thumbnail-share, 45%), calc(100cqh * 16 / 9)); aspect-ratio: 16 / 9; margin: 0; overflow: hidden; border-radius: var(--radius-event); background: hsl(var(--muted)); }
 .notification-live-thumbnail .smart-entity-media { border-radius: 0; }
 .notification-live-thumbnail .notification-image-feed .smart-entity-media { aspect-ratio: 16 / 9; }
 .notification-live-thumbnail .notification-image-feed img { position: absolute; inset: 0; height: 100%; object-fit: contain; }
@@ -90,7 +90,7 @@
 .notification-thumbnail-readings { display: flex; align-items: center; gap: .625rem; margin-top: .25rem; font-size: .875em; line-height: 1.4; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
 .notification-thumbnail-readings [role="progressbar"] { flex: 1; min-width: 1.5rem; background: hsl(var(--muted-foreground) / .25); }
 .notification-thumbnail-readings [data-state="indeterminate"][role="progressbar"] { border: 1px dashed currentColor; background: transparent; }
-.notification-thumbnail-open { position: absolute; inset: 0; z-index: 3; width: 100%; border-radius: 10px; cursor: pointer; }
+.notification-thumbnail-open { position: absolute; inset: 0; z-index: 3; width: 100%; border-radius: inherit; cursor: pointer; }
 .notification-thumbnail-open:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
 @media (forced-colors: active) {
   .notification-thumbnail-readings [role="progressbar"] { border: 1px solid CanvasText; }
@@ -190,7 +190,7 @@
 .notification-dialog-header > :last-child { margin: 0; }
 .notification-dialog-header .notification-icon { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: var(--radius-field); background: hsl(var(--primary) / .1); }
 .notification-dialog-kind, .notification-media-caption { font-size: var(--type-meta); font-weight: 600; color: hsl(var(--muted-foreground)); }
-.notification-dialog-header :is(h2, h4) { width: fit-content; max-width: 100%; border-radius: .25rem; margin-top: .125rem; font-size: clamp(var(--type-title), 3vw, var(--type-heading-small)); line-height: 1.2; overflow-wrap: anywhere; }
+.notification-dialog-header :is(h2, h4) { width: fit-content; max-width: 100%; border-radius: var(--radius-event); margin-top: .125rem; font-size: clamp(var(--type-title), 3vw, var(--type-heading-small)); line-height: 1.2; overflow-wrap: anywhere; }
 .notification-event-time, .notification-time-left { display: flex; align-items: center; gap: .375rem; font-variant-numeric: tabular-nums; }
 .notification-event-time { margin-top: .375rem; font-size: var(--type-body); }
 :is(.notification-event-time, .notification-time-left) svg { flex: none; width: 1em; height: 1em; }

@@ -130,6 +130,9 @@ typography:
     fontSize: ".6875rem"
     fontWeight: 500
 rounded:
+  checkbox: "6px"
+  surface-small: "8px"
+  row: "12px"
   sm: "12px"
   md: "14px"
   lg: "16px"
@@ -388,7 +391,9 @@ This is a scoped glass exception for the shared device cards in Smart home, Toda
 
 ## Shapes
 
-The system pairs rounded work panels with capsule controls. Work panels use the `panel` radius, planner fields the `field` radius, transient menus the `menu` radius and standard dialogs the `dialog` radius. Shared component radii use a fixed 16px base, so portrait typography does not change their corners. CSS `--radius-*` tokens define small surfaces (8px), calendar events (12px), fields (14px), settings and insets (16px), favorites (20px), menus and popovers (22px), panels (24px), dialogs (28px), capsules (999px), and phone dock/destinations (34px/27px). Original and compact device surfaces use the panel radius; super compact insets retain 16px corners except in favorites, where cards and scene actions use 20px, including picker previews and unavailable cards. Calendar events use `--radius-calendar-event` across the shared event button and month entries. Illustration geometry is independent. Calendar events retain tighter corners for aligned rows.
+The system pairs rounded work panels with capsule controls. Work panels use the `panel` radius, planner fields the `field` radius, transient menus the `menu` radius and standard dialogs the `dialog` radius. Shared component radii use a fixed 16px base, so portrait typography does not change their corners. CSS `--radius-*` tokens define checkboxes and check marks (6px), small surfaces such as media insets and timetable images (8px), rows, thumbnails and small choices inside a card (12px), calendar events (12px), fields, selects and device card icon badges (14px), settings and insets (16px), favorites (20px), menus and popovers (22px), panels (24px), dialogs (28px), capsules (999px), and phone dock/destinations (34px/27px). Original and compact device surfaces use the panel radius; super compact insets retain 16px corners except in favorites, where cards and scene actions use 20px, including picker previews and unavailable cards. Calendar events use `--radius-calendar-event` across the shared event button and month entries. Calendar events retain tighter corners for aligned rows. Nested shapes stay concentric: Smart home segment choices use 12px inside their 16px track with a 4px inset.
+
+**The Illustration Radius Exception.** Illustration geometry is independent of the scale and keeps its literal radii: camera settings miniatures (person-size examples and the layout board), the notification style and size sketches, the device gallery's floor plan, robot map walls, camera reticle and history bars, the electricity price bars, and list celebration confetti. Real surfaces always use a `--radius-*` token.
 
 Shared buttons, the desktop dock, its destinations and segmented controls use full capsules. Phone navigation uses the smaller `phoneDock` and `phoneDestination` radii so the two-line controls nest within the outer shape. Header icon controls and avatars remain circular. Borders are normally thin (1px), with opacity separating major boundaries from row dividers.
 
