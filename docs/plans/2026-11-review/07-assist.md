@@ -26,7 +26,7 @@
 - [x] Show `action_done` answers with a subtle confirmation; `error` responses in plain language with retry; keep the typed text on failure.
 - [x] Offline/HA disconnected: button disabled with reason.
 - [x] Tests (mock connection): request shape, follow-up keeps `conversation_id`, error keeps draft, disabled when offline.
-- [ ] Docs: README (feature), DOCS.md (enable Assist, exposure is managed in HA), PRODUCT.md capability line; i18n en/nb.
+- [x] Docs: README (feature), DOCS.md (enable Assist, exposure is managed in HA), PRODUCT.md capability line; i18n en/nb.
 
 ## Phase B — voice (only after the owner confirms a secure context)
 
