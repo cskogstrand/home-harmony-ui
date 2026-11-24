@@ -66,7 +66,7 @@
 }
 @media (forced-colors: active) {
   .glass-surface, .header-actions .glass-surface { background: Canvas; border: 1px solid ButtonText; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
-  .family-dock a[aria-current="page"], .calendar-segment button[aria-pressed="true"], .list-tabs button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -3px; }
+  .family-dock a[aria-current="page"], .smart-nav a[aria-current="page"], .calendar-segment button[aria-pressed="true"], .list-tabs button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -3px; }
 }
 
 /* Radix keeps these occasional surfaces mounted until their exit animation ends. */
@@ -162,7 +162,7 @@
 .family-dock a:hover { color: hsl(var(--nav-foreground)); background: hsl(var(--nav-foreground) / .06); }
 .family-dock a[aria-current="page"] { background: hsl(var(--secondary)); color: hsl(var(--nav-active)); font-weight: 600; }
 @media (prefers-contrast: more) {
-  .family-dock a[aria-current="page"], .calendar-segment button[aria-pressed="true"], .list-tabs button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: -3px; }
+  .family-dock a[aria-current="page"], .smart-nav a[aria-current="page"], .calendar-segment button[aria-pressed="true"], .list-tabs button[aria-pressed="true"] { outline: 2px solid currentColor; outline-offset: -3px; }
 }
 .eyebrow { display: flex; align-items: center; gap: 7px; font-size: 0.75rem; letter-spacing: 1.7px; font-weight: 600; color: hsl(var(--muted-foreground)); line-height: 1.6; }
 .muted, .page-note { color: hsl(var(--muted-foreground)); font-size: 0.9375rem; line-height: 1.7; }

@@ -30,7 +30,9 @@
 - [x] Check contrast of selected/unselected text and the selected fill against `--art-surface` for all 12 palettes, light and dark (≥ 4.5:1 text, ≥ 3:1 for the selection indicator). Record the lowest values in a `> Contrast:` note.
 
   > Contrast (WCAG ratios measured from computed colours in the built CSS, artwork on, all 12 palettes × light/dark; list tabs, calendar segments and Smart home nav give identical values): selected label on primary fill ≥ 6.30:1 (Honey light; dark ≥ 8.09:1, Pearl). Unselected label on `--art-surface` ≥ 5.53:1 (Olive light; dark ≥ 7.93:1, Lavender). Selected fill against `--art-surface` ≥ 6.19:1 (Honey light; dark ≥ 8.11:1, Rose). Section-heading links ≥ 6.19:1, unselected filter pills ≥ 5.53:1, scene action labels on the new opaque base ≥ 10.21:1 (Olive dark). Before the change the selected fill was 1.00:1 everywhere.
-- [ ] Verify forced colours and reduced transparency still show the selected state.
+- [x] Verify forced colours and reduced transparency still show the selected state.
+
+  > Verified in the built CSS by applying each media block's rules (light and dark): forced colours and increased contrast outline the selected list tab, calendar segment and Smart home link (the nav link was missing from both outline rules and is now included) and keep the 600 weight; reduced transparency hides the artwork and keeps the primary fill plus 600 weight. Unselected items get no outline.
 - [ ] Update DESIGN.md (artwork rules, selected-state rule).
 
 ## Acceptance
