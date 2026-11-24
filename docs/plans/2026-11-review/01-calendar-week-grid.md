@@ -30,7 +30,11 @@
   > Landed with each feature commit: `src/test/family-calendar.test.ts` (grouping per person and day), `src/test/family-week-grid.test.tsx` (chip rendering and collected state, one add per person row with person and default day, compact grid without add controls, full title as accessible name, table `lang`, row header names, popover note) and updated expectations in `src/test/ha-session.test.tsx` and `src/test/navigation.test.tsx`.
 - [ ] Browser check at both sizes, light/dark, artwork on and off; write the `> After:` numbers next to the `> Before:` note.
 
-  > Blocked: this workstream ran in a separate git worktree, and the coordinator ruled out starting a second dev server (the only one, port 8081, serves `main` against the data directory and a real Home Assistant). The new code therefore cannot be viewed in a browser from here. Once the branch is merged into `main`, rerun the measurements behind the `> Before:` note on port 8081 (read-only) and add the `> After:` numbers. Expected at 1440 × 2560 from the CSS: person column 80px (4rem at 20px root) instead of 120px, so day columns about 175px instead of 169px; 5 add buttons instead of 35; titles clamp at two lines; one waste chip per person and day. Also confirm on the phone that Today (borderless, primary ink, icon) reads differently from the selected Day segment.
+  > After (2026-11-24, merged `main`, Chrome, Norwegian, dark theme, five people; counts only, read-only on port 8081):
+  > - **1440 × 2560**: person column 80px, day columns 175px, table 1302px with no sideways scroll. 5 add buttons, one per person row, none in day cells. Week titles use `hyphens: auto`, `overflow-wrap: normal`, table `lang="nb"`; no title exceeds two lines. One waste chip in the week, no cell with more than one.
+  > - **390 × 844**: Today is a borderless, transparent button in primary ink with an icon; the selected Day segment is a filled primary capsule. The filter note is no longer on screen.
+  >
+  > Blocked: light theme and artwork on are saved settings on the live server, and saving settings there is not allowed. Check both on fictional data in [13](13-final-verification.md).
 - [x] Update DESIGN.md (calendar section) and `.impeccable/surfaces/src-pages-calendar-tsx.md` with the new week-grid rules.
 
 > Before (2026-11-24, `main` at 73ac4c7, Chrome, Norwegian, dark theme, five people in the grid; counts only):
