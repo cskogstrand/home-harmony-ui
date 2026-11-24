@@ -19,7 +19,7 @@ export function HaHealthProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState(0);
   useEffect(() => {
     // Screens without these reads (isolated tests, older clients) have nothing to show.
-    if (!homeOnline || !listRepairs || !backupInfo) return;
+    if (!homeOnline || typeof listRepairs !== "function" || typeof backupInfo !== "function") return;
     let active = true, last = 0;
     const read = () => {
       last = Date.now();

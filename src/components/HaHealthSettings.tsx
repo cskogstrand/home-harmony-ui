@@ -79,7 +79,7 @@ function Notifications() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     // Screens without the subscription (isolated tests, older clients) keep checking.
-    if (!homeOnline || !subscribePersistentNotifications) return;
+    if (!homeOnline || typeof subscribePersistentNotifications !== "function") return;
     return subscribePersistentNotifications(next => { setNotifications(next); setLoaded(true); });
   }, [homeOnline, subscribePersistentNotifications]);
   if (loaded && notifications === undefined) return null;
