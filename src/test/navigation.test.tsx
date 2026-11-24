@@ -1408,6 +1408,7 @@ it("lists automations under Settings → System with the Home Assistant editor b
   expect(screen.getByRole("link", { name: /Edit automations in Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/automation/dashboard");
   expect(screen.getByRole("link", { name: "All settings" })).toHaveAttribute("href", "/settings?group=system");
   expect(screen.queryByRole("navigation", { name: "Smart home navigation" })).not.toBeInTheDocument();
+  expect(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name: "Smart home" })).not.toHaveAttribute("aria-current");
 });
 
 it("offers one setup entry on Today and keeps guidance off the everyday boards", async () => {
@@ -1556,17 +1557,20 @@ it("navigates with empty HA data and shows the server-managed connection", async
   }
 });
 
-it("opens HA tools directly and keeps Add card visible with existing cards", async () => {
+it("keeps Home Assistant admin pages out of Smart home navigation and keeps Add card visible", async () => {
   app.currentHome = cardEditorHome();
   settings.settings.smartHome.layout = [configuredCard("home|light.example")];
   window.history.replaceState(null, "", "/home");
   render(<App />); await saved();
   expect(screen.getByRole("link", { name: "Add card" })).toHaveAttribute("href", "/settings/smart-home?card=new");
-  fireEvent.keyDown(screen.getByRole("button", { name: "More controls" }), { key: "Enter" });
-  const activity = await screen.findByRole("menuitem", { name: /Activity Home Assistant/ });
-  expect(activity).toHaveAttribute("href", "http://ha.local:8123/history");
-  expect(activity).toHaveAttribute("target", "_blank");
-  expect(screen.getByRole("menuitem", { name: /Integrations Home Assistant/ })).toHaveAttribute("href", "http://ha.local:8123/config/integrations");
+  const nav = within(screen.getByRole("navigation", { name: "Smart home navigation" }));
+  fireEvent.keyDown(nav.getByRole("button", { name: "More controls" }), { key: "Enter" });
+  const menu = within(await screen.findByRole("menu"));
+  expect(menu.getAllByRole("menuitem").map(item => item.textContent)).toEqual(["Car & energy", "Zones", "Alerts", "Home settings"]);
+  for (const name of [/Automations/, /Activity/, /Integrations/]) {
+    expect(menu.queryByRole("menuitem", { name })).not.toBeInTheDocument();
+    expect(nav.queryByRole("link", { name })).not.toBeInTheDocument();
+  }
 });
 
 it("shares people visibility, order and timetable preferences with another screen", async () => {

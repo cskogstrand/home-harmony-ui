@@ -1,5 +1,5 @@
 import { matchPath } from "react-router-dom";
-import { Music2, Camera, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Workflow, Clock, Bell, Settings, Package } from "lucide-react";
+import { Music2, Camera, SlidersHorizontal, Grid2X2, Lightbulb, DoorOpen, MapPin, Sparkles, Shield, Zap, Bell, Settings } from "lucide-react";
 
 const familyPaths = ["/", "/calendar", "/lists", "/school"];
 export const mainPaths = [...familyPaths, "/home"];
@@ -14,8 +14,7 @@ export const smartItems = [
 ];
 export const moreItems = [
   { path: "/energy", label: "Car & energy", icon: Zap }, { path: "/zones", label: "Zones", icon: MapPin },
-  { path: "/automations", label: "Automations", icon: Workflow }, { path: "/notifications", label: "Alerts", icon: Bell },
-  { path: "/history", label: "Activity", icon: Clock }, { path: "/integrations", label: "Integrations", icon: Package },
+  { path: "/notifications", label: "Alerts", icon: Bell },
   { path: "/settings", label: "Home settings", icon: Settings },
 ];
 

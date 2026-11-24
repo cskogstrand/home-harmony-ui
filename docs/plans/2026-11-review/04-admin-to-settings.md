@@ -26,7 +26,9 @@
 - [x] Convert the three pages into section components rendered inside Settings; remove their own page headings.
 - [ ] Add confirmation before "Run actions" on an automation; keep pending/failed feedback; no automatic replay.
 - [x] Replace routes with redirects; keep `/automation` redirect chain working (single hop to the final URL).
-- [ ] Remove the three entries from `moreItems`; make sure `isHomeSection` no longer treats them as Smart home pages and the Settings dock item highlights instead.
+- [x] Remove the three entries from `moreItems`; make sure `isHomeSection` no longer treats them as Smart home pages and the Settings dock item highlights instead.
+
+  > Note: the family dock has no Settings item; Settings opens from the header gear. The moved routes redirect to `/settings/*`, where Smart home is no longer marked current and the Smart home sub-nav is hidden. The header gear gets no `aria-current` here to avoid colliding with workstream 03's header work.
 - [ ] Phone: confirm the Smart home sub-nav no longer clips a label mid-word at 375 px; if it still does, fade/scroll the overflow with a clear "More" affordance rather than clipping text.
 - [ ] Tests: redirects land on the right section; More menu no longer lists the moved items; confirmation required before running an automation.
 - [ ] Update README.md (navigation), PRODUCT.md (capabilities: admin detail in Settings), DESIGN.md if navigation counts are documented.
