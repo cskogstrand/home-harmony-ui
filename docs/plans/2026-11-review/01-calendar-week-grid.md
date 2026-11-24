@@ -28,13 +28,13 @@
 - [x] Unit tests: waste chip grouping per day; add affordance presence (one per person row) and that it passes the person to the editor; title clamping does not drop the accessible name.
 
   > Landed with each feature commit: `src/test/family-calendar.test.ts` (grouping per person and day), `src/test/family-week-grid.test.tsx` (chip rendering and collected state, one add per person row with person and default day, compact grid without add controls, full title as accessible name, table `lang`, row header names, popover note) and updated expectations in `src/test/ha-session.test.tsx` and `src/test/navigation.test.tsx`.
-- [ ] Browser check at both sizes, light/dark, artwork on and off; write the `> After:` numbers next to the `> Before:` note.
+- [x] Browser check at both sizes, light/dark, artwork on and off; write the `> After:` numbers next to the `> Before:` note.
 
   > After (2026-11-24, merged `main`, Chrome, Norwegian, dark theme, five people; counts only, read-only on port 8081):
   > - **1440 × 2560**: person column 80px, day columns 175px, table 1302px with no sideways scroll. 5 add buttons, one per person row, none in day cells. Week titles use `hyphens: auto`, `overflow-wrap: normal`, table `lang="nb"`; no title exceeds two lines. One waste chip in the week, no cell with more than one.
   > - **390 × 844**: Today is a borderless, transparent button in primary ink with an icon; the selected Day segment is a filled primary capsule. The filter note is no longer on screen.
   >
-  > Blocked: light theme and artwork on are saved settings on the live server, and saving settings there is not allowed. Check both on fictional data in [13](13-final-verification.md).
+  > Resolved in [13](13-final-verification.md): light/dark and artwork on/off were toggled in the page only (no settings saved) at both sizes; no overflow or sub-11px text. The 13 pass also found and fixed a phone week-grid overflow: screen-reader time labels escaped the scroller and widened the layout to 547px (`fix: keep the phone week grid inside its scroller`).
 - [x] Update DESIGN.md (calendar section) and `.impeccable/surfaces/src-pages-calendar-tsx.md` with the new week-grid rules.
 
 > Before (2026-11-24, `main` at 73ac4c7, Chrome, Norwegian, dark theme, five people in the grid; counts only):

@@ -38,7 +38,7 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 | # | Workstream | Priority | Depends on | Status |
 |---|---|---|---|---|
 | 00 | [Preflight](00-preflight.md) | — | — | ✅ |
-| 01 | [Calendar week grid readability](01-calendar-week-grid.md) | P1 | 00 | 🚧 light theme and artwork-on browser check left for 13 |
+| 01 | [Calendar week grid readability](01-calendar-week-grid.md) | P1 | 00 | ✅ |
 | 02 | [Artwork mode: selected states and patches](02-artwork-selected-states.md) | P1 | 00 | ✅ |
 | 03 | [Header, bell badge and Today first screen](03-header-and-bell.md) | P1 | 00 | ✅ |
 | 04 | [Move admin pages into Settings](04-admin-to-settings.md) | P2 | 00 | ✅ |
@@ -50,7 +50,7 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 | 10 | [Home Assistant health in Settings and HomeStatus](10-ha-maintenance.md) | Feature | 04 | ✅ |
 | 11 | [3D printer card](11-printer-card.md) | Feature | 05 | ✅ |
 | 12 | [Type ramp and detector cleanup](12-type-ramp-and-detector.md) | P3 | 01–06 | ✅ |
-| 13 | [Final verification and re-critique](13-final-verification.md) | — | all | ⬜ |
+| 13 | [Final verification and re-critique](13-final-verification.md) | — | all | ✅ |
 
 Legend: ⬜ not started · 🚧 in progress · ✅ done.
 
@@ -80,7 +80,10 @@ Home Assistant capabilities available but unused by the app (verified read-only 
 Record answers here when given; agents should not block on them unless a box says so.
 
 - [ ] Activity feed placement: the plan puts a curated "Recent at home" panel on the Smart home overview and the full log in Settings → System. Confirm, or move the curated panel to Today. (08)
+  > Carried over (2026-11-24): implemented with the default (panel on Smart home); move later if the owner prefers Today.
 - [x] Electricity price: add the Nord Pool integration and configure the Energy dashboard in Home Assistant? Workstream 09 phase B waits for this. (09)
   > Answer (2026-11-24): the owner added Nord Pool price sensors in Home Assistant. The app only needs to let the owner choose the price sensor in Settings; no automatic detection and no Energy dashboard setup is required.
 - [ ] Voice input on the wall screen needs a secure context (HTTPS or localhost) for the microphone. Is the wall browser served over HTTPS? (07 phase B)
+  > Carried over (2026-11-24): unanswered; 07 phase B stays blocked.
 - [ ] Should the portrait wall fill the empty lower part of secondary pages (for example the week under Today)? Not planned; a candidate for a later `/impeccable shape`.
+  > Carried over (2026-11-24): the re-critique raised the same point as a P2 (see [13](13-final-verification.md)).
