@@ -80,10 +80,10 @@
 @keyframes surface-fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes surface-fade-out { from { opacity: 1; } to { opacity: 0; } }
 
-[data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion) {
+[data-motion-input="pointer"] :is(.press-feedback, .icon-button, .item-suggestion) {
   transition: transform 120ms var(--ease-out), opacity 120ms ease;
 }
-[data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion):active:not(:disabled):not([aria-disabled="true"]) { opacity: .8; }
+[data-motion-input="pointer"] :is(.press-feedback, .icon-button, .item-suggestion):active:not(:disabled):not([aria-disabled="true"]) { opacity: .8; }
 [data-motion-input="pointer"] :is(.quick-add, .item-suggestions, .content-ready) { transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
 @starting-style {
   [data-motion-input="pointer"] :is(.quick-add, .item-suggestions, .content-ready) { opacity: 0; }
@@ -96,7 +96,7 @@
 .item-suggestion > .suggestion-spinner { position: absolute; inset: 0; margin: auto; }
 
 @media (prefers-reduced-motion: no-preference) {
-  [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion):active:not(:disabled):not([aria-disabled="true"]) { transform: scale(.97); }
+  [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .item-suggestion):active:not(:disabled):not([aria-disabled="true"]) { transform: scale(.97); }
   [data-motion-input="pointer"] .switch-thumb { transition: translate 160ms var(--ease-in-out); }
   @starting-style {
     [data-motion-input="pointer"] .quick-add { transform: translateY(-4px); }
@@ -106,7 +106,7 @@
   .motion-surface, .motion-backdrop { --surface-enter: surface-fade-in; --surface-exit: surface-fade-out; }
   @layer base {
     .motion-surface, .motion-backdrop { animation-duration: 160ms !important; }
-    [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .scene-buttons button, .item-suggestion, .quick-add, .item-suggestions, .content-ready) { transition-property: opacity !important; transition-duration: 160ms !important; }
+    [data-motion-input="pointer"] :is(.press-feedback, .icon-button, .item-suggestion, .quick-add, .item-suggestions, .content-ready) { transition-property: opacity !important; transition-duration: 160ms !important; }
     .check-row::before, .check-mark .check-icon { transition-duration: 160ms !important; }
   }
 }
@@ -512,14 +512,14 @@ fieldset.settings-card > legend + * { clear: both; }
 .home-favorites { display: flex; flex-direction: column; }
 /* Keep the source order and center the last line, including rows with device cards. */
 .favorite-group, .scene-panel { container-type: inline-size; }
-.favorite-devices, .scene-buttons { --columns: 1; --tile-gap: 1rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--tile-gap); }
-:is(.favorite-devices, .scene-buttons) > * { --tile-width: calc((100% + var(--tile-gap)) / var(--columns) - var(--tile-gap)); flex: 0 0 var(--tile-width); min-width: 0; }
+.favorite-devices { --columns: 1; --tile-gap: 1rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: var(--tile-gap); }
+.favorite-devices > * { --tile-width: calc((100% + var(--tile-gap)) / var(--columns) - var(--tile-gap)); flex: 0 0 var(--tile-width); min-width: 0; }
 @container (min-width: 19rem) {
-  .scene-buttons, .favorite-devices:where(:not(:has(> :not([data-card-kind="scene"])))) { --columns: 2; }
+  .favorite-devices:where(:not(:has(> :not([data-card-kind="scene"])))) { --columns: 2; }
 }
-@container (min-width: 29rem) { .favorite-devices, .scene-buttons { --columns: 2; } }
-@container (min-width: 43rem) { .favorite-devices, .scene-buttons { --columns: 3; } }
-@container (min-width: 58rem) { .favorite-devices, .scene-buttons { --columns: 4; } }
+@container (min-width: 29rem) { .favorite-devices { --columns: 2; } }
+@container (min-width: 43rem) { .favorite-devices { --columns: 3; } }
+@container (min-width: 58rem) { .favorite-devices { --columns: 4; } }
 @container (min-width: 43rem) { .favorite-devices > [data-card-kind="weather"] { flex-basis: calc(2 * var(--tile-width) + var(--tile-gap)); } }
 :is(.favorite-devices, .favorite-selected-preview, .favorite-type-preview) :is(.dg-card.dg-supercompact, .dg-card .dg-scene-action) { border-radius: var(--radius-favorite); }
 .control-stack { display: flex; flex-direction: column; gap: 11px; width: 100%; }
@@ -534,13 +534,8 @@ fieldset.settings-card > legend + * { clear: both; }
 .temperature-control strong { font-size: 1.6875rem; font-weight: 400; }
 .temperature-control small { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
 .sensor-state { font-size: 0.9375rem; color: hsl(var(--muted-foreground)); }
-.scene-buttons button { min-height: 3.5rem; overflow-wrap: anywhere; display: flex; align-items: center; justify-content: center; gap: 9px; background: hsl(var(--secondary) / .6); border: 1px solid transparent; padding: 16px 12px; border-radius: var(--radius-field); font-size: 0.875rem; }
-.scene-buttons svg { color: hsl(var(--primary)); flex-shrink: 0; }
-.scene-buttons, .favorite-devices:where(:not(:has(> :not([data-card-kind="scene"])))) { align-items: stretch; }
-.scene-buttons > .command-controller { display: flex; flex-direction: column; }
-.scene-buttons button { flex: 1; }
+.favorite-devices:where(:not(:has(> :not([data-card-kind="scene"])))) { align-items: stretch; }
 .favorite-devices > [data-card-kind="scene"] :is(.dg-card, .dg-scene-action) { height: 100%; }
-.scene-buttons button:hover, .scene-buttons button[aria-pressed="true"] { border-color: hsl(var(--primary) / .7); background: hsl(var(--primary) / .15); }
 .attention-link { margin-top: 18px; display: flex; gap: 8px; align-items: center; font-size: 0.8125rem; color: hsl(var(--warning)); min-height: 32px; }
 .attention-link > svg:last-child { margin-left: auto; }
 .vehicle-panel { background: hsl(var(--card)); display: flex; flex-direction: column; }
@@ -849,7 +844,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .check-mark { width: 26px; height: 26px; }
   .member-avatar.small { width: 36px; height: 36px; font-size: .75rem; }
   .school-preview > div:first-child, .list-progress, .list-identity > div > span, .home-device-title small, .device-range > span { font-size: .9rem; }
-  .home-device-title h3, .scene-buttons button, .home-favorites .scene-buttons button, .toggle-line { font-size: 1rem; }
+  .home-device-title h3, .toggle-line { font-size: 1rem; }
   .school-preview .timetable-image { max-height: 200px; }
   .school-strip { gap: 1rem; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

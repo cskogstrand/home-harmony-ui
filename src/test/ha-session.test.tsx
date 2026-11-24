@@ -2524,7 +2524,7 @@ it.each(["/", "/moods", "/devices/scene.evening"])("confirms scene activation fr
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(ha.callService).not.toHaveBeenCalled();
   fireEvent.click(activate);
-  await confirmAction(path === "/moods" ? "Activate scene" : "Confirm");
+  await confirmAction("Confirm");
   expect(ha.callService).toHaveBeenCalledExactlyOnceWith(conn, "scene", "turn_on", {}, { entity_id: "scene.evening" });
 });
 

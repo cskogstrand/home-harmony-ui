@@ -23,3 +23,11 @@ export function moveSmartHomeCard(settings: Planner["smartHome"], id: string, gr
   layout.splice(before, 0, { ...card, group });
   return { layout };
 }
+
+/** Scenes in saved order: Smart home scene cards first, then Today's favorites, then the rest as Home Assistant reports them. */
+export function orderedScenes(entities: Entity[], settings: Planner["smartHome"], favorites: string[] = []) {
+  const scenes = entities.filter(entity => entity.domain === "scene");
+  const saved = [...settings.layout.filter(card => card.type === "scene").map(card => card.mainEntity), ...favorites];
+  const rank = (scene: Entity) => { const index = saved.indexOf(scene.preferenceId); return index < 0 ? saved.length : index; };
+  return scenes.map((scene, index) => ({ scene, index })).sort((a, b) => rank(a.scene) - rank(b.scene) || a.index - b.index).map(({ scene }) => scene);
+}

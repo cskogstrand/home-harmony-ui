@@ -16,7 +16,7 @@
 
 ## Checklist
 
-- [ ] `/moods`: render scenes with the same tile component as Today (Super compact density), same confirmation/pending/failure behaviour, same ordering source.
+- [x] `/moods`: render scenes with the same tile component as Today (Super compact density), same confirmation/pending/failure behaviour, same ordering source.
 - [ ] Re-run the scene layout matrix from family-board-review (0, 1, 3, 4, 5, 7 scenes; long label) at 1440 × 2560 and 390 × 844.
 - [ ] `/alarm`: large state headline (state + since when), using the alarm card layout; actions grouped by intent with the safest action visually primary.
 - [ ] Hide or disable the action matching the current state (no "Disarm" while disarmed); disabled actions explain why via accessible description.

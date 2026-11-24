@@ -4,17 +4,15 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useState } from "react";
 import { z } from "zod";
 import { Link } from "react-router-dom";
-import { CarFront, Sparkles, ArrowUpRight, Settings, Volume2, Sunrise, Heart, Sun, Moon, Coffee, CalendarDays, CalendarCheck, ClipboardList, ListChecks, Bell, House, type LucideIcon } from "lucide-react";
+import { CarFront, ArrowUpRight, Settings, Volume2, Sunrise, Heart, Sun, Moon, Coffee, CalendarDays, CalendarCheck, ClipboardList, ListChecks, Bell, House, type LucideIcon } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { available, haDateTime, supportsAction } from "@/lib/ha-model";
-import type { Entity } from "@/types/api";
 import { CommandFeedback } from "@/components/devices/DeviceControl";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 import { FavoritePicker } from "@/components/FavoritePicker";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { MemberAvatar, PanelHeading } from "./FamilyPlanner";
 
 const morningMessageSchema = z.object({ key: z.string(), name: z.string(), emoji: z.string(), text: z.string().refine(text => !!text.trim()) });
@@ -110,16 +108,6 @@ export function MorningSummary({ dialogTrigger = false }: { dialogTrigger?: bool
     {error}
     {offline}
   </section>;
-}
-export function SceneButtons({ entities }: { entities?: Entity[] }) {
-  const { t } = useI18n();
-  const { currentHome, command, commands, homeOnline, services } = useApp();
-  const [sceneId, setSceneId] = useState<string>();
-  const scenes = entities ?? currentHome.entities.filter(e => e.domain === "scene");
-  const selectedScene = scenes.find(scene => scene.entityId === sceneId);
-  return <><div className="scene-buttons">{scenes.map(scene => <div key={scene.entityId} className="command-controller" aria-busy={!!commands[scene.entityId]?.pending}><button className="w-full" aria-label={t("Activate {value1}", { value1: scene.name })} disabled={!homeOnline || !available(scene) || !supportsAction(scene, "turn_on", services) || commands[scene.entityId]?.pending} onClick={() => setSceneId(scene.entityId)}><Sparkles size={20} aria-hidden="true" /><span>{scene.name}</span></button><CommandFeedback entityId={scene.entityId} /></div>)}</div>{!scenes.length && <p className="empty-note">{t("No scenes yet.")}</p>}
-    {sceneId && <ConfirmDialog open onOpenChange={open => { if (!open) setSceneId(undefined); }} title={t("Activate scene?")} description={t("Activate “{value1}”? This applies its configured device changes in Home Assistant.", { value1: selectedScene?.name ?? sceneId })} confirmLabel={t("Activate scene")} disabled={!homeOnline || !selectedScene || !available(selectedScene) || !supportsAction(selectedScene, "turn_on", services) || commands[sceneId]?.pending} onConfirm={() => command(sceneId, "turn_on")} />}
-  </>;
 }
 export function HomeFavorites() {
   const { t } = useI18n();
