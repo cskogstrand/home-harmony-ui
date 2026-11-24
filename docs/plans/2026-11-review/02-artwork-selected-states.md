@@ -33,7 +33,7 @@
 - [x] Verify forced colours and reduced transparency still show the selected state.
 
   > Verified in the built CSS by applying each media block's rules (light and dark): forced colours and increased contrast outline the selected list tab, calendar segment and Smart home link (the nav link was missing from both outline rules and is now included) and keep the 600 weight; reduced transparency hides the artwork and keeps the primary fill plus 600 weight. Unselected items get no outline.
-- [ ] Update DESIGN.md (artwork rules, selected-state rule).
+- [x] Update DESIGN.md (artwork rules, selected-state rule).
 
 ## Acceptance
 
