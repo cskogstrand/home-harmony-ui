@@ -2934,6 +2934,8 @@ export const nb = {
   "Hidden in the notification. Its other uses stay active.": "Skjult i varselet. Entitetens øvrige funksjoner er fortsatt aktive.",
   "{name} {message}": "{name} {message}",
   "{name} changed to {state}": "{name} endret til {state}",
+  "{name} changed status": "{name} endret status",
+  "{name} was activated": "{name} ble aktivert",
   "{name} came home": "{name} kom hjem",
   "{name} left home": "{name} dro hjemmefra",
   "{name} arrived at {zone}": "{name} kom til {zone}",

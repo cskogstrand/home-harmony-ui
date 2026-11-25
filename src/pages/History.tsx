@@ -32,7 +32,7 @@ function ActivityLog() {
   const [group, setGroup] = useState("all");
   const date = day === "today" ? today : addDays(today, -1);
   const feed = useLogbook({ start: calendarBoundary(date, currentHome.timeZone), end: day === "yesterday" ? calendarBoundary(today, currentHome.timeZone) : undefined });
-  const items = curateActivity(feed.events, currentHome.entities, { mode: "full", language, people: activity.people, personSensors });
+  const items = curateActivity(feed.events, currentHome.entities, { mode: "full", language, people: activity.people, personSensors, timeZone: currentHome.timeZone });
   const areas = currentHome.areas.filter(room => room.id === area || items.some(item => item.areaId === room.id));
   const groups = [...new Set([...items.map(item => item.group), ...(group === "all" ? [] : [group as ActivityGroup])])];
   const visible = items.filter(item => (area === "all" || item.areaId === area) && (group === "all" || item.group === group));

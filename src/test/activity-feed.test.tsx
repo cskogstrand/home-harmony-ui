@@ -212,6 +212,38 @@ describe("activity curation", () => {
     expect(curated(events)).toEqual([]);
   });
 
+  it("writes logged dates, times, readings and states in the dashboard language and hides values it cannot read", () => {
+    const logged = mapHome({
+      "sensor.example_seen": state("sensor.example_seen", "2026-10-06T09:00:00+00:00", { device_class: "timestamp", friendly_name: "Example car Last seen" }),
+      "sensor.example_summary": state("sensor.example_summary", "2026-10-06", { friendly_name: "Example summary" }),
+      "input_datetime.example_made": state("input_datetime.example_made", "2026-10-06 08:00:23", { friendly_name: "Example clip made" }),
+      "sensor.example_bass": state("sensor.example_bass", "2", { friendly_name: "Example speaker Bass", unit_of_measurement: "dB" }),
+      "sensor.example_state": state("sensor.example_state", "charging", { friendly_name: "Example car State" }),
+      "select.example_mode": state("select.example_mode", "previous", { friendly_name: "Example plug Startup", options: ["previous", "on"] }),
+      "input_select.example_scene": state("input_select.example_scene", "Movie night", { friendly_name: "Example living mode", options: ["Movie night"] }),
+      "scene.example_morning": state("scene.example_morning", "2026-10-06T05:00:00+00:00", { friendly_name: "Example morning" }),
+      "button.example_identify": state("button.example_identify", "2026-10-06T05:00:00+00:00", { friendly_name: "Example identify" }),
+    }, emptyRegistries, "home").entities;
+    const log = (language: "en" | "nb") => sentences(curateActivity([
+      event("sensor.example_seen", "2026-10-06T09:47:16.178+0000", 1), event("sensor.example_summary", "2026-10-06", 2), event("input_datetime.example_made", "2026-10-06 08:00:23", 3),
+      event("sensor.example_bass", "-1", 4), event("sensor.example_state", "charging", 5), event("sensor.example_state", "OnOffSwitch", 6), event("sensor.example_state", "70d07efffea63716", 7),
+      event("select.example_mode", "previous", 8), event("input_select.example_scene", "Movie night", 9), event("scene.example_morning", "2026-10-06T05:00:00+00:00", 10),
+      event("button.example_identify", "2026-10-06T05:00:00+00:00", 11), event("sensor.example_gone", "suspended", 12),
+    ], logged, { mode: "full", language, people: false, timeZone: "Europe/Oslo" }), createI18n(language));
+    expect(log("en")).toEqual([
+      "Example car Last seen changed to 6 Oct 2026, 11:47", "Example summary changed to 6 Oct 2026", "Example clip made changed to 6 Oct 2026, 08:00",
+      "Example speaker Bass changed to -1 dB", "Example car State changed to Charging", "Example car State changed status", "Example car State changed status",
+      "Example plug Startup changed to Previous", "Example living mode changed to Movie night", "Example morning was activated", "Example identify was pressed",
+      "sensor.example_gone changed to Suspended",
+    ]);
+    expect(log("nb")).toEqual([
+      "Example car Last seen endret til 6. okt. 2026, 11:47", "Example summary endret til 6. okt. 2026", "Example clip made endret til 6. okt. 2026, 08:00",
+      "Example speaker Bass endret til −1 dB", "Example car State endret status", "Example car State endret status", "Example car State endret status",
+      "Example plug Startup endret status", "Example living mode endret til Movie night", "Example morning ble aktivert", "Example identify ble trykket",
+      "sensor.example_gone endret status",
+    ]);
+  });
+
   it("formats relative and clock times in the home's time zone", () => {
     const now = Date.parse("2026-10-06T12:00:00Z"), zone = "Europe/Oslo";
     expect(activityTime(now - 20000, now, "en-GB", zone)).toBe("now");
