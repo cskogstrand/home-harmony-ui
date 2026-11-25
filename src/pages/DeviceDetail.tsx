@@ -10,7 +10,7 @@ import { DeviceReading } from "@/components/devices/DeviceReading";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 import { DeviceTools } from "@/components/devices/DeviceTools";
 import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
-import { deviceDetailSections, deviceName, deviceReadingsLabel, deviceType, entityDetailPath } from "@/lib/device-model";
+import { deviceDetailSections, deviceName, deviceReadingsLabel, deviceType, entityDetailPath, readingName } from "@/lib/device-model";
 import { printerModel } from "@/lib/printer-model";
 import { cardDesigns } from "@/components/devices/card-designs";
 import { CardFrame } from "@/components/devices/CardFrame";
@@ -55,11 +55,13 @@ export default function DeviceDetail() {
   const hasPrimary = !!printer || !!primary.length;
   const availability = deviceReadingsLabel(entities, homeOnline);
   const StatusIcon = availability === "Readings available" ? CheckCircle2 : CircleAlert;
+  // The page names the device, so its entities drop the device prefix ("Child lock", not "<device> Child lock").
+  const named = (entity: Entity) => ({ ...entity, name: readingName(entity) });
   const entityTitle = (entity: Entity) => {
     const entityArea = currentHome.areas.find(area => area.id === entity.areaId);
     return <div className="home-device-title"><span className="device-symbol"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-4 w-4" /></span><div className="device-name"><h3>{entity.name}</h3>{entityArea && entityArea.id !== device.area_id && <small>{entityArea.id === "unassigned" ? t("Unassigned") : entityArea.name}</small>}</div></div>;
   };
-  const controls = (items: Entity[]) => <div className="device-entity-list">{items.map(entity => <article key={entity.entityId} id={entity.entityId} tabIndex={-1} aria-label={entity.name} className="device-entity">
+  const controls = (items: Entity[]) => <div className="device-entity-list">{items.map(named).map(entity => <article key={entity.entityId} id={entity.entityId} tabIndex={-1} aria-label={entity.name} className="device-entity">
     {entityTitle(entity)}<DeviceControl entity={entity} /><EntityDetails entity={entity} />
   </article>)}</div>;
   return <div className="planner-page device-page">
@@ -81,7 +83,7 @@ export default function DeviceDetail() {
       </section>}
       {!!sections.readings.length && <section className="device-detail-readings" aria-label={t("Readings and status")}>
         <PanelHeading icon={Activity} title={t("Readings and status")} />
-        <div className="device-reading-grid">{sections.readings.map(entity => <DeviceReading key={entity.entityId} entity={entity} />)}</div>
+        <div className="device-reading-grid">{sections.readings.map(entity => <DeviceReading key={entity.entityId} entity={named(entity)} />)}</div>
       </section>}
     </div>}
     {!!sections.controls.length && <section aria-label={t("Additional controls")}><PanelHeading icon={SlidersHorizontal} title={t("Additional controls")} />{controls(sections.controls)}</section>}
