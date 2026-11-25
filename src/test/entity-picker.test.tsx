@@ -121,6 +121,39 @@ it("keeps multiple selections while filtering and allows removal of missing sour
   expect(screen.getByRole("button", { name: "Favorites" })).toHaveAccessibleDescription("Example status, Example camera");
 });
 
+it("shows the selection in a multiple picker: a Selected view, counts per device and marked rows", () => {
+  function Multiple() {
+    const [value, setValue] = useState(["home|stable-status", "home|calendar.removed"]);
+    return <EntityPicker multiple entities={home.entities} label="Sources" value={value} onChange={setValue} />;
+  }
+  render(<Multiple />);
+  fireEvent.click(screen.getByRole("button", { name: "Sources" }));
+  expect(screen.getByRole("button", { name: /Selected entities/ })).toHaveTextContent("2 selected");
+  expect(screen.getByRole("button", { name: "Choose device Example washer" })).toHaveTextContent("Example utility room · 2 entities · 1 selected");
+  expect(screen.getByRole("button", { name: "Choose device Example doorbell" })).not.toHaveTextContent("selected");
+  fireEvent.click(screen.getByRole("button", { name: /Selected entities/ }));
+  expect(screen.getByText("Selected entities", { selector: "strong" })).toBeVisible();
+  const status = screen.getByRole("checkbox", { name: "Example status" });
+  expect(status).toBeChecked();
+  expect(status.closest("label")).toHaveClass("is-selected");
+  expect(screen.getByRole("checkbox", { name: /Entity unavailable · calendar.removed/ })).toBeChecked();
+  expect(screen.queryByRole("checkbox", { name: "Example camera" })).not.toBeInTheDocument();
+  // Unticking keeps the row in place, so it can be ticked again.
+  fireEvent.click(status);
+  expect(screen.getByRole("checkbox", { name: "Example status" })).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Example status" }).closest("label")).not.toHaveClass("is-selected");
+  expect(screen.getByRole("status")).toHaveTextContent("1 selected");
+  fireEvent.click(screen.getByRole("button", { name: "Back to devices" }));
+  expect(screen.getByRole("button", { name: /Selected entities/ })).toHaveTextContent("1 selected");
+});
+
+it("leaves single pickers without a Selected view", () => {
+  render(<EntityPicker entities={home.entities} label="Source" value="home|stable-status" onChange={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: "Source" }));
+  expect(screen.queryByRole("button", { name: /Selected entities/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Choose device Example washer" })).not.toHaveTextContent("selected");
+});
+
 it("announces selection alongside help and distinguishes matching names by entity ID", () => {
   const entities = home.entities.filter(entity => entity.domain === "sensor").map(entity => ({ ...entity, name: "Same name" }));
   render(<><p id="picker-help">Choose the source to monitor.</p><EntityPicker multiple label="Sources" describedBy="picker-help" entities={entities} value={[entities[0].preferenceId]} onChange={() => {}} /></>);

@@ -128,6 +128,23 @@ export function defaultActivitySources(entities: Entity[], personSensors: string
     || finishingAppliance(entity))).map(entity => entity.preferenceId);
 }
 
+/** The icon a source's events use, read from its domain and class alone; its event type follows from the icon. */
+export function activitySourceIcon(entity: Entity, personSensors: ReadonlySet<string> = new Set()): ActivityIcon {
+  const domain = entity.domain, cls = deviceClass(entity);
+  if (personSensors.has(entity.entityId)) return "camera";
+  if (domain === "binary_sensor" && openingClasses.has(cls) || domain === "cover") return cls === "garage_door" || cls === "garage" ? "garage" : cls === "window" ? "window" : "door";
+  if (domain === "lock") return "lock";
+  if (domain === "alarm_control_panel") return "alarm";
+  if (applianceRun(entity) || finishingAppliance(entity)) return "appliance";
+  if (domain === "vacuum") return "robot";
+  if (domain === "lawn_mower") return "mower";
+  if (domain === "event" && cls === "doorbell") return "doorbell";
+  return "activity";
+}
+
+/** The event type (as in Settings → Event types) that an icon's events count as; people count as other changes here. */
+export const activityIconCategory = (icon: ActivityIcon): ActivityCategory => iconCategories[icon] ?? "other";
+
 /** Entity IDs the curated panel follows: its sources, plus people when opted in. */
 export function curatedActivityEntityIds(entities: Entity[], options: Pick<ActivityOptions, "people" | "sources" | "personSensors">) {
   const sources = new Set(options.sources ?? defaultActivitySources(entities, Object.keys(options.personSensors ?? {})));

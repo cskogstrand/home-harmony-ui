@@ -4,6 +4,8 @@ Entity selection uses one searchable dropdown throughout notifications, Smart ho
 
 Calendar and to-do assignments open directly on the eligible calendars or lists. In device-grouped pickers, choose a device first to see its entities. **All entities** includes the full eligible list; **Without a device** includes helpers, calendars and other standalone entities. Searching also finds entities directly by name, ID, device, room or integration. Device selection narrows search to that device. **Back to devices** clears that filter.
 
+In a multi-selection picker, ticked rows keep their checkmark and a faint primary wash (an outline in forced colors), each device row adds how many of its entities are selected, and **Selected entities** (first in the device list, with the selection count) lists everything selected. That view keeps the rows it opened with, so an unticked entity stays in place to tick again; **Back to devices** leaves it. Pickers without device grouping list their entities directly and have no Selected view.
+
 Arrow keys move through results; Tab reaches the other controls. Enter activates buttons, Space toggles checkboxes, and Escape closes the dropdown and returns focus to its field. Multi-selection stays open until **Done**. Existing removal and reassignment confirmations still apply.
 
 ## Reuse
@@ -16,6 +18,8 @@ Arrow keys move through results; Tab reaches the other controls. Enter activates
 - `getLabel` and `getDescription` add contextual names or assignment information.
 - `disabled` blocks the whole field; `disabledReason` explains individual ineligible choices.
 - `missingLabel` describes saved selections no longer in the eligible list. They remain selected until explicitly replaced or removed.
+
+A long multi-selection can also be summarized beside the picker, as Settings → System → Activity → Activity sources does: the caller groups its own selection and offers per-item removal through the same `onChange` data, while the picker stays the place to add.
 
 The picker does not change Home Assistant visibility, fetch additional state or send device commands. Its candidate list comes from the existing Home Assistant model and each caller's eligibility rules. It shows identifiers to distinguish similarly named entities, but never renders entity state values.
 
