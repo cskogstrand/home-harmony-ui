@@ -30,6 +30,21 @@ it("groups physical meters and never calls an unspecified energy reading a daily
   expect(screen.queryByText(/daily total/i)).not.toBeInTheDocument();
 });
 
+it("names consumers by device and drops the device name the meter heading already shows", () => {
+  mocks.home = mapHome({
+    "sensor.example_power": state("sensor.example_power", "450", { friendly_name: "Example meter AC total power", device_class: "power", unit_of_measurement: "W" }),
+    "sensor.example_energy": state("sensor.example_energy", "123", { friendly_name: "Example meter Energy consumption", device_class: "energy", unit_of_measurement: "kWh" }),
+  }, { areas: [], devices: [{ id: "meter", name: "Example meter" }], entities: [
+    { id: "power", entity_id: "sensor.example_power", device_id: "meter" }, { id: "energy", entity_id: "sensor.example_energy", device_id: "meter" },
+  ] }, "home");
+  const { container } = render(<EnergySaver />);
+  const now = within(screen.getByRole("region", { name: "Using power now" }));
+  expect(now.getByText("Example meter")).toBeVisible();
+  expect(now.queryByText(/AC total power/)).not.toBeInTheDocument();
+  fireEvent.click(within(container.querySelector("details.energy-meters")!).getByText("Meters"));
+  expect(within(screen.getByRole("region", { name: "Example meter" })).getByText("Energy consumption: 123 kWh")).toBeVisible();
+});
+
 it("loads recorded history for pinned meters and lets users remove a missing meter at the limit", async () => {
   mocks.home = mapHome(Object.fromEntries(["a", "b", "c"].map(name => [`sensor.${name}`, state(`sensor.${name}`, "10", { friendly_name: name, device_class: "power", unit_of_measurement: "W" })])),
     { areas: [], entities: [], devices: [] }, "home");

@@ -4,7 +4,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { EntityPicker } from "@/components/EntityPicker";
 import { EntityHistory } from "@/components/devices/EntityHistory";
 import { available, entityReading, entityStateLabel } from "@/lib/ha-model";
-import { powerNow, splitIdle, wattsReading, type PowerReading } from "@/lib/energy";
+import { consumerName, powerNow, splitIdle, wattsReading, type PowerReading } from "@/lib/energy";
 import { Gauge, Zap } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
@@ -12,7 +12,7 @@ import { PageHeading, PanelHeading } from "@/components/FamilyPlanner";
 import { VehicleCard } from "@/components/HomePanels";
 import { ElectricityPrice } from "@/components/ElectricityPrice";
 import { DeviceReading } from "@/components/devices/DeviceReading";
-import { deviceName } from "@/lib/device-model";
+import { deviceName, readingName } from "@/lib/device-model";
 import "./device-detail.css";
 
 /** How many consumers lead the page; the rest wait behind a disclosure. */
@@ -50,7 +50,7 @@ export default function EnergySaver() {
   const consumer = ({ entity, watts }: PowerReading) => {
     const area = areaName(entity.areaId);
     return <li key={entity.entityId} className="energy-now-row">
-      <span className="energy-now-name"><strong>{entity.name}</strong>{area && <small>{area}</small>}</span>
+      <span className="energy-now-name"><strong>{consumerName(entity, language)}</strong>{area && <small>{area}</small>}</span>
       <span className="energy-now-value">{entityReading(entity, language)}</span>
       {peak > 0 && watts > 0 && <span className="energy-now-bar" aria-hidden="true"><span style={{ inlineSize: `${Math.min(100, watts / peak * 100)}%` }} /></span>}
     </li>;
@@ -93,7 +93,7 @@ export default function EnergySaver() {
         return <section key={key} aria-label={title}><PanelHeading icon={Zap} title={title} /><div className="device-reading-grid">{entities.map(entity => {
           const kind = entity.attributes.device_class;
           const reset = typeof entity.attributes.last_reset === "string" && Number.isFinite(Date.parse(entity.attributes.last_reset)) ? entity.attributes.last_reset : undefined;
-          return <div key={entity.entityId} className="energy-reading"><p className="page-note mb-2">{t(kind === "power" ? "Power now" : kind === "energy" ? "Energy reading" : "Cost reading")}</p><DeviceReading entity={entity} />
+          return <div key={entity.entityId} className="energy-reading"><p className="page-note mb-2">{t(kind === "power" ? "Power now" : kind === "energy" ? "Energy reading" : "Cost reading")}</p><DeviceReading entity={{ ...entity, name: readingName(entity) }} />
             {kind === "energy" && <p className="page-note mt-2">{reset ? t("Last reset: {date}", { date: new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: currentHome.timeZone }).format(new Date(reset)) }) : t("Reporting period not provided by Home Assistant.")}</p>}
           </div>;
         })}</div></section>;

@@ -85,9 +85,12 @@ export const needsCode = (entity: Entity, action: EntityAction) => !!entity.attr
 
 // Home Assistant composes friendly names in its own language as "<device> <entity name>". Swap only the
 // entity part for the dashboard language. Names set by the user, and names with placeholders, stay as reported.
-function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations) {
-  if (!entry?.translation_key || entry.name || !entry.original_name || !name.endsWith(entry.original_name)) return name;
-  const translated = translations[`component.${entry.platform}.entity.${domain}.${entry.translation_key}.name`];
+// An entity without a name of its own is named after its device class ("Door"); that name has a translation too.
+function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations, deviceClass: unknown) {
+  if (!entry || entry.name || !entry.original_name || !name.endsWith(entry.original_name)) return name;
+  const classNamed = typeof deviceClass === "string" && entry.original_name.toLowerCase() === deviceClass.replace(/_/g, " ");
+  const translated = entry.translation_key && translations[`component.${entry.platform}.entity.${domain}.${entry.translation_key}.name`]
+    || classNamed && translations[`component.${domain}.entity_component.${deviceClass}.name`];
   return translated && !translated.includes("{") ? name.slice(0, name.length - entry.original_name.length) + translated : name;
 }
 // The integration's label for this entity's translation_key comes first, then the domain's shared state labels.
@@ -117,7 +120,7 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     let entity = cache?.get(source);
     if (!entity) {
       const domain = id.split(".")[0];
-      const name = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations);
+      const name = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations, state?.attributes.device_class);
       const deviceLabel = (device?.name_by_user || device?.name)?.trim();
       entity = {
         entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain,

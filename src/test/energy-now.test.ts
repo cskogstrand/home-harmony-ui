@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { idleWatts, powerNow, splitIdle, wattsReading } from "@/lib/energy";
+import { consumerName, idleWatts, powerNow, splitIdle, wattsReading } from "@/lib/energy";
 import { mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
@@ -29,6 +29,20 @@ it("treats readings below 5 W as idle", () => {
   expect(idleWatts).toBe(5);
   expect(active.map(reading => reading.entity.name)).toEqual(["tv", "lamp"]);
   expect(idle.map(reading => reading.entity.name)).toEqual(["standby", "export"]);
+});
+
+it("names a consumer after its device unless the owner named the reading", () => {
+  const [composed, chosen, loose] = mapHome({
+    "sensor.example_heater_power": state("sensor.example_heater_power", "900", { friendly_name: "Example heater AC total power", device_class: "power", unit_of_measurement: "W" }),
+    "sensor.example_floor_power": state("sensor.example_floor_power", "300", { friendly_name: "Bathroom floor", device_class: "power", unit_of_measurement: "W" }),
+    "sensor.example_meter_power": state("sensor.example_meter_power", "40", { friendly_name: "Example meter power", device_class: "power", unit_of_measurement: "W" }),
+  }, { areas: [], devices: [{ id: "heater", name: "Example heater" }, { id: "floor", name: "Example floor", name_by_user: "Example thermostat" }], entities: [
+    { id: "a", entity_id: "sensor.example_heater_power", device_id: "heater" }, { id: "b", entity_id: "sensor.example_floor_power", device_id: "floor" },
+    { id: "c", entity_id: "sensor.example_meter_power" },
+  ] }, "home").entities;
+  expect(consumerName(composed)).toBe("Example heater");
+  expect(consumerName(chosen)).toBe("Bathroom floor");
+  expect(consumerName(loose)).toBe("Example meter power");
 });
 
 it("shows sums below 1 kW in W and larger sums in kW", () => {

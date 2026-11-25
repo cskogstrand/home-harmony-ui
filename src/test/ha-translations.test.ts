@@ -82,6 +82,21 @@ describe("translated entity names", () => {
       { areas: [], devices: [device], entities: [entry] }, "home", undefined, undefined, { "component.example_car.entity.sensor.charging_state.name": "Lader {number}" }).entities[0];
     expect(parameterised.name).toBe("Example car Charging state");
   });
+
+  it("translates names Home Assistant took from the device class", () => {
+    const door = { id: "door-entry", entity_id: "binary_sensor.example_washer_door", platform: "example_appliance", device_id: "washer", original_name: "Door" };
+    const classTranslations = { "component.binary_sensor.entity_component.door.name": "Dør", "component.binary_sensor.entity_component.garage_door.name": "Garasjeport" };
+    const named = (registered: Partial<EntityRegistryEntry>, attributes: Record<string, unknown>) => mapHome(
+      { [door.entity_id]: state(door.entity_id, "off", attributes) },
+      { areas: [], devices: [{ id: "washer", name: "Example washer" }], entities: [{ ...door, ...registered }] }, "home", undefined, undefined, classTranslations,
+    ).entities[0].name;
+    expect(named({}, { friendly_name: "Example washer Door", device_class: "door" })).toBe("Example washer Dør");
+    expect(named({ original_name: "Garage door" }, { friendly_name: "Example washer Garage door", device_class: "garage_door" })).toBe("Example washer Garasjeport");
+    // A name of the integration's own, a name the user chose and an unknown class stay as reported.
+    expect(named({ original_name: "Lid" }, { friendly_name: "Example washer Lid", device_class: "door" })).toBe("Example washer Lid");
+    expect(named({ name: "Washer door" }, { friendly_name: "Washer door", device_class: "door" })).toBe("Washer door");
+    expect(named({}, { friendly_name: "Example washer Door", device_class: "opening" })).toBe("Example washer Door");
+  });
 });
 
 describe("translated states", () => {
