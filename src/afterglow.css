@@ -819,6 +819,9 @@ fieldset.settings-card > legend + * { clear: both; }
   .family-week-table .event-time, .family-week-table thead time > span, .week-add-plan { font-size: var(--type-label); }
   .family-week-table .event-button { min-height: 64px; padding-inline: .85rem .35rem; }
   .week-add-plan, .calendar-week-day { min-height: 56px; }
+  /* The wall never cuts the waste label: it wraps below the icons, and the 22px radius (half the 44px minimum) keeps one line a capsule. */
+  .week-waste-chip { flex-wrap: wrap; row-gap: .25rem; padding-block: .5rem; border-radius: 22px; }
+  .week-waste-label { overflow: visible; white-space: normal; text-overflow: clip; hyphens: auto; }
   .calendar-segment button, .calendar-current-week, .calendar-week-number { font-size: var(--type-label); }
   .check-row, .check-row :is(label, .edit-item) { min-height: 64px; font-size: var(--type-subtitle); }
   .check-mark { width: 26px; height: 26px; }
