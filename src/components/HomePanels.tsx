@@ -98,7 +98,7 @@ export function MorningSummary({ dialogTrigger = false }: { dialogTrigger?: bool
       </div>
     </DialogContent>
   </Dialog>;
-  return <section className="glow-panel col-span-full" aria-label={title}>
+  return <section className="glow-panel morning-summary" aria-label={title}>
     <PlannerCardBackdrop kind="morningSummary" />
     <div className={`panel-heading${dashboard.hideMorningSummaryContent ? " !mb-0" : ""}`}>
       <PanelTitle artwork="morningSummary" icon={Icon}>{title}</PanelTitle>

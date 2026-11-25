@@ -5,7 +5,7 @@ import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { Fragment, useCallback, useState, type ReactNode } from "react";
-import type { DashboardSection } from "../../shared/configuration";
+import { dashboardRows, type DashboardSection } from "../../shared/configuration";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 import { ArrowUpRight, CalendarDays, CalendarClock, BookOpen, ChevronDown } from "lucide-react";
@@ -115,7 +115,10 @@ export default function Dashboard() {
     </header>
     <NotificationList compact />
     {!dashboard.order.some(key => dashboard[key]) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
-    {dashboard.order.map(key => <Fragment key={key}>{sections[key]}</Fragment>)}
+    {/* Rows follow the household's order: two half sections share a row on wide screens; a row whose partner has nothing to show lets the other span it. */}
+    {dashboardRows(dashboard).map(row => <div key={row.sections[0]} className="board-row" data-columns={row.sections.length}>
+      {row.sections.map(key => <Fragment key={key}>{sections[key]}</Fragment>)}
+    </div>)}
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />
   </div>;
 }

@@ -809,6 +809,22 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   expect(screen.getAllByRole("heading", { level: 2 })[0].textContent).toBe("Next family plan");
 });
 
+it("renders Today in configured rows, in reading order, and lets a half span the row when its partner has nothing to show", async () => {
+  settings.settings.dashboard = { ...settings.settings.dashboard, homeStatus: true, homework: true, recentActivity: true,
+    order: ["homeStatus", "nextPlan", "day", "recentActivity", "homework", "week", "daily", "shopping", "school", "home", "morningSummary", "wasteCollection"],
+    widths: { homeStatus: "half", nextPlan: "half", recentActivity: "half", day: "half", home: "half" } };
+  const { container } = render(<App />); await saved();
+  const rows = [...container.querySelectorAll<HTMLElement>(".portrait-board > .board-row")];
+  const names = rows.map(row => [...row.children].map(panel => panel.getAttribute("aria-label") ?? panel.querySelector("h2")?.textContent));
+  expect(names.slice(0, 5)).toEqual([["Next family plan"], ["Everyone’s day"], ["Recent at home", "Homework due by today"], ["Everyone’s week"], ["Daily rhythm", "Shopping"]]);
+  // Home status has nothing to report, so Next family plan is alone in the row it shares with it.
+  expect(rows[0]).toHaveAttribute("data-columns", "2");
+  expect(rows.map(row => row.dataset.columns)).toEqual(["2", "1", "2", "1", "2", "1", "1", "1"]);
+  // Without timetables School renders nothing, so its row is empty and hidden by the stylesheet.
+  expect(rows[5]).toBeEmptyDOMElement();
+  expect(rows[6]).toContainElement(screen.getByRole("region", { name: "Home favorites" }));
+});
+
 it("adds Recent at home to Today from Customize Today, off by default and using the shared activity sources", async () => {
   settings.settings.activity.panel = false;
   app.currentHome = mapHome({
