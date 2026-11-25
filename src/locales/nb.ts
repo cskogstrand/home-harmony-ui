@@ -2985,7 +2985,7 @@ export const nb = {
   "{name} turned on": "{name} ble slått på",
   "{name} turned off": "{name} ble slått av",
   "{count} changes": "{count} endringer",
-  "Recent at home": "Nylig hjemme",
+  "Latest events": "Siste hendelser",
   "All activity": "All aktivitet",
   "No activity sources are selected.": "Ingen aktivitetskilder er valgt.",
   "Choose sources": "Velg kilder",

@@ -62,7 +62,7 @@ function ActivityLog() {
   </section>;
 }
 
-/** Recent at home on Smart home (and Today, when its section is on): visibility, people and curated sources, shared across screens. */
+/** Latest events on Smart home (and Today, when its section is on): visibility, people and curated sources, shared across screens. */
 function RecentActivitySettings() {
   const { t } = useI18n();
   const { currentHome } = useApp();
@@ -74,7 +74,7 @@ function RecentActivitySettings() {
   const sources = activity.sources ?? defaultActivitySources(currentHome.entities, Object.keys(personSensors));
   return <div className="settings-stack">
     <section className="settings-card settings-preferences" aria-labelledby={`${id}-recent`}>
-      <PanelTitle icon={HistoryIcon} id={`${id}-recent`}>{t("Recent at home")}</PanelTitle>
+      <PanelTitle icon={HistoryIcon} id={`${id}-recent`}>{t("Latest events")}</PanelTitle>
       <label className="settings-control-row">
         <span>{t("Show on Smart home")}<span className="page-note block" id={`${id}-panel`}>{t("The latest changes from your activity sources, below your cards.")}</span></span>
         <Switch aria-label={t("Show on Smart home")} aria-describedby={`${id}-panel`} checked={activity.panel} disabled={disabled} onCheckedChange={panel => setActivity({ panel })} />
@@ -94,13 +94,13 @@ function RecentActivitySettings() {
   </div>;
 }
 
-/** Settings → System → Activity: the full log and the Recent at home settings. */
+/** Settings → System → Activity: the full log and the Latest events settings. */
 export default function History() {
   const { t } = useI18n();
   const { activity, dashboard } = useFamily();
   const shown = activity.panel ? dashboard.recentActivity ? "Shown on Smart home and Today" : "Shown on Smart home" : dashboard.recentActivity ? "Shown on Today" : "Hidden";
   return <SettingsPanels panels={[
     { id: "log", label: t("Activity log"), icon: ListOrdered, content: <ActivityLog /> },
-    { id: "recent", label: t("Recent at home"), detail: t(shown), icon: HistoryIcon, content: <RecentActivitySettings /> },
+    { id: "recent", label: t("Latest events"), detail: t(shown), icon: HistoryIcon, content: <RecentActivitySettings /> },
   ]} />;
 }

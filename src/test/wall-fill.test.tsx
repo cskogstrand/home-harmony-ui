@@ -48,7 +48,7 @@ describe("wall fill", () => {
   });
 
   it("shows only whole rows that end inside the box and always keeps the usual rows", () => {
-    const element = panel(`<h2 data-h="50">Recent at home</h2><ol>${rows(20, 3)}</ol>`);
+    const element = panel(`<h2 data-h="50">Latest events</h2><ol>${rows(20, 3)}</ol>`);
     fitFillRows(element, 400);
     // 100 + 400 = 500 px; the heading ends at 150, so five 60 px rows end at 450 and a sixth would end at 510.
     expect(visible(element)).toEqual(["Example row 1", "Example row 2", "Example row 3", "Example row 4", "Example row 5"]);
@@ -73,7 +73,7 @@ describe("wall fill", () => {
       const ref = useRef<HTMLElement>(null);
       useFillRows(ref, height);
       passes++;
-      return <section ref={ref} data-top="0"><h2 data-h="50">Recent at home</h2><ol>{Array.from({ length: count }, (_, index) =>
+      return <section ref={ref} data-top="0"><h2 data-h="50">Latest events</h2><ol>{Array.from({ length: count }, (_, index) =>
         <li key={index} data-h="60" data-fill-extra={index >= 3 || undefined}>Example row {index + 1}</li>)}</ol></section>;
     }
     vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });

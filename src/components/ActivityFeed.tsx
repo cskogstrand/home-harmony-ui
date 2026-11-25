@@ -33,7 +33,7 @@ export function ActivityRow({ item, now, clock = false, fillExtra = false }: { i
 }
 
 /**
- * Recent at home: a curated, live list of what happened in the last 24 hours.
+ * Latest events: a curated, live list of what happened in the last 24 hours.
  * Smart home follows the Activity panel switch; Today shows it whenever its own section is on. Both use the same sources and people choice.
  * With `fill` (Today on the large wall), it keeps three rows and adds the older ones that fit in that height; the newest stay on top.
  */
@@ -57,7 +57,7 @@ export function RecentActivity({ placement = "smartHome", fill }: { placement?: 
     : !items.length && <p className="empty-note">{t("Nothing has happened in the last 24 hours.")}</p>;
   return <section ref={panel} className="glow-panel activity-panel" aria-labelledby="recent-activity-title" data-fill={fill === undefined ? undefined : ""}>
     <div className="panel-heading">
-      <PanelTitle icon={History} id="recent-activity-title">{t("Recent at home")}</PanelTitle>
+      <PanelTitle icon={History} id="recent-activity-title">{t("Latest events")}</PanelTitle>
       <Link className="text-link" to="/settings/activity">{t("All activity")}<ArrowUpRight size={17} aria-hidden="true" /></Link>
     </div>
     {feed.status === "stale" && <p className="page-note activity-stale" role="status">{t("Cached activity is stale while Home Assistant is offline.")}</p>}

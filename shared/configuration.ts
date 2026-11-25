@@ -146,7 +146,7 @@ const plannerObjectSchema = z.object({
     school: z.boolean().default(true),
     home: z.boolean().default(true),
     homeStatus: z.boolean().default(false),
-    // Recent at home on Today, off until the owner adds it; sources and privacy follow `activity` below.
+    // Latest events on Today, off until the owner adds it; sources and privacy follow `activity` below.
     recentActivity: z.boolean().default(false),
     statusSources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
     // Only the owner's explicit width choices; a missing key uses defaultDashboardWidths, then full.
@@ -158,7 +158,7 @@ const plannerObjectSchema = z.object({
   homeEntityGroups: settingsRecord(keySchema, z.string().trim().max(80)).default({}),
   homeGroups: z.array(z.string().trim().min(1).max(80)).default([]),
   smartHome: smartHomeSchema.prefault({}),
-  // Recent at home on Smart home. Omitted sources follow the suggested defaults; people stay out unless opted in.
+  // Latest events on Smart home. Omitted sources follow the suggested defaults; people stay out unless opted in.
   activity: z.object({
     panel: z.boolean().default(true),
     people: z.boolean().default(false),

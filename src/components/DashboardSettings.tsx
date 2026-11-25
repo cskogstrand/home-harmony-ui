@@ -16,7 +16,7 @@ import type { MessageKey } from "@/lib/i18n";
 
 const sectionLabels = {
   homeStatus: "Home status", morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
-  day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites", recentActivity: "Recent at home",
+  day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites", recentActivity: "Latest events",
 } as const;
 const sectionIcons = { homeStatus: ShieldCheck, morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, homework: NotebookPen, school: BookOpen, home: House, recentActivity: History };
 /** Sections that render nothing when they have nothing to say; their partner then takes the whole row. */

@@ -317,7 +317,7 @@ describe("logbook events", () => {
   });
 });
 
-describe("Recent at home", () => {
+describe("Latest events", () => {
   type Subscriber = { options: { start: Date; entityIds?: string[] }; receive: (events: LogbookEvent[] | null) => void; stop: ReturnType<typeof vi.fn> };
   let subscribers: Subscriber[];
   const subscribeLogbook = vi.fn((options: Subscriber["options"], receive: Subscriber["receive"]) => {
@@ -328,7 +328,7 @@ describe("Recent at home", () => {
   const now = new Date(base);
   const app = (homeOnline = true, entities: Entity[] = activityEntities) => ({ homeOnline, subscribeLogbook, currentHome: { entities, areas: [], timeZone: "Europe/Oslo" } });
   const view = (homeOnline = true, entities?: Entity[]) => <AppContext.Provider value={app(homeOnline, entities) as never}><MemoryRouter><RecentActivity /></MemoryRouter></AppContext.Provider>;
-  const panel = () => within(screen.getByRole("region", { name: "Recent at home" }));
+  const panel = () => within(screen.getByRole("region", { name: "Latest events" }));
   const rows = () => panel().queryAllByRole("listitem").map(row => row.textContent);
   beforeEach(() => {
     subscribers = [];
@@ -376,7 +376,7 @@ describe("Recent at home", () => {
     subscribeLogbook.mockClear();
     family.value = { ...family.value, activity: { panel: false, people: false } };
     render(view());
-    expect(screen.queryByRole("region", { name: "Recent at home" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Latest events" })).toBeNull();
     expect(subscribeLogbook).not.toHaveBeenCalled();
   });
 
@@ -483,7 +483,7 @@ describe("Activity log", () => {
   });
 });
 
-describe("Recent at home settings", () => {
+describe("Latest events settings", () => {
   const setActivity = vi.fn(() => true);
   const view = () => <AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { entities: activityEntities, areas: [], timeZone: "Europe/Oslo" } } as never}>
     <MemoryRouter initialEntries={["/settings/activity?panel=recent"]}><History /></MemoryRouter></AppContext.Provider>;
