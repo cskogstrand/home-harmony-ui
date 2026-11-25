@@ -1,0 +1,25 @@
+/* Everyone's day on phones (≤699px): day-first rows, free people on one line, tomorrow folded. */
+.family-day-agenda { display: grid; gap: 1.25rem; margin-top: 1rem; }
+.family-day-agenda-day { display: grid; gap: .75rem; min-width: 0; }
+.family-day-agenda-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .75rem; font-weight: 500; }
+.family-day-agenda-date, .family-day-agenda-count { font-size: var(--type-label); font-weight: 400; color: hsl(var(--muted-foreground)); }
+
+.family-day-agenda-person { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: .75rem; align-items: start; }
+.family-day-agenda-person .member-avatar { width: 2.5rem; height: 2.5rem; font-size: var(--type-label); }
+.family-day-agenda-plans { display: grid; gap: .5rem; min-width: 0; }
+.family-day-agenda-name { display: flex; align-items: center; min-height: 2.5rem; font-weight: 600; overflow-wrap: anywhere; }
+.family-day-agenda-note { color: hsl(var(--muted-foreground)); font-size: var(--type-body); }
+
+.family-day-agenda-free { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; color: hsl(var(--muted-foreground)); font-size: var(--type-body); }
+.family-day-agenda-free ul { display: flex; flex-wrap: wrap; gap: .5rem .75rem; }
+.family-day-agenda-free li { display: inline-flex; align-items: center; gap: .4rem; color: hsl(var(--foreground)); }
+
+.family-day-agenda-later { border-top: 1px solid hsl(var(--border)); }
+.family-day-agenda-later > summary { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding-top: .75rem; cursor: pointer; list-style: none; border-radius: var(--radius); }
+.family-day-agenda-later > summary::-webkit-details-marker { display: none; }
+.family-day-agenda-later > summary .family-day-agenda-heading { flex: 1; }
+.family-day-agenda-later > summary:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.family-day-agenda-chevron { flex-shrink: 0; color: hsl(var(--muted-foreground)); transition: transform .2s cubic-bezier(.16, 1, .3, 1); }
+.family-day-agenda-later[open] .family-day-agenda-chevron { transform: rotate(180deg); }
+.family-day-agenda-body { display: grid; gap: .75rem; padding-top: .75rem; }
+@media (forced-colors: active) { .family-day-agenda-chevron, .family-day-agenda-date, .family-day-agenda-count { color: CanvasText; } }
