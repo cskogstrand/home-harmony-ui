@@ -8,6 +8,8 @@
 .settings-group { padding-block: .5rem; }
 .settings-group + .settings-group { border-top: 1px solid hsl(var(--border)); }
 .settings-row, .settings-guide-link { display: flex; align-items: center; gap: 1rem; width: 100%; text-align: start; border-radius: var(--radius-field); }
+/* Rows sit .5rem inside the menu card's border, so their hover fill follows its corners. */
+.settings-menu .settings-row { border-radius: calc(var(--radius-inset) - .5rem - 1px); }
 .settings-row > span, .settings-guide-link > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .settings-row svg, .settings-guide-link svg { flex-shrink: 0; }
 .settings-category { padding: .625rem 1rem; }

@@ -6,6 +6,8 @@ import { sourceFile } from "./source-file.mjs";
 const afterglowCss: string = sourceFile("afterglow.css");
 const artworkCss: string = sourceFile("artwork.css");
 const vehicleCss: string = sourceFile("components/vehicle-widgets.css");
+const settingsCss: string = sourceFile("pages/settings.css");
+const smartHomeSettingsCss: string = sourceFile("components/smart-home-settings.css");
 
 const declarations = (css: string, selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -21,4 +23,12 @@ it("keeps segment and tab choices concentric with their tracks", () => {
   expect(declarations(artworkCss, "[data-artwork] .smart-nav")).toMatch(/border-radius: var\(--radius-capsule\)/);
   expect(declarations(vehicleCss, ".vehicle-view-tabs [role=\"tab\"]")).toMatch(/border-radius: calc\(var\(--radius-inset\) - 3px\)/);
   expect(declarations(vehicleCss, ".vehicle-glance")).toMatch(/border-radius: calc\(var\(--radius-menu\) - 3px\)/);
+});
+
+it("gives rows and day surfaces their card radius minus the inset", () => {
+  expect(declarations(settingsCss, ".settings-menu .settings-row")).toMatch(/border-radius: calc\(var\(--radius-inset\) - \.5rem - 1px\)/);
+  expect(declarations(smartHomeSettingsCss, ".smart-card-row")).toMatch(/border-radius: calc\(var\(--radius-inset\) - 1px\)/);
+  expect(declarations(smartHomeSettingsCss, ".smart-card-row-icon")).toMatch(/border-radius: var\(--radius-field\)/);
+  expect(declarations(afterglowCss, ".timetable-day")).toMatch(/--timetable-day-radius: calc\(var\(--radius-menu\) - \.5rem - 1px\)/);
+  expect(declarations(afterglowCss, ".timetable-day-trigger::after")).toMatch(/border-radius: var\(--timetable-day-radius\)/);
 });

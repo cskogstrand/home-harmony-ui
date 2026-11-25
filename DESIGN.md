@@ -409,7 +409,7 @@ The system pairs rounded work panels with capsule controls. Work panels use the 
 
 Shared buttons, the desktop dock, its destinations and segmented controls use full capsules. Phone navigation uses the smaller `phoneDock` and `phoneDestination` radii so the two-line controls nest within the outer shape. Header icon controls and avatars remain circular. Borders are normally thin (1px), with opacity separating major boundaries from row dividers.
 
-Calendar timetable frames have rounded corners (22px), an inset (.5rem) and gaps (.375rem) around day surfaces with smaller corners (16px).
+Calendar timetable frames have rounded corners (22px), an inset (.5rem) and gaps (.375rem) around day surfaces with concentric corners (13px: the frame radius minus its .5rem padding and 1px border). Rows that fill a card edge to edge follow the same subtraction: Settings index rows use 7px inside the 16px menu card (.5rem plus the border), and Smart home card rows 15px inside their 16px card.
 
 ## Components
 

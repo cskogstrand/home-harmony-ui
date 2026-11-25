@@ -6,9 +6,9 @@
 .smart-collection, .smart-builder { min-width: 0; }
 .smart-card-list { display: grid; gap: 1rem; margin: 0; padding: 0; list-style: none; }
 .smart-card-list > li { padding: 0; }
-.smart-card-row { width: 100%; display: flex; align-items: center; gap: 1rem; padding: 1rem; text-align: left; border-radius: var(--radius-row); transition: background-color 160ms ease-out; }
+.smart-card-row { width: 100%; display: flex; align-items: center; gap: 1rem; padding: 1rem; text-align: left; border-radius: calc(var(--radius-inset) - 1px); transition: background-color 160ms ease-out; }
 .smart-card-row:hover, .smart-type-choice:hover { background: hsl(var(--muted) / .7); }
-.smart-card-row-icon { display: grid; place-items: center; width: 3rem; height: 3rem; flex-shrink: 0; border-radius: 1rem; }
+.smart-card-row-icon { display: grid; place-items: center; width: 3rem; height: 3rem; flex-shrink: 0; border-radius: var(--radius-field); }
 .smart-card-row-copy { flex: 1; min-width: 0; }
 .smart-card-row-copy strong, .smart-card-row-copy small { display: block; overflow-wrap: anywhere; }
 .smart-card-row-copy strong { font-weight: 600; }
