@@ -935,6 +935,13 @@ fieldset.settings-card > legend + * { clear: both; }
   .school-cards { grid-template-columns: 1fr; }
   .family-dock a { display: grid; grid-template-rows: 22px 1fr; justify-items: center; align-items: start; gap: .25rem; padding: .5rem .15rem; font-size: var(--type-caption); line-height: 1.2; min-height: 64px; text-align: center; }
   .family-dock a svg { width: 22px; height: 22px; }
+  /*
+   * Captions stay visible at any text size and inside their own destination. Destinations share the dock equally, but
+   * none narrows below its caption's widest syllable (min-width: auto); a word wider than its share breaks at a
+   * hyphenation point in the page language ("Kalen-der", "Smart-hjem") instead of running into its neighbour.
+   */
+  .family-dock a { min-width: auto; }
+  .family-dock a > span { max-width: 100%; -webkit-hyphens: auto; hyphens: auto; overflow-wrap: break-word; }
   /* Narrow tab rows keep the compact glyph, so an illustrated list type does not widen its tab. */
   .list-kind-icon .card-illustration { display: none; }
   .list-kind-icon .illustrated-icon > .card-illustration + svg { display: block; }
