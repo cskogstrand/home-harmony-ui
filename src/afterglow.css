@@ -184,6 +184,10 @@ fieldset.settings-card > legend + * { clear: both; }
 .dashboard-settings-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; min-height: 44px; }
 .dashboard-settings-heading > .panel-title { flex: 1 1 12rem; font-size: var(--type-body-large); font-weight: 600; }
 .dashboard-settings-card > :not(:first-child) { margin-top: 1rem; }
+.dashboard-width { display: grid; gap: .5rem; }
+.dashboard-width-choice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+.dashboard-width-choice .calendar-segment button { min-width: 6.5rem; }
+.dashboard-width-choice .calendar-segment button:disabled { cursor: not-allowed; opacity: .6; }
 @media (prefers-contrast: more), (forced-colors: active) {
   .settings-card { border-color: currentColor; }
 }
