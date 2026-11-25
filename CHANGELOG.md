@@ -1,5 +1,207 @@
 # Changelog
 
+## 0.11.0
+
+<!-- release-source: 7049a5974ebb3e9ddfb271427a8603bc1ecefb7b -->
+
+- docs: track the activity sources tree and unsaved warning
+- feat: ask before leaving unsaved activity sources
+- feat: group activity sources as a tree
+- docs: plan the activity sources tree and unsaved warning
+- docs: track the activity sources table
+- docs: describe the activity sources table
+- feat: choose activity sources from a filterable table
+- feat: show a mixed state on shared checkboxes
+- docs: plan the activity sources table
+- docs: reconcile plan bookkeeping
+- feat: support minor and major deploy bumps
+- docs: track home status and bell badges
+- fix: keep the notification count off the bell
+- fix: keep the home status count off the house
+- docs: track phone calendar toolbar and header badges
+- fix: keep camera and settings counts off their icons
+- fix: keep the calendar toolbar inside phone gutters
+- docs: track phone header and dock fit
+- fix: keep the Sonos play badge clear of its icon
+- fix: size the phone home link to the header clock
+- fix: keep dock captions inside their destination at large text
+- fix: keep the phone header clock clear of the vehicle chip
+- docs: track card groups, notifications and Sonos check
+- fix: keep /notifications text inside the phone margin
+- fix: make card group rows concentric capsules
+- docs: close owner additions
+- fix: centre the Sonos mini player's end circles
+- docs: track activity sources at a glance
+- fix: make shared icon buttons round on phones
+- feat: show activity sources at a glance
+- docs: track remaining English names
+- feat: read common untranslated entity names in Bokmål
+- docs: plan activity sources, phone icon buttons, Sonos and names
+- docs: close owner additions
+- docs: track the border radius pass
+- feat: choose which event types Latest events shows
+- refactor: publish nested radii from their containers
+- fix: show only real changes in Latest events
+- docs: track Today section artwork
+- test: require an icon and card artwork for every Today section
+- fix: keep calendar chip remove buttons circular
+- docs: plan the activity event filter
+- feat: give Recent at home and Home status card artwork
+- docs: record owner decision on naming door positions
+- fix: centre switch thumbs in their capsule ends
+- fix: keep menu and popover items concentric
+- fix: nest panel menus, line headers and scene actions concentrically
+- fix: inset tab triggers concentrically in their tracks
+- refactor: map Today sections to icons and card artwork
+- feat: rename Recent at home to Latest events
+- docs: plan activity feed polish and the artwork rule
+- fix: nest rows and day surfaces concentrically in cards
+- fix: keep segment and tab choices concentric
+- docs: record panel layout build
+- docs: describe Today's paired rows, widths and wall fill
+- feat: preview Today's rows in Customize Today
+- feat: choose section widths and the wall's fill section in Customize Today
+- docs: track owner additions wave C
+- feat: let one Today section fill the wall's free space
+- feat: keep the header at the top while pages scroll
+- feat: lay out Today in configured rows of full and half sections
+- feat: store Today section widths and the wall fill choice
+- feat: show the clock and weather in the header outside Today
+- docs: record owner approval of the panel layout proposal
+- feat: shade weekend days in Everyone's day and calendar
+- feat: show list type icons in the Lists tabs
+- docs: propose panel widths and wall free-space layout
+- docs: plan owner additions after the re-critique
+- docs: close re-critique follow-ups
+- fix: show translated entity names without the device on device pages
+- fix: report only appliance programmes as finished
+- fix: name untranslated entities by device class in activity
+- feat: fold Everyone's day into a day-first agenda on phones
+- feat: read Everyone's day from across the room on the wall
+- feat: give week titles a third line on the portrait wall
+- fix: never cut the waste chip label on the portrait wall
+- docs: track wave A follow-up results
+- docs: describe calm startup and page skeletons
+- feat: keep the first connection calm until it completes
+- feat: show page-shaped skeletons while pages load
+- feat: show regulator-mode thermostats as heating power in percent
+- fix: write logged dates and unknown states readably in activity log
+- fix: keep thermostat dial text inside its ring
+- docs: describe Recent at home on Today
+- feat: add Recent at home as an optional Today section
+- fix: format power now rows and total with one rule
+- fix: count each power consumer once in power now
+- fix: name consumers by device and translate class-named entities
+- docs: record owner answers and track re-critique follow-ups
+- docs: close 2026-11 review plan
+- docs: add energy, price and printer capabilities to PRODUCT.md
+- fix: keep the phone home link a 44px touch target
+- fix: wrap long settings links at large text sizes
+- fix: keep the phone week grid inside its scroller
+- docs: update review plan status
+- docs: record detector results after type ramp cleanup
+- docs: refresh the design sidecar
+- docs: record detector false positives
+- refactor: name the fixed media backing colour
+- refactor: map real-surface radii to radius tokens
+- refactor: use type ramp tokens for every font size
+- feat: define the type ramp as tokens
+- fix: raise robot and lawn map caption to 12px
+- docs: record detector baseline for type ramp cleanup
+- docs: update review plan status
+- docs: describe Home Assistant health
+- fix: skip health reads when the app has no health client
+- docs: mark Assist voice blocked and hand off the live check
+- feat: badge Settings when Home Assistant needs maintenance
+- docs: describe Ask the house
+- feat: count actionable Home Assistant maintenance in Home status
+- feat: ask the house from the header
+- feat: show Home Assistant health in Settings
+- feat: turn on Ask the house and choose its agent in Settings
+- feat: read Home Assistant repairs, backups and notifications
+- feat: send a sentence to Home Assistant Assist
+- docs: update review plan status
+- test: include Electricity price in the settings navigation check
+- refactor: use a neutral currency in the price unit comment
+- docs: explain how to add and choose an electricity price source
+- feat: show today's electricity prices and the cheapest time
+- docs: describe Recent at home and the activity log
+- feat: configure Recent at home under Settings → Activity
+- feat: choose the electricity price sensor in Settings
+- feat: replace the Activity link with a full activity log
+- docs: describe the 3D printer card
+- docs: record electricity price answer in review plan
+- feat: show Recent at home on the Smart home overview
+- feat: lead a printer's device page with its printer card
+- feat: add a 3D printer card to Smart home and the gallery
+- feat: curate logbook events into readable sentences
+- docs: finish energy phase A and mark price work blocked
+- feat: point to Energy setup when Home Assistant has none
+- feat: subscribe to the Home Assistant logbook
+- feat: describe 3D printers from their device entities
+- feat: lead Car & energy with what uses power now
+- feat: add a power-now helper for energy readings
+- docs: update review plan status
+- docs: record calendar week grid after measurements
+- docs: record the reading format rule and translated Home Assistant labels
+- feat: hide zero light counts on area cards
+- feat: format readings with one precision and unit spacing rule
+- fix: keep the app store context reachable where AppContext is replaced
+- docs: record header first-screen measurements
+- docs: document the readable calendar week grid
+- feat: collapse the vehicle strip into one phone chip
+- docs: record scene tile and alarm page rules
+- docs: describe admin sections in Settings → System
+- feat: make the calendar Today button read as an action
+- feat: lead the alarm page with its state and drop redundant actions
+- fix: fade the Smart home sub-nav instead of cutting labels
+- feat: move the local calendar filter note into the settings popover
+- docs: describe artwork surfaces and selected states
+- fix: outline the current Smart home link in forced colours
+- test: prove automations ask before running from Settings
+- feat: one add control per person in the week grid
+- docs: record artwork selected-state contrast
+- fix: give scene actions an opaque base over artwork
+- feat: drop admin pages from the Smart home More menu
+- fix: replace artwork patches behind section links
+- feat: show week grid waste pickups as one chip per day
+- feat: merge same-date waste pickups on Today
+- feat: show Home Assistant state translations for integration states
+- feat: move automations, integrations and activity into Settings
+- fix: make selected tabs visible over artwork
+- fix: keep scene names whole on narrow scene tiles
+- feat: show Home Assistant entity names in the dashboard language
+- fix: align the vehicle strip with wall header controls
+- feat: clamp week grid titles at two lines without mid-word breaks
+- feat: load Home Assistant translations for the dashboard language
+- fix: drop the green check from a quiet home status
+- feat: give week grid width to days on wide screens
+- docs: record artwork selected-state findings
+- feat: render the Scenes page with the shared scene card
+- fix: keep the bell badge for real alerts
+- docs: record calendar week grid baseline
+- docs: complete review plan preflight
+- docs: add 2026-11 review implementation plan
+- feat: manage electric vehicles with visual cards
+- feat: simplify settings and guided setup
+- fix: open the playing Sonos group
+- fix: disambiguate Frigate person sensors
+- feat: guide unfinished setup from the header
+- feat: show live camera person detections
+- feat: mark active Sonos playback in the header
+- feat: add a refill alert setup form
+- fix: inset smart home navigation controls
+- fix: show home status on a house badge
+- fix: clarify offline status across the board
+- feat: jump to a timetable on phones
+- fix: keep smart home controls in reach
+- fix: distinguish timed plans on Today
+- feat: pin energy meters with daily trends
+- feat: add per-list grocery shortcuts
+- feat: add shopping items from refill alerts
+- feat: add home status and room cleaning
+- fix: resolve npm audit findings
+
 ## 0.10.40
 
 <!-- release-source: 66531754a14cec0a85e4f2940ca7d48da236c50c -->
