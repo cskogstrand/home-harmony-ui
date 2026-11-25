@@ -89,7 +89,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
           <span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span>
           <span className="header-clock"><time dateTime={`${today}T${time}`}>{time}</time>{" "}<span className="header-date">{dateLabel(today)}</span>{" "}<span className="sr-only">{t("Afterglow home")}</span></span>
         </Link>}
-      <WeatherWidget placement="header" besideClock={!todayPage} /><VehicleWidgets /><div className="header-actions">
+      <WeatherWidget placement="header" besideClock={!todayPage} />
+      {/* Vehicles and controls share one trailing group. On phones it wraps upwards: the controls keep the first row and the vehicle chip drops below when the row cannot hold it. */}
+      <div className="header-trail"><VehicleWidgets /><div className="header-actions">
         <AskTheHouse />
         <Link to={playingGroup ? `/sonos?player=${encodeURIComponent(playingGroup.player.entityId)}` : "/sonos"} className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
           <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
@@ -109,7 +111,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
           {setupMessage && <span className="sr-only" id="header-setup-status">{setupMessage}</span>}
           <span role="status" id="header-storage-status" aria-label={t("Settings storage")} className="sr-only">{storageMessage}</span>
         </div>
-      </div>
+      </div></div>
     </header>
     {availableVersion && <div className="connection-banner" role="status">
       <RefreshCw size={19} aria-hidden="true" /><span className="min-w-0 flex-1">{t("Version {version} is available. Refresh the app to update.", { version: availableVersion })}</span>

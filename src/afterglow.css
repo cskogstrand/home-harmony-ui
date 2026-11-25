@@ -139,6 +139,8 @@
 .header-badge[data-tone="attention"] { background: hsl(var(--warning)); color: hsl(var(--warning-foreground)); }
 @media (forced-colors: active) { .header-badge { border: 1px solid ButtonText; } }
 .header-actions { display: flex; align-items: center; gap: 14px; }
+/* Vehicles and controls share a trailing group; it only takes a box of its own on phones with the vehicle chip. */
+.header-trail { display: contents; }
 .header-weather { min-height: 48px; height: auto; max-width: 16rem; padding: .45rem .9rem; gap: .65rem; }
 .weather-symbol { display: flex; flex-shrink: 0; color: hsl(var(--primary)); }
 .weather-symbol > svg { width: 24px; height: 24px; stroke-width: 1.6; }
@@ -1010,6 +1012,10 @@ fieldset.settings-card > legend + * { clear: both; }
   .app-header .brand-name { display: none; }
   .app-header .brand { min-width: 48px; justify-content: center; }
   .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
+}
+/* Five 48px controls and the time need 326px; below 360px the header controls use 44px targets so they keep one row. */
+@media (max-width: 359px) {
+  .header-actions .icon-button { min-width: 44px; min-height: 44px; }
 }
 
 .settings-popover { display: grid; gap: 1rem; width: 22rem; max-width: calc(100vw - 2rem); max-height: var(--radix-popover-content-available-height); overflow-y: auto; }

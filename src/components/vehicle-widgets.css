@@ -80,10 +80,10 @@
   .app-header:has(.vehicle-strip) .header-actions { grid-area: 1 / 2; justify-self: end; }
   .app-header:has(.vehicle-strip) .header-weather { grid-area: 2 / 2; justify-self: end; margin-right: 0; }
   .vehicle-strip { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.55rem), 1fr)); }
-  /* Weather that follows the header clock stays in the first row beside it, so the strip keeps the only second row. */
-  .app-header:has(.vehicle-strip):has(.header-weather[data-beside-clock]) { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .app-header:has(.vehicle-strip) .header-weather[data-beside-clock] { grid-area: 1 / 2; justify-self: start; }
-  .app-header:has(.vehicle-strip):has(.header-weather[data-beside-clock]) .header-actions { grid-area: 1 / 3; }
+  /* Weather that follows the header clock stays in the first row beside it, so the full strip keeps the only second row. */
+  .app-header:has(.vehicle-strip:not(.vehicle-chip-strip)):has(.header-weather[data-beside-clock]) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .app-header:has(.vehicle-strip:not(.vehicle-chip-strip)) .header-weather[data-beside-clock] { grid-area: 1 / 2; justify-self: start; }
+  .app-header:has(.vehicle-strip:not(.vehicle-chip-strip)):has(.header-weather[data-beside-clock]) .header-actions { grid-area: 1 / 3; }
 }
 /* Portrait wall: the strip matches the 60px header controls beside it; its buttons stretch to fill. */
 @media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
@@ -240,15 +240,16 @@
 }
 .vehicle-front-facts .vehicle-map { height: clamp(9rem, 18dvh, 13rem); }
 
-/* Phones: one compact chip for the worst battery or charging state, beside the header controls. */
+/* Phones: one compact chip for the worst battery or charging state, beside the header controls. The percentage sits over the state icon and fill. It reserves room for 100%, so the chip keeps one width whatever the reading. */
 .vehicle-chip {
-  display: grid; grid-template-columns: auto auto; align-items: center; justify-content: center; gap: .15rem .25rem;
-  min-width: 48px; min-height: 48px; padding: .3rem .45rem; border-radius: inherit; cursor: pointer;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; justify-content: center; gap: .15rem .2rem;
+  min-width: 48px; min-height: 48px; padding: .3rem; border-radius: inherit; cursor: pointer;
 }
-.vehicle-chip > strong { font-size: var(--type-body); line-height: 1.2; font-variant-numeric: tabular-nums; }
-.vehicle-chip > svg { flex: none; color: hsl(var(--muted-foreground)); }
+.vehicle-chip > strong { grid-column: 1 / -1; min-width: 4.5ch; font-size: var(--type-body); line-height: 1.2; text-align: center; font-variant-numeric: tabular-nums; }
+.vehicle-chip > svg { flex: none; width: 13px; height: 13px; color: hsl(var(--muted-foreground)); }
 .vehicle-chip[data-charging="true"] > svg { color: hsl(var(--success)); }
 .vehicle-chip .vehicle-mini-meter { grid-column: 1 / -1; }
+.vehicle-chip > svg + .vehicle-mini-meter { grid-column: 2; }
 .vehicle-chip[data-paused="true"] .vehicle-mini-meter i { background: hsl(var(--muted-foreground)); }
 .vehicle-chip:focus-visible { background: hsl(var(--secondary)); outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
 .vehicle-strip.vehicle-chip-strip { display: flex; padding: 0; border-radius: var(--radius-capsule); }
@@ -258,21 +259,25 @@
 @media (hover: hover) and (pointer: fine) {
   .vehicle-chip:hover { background: hsl(var(--secondary)); }
 }
+/*
+ * Phones: the time owns the start of the first row and the controls its end; neither ever gives way to the chip. The
+ * chip sits beside the controls. Their trailing group wraps upwards (wrap-reverse), so when the row cannot hold the
+ * chip as well (narrow phones, larger text, a sixth control) the controls keep the first row and the chip moves to a
+ * second row, still at the end, below them. That depends only on the width and text size, never on the reading,
+ * because the chip keeps one width.
+ */
 @media (width <= 767px) {
-  .app-header:has(.vehicle-chip-strip) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; }
+  .app-header:has(.vehicle-chip-strip) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: .5rem .375rem; }
   .app-header:has(.vehicle-chip-strip) .brand { grid-area: 1 / 1; }
-  .app-header .vehicle-chip-strip { grid-area: 1 / 2; justify-self: end; }
-  .app-header:has(.vehicle-chip-strip) .header-actions { grid-area: 1 / 3; justify-self: end; }
-  .app-header:has(.vehicle-chip-strip) .header-weather { grid-area: 2 / 2 / 3 / 4; justify-self: end; margin-right: 0; }
-  /* The chip already fills the first row: weather that only follows the clock waits on Today. */
+  .app-header:has(.vehicle-chip-strip) .header-trail {
+    grid-area: 1 / 2; display: flex; flex-wrap: wrap-reverse; align-items: center; justify-content: flex-end; gap: .5rem .375rem; min-width: 0;
+  }
+  /* A last resort for the narrowest screens at large text: the controls wrap among themselves rather than leave the screen. */
+  .app-header:has(.vehicle-chip-strip) .header-actions { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  .app-header:has(.vehicle-chip-strip) .header-weather { grid-area: 2 / 1 / 3 / 3; justify-self: end; margin-right: 0; }
+  /* The chip already shares the first row: weather that only follows the clock waits on Today. */
   .app-header:has(.vehicle-chip-strip) .header-weather[data-beside-clock] { display: none; }
 }
 @media (width <= 699px) {
   .app-header:has(.vehicle-chip-strip) .brand-name { display: none; }
-}
-@media (width <= 379px) {
-  .app-header:has(.vehicle-chip-strip) { grid-template-columns: minmax(0, 1fr) auto; }
-  .app-header .vehicle-chip-strip { grid-area: 2 / 1; justify-self: start; }
-  .app-header:has(.vehicle-chip-strip) .header-actions { grid-area: 1 / 2; }
-  .app-header:has(.vehicle-chip-strip) .header-weather { grid-area: 2 / 2; }
 }
