@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { createMemoryRouter, Link, MemoryRouter, RouterProvider } from "react-router-dom";
 import { AppContext } from "@/contexts/AppContext";
 import History from "@/pages/History";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
@@ -468,6 +468,101 @@ describe("Activity sources table", () => {
     expect(names()).toHaveLength(600);
     // Generous for a slow CI machine; locally this takes well under a second.
     expect(performance.now() - started).toBeLessThan(8000);
+  });
+});
+
+describe("unsaved sources warning", () => {
+  // The app's data router, with an "All settings" link beside the page as on the real settings subpage.
+  const routed = (initialEntries = ["/settings/activity?panel=recent"]) => {
+    const router = createMemoryRouter([
+      { path: "/settings/activity", element: <><Link to="/settings?group=system">All settings</Link><History /></> },
+      { path: "/settings", element: <p>Settings overview</p> },
+      { path: "/elsewhere", element: <p>Somewhere else</p> },
+    ], { initialEntries, initialIndex: initialEntries.length - 1 });
+    render(<AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { entities, areas, timeZone: "Europe/Oslo" } } as never}>
+      <RouterProvider router={router} /></AppContext.Provider>);
+    return router;
+  };
+  const dialog = () => screen.queryByRole("alertdialog");
+  const unload = () => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; };
+
+  it("leaves without asking when there is no draft, also after saving", async () => {
+    const router = routed();
+    expect(unload()).toBe(false);
+    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    expect(await screen.findByText("Settings overview")).toBeInTheDocument();
+    expect(dialog()).toBeNull();
+    act(() => { void router.navigate("/settings/activity?panel=recent"); });
+    fireEvent.click(box("Reading lamp"));
+    fireEvent.click(card().getByRole("button", { name: "Save sources" }));
+    expect(unload()).toBe(false);
+    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    expect(await screen.findByText("Settings overview")).toBeInTheDocument();
+  });
+
+  it("asks before a route change: Keep editing is the default and stays, Discard changes leaves", async () => {
+    const router = routed();
+    fireEvent.click(box("Reading lamp"));
+    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    const ask = await screen.findByRole("alertdialog", { name: "Discard unsaved sources?" });
+    expect(ask).toHaveAccessibleDescription("1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave.");
+    expect(within(ask).getByRole("button", { name: "Keep editing" })).toHaveFocus();
+    fireEvent.click(within(ask).getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(dialog()).toBeNull());
+    expect(router.state.location.pathname).toBe("/settings/activity");
+    expect(box("Reading lamp")).toBeChecked();
+    expect(card().getByText("1 unsaved change")).toBeInTheDocument();
+    // The browser's back button asks too.
+    fireEvent.click(box("Garage door"));
+    act(() => { void router.navigate("/elsewhere"); });
+    expect(await screen.findByRole("alertdialog")).toHaveAccessibleDescription("2 changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.");
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    expect(await screen.findByText("Somewhere else")).toBeInTheDocument();
+    expect(setActivity).not.toHaveBeenCalled();
+    expect(unload()).toBe(false);
+  });
+
+  it("asks before the browser's back button leaves the page", async () => {
+    const router = routed(["/elsewhere", "/settings/activity?panel=recent"]);
+    fireEvent.click(box("Reading lamp"));
+    act(() => { void router.navigate(-1); });
+    expect(await screen.findByRole("alertdialog", { name: "Discard unsaved sources?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(dialog()).toBeNull());
+    expect(router.state.location.pathname).toBe("/settings/activity");
+  });
+
+  it("asks before switching settings section from the menu or the picker, and discarding drops the draft", async () => {
+    const router = routed();
+    fireEvent.click(box("Reading lamp"));
+    fireEvent.click(screen.getByRole("link", { name: "Activity log" }));
+    expect(await screen.findByRole("alertdialog", { name: "Discard unsaved sources?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(dialog()).toBeNull());
+    expect(router.state.location.search).toBe("?panel=recent");
+    fireEvent.change(screen.getByRole("combobox", { name: "Settings section" }), { target: { value: "log" } });
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    await waitFor(() => expect(router.state.location.search).toBe("?panel=log"));
+    // The section stays mounted behind the menu, so the discarded draft must be gone when the owner comes back.
+    fireEvent.click(screen.getByRole("link", { name: /^Latest events/ }));
+    await waitFor(() => expect(router.state.location.search).toBe("?panel=recent"));
+    expect(dialog()).toBeNull();
+    expect(box("Reading lamp")).not.toBeChecked();
+    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
+  });
+
+  it("asks the browser to confirm closing or reloading the tab only while there is a draft", () => {
+    routed();
+    expect(unload()).toBe(false);
+    fireEvent.click(box("Reading lamp"));
+    expect(unload()).toBe(true);
+    fireEvent.click(box("Reading lamp"));
+    expect(unload()).toBe(false);
+    fireEvent.click(box("Washer"));
+    expect(unload()).toBe(true);
+    fireEvent.click(card().getByRole("button", { name: "Cancel" }));
+    expect(unload()).toBe(false);
   });
 });
 

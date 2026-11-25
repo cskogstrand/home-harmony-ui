@@ -6,10 +6,11 @@ import { DeviceIcon } from "@/components/devices/DeviceControl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { UnsavedChangesGuard } from "@/components/common/UnsavedChangesGuard";
 import { activityCategoryIcons, activityCategoryLabels, activitySourceRows, buildSourceTree, emptySourceFilters, filterSourceRows, missingSourceRows, sameSources, sortSourceRows, sourceChanges, sourceFiltersActive, sourceLevels, withSources,
   type ActivitySourceRow, type SourceFilters, type SourceGrouping, type SourceLevel, type SourceSort, type SourceSortKey, type SourceTreeNode, type SourceTreePart } from "@/lib/activity-sources";
 import type { ActivityIcon } from "@/lib/activity";
-import type { MessageKey } from "@/lib/i18n";
+import { msg, type MessageKey } from "@/lib/i18n";
 import type { Area, Entity } from "@/types/api";
 import { activityCategories, type ActivityCategory } from "../../shared/configuration";
 import "./activity-sources-table.css";
@@ -185,7 +186,8 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
   const sortBy = (key: SourceSortKey) => setSort(current => ({ key, direction: current.key === key && current.direction === "ascending" ? "descending" : "ascending" }));
 
   const useSuggested = () => { setDraft({ ids: suggestionIds, suggested: true }); setFailed(false); };
-  const cancel = () => { setDraft(null); setFailed(false); setKept(new Set()); onSettled(); };
+  const discard = () => { setDraft(null); setFailed(false); setKept(new Set()); };
+  const cancel = () => { discard(); onSettled(); };
   const save = () => {
     if (!draft) return;
     if (!onSave(draft.suggested ? undefined : [...draft.ids])) { setFailed(true); return; }
@@ -337,6 +339,9 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
           })}
       </tbody>
     </table>
+    <UnsavedChangesGuard dirty={dirty} title="Discard unsaved sources?" onDiscard={discard}
+      description={changes ? msg(changes === 1 ? "1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave." : "{count} changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.", { count: changes })
+        : "Your changes to Activity sources are not saved. Keep editing to save them, or discard them and leave."} />
     {(dirty || failed) && <div className="activity-sources-savebar" role="group" aria-label={t("Unsaved sources")}>
       <p>{changes ? t(changes === 1 ? "1 unsaved change" : "{count} unsaved changes", { count: changes }) : t("Unsaved changes")}
         {failed && <span role="alert">{t("Sources were not saved. Your changes are kept here, so you can try again.")}</span>}</p>
