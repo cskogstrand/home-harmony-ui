@@ -24,9 +24,11 @@
 .favorite-new-group label > span, .favorite-group-field > label { display: block; margin-bottom: .25rem; }
 .favorite-new-group input { min-height: 48px; }
 .favorite-group-names { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
-.favorite-group-names li { display: flex; align-items: center; min-width: 0; max-width: 100%; padding-left: .75rem; border: 1px solid hsl(var(--border)); border-radius: 16px; }
-.favorite-group-names li > span { min-width: 0; overflow-wrap: anywhere; font-size: var(--type-label); }
-.favorite-group-names button { flex-shrink: 0; }
+/* A capsule around its trailing 48px (2.75rem on the wall) remove circle: the corners are the circle's radius plus the 1px border, so
+   the circle shares the end's centre. A wrapped long name keeps the circle in the top corner instead of turning the row into a large oval. */
+.favorite-group-names li { --radius-group-chip: calc(max(48px, 2.75rem) / 2 + 1px); display: flex; align-items: center; min-width: 0; max-width: 100%; padding-left: 1rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-group-chip); }
+.favorite-group-names li > span { min-width: 0; padding-block: .5rem; overflow-wrap: anywhere; font-size: var(--type-label); }
+.favorite-group-names button { flex-shrink: 0; align-self: start; }
 .favorite-selection ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 1.5rem 1rem; margin-top: 1rem; }
 .favorite-selection li { display: grid; gap: .75rem; min-width: 0; }
 .favorite-card-settings { display: flex; align-items: end; gap: .5rem; padding-inline: .25rem; }
