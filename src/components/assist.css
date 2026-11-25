@@ -39,13 +39,7 @@
 @media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
   .assist-dialog.glass-modal { width: min(calc(100% - 1.5rem), 44rem); }
 }
-/* A sixth header control: the vehicle chip moves to the second row sooner, and the narrowest phones use 44px targets. */
-@media (width <= 449px) {
-  .app-header:has(.assist-trigger):has(.vehicle-chip-strip) { grid-template-columns: minmax(0, 1fr) auto; }
-  .app-header:has(.assist-trigger) .vehicle-chip-strip { grid-area: 2 / 1; justify-self: start; }
-  .app-header:has(.assist-trigger):has(.vehicle-chip-strip) .header-actions { grid-area: 1 / 2; }
-  .app-header:has(.assist-trigger):has(.vehicle-chip-strip) .header-weather { grid-area: 2 / 2; }
-}
+/* A sixth header control: the vehicle chip drops to the second row on its own once the first row is full; the narrowest phones use 44px targets. */
 @media (width <= 379px) {
   .app-header:has(.assist-trigger) .header-actions .icon-button { min-width: 44px; min-height: 44px; }
   .app-header:has(.assist-trigger) .brand { min-width: 44px; }

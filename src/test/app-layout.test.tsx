@@ -13,9 +13,9 @@ const afterglowCss: string = sourceFile("afterglow.css");
 const indexCss: string = sourceFile("index.css");
 
 const media = vi.hoisted(() => ({ state: "paused", source: "Radio" }));
-const shared = vi.hoisted(() => ({ enabled: true, assist: false, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
-vi.mock("@/contexts/AppContext", () => ({ useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, entityRegistryAvailable: true, metadataWarnings: [] }) }));
-vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ today: "2026-11-25", time: "14:05", saved: shared.state.loaded && !shared.state.dirty, assist: { enabled: shared.assist, agentId: "" }, vehicles: [], members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
+const shared = vi.hoisted(() => ({ enabled: true, assist: false, vehicles: [] as { id: string; name: string }[], online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
+vi.mock("@/contexts/AppContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/AppContext")>(), useApp: () => ({ homeOnline: shared.online, currentHome: { name: "Home", entities: [{ domain: "media_player", entityId: "media_player.example", integration: "sonos", state: media.state, attributes: { source: media.source } }] }, entityRegistryAvailable: true, metadataWarnings: [] }) }));
+vi.mock("@/contexts/FamilyContext", () => ({ useFamily: () => ({ today: "2026-11-25", time: "14:05", saved: shared.state.loaded && !shared.state.dirty, assist: { enabled: shared.assist, agentId: "" }, vehicles: shared.vehicles, members: [], dashboard: {}, selectedAlarm: "", memberName: () => "Emma", smartHome: { layout: [] }, appearance: { compactMode: false, plannerArtwork: {} }, notifications: shared.notifications }) }));
 vi.mock("@/contexts/SharedConfigurationContext", () => ({ useSharedConfiguration: () => shared }));
 vi.mock("@/hooks/use-app-update", () => ({ appVersion: "0.0.0", useAppUpdate: () => shared.availableVersion }));
 vi.mock("@/components/layout/MainPages", () => ({ MainPages: () => null }));
@@ -26,6 +26,7 @@ beforeEach(() => {
   media.source = "Radio";
   shared.enabled = true;
   shared.assist = false;
+  shared.vehicles = [];
   shared.online = true;
   shared.availableVersion = undefined;
   shared.notifications = { presentation: "section", pages: "main" };
@@ -130,6 +131,22 @@ it("leads the header actions with Ask the house only when it is turned on", () =
   view.rerender(layout());
   expect(screen.getByRole("button", { name: "Ask the house" }).parentElement).toHaveClass("header-actions");
   expect(screen.getByRole("button", { name: "Ask the house" }).parentElement.firstElementChild).toBe(screen.getByRole("button", { name: "Ask the house" }));
+});
+
+it("puts a phone's vehicle chip and the header controls in one trailing group after the time", () => {
+  const width = window.innerWidth;
+  Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: 390 });
+  try {
+    shared.vehicles = [{ id: "car-example", name: "Example car" }];
+    render(<MemoryRouter initialEntries={["/calendar"]}><AppLayout /></MemoryRouter>);
+    const header = screen.getByRole("banner");
+    const trail = header.querySelector(":scope > .header-trail")!;
+    expect(header.firstElementChild).toHaveAttribute("data-clock");
+    expect(Array.from(trail.children, child => child.className)).toEqual([expect.stringContaining("vehicle-chip-strip"), "header-actions"]);
+    expect(screen.getByRole("region", { name: "Electric vehicles" })).toContainElement(screen.getByRole("button", { name: /^Open status for Example car/ }));
+  } finally {
+    Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: width });
+  }
 });
 
 it.each(["/devices/sample", "/entities/light.sample"])("marks the parent device section on %s", path => {
