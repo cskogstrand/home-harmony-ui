@@ -2,7 +2,7 @@
 
 [← Master plan](README.md) · Answers the **Panel widths (proposal only)** box in [14](14-owner-additions.md) and the open owner question about the empty lower part of the wall · Written 2026-11-25 as an `/impeccable shape` brief
 
-**Status: proposal for the owner to approve.** Nothing here is built. Code changes start only after the owner confirms the recommendation or corrects it (see [Open questions](#open-questions-for-the-owner)).
+**Status: approved by the owner on 2026-11-25** (answers under [Open questions](#open-questions-for-the-owner)). Implementation follows the checklist.
 
 > Shape normally starts with a short interview. This brief was written by an agent with no way to ask, so it rests on the assumptions listed under [Assumptions](#assumptions) instead. Correct any of them and the recommendation may change.
 
@@ -443,3 +443,11 @@ Verify the Bokmål wording against the existing tone in `src/locales/nb.ts` when
 3. **Fill the free space with Recent at home, under Everyone's day?** Or leave the space empty (the default), or wait for a **Coming up** list of the next plans?
 4. **Landscape screens:** OK to retire the special landscape layout where the week sits beside stacked lists, in favour of the same rows?
 5. **Uneven pairs:** both panels in a pair stretch to the same height (aligned bottom edges, some empty card space in the shorter one). Preferred, or should the shorter panel keep its own height with the page background showing below it?
+
+### Owner answers (2026-11-25)
+
+1. Model A with the preview: approved.
+2. Only Everyone's day, Everyone's week and School are full-width only; every other section may be half.
+3. The fill section is chosen dynamically in the panel configuration (Customize Today); off by default.
+4. Retire the special landscape layout; landscape uses the same rows.
+5. Panels in a pair stretch to the same height.
