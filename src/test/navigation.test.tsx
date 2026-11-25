@@ -1679,6 +1679,37 @@ it.each([
   expect(!!badge?.querySelector(".lucide-user-round")).toBe(glyph);
 });
 
+it.each([
+  [1, "Home status · 1 issue", "header-badge-count", "1", true],
+  [2, "Home status · 2 issues", "header-badge-count", "2", true],
+  [12, "Home status · 12 issues", "header-badge-count", "12", false],
+])("marks %i home status issues with a count that grows away from the house", async (count, name, variant, text, glyph) => {
+  const ids = Array.from({ length: count }, (_, index) => `binary_sensor.example_problem_${index}`);
+  settings.settings.dashboard.statusSources = ids.map(id => "home|" + id);
+  app.currentHome = mapHome(Object.fromEntries(ids.map(id => [id, state(id, "on", { device_class: "problem" })])), emptyRegistries, "home");
+  render(<App />); await saved();
+  // The name keeps the full summary, whatever the badge has room to show.
+  const button = screen.getByRole("button", { name });
+  const badge = button.querySelector(".header-badge");
+  expect(badge).toHaveClass(variant);
+  expect(badge).toHaveAttribute("aria-hidden", "true");
+  expect(badge).toHaveAttribute("data-tone", "attention");
+  expect(badge).toHaveTextContent(new RegExp(`^${text}$`));
+  // Two digits beside the warning would outgrow the control at 150% text, so the name alone carries the meaning there.
+  expect(!!badge?.querySelector(".lucide-triangle-alert")).toBe(glyph);
+});
+
+it("marks home status without issues to count with the glyph badge", async () => {
+  app.homeOnline = false;
+  app.connectionStatus = "disconnected";
+  render(<App />); await saved();
+  const badge = screen.getByRole("button", { name: "Home status · Home status unavailable" }).querySelector(".header-badge");
+  expect(badge).toHaveClass("header-badge-glyph");
+  expect(badge).not.toHaveClass("header-badge-count");
+  expect(badge).toHaveTextContent(/^$/);
+  expect(badge?.querySelector(".lucide-wifi-off")).toBeInTheDocument();
+});
+
 it("withholds calendar and list setup prompts while their registry IDs are unavailable", async () => {
   app.entityRegistryAvailable = false;
   render(<App />); await saved();
@@ -2014,6 +2045,7 @@ it("opens categorized home status and counts both a room alert and a missing rea
   expect(trigger.querySelector(":scope > .lucide-house")).toBeInTheDocument();
   expect(trigger.querySelector(".header-badge .lucide-triangle-alert")).toBeInTheDocument();
   expect(trigger.querySelector(".header-badge")).toHaveTextContent("2");
+  expect(trigger.querySelector(".header-badge")).toHaveClass("header-badge-count");
   expect(screen.queryByRole("button", { name: /Example detector/ })).toBeNull();
   fireEvent.click(trigger);
   const modal = screen.getByRole("dialog", { name: "Home status" });

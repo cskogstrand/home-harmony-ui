@@ -141,6 +141,8 @@
 .header-badge.header-badge-count { inset-block: auto 67.5%; height: max(40%, 1.25em); min-width: max(40%, 1.25em); padding-inline: .25em; }
 .header-badge[data-tone="healthy"] { background: hsl(var(--success)); color: hsl(var(--success-foreground)); }
 .header-badge[data-tone="attention"] { background: hsl(var(--warning)); color: hsl(var(--warning-foreground)); }
+/* The notification bell's filled count: only active alerts earn it. */
+.header-badge[data-tone="active"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
 @media (forced-colors: active) { .header-badge { border: 1px solid ButtonText; } }
 .header-actions { display: flex; align-items: center; gap: 14px; }
 /* Vehicles and controls share a trailing group; it only takes a box of its own on phones with the vehicle chip. */

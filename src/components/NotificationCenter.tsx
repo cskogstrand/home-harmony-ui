@@ -35,7 +35,8 @@ export function NotificationBell() {
   // Only real alerts earn the filled count. Startup, waiting and source states are explained on Today and /notifications.
   const label = notifications.length ? t("Notifications: {count} active", { count: notifications.length }) : t("Notifications");
   return <><Link id="notification-bell" to="/notifications" className="icon-button glass-surface relative" aria-label={label} title={label}>
-    <Bell size={20} aria-hidden="true" />{notifications.length > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground" aria-hidden="true">{notifications.length}</span>}
+    {/* The count badge grows up and along the headroom with larger text, never down over the bell or past the control's edge. */}
+    <Bell size={20} aria-hidden="true" />{notifications.length > 0 && <span className="header-badge header-badge-count" data-tone="active" aria-hidden="true">{notifications.length}</span>}
   </Link><span role="status" aria-atomic="true" className="sr-only">{[titles && t("Active notifications: {titles}", { titles }), status || (!notifications.length && t("No active notifications"))].filter(Boolean).join(" · ")}</span></>;
 }
 

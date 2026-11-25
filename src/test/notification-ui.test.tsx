@@ -857,6 +857,11 @@ it("announces incoming titles and same-count replacements without repeating sens
   const view = render(content());
   expect(screen.getByRole("status")).toHaveTextContent("Active notifications: Example doorbell");
   expect(screen.getByRole("link", { name: "Notifications: 1 active" }).textContent).toBe("1");
+  // The filled count uses the header's count badge, which grows away from the bell (DESIGN.md, The Count Grows Outward Rule).
+  const badge = screen.getByRole("link", { name: "Notifications: 1 active" }).querySelector(".header-badge");
+  expect(badge).toHaveClass("header-badge-count");
+  expect(badge).toHaveAttribute("data-tone", "active");
+  expect(badge).toHaveAttribute("aria-hidden", "true");
   value.notifications = [{ ...notification, rule: { ...notification.rule, title: "Example window" } }];
   view.rerender(content());
   expect(screen.getByRole("status")).toHaveTextContent("Active notifications: Example window");

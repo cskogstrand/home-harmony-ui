@@ -8,6 +8,8 @@ const afterglowCss: string = sourceFile("afterglow.css");
 const vehicleCss: string = sourceFile("components/vehicle-widgets.css");
 const assistCss: string = sourceFile("components/assist.css");
 const layoutSource: string = sourceFile("components/layout/AppLayout.tsx");
+const homeStatusSource: string = sourceFile("components/HomeStatus.tsx");
+const notificationSource: string = sourceFile("components/NotificationCenter.tsx");
 
 /** The body of the first `@media` block whose query matches, found by brace matching. */
 const mediaBlock = (css: string, query: string) => {
@@ -99,6 +101,26 @@ it("grows the camera and settings counts away from their icons, with Caption dig
   expect(count).toMatch(/padding-inline: \.25em/);
   // A badge on the wrapped lower row (320px at 150% text) rises into this gap instead of onto the control above.
   expect(declarations(mediaBlock(vehicleCss, "(width <= 767px)"), ".app-header:has(.vehicle-chip-strip) .header-actions")).toMatch(/row-gap: 8px/);
+});
+
+it("grows the home status count away from the house like the camera and settings counts", () => {
+  // Glyph-only states (checking, offline, no sources) use the glyph badge; issue counts use the count badge.
+  expect(homeStatusSource).toMatch(/className=\{`header-badge \$\{count > 0 \? "header-badge-count" : "header-badge-glyph"\}`\}/);
+  // The warning stays beside one digit; two digits drop it so the badge stays within the control at 150% text.
+  expect(homeStatusSource).toMatch(/\{count < 10 && <StatusIcon /);
+  // The header button never falls back to the 1.2rem base badge, which grew down over the house at 150% text.
+  const headerButton = homeStatusSource.slice(homeStatusSource.indexOf('id="home-status-button"'));
+  expect(headerButton.slice(0, headerButton.indexOf("</DialogTrigger>"))).not.toMatch(/className="header-badge"/);
+});
+
+it("grows the notification count away from the bell and keeps it inside the control", () => {
+  // The bell's count is the shared count badge with the filled primary tone, not a corner pill of its own: at 150% text
+  // that pill grew down over the bell, and it sat 4px past the control's edge, onto the gear beside it on phones.
+  const start = notificationSource.indexOf('id="notification-bell"');
+  const bell = notificationSource.slice(start, notificationSource.indexOf("</Link>", start));
+  expect(bell).toMatch(/<span className="header-badge header-badge-count" data-tone="active" aria-hidden="true">\{notifications\.length\}<\/span>/);
+  expect(bell).not.toMatch(/-right-1|-top-1/);
+  expect(declarations(afterglowCss, '.header-badge[data-tone="active"]')).toMatch(/background: hsl\(var\(--primary\)\); color: hsl\(var\(--primary-foreground\)\)/);
 });
 
 it("keeps the tablet layout for weather beside the clock away from the phone chip", () => {
