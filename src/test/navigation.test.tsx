@@ -366,6 +366,15 @@ it("jumps to a date, pages months and returns to today without changing dashboar
   fireEvent.change(screen.getByLabelText("Jump to date", { selector: "input" }), { target: { value: "2024-01-31" } });
   fireEvent.click(screen.getByRole("button", { name: "Go to date" }));
   expect(screen.getByRole("heading", { name: "January 2024" })).toBeVisible();
+  // The Period Yields Rule: narrow toolbars show the short period, but the name and the announcement keep the full one.
+  const period = (full: string, short: string) => {
+    const button = screen.getByRole("button", { name: `Jump to date: ${full}` });
+    expect(button.querySelector(".calendar-period-text")).toHaveAttribute("aria-hidden", "true");
+    expect(button.querySelector(".calendar-period-long")).toHaveTextContent(full);
+    expect(button.querySelector(".calendar-period-short")).toHaveTextContent(short);
+    expect(button.querySelector("[aria-live='polite']")).toHaveTextContent(full);
+  };
+  period("January 2024", "Jan 2024");
   fireEvent.click(screen.getByRole("button", { name: "Next month" }));
   expect(window.location.search).toContain("date=2024-02-29");
   const todayAction = screen.getByRole("button", { name: "Today" });
@@ -377,7 +386,9 @@ it("jumps to a date, pages months and returns to today without changing dashboar
   expect(screen.getByRole("heading", { name: "October 2026" })).toBeVisible();
   expect(settings.settings.calendar).toEqual({ view: "week", startDay: "today" });
   fireEvent.click(screen.getByRole("button", { name: "Week" }));
+  period("26 Oct — 1 Nov 2026", "26 Oct – 1 Nov");
   fireEvent.click(screen.getByRole("button", { name: "Monday, 26 October 2026" }));
+  period("26 October 2026", "26 Oct");
   expect(screen.getByRole("region", { name: "Day view" })).toHaveTextContent("No calendars or to-do lists selected");
   expect(screen.queryByText("No plans for this day.")).not.toBeInTheDocument();
 });

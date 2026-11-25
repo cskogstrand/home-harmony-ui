@@ -58,6 +58,9 @@ export default function Calendar() {
     : data.loading ? t("Loading plans…") : data.errors.length || missing ? t("Some calendars or to-do lists could not be loaded.") : undefined;
   const period = view === "month" ? dateLabel(date, { month: "long", year: "numeric" }) : view === "day" ? dateLabel(date, { day: "numeric", month: "long", year: "numeric" })
     : `${dateLabel(start, { day: "numeric", month: "short" })} — ${dateLabel(addDays(end, -1), { day: "numeric", month: "short", year: "numeric" })}`;
+  // Narrow toolbars at large text show a shorter period (days and weeks without the year); the button's name keeps the full one.
+  const shortPeriod = view === "month" ? dateLabel(date, { month: "short", year: "numeric" }) : view === "day" ? dateLabel(date, { day: "numeric", month: "short" })
+    : `${dateLabel(start, { day: "numeric", month: "short" })} – ${dateLabel(addDays(end, -1), { day: "numeric", month: "short" })}`;
 
   return <div className="planner-page calendar-page">
     <PageHeading title={t("Calendar")}><Button onClick={() => openEvent()}><Plus size={18} aria-hidden="true" />{t("Add a plan")}</Button></PageHeading>
@@ -68,7 +71,7 @@ export default function Calendar() {
         <div className="calendar-date-navigation">
           <Button variant="ghost" size="icon" aria-label={t(previousLabels[view])} onClick={() => navigate(moveCalendarDate(date, view, -1))}><ChevronLeft /></Button>
           <Popover open={jumpOpen} onOpenChange={open => { setJumpDate(date); setJumpOpen(open); }}>
-            <h2 className="calendar-period-heading" aria-label={period}><PopoverTrigger asChild><Button variant="ghost" className="calendar-period" aria-label={`${t("Jump to date")}: ${period}`}><PlannerCardIcon kind="calendar" /><span aria-live="polite">{period}</span><ChevronDown size={16} aria-hidden="true" /></Button></PopoverTrigger></h2>
+            <h2 className="calendar-period-heading" aria-label={period}><PopoverTrigger asChild><Button variant="ghost" className="calendar-period" aria-label={`${t("Jump to date")}: ${period}`}><PlannerCardIcon kind="calendar" /><span className="calendar-period-text" aria-hidden="true"><span className="calendar-period-long">{period}</span><span className="calendar-period-short">{shortPeriod}</span></span><span className="sr-only" aria-live="polite">{period}</span><ChevronDown size={16} aria-hidden="true" /></Button></PopoverTrigger></h2>
             <PopoverContent aria-label={t("Jump to date")}>
               <form className="planner-form" onSubmit={event => { event.preventDefault(); if (isPlannerDate(jumpDate)) { navigate(jumpDate); setJumpOpen(false); } }}>
                 <label>{t("Jump to date")}<input type="date" required value={jumpDate} onChange={event => setJumpDate(event.target.value)} /></label>
