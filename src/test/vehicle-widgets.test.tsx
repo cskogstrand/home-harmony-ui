@@ -6,7 +6,7 @@ import { createI18n } from "@/lib/i18n";
 import { state } from "./ha-fixtures";
 
 const data = vi.hoisted(() => ({
-  app: { currentHome: null, homeOnline: true, command: vi.fn(), services: {} },
+  app: { currentHome: null, homeOnline: true, connectionStarting: false, command: vi.fn(), services: {} },
   vehicles: [] as { id: string; name: string }[],
   now: new Date("2030-04-09T07:00:00Z"),
 }));
@@ -28,6 +28,7 @@ const resize = (value: number) => Object.defineProperty(window, "innerWidth", { 
 beforeEach(() => {
   data.app.currentHome = home({ one: "64", two: "35" });
   data.app.homeOnline = true;
+  data.app.connectionStarting = false;
   data.vehicles = [{ id: "car-one", name: "Example One" }, { id: "car-two", name: "Example Two" }];
 });
 afterEach(() => { cleanup(); resize(width); });
@@ -67,4 +68,38 @@ it("opens a single vehicle's detail straight from its phone chip", async () => {
   expect(chip).toHaveClass("vehicle-chip");
   fireEvent.click(chip);
   expect(await screen.findByRole("dialog", { name: "Example One" })).toBeVisible();
+});
+
+it("says the strip is connecting on a fresh load and names Home Assistant only after the grace period", async () => {
+  resize(1024);
+  data.app.homeOnline = false;
+  data.app.connectionStarting = true;
+  const view = render(<VehicleWidgets />);
+  const strip = screen.getByRole("region", { name: "Electric vehicles" });
+  const first = () => within(strip).getAllByRole("button", { name: /^Open status for/ })[0];
+  expect(first()).toHaveAccessibleName(/Connecting…/);
+  expect(first()).toHaveTextContent("Connecting…");
+  expect(strip).not.toHaveTextContent(/Offline|HA /);
+  fireEvent.click(first());
+  expect(within(await screen.findByRole("dialog")).getByRole("status")).toHaveTextContent("Connecting to Home Assistant…");
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+  data.app.connectionStarting = false;
+  view.rerender(<VehicleWidgets />);
+  expect(first()).toHaveAccessibleName(/Home Assistant offline/);
+  expect(first()).toHaveTextContent("Offline");
+  expect(strip).not.toHaveTextContent(/HA |Connecting/);
+  fireEvent.click(first());
+  expect(within(await screen.findByRole("dialog")).getByRole("status")).toHaveTextContent("Vehicle readings resume when Home Assistant reconnects.");
+});
+
+it("names the connecting state in the phone chip menu", () => {
+  resize(390);
+  data.app.homeOnline = false;
+  data.app.connectionStarting = true;
+  render(<VehicleWidgets />);
+  const chip = within(screen.getByRole("region", { name: "Electric vehicles" })).getByRole("button", { name: /^Electric vehicles · lowest battery/ });
+  expect(chip).toHaveAccessibleName(/· Connecting…$/);
+  expect(chip.querySelector(".motion-safe\\:animate-spin")).not.toBeNull();
 });

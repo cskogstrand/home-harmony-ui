@@ -13,7 +13,7 @@ import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { addDays, homeDate, weekStart, isPlannerDate } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn(), assistAgents: vi.fn(async () => []) }));
+const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", connectionStarting: false, awaitingFirstConnection: false, entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn(), assistAgents: vi.fn(async () => []) }));
 vi.mock("@/contexts/AppContext", async importOriginal => {
   const { AppContext } = await importOriginal<typeof import("@/contexts/AppContext")>();
   const { useContext } = await import("react");
@@ -30,6 +30,8 @@ beforeEach(() => {
   app.entityRegistryAvailable = true;
   app.homeOnline = true;
   app.connectionStatus = "connected";
+  app.connectionStarting = false;
+  app.awaitingFirstConnection = false;
   app.haUrl = "http://ha.local:8123";
   app.currentHome = mapHome({ "person.emma": state("person.emma", "home", { friendly_name: "Emma" }), "person.leo": state("person.leo", "home", { friendly_name: "Leo" }) }, emptyRegistries, "home");
   app.configurationRequest.mockImplementation(async (method, body) => {
@@ -1902,13 +1904,28 @@ it("updates the home illustration as readings and connectivity change in an open
   app.connectionStatus = "disconnected"; view.rerender(<App />); expectScene("offline");
 });
 
+it("treats the first connection after a load as loading rather than offline", async () => {
+  app.homeOnline = false;
+  app.connectionStatus = "connecting";
+  app.connectionStarting = true;
+  app.awaitingFirstConnection = true;
+  render(<App />); await saved();
+  expect(screen.getByText("Connecting to Home Assistant…")).toBeVisible();
+  expect(screen.queryByText(/Readings are stale|controls are paused/)).toBeNull();
+  expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Loading your calendar…");
+  expect(screen.queryByText("Plans unavailable.")).toBeNull();
+  await navigate("Smart home");
+  expect(document.querySelector(".connection-pill")).toHaveTextContent("Connecting…");
+  expect(document.querySelector(".connection-pill")).not.toHaveClass("attention");
+});
+
 it("distinguishes offline plans and security from successful empty reads", async () => {
   settings.settings.smartHome.layout = [configuredCard("home|missing")];
   app.homeOnline = false;
   app.connectionStatus = "disconnected";
   const view = render(<App />); await saved();
   const header = within(screen.getByRole("link", { name: "Afterglow home" }).closest("header")!);
-  expect(header.queryByText("HA offline")).toBeNull();
+  expect(header.queryByText(/Home Assistant offline/)).toBeNull();
   const warning = screen.getByText(/Readings are stale; controls are paused/);
   expect(within(warning).getByRole("link", { name: "Connection settings" })).toHaveAttribute("href", "/settings/connection");
   expect(screen.getByRole("region", { name: "Next family plan" })).toHaveTextContent("Plans unavailable.");
@@ -2653,7 +2670,7 @@ it("saves Tesla vehicles by device, opens their separate live status and hides s
   fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
   app.currentHome = mapHome({}, emptyRegistries, "home");
   view.rerender(<App />);
-  expect(screen.getByRole("button", { name: /Example Two.*HA offline/ })).toBeVisible();
+  expect(screen.getByRole("button", { name: /Example Two.*Home Assistant offline/ })).toBeVisible();
   const offlineCard = screen.getByRole("article", { name: "Example Two" });
   expect(offlineCard).toHaveTextContent("Offline");
   fireEvent.click(within(offlineCard).getByRole("button", { name: "Edit Example Two" }));

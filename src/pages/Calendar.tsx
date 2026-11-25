@@ -22,7 +22,7 @@ const nextLabels = { month: "Next month", week: "Next week", day: "Next day" } a
 
 export default function Calendar() {
   const { t, dateLabel } = useI18n();
-  const { homeOnline, currentHome } = useApp();
+  const { homeOnline, currentHome, connectionStarting } = useApp();
   const { today, calendar, calendarMembers, todoLists } = useFamily();
   const [params, setParams] = useSearchParams();
   const selected = params.get("date"), selectedWeek = params.get("week"), selectedView = params.get("view");
@@ -54,7 +54,7 @@ export default function Calendar() {
   const calendars = Object.entries(calendarMembers).filter(([, id]) => people.some(person => person.id === id));
   const hasLists = Object.values(todoLists).some(list => list.kind !== "shopping" && people.some(person => person.id === list.member));
   const missing = calendars.some(([id]) => !currentHome.entities.some(entity => entity.preferenceId === id));
-  const unavailable = !homeOnline ? t("Plans unavailable.") : !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
+  const unavailable = !homeOnline ? t(connectionStarting ? "Loading plans…" : "Plans unavailable.") : !calendars.length && !hasLists ? t("No calendars or to-do lists selected")
     : data.loading ? t("Loading plans…") : data.errors.length || missing ? t("Some calendars or to-do lists could not be loaded.") : undefined;
   const period = view === "month" ? dateLabel(date, { month: "long", year: "numeric" }) : view === "day" ? dateLabel(date, { day: "numeric", month: "long", year: "numeric" })
     : `${dateLabel(start, { day: "numeric", month: "short" })} — ${dateLabel(addDays(end, -1), { day: "numeric", month: "short", year: "numeric" })}`;

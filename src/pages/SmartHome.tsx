@@ -15,7 +15,7 @@ import { PopoverClose } from "@/components/ui/popover";
 import { RecentActivity } from "@/components/ActivityFeed";
 export default function SmartHome() {
   const { t, message } = useI18n();
-  const { currentHome, homeOnline, haUrl } = useApp();
+  const { currentHome, homeOnline, haUrl, connectionStarting } = useApp();
   const { smartHome } = useFamily();
   const [area, setArea] = useState("all");
   const [editing, setEditing] = useState(false);
@@ -23,7 +23,7 @@ export default function SmartHome() {
   const areas = currentHome.areas.filter(room => devices.some(card => card.main?.areaId === room.id));
   if (area !== "all" && !areas.some(room => room.id === area)) setArea("all");
   const visibleDevices = devices.filter(card => area === "all" || card.main?.areaId === area);
-  return <div className="planner-page smart-page"><PageHeading title={t("Smart home")}><div className="flex flex-wrap items-center gap-3"><span className={`connection-pill ${homeOnline ? "" : "attention"}`}><i />{homeOnline ? t("Connected") : t("Offline")}</span>
+  return <div className="planner-page smart-page"><PageHeading title={t("Smart home")}><div className="flex flex-wrap items-center gap-3"><span className={`connection-pill ${homeOnline || connectionStarting ? "" : "attention"}`}><i />{homeOnline ? t("Connected") : connectionStarting ? t("Connecting…") : t("Offline")}</span>
       {editing && <Button onClick={() => setEditing(false)}><Check size={17} aria-hidden="true" />{message("Done")}</Button>}
       <SettingsPopover label={t("Smart home settings")}>
         <PopoverClose asChild><Button variant="outline" aria-pressed={editing} onClick={() => setEditing(value => !value)}><PencilLine size={17} aria-hidden="true" />{message(editing ? "Done" : "Arrange cards")}</Button></PopoverClose>

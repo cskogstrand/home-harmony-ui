@@ -28,7 +28,7 @@ import { HomeStatus } from "@/components/HomeStatus";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
-  const { homeOnline } = useApp();
+  const { homeOnline, connectionStarting } = useApp();
   const { today, time, members, memberName, memberColor, connectedPlanner, hasTimetable, calendar, calendarStart: start, calendarMembers, todoLists, timetables, timetableEnabled, timetableSettings, homeEntities, selectedAlarm, dashboard } = useFamily();
   const shared = useSharedConfiguration();
   const needsSetup = shared?.state.loaded && !Object.keys(calendarMembers).length && !Object.keys(todoLists).length
@@ -78,7 +78,7 @@ export default function Dashboard() {
         </div>
         <div className="next-event-time"><time>{eventTimeLabel(next)}</time>{daysAway > 1 && <small>{dateLabel(next.date)}</small>}</div>
       </button>{next.note && <CollapsibleContent><EventDescription value={next.note} /></CollapsibleContent>}</> :
-        <p className="muted">{connectedPlanner && !homeOnline ? t("Plans unavailable.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
+        <p className="muted">{connectedPlanner && !homeOnline ? t(connectionStarting ? "Loading your calendar…" : "Plans unavailable.") : data.loading ? t("Loading your calendar…") : data.errors.length ? t("Some calendars or to-do lists could not be loaded.") : quietDays ? quietSummary : t("No upcoming plans to display.")}</p>}
     </section></Collapsible>,
     day: dashboard.day && <FamilyDay data={data} onEdit={openEvent} />,
     week: dashboard.week && <section className="glow-panel family-week" aria-label={t("Everyone’s week")}>

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { CarFront, CircleHelp, CircleParking, Download, Fan, Gauge, Moon, Pause, Plug, Power, Unplug, Wifi, WifiOff, Zap, type LucideIcon } from "lucide-react";
+import { CarFront, CircleHelp, CircleParking, Download, Fan, Gauge, LoaderCircle, Moon, Pause, Plug, Power, Unplug, Wifi, WifiOff, Zap, type LucideIcon } from "lucide-react";
 import { AppContext, useApp } from "@/contexts/AppContext";
 import { homeDate, useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -20,7 +20,8 @@ const activityIcons: Partial<Record<ReturnType<typeof driveStatus>["label"], Luc
   Online: Wifi, Unavailable: WifiOff, Parked: CircleParking, Driving: Gauge, "state.charging": Zap, "Drive status unknown": CircleHelp,
 };
 
-function vehicleGlance(vehicle: Vehicle | undefined, homeOnline: boolean) {
+// connectionStarting: the first connection after a load is still within its grace period, so nothing is offline yet.
+function vehicleGlance(vehicle: Vehicle | undefined, homeOnline: boolean, connectionStarting = false) {
   const entities = vehicle?.entities ?? [];
   const summary = vehicleSummary(homeOnline ? entities : []);
   const live = homeOnline && !!vehicle;
@@ -28,13 +29,14 @@ function vehicleGlance(vehicle: Vehicle | undefined, homeOnline: boolean) {
   const paused = !live || drive.label === "Asleep" || drive.label === "Offline" || drive.label === "Unavailable" || drive.label === "Polling paused";
   const charging = !paused && (drive.label === "state.charging" || (summary.charging && drive.label !== "Driving"));
   const level = summary.battery ? Number(summary.battery.state) : undefined;
-  return { entities, summary, live, drive, paused, charging, level };
+  const connecting = !homeOnline && connectionStarting;
+  return { entities, summary, live, drive, paused, charging, level, connecting };
 }
 type Glance = ReturnType<typeof vehicleGlance>;
 
-function glanceIcon({ live, charging, paused, drive }: Glance) {
+function glanceIcon({ live, charging, paused, drive, connecting }: Glance) {
   if (charging) return Zap;
-  if (paused) return live ? activityIcons[drive.label] ?? WifiOff : WifiOff;
+  if (paused) return live ? activityIcons[drive.label] ?? WifiOff : connecting ? LoaderCircle : WifiOff;
 }
 
 /** Battery, charge or sleep icon and measured fill for the phone header chip. */
@@ -43,7 +45,7 @@ function VehicleChipContent({ glance }: { glance: Glance }) {
   const Icon = glanceIcon(glance);
   return <>
     <strong>{glance.level === undefined ? "—" : `${glance.level.toLocaleString(locale)}%`}</strong>
-    {Icon && <Icon size={15} className={glance.charging ? "vehicle-charging-icon" : undefined} aria-hidden="true" />}
+    {Icon && <Icon size={15} className={glance.charging ? "vehicle-charging-icon" : glance.connecting ? "motion-safe:animate-spin" : undefined} aria-hidden="true" />}
     <span className="vehicle-mini-meter" aria-hidden="true">{glance.level !== undefined && <i style={{ transform: `scaleX(${glance.level / 100})` }} />}</span>
   </>;
 }
@@ -55,16 +57,19 @@ function VehicleWidget({ vehicle, commandVehicle, selection, variant, open, onOp
   open: boolean; onOpenChange: (open: boolean) => void; returnFocus?: () => void;
 }) {
   const app = useApp();
-  const { currentHome, homeOnline } = app;
+  const { currentHome, homeOnline, connectionStarting } = app;
   const { now } = useFamily();
   const { t, message, language, locale } = useI18n();
   const name = vehicle ? deviceName(vehicle.device, language) : selection.name;
   const { imageEntity } = selection;
-  const glance = vehicleGlance(vehicle, homeOnline);
-  const { entities, live, drive, paused, charging } = glance;
+  const glance = vehicleGlance(vehicle, homeOnline, connectionStarting);
+  const { entities, live, drive, paused, charging, connecting } = glance;
   const { battery, range, charge, charging: chargeReported, plugged, limit, power, finish } = glance.summary;
-  const activity = live ? t(drive.label) : t(homeOnline ? "Unavailable" : "HA offline");
-  const ActivityIcon = live ? activityIcons[drive.label] ?? CarFront : WifiOff;
+  const activity = live ? t(drive.label) : connecting ? t("Connecting…") : t(homeOnline ? "Unavailable" : "Home Assistant offline");
+  // The strip has room for one word; the title and accessible name carry the full status.
+  const shortActivity = !live && !homeOnline && !connecting ? t("Offline") : activity;
+  const ActivityIcon = live ? activityIcons[drive.label] ?? CarFront : connecting ? LoaderCircle : WifiOff;
+  const activityIconClass = connecting ? "motion-safe:animate-spin" : undefined;
   const climate = cabinClimate(entities);
   const control = commandVehicle === vehicle ? climate : commandVehicle && cabinClimate(commandVehicle.entities);
   const climateOn = live ? cabinState(climate) : undefined;
@@ -100,7 +105,7 @@ function VehicleWidget({ vehicle, commandVehicle, selection, variant, open, onOp
       <span className="vehicle-thumbnail" aria-hidden="true"><VehiclePhoto model={model} name={name} source={source} compact /></span>
       <span className="vehicle-glance-info">
         <strong>{percent}</strong>
-        <span className="vehicle-drive" title={activity}><span>{activity}</span><b>{live && drive.symbol ? drive.symbol : <ActivityIcon size={16} aria-hidden="true" />}</b></span>
+        <span className="vehicle-drive" title={activity}><span>{shortActivity}</span><b>{live && drive.symbol ? drive.symbol : <ActivityIcon size={16} className={activityIconClass} aria-hidden="true" />}</b></span>
         {!paused && <span className="vehicle-glance-climate" title={climateLabel}><Fan size={15} data-running={climateOn} strokeWidth={climateOn ? 2.5 : 1.5} aria-hidden="true" /></span>}
         {!paused && <span title={connectionLabel} className="vehicle-charge-symbol"><StatusIcon className={charging ? "vehicle-charging-icon" : undefined} size={16} aria-hidden="true" /></span>}
         <span className="vehicle-mini-meter" aria-hidden="true">{battery && <i style={{ transform: `scaleX(${Number(battery.state) / 100})` }} />}</span>
@@ -151,7 +156,8 @@ function VehicleWidget({ vehicle, commandVehicle, selection, variant, open, onOp
       </Tabs> : homeOnline && commandVehicle ? <>
         <p role="status">{t("TeslaMate readings unavailable")}</p>
         {cabin}
-      </> : <div className="vehicle-unavailable"><WifiOff size={24} aria-hidden="true" /><p role="status">{t(homeOnline ? "This vehicle is unavailable in Home Assistant." : "Vehicle readings resume when Home Assistant reconnects.")}</p></div>}
+      </> : <div className="vehicle-unavailable">{connecting ? <LoaderCircle size={24} className="motion-safe:animate-spin" aria-hidden="true" /> : <WifiOff size={24} aria-hidden="true" />}
+        <p role="status">{t(homeOnline ? "This vehicle is unavailable in Home Assistant." : connecting ? "Connecting to Home Assistant…" : "Vehicle readings resume when Home Assistant reconnects.")}</p></div>}
     </DialogContent>
   </Dialog></AppContext.Provider>;
 }
@@ -162,7 +168,7 @@ const byAttention = (a: { glance: Glance }, b: { glance: Glance }) =>
   || (a.glance.level ?? 0) - (b.glance.level ?? 0) || Number(a.glance.charging) - Number(b.glance.charging);
 
 export function VehicleWidgets() {
-  const { currentHome, homeOnline } = useApp();
+  const { currentHome, homeOnline, connectionStarting } = useApp();
   const { vehicles } = useFamily();
   const { t, language, locale } = useI18n();
   const phone = useIsMobile();
@@ -176,7 +182,7 @@ export function VehicleWidgets() {
     const commandVehicle = selection.id.startsWith("teslamate:")
       ? cars.find(item => item.id === selection.commandVehicleId && item.source !== "TeslaMate") : vehicle;
     const name = vehicle ? deviceName(vehicle.device, language) : selection.name;
-    return { selection, vehicle, commandVehicle, name, glance: vehicleGlance(vehicle, homeOnline) };
+    return { selection, vehicle, commandVehicle, name, glance: vehicleGlance(vehicle, homeOnline, connectionStarting) };
   });
   // Phones collapse the strip into one chip: one car opens directly, several pick from a menu (worst state first).
   const menu = phone && items.length > 1;
@@ -185,8 +191,8 @@ export function VehicleWidgets() {
     returnFocus={menu ? () => chip.current?.focus() : undefined} />);
   if (!menu) return <section className={`vehicle-strip glass-surface${phone ? " vehicle-chip-strip" : ""}`} aria-label={t("Electric vehicles")}>{widgets}</section>;
   const ranked = [...items].sort(byAttention);
-  const state = ({ glance: { live, charging, paused, drive } }: typeof items[number]) =>
-    charging ? t("state.charging") : !paused ? "" : live ? t(drive.label) : t(homeOnline ? "Unavailable" : "HA offline");
+  const state = ({ glance: { live, charging, paused, drive, connecting } }: typeof items[number]) =>
+    charging ? t("state.charging") : !paused ? "" : live ? t(drive.label) : connecting ? t("Connecting…") : t(homeOnline ? "Unavailable" : "Home Assistant offline");
   const level = ({ glance }: typeof items[number]) => glance.level === undefined ? "—" : `${glance.level.toLocaleString(locale)}%`;
   const worst = ranked[0];
   const label = [t("Electric vehicles · lowest battery: {name}, {battery}", { name: worst.name, battery: level(worst) }), state(worst)].filter(Boolean).join(" · ");
