@@ -14,5 +14,6 @@
   > Done 2026-11-25: each tab shows its list type's glyph (or the card illustration when artwork is on for that list); unknown types fall back to a neutral list icon.
 - [x] **Panel widths (proposal only):** how Customize Today could let the owner place two panels side by side (for example Recent at home at half width). Written as a shape brief for the owner to approve before any build.
   > Proposal: [15](15-panel-layout-proposal.md), approved 2026-11-25. Implementation tracked by the box below.
-- [ ] **Panel widths and wall fill (build):** implement [15](15-panel-layout-proposal.md) as approved.
+- [x] **Panel widths and wall fill (build):** implement [15](15-panel-layout-proposal.md) as approved.
+  > Done 2026-11-25: Full | Half per section with automatic pairing and equal-height pairs, a row preview, "Free space on the wall" (off by default) and no separate landscape layout. Unit-tested with mocked geometry; not yet seen on the live wall.
 - [ ] **Border radius across the app:** nested surfaces follow one concentric rule (inner radius = outer radius − inset, never larger than the container's), selected pills inside containers included. Example from the owner: the selected list tab capsule inside its container on Lists.

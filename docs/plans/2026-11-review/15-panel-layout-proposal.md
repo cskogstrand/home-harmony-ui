@@ -2,7 +2,7 @@
 
 [← Master plan](README.md) · Answers the **Panel widths (proposal only)** box in [14](14-owner-additions.md) and the open owner question about the empty lower part of the wall · Written 2026-11-25 as an `/impeccable shape` brief
 
-**Status: approved by the owner on 2026-11-25** (answers under [Open questions](#open-questions-for-the-owner)). Implementation follows the checklist.
+**Status: built on 2026-11-25** (merge `34a3d05`); approved by the owner the same day (answers under [Open questions](#open-questions-for-the-owner)). Implementation follows the checklist.
 
 > Shape normally starts with a short interview. This brief was written by an agent with no way to ask, so it rests on the assumptions listed under [Assumptions](#assumptions) instead. Correct any of them and the recommendation may change.
 
