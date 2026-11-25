@@ -27,10 +27,15 @@
 
 ## Follow-ups from the re-critique
 
-- [ ] **P1** Thermostat dial text collides with its ring on Original and Compact climate cards at the wall size (`/impeccable polish`, then `harden`).
+- [x] **P1** Thermostat dial text collides with its ring on Original and Compact climate cards at the wall size (`/impeccable polish`, then `harden`).
+  > Done 2026-11-25 (`fix: keep thermostat dial text inside its ring`): only the numeral and a short state sit inside the ring; labels and room temperature sit below; dial text scales with the dial.
 - [ ] **P1** Raw Home Assistant language and data on family surfaces: English suffixes and device-prefixed names in Recent at home and Energy, two power sensors on one charger summed, mixed precision, ISO timestamps and enum values in the Activity log (`/impeccable clarify`).
+  > Partly done 2026-11-25: consumers named by device, power counted once per consumer, one W/kW format, readable dates and "changed status" in the log. Still visible live: English suffixes in Recent at home names ("Door", "Charger door", "Climate … finished") and English entity names in device fact lists ("Child lock", "Relative humidity", "Mode"). Follow-up running in wave B.
 - [ ] **P2** Portrait wall leaves its lower third empty while week titles and the waste chip truncate (`/impeccable layout`).
-- [ ] **P2** Cold start shows "Laster…" and a stale/paused warning before the first connection (`/impeccable harden`).
+- [x] **P2** Cold start shows "Laster…" and a stale/paused warning before the first connection (`/impeccable harden`).
+  > Done 2026-11-25: neutral "Connecting to Home Assistant…" during a 10 s first-connection grace period, page-shaped skeletons, the stale/paused warning only after a real break, no "HA" in family copy. Commands stay blocked until connected.
 - [ ] **P2** Phone Today "Dagen vår" is about 2.5 screens tall (`/impeccable distill`).
-- [ ] **Owner request** Climate cards show the target as °C when a thermostat runs in regulator mode with a % display unit; show it as a percentage in that mode (with the dial fix).
-- [ ] **Owner request** "Recent at home" can be added to Today through Today's view options (Customize Today), in addition to Smart home.
+- [x] **Owner request** Climate cards show the target as °C when a thermostat runs in regulator mode with a % display unit; show it as a percentage in that mode (with the dial fix).
+  > Done 2026-11-25 (`feat: show regulator-mode thermostats as heating power in percent`): detected from the device's display-unit or mode entities; checked read-only on the live thermostat (shows 50%, "Varmeeffekt").
+- [x] **Owner request** "Recent at home" can be added to Today through Today's view options (Customize Today), in addition to Smart home.
+  > Done 2026-11-25 (`feat: add Recent at home as an optional Today section`): off by default under Customize Today; same sources and privacy choice as Smart home.
