@@ -457,7 +457,12 @@
     @apply outline-2 outline-offset-2 outline-ring;
   }
 
-  html { scroll-padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); scrollbar-color: hsl(var(--input)) hsl(var(--background)); }
+  /* The sticky header's lower edge; anchor jumps, focus and in-page sticky rows clear it, as the bottom clears the dock. */
+  html {
+    --app-sticky-top: calc(var(--app-header-height, 0px) + env(safe-area-inset-top));
+    scroll-padding-top: calc(var(--app-sticky-top) + .75rem);
+    scroll-padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); scrollbar-color: hsl(var(--input)) hsl(var(--background));
+  }
   ::selection { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
   input, textarea { caret-color: hsl(var(--primary)); }
   input::placeholder, textarea::placeholder { color: hsl(var(--muted-foreground)); opacity: 1; }

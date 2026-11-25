@@ -32,10 +32,22 @@ const ArtworkDefinitions = lazy(() => import("@/components/ArtworkDefinitions"))
 export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
   const dock = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLElement>(null);
   useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => document.documentElement.style.setProperty("--app-dock-height", `${entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height}px`));
-    if (dock.current) observer.observe(dock.current);
-    return () => { observer.disconnect(); document.documentElement.style.removeProperty("--app-dock-height"); };
+    // The dock and the sticky header publish their heights, so scrolling, focus and in-page sticky rows clear both.
+    const properties = new Map<Element | null, string>([[dock.current, "--app-dock-height"], [header.current, "--app-header-height"]]);
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) document.documentElement.style.setProperty(properties.get(entry.target)!, `${entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height}px`);
+    });
+    for (const element of properties.keys()) if (element) observer.observe(element);
+    return () => { observer.disconnect(); for (const property of properties.values()) document.documentElement.style.removeProperty(property); };
+  }, []);
+  useEffect(() => {
+    // The header's reading surface appears once content scrolls beneath it; at rest the artwork stays visible behind it.
+    const update = () => header.current?.toggleAttribute("data-scrolled", window.scrollY > 0);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
   }, []);
   const availableVersion = useAppUpdate();
   const { t, message, dateLabel } = useI18n();
@@ -70,7 +82,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       <ArtworkImage artwork={artwork} className="artwork-ground" />
       <ArtworkImage artwork={artwork} className="artwork-horizon" />
     </div>}
-    <header className="app-header">
+    <header ref={header} className="app-header sticky-header">
       {/* Today has its large ambient clock; every other page carries the time in the wordmark's place, still the link home. */}
       {todayPage ? <Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span className="brand-name">afterglow</span></Link>
         : <Link to="/" className="brand" data-clock="" title={dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}>

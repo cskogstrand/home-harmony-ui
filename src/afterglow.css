@@ -160,6 +160,42 @@
 .app-main { padding: 1.5rem var(--space) 0; margin-inline: auto; }
 .app-footer { max-width: 1600px; padding: 20px var(--space) 0; margin: auto; display: flex; justify-content: space-between; gap: 12px; color: hsl(var(--muted-foreground)); font-size: var(--type-meta); }
 .app-header, .app-main, .app-footer, .notification-editor { padding-left: var(--gutter-left); padding-right: var(--gutter-right); }
+/*
+ * Sticky header: it stays below the top safe area on every page. The header spans the window so its reading surface
+ * reaches both edges; its padding keeps the 1600px content column. That surface (a blurred ground with a soft lower
+ * edge) fades in only once content scrolls beneath, so the resting header still shows the artwork behind it.
+ */
+.sticky-header {
+  position: sticky; top: env(safe-area-inset-top); z-index: 30; max-width: none;
+  padding-left: max(var(--gutter-left), calc((100% - 1600px) / 2 + var(--space)));
+  padding-right: max(var(--gutter-right), calc((100% - 1600px) / 2 + var(--space)));
+}
+.sticky-header::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: calc(-1 * env(safe-area-inset-top)) 0 -1rem;
+  background: hsl(var(--background) / .94);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
+  opacity: 0; transition: opacity 200ms var(--ease-out);
+}
+.sticky-header[data-scrolled]::before { opacity: 1; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sticky-header::before {
+    background: hsl(var(--background) / .72);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .sticky-header::before {
+    inset-block-end: 0; background: hsl(var(--background)); border-bottom: 1px solid hsl(var(--input));
+    -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none;
+  }
+}
+@media (forced-colors: active) {
+  .sticky-header::before { inset-block-end: 0; background: Canvas; border-bottom: 1px solid CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sticky-header::before { transition: none; } }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 14px 20px; border-radius: 12px; }
 .skip-link:focus { top: 12px; }
 .app-dock { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); left: var(--gutter-left); right: var(--gutter-right); margin-inline: auto; max-width: 1000px; display: flex; flex-direction: column; gap: .75rem; z-index: 40; pointer-events: none; }
@@ -309,7 +345,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .check-row input:checked + .check-mark .check-icon { transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) { .check-row::before { background: hsl(var(--primary) / .08); } }
-.list-composer { position: sticky; top: .5rem; z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }
+.list-composer { position: sticky; top: calc(var(--app-sticky-top) + .5rem); z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }
 .list-action-bar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .list-identity { display: flex; align-items: center; gap: .5rem; min-width: 0; }
 .list-identity > div { min-width: 0; overflow-wrap: anywhere; }

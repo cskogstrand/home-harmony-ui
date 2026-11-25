@@ -7,6 +7,10 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { SmartHomeNav } from "@/components/layout/Navigation";
 import { NotificationContext } from "@/contexts/NotificationContext";
 import { notificationRuleSchema } from "../../shared/notifications";
+import { sourceFile } from "./source-file.mjs";
+
+const afterglowCss: string = sourceFile("afterglow.css");
+const indexCss: string = sourceFile("index.css");
 
 const media = vi.hoisted(() => ({ state: "paused", source: "Radio" }));
 const shared = vi.hoisted(() => ({ enabled: true, assist: false, online: true, notifications: { presentation: "section", pages: "main" }, availableVersion: undefined as string | undefined, state: { config: { settings: { cameras: { items: [] } } }, loaded: true, dirty: false, saving: false, error: "", timetableError: null as { id: string; member: string; message: string } | null } }));
@@ -245,4 +249,43 @@ it("shows music playback only while a connected Sonos group plays music", () => 
     expect(shortcut).toHaveAccessibleName(playing ? "Sonos · Music playing" : "Sonos");
     expect(!!shortcut!.querySelector(".header-badge")).toBe(playing);
   }
+});
+
+it("keeps the header sticky, publishes its height and shows its reading surface only once content scrolls beneath", () => {
+  const observed: { callback: ResizeObserverCallback; targets: Element[] }[] = [];
+  vi.stubGlobal("ResizeObserver", class {
+    targets: Element[] = [];
+    constructor(callback: ResizeObserverCallback) { observed.push({ callback, targets: this.targets }); }
+    observe(target: Element) { this.targets.push(target); }
+    unobserve() {}
+    disconnect() {}
+  });
+  const view = render(<MemoryRouter initialEntries={["/calendar"]}><AppLayout /></MemoryRouter>);
+  const header = screen.getByRole("banner");
+  expect(header).toHaveClass("app-header", "sticky-header");
+  expect(header.querySelector(".header-clock time")).toHaveTextContent("14:05");
+  expect(header).not.toHaveAttribute("data-scrolled");
+  const [{ callback, targets }] = observed;
+  act(() => callback(targets.map(target => ({ target, borderBoxSize: [{ blockSize: target === header ? 100 : 80, inlineSize: 0 }] }) as unknown as ResizeObserverEntry), {} as ResizeObserver));
+  expect(document.documentElement.style.getPropertyValue("--app-header-height")).toBe("100px");
+  expect(document.documentElement.style.getPropertyValue("--app-dock-height")).toBe("80px");
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 240 });
+  fireEvent.scroll(window);
+  expect(header).toHaveAttribute("data-scrolled");
+  Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+  fireEvent.scroll(window);
+  expect(header).not.toHaveAttribute("data-scrolled");
+  view.unmount();
+  expect(document.documentElement.style.getPropertyValue("--app-header-height")).toBe("");
+  Reflect.deleteProperty(window, "scrollY");
+});
+
+it("styles the sticky header with clearance for anchors, focus and in-page sticky rows", () => {
+  const rule = (css: string, selector: string) => css.split(`\n${selector} {`)[1]?.split("}")[0] ?? "";
+  expect(rule(afterglowCss, ".sticky-header")).toMatch(/position: sticky; top: env\(safe-area-inset-top\); z-index: 30;/);
+  expect(rule(afterglowCss, ".sticky-header[data-scrolled]::before")).toContain("opacity: 1");
+  expect(afterglowCss).toMatch(/prefers-reduced-transparency: reduce\), \(prefers-contrast: more\) \{\n {2}\.sticky-header::before \{[^}]*background: hsl\(var\(--background\)\);/);
+  expect(afterglowCss).toMatch(/forced-colors: active\) \{\n {2}\.sticky-header::before \{[^}]*background: Canvas;/);
+  expect(indexCss).toContain("scroll-padding-top: calc(var(--app-sticky-top) + .75rem);");
+  expect(rule(afterglowCss, ".list-composer")).toContain("top: calc(var(--app-sticky-top) + .5rem)");
 });
