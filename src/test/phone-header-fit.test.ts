@@ -67,6 +67,18 @@ it("leaves the chip header's columns to the vehicle stylesheet", () => {
   }
 });
 
+it("keeps the Sonos play badge in the control's corner, clear of the music icon at large text", () => {
+  expect(layoutSource).toMatch(/<Music2 size=\{20\} aria-hidden="true" \/>\{playingGroup && <span className="header-badge header-badge-glyph"/);
+  const glyph = declarations(afterglowCss, ".header-badge.header-badge-glyph");
+  // Sized and placed from the control, not the text: 40% of a 48px circle is the 100%-text badge, at any text size.
+  expect(glyph).toMatch(/width: 40%/);
+  expect(glyph).toMatch(/aspect-ratio: 1/);
+  expect(glyph).toMatch(/min-width: 0/);
+  expect(glyph).toMatch(/padding: 0/);
+  expect(glyph).toMatch(/inset-block-start: -7\.5%/);
+  expect(glyph).not.toMatch(/\d(?:r?em|ch)\b/);
+});
+
 it("keeps the tablet layout for weather beside the clock away from the phone chip", () => {
   const tablet = mediaBlock(vehicleCss, "(width <= 1100px)");
   for (const line of tablet.split("\n").filter(line => line.includes("header-weather[data-beside-clock]") && line.includes("grid"))) {

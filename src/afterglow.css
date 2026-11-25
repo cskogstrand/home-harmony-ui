@@ -135,6 +135,8 @@
   background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); box-shadow: 0 0 0 2px hsl(var(--background));
   font-size: var(--type-caption); line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums;
 }
+/* A glyph-only badge has no text to enlarge: it scales with its control (19px on a 48px circle, 24px on the wall's 60px), never with the text size, so it stays in the corner and leaves the icon clear. */
+.header-badge.header-badge-glyph { inset-block-start: -7.5%; min-width: 0; width: 40%; height: auto; aspect-ratio: 1; padding: 0; }
 .header-badge[data-tone="healthy"] { background: hsl(var(--success)); color: hsl(var(--success-foreground)); }
 .header-badge[data-tone="attention"] { background: hsl(var(--warning)); color: hsl(var(--warning-foreground)); }
 @media (forced-colors: active) { .header-badge { border: 1px solid ButtonText; } }
