@@ -88,3 +88,14 @@ it("keeps menu and popover items concentric with their transient surface", () =>
   expect(declarations(favoritePickerCss, ".favorite-group-popover")).toMatch(nested("var(--radius-menu) - .5rem - 1px"));
   expect(declarations(favoritePickerCss, ".favorite-group-popover [cmdk-item]")).toMatch(usesNested);
 });
+
+it("wraps each card group's remove circle in a concentric capsule end", () => {
+  // The row's corners are the shared icon button's radius plus the 1px border, with no trailing padding, so the
+  // circle shares the end's centre; a wrapped name keeps the circle in the top corner.
+  const row = declarations(favoritePickerCss, ".favorite-group-names li");
+  expect(row).toMatch(/--radius-group-chip: calc\(max\(48px, 2\.75rem\) \/ 2 \+ 1px\)/);
+  expect(row).toMatch(/border: 1px solid[^;]*; border-radius: var\(--radius-group-chip\)/);
+  expect(row).toMatch(/padding-left: 1rem;/);
+  expect(row).not.toMatch(/padding(?:-right|-inline|-inline-end)?:/);
+  expect(declarations(favoritePickerCss, ".favorite-group-names button")).toMatch(/align-self: start/);
+});

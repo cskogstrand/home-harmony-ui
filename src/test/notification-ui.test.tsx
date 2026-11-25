@@ -910,6 +910,8 @@ it("keeps an unknown state reading off Today and names the waiting rule in Notif
   expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
   view.rerender(content(false));
   expect(screen.getByText("Waiting for a reading for Example cycle.")).toBeVisible();
+  // The rule name can be one long word; the class lets the note wrap on a phone.
+  expect(screen.getByText("Waiting for a reading for Example cycle.")).toHaveClass("notification-waiting");
   reading("unavailable");
   view.rerender(content(false));
   expect(screen.getByText("Could not read sources for Example cycle.")).toBeVisible();

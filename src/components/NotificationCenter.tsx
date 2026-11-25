@@ -477,7 +477,7 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
   const sourceErrors = !!errors.length && <div ref={errorRow} role="status" className="notification-source-error"><p>{t("Could not read sources for {rules}.", { rules: errors.join(", ") })}</p><Link className="text-link min-h-11" to="/settings/notifications">{t("Notification settings")}</Link><Button variant="outline" onClick={retry}>{t("Retry")}</Button></div>;
   if (!compact) return <NotificationSurface items={allNotifications} compact={false} presentation={style}>
     {sourceErrors}
-    {!!waitingRules?.length && <p className="page-note">{t("Waiting for a reading for {rules}.", { rules: waitingRules.join(", ") })}</p>}
+    {!!waitingRules?.length && <p className="page-note notification-waiting">{t("Waiting for a reading for {rules}.", { rules: waitingRules.join(", ") })}</p>}
     {!allNotifications.length && !errors.length && !waitingRules?.length && <p className="empty-note">{t(statusMessage ?? "Nothing needs your attention right now.")}</p>}
   </NotificationSurface>;
   const hasMedia = ({ rule }: HomeNotification) => rule.kind !== "camera" && notificationWidgetMedia(rule).type !== "none";
