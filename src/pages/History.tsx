@@ -62,7 +62,7 @@ function ActivityLog() {
   </section>;
 }
 
-/** Recent at home on Smart home: visibility, people and curated sources, shared across screens. */
+/** Recent at home on Smart home (and Today, when its section is on): visibility, people and curated sources, shared across screens. */
 function RecentActivitySettings() {
   const { t } = useI18n();
   const { currentHome } = useApp();
@@ -97,9 +97,10 @@ function RecentActivitySettings() {
 /** Settings → System → Activity: the full log and the Recent at home settings. */
 export default function History() {
   const { t } = useI18n();
-  const { activity } = useFamily();
+  const { activity, dashboard } = useFamily();
+  const shown = activity.panel ? dashboard.recentActivity ? "Shown on Smart home and Today" : "Shown on Smart home" : dashboard.recentActivity ? "Shown on Today" : "Hidden";
   return <SettingsPanels panels={[
     { id: "log", label: t("Activity log"), icon: ListOrdered, content: <ActivityLog /> },
-    { id: "recent", label: t("Recent at home"), detail: t(activity.panel ? "Shown on Smart home" : "Hidden"), icon: HistoryIcon, content: <RecentActivitySettings /> },
+    { id: "recent", label: t("Recent at home"), detail: t(shown), icon: HistoryIcon, content: <RecentActivitySettings /> },
   ]} />;
 }

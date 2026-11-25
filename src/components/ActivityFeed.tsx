@@ -29,15 +29,19 @@ export function ActivityRow({ item, now, clock = false }: { item: ActivityItem; 
   </li>;
 }
 
-/** Recent at home: a curated, live list of what happened in the last 24 hours. */
-export function RecentActivity() {
+/**
+ * Recent at home: a curated, live list of what happened in the last 24 hours.
+ * Smart home follows the Activity panel switch; Today shows it whenever its own section is on. Both use the same sources and people choice.
+ */
+export function RecentActivity({ placement = "smartHome" }: { placement?: "smartHome" | "today" }) {
   const { t, language } = useI18n();
   const { entities } = useApp().currentHome;
   const { activity, now } = useFamily();
   const personSensors = useActivityPersonSensors();
   const entityIds = curatedActivityEntityIds(entities, { ...activity, personSensors });
-  const feed = useLogbook({ hours: 24, entityIds, enabled: activity.panel && entityIds.length > 0 });
-  if (!activity.panel) return null;
+  const visible = placement === "today" || activity.panel;
+  const feed = useLogbook({ hours: 24, entityIds, enabled: visible && entityIds.length > 0 });
+  if (!visible) return null;
   const since = now.getTime() - 86400000;
   const items = curateActivity(feed.events.filter(event => event.when >= since), entities,
     { mode: "curated", language, people: activity.people, sources: activity.sources, personSensors, limit: RECENT_ACTIVITY_LIMIT });

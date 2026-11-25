@@ -19,3 +19,6 @@
   .activity-row { grid-template-columns: auto minmax(0, 1fr); }
   .activity-row time { grid-column: 2; }
 }
+
+/* On Today the panel is a major section and spans the board like its neighbours. */
+.portrait-board > .activity-panel { grid-column: 1 / -1; }

@@ -296,6 +296,18 @@ describe("Recent at home", () => {
     expect(subscribeLogbook).not.toHaveBeenCalled();
   });
 
+  it("shows on Today with the same sources and people choice even when hidden on Smart home", () => {
+    family.value = { ...family.value, activity: { panel: false, people: false } };
+    render(<AppContext.Provider value={app() as never}><MemoryRouter><RecentActivity placement="today" /></MemoryRouter></AppContext.Provider>);
+    const [{ options, receive }] = subscribers;
+    expect(options.entityIds).toEqual(curatedActivityEntityIds(activityEntities, { people: false }));
+    expect(options.entityIds).not.toContain("person.example_parent");
+    expect(panel().getByText("Loading activity…")).toBeVisible();
+    act(() => receive([event("person.example_parent", "home", 4), event("binary_sensor.example_garage", "on", 3)]));
+    expect(rows()).toEqual(["Garage door opened3 minutes ago"]);
+    expect(panel().getByRole("link", { name: "All activity" })).toHaveAttribute("href", "/settings/activity");
+  });
+
   it("unsubscribes on unmount and when the sources change", () => {
     const { rerender, unmount } = render(view());
     const first = subscribers[0];
@@ -348,7 +360,7 @@ describe("Activity log", () => {
   beforeEach(() => {
     subscribers = [];
     subscribeLogbook.mockClear();
-    family.value = { activity: { panel: true, people: false }, now: new Date(base), today: "2026-10-06", cameras: { items: [] } };
+    family.value = { activity: { panel: true, people: false }, dashboard: { recentActivity: false }, now: new Date(base), today: "2026-10-06", cameras: { items: [] } };
   });
 
   it("logs every entity for today in the home's time zone with clock times and keeps people private by default", () => {
@@ -393,7 +405,7 @@ describe("Recent at home settings", () => {
     <MemoryRouter initialEntries={["/settings/activity?panel=recent"]}><History /></MemoryRouter></AppContext.Provider>;
   beforeEach(() => {
     setActivity.mockClear();
-    family.value = { activity: { panel: true, people: false }, setActivity, now: new Date(base), today: "2026-10-06", cameras: { items: [] } };
+    family.value = { activity: { panel: true, people: false }, dashboard: { recentActivity: false }, setActivity, now: new Date(base), today: "2026-10-06", cameras: { items: [] } };
   });
 
   it("turns the panel off and people on, with people off by default", () => {
@@ -405,6 +417,19 @@ describe("Recent at home settings", () => {
     expect(setActivity).toHaveBeenLastCalledWith({ panel: false });
     fireEvent.click(people);
     expect(setActivity).toHaveBeenLastCalledWith({ people: true });
+  });
+
+  it("names where the panel is shown, including Today", () => {
+    const { unmount } = render(view());
+    expect(screen.getByText("Shown on Smart home")).toBeInTheDocument();
+    unmount();
+    family.value = { ...family.value, activity: { panel: false, people: false }, dashboard: { recentActivity: true } };
+    const second = render(view());
+    expect(screen.getByText("Shown on Today")).toBeInTheDocument();
+    second.unmount();
+    family.value = { ...family.value, activity: { panel: true, people: false } };
+    render(view());
+    expect(screen.getByText("Shown on Smart home and Today")).toBeInTheDocument();
   });
 
   it("adds a source to the suggested ones and restores the suggestions", () => {
