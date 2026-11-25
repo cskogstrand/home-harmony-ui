@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { AppContext } from "@/contexts/AppContext";
@@ -8,8 +8,11 @@ import { HaHealthContext, noHealth } from "@/contexts/HaHealthContext";
 import { SharedConfigurationContext } from "@/contexts/SharedConfigurationContext";
 import { RecentActivity } from "@/components/ActivityFeed";
 import { CardArtworkSettings } from "@/components/CardArtworkSettings";
+import { CardBackdrop, PlannerIllustration } from "@/components/CardArtwork";
 import { HomeStatus } from "@/components/HomeStatus";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
+import { todaySectionArtwork, todaySectionIcons } from "@/lib/today-sections";
+import { artworkSchema, dashboardSections, plannerArtworkSchema } from "../../shared/configuration";
 import { state } from "./ha-fixtures";
 
 // Fictional home: one smoke detector that is reporting smoke, so Home status has an issue to show on Today.
@@ -29,6 +32,32 @@ function view(plannerArtwork: Record<string, boolean>, children: ReactNode) {
   </AppContext.Provider></SharedConfigurationContext.Provider></MemoryRouter>);
 }
 afterEach(() => { cleanup(); setAppearance.mockClear(); });
+
+// Standing rule (AGENTS.md, DESIGN.md → Card artwork): a new or changed Today section ships with its icon and card artwork.
+describe("Every Today section has an icon and card artwork", () => {
+  it.each(dashboardSections)("%s has an icon for its heading and Customize Today", section => {
+    expect(todaySectionIcons[section], `Add ${section} to todaySectionIcons in src/lib/today-sections.ts`).toBeTruthy();
+  });
+
+  it.each(dashboardSections)("%s has its own card artwork kind with an illustration and a corner scene", section => {
+    const kind = todaySectionArtwork[section];
+    expect(plannerArtworkSchema.options, `Add ${section} to todaySectionArtwork and plannerArtworkSchema`).toContain(kind);
+    expect(Object.entries(todaySectionArtwork).filter(([, other]) => other === kind).map(([key]) => key), "Each section has its own switch").toEqual([section]);
+    const { container, unmount } = render(<><PlannerIllustration kind={kind} /><CardBackdrop kind={kind} /></>);
+    // The background blob alone means no drawing was added for this kind in CardArtwork.tsx.
+    expect(container.querySelectorAll(`.card-illustration[data-illustration="${kind}"] > *`).length, `Draw ${kind} in CardArtwork.tsx`).toBeGreaterThan(1);
+    const scene = container.querySelector(".card-backdrop use")?.getAttribute("href")?.replace("#artwork-", "");
+    expect(artworkSchema.exclude(["none"]).options, `Pick a scene for ${kind} in CardArtwork.tsx`).toContain(scene);
+    unmount();
+  });
+
+  it("lists a named switch for every card artwork kind in Settings → Appearance → Card artwork", () => {
+    view({}, <CardArtworkSettings disabled={false} />);
+    const rows = [...document.querySelectorAll(".card-artwork-options label")];
+    expect(rows.map(row => row.querySelector(".card-illustration")?.getAttribute("data-illustration"))).toEqual(plannerArtworkSchema.options);
+    for (const row of rows) expect(within(row as HTMLElement).getByRole("switch")).toHaveAccessibleName(/\S/);
+  });
+});
 
 describe("Card artwork for Recent at home and Home status", () => {
   it("decorates Recent at home with its heading illustration and corner scene only when its card artwork is on", () => {
