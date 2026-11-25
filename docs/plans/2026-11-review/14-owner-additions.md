@@ -28,7 +28,9 @@
   > Done 2026-11-25: Settings → System → Activity → Event types hides types in both the panel and the log; the log offers "Show all events" as a local, per-visit view switch. People stay opt-in. The settings card was not opened live.
 - [x] **Activity sources at a glance:** in Settings → System → Activity → Latest events, the chosen sources are easy to see (which are selected, how many, and what each is) without opening the picker.
   > Done 2026-11-25: chosen sources are listed under the picker, grouped by event type with counts, icon, name, area and a remove button; hidden types and unavailable sources are marked; the shared picker gains a "Selected" view and per-device counts.
-- [ ] **Phone icon buttons:** shared icon buttons are 48 × 48 on phones so focus and hover shapes are circles, not 44 × 48 ovals.
-- [ ] **Sonos mini player radius:** the artwork and controls sit concentrically in the mini player capsule (measured with fictional playback, not the live system).
+- [x] **Phone icon buttons:** shared icon buttons are 48 × 48 on phones so focus and hover shapes are circles, not 44 × 48 ovals.
+  > Done 2026-11-25 (Round Icon Rule, `icon-button-size.test.ts`): shared icon buttons are 48 × 48 on phones and desktop; no row overflowed on 21 routes at 390 × 844 and 11 at 375 × 812.
+- [x] **Sonos mini player radius:** the artwork and controls sit concentrically in the mini player capsule (measured with fictional playback, not the live system).
+  > Done 2026-11-25: artwork, expand button, next-track button and room picker sit within 1px of their capsule-end centres at every width, measured with fictional playback. Not seen with real music.
 - [x] **Remaining English names:** names Home Assistant leaves untranslated (for example a charge port, "Mode", "Relative humidity threshold min", "Electricity consumption summary") read in Bokmål where a sensible translation exists.
   > Done 2026-11-25: names built from generic Bokmål words when every word is known ("Luftfuktighet (nedre grense)", "Modus", "Ladeportlås"); Home Assistant's own translations still win and owner-named helpers, templates and scripts are never changed. Still English by design: vendor terms, internal codes, settings/diagnostic entities and names with unknown words.
