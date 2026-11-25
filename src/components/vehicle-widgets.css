@@ -273,7 +273,8 @@
     grid-area: 1 / 2; display: flex; flex-wrap: wrap-reverse; align-items: center; justify-content: flex-end; gap: .5rem .375rem; min-width: 0;
   }
   /* A last resort for the narrowest screens at large text: the controls wrap among themselves rather than leave the screen. */
-  .app-header:has(.vehicle-chip-strip) .header-actions { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  /* The row gap leaves room for a count badge on the lower row, which rises above its control at large text. */
+  .app-header:has(.vehicle-chip-strip) .header-actions { flex-wrap: wrap; justify-content: flex-end; row-gap: 8px; min-width: 0; }
   .app-header:has(.vehicle-chip-strip) .header-weather { grid-area: 2 / 1 / 3 / 3; justify-self: end; margin-right: 0; }
   /* The chip already shares the first row: weather that only follows the clock waits on Today. */
   .app-header:has(.vehicle-chip-strip) .header-weather[data-beside-clock] { display: none; }

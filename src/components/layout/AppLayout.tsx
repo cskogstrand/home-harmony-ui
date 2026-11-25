@@ -97,14 +97,14 @@ export function AppLayout({ children }: { children?: ReactNode }) {
           <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge header-badge-glyph" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
         </Link>
         <Link to="/cameras" className="icon-button glass-surface" aria-label={cameraLabel} title={cameraLabel}>
-          <Camera size={20} aria-hidden="true" />{detectedCameras > 0 && <span className="header-badge" aria-hidden="true"><UserRound size={13} strokeWidth={2.6} />{detectedCameras > 1 && detectedCameras}</span>}
+          <Camera size={20} aria-hidden="true" />{detectedCameras > 0 && <span className={`header-badge ${detectedCameras > 1 ? "header-badge-count" : "header-badge-glyph"}`} aria-hidden="true">{/* Two digits beside the person would outgrow the control at large text; the name keeps the meaning. */}{detectedCameras < 10 && <UserRound size={13} strokeWidth={2.6} />}{detectedCameras > 1 && detectedCameras}</span>}
         </Link>
         <HomeStatus /><NotificationBell />
         <div className="relative">
           <Link to="/settings" className="icon-button glass-surface" aria-label={t("Open app settings")} aria-describedby={storageWarning || storageBusy ? "header-storage-status" : setupMessage ? "header-setup-status" : undefined}
             title={storageWarning || storageBusy ? storageMessage : setupMessage || t("Open app settings")}>
             <Settings size={20} aria-hidden="true" />
-            {(storageWarning || storageBusy || setupMessage) && <span className="header-badge" data-tone={storageWarning || setupMessage ? "attention" : undefined} aria-hidden="true">
+            {(storageWarning || storageBusy || setupMessage) && <span className={`header-badge ${storageWarning || storageBusy ? "header-badge-glyph" : "header-badge-count"}`} data-tone={storageWarning || setupMessage ? "attention" : undefined} aria-hidden="true">
               {storageWarning ? <TriangleAlert size={13} /> : storageBusy ? <LoaderCircle size={13} className="motion-safe:animate-spin" /> : missingSteps.length}
             </span>}
           </Link>

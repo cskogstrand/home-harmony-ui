@@ -79,6 +79,28 @@ it("keeps the Sonos play badge in the control's corner, clear of the music icon 
   expect(glyph).not.toMatch(/\d(?:r?em|ch)\b/);
 });
 
+it("grows the camera and settings counts away from their icons, with Caption digits at every text size", () => {
+  // Glyph-only states (one camera, storage warning or saving) use the glyph badge; counts use the count badge.
+  expect(layoutSource).toMatch(/className=\{`header-badge \$\{detectedCameras > 1 \? "header-badge-count" : "header-badge-glyph"\}`\}/);
+  expect(layoutSource).toMatch(/\{detectedCameras < 10 && <UserRound /);
+  expect(layoutSource).toMatch(/className=\{`header-badge \$\{storageWarning \|\| storageBusy \? "header-badge-glyph" : "header-badge-count"\}`\}/);
+  // Every header badge picks a variant: the 1.2rem base badge grew down over the icon at 150% text.
+  expect(layoutSource).not.toMatch(/className="header-badge"/);
+  // Digits stay at Caption, the smallest content size, rather than shrinking to make room.
+  expect(declarations(afterglowCss, ".header-badge")).toMatch(/font-size: var\(--type-caption\)/);
+  const count = declarations(afterglowCss, ".header-badge.header-badge-count");
+  // Anchored by its lower edge a third of the way down the control (where the glyph badge ends) and in the end corner,
+  // so larger text raises the badge above the control and more digits widen it along the icon's empty headroom.
+  expect(count).toMatch(/inset-block: auto 67\.5%/);
+  expect(count).not.toMatch(/inset-inline/);
+  // As tall and wide as the glyph badge at 100% text (40% of the control), and 1.25em of the Caption digits when larger.
+  expect(count).toMatch(/height: max\(40%, 1\.25em\)/);
+  expect(count).toMatch(/min-width: max\(40%, 1\.25em\)/);
+  expect(count).toMatch(/padding-inline: \.25em/);
+  // A badge on the wrapped lower row (320px at 150% text) rises into this gap instead of onto the control above.
+  expect(declarations(mediaBlock(vehicleCss, "(width <= 767px)"), ".app-header:has(.vehicle-chip-strip) .header-actions")).toMatch(/row-gap: 8px/);
+});
+
 it("keeps the tablet layout for weather beside the clock away from the phone chip", () => {
   const tablet = mediaBlock(vehicleCss, "(width <= 1100px)");
   for (const line of tablet.split("\n").filter(line => line.includes("header-weather[data-beside-clock]") && line.includes("grid"))) {

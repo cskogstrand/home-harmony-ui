@@ -1648,6 +1648,9 @@ it("guides setup from the gear and clears its badge when the basics are ready", 
   render(<App />); await saved();
   const gear = screen.getByRole("link", { name: "Open app settings" });
   expect(gear).toHaveAccessibleDescription("One setup step remaining");
+  // A count uses the count badge, which grows away from the gear instead of over it (DESIGN.md, header status badges).
+  expect(gear.querySelector(".header-badge")).toHaveClass("header-badge-count");
+  expect(gear.querySelector(".header-badge")).toHaveTextContent(/^1$/);
   fireEvent.click(gear);
   const resume = await screen.findByRole("link", { name: /Continue setup/ });
   expect(resume).toHaveAttribute("href", "/onboarding?step=calendars");
@@ -1656,6 +1659,24 @@ it("guides setup from the gear and clears its badge when the basics are ready", 
   const picker = within(screen.getByRole("group", { name: "Example" })).getByRole("button", { name: /Add calendar/ });
   chooseEntity(picker, "calendar.example");
   await waitFor(() => expect(gear.querySelector(".header-badge")).toBeNull());
+});
+
+it.each([
+  [1, "header-badge-glyph", "", true],
+  [2, "header-badge-count", "2", true],
+  [10, "header-badge-count", "10", false],
+])("marks %i cameras with a person in the corner badge that suits its content", async (count, variant, text, glyph) => {
+  const ids = Array.from({ length: count }, (_, index) => `binary_sensor.example_${index}_person`);
+  app.currentHome = mapHome(Object.fromEntries(ids.map(id => [id, state(id, "on")])), emptyRegistries, "home");
+  settings.settings.cameras.items = ids.map((id, index) => ({ id: `example-${index}`, name: `Example ${index}`, connectionId: "home-assistant", source: `camera.example_${index}`, personSnapshot: { type: "none" as const }, personDetectionEntity: `home|${id}` }));
+  render(<App />); await saved();
+  const link = screen.getByRole("link", { name: count === 1 ? "Cameras · Person detected on one camera" : `Cameras · Person detected on ${count} cameras` });
+  const badge = link.querySelector(".header-badge");
+  expect(badge).toHaveClass(variant);
+  expect(badge).toHaveAttribute("aria-hidden", "true");
+  expect(badge).toHaveTextContent(text ? new RegExp(`^${text}$`) : /^$/);
+  // Two digits beside the person would outgrow the control at 150% text, so the name alone carries the meaning there.
+  expect(!!badge?.querySelector(".lucide-user-round")).toBe(glyph);
 });
 
 it("withholds calendar and list setup prompts while their registry IDs are unavailable", async () => {
