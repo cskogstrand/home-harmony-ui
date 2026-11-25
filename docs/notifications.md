@@ -126,4 +126,4 @@ Alert content, dismissals and camera views remain in this browser session. Reloa
 
 Choose devices from your own Home Assistant instance in the editor. Keep real household identifiers and event filters out of repository examples and screenshots.
 
-The Notifications page keeps household alerts first. Device availability is a collapsed diagnostic summary with separate unknown and unavailable counts, grouped by physical device or integration. Expanding a group reveals its entity links. Offline status is explicitly marked as cached.
+The Notifications page keeps household alerts first. Device availability is a collapsed diagnostic summary with separate unknown and unavailable counts, grouped by physical device or integration. Expanding a group reveals its entity links. On a phone, long device and entity names wrap, and an entity's state moves below its name when they do not fit on one line. Offline status is explicitly marked as cached.
