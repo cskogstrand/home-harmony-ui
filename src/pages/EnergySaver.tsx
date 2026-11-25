@@ -3,7 +3,7 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { EntityPicker } from "@/components/EntityPicker";
 import { EntityHistory } from "@/components/devices/EntityHistory";
-import { available, entityReading, entityStateLabel } from "@/lib/ha-model";
+import { available, entityStateLabel } from "@/lib/ha-model";
 import { consumerName, powerNow, powerWatts, splitIdle, wattsReading, type PowerReading } from "@/lib/energy";
 import { Gauge, Zap } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
@@ -36,7 +36,9 @@ export default function EnergySaver() {
   const power = powerNow(meters);
   const { active, idle } = splitIdle(power);
   const top = active.slice(0, topConsumers);
-  const listed = wattsReading(top.reduce((sum, item) => sum + item.watts, 0));
+  // Rows and their total share one unit and precision rule, whatever each sensor reports or its display precision says.
+  const watts = (value: number) => { const sum = wattsReading(value); return reading(sum.value, sum); };
+  const listed = watts(top.reduce((sum, item) => sum + item.watts, 0));
   // Counters, costs and power sensors without a current reading stay available, collapsed under Meters.
   // Overlapping power sensors that powerNow folded into one consumer are live too, not counters.
   const live = new Set(meters.filter(entity => powerWatts(entity) !== undefined).map(entity => entity.entityId));
@@ -48,12 +50,12 @@ export default function EnergySaver() {
   const counters = meters.length - live.size;
   const areaName = (areaId: string) => areaId === "unassigned" ? "" : currentHome.areas.find(area => area.id === areaId)?.name ?? "";
   const peak = top[0]?.watts ?? 0;
-  const consumer = ({ entity, watts }: PowerReading) => {
+  const consumer = ({ entity, watts: draw }: PowerReading) => {
     const area = areaName(entity.areaId);
     return <li key={entity.entityId} className="energy-now-row">
       <span className="energy-now-name"><strong>{consumerName(entity, language)}</strong>{area && <small>{area}</small>}</span>
-      <span className="energy-now-value">{entityReading(entity, language)}</span>
-      {peak > 0 && watts > 0 && <span className="energy-now-bar" aria-hidden="true"><span style={{ inlineSize: `${Math.min(100, watts / peak * 100)}%` }} /></span>}
+      <span className="energy-now-value">{watts(draw)}</span>
+      {peak > 0 && draw > 0 && <span className="energy-now-bar" aria-hidden="true"><span style={{ inlineSize: `${Math.min(100, draw / peak * 100)}%` }} /></span>}
     </li>;
   };
   return <div className="planner-page energy-page"><PageHeading title={t("Car & energy")} />
@@ -80,7 +82,7 @@ export default function EnergySaver() {
       <PanelHeading icon={Gauge} title={t("Using power now")} />
       {!homeOnline ? <p className="empty-note">{t("Home Assistant is offline.")}</p> : <>
         {top.length ? <ol className="energy-now-list">{top.map(consumer)}</ol> : <p className="empty-note">{t("Nothing is drawing more than {watts} right now.", { watts: reading(5, { unit: "W" }) })}</p>}
-        {top.length > 1 && <p className="energy-now-total"><span>{t("Total of listed circuits")}</span><strong>{reading(listed.value, listed)}</strong></p>}
+        {top.length > 1 && <p className="energy-now-total"><span>{t("Total of listed circuits")}</span><strong>{listed}</strong></p>}
         {active.length > topConsumers && <details className="energy-more"><summary>{t("More in use ({count})", { count: active.length - topConsumers })}</summary><ol className="energy-now-list">{active.slice(topConsumers).map(consumer)}</ol></details>}
         {!!idle.length && <details className="energy-more"><summary>{t("Show idle ({count})", { count: idle.length })}</summary><ol className="energy-now-list">{idle.map(consumer)}</ol></details>}
       </>}

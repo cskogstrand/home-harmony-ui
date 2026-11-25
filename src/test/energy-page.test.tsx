@@ -61,6 +61,21 @@ it("lists a charger with two power sensors once and never counts its draw twice"
   expect(screen.queryByText("Meters")).not.toBeInTheDocument();
 });
 
+it("shows every consumer and the total with one precision rule, whatever each sensor's display precision", () => {
+  const power = (id: string, value: string, unit: string) => state(`sensor.${id}`, value, { friendly_name: `Example ${id}`, device_class: "power", unit_of_measurement: unit });
+  mocks.home = mapHome({ "sensor.charger": power("charger", "3", "kW"), "sensor.oven": power("oven", "3", "kW"), "sensor.heater": power("heater", "1037", "W"), "sensor.lamp": power("lamp", "9.4", "W") },
+    { areas: [], devices: [], entities: [
+      { id: "charger", entity_id: "sensor.charger", options: { sensor: { display_precision: 2 } } }, { id: "oven", entity_id: "sensor.oven", options: { sensor: { suggested_display_precision: 0 } } },
+      { id: "lamp", entity_id: "sensor.lamp", options: { sensor: { display_precision: 1 } } },
+    ] }, "home");
+  render(<EnergySaver />);
+  const now = within(screen.getByRole("region", { name: "Using power now" }));
+  const [top] = now.getAllByRole("list");
+  expect(within(top).getAllByRole("listitem").map(item => item.querySelector(".energy-now-value")?.textContent))
+    .toEqual(["3 kW", "3 kW", "1.04 kW", "9 W"]);
+  expect(now.getByText("Total of listed circuits").parentElement).toHaveTextContent("Total of listed circuits7.05 kW");
+});
+
 it("loads recorded history for pinned meters and lets users remove a missing meter at the limit", async () => {
   mocks.home = mapHome(Object.fromEntries(["a", "b", "c"].map(name => [`sensor.${name}`, state(`sensor.${name}`, "10", { friendly_name: name, device_class: "power", unit_of_measurement: "W" })])),
     { areas: [], entities: [], devices: [] }, "home");
