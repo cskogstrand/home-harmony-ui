@@ -17,11 +17,17 @@ import { nordPoolSlots, type PriceSlot } from "./electricity-price";
 import { applyNotificationEvent, parseBackupInfo, parseRepairs, repairTitle, type BackupHealth, type PersistentNotification, type RepairIssue } from "./ha-health";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
+/** How long the first connection after a load may take before the screen warns that controls are paused. */
+export const STARTUP_GRACE_MS = 10000;
 type CommandStatus = { pending: boolean; pendingAction?: EntityAction; error?: string; message?: string };
 type CommandReport = (home: Home) => boolean;
 interface Snapshot {
   url: string;
   status: ConnectionStatus;
+  /** The first connection after a load is still within its grace period: nothing has broken yet, so the screen stays calm. */
+  starting: boolean;
+  /** No connection has completed since this screen loaded, so there are no readings that could be stale. */
+  awaitingFirstConnection: boolean;
   error: string;
   warnings: string[];
   states: EntityStates;
@@ -95,19 +101,35 @@ export class HomeAssistantClient {
   private metadataReady = false;
   private metadataVersion = 0;
   private language?: string;
+  private startupTimer?: ReturnType<typeof setTimeout>;
   // One request per language for this screen; failures are dropped so a reconnect can retry.
   private translationRequests = new Map<string, Promise<HaTranslations>>();
 
   constructor() {
-    this.snapshot = { url: "", status: "disconnected", error: "", warnings: [], states: {}, registries: emptyRegistries, entityRegistryAvailable: false, services: {}, translations: noTranslations, commands: {} };
+    this.snapshot = { url: "", status: "disconnected", starting: true, awaitingFirstConnection: true, error: "", warnings: [], states: {}, registries: emptyRegistries, entityRegistryAvailable: false, services: {}, translations: noTranslations, commands: {} };
   }
   getSnapshot = () => this.snapshot;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private update(patch: Partial<Snapshot>) {
-    this.snapshot = { ...this.snapshot, ...patch };
+    const next = { ...this.snapshot, ...patch };
+    if (next.status === "connected") next.awaitingFirstConnection = false;
+    // Startup ends on the first connection or a definite failure; slow progress waits for the grace period.
+    if (next.starting && (next.status === "connected" || next.status === "auth-error" || next.status === "disconnected" && next.error)) next.starting = false;
+    if (!next.starting) this.stopStartupTimer();
+    this.snapshot = next;
     this.listeners.forEach(listener => listener());
   }
-  start = () => { void this.connect(); };
+  private stopStartupTimer() {
+    clearTimeout(this.startupTimer);
+    this.startupTimer = undefined;
+  }
+  start = () => {
+    if (this.snapshot.starting) {
+      this.stopStartupTimer();
+      this.startupTimer = setTimeout(() => { this.startupTimer = undefined; if (this.snapshot.starting) this.update({ starting: false }); }, STARTUP_GRACE_MS);
+    }
+    void this.connect();
+  };
   private close() {
     this.generation++;
     this.epoch++;
@@ -120,8 +142,8 @@ export class HomeAssistantClient {
     this.connection?.close();
     this.connection = undefined;
   }
-  dispose = () => { this.close(); };
-  disconnect = () => { this.close(); this.update({ status: "disconnected", error: "", commands: {} }); };
+  dispose = () => { this.stopStartupTimer(); this.close(); };
+  disconnect = () => { this.close(); this.update({ status: "disconnected", starting: false, error: "", commands: {} }); };
   connect = async () => {
     this.close();
     const generation = this.generation;

@@ -2,9 +2,9 @@ import { lazy, startTransition, Suspense, useEffect, useLayoutEffect, useRef, us
 import { createPortal } from "react-dom";
 import { Route, Routes, useLocation, type Location } from "react-router-dom";
 import { PageActivityContext } from "@/contexts/PageActivityContext";
-import { useI18n } from "@/hooks/use-i18n";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { PageContent } from "@/components/common/PageContent";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 import { mainPagePath } from "@/lib/navigation";
 
 const pages = {
@@ -18,7 +18,6 @@ const pages = {
 export function MainPages({ locations, errorFallback }: { locations: Record<string, Location>; errorFallback: ReactNode }) {
   const { pathname } = useLocation();
   const activePath = mainPagePath(pathname);
-  const { t } = useI18n();
   const [preload, setPreload] = useState(false);
   useEffect(() => {
     const timer = window.setTimeout(() => startTransition(() => setPreload(true)), 250);
@@ -27,7 +26,7 @@ export function MainPages({ locations, errorFallback }: { locations: Record<stri
   return Object.entries(pages).map(([path, Page]) => (preload || locations[path] || path === activePath) &&
     <RetainedPage key={path} active={path === activePath}>
       <PageErrorBoundary fallback={errorFallback}>
-        <Suspense fallback={<p role="status">{t("Loading…")}</p>}>
+        <Suspense fallback={<PageSkeleton page={path} />}>
           <PageContent active={path === activePath}>
             <Routes location={locations[path] ?? path}><Route path={path} element={<Page />} /></Routes>
           </PageContent>

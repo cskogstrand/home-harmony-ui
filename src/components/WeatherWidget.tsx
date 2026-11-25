@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { Link } from "react-router-dom";
-import { CloudOff, X } from "lucide-react";
+import { Cloud, CloudOff, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
@@ -12,14 +12,16 @@ import { WeatherIcon } from "@/components/devices/WeatherIcon";
 import "@/components/devices/device-cards.css";
 
 export function WeatherWidget({ placement }: { placement: "header" | "today" }) {
-  const { currentHome, homeOnline } = useApp();
+  const { currentHome, homeOnline, connectionStarting } = useApp();
   const { weatherEntity, weatherTemperatureEntity, weatherPlacement } = useFamily();
   const { t, language, reading: formatReading } = useI18n();
   const titleId = useId();
   if (!weatherEntity || !weatherPlacement[placement]) return null;
   const entity = currentHome.entities.find(entity => entity.preferenceId === weatherEntity && entity.domain === "weather");
   const reported = homeOnline && entity && available(entity);
-  const condition = reported ? entityStateLabel(entity, language) : t(homeOnline ? "Unavailable" : "Offline");
+  // During the first connection's grace period nothing is offline yet.
+  const connecting = !homeOnline && connectionStarting;
+  const condition = reported ? entityStateLabel(entity, language) : t(homeOnline ? "Unavailable" : connecting ? "Connecting…" : "Offline");
   const temperatureEntity = currentHome.entities.find(entity => entity.preferenceId === weatherTemperatureEntity && isTemperatureEntity(entity));
   const temperature = !homeOnline ? undefined : weatherTemperatureEntity
     ? temperatureEntity && available(temperatureEntity) && temperatureEntity.state.trim() ? numberValue(Number(temperatureEntity.state)) : undefined
@@ -29,7 +31,7 @@ export function WeatherWidget({ placement }: { placement: "header" | "today" }) 
   const reading = temperature === undefined ? "—" : formatReading(temperature, { unit, deviceClass: "temperature", precision: weatherTemperatureEntity ? temperatureEntity?.displayPrecision : undefined });
   return <Popover>
     <PopoverTrigger asChild><Button variant="ghost" className={`weather-widget ${placement === "header" ? "header-weather glass-surface" : "today-weather"}`} data-weather-condition={reported ? entity.state : "unavailable"} aria-label={t("Weather: {condition}. Open forecast", { condition: `${condition} · ${reading}` })} title={condition}>
-      <span className="weather-symbol">{reported ? <WeatherIcon condition={entity.state} /> : <CloudOff aria-hidden="true" />}</span>
+      <span className="weather-symbol">{reported ? <WeatherIcon condition={entity.state} /> : connecting ? <Cloud aria-hidden="true" /> : <CloudOff aria-hidden="true" />}</span>
       <span className="weather-copy"><strong>{reported || temperature !== undefined ? reading : condition}</strong><span>{reported || temperature !== undefined ? condition : t("Weather")}</span></span>
     </Button></PopoverTrigger>
     <PopoverContent align="end" collisionPadding={12} className="weather-popover device-card-designs" aria-labelledby={titleId}>

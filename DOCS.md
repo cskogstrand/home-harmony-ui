@@ -66,7 +66,7 @@ Use HTTPS through a trusted reverse proxy, or a trusted home network/VPN. HTTP B
 
 ## Household preferences
 
-When Home Assistant disconnects, the banner links to **Settings → System → Connection & account** for recovery. Calendars identify previously loaded plans while live list controls pause until reconnection.
+After a reload the dashboard shows **Connecting to Home Assistant…** for up to ten seconds while it connects; controls stay unavailable until it is connected. If connecting takes longer or fails, the banner becomes a warning that controls are paused. When Home Assistant disconnects later, the banner says readings are stale and links to **Settings → System → Connection & account** for recovery. Calendars identify previously loaded plans while live list controls pause until reconnection.
 
 Open the house button for **Home status** in the header. A house without a badge means every selected source has reported and none requires attention. The warning count includes active exceptions and selected sources with missing readings. Loading, offline and unconfigured households have distinct indicators. The overview pairs the current result with an illustrated house. When several sources need attention, the illustration matches the first listed issue. **View readings** lists the selected sources by category with their rooms and reported values. **Manage sources** opens all ten categories and their source pickers. The initial selection uses the configured alarm, area-assigned smoke detectors and their low-battery signals. Selecting sources in one category preserves the others. Settings sync across screens and are included in backups.
 

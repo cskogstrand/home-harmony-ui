@@ -6,6 +6,7 @@ import { AppStoreContext } from "./AppStoreContext";
 
 function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistantClient["getSnapshot"]>, currentHome: Home) {
   return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
+    connectionStarting: state.starting, awaitingFirstConnection: state.awaitingFirstConnection,
     entityRegistryAvailable: state.entityRegistryAvailable, connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
     command: client.command, browseMedia: client.browseMedia, sonosQueue: client.sonosQueue, watchEvents: client.watchEvents, subscribeLogbook: client.subscribeLogbook, watchCameraStream: client.watchCameraStream, watchForecast: client.watchForecast, entityHistory: client.entityHistory, energySetup: client.energySetup, priceSeries: client.priceSeries, listRepairs: client.listRepairs, backupInfo: client.backupInfo, subscribePersistentNotifications: client.subscribePersistentNotifications, dismissPersistentNotification: client.dismissPersistentNotification, assist: client.assist, assistAgents: client.assistAgents, calendarEvents: client.calendarEvents, watchCalendarEvents: client.watchCalendarEvents, todoItems: client.todoItems, configurationRequest: client.configurationRequest, storageRequest: client.storageRequest };
