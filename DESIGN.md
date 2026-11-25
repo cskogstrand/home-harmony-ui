@@ -303,14 +303,14 @@ Every CSS font size uses one of these steps through its `--type-*` custom proper
 | Display | `--type-display` | 6rem | The ambient clock. |
 | Display small | `--type-display-small` | 4.5rem | The compact and portrait clock. |
 | Readout | `--type-readout` | 3rem | The phone clock and the largest device readouts. |
-| Headline | `--type-headline` | 2.25rem | Page and Today headings, weather, Sonos and alarm titles. |
+| Headline | `--type-headline` | 2.25rem | Page and Today headings, the header clock outside Today, weather, Sonos and alarm titles. |
 | Headline small | `--type-headline-small` | 2rem | Short-window Sonos titles, compact device readouts and progress amounts. |
 | Heading | `--type-heading` | 1.75rem | Next family plan title, phone page titles, sensor readings and compact light levels. |
 | Heading small | `--type-heading-small` | 1.5rem | Phone Today heading, section headings and super compact readouts. |
 | Title large | `--type-title-large` | 1.375rem | Next plan time, dialog titles and portrait panel headings. |
 | Title | `--type-title` | 1.25rem | Panel titles and empty-state headings. |
 | Subtitle | `--type-subtitle` | 1.125rem | Settings card headings, card group titles, portrait list rows and dock links. |
-| Body large | `--type-body-large` | 1rem | Device card titles, scene names, list rows and phone form fields. |
+| Body large | `--type-body-large` | 1rem | Device card titles, scene names, list rows, phone form fields and the phone header clock. |
 | Body | `--type-body` | .9375rem | Supporting copy and navigation labels. |
 | Label | `--type-label` | .875rem | Labels, controls, device metadata and event times. |
 | Meta | `--type-meta` | .8125rem | Dense secondary metadata, timetable cells and chips. |
@@ -444,6 +444,10 @@ During Sonos music playback, the music shortcut carries a small play badge. It c
 The camera shortcut gains a person glyph during current detections. A count appears when multiple configured cameras detect someone. Each active camera repeats that state beneath its name in the overview.
 
 The top-right header places Sonos and camera shortcuts before the notification bell and settings control. They open `/sonos` and `/cameras` directly from every page, using the shared circular glass surface, translated accessible labels and hover titles. The portrait board uses 60px targets and 26px icons. Other layouts use a 48px minimum target. Sonos uses the existing Lucide music-note icon. Below (380px), the brand keeps its moon home link and hides its wordmark so the controls retain their full touch targets.
+
+**The Clock Travels Rule.** The time is always on screen, once. Today keeps its large ambient clock and the brand wordmark; on every other page the time takes the wordmark's place beside the moon, still the home link. It is a Headline (2.25rem) tabular numeral (weight 500, -.03em tracking, .9 line height) over the short date in muted Caption (`ons. 28. okt.`), both inside the 48px row and the wall's 60px row, so the header keeps its height (100px on the 1440 × 2560 wall). The time is the home's 24-hour `HH:mm` in its Home Assistant time zone in both languages, from the shared family clock that refreshes every 15 seconds; the date uses the dashboard language. The link's accessible name starts with the visible time and date, then **Afterglow home**; the tooltip gives the long date. Phones (≤699px) keep only the time in Body large semibold, without moon or date, in the 44px slot the moon used, so the vehicle chip and all header controls keep their row.
+
+Weather follows the clock. **Beside the clock** puts the larger widget beside Today's clock and the compact glass widget beside the header clock on other pages, left of the vehicles and controls; **In the header** shows the compact widget on every page, Today and phones included. Weather that only follows the clock waits on Today on phones and when the vehicle chip fills the first row (below 768px); on tablets with the full vehicle strip it stays in the first row so the strip keeps the only second row. On the portrait wall the header weather matches the 60px controls. Its forecast popover aligns to its start edge.
 
 When Assist is turned on, **Ask the house** leads the header actions with the same circular glass control and a Lucide question-bubble icon. Offline it stays in place at reduced opacity with `aria-disabled` and the reason in its name and title. As a sixth control it moves the phone vehicle chip to the second header row up to (449px) and, below (380px), header targets and the brand link use (44px). The dialog uses the shared glass shell up to (36rem), (44rem) on the portrait wall, and at most the viewport height minus (2rem): an icon title and one-line description, an opaque scrolling transcript, then the compose row and **Clear conversation** in reach above the on-screen keyboard. The input is a (48px) planner field; Send is a primary capsule that becomes a (48px) icon button on phones. Each turn shows the question in semibold text and the answer below: a success-colored check plus a screen-reader "Done" for completed actions, a muted spinner while waiting (static with reduced motion), and a warning icon, plain-language text and an outlined **Try again** for errors. The transcript is a polite log; the input takes focus on open, and Escape returns focus to the header button.
 

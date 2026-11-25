@@ -417,11 +417,12 @@ it("selects weather entities, saves both placement checkboxes across reloads and
   fireEvent.click(screen.getByRole("button", { name: "Example forecast · weather.example" }));
   await saved();
   expect(settings.settings.weatherEntity).toBe("home|stable-weather");
-  expect(screen.getByRole("checkbox", { name: "Beside the clock on Today" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Beside the clock" })).toBeChecked();
   expect(screen.getByRole("checkbox", { name: "In the header" })).not.toBeChecked();
-  expect(screen.queryByRole("button", { name: /^Weather:/ })).not.toBeInTheDocument();
+  // Outside Today the weather follows the clock into the header; phones hide this one through its marker.
+  expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveAttribute("data-beside-clock");
   fireEvent.click(screen.getByRole("checkbox", { name: "In the header" }));
-  fireEvent.click(screen.getByRole("checkbox", { name: "Beside the clock on Today" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Beside the clock" }));
   await saved();
   expect(settings.settings.weatherPlacement).toEqual({ today: false, header: true });
   expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("18 °C");
@@ -437,7 +438,7 @@ it("selects weather entities, saves both placement checkboxes across reloads and
   view.unmount();
   render(<App />); await saved();
   expect(screen.getByRole("button", { name: "Weather entity" })).toHaveTextContent("Example forecast");
-  expect(screen.getByRole("checkbox", { name: "Beside the clock on Today" })).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Beside the clock" })).not.toBeChecked();
   expect(screen.getByRole("checkbox", { name: "In the header" })).toBeChecked();
   expect(screen.getByRole("button", { name: "Temperature entity (optional)" })).toHaveTextContent("Example temperature");
   expect(screen.getByRole("button", { name: /^Weather:/ })).toHaveTextContent("21 °F");
@@ -469,6 +470,36 @@ it.each([
   const glance = view.container.querySelector(".ambient-glance");
   expect(glance.querySelector("time")).toHaveClass("ambient-clock");
   expect(within(glance as HTMLElement).queryByRole("button", { name: /^Weather:/ }) !== null).toBe(weatherPlacement.today);
+  // Elsewhere the weather follows the clock into the header, once.
+  await navigate("Calendar");
+  const header = within(view.container.querySelector<HTMLElement>(".app-header"));
+  const weather = header.queryAllByRole("button", { name: /^Weather:/ });
+  expect(weather).toHaveLength(weatherPlacement.today || weatherPlacement.header ? 1 : 0);
+  if (weather.length) expect(weather[0].hasAttribute("data-beside-clock")).toBe(!weatherPlacement.header);
+});
+
+it("shows the home's 24-hour time and short date in the header outside Today, never twice on Today", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-28T13:05:00Z"));
+  settings.settings.language = "nb";
+  app.currentHome.timeZone = "Europe/Oslo";
+  const view = render(<App />);
+  await waitFor(() => expect(view.container.querySelector(".ambient-clock")).toHaveTextContent("14:05"));
+  const header = view.container.querySelector<HTMLElement>(".app-header")!;
+  expect(header.querySelector("time")).toBeNull();
+  expect(within(header).getByRole("link", { name: "Afterglow-forsiden" })).toHaveTextContent("afterglow");
+  for (const path of ["/calendar", "/settings"]) {
+    cleanup();
+    window.history.replaceState(null, "", path);
+    render(<App />);
+    const clock = await waitFor(() => document.querySelector<HTMLElement>(".app-header .header-clock time")!);
+    expect(clock).toHaveTextContent(/^14:05$/);
+    expect(clock).toHaveAttribute("dateTime", "2026-10-28T14:05");
+    expect(document.querySelector(".app-header .header-date")).toHaveTextContent("ons. 28. okt.");
+    expect(document.querySelector(".ambient-clock")).toBeNull();
+    // The clock keeps the brand's job: a link home whose name starts with the visible time.
+    expect(within(document.querySelector<HTMLElement>(".app-header")!).getByRole("link", { name: /^14:05 ons\. 28\. okt\. Afterglow-forsiden$/ })).toHaveAttribute("href", "/");
+  }
 });
 
 it("uses only Home Assistant people and lets old shared assignments move to a real person", async () => {
