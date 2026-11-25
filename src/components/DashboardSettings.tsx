@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, History, House, ShieldCheck, ListChecks, NotebookPen, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, Columns2, History, House, MoveVertical, RectangleHorizontal, ShieldCheck, ListChecks, NotebookPen, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -11,13 +11,46 @@ import { EntityPicker } from "@/components/EntityPicker";
 import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
 import { PanelTitle } from "@/components/PanelTitle";
-import { dashboardSections, type DashboardHomeworkOptions, type DashboardSection } from "../../shared/configuration";
+import { dashboardRows, dashboardSections, dashboardWidth, fillSections, fullWidthSections, type DashboardHomeworkOptions, type DashboardSection, type DashboardRow, type DashboardWidth, type FillSection } from "../../shared/configuration";
+import type { MessageKey } from "@/lib/i18n";
 
 const sectionLabels = {
   homeStatus: "Home status", morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
   day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites", recentActivity: "Recent at home",
 } as const;
 const sectionIcons = { homeStatus: ShieldCheck, morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, homework: NotebookPen, school: BookOpen, home: House, recentActivity: History };
+/** Sections that render nothing when they have nothing to say; their partner then takes the whole row. */
+const conditionalSections: readonly DashboardSection[] = ["homeStatus", "morningSummary", "wasteCollection", "school"];
+const fullWidthReasons: Record<typeof fullWidthSections[number], MessageKey> = {
+  day: "Always full width: each person needs their own column.",
+  week: "Always full width: the week needs room for seven days.",
+  school: "Always full width: timetables sit side by side.",
+};
+const isFullWidthOnly = (key: DashboardSection): key is typeof fullWidthSections[number] => (fullWidthSections as readonly DashboardSection[]).includes(key);
+const widthOptions = [["full", RectangleHorizontal, "Full"], ["half", Columns2, "Half"]] as const;
+
+/** An inert miniature of Today's rows on wide screens. The section cards say the same in words, so it is hidden from assistive technology. */
+function LayoutPreview({ rows, fill }: { rows: DashboardRow[]; fill: string }) {
+  const { t } = useI18n();
+  if (!rows.length) return null;
+  const conditional = rows.some(row => row.sections.some(key => conditionalSections.includes(key)));
+  const filling = rows.some(row => row.fill);
+  return <div className="settings-card dashboard-preview" aria-hidden="true">
+    <p className="dashboard-preview-title">{t("Layout on wide screens")}</p>
+    <div className="dashboard-preview-rows">{rows.map(row => <div key={row.sections[0]} className="dashboard-preview-row" data-fill={row.fill || undefined}>
+      {row.sections.map(key => {
+        const Icon = sectionIcons[key];
+        return <span key={key} className="dashboard-preview-block" data-conditional={conditionalSections.includes(key) || undefined} data-fill={key === fill || undefined}>
+          <Icon size={16} strokeWidth={1.8} /><span>{t(sectionLabels[key])}</span>{key === fill && <MoveVertical size={16} strokeWidth={1.8} className="dashboard-preview-fill" />}
+        </span>;
+      })}
+    </div>)}</div>
+    {(conditional || filling) && <ul className="dashboard-preview-legend">
+      {conditional && <li><span className="dashboard-preview-swatch" />{t("Dashed: appears only when it has something to show.")}</li>}
+      {filling && <li><MoveVertical size={16} strokeWidth={1.8} />{t("Grows to fill the free space on the wall.")}</li>}
+    </ul>}
+  </div>;
+}
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
@@ -28,13 +61,32 @@ export function DashboardSettings() {
   const setHomeworkOptions = (patch: Partial<DashboardHomeworkOptions>) => setDashboard({ homeworkOptions: { ...dashboard.homeworkOptions, ...patch } });
   const sectionsRef = useRef<HTMLOListElement>(null);
   const [announcement, setAnnouncement] = useState("");
+  const label = (key: DashboardSection) => t(sectionLabels[key]);
+  const rows = dashboardRows(dashboard);
+  const partnerIn = (layout: typeof rows, key: DashboardSection) => layout.find(row => row.sections.includes(key))?.sections.find(other => other !== key);
+  const placement = (key: DashboardSection) => {
+    const partner = partnerIn(rows, key);
+    if (!partner) return t("Fills its row: no half-width section next to it.");
+    return t(conditionalSections.includes(partner) ? "Beside {name} on wide screens; fills the row when {name} is hidden." : "Beside {name} on wide screens.", { name: label(partner) });
+  };
+  const setWidth = (key: DashboardSection, width: DashboardWidth) => {
+    if (disabled || dashboardWidth(dashboard, key) === width) return;
+    const widths = { ...dashboard.widths, [key]: width };
+    if (!setDashboard({ widths })) return;
+    const partner = partnerIn(dashboardRows({ ...dashboard, widths }), key);
+    setAnnouncement(width === "full" ? t("{name}: full width.", { name: label(key) })
+      : partner ? t("{name}: half width, beside {partner}.", { name: label(key), partner: label(partner) }) : t("{name}: half width, fills its row.", { name: label(key) }));
+  };
+  const defaultWidths = dashboardSections.every(key => dashboardWidth(dashboard, key) === dashboardWidth({ widths: {} }, key));
   const moveSection = (key: DashboardSection, direction: -1 | 1) => {
     const order = [...dashboard.order];
     const index = order.indexOf(key), target = index + direction;
     if (disabled || target < 0 || target >= order.length) return;
     [order[index], order[target]] = [order[target], order[index]];
     if (setDashboard({ order })) {
-      setAnnouncement(t("Moved {name} to position {position} of {total}.", { name: t(sectionLabels[key]), position: target + 1, total: order.length }));
+      const before = partnerIn(rows, key), after = dashboardWidth(dashboard, key) === "half" && dashboard[key] ? partnerIn(dashboardRows({ ...dashboard, order }), key) : before;
+      const partner = after === before ? "" : " " + (after ? t("Now beside {name}.", { name: label(after) }) : t("Now fills its row."));
+      setAnnouncement(t("Moved {name} to position {position} of {total}.", { name: label(key), position: target + 1, total: order.length }) + partner);
       requestAnimationFrame(() => {
         const row = sectionsRef.current?.querySelector(`[data-section="${key}"]`);
         const control = row?.querySelector<HTMLButtonElement>(`[data-direction="${direction}"]:not(:disabled)`) ?? row?.querySelector<HTMLButtonElement>('[role="switch"]');
@@ -51,8 +103,9 @@ export function DashboardSettings() {
     <DialogContent className="max-h-[calc(100dvh-24px)] overflow-y-auto">
       <DialogHeader>
         <DialogTitle asChild><PanelTitle icon={Settings}>{t("Customize Today")}</PanelTitle></DialogTitle>
-        <DialogDescription>{t("Choose which sections appear and use the arrows to change their order. Changes are saved automatically and shared across screens.")}</DialogDescription>
+        <DialogDescription>{t("Choose which sections appear, how wide they are and their order. Changes are saved automatically and shared across screens.")}</DialogDescription>
       </DialogHeader>
+      <LayoutPreview rows={rows} fill={dashboard.fill} />
       <ol ref={sectionsRef} aria-label={t("Section order")} className="settings-stack">
         {dashboard.order.map((key, index) => <li key={key} data-section={key} className="settings-card dashboard-settings-card">
           <div className="dashboard-settings-heading">
@@ -68,6 +121,17 @@ export function DashboardSettings() {
               </div>
             </div>
           </div>
+          {dashboard[key] && (isFullWidthOnly(key) ? <p className="text-sm text-muted-foreground">{t(fullWidthReasons[key])}</p> : <div className="dashboard-width">
+            <div className="dashboard-width-choice">
+              <span className="text-sm" aria-hidden="true">{t("Width")}</span>
+              <div className="calendar-segment" role="group" aria-label={t("Width for {name}", { name: label(key) })}
+                aria-describedby={dashboardWidth(dashboard, key) === "half" ? `dashboard-placement-${key}` : undefined}>
+                {widthOptions.map(([width, Icon, text]) => <button key={width} type="button" aria-pressed={dashboardWidth(dashboard, key) === width} disabled={disabled}
+                  onClick={() => setWidth(key, width)}><Icon size={18} aria-hidden="true" />{t(text)}</button>)}
+              </div>
+            </div>
+            {dashboardWidth(dashboard, key) === "half" && <p id={`dashboard-placement-${key}`} className="text-sm text-muted-foreground">{placement(key)}</p>}
+          </div>)}
           {key === "homeStatus" && <p className="text-sm text-muted-foreground">{t("Appears only when a selected source needs attention or has no reading.")}</p>}
           {key === "recentActivity" && <p className="text-sm text-muted-foreground">{t("Uses the sources and privacy choice from Settings → System → Activity.")}{" "}
             <DialogClose asChild><Link to="/settings/activity?panel=recent" className="text-link">{t("Choose sources")}</Link></DialogClose></p>}
@@ -156,9 +220,23 @@ export function DashboardSettings() {
           </label></>}
         </li>)}
       </ol>
+      <section className="settings-card dashboard-settings-card" aria-labelledby="dashboard-fill-title">
+        <div className="dashboard-settings-heading"><PanelTitle as="h3" icon={MoveVertical} id="dashboard-fill-title">{t("Free space on the wall")}</PanelTitle></div>
+        <label className="grid gap-2 text-sm">{t("Section that fills the space")}
+          <select className="min-h-12 w-full min-w-0 rounded-lg border border-input bg-background p-2" value={dashboard.fill} disabled={disabled} aria-describedby="dashboard-fill-help"
+            onChange={event => setDashboard({ fill: event.target.value as FillSection | "" })}>
+            <option value="">{t("None")}</option>
+            {dashboard.order.filter((key): key is FillSection => (fillSections as readonly DashboardSection[]).includes(key) && (dashboard[key] || key === dashboard.fill))
+              .map(key => <option key={key} value={key}>{label(key)}</option>)}
+          </select>
+        </label>
+        <p id="dashboard-fill-help" className="text-sm text-muted-foreground">{dashboard.fill && !dashboard[dashboard.fill]
+          ? t("{name} is hidden, so nothing fills the space.", { name: label(dashboard.fill) })
+          : t("On the large wall screen this section grows down to the navigation and shows as many rows as fit. Other screens show its usual length.")}</p>
+      </section>
       <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
-      <Button type="button" variant="outline" disabled={disabled || dashboard.order.every((key, index) => key === dashboardSections[index])}
-        onClick={() => setDashboard({ order: [...dashboardSections] })}>{t("Reset section order")}</Button>
+      <Button type="button" variant="outline" disabled={disabled || dashboard.order.every((key, index) => key === dashboardSections[index]) && defaultWidths}
+        onClick={() => setDashboard({ order: [...dashboardSections], widths: {} })}>{t("Reset order and widths")}</Button>
       <p className="text-sm text-muted-foreground">{t("Morning summary appears when available. School appears when timetables are configured.")}</p>
       <p role="status" className="text-sm text-muted-foreground">{shared?.state.saving ? t("Saving shared configuration…") : shared?.state.dirty ? t("Unsaved changes on this screen.") : shared?.state.loaded ? t("Shared configuration saved.") : t("Loading shared configuration…")}</p>
       {shared?.state.error && <div role="alert"><p className="text-destructive">{message(shared.state.error)}</p><DialogClose asChild><Link to="/settings/backups" className="text-link">{t("Storage and backups")}</Link></DialogClose></div>}

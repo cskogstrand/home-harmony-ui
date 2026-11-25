@@ -128,7 +128,7 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
   const onOpenChange = (value: boolean) => { setOpen(value); if (!value) { setView("overview"); backTo.current = undefined; } };
   if (card && !count && !open) return null;
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    {card ? count > 0 && <DialogTrigger asChild><button ref={trigger} type="button" className="glow-panel housing-card col-span-full">
+    {card ? count > 0 && <DialogTrigger asChild><button ref={trigger} type="button" className="glow-panel housing-card">
       <TriangleAlert aria-hidden="true" /><span><strong>{t("Home status")} · {summary}</strong>
         <small>{firstIssue.name} · {firstIssue.value}</small></span><ChevronRight aria-hidden="true" /></button></DialogTrigger>
       : <DialogTrigger asChild><button type="button" id="home-status-button" className="icon-button glass-surface" data-tone={tone} aria-label={label} title={label}>

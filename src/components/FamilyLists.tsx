@@ -17,6 +17,8 @@ import { TodoDueLabel, TodoItemFields } from "./TodoItemDetails";
 import { MemberAvatar, MemberOptions, PanelHeading } from "./FamilyPlanner";
 import { AvatarFilters } from "./AvatarFilters";
 import { ShoppingListAvatar } from "./ShoppingListIcon";
+import { useFillRows } from "@/hooks/use-wall-fill";
+import { FILL_ROW_CAP } from "@/lib/wall-fill";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./common/ConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
@@ -41,8 +43,8 @@ function ListPanelSurface() {
 const CheckRow = forwardRef<HTMLDivElement, {
   id: string; text: string; complete: boolean; member?: MemberId; disabled?: boolean; removeDisabled?: boolean;
   feedback?: ItemFeedback; pending?: boolean; due?: TodoItem["due"]; showUndated?: boolean; description?: TodoItem["description"];
-  onToggle?: (checkbox: HTMLInputElement) => void; onEdit?: () => void; onRemove?: () => void;
-}>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, due, showUndated, description, onToggle, onEdit, onRemove }, ref) {
+  onToggle?: (checkbox: HTMLInputElement) => void; onEdit?: () => void; onRemove?: () => void; fillExtra?: boolean;
+}>(function CheckRow({ id, text, complete, member, feedback, pending, disabled, removeDisabled, due, showUndated, description, onToggle, onEdit, onRemove, fillExtra }, ref) {
   const { t } = useI18n();
   const descriptionId = useId();
   const present = useIsPresent();
@@ -54,7 +56,7 @@ const CheckRow = forwardRef<HTMLDivElement, {
   const entering = feedback === "added" || feedback === "reopened";
   const busy = !!pending && present;
   const content = <span className="check-content"><span className="check-text">{text}</span>{description && <span id={descriptionId} className="check-description">{description}</span>}</span>;
-  return <motion.div ref={ref} className="check-row-shell" aria-hidden={!present || undefined}
+  return <motion.div ref={ref} className="check-row-shell" aria-hidden={!present || undefined} data-fill-extra={fillExtra || undefined}
     initial={entering && !reduceMotion ? { opacity: 0, transform: "translateX(24px) scale(.97)" } : false}
     layout={reduceMotion ? false : "position"} animate={{ opacity: 1, transform: "translateX(0px) scale(1)" }}
     transition={reduceMotion ? { duration: 0 } : rowTransition}
@@ -139,8 +141,11 @@ export function ListKindIcon({ kind }: { kind: string }) {
   const glyph = <Icon strokeWidth={1.8} aria-hidden="true" focusable="false" />;
   return <span className="list-kind-icon" data-list-kind={known ? kind : "other"} aria-hidden="true">{known ? <PlannerCardIcon kind={kind}>{glyph}</PlannerCardIcon> : glyph}</span>;
 }
-export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions }) {
+/** With `fill` (Today on the large wall), each list keeps its usual rows and adds the next ones that fit in that height. */
+export function ListPanel({ kind, limit, homeworkPreview, fill }: { kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions; fill?: number }) {
   const { t, message } = useI18n();
+  const panel = useRef<HTMLElement>(null);
+  useFillRows(panel, fill);
   const { connectedPlanner, todoLists, allMembers, compareMembers, isMemberVisible } = useFamily();
   const { haUrl, homeOnline, currentHome, services } = useApp();
   const [params, setParams] = useSearchParams();
@@ -155,7 +160,7 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
   const summary = kind === "shopping" && !!limit && lists.length > 1;
   const showFilters = !preview && (lists.length > 1 || (missing && lists.length > 0));
   const selectList = (id: string) => setParams(id ? { tab: kind, list: id } : { tab: kind });
-  return <LayoutGroup><article className={`glow-panel list-panel list-${kind}`}>
+  return <LayoutGroup><article ref={panel} className={`glow-panel list-panel list-${kind}`} data-fill={fill === undefined ? undefined : ""}>
     {preview && <ListPanelSurface />}
     <PlannerCardBackdrop kind={kind} />
     {homeworkPreview ? <PanelHeading artwork="homework" icon={listIcons.homework}
@@ -186,12 +191,12 @@ export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind
         <option value="">{t("All lists")}</option>
         {lists.map(([id]) => <option key={id} value={id}>{sourceName(id)}</option>)}
       </select></label>)}
-      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} homeworkPreview={homeworkPreview} hidden={!homeOnline || !!selected && id !== selected} />)}
+      {lists.map(([id, assigned]) => <HomeAssistantList key={`${haUrl}|${id}|${assigned.member}`} preferenceId={id} member={assigned.member} kind={kind} limit={limit} homeworkPreview={homeworkPreview} fill={fill !== undefined} hidden={!homeOnline || !!selected && id !== selected} />)}
     </>}
   </article></LayoutGroup>;
 }
 
-export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkPreview, school = false, hidden = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions; school?: boolean; hidden?: boolean }) {
+export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkPreview, school = false, hidden = false, fill = false }: { preferenceId: string; member: MemberId; kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions; school?: boolean; hidden?: boolean; fill?: boolean }) {
   const { t, message, locale } = useI18n();
   const { currentHome, haUrl, homeOnline, todoItems, command, commands, services } = useApp();
   const { memberName, todoLists, today } = useFamily();
@@ -375,17 +380,17 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
     const item = sorted.find(item => item.uid === id);
     if (item) ordered.splice(index, 0, item);
   }
-  const shown = limit ? ordered.slice(0, limit) : ordered;
-  const shownCompleted = limit && kind === "shopping" ? completedBelow.slice(0, limit - shown.length) : completedBelow;
+  const shown = limit ? ordered.slice(0, fill ? Math.max(limit, FILL_ROW_CAP) : limit) : ordered;
+  const shownCompleted = limit && kind === "shopping" ? completedBelow.slice(0, Math.max(0, limit - Math.min(ordered.length, limit))) : completedBelow;
   const emptyMessage = kind === "homework"
     ? completed.length ? "No unfinished homework." : "No homework."
     : items.length ? "All done." : "This list is empty.";
-  const row = (item: TodoItem) => <CheckRow key={item.uid} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
+  const row = (item: TodoItem, index = 0) => <CheckRow key={item.uid} fillExtra={fill && !!limit && index >= limit} id={item.uid} text={item.summary} due={display.showDueDate ? item.due : undefined} description={display.showDetails ? item.description : undefined} complete={item.status === "completed"} feedback={feedback.get(item.uid)}
     showUndated={!!homeworkPreview && !item.due && (period !== "all" || display.showDueDate)}
     pending={pendingItems.includes(item.uid) || status?.items?.[item.uid]?.pending} disabled={!can("update_item", item.uid)} removeDisabled={!can("remove_item", item.uid)}
     onToggle={readOnly ? undefined : checkbox => void toggle(item, checkbox)}
     onEdit={editable ? () => setEditing(item) : undefined} onRemove={!limit && editable ? () => setRemoving(item) : undefined} />;
-  return <section hidden={hidden} role="group" aria-label={kind === "shopping" ? entity?.name ?? t("List unavailable") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy}>
+  return <section hidden={hidden} role="group" aria-label={kind === "shopping" ? entity?.name ?? t("List unavailable") : t(kind === "homework" ? "{name} homework" : kind === "daily" ? "{name} daily tasks" : "{name} tasks", { name: memberName(member) })} className={school ? "household-list homework-list" : "household-list"} aria-busy={busy} data-fill-group={fill || undefined}>
     {school && <PlannerCardBackdrop kind="homework" />}
     {[...heldCompletions].map(([id, completion]) => completion.confirmed && <TodoCelebration key={id} origin={completion.origin} wholeList={completion.finale} onComplete={completion.onComplete} />)}
     {school ? <div className="panel-heading"><PanelTitle as="h3" artwork="homework" icon={BookOpen}>{t("Homework")}</PanelTitle></div> : <div className={editable ? "list-composer" : "py-2"}>
@@ -416,7 +421,7 @@ export function HomeAssistantList({ preferenceId, member, kind, limit, homeworkP
         {!school && !homeworkPreview && <p className="list-progress">{t(kind === "shopping" ? "{done} of {total} picked up" : "{done} of {total} done", { done: completed.length, total: items.length })}</p>}
         <div className="checklist"><AnimatePresence initial={false} mode="popLayout" custom={presence}>{shown.map(row)}</AnimatePresence></div>
         <AnimatePresence initial={false} mode="popLayout">{(homeworkPreview ? !shown.length : !pending.length && !heldCompletions.size) && <ListEmptyNote key="empty" text={t(emptyMessage)} />}</AnimatePresence>
-        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(completedMode === "under" || completedMode === "collapsed") && !!shownCompleted.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={completedMode === "under"}>{shownCompleted.map(row)}</CompletedItems>}</AnimatePresence>
+        <AnimatePresence initial={false} mode="popLayout" custom={presence}>{(completedMode === "under" || completedMode === "collapsed") && !!shownCompleted.length && <CompletedItems key="completed" count={completedBelow.length} presence={presence} expanded={completedMode === "under"}>{shownCompleted.map(item => row(item))}</CompletedItems>}</AnimatePresence>
         {!(["add_item", "update_item", "remove_item"] as TodoAction[]).some(action => supportsAction(entity, action, services)) && <p className="page-note">{t("This list is read-only.")}</p>}
       </>)}
       {status?.error && <p role="alert" className="page-note">{message(status.error)}</p>}

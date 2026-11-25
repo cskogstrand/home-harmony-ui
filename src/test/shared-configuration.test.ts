@@ -2,7 +2,7 @@ import { configuredCard } from "./device-card-fixtures";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { waitFor } from "@testing-library/react";
 import { SharedConfiguration } from "@/lib/shared-configuration";
-import { dashboardSections, emptyConfiguration, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration, type TimetableSettings } from "../../shared/configuration";
+import { dashboardSections, dashboardWidth, emptyConfiguration, emptyPlanner, parseConfiguration, defaultTodoDisplay, type Configuration, type TimetableSettings } from "../../shared/configuration";
 import { notificationRuleSchema } from "../../shared/notifications";
 
 const response = (status: number, value: unknown) => ({ ok: status === 200, status, json: async () => structuredClone(value) }) as Response;
@@ -266,7 +266,9 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { order, showTomorrow, homeStatus, recentActivity, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
+  const { order, showTomorrow, homeStatus, recentActivity, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, widths, fill, ...sections } = dashboard;
+  expect(widths).toEqual({});
+  expect(fill).toBe("");
   expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
@@ -345,6 +347,33 @@ it("shares dashboard sections across screens and restores them from backups", as
   await waitFor(() => expect(b.getSnapshot().dirty).toBe(false));
   await b.replace(backup);
   await a.refresh();
+  expect(a.getSnapshot().config.settings.dashboard).toEqual(backup.settings.dashboard);
+});
+
+it("validates section widths and the fill choice, and restores them from backups", async () => {
+  const config = emptyConfiguration();
+  const read = (patch: Record<string, unknown>) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: { ...config.settings.dashboard, ...patch } } })).settings.dashboard;
+  const { widths: _widths, fill: _fill, ...older } = config.settings.dashboard;
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, dashboard: older } })).settings.dashboard).toMatchObject({ widths: {}, fill: "" });
+  expect(read({ widths: { recentActivity: "half", home: "full" }, fill: "recentActivity" })).toMatchObject({ widths: { recentActivity: "half", home: "full" }, fill: "recentActivity" });
+  // A stored half for a section that must span the board is accepted and resolved as full, so the list of full-only sections can change.
+  const locked = read({ widths: { day: "half", week: "half", school: "half" } });
+  expect(locked.widths).toEqual({ day: "half", week: "half", school: "half" });
+  expect((["day", "week", "school"] as const).map(key => dashboardWidth(locked, key))).toEqual(["full", "full", "full"]);
+  expect(dashboardWidth(locked, "daily")).toBe("half");
+  expect(dashboardWidth(locked, "nextPlan")).toBe("full");
+  for (const invalid of [{ widths: { shopping: "third" } }, { widths: { unknown: "half" } }, { widths: { showTomorrow: "half" } }, { widths: [] }, { widths: null },
+    { fill: "day" }, { fill: "home" }, { fill: null }, { fill: true }]) expect(() => read(invalid)).toThrow();
+  expect(() => parseConfiguration(`{"format":"home-harmony-config","version":3,"settings":${JSON.stringify({ ...config.settings, dashboard: { ...config.settings.dashboard, widths: "__WIDTHS__" } }).replace('"__WIDTHS__"', '{"__proto__":"half"}')}}`)).toThrow();
+
+  const backend = server();
+  const a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, dashboard: { ...p.dashboard, recentActivity: true, widths: { recentActivity: "half", daily: "full" }, fill: "recentActivity" } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.dashboard).toMatchObject({ widths: { recentActivity: "half", daily: "full" }, fill: "recentActivity" });
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
   expect(a.getSnapshot().config.settings.dashboard).toEqual(backup.settings.dashboard);
 });
 

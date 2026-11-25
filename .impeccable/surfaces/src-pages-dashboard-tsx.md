@@ -13,7 +13,9 @@ Favorites extension: Today reuses super compact `SmartHomeCard` surfaces as sepa
 
 The optional Homework panel groups linked lists by person and names the due period in its heading. Through today and Through tomorrow include earlier deadlines. Homework without a due date is included by default in every period and labeled when viewing a particular period. In check-off mode, reuse the existing list controls. In either link mode, use static rows with one destination in the heading. Completed work carries a checkmark and an accessible completion label when shown.
 
-The optional Recent at home section (off by default) reuses the Smart home activity panel unchanged: opaque work surface, divided rows, the same loading, unavailable, quiet-day, no-source and stale states. It spans the full board width and follows the household’s section order; sources and the people choice stay in Settings → System → Activity.
+The optional Recent at home section (off by default) reuses the Smart home activity panel unchanged: opaque work surface, divided rows, the same loading, unavailable, quiet-day, no-source and stale states. It is full width by default and may be half; it follows the household’s section order; sources and the people choice stay in Settings → System → Activity.
+
+Panel layout extension: Customize Today gives every section except Everyone’s day, Everyone’s week and School a Full | Half width; consecutive halves pair into rows (the Paired Rows Rule in DESIGN.md), partners stretch to one height and an empty partner lets the other span its row. An inert preview of the rows sits at the top of the dialog. One list-like section (Recent at home, Daily rhythm, Shopping or Homework; none by default) may fill the large wall’s free space: its row is sized from the rest of the board and the dock, and the panel adds whole rows that fit, never hiding the rows it normally shows. The special landscape week layout is retired; landscape uses the same rows.
 
 ## Direction contract
 

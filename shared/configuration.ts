@@ -99,6 +99,15 @@ export const defaultTodoDisplay = todoDisplaySchema.parse({});
 const plannerSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
 export const dashboardSections = [...plannerSections, "recentActivity", "homeStatus"] as const;
 export type DashboardSection = typeof dashboardSections[number];
+export const dashboardWidths = ["full", "half"] as const;
+export type DashboardWidth = typeof dashboardWidths[number];
+/** Sections that always span the board: person columns, the seven-day week table and school's side-by-side timetables. */
+export const fullWidthSections = ["day", "week", "school"] as const satisfies readonly DashboardSection[];
+/** Defaults reproduce the earlier board, where adjacent list panels already sat side by side. */
+export const defaultDashboardWidths: Partial<Record<DashboardSection, DashboardWidth>> = { daily: "half", shopping: "half", homework: "half" };
+/** List-like sections that can fill the wall's free space by showing more rows. */
+export const fillSections = ["recentActivity", "daily", "shopping", "homework"] as const satisfies readonly DashboardSection[];
+export type FillSection = typeof fillSections[number];
 export const plannerArtworkSchema = z.enum([...plannerSections, "calendar", "tasks"]);
 export type PlannerArtwork = z.infer<typeof plannerArtworkSchema>;
 const dashboardHomeworkSchema = z.object({
@@ -140,6 +149,10 @@ const plannerObjectSchema = z.object({
     // Recent at home on Today, off until the owner adds it; sources and privacy follow `activity` below.
     recentActivity: z.boolean().default(false),
     statusSources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
+    // Only the owner's explicit width choices; a missing key uses defaultDashboardWidths, then full.
+    widths: settingsRecord(z.enum(dashboardSections), z.enum(dashboardWidths)).default({}),
+    // One section that fills the large wall's free space, or none.
+    fill: z.union([z.enum(fillSections), z.literal("")]).default(""),
   }).strict().prefault({}),
   homeEntities: z.array(memberSchema).optional(),
   homeEntityGroups: settingsRecord(keySchema, z.string().trim().max(80)).default({}),
@@ -213,6 +226,32 @@ export const configurationSchema = z.object({
 export type Configuration = z.infer<typeof configurationSchema>;
 export const emptyPlanner = (): Planner => plannerSchema.parse({ timetables: {}, smartHome: { layout: [] } });
 export const emptyConfiguration = (): Configuration => ({ format: "home-harmony-config", version: 3, settings: emptyPlanner() });
+/** A section's width on wide screens: sections that need the whole board are always full, whatever is stored. */
+export function dashboardWidth(dashboard: Pick<Planner["dashboard"], "widths">, key: DashboardSection): DashboardWidth {
+  if ((fullWidthSections as readonly DashboardSection[]).includes(key)) return "full";
+  return dashboard.widths[key] ?? defaultDashboardWidths[key] ?? "full";
+}
+export interface DashboardRow { sections: [DashboardSection] | [DashboardSection, DashboardSection]; fill: boolean }
+export type DashboardLayout = Pick<Planner["dashboard"], "order" | "widths" | "fill"> & Record<DashboardSection, boolean>;
+/**
+ * Today's rows on wide screens: consecutive half sections among those switched on pair up in order; a full section or a half
+ * without a half partner takes its own row. Decided by configuration only, so a section with nothing to show today never reshuffles rows.
+ */
+export function dashboardRows(dashboard: DashboardLayout): DashboardRow[] {
+  const rows: DashboardRow[] = [];
+  let pending: DashboardSection | undefined;
+  const push = (sections: DashboardRow["sections"]) => rows.push({ sections, fill: sections.some(key => key === dashboard.fill) });
+  for (const key of dashboard.order.filter(key => dashboard[key])) {
+    if (dashboardWidth(dashboard, key) === "full") {
+      if (pending) push([pending]);
+      pending = undefined;
+      push([key]);
+    } else if (pending) { push([pending, key]); pending = undefined; }
+    else pending = key;
+  }
+  if (pending) push([pending]);
+  return rows;
+}
 export const plannerSettings = (planner: unknown): Planner => plannerObjectSchema.strip().transform(preserveCameraNotifications).pipe(plannerObjectSchema).parse(planner);
 export function parseConfiguration(text: string): Configuration {
   if (new TextEncoder().encode(text).length > MAX_CONFIG_BYTES) throw new Error("The backup exceeds the 2 MB limit.");

@@ -810,7 +810,7 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   }
   expect(within(dialog).getByRole("button", { name: "Move Morning summary earlier" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Move Home status later" })).toBeDisabled();
-  expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Reset order and widths" })).toBeDisabled();
   for (let i = 0; i < 6; i++) fireEvent.click(within(dialog).getByRole("button", { name: "Move Shopping earlier" }));
   expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
   await waitFor(() => expect(within(dialog).getByRole("switch", { name: "Shopping" })).toHaveFocus());
@@ -833,11 +833,27 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   expect(screen.getAllByRole("heading", { level: 2 })[0].textContent).toBe("Shopping");
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   fireEvent.click(screen.getByRole("switch", { name: "Everyone’s week" }));
-  fireEvent.click(screen.getByRole("button", { name: "Reset section order" }));
+  fireEvent.click(screen.getByRole("button", { name: "Reset order and widths" }));
   await waitFor(() => expect(settings.settings.dashboard.order).toEqual(dashboardSections));
   expect(settings.settings.dashboard.week).toBe(false);
   fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
   expect(screen.getAllByRole("heading", { level: 2 })[0].textContent).toBe("Next family plan");
+});
+
+it("renders Today in configured rows, in reading order, and lets a half span the row when its partner has nothing to show", async () => {
+  settings.settings.dashboard = { ...settings.settings.dashboard, homeStatus: true, homework: true, recentActivity: true,
+    order: ["homeStatus", "nextPlan", "day", "recentActivity", "homework", "week", "daily", "shopping", "school", "home", "morningSummary", "wasteCollection"],
+    widths: { homeStatus: "half", nextPlan: "half", recentActivity: "half", day: "half", home: "half" } };
+  const { container } = render(<App />); await saved();
+  const rows = [...container.querySelectorAll<HTMLElement>(".portrait-board > .board-row")];
+  const names = rows.map(row => [...row.children].map(panel => panel.getAttribute("aria-label") ?? panel.querySelector("h2")?.textContent));
+  expect(names.slice(0, 5)).toEqual([["Next family plan"], ["Everyone’s day"], ["Recent at home", "Homework due by today"], ["Everyone’s week"], ["Daily rhythm", "Shopping"]]);
+  // Home status has nothing to report, so Next family plan is alone in the row it shares with it.
+  expect(rows[0]).toHaveAttribute("data-columns", "2");
+  expect(rows.map(row => row.dataset.columns)).toEqual(["2", "1", "2", "1", "2", "1", "1", "1"]);
+  // Without timetables School renders nothing, so its row is empty and hidden by the stylesheet.
+  expect(rows[5]).toBeEmptyDOMElement();
+  expect(rows[6]).toContainElement(screen.getByRole("region", { name: "Home favorites" }));
 });
 
 it("adds Recent at home to Today from Customize Today, off by default and using the shared activity sources", async () => {
@@ -872,6 +888,79 @@ it("adds Recent at home to Today from Customize Today, off by default and using 
   expect(screen.queryByRole("region", { name: "Recent at home" })).not.toBeInTheDocument();
 });
 
+it("sets section widths and the wall's fill section in Customize Today, explains each placement and resets only order and widths", async () => {
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const dialog = within(screen.getByRole("dialog", { name: "Customize Today" }));
+  const width = (name: string) => dialog.getByRole("group", { name: `Width for ${name}` });
+  const option = (name: string, choice: "Full" | "Half") => within(width(name)).getByRole("button", { name: choice });
+  const announced = (text: string) => expect(dialog.getByText(text)).toHaveAttribute("aria-live", "polite");
+
+  expect(option("Daily rhythm", "Half")).toHaveAttribute("aria-pressed", "true");
+  expect(option("Daily rhythm", "Full")).toHaveAttribute("aria-pressed", "false");
+  expect(width("Daily rhythm")).toHaveAccessibleDescription("Beside Shopping on wide screens.");
+  expect(width("Next family plan")).not.toHaveAccessibleDescription();
+  expect(option("Next family plan", "Full")).toHaveAttribute("aria-pressed", "true");
+  for (const [name, reason] of [["Everyone’s day", "each person needs their own column."], ["Everyone’s week", "the week needs room for seven days."], ["School", "timetables sit side by side."]]) {
+    expect(dialog.queryByRole("group", { name: `Width for ${name}` })).toBeNull();
+    expect(dialog.getByText(`Always full width: ${reason}`)).toBeInTheDocument();
+  }
+  // Switched-off sections show no width choice.
+  expect(dialog.queryByRole("group", { name: "Width for Recent at home" })).toBeNull();
+
+  fireEvent.click(option("Next family plan", "Half"));
+  await waitFor(() => expect(settings.settings.dashboard.widths).toEqual({ nextPlan: "half" }));
+  expect(option("Next family plan", "Half")).toHaveAttribute("aria-pressed", "true");
+  expect(width("Next family plan")).toHaveAccessibleDescription("Fills its row: no half-width section next to it.");
+  announced("Next family plan: half width, fills its row.");
+
+  fireEvent.click(dialog.getByRole("switch", { name: "Waste collection" }));
+  fireEvent.click(option("Waste collection", "Half"));
+  announced("Waste collection: half width, beside Next family plan.");
+  expect(width("Next family plan")).toHaveAccessibleDescription("Beside Waste collection on wide screens; fills the row when Waste collection is hidden.");
+  expect(width("Waste collection")).toHaveAccessibleDescription("Beside Next family plan on wide screens.");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Move Daily rhythm earlier" }));
+  announced(`Moved Daily rhythm to position 5 of ${dashboardSections.length}. Now fills its row.`);
+  fireEvent.click(dialog.getByRole("button", { name: "Move Daily rhythm later" }));
+  announced(`Moved Daily rhythm to position 6 of ${dashboardSections.length}. Now beside Shopping.`);
+  fireEvent.click(option("Waste collection", "Full"));
+  announced("Waste collection: full width.");
+
+  const fill = dialog.getByRole("combobox", { name: "Section that fills the space" });
+  expect(fill).toHaveValue("");
+  expect(within(fill).getAllByRole("option").map(item => item.textContent)).toEqual(["None", "Daily rhythm", "Shopping"]);
+  expect(fill).toHaveAccessibleDescription(/grows down to the navigation/);
+  fireEvent.change(fill, { target: { value: "daily" } });
+  await waitFor(() => expect(settings.settings.dashboard.fill).toBe("daily"));
+  fireEvent.click(dialog.getByRole("switch", { name: "Daily rhythm" }));
+  expect(fill).toHaveValue("daily");
+  expect(fill).toHaveAccessibleDescription("Daily rhythm is hidden, so nothing fills the space.");
+
+  fireEvent.click(dialog.getByRole("button", { name: "Reset order and widths" }));
+  await waitFor(() => expect(settings.settings.dashboard.widths).toEqual({}));
+  expect(settings.settings.dashboard).toMatchObject({ order: [...dashboardSections], fill: "daily", daily: false, wasteCollection: true });
+  expect(dialog.getByRole("button", { name: "Reset order and widths" })).toBeDisabled();
+});
+
+it("previews Today's rows in Customize Today without exposing a second copy to assistive technology", async () => {
+  settings.settings.dashboard = { ...settings.settings.dashboard, wasteCollection: true, recentActivity: true, morningSummary: false,
+    widths: { wasteCollection: "half", nextPlan: "half", recentActivity: "half" }, fill: "recentActivity",
+    order: ["wasteCollection", "nextPlan", "day", "recentActivity", "daily", "shopping", "week", "school", "home", "homework", "morningSummary", "homeStatus"] };
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const preview = document.querySelector<HTMLElement>(".dashboard-preview")!;
+  expect(preview).toHaveAttribute("aria-hidden", "true");
+  expect(preview.querySelector("button, a, input, select")).toBeNull();
+  const rows = [...preview.querySelectorAll(".dashboard-preview-row")].map(row => [...row.children].map(block => block.textContent));
+  expect(rows).toEqual([["Waste collection", "Next family plan"], ["Everyone’s day"], ["Recent at home", "Daily rhythm"], ["Shopping"], ["Everyone’s week"], ["School"], ["Home favorites"]]);
+  expect(preview.querySelector("[data-conditional]")).toHaveTextContent("Waste collection");
+  expect(preview.querySelector(".dashboard-preview-row[data-fill]")).toHaveTextContent("Recent at homeDaily rhythm");
+  expect(preview).toHaveTextContent("Dashed: appears only when it has something to show.");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("switch", { name: "Daily rhythm" }));
+  await waitFor(() => expect([...preview.querySelectorAll(".dashboard-preview-row")][2]).toHaveTextContent(/^Recent at homeShopping$/));
+});
+
 it("disables reordering when shared configuration fails to load", async () => {
   app.configurationRequest.mockRejectedValue(new Error("Example storage failure"));
   render(<App />); await pageReady();
@@ -879,7 +968,7 @@ it("disables reordering when shared configuration fails to load", async () => {
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
   expect(within(dialog).getByRole("button", { name: "Move Shopping earlier" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Move Shopping later" })).toBeDisabled();
-  expect(within(dialog).getByRole("button", { name: "Reset section order" })).toBeDisabled();
+  expect(within(dialog).getByRole("button", { name: "Reset order and widths" })).toBeDisabled();
   expect(within(dialog).getByRole("button", { name: "Playback script" })).toBeDisabled();
 });
 

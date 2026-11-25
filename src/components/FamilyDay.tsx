@@ -44,7 +44,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   const rows = [];
   for (let i = 0; i < people.length; i += columns) rows.push(people.slice(i, i + columns));
 
-  return <section className="glow-panel col-span-full" aria-label={t("Everyone’s day")}>
+  return <section className="glow-panel family-day" aria-label={t("Everyone’s day")}>
     <PlannerCardBackdrop kind="day" />
     <div className="panel-heading"><PanelTitle artwork="day" icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
     <HomeAssistantCalendar data={data} hasVisiblePlans={hasVisiblePlans} />

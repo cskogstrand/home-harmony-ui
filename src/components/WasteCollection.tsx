@@ -76,7 +76,7 @@ export function WasteCollection() {
     : events === null ? t("Could not load waste collections. Check the calendar integration and try again.") : "";
   const loading = ready && events === undefined;
   if (!status && !collections.length) return null;
-  return <section className="glow-panel col-span-full waste-collection" aria-label={t("Waste collection")} aria-busy={loading}>
+  return <section className="glow-panel waste-collection" aria-label={t("Waste collection")} aria-busy={loading}>
     <PlannerCardBackdrop kind="wasteCollection" />
     <div className="panel-heading">
       <PanelTitle artwork="wasteCollection" icon={Trash2}>{t("Waste collection")}</PanelTitle>
