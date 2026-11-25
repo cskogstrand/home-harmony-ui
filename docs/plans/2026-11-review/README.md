@@ -51,6 +51,7 @@ Before marking a workstream ✅, also run `npm run --silent test:silent` and, wh
 | 11 | [3D printer card](11-printer-card.md) | Feature | 05 | ✅ |
 | 12 | [Type ramp and detector cleanup](12-type-ramp-and-detector.md) | P3 | 01–06 | ✅ |
 | 13 | [Final verification and re-critique](13-final-verification.md) | — | all | ✅ |
+| 14 | [Owner additions after the re-critique](14-owner-additions.md) | Owner | 13 | 🚧 |
 
 Legend: ⬜ not started · 🚧 in progress · ✅ done.
 
