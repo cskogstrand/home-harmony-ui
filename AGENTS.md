@@ -21,6 +21,10 @@ Before editing, read the documents relevant to the task and follow their links a
 | Versioning, releases or release notes | [docs/development.md](docs/development.md) and [CHANGELOG.md](CHANGELOG.md) |
 | Bundled fonts or font licensing | [public/fonts/README.md](public/fonts/README.md) |
 
+Standing rules:
+
+- A new or changed Today section (`dashboardSections` in `shared/configuration.ts`) must register its icon and card illustration (with its Card artwork switch) as described in DESIGN.md → The Every Section Illustrated Rule; `src/test/today-section-artwork.test.tsx` enforces it.
+
 Treat past verification notes as historical evidence, not proof of current behavior. Check the current code; use `PRODUCT.md` and `DESIGN.md` for the current product and design direction.
 
 ## Personal information and secrets
