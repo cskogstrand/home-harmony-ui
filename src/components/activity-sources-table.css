@@ -1,0 +1,120 @@
+/* Settings → Activity → Latest events → Activity sources: every entity that can report activity, as a table that is
+   searched, filtered, sorted and grouped. The card is the query container, so the phone layout follows the card's width
+   in rem and therefore the text size: rows become stacked entries and the column headers become sort capsules. */
+.activity-sources-card { container: activity-sources / inline-size; }
+.activity-sources { min-width: 0; }
+
+.activity-sources-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .5rem; margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+.activity-sources-total strong { color: hsl(var(--foreground)); font-size: var(--type-subtitle); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.activity-sources-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: 1rem; }
+.activity-sources-filters label { display: grid; align-content: start; gap: .375rem; min-width: 0; font-size: var(--type-label); font-weight: 500; }
+.activity-sources-filters select { width: 100%; min-width: 0; min-height: 48px; border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: 9px 12px; text-overflow: ellipsis; }
+.activity-sources-search { grid-column: 1 / -1; }
+.activity-sources-search-field { position: relative; display: block; }
+.activity-sources-search-field > svg { position: absolute; top: 50%; left: 14px; translate: 0 -50%; color: hsl(var(--muted-foreground)); pointer-events: none; }
+.activity-sources-search-field input { min-height: 48px; padding-left: 2.75rem; border-radius: var(--radius-field); font-size: var(--type-body); }
+
+.activity-sources-results { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 1rem; margin-top: .75rem; }
+.activity-sources-results p { min-width: 0; color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-variant-numeric: tabular-nums; }
+.activity-sources-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.activity-sources-actions > button { white-space: normal; text-align: start; }
+
+.activity-sources-table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: var(--type-body); }
+.activity-sources-table :is(th, td) { min-width: 0; padding: .5rem; text-align: start; vertical-align: middle; overflow-wrap: anywhere; }
+.activity-sources-table thead th { padding-block: 0; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; white-space: nowrap; }
+.activity-sources-sort-label { display: none; }
+.activity-sources-sort { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; margin-inline: -.5rem; padding-inline: .5rem; border-radius: var(--radius-field); color: inherit; font: inherit; }
+.activity-sources-sort:hover { color: hsl(var(--foreground)); }
+.activity-sources-sort:focus-visible, .activity-sources-fold:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.activity-sources-table th[aria-sort] .activity-sources-sort { color: hsl(var(--foreground)); font-weight: 600; }
+.activity-sources-sort > svg { flex-shrink: 0; opacity: .55; }
+.activity-sources-table th[aria-sort] .activity-sources-sort > svg { color: hsl(var(--primary)); opacity: 1; }
+
+.activity-sources-table tbody tr + tr > * { border-top: 1px solid hsl(var(--border) / .4); }
+.activity-sources-table .activity-sources-check { width: 3rem; padding-inline: .75rem 0; }
+/* The box stays small; its hit area grows to the 48px touch minimum around it. */
+.activity-sources [role="checkbox"] { position: relative; width: 22px; height: 22px; min-height: 0; border-radius: var(--radius-checkbox); }
+.activity-sources [role="checkbox"]::after { content: ""; position: absolute; inset: -14px; }
+.activity-sources-name > span { display: flex; align-items: center; gap: .75rem; min-height: 40px; }
+.activity-sources-name svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
+.activity-sources-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.activity-sources-copy strong { font-weight: 500; }
+.activity-sources-copy small, .activity-sources-type small { color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 400; }
+.activity-sources-table th.activity-sources-name { font-weight: 400; }
+.activity-sources-table th.activity-sources-name { width: 32%; }
+.activity-sources-meta { font-size: var(--type-label); }
+.activity-sources-meta.is-empty::before { content: "—" / ""; color: hsl(var(--muted-foreground)); }
+.activity-sources-meta-icon { display: none; }
+.activity-sources-type small { display: block; }
+.activity-sources-table tr.is-chosen .activity-sources-copy strong { font-weight: 600; }
+
+.activity-sources-group-row > * { border-top: 1px solid hsl(var(--border) / .8); }
+.activity-sources-table thead + .activity-sources-group .activity-sources-group-row > * { border-top: 0; }
+.activity-sources-group-row > th { padding-block: .25rem; }
+.activity-sources-fold { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding-inline: .5rem; margin-inline: -.5rem; border-radius: var(--radius-field); color: inherit; font: inherit; font-weight: 600; text-align: start; }
+.activity-sources-fold > svg:first-child { flex-shrink: 0; color: hsl(var(--primary)); }
+.activity-sources-group-name { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.activity-sources-group-name small { color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 400; }
+.activity-sources-count { flex-shrink: 0; padding: 2px 10px; border: 1px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.activity-sources-chevron { flex-shrink: 0; color: hsl(var(--muted-foreground)); transition: rotate 200ms var(--ease-out); }
+.activity-sources-fold[aria-expanded="true"] .activity-sources-chevron { rotate: 180deg; }
+
+.activity-sources-none td { padding-block: 1.25rem; color: hsl(var(--muted-foreground)); }
+.activity-sources-none td { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
+
+/* Pending changes float above the dock while the table scrolls, and park at the card's end. The bar's padding is at
+   least two-thirds of its radius, so its capsule buttons stand free of its corners (The Concentric Radius Rule). */
+.activity-sources-savebar { position: sticky; bottom: calc(var(--app-dock-height, 6rem) + 1.5rem + env(safe-area-inset-bottom)); z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1rem; padding: .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); box-shadow: var(--home-shadow-md); }
+.activity-sources-savebar p { display: flex; flex: 1 1 12rem; flex-direction: column; gap: 2px; min-width: 0; padding-inline: .25rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.activity-sources-savebar-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+.activity-sources-savebar [role="alert"] { color: hsl(var(--destructive)); font-size: var(--type-label); font-weight: 500; }
+
+@container activity-sources (max-width: 40rem) {
+  .activity-sources-table, .activity-sources-table :is(caption, thead, tbody, tr, th, td) { display: block; }
+  .activity-sources-table caption { display: none; }
+  .activity-sources-table thead tr { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-bottom: .75rem; border-bottom: 1px solid hsl(var(--border)); }
+  .activity-sources-table thead th { padding: 0; border: 0; }
+  .activity-sources-table thead th.activity-sources-check { flex-basis: 100%; width: auto; }
+  .activity-sources-sort-label { display: inline; }
+  .activity-sources-sort { margin: 0; padding-inline: .875rem; border: 1px solid hsl(var(--border)); border-radius: 999px; }
+  .activity-sources-table th[aria-sort] .activity-sources-sort { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .activity-sources-table th[aria-sort] .activity-sources-sort > svg { color: inherit; }
+
+  /* An entry: the checkbox in a 3rem gutter, the name, then device, integration, area and type as one wrapping line,
+     each led by its glyph, so a wrapped line never starts or ends on a stray separator. */
+  .activity-sources-table tbody tr { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .875rem; min-height: 56px; padding: .5rem 0 .625rem 3rem; }
+  .activity-sources-table tbody tr + tr { border-top: 1px solid hsl(var(--border) / .4); }
+  .activity-sources-table tbody tr + tr > * { border-top: 0; }
+  .activity-sources-table tbody .activity-sources-group-row { border-top: 1px solid hsl(var(--border) / .8); }
+  .activity-sources-table .activity-sources-group-row > * { border-top: 0; }
+  .activity-sources-table thead + .activity-sources-group .activity-sources-group-row { border-top: 0; }
+  .activity-sources-table tbody :is(th, td) { padding: 0; }
+  .activity-sources-table tbody td.activity-sources-check { position: absolute; top: .5rem; left: 0; display: grid; place-items: center; width: 3rem; height: 40px; padding: 0; }
+  .activity-sources-table tbody .activity-sources-name { flex-basis: 100%; width: auto; }
+  .activity-sources-meta { display: inline-flex; align-items: baseline; gap: .3rem; min-width: 0; color: hsl(var(--muted-foreground)); }
+  .activity-sources-meta-icon { display: inline; flex-shrink: 0; align-self: center; opacity: .8; }
+  .activity-sources-meta.is-empty { display: none; }
+  .activity-sources-type small { display: inline; margin-left: .125rem; }
+  .activity-sources-name > span { min-height: 40px; }
+  .activity-sources-table .activity-sources-group-row { padding-block: .25rem; }
+  .activity-sources-table .activity-sources-group-row > th { flex: 1; min-width: 0; }
+  .activity-sources-table .activity-sources-group-row td.activity-sources-check { top: .75rem; }
+  /* The count drops below the group name, so a long name or large text never pushes the chevron off the card. */
+  .activity-sources-fold { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: .75rem; row-gap: .25rem; margin: 0; padding: .375rem 0 .375rem .5rem; }
+  .activity-sources-fold > svg:first-child { grid-row: 1 / span 2; }
+  .activity-sources-group-name { grid-column: 2; }
+  .activity-sources-count { grid-column: 2; grid-row: 2; justify-self: start; }
+  .activity-sources-chevron { grid-column: 3; grid-row: 1 / span 2; }
+  /* Cancel becomes a 48px circle beside Save, so the bar keeps one row of actions at large text. */
+  .activity-sources-cancel { width: 2.75rem; min-width: 48px; height: 2.75rem; min-height: 48px; padding: 0; border-radius: 999px; }
+  .activity-sources-cancel > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }  .activity-sources-none td { padding-left: 0; }
+  .activity-sources-table tbody tr.activity-sources-none { padding-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) { .activity-sources-chevron { transition: none; } }
+@media (forced-colors: active) {
+  .activity-sources-count, .activity-sources-sort { border-color: CanvasText; }
+  .activity-sources-table th[aria-sort] .activity-sources-sort { outline: 2px solid CanvasText; outline-offset: 1px; }
+  .activity-sources-savebar { border-color: CanvasText; }
+}

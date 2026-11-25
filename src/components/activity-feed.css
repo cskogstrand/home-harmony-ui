@@ -20,28 +20,6 @@
   .activity-row time { grid-column: 2; }
 }
 
-/* Settings → Activity sources: the chosen sources by event type, readable without opening the picker. */
+/* Settings → Activity sources: the notes above the sources table (activity-sources-table.css). */
 .activity-sources-people { margin-top: .25rem; }
-.activity-sources-picker { margin-top: .75rem; }
-.activity-source-groups { margin-top: 1rem; border-top: 1px solid hsl(var(--border) / .6); }
-.activity-source-group + .activity-source-group { border-top: 1px solid hsl(var(--border) / .6); }
-.activity-source-group > summary { display: flex; align-items: center; gap: .75rem; min-height: 56px; padding-block: .5rem; border-radius: var(--radius-field); font-weight: 600; cursor: pointer; list-style: none; }
-.activity-source-group > summary::-webkit-details-marker { display: none; }
-.activity-source-group > summary > svg:first-child { flex-shrink: 0; color: hsl(var(--primary)); }
-.activity-source-group > summary:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
-.activity-source-type { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
-.activity-source-type small, .activity-source-copy small { color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 400; }
-.activity-source-count { flex-shrink: 0; padding: 2px 10px; border: 1px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.activity-source-chevron { flex-shrink: 0; color: hsl(var(--muted-foreground)); transition: rotate 200ms var(--ease-out); }
-.activity-source-group[open] .activity-source-chevron { rotate: 180deg; }
-/* Rows indent under the type label, so their icons line up with its text. */
-.activity-source-group ul { display: grid; padding: 0 0 .5rem calc(20px + .75rem); }
-.activity-source { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 52px; padding-block: .25rem; }
-.activity-source + .activity-source { border-top: 1px solid hsl(var(--border) / .4); }
-.activity-source > svg { flex-shrink: 0; width: 20px; height: 20px; color: hsl(var(--muted-foreground)); }
-.activity-source-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
-.activity-source-copy strong { font-weight: 500; }
 .activity-sources-empty { margin-top: 1rem; }
-@media (prefers-reduced-motion: reduce) { .activity-source-chevron { transition: none; } }
-@media (forced-colors: active) { .activity-source-count { border-color: CanvasText; } }
-@media (max-width: 699px) { .activity-source-group ul { padding-left: 0; } }

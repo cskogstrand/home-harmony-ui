@@ -19,7 +19,7 @@ Arrow keys move through results; Tab reaches the other controls. Enter activates
 - `disabled` blocks the whole field; `disabledReason` explains individual ineligible choices.
 - `missingLabel` describes saved selections no longer in the eligible list. They remain selected until explicitly replaced or removed.
 
-A long multi-selection can also be summarized beside the picker, as Settings → System → Activity → Activity sources does: the caller groups its own selection and offers per-item removal through the same `onChange` data, while the picker stays the place to add.
+A selection that runs to dozens of entities across many devices can outgrow the dropdown. Settings → System → Activity → Activity sources uses its own table instead (`src/components/ActivitySourcesTable.tsx`, with the row, filter, sort and group helpers in `src/lib/activity-sources.ts`): every eligible entity is a row that can be searched, filtered, sorted and grouped by device, integration, area or type, and ticks collect in a draft until saved. It uses the same stable `Entity.preferenceId` values and keeps missing selections visible, as the picker does.
 
 The picker does not change Home Assistant visibility, fetch additional state or send device commands. Its candidate list comes from the existing Home Assistant model and each caller's eligibility rules. It shows identifiers to distinguish similarly named entities, but never renders entity state values.
 
