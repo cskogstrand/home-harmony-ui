@@ -45,6 +45,22 @@ it("names consumers by device and drops the device name the meter heading alread
   expect(within(screen.getByRole("region", { name: "Example meter" })).getByText("Energy consumption: 123 kWh")).toBeVisible();
 });
 
+it("lists a charger with two power sensors once and never counts its draw twice", () => {
+  const power = (id: string, value: string, unit: string, name: string) => state(`sensor.${id}`, value, { friendly_name: name, device_class: "power", unit_of_measurement: unit });
+  mocks.home = mapHome({
+    "sensor.charger_power": power("charger_power", "3", "kW", "Example charger Charger power"),
+    "sensor.charger_power_2": power("charger_power_2", "3000", "W", "Example charger Power"),
+    "sensor.heater": power("heater", "1000", "W", "Example heater"),
+  }, { areas: [], devices: [{ id: "charger", name: "Example charger" }], entities: [
+    { id: "a", entity_id: "sensor.charger_power", device_id: "charger" }, { id: "b", entity_id: "sensor.charger_power_2", device_id: "charger" },
+  ] }, "home");
+  render(<EnergySaver />);
+  const now = within(screen.getByRole("region", { name: "Using power now" }));
+  expect(now.getAllByText("Example charger")).toHaveLength(1);
+  expect(now.getByText("Total of listed circuits").parentElement).toHaveTextContent("Total of listed circuits4 kW");
+  expect(screen.queryByText("Meters")).not.toBeInTheDocument();
+});
+
 it("loads recorded history for pinned meters and lets users remove a missing meter at the limit", async () => {
   mocks.home = mapHome(Object.fromEntries(["a", "b", "c"].map(name => [`sensor.${name}`, state(`sensor.${name}`, "10", { friendly_name: name, device_class: "power", unit_of_measurement: "W" })])),
     { areas: [], entities: [], devices: [] }, "home");

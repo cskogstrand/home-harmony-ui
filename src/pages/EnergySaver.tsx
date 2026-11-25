@@ -4,7 +4,7 @@ import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { EntityPicker } from "@/components/EntityPicker";
 import { EntityHistory } from "@/components/devices/EntityHistory";
 import { available, entityReading, entityStateLabel } from "@/lib/ha-model";
-import { consumerName, powerNow, splitIdle, wattsReading, type PowerReading } from "@/lib/energy";
+import { consumerName, powerNow, powerWatts, splitIdle, wattsReading, type PowerReading } from "@/lib/energy";
 import { Gauge, Zap } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
@@ -38,7 +38,8 @@ export default function EnergySaver() {
   const top = active.slice(0, topConsumers);
   const listed = wattsReading(top.reduce((sum, item) => sum + item.watts, 0));
   // Counters, costs and power sensors without a current reading stay available, collapsed under Meters.
-  const live = new Set(power.map(item => item.entity.entityId));
+  // Overlapping power sensors that powerNow folded into one consumer are live too, not counters.
+  const live = new Set(meters.filter(entity => powerWatts(entity) !== undefined).map(entity => entity.entityId));
   const groups = new Map<string, typeof meters>();
   for (const entity of meters.filter(entity => !live.has(entity.entityId))) {
     const key = entity.device ? `device:${entity.device.id}` : `integration:${entity.integration ?? ""}`;
