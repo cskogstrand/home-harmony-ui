@@ -825,6 +825,11 @@ fieldset.settings-card > legend + * { clear: both; }
   /* The wall never cuts the waste label: it wraps below the icons, and the 22px radius (half the 44px minimum) keeps one line a capsule. */
   .week-waste-chip { flex-wrap: wrap; row-gap: .25rem; padding-block: .5rem; border-radius: 22px; }
   .week-waste-label { overflow: visible; white-space: normal; text-overflow: clip; hyphens: auto; }
+  /* Everyone's day has the widest event columns on the wall: titles, times and details sit one step above the portrait reading scale, on 64px rows. */
+  .family-day-board .event-button { min-height: 64px; }
+  .family-day-board .event-button strong { font-size: var(--type-subtitle); }
+  .family-day-board .event-time { font-size: var(--type-body); }
+  .family-day-board .event-button small { font-size: var(--type-label); }
   .calendar-segment button, .calendar-current-week, .calendar-week-number { font-size: var(--type-label); }
   .check-row, .check-row :is(label, .edit-item) { min-height: 64px; font-size: var(--type-subtitle); }
   .check-mark { width: 26px; height: 26px; }
