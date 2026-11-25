@@ -4,7 +4,7 @@ import { PanelTitle } from "@/components/PanelTitle";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
-import { Fragment, useCallback, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useRef, useState, type ReactNode } from "react";
 import { dashboardRows, type DashboardSection } from "../../shared/configuration";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
@@ -26,6 +26,9 @@ import { WeatherWidget } from "@/components/WeatherWidget";
 import { WasteCollection } from "@/components/WasteCollection";
 import { HomeStatus } from "@/components/HomeStatus";
 import { RecentActivity } from "@/components/ActivityFeed";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { useWallFill } from "@/hooks/use-wall-fill";
+import { wallQuery } from "@/lib/wall-fill";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
@@ -60,6 +63,12 @@ export default function Dashboard() {
     && !events.some(e => !e.allDay && e.date >= today && e.date < planEnd
       && (e.date > today || e.continues || (e.endTime ?? e.time) >= time));
   const weekEvents = events.filter(e => e.date >= start && e.date < weekEnd);
+  const rows = dashboardRows(dashboard);
+  // On the large wall, the chosen section grows down to the dock; its height comes from the rest of the board, not its own rows.
+  const wall = useMediaQuery(wallQuery);
+  const board = useRef<HTMLDivElement>(null);
+  const fillHeight = useWallFill(board, wall && rows.some(row => row.fill));
+  const fill = (key: DashboardSection) => dashboard.fill === key ? fillHeight : undefined;
   const quietSummary = t(planDays === 0 ? "No more timed plans today." : planDays === 1 ? "No more timed plans today or tomorrow." : "No more timed plans today or in the next {days} days.", { days: planDays });
   const sections: Record<DashboardSection, ReactNode> = {
     homeStatus: dashboard.homeStatus && <HomeStatus card />,
@@ -99,14 +108,14 @@ export default function Dashboard() {
         </div>;
       })}</div></>}
     </section>,
-    daily: dashboard.daily && <ListPanel kind="daily" limit={3} />,
-    shopping: dashboard.shopping && <ListPanel kind="shopping" limit={3} />,
-    homework: dashboard.homework && <ListPanel kind="homework" homeworkPreview={dashboard.homeworkOptions} />,
+    daily: dashboard.daily && <ListPanel kind="daily" limit={3} fill={fill("daily")} />,
+    shopping: dashboard.shopping && <ListPanel kind="shopping" limit={3} fill={fill("shopping")} />,
+    homework: dashboard.homework && <ListPanel kind="homework" homeworkPreview={dashboard.homeworkOptions} fill={fill("homework")} />,
     school: dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle artwork="school" icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}<PlannerCardBackdrop kind="school" /></section>,
     home: dashboard.home && <HomeFavorites />,
-    recentActivity: dashboard.recentActivity && <RecentActivity placement="today" />,
+    recentActivity: dashboard.recentActivity && <RecentActivity placement="today" fill={fill("recentActivity")} />,
   };
-  return <div className="portrait-board">
+  return <div ref={board} className="portrait-board">
     <header className="ambient-heading">
       <div className="greeting"><div className="today-title"><h1>{t("Today")}</h1><DashboardSettings /></div><p>{dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}</p>
         {needsSetup && <Button asChild><Link to="/onboarding">{t("Get started")}<ArrowUpRight size={17} /></Link></Button>}
@@ -116,7 +125,8 @@ export default function Dashboard() {
     <NotificationList compact />
     {!dashboard.order.some(key => dashboard[key]) && <p className="col-span-full text-muted-foreground">{t("All sections are hidden. Use the settings cog to show them again.")}</p>}
     {/* Rows follow the household's order: two half sections share a row on wide screens; a row whose partner has nothing to show lets the other span it. */}
-    {dashboardRows(dashboard).map(row => <div key={row.sections[0]} className="board-row" data-columns={row.sections.length}>
+    {rows.map(row => <div key={row.sections[0]} className="board-row" data-columns={row.sections.length} data-fill-row={row.fill || undefined}
+      style={row.fill && fillHeight !== undefined ? { minHeight: fillHeight } : undefined}>
       {row.sections.map(key => <Fragment key={key}>{sections[key]}</Fragment>)}
     </div>)}
     <EventEditor open={editorOpen} onOpenChange={setEditorOpen} onSaved={data.refresh} event={editing} date={newPlan?.date} member={newPlan?.member} />
