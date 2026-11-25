@@ -10,6 +10,7 @@ const settingsCss: string = sourceFile("pages/settings.css");
 const smartHomeSettingsCss: string = sourceFile("components/smart-home-settings.css");
 const notificationsCss: string = sourceFile("components/notifications.css");
 const tabsSource: string = sourceFile("components/ui/tabs.tsx");
+const deviceCardsCss: string = sourceFile("components/devices/device-cards.css");
 
 const declarations = (css: string, selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -37,4 +38,10 @@ it("gives rows and day surfaces their card radius minus the inset", () => {
   expect(declarations(smartHomeSettingsCss, ".smart-card-row-icon")).toMatch(/border-radius: var\(--radius-field\)/);
   expect(declarations(afterglowCss, ".timetable-day")).toMatch(/--timetable-day-radius: calc\(var\(--radius-menu\) - \.5rem - 1px\)/);
   expect(declarations(afterglowCss, ".timetable-day-trigger::after")).toMatch(/border-radius: var\(--timetable-day-radius\)/);
+  expect(declarations(settingsCss, ".settings-panel-menu a")).toMatch(/border-radius: calc\(var\(--radius-inset\) - \.5rem - 1px\)/);
+  expect(declarations(notificationsCss, ".notification-line-header")).toMatch(/border-radius: calc\(var\(--radius-inset\) - 1px\) calc\(var\(--radius-inset\) - 1px\) 0 0/);
+  // The super compact scene action fills its unpadded card, so it shares the card's corners.
+  expect(declarations(deviceCardsCss, ".dg-supercompact .dg-scene-action")).toMatch(/border-radius: var\(--radius-inset\)/);
+  // With artwork on, the Smart home heading row wraps its trailing capsule button concentrically.
+  expect(declarations(artworkCss, "[data-artwork] .smart-page > section > .section-heading")).toMatch(/padding: \.25rem \.25rem \.25rem 1rem;.*border-radius: calc\(2\.75rem \/ 2 \+ \.25rem\)/);
 });
