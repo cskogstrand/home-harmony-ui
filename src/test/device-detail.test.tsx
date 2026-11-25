@@ -213,7 +213,7 @@ it("names a thermostat's readings and settings without the device, in the dashbo
   expect(within(screen.getByRole("region", { name: "Readings and status" })).getByRole("heading", { name: "Luftfuktighet" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
   const settings = screen.getByRole("tabpanel");
-  // A name without any known translation stays as Home Assistant reports it.
-  expect(within(settings).getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Barnesikring", "Mode"]);
+  // A common word Home Assistant leaves in English reads in the app's own Bokmål.
+  expect(within(settings).getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Barnesikring", "Modus"]);
   expect(within(settings).getByRole("article", { name: "Barnesikring" })).toBeVisible();
 });
