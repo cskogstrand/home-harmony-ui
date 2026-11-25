@@ -94,6 +94,11 @@ const excludedDomains = new Set(["automation", "script", "scene", "update", "zon
 const deviceClass = (entity?: Entity) => String(entity?.attributes.device_class ?? "");
 const numeric = (entity: Entity) => entity.domain === "sensor" && (entity.attributes.unit_of_measurement !== undefined
   || entity.attributes.state_class !== undefined || !!entity.state.trim() && Number.isFinite(Number(entity.state)));
+// Home Assistant's running class also covers a car's climate, sentry or service mode and a heat pump's compressor.
+// Only a running sensor that is none of these is an appliance programme that can finish.
+const notProgramme = /(?:^|_)(?:mode|climate|hvac|heat(?:er|ing)?|cool(?:er|ing)?|fan|compressor|defrost|keeper|precondition(?:ing)?|sentry|valet|charg(?:e|er|ing))(?:_|$)/;
+const applianceRun = (entity?: Entity) => entity?.domain === "binary_sensor" && deviceClass(entity) === "running"
+  && ![entity.registryName ?? "", entity.entityId.slice(entity.entityId.indexOf(".") + 1)].some(text => notProgramme.test(text.toLowerCase().replace(/[\s-]+/g, "_")));
 const finishingAppliance = (entity: Entity) => entity.domain === "sensor" && !numeric(entity)
   && Array.isArray(entity.attributes.options) && entity.attributes.options.some(option => typeof option === "string" && finishedStates.test(option));
 
@@ -106,7 +111,7 @@ export function activitySourceCandidates(entities: Entity[]) {
 export function defaultActivitySources(entities: Entity[], personSensors: string[] = []) {
   const cameras = new Set(personSensors);
   return entities.filter(entity => !entity.category && (cameras.has(entity.entityId)
-    || entity.domain === "binary_sensor" && (openingClasses.has(deviceClass(entity)) || deviceClass(entity) === "running")
+    || entity.domain === "binary_sensor" && openingClasses.has(deviceClass(entity)) || applianceRun(entity)
     || entity.domain === "cover" && coverClasses.has(deviceClass(entity))
     || ["lock", "alarm_control_panel", "vacuum", "lawn_mower"].includes(entity.domain)
     || entity.domain === "event" && deviceClass(entity) === "doorbell"
@@ -181,7 +186,7 @@ function classify(event: LogbookEvent, entity: Entity | undefined, options: Acti
     return changed("lock");
   }
   if (domain === "alarm_control_panel") return transitionStates.has(state) ? changed("alarm") : said("alarm", "alarm", "{name}: {state}", { state: label(state) });
-  if (domain === "binary_sensor" && cls === "running") {
+  if (applianceRun(entity)) {
     if (state === "off") return said("finished", "appliance", "{name} finished");
     return state === "on" ? said("started", "appliance", "{name} started") : changed("appliance");
   }

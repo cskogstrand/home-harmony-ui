@@ -212,6 +212,27 @@ describe("activity curation", () => {
     expect(curated(events)).toEqual([]);
   });
 
+  it("reports only appliance programmes as finished, not a car's climate or a mode that uses the running class", () => {
+    const running = (entityId: string, friendly: string) => state(entityId, "off", { device_class: "running", friendly_name: friendly });
+    const ids = ["binary_sensor.example_dryer_programme", "binary_sensor.example_car_climate", "binary_sensor.example_car_sentry_mode",
+      "binary_sensor.example_car_preconditioning", "binary_sensor.example_car_service_mode", "binary_sensor.example_pump_compressor"];
+    // The car's sensors keep their metric in the registry even when the entity ID was renamed.
+    const home = mapHome({
+      [ids[0]]: running(ids[0], "Example dryer Running"), [ids[1]]: running(ids[1], "Example car Climate"), [ids[2]]: running(ids[2], "Example car Sentry Mode"),
+      [ids[3]]: running(ids[3], "Example car Preconditioning"), [ids[4]]: running(ids[4], "Example car Service Mode"), [ids[5]]: running(ids[5], "Example heat pump Compressor"),
+      "binary_sensor.example_car_renamed": running("binary_sensor.example_car_renamed", "Example car Cabin"),
+    }, { areas: [], devices: [], entities: [{ id: "renamed", entity_id: "binary_sensor.example_car_renamed", original_name: "Climate" }] }, "home").entities;
+    expect(defaultActivitySources(home)).toEqual([id(ids[0])]);
+    const events = [...ids, "binary_sensor.example_car_renamed"].flatMap((entityId, index) => [event(entityId, "on", 20 + index), event(entityId, "off", 10 - index)]);
+    const items = curateActivity(events, home, { mode: "full", language: "en", people: false });
+    expect(items.filter(item => item.kind === "finished").map(item => item.entityId)).toEqual([ids[0]]);
+    expect(items.filter(item => item.kind === "started").map(item => item.entityId)).toEqual([ids[0]]);
+    expect(sentences(items.filter(item => item.entityId === ids[1]), norwegian)).toEqual(["Example car Climate ble slått av", "Example car Climate ble slått på"]);
+    // An added source still reports its changes, as turned on and off.
+    expect(sentences(curateActivity(events, home, { mode: "curated", language: "en", people: false, sources: home.map(entity => entity.preferenceId) })))
+      .toEqual(expect.arrayContaining(["Example dryer Running finished", "Example car Climate turned off", "Example car Cabin turned off"]));
+  });
+
   it("writes logged dates, times, readings and states in the dashboard language and hides values it cannot read", () => {
     const logged = mapHome({
       "sensor.example_seen": state("sensor.example_seen", "2026-10-06T09:00:00+00:00", { device_class: "timestamp", friendly_name: "Example car Last seen" }),
