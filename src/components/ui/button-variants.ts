@@ -16,7 +16,8 @@ export const buttonVariants = cva(
         default: "min-h-11 px-4 py-2",
         sm: "min-h-11 rounded-full px-3",
         lg: "h-11 rounded-full px-8",
-        icon: "h-11 w-11",
+        // Both axes share the 48px touch minimum, so the base button's min-height never stretches a circle into an oval.
+        icon: "h-11 w-11 min-h-[48px] min-w-[48px]",
       },
     },
     defaultVariants: {
