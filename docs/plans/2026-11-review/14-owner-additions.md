@@ -29,4 +29,5 @@
 - [ ] **Activity sources at a glance:** in Settings → System → Activity → Latest events, the chosen sources are easy to see (which are selected, how many, and what each is) without opening the picker.
 - [ ] **Phone icon buttons:** shared icon buttons are 48 × 48 on phones so focus and hover shapes are circles, not 44 × 48 ovals.
 - [ ] **Sonos mini player radius:** the artwork and controls sit concentrically in the mini player capsule (measured with fictional playback, not the live system).
-- [ ] **Remaining English names:** names Home Assistant leaves untranslated (for example a charge port, "Mode", "Relative humidity threshold min", "Electricity consumption summary") read in Bokmål where a sensible translation exists.
+- [x] **Remaining English names:** names Home Assistant leaves untranslated (for example a charge port, "Mode", "Relative humidity threshold min", "Electricity consumption summary") read in Bokmål where a sensible translation exists.
+  > Done 2026-11-25: names built from generic Bokmål words when every word is known ("Luftfuktighet (nedre grense)", "Modus", "Ladeportlås"); Home Assistant's own translations still win and owner-named helpers, templates and scripts are never changed. Still English by design: vendor terms, internal codes, settings/diagnostic entities and names with unknown words.
