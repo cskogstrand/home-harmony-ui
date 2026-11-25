@@ -22,3 +22,7 @@
 .entity-picker-empty { padding: 20px 12px; font-size: var(--type-label); color: hsl(var(--muted-foreground)); }
 .entity-picker-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 10px; border-top: 1px solid hsl(var(--border)); }
 .entity-picker-footer > span { flex: 1; min-width: 80px; padding-inline: 4px; font-size: var(--type-label); color: hsl(var(--muted-foreground)); }
+/* A ticked row keeps a faint primary wash beside its checkmark, so the selection reads while scrolling; the checkmark carries it without color. */
+.entity-picker-option.is-selected { background: hsl(var(--primary) / .07); }
+.entity-picker-option.is-selected:hover, .entity-picker-option.is-selected:focus-within { background: hsl(var(--accent)); }
+@media (forced-colors: active) { .entity-picker-option.is-selected { outline: 1px solid CanvasText; outline-offset: -1px; } }

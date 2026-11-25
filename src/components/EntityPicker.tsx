@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Layers, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Layers, ListChecks, Plus, Search, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import type { Entity } from "@/types/api";
@@ -37,6 +37,8 @@ export function EntityPicker(props: EntityPickerProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [device, setDevice] = useState<string | undefined>();
+  // The Selected view keeps what was selected when it opened, so unticking a row leaves it in place to tick again.
+  const [shown, setShown] = useState<string[]>([]);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const selected = props.multiple === true ? props.value : props.value ? [props.value] : [];
@@ -52,15 +54,19 @@ export function EntityPicker(props: EntityPickerProps) {
   const normalize = (value: string) => value.toLocaleLowerCase(language).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const terms = normalize(search).trim().split(/\s+/).filter(Boolean);
   const matches = (value: string) => terms.every(term => normalize(value).includes(term));
-  const matching = sorted.filter(entity => (device === undefined || device === "all" || (device === "none" ? !entity.device : entity.device?.id === device))
+  const matching = sorted.filter(entity => (device === undefined || device === "all" || (device === "selected" ? shown.includes(entity.preferenceId) : device === "none" ? !entity.device : entity.device?.id === device))
     && matches([getLabel(entity), entity.name, entity.entityId, entity.domain, entity.device && deviceName(entity), areaName(entity), entity.integration].filter(Boolean).join(" ")));
-  const missing = selected.filter(value => !entities.some(entity => entity.preferenceId === value) && matches(missingLabel(value)));
+  const missing = (device === "selected" ? shown : selected).filter(value => !entities.some(entity => entity.preferenceId === value) && matches(missingLabel(value)));
   const browsingDevices = props.groupByDevice !== false && device === undefined && devices.size > 0;
   const matchingIds = new Set(matching.map(entity => entity.preferenceId));
   const deviceChoices = [...devices.entries()].filter(([, members]) => members.some(entity => matchingIds.has(entity.preferenceId)))
     .sort(([, a], [, b]) => deviceName(a[0]).localeCompare(deviceName(b[0]), language));
-  const pickDevice = (value: string | undefined) => { setDevice(value); setSearch(""); if (list.current) list.current.scrollTop = 0; input.current?.focus(); };
+  const pickDevice = (value: string | undefined) => { setDevice(value); setSearch(""); if (value === "selected") setShown(selected); if (list.current) list.current.scrollTop = 0; input.current?.focus(); };
   const entityCount = (count: number) => t(count === 1 ? "1 entity" : "{count} entities", { count });
+  const selectedCount = (members: Entity[]) => {
+    const count = props.multiple === true ? members.filter(entity => selected.includes(entity.preferenceId)).length : 0;
+    return count ? t("{count} selected", { count }) : undefined;
+  };
   const choose = (value: string) => {
     if (disabled) return;
     if (props.multiple === true) props.onChange(selected.includes(value) ? selected.filter(id => id !== value) : [...selected, value]);
@@ -83,7 +89,7 @@ export function EntityPicker(props: EntityPickerProps) {
     const checked = selected.includes(value);
     const descriptionId = entity ? `${id}-${entity.entityId}` : undefined;
     const content = <><DeviceIcon type={entity?.domain ?? "sensor"} deviceClass={entity?.attributes.device_class} className="h-5 w-5 shrink-0 text-muted-foreground" /><span className="entity-picker-copy"><strong>{name}</strong>{entity && <small>{[entity.device && deviceName(entity), areaName(entity)].filter(Boolean).join(" · ")}</small>}{entity && <small id={descriptionId} className="entity-picker-id">{entity.entityId}</small>}{(reason || entity && getDescription?.(entity)) && <small>{reason || getDescription?.(entity)}</small>}</span></>;
-    return <li key={value}>{props.multiple ? <label className={`entity-picker-option${reason || disabled ? " is-disabled" : ""}`}>
+    return <li key={value}>{props.multiple ? <label className={`entity-picker-option${checked ? " is-selected" : ""}${reason || disabled ? " is-disabled" : ""}`}>
       {content}<Checkbox data-picker-option checked={checked} disabled={disabled || !!reason} aria-label={name} aria-describedby={descriptionId} onCheckedChange={() => choose(value)} />
     </label> : <button type="button" data-picker-option className="entity-picker-option" disabled={disabled || !!reason || !entity} aria-label={entity ? `${name} · ${entity.entityId}` : name} onClick={() => choose(value)}>
       {content}{checked && <Check size={18} className="shrink-0 text-primary" aria-hidden="true" />}
@@ -99,13 +105,14 @@ export function EntityPicker(props: EntityPickerProps) {
       <PopoverContent align="start" collisionPadding={12} className="entity-picker-popover" aria-label={ariaLabel} onOpenAutoFocus={event => { event.preventDefault(); input.current?.focus(); }}>
         <div className="entity-picker-search"><Search size={18} aria-hidden="true" /><Input ref={input} type="search" aria-label={t("Search devices and entities")} placeholder={t("Search names, IDs, rooms or integrations…")} value={search} onChange={event => { setSearch(event.target.value); if (list.current) list.current.scrollTop = 0; }} onKeyDown={moveFocus} /></div>
         <div className="entity-picker-heading">{props.groupByDevice !== false && !browsingDevices && devices.size > 0 && <Button type="button" variant="ghost" size="icon" aria-label={t("Back to devices")} onClick={() => pickDevice(undefined)}><ArrowLeft size={18} aria-hidden="true" /></Button>}
-          <strong>{browsingDevices ? t("Choose a device") : device === "none" ? t("Without a device") : device && devices.has(device) ? deviceName(devices.get(device)[0]) : t("All entities")}</strong>
+          <strong>{browsingDevices ? t("Choose a device") : device === "selected" ? t("Selected entities") : device === "none" ? t("Without a device") : device && devices.has(device) ? deviceName(devices.get(device)[0]) : t("All entities")}</strong>
         </div>
         <ul ref={list} className="entity-picker-options" onKeyDown={moveFocus}>
           {browsingDevices && <>
+            {props.multiple === true && selected.length > 0 && <li><button type="button" data-picker-option className="entity-picker-option" onClick={() => pickDevice("selected")}><ListChecks size={20} aria-hidden="true" /><span className="entity-picker-copy"><strong>{t("Selected entities")}</strong><small>{t("{count} selected", { count: selected.length })}</small></span><ChevronRight size={16} aria-hidden="true" /></button></li>}
             <li><button type="button" data-picker-option className="entity-picker-option" onClick={() => pickDevice("all")}><Layers size={20} aria-hidden="true" /><span className="entity-picker-copy"><strong>{t("All entities")}</strong><small>{entityCount(entities.length)}</small></span><ChevronRight size={16} aria-hidden="true" /></button></li>
             {sorted.some(entity => !entity.device) && <li><button type="button" data-picker-option className="entity-picker-option" onClick={() => pickDevice("none")}><Layers size={20} aria-hidden="true" /><span className="entity-picker-copy"><strong>{t("Without a device")}</strong><small>{t("Helpers, calendars and other standalone entities")}</small></span><ChevronRight size={16} aria-hidden="true" /></button></li>}
-            {deviceChoices.map(([key, members]) => <li key={key}><button type="button" data-picker-option className="entity-picker-option" aria-label={t("Choose device {name}", { name: deviceName(members[0]) })} onClick={() => pickDevice(key)}><DeviceIcon type={members[0].domain} className="h-5 w-5 shrink-0 text-muted-foreground" /><span className="entity-picker-copy"><strong>{deviceName(members[0])}</strong><small>{[...new Set(members.map(areaName).filter(Boolean)), entityCount(members.length)].join(" · ")}</small></span><ChevronRight size={16} aria-hidden="true" /></button></li>)}
+            {deviceChoices.map(([key, members]) => <li key={key}><button type="button" data-picker-option className="entity-picker-option" aria-label={t("Choose device {name}", { name: deviceName(members[0]) })} onClick={() => pickDevice(key)}><DeviceIcon type={members[0].domain} className="h-5 w-5 shrink-0 text-muted-foreground" /><span className="entity-picker-copy"><strong>{deviceName(members[0])}</strong><small>{[...new Set(members.map(areaName).filter(Boolean)), entityCount(members.length), selectedCount(members)].filter(Boolean).join(" · ")}</small></span><ChevronRight size={16} aria-hidden="true" /></button></li>)}
           </>}
           {(!browsingDevices || terms.length > 0) && matching.map(entity => renderEntity(entity.preferenceId, entity))}
           {missing.map(value => renderEntity(value))}

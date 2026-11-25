@@ -1,11 +1,13 @@
-import { useId, useState } from "react";
+import { useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, Filter, History as HistoryIcon, ListChecks, ListOrdered } from "lucide-react";
+import { ChevronDown, CircleAlert, ExternalLink, Filter, History as HistoryIcon, ListChecks, ListOrdered, X } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily } from "@/contexts/FamilyContext";
 import { useActivityPersonSensors, useLogbook } from "@/hooks/use-activity-feed";
 import { ActivityRow } from "@/components/ActivityFeed";
+import { activityIcons } from "@/components/activity-icons";
+import { DeviceIcon } from "@/components/devices/DeviceControl";
 import { EntityPicker } from "@/components/EntityPicker";
 import { PanelTitle } from "@/components/PanelTitle";
 import { SettingsPanels } from "@/components/SettingsPanels";
@@ -13,8 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { calendarBoundary } from "@/lib/ha-model";
-import { activitySourceCandidates, curateActivity, defaultActivitySources, type ActivityGroup } from "@/lib/activity";
+import { activityIconCategory, activitySourceCandidates, activitySourceIcon, curateActivity, defaultActivitySources, type ActivityGroup, type ActivityIcon } from "@/lib/activity";
 import type { MessageKey } from "@/lib/i18n";
+import type { Entity } from "@/types/api";
 import { activityCategories, type ActivityCategory } from "../../shared/configuration";
 import { homeStatusGroups } from "@/lib/home-status";
 import "@/components/activity-feed.css";
@@ -25,6 +28,11 @@ const categoryLabels: Record<ActivityCategory, MessageKey> = {
   doorbells: "Doorbells", cameras: "Camera person detection", other: "Other changes",
 };
 const groupLabel = (group: ActivityGroup) => group === "people" ? "People" : group === "other" ? "Other" : homeStatusGroups[group];
+const categoryIcons: Record<ActivityCategory, ActivityIcon> = {
+  openings: "door", locks: "lock", alarm: "alarm", appliances: "appliance", robots: "robot", doorbells: "doorbell", cameras: "camera", other: "activity",
+};
+// Short selections open every type; longer ones (the suggestions are often dozens) start as a list of types and counts.
+const OPEN_TYPES_UP_TO = 12;
 
 /** The full activity log for today or yesterday, filtered by area and type. */
 function ActivityLog() {
@@ -75,6 +83,61 @@ function ActivityLog() {
   </section>;
 }
 
+/** The event type's icon (door, lock, robot …); other changes use the device icon. */
+function SourceIcon({ entity, icon }: { entity: Entity; icon: ActivityIcon }) {
+  if (icon === "activity") return <DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-5 w-5 shrink-0" />;
+  const Icon = activityIcons[icon];
+  return <Icon size={20} aria-hidden="true" />;
+}
+
+type ChosenSourcesProps = { sources: string[]; personSensors: Record<string, string>; hidden: readonly ActivityCategory[]; disabled: boolean; onRemove: (value: string) => void; fallbackFocus: () => void };
+
+/** The chosen sources grouped by event type, readable without opening the picker; each one can be removed on its own. */
+function ChosenSources({ sources, personSensors, hidden, disabled, onRemove, fallbackFocus }: ChosenSourcesProps) {
+  const { t, language } = useI18n();
+  const { currentHome } = useApp();
+  const [expanded] = useState(() => sources.length <= OPEN_TYPES_UP_TO);
+  const cameras = new Set(Object.keys(personSensors));
+  const byId = new Map(currentHome.entities.map(entity => [entity.preferenceId, entity]));
+  const name = (entity: Entity) => personSensors[entity.entityId] ?? entity.name;
+  const area = (entity: Entity) => currentHome.areas.find(room => room.id === entity.areaId && room.id !== "unassigned")?.name;
+  const chosen = sources.flatMap(value => { const entity = byId.get(value); return entity ? [{ value, entity, icon: activitySourceIcon(entity, cameras) }] : []; })
+    .sort((a, b) => name(a.entity).localeCompare(name(b.entity), language));
+  const missing = sources.filter(value => !byId.has(value));
+  const count = (total: number) => t(total === 1 ? "1 source" : "{count} sources", { count: total });
+  // Removing a row hands focus to its neighbour, then to the next type, so keyboard users keep their place.
+  const remove = (event: MouseEvent<HTMLButtonElement>, value: string) => {
+    const row = event.currentTarget.closest("li"), group = row?.closest("details");
+    const next = (row?.nextElementSibling ?? row?.previousElementSibling)?.querySelector("button")
+      ?? (group?.nextElementSibling ?? group?.previousElementSibling)?.querySelector("summary");
+    if (next) next.focus(); else fallbackFocus();
+    onRemove(value);
+  };
+  const row = (value: string, label: string, detail: string | undefined, icon: ReactNode) => <li key={value} className="activity-source">
+    {icon}
+    <span className="activity-source-copy"><strong>{label}</strong>{detail && <small>{detail}</small>}</span>
+    <Button type="button" variant="ghost" size="icon" disabled={disabled} aria-label={t("Remove {name} from activity sources", { name: label })} onClick={event => remove(event, value)}><X size={18} aria-hidden="true" /></Button>
+  </li>;
+  const group = (key: string, label: string, icon: ReactNode, total: number, rows: ReactNode, note?: string) => <details key={key} className="activity-source-group" open={expanded}>
+    <summary>{icon}<span className="activity-source-type">{label}{note && <small>{note}</small>}</span><span className="activity-source-count">{count(total)}</span><ChevronDown className="activity-source-chevron" size={18} aria-hidden="true" /></summary>
+    <ul>{rows}</ul>
+  </details>;
+  if (!sources.length) return <p className="empty-note activity-sources-empty">{t("No sources chosen. Latest events only shows people coming and going, when they are included.")}</p>;
+  return <div className="activity-source-groups">
+    {activityCategories.map(category => {
+      const members = chosen.filter(member => activityIconCategory(member.icon) === category);
+      if (!members.length) return null;
+      const Icon = activityIcons[categoryIcons[category]];
+      return group(category, t(categoryLabels[category]), <Icon size={20} aria-hidden="true" />, members.length,
+        members.map(({ value, entity, icon }) => row(value, name(entity), area(entity), <SourceIcon entity={entity} icon={icon} />)),
+        hidden.includes(category) ? t("Hidden under Event types") : undefined);
+    })}
+    {!!missing.length && group("missing", t("Unavailable sources"), <CircleAlert size={20} aria-hidden="true" />, missing.length,
+      missing.map(value => row(value, t("Source unavailable"), value.slice(value.indexOf("|") + 1), <CircleAlert size={20} aria-hidden="true" />)),
+      t("Not found in Home Assistant right now."))}
+  </div>;
+}
+
 /** Latest events on Smart home (and Today, when its section is on): visibility, people and curated sources, shared across screens. */
 function RecentActivitySettings() {
   const { t } = useI18n();
@@ -83,6 +146,7 @@ function RecentActivitySettings() {
   const shared = useSharedConfiguration();
   const personSensors = useActivityPersonSensors();
   const id = useId();
+  const sourcesTitle = useRef<HTMLHeadingElement>(null);
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const sources = activity.sources ?? defaultActivitySources(currentHome.entities, Object.keys(personSensors));
   return <div className="settings-stack">
@@ -107,10 +171,14 @@ function RecentActivitySettings() {
       </label>)}
     </section>
     <section className="settings-card" aria-labelledby={`${id}-sources`}>
-      <PanelTitle icon={ListChecks} id={`${id}-sources`}>{t("Activity sources")}</PanelTitle>
+      <PanelTitle ref={sourcesTitle} tabIndex={-1} icon={ListChecks} id={`${id}-sources`}>{t("Activity sources")}</PanelTitle>
       <p className="page-note" id={`${id}-sources-note`}>{t(activity.sources ? "Your chosen sources." : "Suggested: doors, windows, locks, the alarm, appliances, robots, doorbells and camera person detection.")}</p>
-      <EntityPicker multiple label={t("Choose activity sources")} hideLabel describedBy={`${id}-sources-note`} entities={activitySourceCandidates(currentHome.entities)}
-        value={sources} disabled={disabled} onChange={ids => setActivity({ sources: ids })} missingLabel={() => t("Source unavailable")} />
+      <p className="page-note activity-sources-people">{t(activity.people ? "People coming and going are included as well, under Latest events above." : "People coming and going are left out. Turn them on under Latest events above.")}</p>
+      <EntityPicker multiple className="activity-sources-picker" label={t("Choose activity sources")} hideLabel describedBy={`${id}-sources-note`} entities={activitySourceCandidates(currentHome.entities)}
+        value={sources} disabled={disabled} onChange={ids => setActivity({ sources: ids })} missingLabel={() => t("Source unavailable")}
+        placeholder={t("Choose activity sources")} getLabel={entity => personSensors[entity.entityId] ?? entity.name} />
+      <ChosenSources sources={sources} personSensors={personSensors} hidden={activity.hidden ?? []} disabled={disabled}
+        onRemove={value => setActivity({ sources: sources.filter(source => source !== value) })} fallbackFocus={() => sourcesTitle.current?.focus()} />
       {activity.sources && <Button variant="outline" className="mt-4" disabled={disabled} onClick={() => setActivity({ sources: undefined })}>{t("Use suggested sources")}</Button>}
     </section>
   </div>;

@@ -1,26 +1,23 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
-import { Activity, AppWindow, ArrowUpRight, BellRing, Bot, Cctv, DoorOpen, History, Lock, Power, ShieldCheck, Tractor, UserRound, WashingMachine, Warehouse, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, History } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { useActivityPersonSensors, useLogbook } from "@/hooks/use-activity-feed";
 import { useFillRows } from "@/hooks/use-wall-fill";
 import { FILL_REQUIRED_ACTIVITY_ROWS, FILL_ROW_CAP } from "@/lib/wall-fill";
-import { activityTime, curateActivity, curatedActivityEntityIds, MAX_LOGBOOK_BACKFILL_MS, RECENT_ACTIVITY_LIMIT, type ActivityIcon, type ActivityItem } from "@/lib/activity";
+import { activityTime, curateActivity, curatedActivityEntityIds, MAX_LOGBOOK_BACKFILL_MS, RECENT_ACTIVITY_LIMIT, type ActivityItem } from "@/lib/activity";
+import { activityIcons } from "./activity-icons";
 import { PlannerCardBackdrop } from "./CardArtwork";
 import { PanelTitle } from "./PanelTitle";
 import "./activity-feed.css";
 
-const icons: Record<ActivityIcon, LucideIcon> = {
-  door: DoorOpen, garage: Warehouse, window: AppWindow, lock: Lock, alarm: ShieldCheck, appliance: WashingMachine, robot: Bot, mower: Tractor,
-  camera: Cctv, doorbell: BellRing, person: UserRound, power: Power, activity: Activity,
-};
 /** One event: icon, sentence linking to the entity, folded change count and time (relative, or the clock time with `clock`). */
 export function ActivityRow({ item, now, clock = false, fillExtra = false }: { item: ActivityItem; now: number; clock?: boolean; fillExtra?: boolean }) {
   const { message, t, locale } = useI18n();
   const { timeZone } = useApp().currentHome;
-  const Icon = icons[item.icon];
+  const Icon = activityIcons[item.icon];
   const sentence = message(item.sentence);
   const time = clock ? new Intl.DateTimeFormat(locale, { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(item.when) : activityTime(item.when, now, locale, timeZone);
   return <li className="activity-row" data-fill-extra={fillExtra || undefined}>

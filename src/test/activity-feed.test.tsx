@@ -666,3 +666,59 @@ describe("Latest events settings", () => {
     expect(setActivity).toHaveBeenLastCalledWith({ sources: undefined });
   });
 });
+
+describe("Activity sources at a glance", () => {
+  const setActivity = vi.fn(() => true);
+  const areas = [{ id: "hall", name: "Example hall" }];
+  const entities = activityEntities.map(entity => entity.entityId === "lock.example_front" ? { ...entity, areaId: "hall" } : entity);
+  const camera = { id: "camera-example", name: "Example driveway", connectionId: "home-assistant", source: "camera.example_driveway", personSnapshot: { type: "none" }, personDetectionEntity: id("binary_sensor.example_person") };
+  const view = () => <AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { entities, areas, timeZone: "Europe/Oslo" } } as never}>
+    <MemoryRouter initialEntries={["/settings/activity?panel=recent"]}><History /></MemoryRouter></AppContext.Provider>;
+  const sourcesCard = () => within(screen.getByRole("region", { name: "Activity sources" }));
+  const types = () => Array.from(screen.getByRole("region", { name: "Activity sources" }).querySelectorAll("summary"), summary => summary.textContent);
+  beforeEach(() => {
+    setActivity.mockClear();
+    family.value = { activity: { panel: true, people: false }, dashboard: { recentActivity: false }, setActivity, now: new Date(base), today: "2026-10-06", cameras: { items: [camera] } };
+  });
+
+  it("lists the suggested sources by event type with counts, names, areas and the camera's own name", () => {
+    render(view());
+    expect(types()).toEqual([
+      "Doors and windows1 source", "Locks1 source", "Alarm1 source", "Appliances2 sources", "Robot vacuums and mowers1 source",
+      "Doorbells1 source", "Camera person detection1 source",
+    ]);
+    const card = sourcesCard();
+    expect(card.getByRole("button", { name: "Choose activity sources" })).toHaveTextContent("8 selected");
+    const lock = card.getByRole("button", { name: "Remove Front door from activity sources" }).closest("li")!;
+    expect(lock).toHaveTextContent("Front door");
+    expect(lock).toHaveTextContent("Example hall");
+    expect(card.getByRole("button", { name: "Remove Example driveway from activity sources" })).toBeInTheDocument();
+    expect(card.queryByText("Driveway person occupancy")).toBeNull();
+    expect(card.getByText("People coming and going are left out. Turn them on under Latest events above.")).toBeInTheDocument();
+  });
+
+  it("removes one source, turning the suggestions into a chosen list, and moves focus to its neighbour", () => {
+    render(view());
+    const card = sourcesCard();
+    fireEvent.click(card.getByRole("button", { name: "Remove Dishwasher from activity sources" }));
+    const [[{ sources }]] = setActivity.mock.calls as unknown as [[{ sources: string[] }]];
+    expect(sources).toHaveLength(7);
+    expect(sources).not.toContain(id("binary_sensor.example_dishwasher"));
+    expect(card.getByRole("button", { name: "Remove Washer from activity sources" })).toHaveFocus();
+  });
+
+  it("marks hidden types, lists unavailable sources and explains an empty choice", () => {
+    family.value = { ...family.value, activity: { panel: true, people: true, hidden: ["locks"], sources: [id("lock.example_front"), "home|sensor.example_gone"] } };
+    const { unmount } = render(view());
+    expect(types()).toEqual(["LocksHidden under Event types1 source", "Unavailable sourcesNot found in Home Assistant right now.1 source"]);
+    const card = sourcesCard();
+    expect(card.getByText("People coming and going are included as well, under Latest events above.")).toBeInTheDocument();
+    fireEvent.click(card.getByRole("button", { name: "Remove Source unavailable from activity sources" }));
+    expect(setActivity).toHaveBeenLastCalledWith({ sources: [id("lock.example_front")] });
+    expect(card.getByRole("button", { name: "Use suggested sources" })).toBeInTheDocument();
+    unmount();
+    family.value = { ...family.value, activity: { panel: true, people: false, sources: [] } };
+    render(view());
+    expect(sourcesCard().getByText("No sources chosen. Latest events only shows people coming and going, when they are included.")).toBeInTheDocument();
+  });
+});
