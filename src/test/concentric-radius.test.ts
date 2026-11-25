@@ -11,6 +11,7 @@ const smartHomeSettingsCss: string = sourceFile("components/smart-home-settings.
 const notificationsCss: string = sourceFile("components/notifications.css");
 const tabsSource: string = sourceFile("components/ui/tabs.tsx");
 const deviceCardsCss: string = sourceFile("components/devices/device-cards.css");
+const favoritePickerCss: string = sourceFile("components/favorite-picker.css");
 
 const declarations = (css: string, selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -44,4 +45,11 @@ it("gives rows and day surfaces their card radius minus the inset", () => {
   expect(declarations(deviceCardsCss, ".dg-supercompact .dg-scene-action")).toMatch(/border-radius: var\(--radius-inset\)/);
   // With artwork on, the Smart home heading row wraps its trailing capsule button concentrically.
   expect(declarations(artworkCss, "[data-artwork] .smart-page > section > .section-heading")).toMatch(/padding: \.25rem \.25rem \.25rem 1rem;.*border-radius: calc\(2\.75rem \/ 2 \+ \.25rem\)/);
+});
+
+it("keeps menu and popover items concentric with their transient surface", () => {
+  // The rem inset keeps the pair concentric when the wall's larger root size grows the padding.
+  expect(declarations(afterglowCss, ".motion-menu :is([role=\"menuitem\"], [role=\"menuitemcheckbox\"], [role=\"menuitemradio\"])")).toMatch(/border-radius: calc\(var\(--radius-menu\) - \.5rem - 1px\)/);
+  expect(declarations(favoritePickerCss, ".favorite-group-popover")).toMatch(/padding: \.5rem; border-radius: var\(--radius-menu\)/);
+  expect(declarations(favoritePickerCss, ".favorite-group-popover [cmdk-item]")).toMatch(/border-radius: calc\(var\(--radius-menu\) - \.5rem - 1px\)/);
 });

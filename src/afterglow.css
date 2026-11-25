@@ -43,7 +43,8 @@
 }
 .modal-backdrop { background-color: rgb(0 0 0 / var(--modal-backdrop-opacity, .2)); }
 .motion-menu.glass-surface { border-radius: var(--radius-menu); padding: .5rem; color: hsl(var(--foreground)); max-height: min(var(--radix-dropdown-menu-content-available-height), calc(100dvh - 1rem)); max-width: calc(100vw - 2rem); overflow-y: auto; overscroll-behavior: contain; }
-.motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: var(--radius-field); min-height: 48px; overflow-wrap: anywhere; }
+/* Items sit .5rem inside the menu's 1px rim; the rem inset keeps them concentric when the wall's larger root size grows the padding. */
+.motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: calc(var(--radius-menu) - .5rem - 1px); min-height: 48px; overflow-wrap: anywhere; }
 .motion-menu [role="menuitem"] { padding-inline: .75rem; }
 .motion-surface[role="dialog"], .motion-surface[role="alertdialog"] { border-radius: var(--radius-dialog); }
 
