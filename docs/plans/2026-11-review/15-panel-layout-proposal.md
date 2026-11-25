@@ -422,19 +422,20 @@ Verify the Bokmål wording against the existing tone in `src/locales/nb.ts` when
 
 ## Implementation checklist (after the owner approves)
 
-- [ ] Schema: add `widths` and `fill` to `dashboard` in `shared/configuration.ts` with the constants above; export `dashboardWidth` and `dashboardRows`.
-- [ ] Tests (`src/test/shared-configuration.test.ts`): old settings parse to `{}` / `""`; a backup round-trip keeps `widths` and `fill`; invalid widths, unknown sections and a non-fill `fill` are rejected; a stored half for a full-only section is accepted and resolved as full.
-- [ ] Tests for `dashboardRows`: defaults reproduce today's pairs; a lone half fills its row; a switched-off section between two halves does not break the pair; a full section between halves splits them; fill marks the right row.
-- [ ] Board: render rows from `dashboardRows` in `Dashboard.tsx`; replace the implicit list/activity/landscape CSS and the `col-span-full` width hacks; pairs stretch; `:only-child` spans; empty rows vanish; container-query stacking below 22 rem halves.
-- [ ] Fill: wall-only flex column sized from the viewport and `--app-dock-height`; fill row grows with a minimum; `fill` prop on `RecentActivity` and `ListPanel` that over-fetches, measures with `ResizeObserver` and hides overflow rows (removed from the accessibility tree); fallback to the normal length when there is no room.
-- [ ] Unit-test the fit logic with mocked geometry (rows that end inside the box are shown, the rest hidden; no loop when content changes).
-- [ ] Dialog: width segment and placement line on eligible cards (only while switched on); fixed-width note on Everyone's day, Everyone's week and School; **Free space on the wall** card; **Reset order and widths**; announcements for width changes and changed partners.
-- [ ] Dialog preview: inert miniature of `dashboardRows`, dashed conditional sections, fill marker; sticky only on tall dialogs.
-- [ ] Tests (`DashboardSettings`): segment group name and `aria-pressed`; description text for each placement case; announcement after a width change and after a move that changes a partner; reset restores order and widths only.
-- [ ] i18n: every new string in `src/locales/en.ts` and `src/locales/nb.ts`.
+- [x] Schema: add `widths` and `fill` to `dashboard` in `shared/configuration.ts` with the constants above; export `dashboardWidth` and `dashboardRows`.
+- [x] Tests (`src/test/shared-configuration.test.ts`): old settings parse to `{}` / `""`; a backup round-trip keeps `widths` and `fill`; invalid widths, unknown sections and a non-fill `fill` are rejected; a stored half for a full-only section is accepted and resolved as full.
+- [x] Tests for `dashboardRows`: defaults reproduce today's pairs; a lone half fills its row; a switched-off section between two halves does not break the pair; a full section between halves splits them; fill marks the right row.
+- [x] Board: render rows from `dashboardRows` in `Dashboard.tsx`; replace the implicit list/activity/landscape CSS and the `col-span-full` width hacks; pairs stretch; `:only-child` spans; empty rows vanish; container-query stacking below 22 rem halves.
+- [x] Fill: wall-only flex column sized from the viewport and `--app-dock-height`; fill row grows with a minimum; `fill` prop on `RecentActivity` and `ListPanel` that over-fetches, measures with `ResizeObserver` and hides overflow rows (removed from the accessibility tree); fallback to the normal length when there is no room.
+- [x] Unit-test the fit logic with mocked geometry (rows that end inside the box are shown, the rest hidden; no loop when content changes).
+- [x] Dialog: width segment and placement line on eligible cards (only while switched on); fixed-width note on Everyone's day, Everyone's week and School; **Free space on the wall** card; **Reset order and widths**; announcements for width changes and changed partners.
+- [x] Dialog preview: inert miniature of `dashboardRows`, dashed conditional sections, fill marker; sticky only on tall dialogs.
+- [x] Tests (`DashboardSettings`): segment group name and `aria-pressed`; description text for each placement case; announcement after a width change and after a move that changes a partner; reset restores order and widths only.
+- [x] i18n: every new string in `src/locales/en.ts` and `src/locales/nb.ts`.
 - [ ] Browser checks with fictional fixtures only (the dev server on 8081 is a real home: read-only): 1440 × 2560 light and dark, with and without a fill section, quiet and busy Everyone's day; 390 × 844; 768 × 1024; 200 % zoom; compact mode; artwork on; reduced motion; forced colors.
-- [ ] Docs: DESIGN.md, the Today surface brief, README.md and PRODUCT.md as listed under migration.
-- [ ] Tick the **Panel widths** box in [14](14-owner-additions.md) and record the owner's answers below.
+  > Partly done: unit tests with mocked geometry; on the live wall (read-only) the board renders paired 654 + 654px rows and ends above the dock. Fill on, phone, 200% zoom and light theme were not checked live because they need saved settings.
+- [x] Docs: DESIGN.md, the Today surface brief, README.md and PRODUCT.md as listed under migration.
+- [x] Tick the **Panel widths** box in [14](14-owner-additions.md) and record the owner's answers below. (Recorded by the coordinator.)
 
 ## Open questions for the owner
 

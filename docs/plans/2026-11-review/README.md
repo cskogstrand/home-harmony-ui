@@ -86,5 +86,6 @@ Record answers here when given; agents should not block on them unless a box say
   > Answer (2026-11-24): the owner added Nord Pool price sensors in Home Assistant. The app only needs to let the owner choose the price sensor in Settings; no automatic detection and no Energy dashboard setup is required.
 - [ ] Voice input on the wall screen needs a secure context (HTTPS or localhost) for the microphone. Is the wall browser served over HTTPS? (07 phase B)
   > Answer (2026-11-25): HTTPS comes later, once the rest of the home hardware is in place. 07 phase B stays deferred until then.
-- [ ] Should the portrait wall fill the empty lower part of secondary pages (for example the week under Today)? Not planned; a candidate for a later `/impeccable shape`.
+- [x] Should the portrait wall fill the empty lower part of secondary pages (for example the week under Today)? Not planned; a candidate for a later `/impeccable shape`.
   > Carried over (2026-11-24): the re-critique raised the same point as a P2 (see [13](13-final-verification.md)).
+  > Answer (2026-11-25): on Today the owner chooses one section in Customize Today to fill the free space on the wall (off by default); see [15](15-panel-layout-proposal.md). Other pages keep their natural height.
