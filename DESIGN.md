@@ -417,7 +417,7 @@ Calendar timetable frames have rounded corners (22px), an inset (.5rem) and gaps
 
 ### Buttons
 
-Clear labels in rounded capsules. Reuse the shared Button variants: primary, destructive, outline, secondary, ghost and link. Default padding and shape are tokenized above. The component's minimum height is (2.75rem), with larger touch minima on named task controls. Hover changes color or underlines a link; focus uses a visible ring with offset; disabled actions remove pointer interaction and reduce opacity. Icon-only actions require an accessible label.
+Clear labels in rounded capsules. Reuse the shared Button variants: primary, destructive, outline, secondary, ghost and link. Default padding and shape are tokenized above. The component's minimum height is (2.75rem), with larger touch minima on named task controls. Hover changes color or underlines a link; focus uses a visible ring with offset; disabled actions remove pointer interaction and reduce opacity. Icon-only actions require an accessible label. **The Round Icon Rule.** A shared icon button (`size="icon"`) is a circle on every screen: 2.75rem square with the 48px touch minimum on both axes, so phones and desktop get 48 × 48 and the portrait wall 55 × 55, and hover, press and focus shapes are never ovals. A stylesheet that resizes one sets width and height together and never below 48px; the camera status overlay is the one exception, a 44px rounded square on the picture. Rows that hold several icon buttons (calendar navigation, reorder arrows, dialog and popover headings) leave room for the full 48px circles or wrap; they never overflow at 375px. `src/test/icon-button-size.test.ts` holds the contract.
 
 ### Inputs and fields
 

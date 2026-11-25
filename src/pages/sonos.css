@@ -146,7 +146,7 @@
 .sonos-room-menu strong { font-weight: 600; }
 .sonos-room-menu small { margin-top: .25rem; color: hsl(var(--muted-foreground)); }
 .sonos-mini .sonos-transport { grid-column: 3; grid-row: 1 / 3; margin: 0; gap: .25rem; }
-.sonos-mini .sonos-transport button { width: 44px; height: 44px; }
+.sonos-mini .sonos-transport button { width: 48px; height: 48px; }
 .sonos-mini .sonos-transport .sonos-play { width: 56px; height: 56px; }
 .sonos-mini .sonos-group-volume { grid-column: 4; grid-row: 1 / 3; margin: 0; gap: .6rem; min-width: 0; }
 .sonos-mini .sonos-group-volume > svg { width: 18px; }
