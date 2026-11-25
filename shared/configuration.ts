@@ -108,7 +108,8 @@ export const defaultDashboardWidths: Partial<Record<DashboardSection, DashboardW
 /** List-like sections that can fill the wall's free space by showing more rows. */
 export const fillSections = ["recentActivity", "daily", "shopping", "homework"] as const satisfies readonly DashboardSection[];
 export type FillSection = typeof fillSections[number];
-export const plannerArtworkSchema = z.enum([...plannerSections, "calendar", "tasks"]);
+// Every Today section has card artwork (see src/lib/today-sections.ts), plus Calendar and Family tasks outside Today.
+export const plannerArtworkSchema = z.enum([...dashboardSections, "calendar", "tasks"]);
 export type PlannerArtwork = z.infer<typeof plannerArtworkSchema>;
 const dashboardHomeworkSchema = z.object({
   period: z.enum(["through-today", "through-tomorrow", "today", "tomorrow", "all"]).default("through-today"),

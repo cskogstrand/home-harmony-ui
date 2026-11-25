@@ -8,6 +8,7 @@ import { useActivityPersonSensors, useLogbook } from "@/hooks/use-activity-feed"
 import { useFillRows } from "@/hooks/use-wall-fill";
 import { FILL_REQUIRED_ACTIVITY_ROWS, FILL_ROW_CAP } from "@/lib/wall-fill";
 import { activityTime, curateActivity, curatedActivityEntityIds, RECENT_ACTIVITY_LIMIT, type ActivityIcon, type ActivityItem } from "@/lib/activity";
+import { PlannerCardBackdrop } from "./CardArtwork";
 import { PanelTitle } from "./PanelTitle";
 import "./activity-feed.css";
 
@@ -56,8 +57,9 @@ export function RecentActivity({ placement = "smartHome", fill }: { placement?: 
     : feed.status === "unavailable" ? <p className="empty-note" role="status">{t("Activity is unavailable right now.")}</p>
     : !items.length && <p className="empty-note">{t("Nothing has happened in the last 24 hours.")}</p>;
   return <section ref={panel} className="glow-panel activity-panel" aria-labelledby="recent-activity-title" data-fill={fill === undefined ? undefined : ""}>
+    <PlannerCardBackdrop kind="recentActivity" />
     <div className="panel-heading">
-      <PanelTitle icon={History} id="recent-activity-title">{t("Recent at home")}</PanelTitle>
+      <PanelTitle artwork="recentActivity" icon={History} id="recent-activity-title">{t("Recent at home")}</PanelTitle>
       <Link className="text-link" to="/settings/activity">{t("All activity")}<ArrowUpRight size={17} aria-hidden="true" /></Link>
     </div>
     {feed.status === "stale" && <p className="page-note activity-stale" role="status">{t("Cached activity is stale while Home Assistant is offline.")}</p>}

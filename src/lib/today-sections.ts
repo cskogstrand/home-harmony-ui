@@ -9,9 +9,9 @@ export const todaySectionIcons: Record<DashboardSection, LucideIcon> = {
 
 /**
  * Each Today section's card artwork: the heading illustration and corner scene it shows when the owner turns it on in
- * Settings → Appearance → Card artwork. `null` marks a section that has no card artwork yet.
+ * Settings → Appearance → Card artwork.
  */
-export const todaySectionArtwork: Record<DashboardSection, PlannerArtwork | null> = {
-  homeStatus: null, morningSummary: "morningSummary", wasteCollection: "wasteCollection", nextPlan: "nextPlan", day: "day", week: "week",
-  daily: "daily", shopping: "shopping", homework: "homework", school: "school", home: "home", recentActivity: null,
+export const todaySectionArtwork: Record<DashboardSection, PlannerArtwork> = {
+  homeStatus: "homeStatus", morningSummary: "morningSummary", wasteCollection: "wasteCollection", nextPlan: "nextPlan", day: "day", week: "week",
+  daily: "daily", shopping: "shopping", homework: "homework", school: "school", home: "home", recentActivity: "recentActivity",
 };

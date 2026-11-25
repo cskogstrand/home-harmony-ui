@@ -427,6 +427,7 @@ it("restores older settings without artwork and validates artwork in backups", (
   expect(read({})).toMatchObject({ ...appearance, artwork: "none", plannerArtwork: {} });
   expect(read({ artwork: "paper" })).toMatchObject({ ...appearance, artwork: "paper" });
   expect(() => read({ artwork: "unknown" })).toThrow();
+  expect(read({ plannerArtwork: { recentActivity: true, homeStatus: false } }).plannerArtwork).toEqual({ recentActivity: true, homeStatus: false });
   expect(() => read({ plannerArtwork: { unknown: true } })).toThrow();
   expect(() => read({ plannerArtwork: { homework: "yes" } })).toThrow();
 });

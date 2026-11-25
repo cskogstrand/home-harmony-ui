@@ -12,7 +12,8 @@ import { Switch } from "./ui/switch";
 const plannerNames: Record<PlannerArtwork, MessageKey> = {
   morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
   day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping",
-  homework: "Homework", school: "Timetables", home: "Home favorites", calendar: "Calendar", tasks: "Family tasks",
+  homework: "Homework", school: "Timetables", home: "Home favorites", recentActivity: "Recent at home", homeStatus: "Home status",
+  calendar: "Calendar", tasks: "Family tasks",
 };
 
 export function CardArtworkSettings({ disabled }: { disabled: boolean }) {

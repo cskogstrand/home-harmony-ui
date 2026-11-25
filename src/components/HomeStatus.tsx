@@ -11,6 +11,7 @@ import { entityReading, entityStateLabel } from "@/lib/ha-model";
 import { fallbackRepairTitle, type MaintenanceItem } from "@/lib/ha-health";
 import { defaultHomeStatusSources, homeReadingState, homeStatusGroup, homeStatusGroups, type HomeStatusGroup } from "@/lib/home-status";
 import type { Entity } from "@/types/api";
+import { PlannerCardBackdrop, PlannerCardIcon } from "./CardArtwork";
 import { EntityPicker } from "./EntityPicker";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
@@ -129,7 +130,11 @@ export function HomeStatus({ card = false }: { card?: boolean }) {
   if (card && !count && !open) return null;
   return <Dialog open={open} onOpenChange={onOpenChange}>
     {card ? count > 0 && <DialogTrigger asChild><button ref={trigger} type="button" className="glow-panel housing-card">
-      <TriangleAlert aria-hidden="true" /><span><strong>{t("Home status")} · {summary}</strong>
+      <PlannerCardBackdrop kind="homeStatus" />
+      {/* With card artwork on, the illustration leads and the warning rides on it as a badge, like the header's Home status button. */}
+      <PlannerCardIcon kind="homeStatus" className="housing-card-icon"
+        badge={<span className="header-badge" data-tone="attention" aria-hidden="true"><TriangleAlert size={13} strokeWidth={2.6} /></span>}>
+        <TriangleAlert className="housing-card-alert" aria-hidden="true" /></PlannerCardIcon><span><strong>{t("Home status")} · {summary}</strong>
         <small>{firstIssue.name} · {firstIssue.value}</small></span><ChevronRight aria-hidden="true" /></button></DialogTrigger>
       : <DialogTrigger asChild><button type="button" id="home-status-button" className="icon-button glass-surface" data-tone={tone} aria-label={label} title={label}>
         <House size={21} aria-hidden="true" />

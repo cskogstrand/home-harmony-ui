@@ -78,6 +78,25 @@ const drawings: Record<PlannerArtwork, ReactNode> = {
     <path fill={paper} d="m28 24 14-13 16 11-2 18-27 4z" /><path fill={highlight} d="m22 23 20-19 24 16-4 4-20-13-17 16z" />
     <path fill={pigment} d="m39 27 8-1-1 16-8 1zm12-2 4-1v6l-5 1zm-21 3 5-1-1 6-4 1z" />
   </>,
+  // A door left ajar beside the day's log, with the history dial turning back.
+  recentActivity: <>
+    <path fill={shadow} d="m10 12 22-3 2 37-23 2z" /><path fill={highlight} d="m13 14 17-2 2 32-18 1z" />
+    <path fill={pigment} d="m13 14 9 4 1 30-9-3z" /><circle cx="20" cy="32" r="1.5" fill={paper} />
+    <path fill={highlight} d="m23 47 9-2 13 4-17 1z" />
+    <path fill={shadow} d="m39 17 25-2 2 30-25 2z" /><path fill={paper} d="m37 15 25-2 2 29-25 2z" />
+    <circle cx="42" cy="22" r="2" fill={pigment} /><circle cx="43" cy="30" r="2" fill={highlight} /><circle cx="43" cy="38" r="2" fill={pigment} />
+    <path stroke={line} d="m46 21 12-1m-11 9 12-1m-11 9 9-1" />
+    <circle cx="61" cy="12" r="8" fill={shadow} /><circle cx="60" cy="11" r="6.5" fill={paper} />
+    <path stroke={line} strokeWidth="2" d="M60 7.5V11l2.5 1.5" /><path stroke={pigment} strokeWidth="1.6" d="M54.6 8.4a6 6 0 1 1-.4 4.2m.4-4.2-.3 2.6 2.5-.4" />
+  </>,
+  // A shield with a check standing guard in front of the house, a sensor listening on the roof.
+  homeStatus: <>
+    <path fill={pigment} d="m8 30 15-14 15 10v19l-28 2z" /><path fill={highlight} d="m5 30 18-17 18 12-3 3-15-10-15 14z" />
+    <path fill={paper} d="m13 34 6-1v6l-6 1z" /><circle cx="23" cy="9" r="1.6" fill={highlight} />
+    <path stroke={line} d="M18 6q5-4 10 0m-8 2.5q3-2.5 6 0" />
+    <path fill={shadow} d="M47 11q7 5 15 4 0 20-15 30-15-10-15-30 8 1 15-4z" /><path fill={paper} d="M45 8q7 5 15 4 0 20-15 30-15-10-15-30 8 1 15-4z" />
+    <path fill={pigment} d="M45 13q5 3 10 3 0 14-10 21z" /><path stroke={line} strokeWidth="3" d="m38 25 5 5 9-11" />
+  </>,
 };
 
 export function PlannerIllustration({ kind }: { kind: PlannerArtwork }) {
@@ -90,7 +109,7 @@ export function PlannerIllustration({ kind }: { kind: PlannerArtwork }) {
 const cardScenes: Record<PlannerArtwork | "device", Exclude<Artwork, "none">> = {
   day: "fjord", nextPlan: "harbor", morningSummary: "pottery", week: "weave",
   daily: "meadow", shopping: "garden", wasteCollection: "birch", homework: "sunroom",
-  school: "atlas", home: "pottery", calendar: "paper", tasks: "weave", device: "weave",
+  school: "atlas", home: "pottery", calendar: "paper", tasks: "weave", device: "weave", recentActivity: "aurora", homeStatus: "harbor",
 };
 
 export function CardBackdrop({ kind }: { kind: keyof typeof cardScenes }) {
@@ -105,9 +124,10 @@ export function PlannerCardBackdrop({ kind }: { kind: PlannerArtwork }) {
   return usePlannerArtwork(kind) ? <CardBackdrop kind={kind} /> : null;
 }
 
-export function PlannerCardIcon({ kind, children }: { kind: PlannerArtwork; children?: ReactNode }) {
+/** The section's glyph, or its illustration when card artwork is on; `badge` is drawn on the illustration only. */
+export function PlannerCardIcon({ kind, children, className, badge }: { kind: PlannerArtwork; children?: ReactNode; className?: string; badge?: ReactNode }) {
   const enabled = usePlannerArtwork(kind);
-  return enabled ? <span className="illustrated-icon"><PlannerIllustration kind={kind} />{children}</span> : <>{children}</>;
+  return enabled ? <span className={className ? `illustrated-icon ${className}` : "illustrated-icon"}><PlannerIllustration kind={kind} />{children}{badge}</span> : <>{children}</>;
 }
 
 export function DeviceIllustration({ icon: Icon }: { icon: LucideIcon }) {

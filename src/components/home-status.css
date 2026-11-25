@@ -45,8 +45,14 @@
 .housing-more summary { cursor: pointer; min-height: 44px; align-content: center; color: hsl(var(--primary)); }
 .housing-card { width: 100%; gap: .75rem; text-align: start; }
 .housing-card > svg { flex: none; }
-.housing-card > svg:first-child { color: hsl(var(--warning)); }
+.housing-card .housing-card-alert { flex: none; color: hsl(var(--warning)); }
 .housing-card > svg:last-child { color: hsl(var(--muted-foreground)); }
+/* Card artwork: the warning rides on the illustration as the header's attention badge, ringed in the card colour. */
+.housing-card > .housing-card-icon { position: relative; flex: none; }
+.housing-card-icon > .header-badge { inset-block-start: -.1rem; box-shadow: 0 0 0 2px hsl(var(--card)); }
+@media (forced-colors: active), (prefers-contrast: more) {
+  .housing-card-icon > .header-badge { display: none; }
+}
 @media (max-width: 600px) {
   .housing-head { padding-left: 1rem; }
   .housing-scroll { padding-inline: 1rem; }
