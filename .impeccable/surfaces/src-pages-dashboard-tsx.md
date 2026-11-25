@@ -13,6 +13,8 @@ Favorites extension: Today reuses super compact `SmartHomeCard` surfaces as sepa
 
 The optional Homework panel groups linked lists by person and names the due period in its heading. Through today and Through tomorrow include earlier deadlines. Homework without a due date is included by default in every period and labeled when viewing a particular period. In check-off mode, reuse the existing list controls. In either link mode, use static rows with one destination in the heading. Completed work carries a checkmark and an accessible completion label when shown.
 
+The optional Recent at home section (off by default) reuses the Smart home activity panel unchanged: opaque work surface, divided rows, the same loading, unavailable, quiet-day, no-source and stale states. It spans the full board width and follows the household’s section order; sources and the people choice stay in Settings → System → Activity.
+
 ## Direction contract
 
 THESIS: An iOS Liquid Glass inspired control layer floats above a readable household board.

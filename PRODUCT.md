@@ -29,7 +29,7 @@ Home Assistant owns people, calendars, to-do items, device state and permissions
 - **Ask the house** (off by default) sends typed sentences to Home Assistant Assist from the header and shows the answers for the session. Assist acts only on what the owner exposed to it in Home Assistant; the app never widens that and never resends a request on its own. Voice input waits for a secure context.
 - Home Assistant health (repairs, persistent notifications, backup status and waiting updates) lives in Settings → System. Only actionable maintenance (error or critical repairs and failed, overdue or erroring backups) reaches Home status; warnings and notifications stay in Settings.
 - **Car & energy** leads with the circuits using power now. With a price sensor the owner chooses in Settings, it shows today's (and tomorrow's) electricity prices and the cheapest three hours as information only; nothing is scheduled or started. A **3D printer** card shows progress, time left, temperatures and filament without print controls.
-- Smart home shows a curated, live **Recent at home** list from the Home Assistant logbook, written in the dashboard's language; Settings → System → Activity holds the full log and the panel's sources. People's comings and goings are opt-in for privacy on a shared screen.
+- Smart home shows a curated, live **Recent at home** list from the Home Assistant logbook, written in the dashboard's language; Settings → System → Activity holds the full log and the panel's sources. The same panel is an optional Today section (off by default) under Customize Today, with the same sources and privacy choice. People's comings and goings are opt-in for privacy on a shared screen.
 
 ## Brand Commitments
 

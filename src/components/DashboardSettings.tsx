@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, House, ShieldCheck, ListChecks, NotebookPen, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, History, House, ShieldCheck, ListChecks, NotebookPen, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -15,9 +15,9 @@ import { dashboardSections, type DashboardHomeworkOptions, type DashboardSection
 
 const sectionLabels = {
   homeStatus: "Home status", morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
-  day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites",
+  day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites", recentActivity: "Recent at home",
 } as const;
-const sectionIcons = { homeStatus: ShieldCheck, morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, homework: NotebookPen, school: BookOpen, home: House };
+const sectionIcons = { homeStatus: ShieldCheck, morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, homework: NotebookPen, school: BookOpen, home: House, recentActivity: History };
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
@@ -69,6 +69,8 @@ export function DashboardSettings() {
             </div>
           </div>
           {key === "homeStatus" && <p className="text-sm text-muted-foreground">{t("Appears only when a selected source needs attention or has no reading.")}</p>}
+          {key === "recentActivity" && <p className="text-sm text-muted-foreground">{t("Uses the sources and privacy choice from Settings → System → Activity.")}{" "}
+            <DialogClose asChild><Link to="/settings/activity?panel=recent" className="text-link">{t("Choose sources")}</Link></DialogClose></p>}
           {key === "morningSummary" && (dashboard.morningSummary || dashboard.daySummaryPlayback) && <div>
             <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 text-sm">
               <span>{t("Hide morning summary content")}</span><Switch checked={dashboard.hideMorningSummaryContent} onCheckedChange={hideMorningSummaryContent => setDashboard({ hideMorningSummaryContent })}

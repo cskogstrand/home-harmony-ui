@@ -807,6 +807,38 @@ it("reorders Today sections, preserves hidden positions across reload and resets
   expect(screen.getAllByRole("heading", { level: 2 })[0].textContent).toBe("Next family plan");
 });
 
+it("adds Recent at home to Today from Customize Today, off by default and using the shared activity sources", async () => {
+  settings.settings.activity.panel = false;
+  app.currentHome = mapHome({
+    "person.example": state("person.example", "home", { friendly_name: "Example person" }),
+    "binary_sensor.example_door": state("binary_sensor.example_door", "off", { friendly_name: "Example door", device_class: "door" }),
+  }, emptyRegistries, "home");
+  app.subscribeLogbook.mockClear();
+  render(<App />); await saved();
+  expect(settings.settings.dashboard.recentActivity).toBe(false);
+  expect(screen.queryByRole("region", { name: "Recent at home" })).not.toBeInTheDocument();
+  expect(app.subscribeLogbook).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const dialog = screen.getByRole("dialog", { name: "Customize Today" });
+  expect(within(dialog).getByText("Uses the sources and privacy choice from Settings → System → Activity.")).toBeInTheDocument();
+  expect(within(dialog).getByRole("link", { name: "Choose sources" })).toHaveAttribute("href", "/settings/activity?panel=recent");
+  const toggle = within(dialog).getByRole("switch", { name: "Recent at home" });
+  expect(toggle).not.toBeChecked();
+  fireEvent.click(toggle);
+  await waitFor(() => expect(settings.settings.dashboard.recentActivity).toBe(true));
+  expect(settings.settings.activity.panel).toBe(false);
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  const panel = await screen.findByRole("region", { name: "Recent at home" });
+  expect(app.subscribeLogbook).toHaveBeenCalledWith(expect.objectContaining({ entityIds: ["binary_sensor.example_door"] }), expect.any(Function));
+  const [, receive] = app.subscribeLogbook.mock.lastCall as unknown as [unknown, (events: { entityId: string; state: string; when: number }[]) => void];
+  act(() => receive([{ entityId: "binary_sensor.example_door", state: "on", when: Date.now() - 60000 }]));
+  expect(within(panel).getByRole("link", { name: "Example door opened" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Recent at home" }));
+  await waitFor(() => expect(settings.settings.dashboard.recentActivity).toBe(false));
+  expect(screen.queryByRole("region", { name: "Recent at home" })).not.toBeInTheDocument();
+});
+
 it("disables reordering when shared configuration fails to load", async () => {
   app.configurationRequest.mockRejectedValue(new Error("Example storage failure"));
   render(<App />); await pageReady();

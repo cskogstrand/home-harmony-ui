@@ -138,7 +138,7 @@ it.each([
   expect(b.getSnapshot().config.settings[field]).toBe("");
 });
 
-it.each(["hideMorningSummaryContent", "daySummaryPlayback", "hideNextPlanDescription"] as const)("defaults older %s settings and shares and restores the choice", async field => {
+it.each(["hideMorningSummaryContent", "daySummaryPlayback", "hideNextPlanDescription", "recentActivity"] as const)("defaults older %s settings and shares and restores the choice", async field => {
   const config = emptyConfiguration();
   delete config.settings.dashboard[field];
   expect(parseConfiguration(JSON.stringify(config)).settings.dashboard[field]).toBe(false);
@@ -266,12 +266,13 @@ it("preserves the current dashboard for older backups and validates section choi
   const config = emptyConfiguration();
   const { dashboard, ...oldSettings } = config.settings;
   expect(parseConfiguration(JSON.stringify({ ...config, settings: oldSettings })).settings.dashboard).toEqual(dashboard);
-  const { order, showTomorrow, homeStatus, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
+  const { order, showTomorrow, homeStatus, recentActivity, wasteCollection, homework, homeworkOptions, nextPlanDays, hideMorningSummaryContent, daySummaryPlayback, hideNextPlanDescription, ...sections } = dashboard;
   expect(order).toEqual(dashboardSections);
   expect(nextPlanDays).toBe("auto");
   expect(showTomorrow).toBe(false);
   expect(wasteCollection).toBe(false);
   expect(homeStatus).toBe(false);
+  expect(recentActivity).toBe(false);
   expect(homework).toBe(false);
   expect(homeworkOptions).toEqual({ period: "through-today", includeUndated: true, showCompleted: false, action: "check" });
   expect(hideMorningSummaryContent).toBe(false);
@@ -284,6 +285,11 @@ it("preserves the current dashboard for older backups and validates section choi
   expect(read({ ...oldDashboard, week: false }).settings.dashboard).toEqual({ ...dashboard, week: false });
   const oldOrder = [...dashboardSections].reverse().filter(key => key !== "homework");
   expect(read({ order: oldOrder }).settings.dashboard.order).toEqual([...oldOrder, "homework"]);
+  const beforeRecentActivity = dashboardSections.filter(key => key !== "recentActivity");
+  const { recentActivity: _recentActivity, ...olderDashboard } = dashboard;
+  const migrated = read({ ...olderDashboard, order: beforeRecentActivity }).settings.dashboard;
+  expect(migrated).toEqual({ ...dashboard, order: [...beforeRecentActivity, "recentActivity"] });
+  expect(migrated.recentActivity).toBe(false);
   for (const invalid of [{ shopping: "false" }, { showTomorrow: "true" }, { homeworkOptions: { action: "edit" } }, { homeworkOptions: { period: "week" } }, { homeworkOptions: { showCompleted: "yes" } }, { unknown: true }, null, []]) expect(() => read(invalid)).toThrow();
 });
 

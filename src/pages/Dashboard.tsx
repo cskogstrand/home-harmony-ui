@@ -25,6 +25,7 @@ import { FamilyDay } from "@/components/FamilyDay";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { WasteCollection } from "@/components/WasteCollection";
 import { HomeStatus } from "@/components/HomeStatus";
+import { RecentActivity } from "@/components/ActivityFeed";
 
 export default function Dashboard() {
   const { t, dateLabel, eventTimeLabel } = useI18n();
@@ -103,6 +104,7 @@ export default function Dashboard() {
     homework: dashboard.homework && <ListPanel kind="homework" homeworkPreview={dashboard.homeworkOptions} />,
     school: dashboard.school && !!schoolMembers.length && <section className="glow-panel school-strip"><div><PanelTitle artwork="school" icon={BookOpen}>{t("School")}</PanelTitle><Link to="/school" className="text-link">{t("School board")}<ArrowUpRight size={17} /></Link></div>{schoolMembers.map(m => <SchoolPreview key={m.id} child={m.id} />)}<PlannerCardBackdrop kind="school" /></section>,
     home: dashboard.home && <HomeFavorites />,
+    recentActivity: dashboard.recentActivity && <RecentActivity placement="today" />,
   };
   return <div className="portrait-board">
     <header className="ambient-heading">

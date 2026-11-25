@@ -97,7 +97,7 @@ export const todoDisplaySchema = z.object({
 export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
 const plannerSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
-export const dashboardSections = [...plannerSections, "homeStatus"] as const;
+export const dashboardSections = [...plannerSections, "recentActivity", "homeStatus"] as const;
 export type DashboardSection = typeof dashboardSections[number];
 export const plannerArtworkSchema = z.enum([...plannerSections, "calendar", "tasks"]);
 export type PlannerArtwork = z.infer<typeof plannerArtworkSchema>;
@@ -137,6 +137,8 @@ const plannerObjectSchema = z.object({
     school: z.boolean().default(true),
     home: z.boolean().default(true),
     homeStatus: z.boolean().default(false),
+    // Recent at home on Today, off until the owner adds it; sources and privacy follow `activity` below.
+    recentActivity: z.boolean().default(false),
     statusSources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
   }).strict().prefault({}),
   homeEntities: z.array(memberSchema).optional(),
