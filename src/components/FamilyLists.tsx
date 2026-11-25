@@ -1,4 +1,4 @@
-import { PlannerCardBackdrop } from "@/components/CardArtwork";
+import { PlannerCardBackdrop, PlannerCardIcon } from "@/components/CardArtwork";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { PanelTitle } from "@/components/PanelTitle";
@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useListItemFeedback, type ItemFeedback } from "@/hooks/use-list-item-feedback";
 import { forwardRef, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, LayoutGroup, motion, useIsPresent, usePresenceData, useReducedMotion } from "framer-motion";
-import { Check, LoaderCircle, Plus, X, ClipboardList, ShoppingBasket, ListChecks, BookOpen, MoreHorizontal, Trash2 } from "lucide-react";
+import { Check, LoaderCircle, Plus, X, ClipboardList, ShoppingBasket, ListChecks, BookOpen, List, MoreHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "@/contexts/AppContext";
 import { useFamily, addDays, itemIsDone, type MemberId, type ListKind, type ListItem, type TodoListKind } from "@/contexts/FamilyContext";
@@ -128,6 +128,16 @@ function ItemSuggestions({ id, names, text, select, isDisabled }: { id: string; 
       try { await select(name); } finally { setSelected(undefined); }
     }}><span className={selected === name ? "opacity-0" : undefined}>{name}</span>{selected === name && <LoaderCircle size={16} className="suggestion-spinner motion-safe:animate-spin" aria-hidden="true" />}</button>)}
   </div>;
+}
+
+const isTodoListKind = (kind: string): kind is TodoListKind => Object.keys(listIcons).includes(kind);
+
+/** The list heading's picture at tab size: the illustration when that list type has artwork on, otherwise its glyph. Unknown types get a neutral list glyph. */
+export function ListKindIcon({ kind }: { kind: string }) {
+  const known = isTodoListKind(kind);
+  const Icon = known ? listIcons[kind] : List;
+  const glyph = <Icon strokeWidth={1.8} aria-hidden="true" focusable="false" />;
+  return <span className="list-kind-icon" data-list-kind={known ? kind : "other"} aria-hidden="true">{known ? <PlannerCardIcon kind={kind}>{glyph}</PlannerCardIcon> : glyph}</span>;
 }
 export function ListPanel({ kind, limit, homeworkPreview }: { kind: TodoListKind; limit?: number; homeworkPreview?: DashboardHomeworkOptions }) {
   const { t, message } = useI18n();
