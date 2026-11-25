@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { idleWatts, powerNow, splitIdle, wattsReading } from "@/lib/energy";
+import { consumerName, idleWatts, powerNow, splitIdle, wattsReading } from "@/lib/energy";
 import { mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
@@ -29,6 +29,46 @@ it("treats readings below 5 W as idle", () => {
   expect(idleWatts).toBe(5);
   expect(active.map(reading => reading.entity.name)).toEqual(["tv", "lamp"]);
   expect(idle.map(reading => reading.entity.name)).toEqual(["standby", "export"]);
+});
+
+it("counts overlapping sensors of one consumer once, keeping the largest reading", () => {
+  const sensor = (id: string, value: string, unit = "W") => state(`sensor.${id}`, value, { friendly_name: id, device_class: "power", unit_of_measurement: unit });
+  const readings = powerNow(mapHome({
+    "sensor.car_charger": sensor("car_charger", "3", "kW"), "sensor.car_charger_alt": sensor("car_charger_alt", "2990"), "sensor.car_drive": sensor("car_drive", "0", "kW"),
+    // The same car connected through a second integration: same name, same (unassigned) room.
+    "sensor.car_twin": sensor("car_twin", "3.01", "kW"),
+    // Same name in different rooms, and two identical plugs from one integration, are different consumers.
+    "sensor.lamp_hall": sensor("lamp_hall", "9"), "sensor.lamp_attic": sensor("lamp_attic", "8"),
+    "sensor.plug_a": sensor("plug_a", "40"), "sensor.plug_b": sensor("plug_b", "30"),
+    "sensor.loose_a": sensor("loose_a", "20"), "sensor.loose_b": sensor("loose_b", "20"),
+  }, {
+    areas: [{ area_id: "hall", name: "Hall" }, { area_id: "attic", name: "Attic" }],
+    devices: [{ id: "car", name: "Example car" }, { id: "car-2", name: "Example car" }, { id: "lamp-1", name: "Ceiling lamp", area_id: "hall" },
+      { id: "lamp-2", name: "Ceiling lamp", area_id: "attic" }, { id: "plug-1", name: "Smart plug" }, { id: "plug-2", name: "Smart plug" }],
+    entities: [
+      ...["car_charger", "car_charger_alt", "car_drive"].map(id => ({ id, entity_id: `sensor.${id}`, device_id: "car", platform: "example_car" })),
+      { id: "car_twin", entity_id: "sensor.car_twin", device_id: "car-2", platform: "other_car" },
+      { id: "lamp_hall", entity_id: "sensor.lamp_hall", device_id: "lamp-1", platform: "example_lamp" }, { id: "lamp_attic", entity_id: "sensor.lamp_attic", device_id: "lamp-2", platform: "example_lamp" },
+      { id: "plug_a", entity_id: "sensor.plug_a", device_id: "plug-1", platform: "example_plug" }, { id: "plug_b", entity_id: "sensor.plug_b", device_id: "plug-2", platform: "example_plug" },
+    ],
+  }, "home").entities);
+  expect(readings.map(({ entity, watts }) => [entity.entityId, watts])).toEqual([
+    ["sensor.car_twin", 3010], ["sensor.plug_a", 40], ["sensor.plug_b", 30], ["sensor.loose_a", 20], ["sensor.loose_b", 20], ["sensor.lamp_hall", 9], ["sensor.lamp_attic", 8],
+  ]);
+});
+
+it("names a consumer after its device unless the owner named the reading", () => {
+  const [composed, chosen, loose] = mapHome({
+    "sensor.example_heater_power": state("sensor.example_heater_power", "900", { friendly_name: "Example heater AC total power", device_class: "power", unit_of_measurement: "W" }),
+    "sensor.example_floor_power": state("sensor.example_floor_power", "300", { friendly_name: "Bathroom floor", device_class: "power", unit_of_measurement: "W" }),
+    "sensor.example_meter_power": state("sensor.example_meter_power", "40", { friendly_name: "Example meter power", device_class: "power", unit_of_measurement: "W" }),
+  }, { areas: [], devices: [{ id: "heater", name: "Example heater" }, { id: "floor", name: "Example floor", name_by_user: "Example thermostat" }], entities: [
+    { id: "a", entity_id: "sensor.example_heater_power", device_id: "heater" }, { id: "b", entity_id: "sensor.example_floor_power", device_id: "floor" },
+    { id: "c", entity_id: "sensor.example_meter_power" },
+  ] }, "home").entities;
+  expect(consumerName(composed)).toBe("Example heater");
+  expect(consumerName(chosen)).toBe("Bathroom floor");
+  expect(consumerName(loose)).toBe("Example meter power");
 });
 
 it("shows sums below 1 kW in W and larger sums in kW", () => {

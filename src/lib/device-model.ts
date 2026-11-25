@@ -10,6 +10,11 @@ export function smartHomeEntities(entities: Entity[], settings?: Planner["smartH
 }
 
 export const deviceName = (device: PhysicalDevice, language: Language = "en") => device.name_by_user || device.name || device.model || createI18n(language).t("Unnamed device");
+/** The entity's own part of a Home Assistant "<device> <entity>" name, for places that already show the device. */
+export const readingName = (entity: Entity) => {
+  const prefix = [entity.device?.name_by_user, entity.device?.name].find(name => name && entity.name.startsWith(name + " "));
+  return prefix ? entity.name.slice(prefix.length + 1) : entity.name;
+};
 export function deviceChoiceLabel(device: PhysicalDevice, home: Home, language: Language = "en") {
   const name = deviceName(device, language);
   const peers = home.devices.filter(item => deviceName(item, language) === name);

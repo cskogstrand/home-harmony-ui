@@ -1,4 +1,5 @@
 import { available, humanizeState } from "./ha-model";
+import { readingName } from "./device-model";
 import type { Entity, EntityAction, Home, PhysicalDevice } from "@/types/api";
 
 const teslaPlatforms = new Map([
@@ -122,10 +123,7 @@ export function vehicleGroup(entity: Entity): VehicleGroup {
   return "Vehicle information";
 }
 
-export const readingName = (entity: Entity) => {
-  const prefix = [entity.device?.name_by_user, entity.device?.name].find(name => name && entity.name.startsWith(name + " "));
-  return prefix ? entity.name.slice(prefix.length + 1) : entity.name;
-};
+export { readingName };
 
 export function cabinClimate(entities: Entity[]) {
   const climates = entities.filter(e => e.domain === "climate" && vehicleGroup(e) === "Cabin temperature");

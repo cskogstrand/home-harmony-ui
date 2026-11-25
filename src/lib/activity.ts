@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Entity } from "@/types/api";
-import { msg, type Language, type Message, type MessageKey, type MessageValues } from "./i18n";
-import { entityStateLabel, humanizeState } from "./ha-model";
+import { createI18n, msg, type Language, type Message, type MessageKey, type MessageValues } from "./i18n";
+import { entityReading, entityStateLabel, humanizeState } from "./ha-model";
 import { homeStatusGroup, type HomeStatusGroup } from "./home-status";
 import { entityDetailPath } from "./device-model";
 
@@ -76,6 +76,8 @@ export interface ActivityOptions {
   limit?: number;
   /** Same-entity changes closer together than this fold into one curated item. */
   collapseMs?: number;
+  /** The home's time zone, for logged timestamp states; the browser's when omitted. */
+  timeZone?: string;
 }
 
 const peopleDomains = new Set(["person", "device_tracker"]);
@@ -118,6 +120,34 @@ export function curatedActivityEntityIds(entities: Entity[], options: Pick<Activ
     || options.people && peopleDomains.has(entity.domain)).map(entity => entity.entityId))].sort();
 }
 
+const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+const isoMoment = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}:?\d{2})?$/;
+// Untranslated integration values read as English words at best and as machine tokens ("OnOffSwitch", "70d07e…") at worst.
+const englishWords = (value: string) => /^[A-Za-z]+(?:[ _][A-Za-z]+)*$/.test(value) && !/[a-z][A-Z]/.test(value);
+// Owners write these values themselves, in their own language.
+const ownWords = new Set(["input_select", "input_text", "text"]);
+
+/** A dashboard-language text for a logged state, or undefined when the value has no readable form. */
+function stateText(entity: Entity | undefined, value: string, options: ActivityOptions) {
+  const { language } = options;
+  const { locale, dateLabel } = createI18n(language);
+  if (isoDate.test(value)) return dateLabel(value, { day: "numeric", month: "short", year: "numeric" });
+  const moment = isoMoment.exec(value);
+  if (moment) {
+    // A time without an offset is already the home's wall clock.
+    const [, date, time, offset] = moment;
+    const when = Date.parse(`${date}T${time}${offset ? offset.replace(/^([+-]\d{2})(\d{2})$/, "$1:$2") : "Z"}`);
+    return Number.isFinite(when) ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: offset ? options.timeZone : "UTC" }).format(when) : undefined;
+  }
+  if (!entity) return language === "en" && englishWords(value) ? humanizeState(value) : undefined;
+  // Home Assistant's translation is known for the entity's current state only.
+  const logged = { ...entity, state: value, stateLabel: value === entity.state ? entity.stateLabel : undefined };
+  if (value.trim() && Number.isFinite(Number(value)) || ownWords.has(entity.domain)) return entityReading(logged, language);
+  const label = entityStateLabel(logged, language);
+  if (logged.stateLabel || label !== humanizeState(value)) return label;
+  return language === "en" && englishWords(value) ? label : undefined;
+}
+
 function classify(event: LogbookEvent, entity: Entity | undefined, options: ActivityOptions): { kind: ActivityKind; icon: ActivityIcon; sentence: Message } {
   const domain = event.entityId.split(".")[0], cls = deviceClass(entity), state = event.state;
   const camera = options.personSensors?.[event.entityId];
@@ -125,8 +155,11 @@ function classify(event: LogbookEvent, entity: Entity | undefined, options: Acti
   const said = (kind: ActivityKind, icon: ActivityIcon, key: MessageKey, values: MessageValues = {}) => ({ kind, icon, sentence: msg(key, { name, ...values }) });
   // Home Assistant's message is used only for events that are not state changes; the curated panel never shows them.
   if (state === undefined) return said("message", "activity", "{name} {message}", { message: event.message ?? "" });
-  const label = (value: string) => entity ? entityStateLabel({ ...entity, state: value, stateLabel: undefined }, options.language) : humanizeState(value);
-  const changed = (icon: ActivityIcon = "activity", kind?: ActivityKind) => said(kind ?? (transitionStates.has(state) ? "transition" : "changed"), icon, "{name} changed to {state}", { state: label(state) });
+  const label = (value: string) => entity ? entityStateLabel({ ...entity, state: value, stateLabel: value === entity.state ? entity.stateLabel : undefined }, options.language) : humanizeState(value);
+  const changed = (icon: ActivityIcon = "activity", kind?: ActivityKind) => {
+    const text = stateText(entity, state, options);
+    return said(kind ?? (transitionStates.has(state) ? "transition" : "changed"), icon, text === undefined ? "{name} changed status" : "{name} changed to {state}", text === undefined ? {} : { state: text });
+  };
   if (peopleDomains.has(domain)) {
     if (state === "home") return said("came-home", "person", "{name} came home");
     if (state === "not_home") return said("left-home", "person", "{name} left home");
@@ -163,6 +196,8 @@ function classify(event: LogbookEvent, entity: Entity | undefined, options: Acti
     if (cls === "doorbell") return said("doorbell", "doorbell", "{name} rang");
     return cls === "button" ? said("pressed", "activity", "{name} was pressed") : said("event", "activity", "{name} reported an event");
   }
+  // Buttons and scenes report when they were last used.
+  if (["button", "input_button", "scene"].includes(domain) && isoMoment.test(state)) return domain === "scene" ? said("event", "activity", "{name} was activated") : said("pressed", "activity", "{name} was pressed");
   if (state === "on") return said("on", "power", "{name} turned on");
   if (state === "off") return said("off", "power", "{name} turned off");
   return changed();
