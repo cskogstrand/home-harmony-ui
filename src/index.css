@@ -229,6 +229,8 @@
     --ambient-warm: 28 80% 89% / .48;
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    /* Weekend days are washed with the palette's own foreground ink at this opacity: fainter than any today tint. */
+    --weekend-shade-alpha: .03;
     --background: 218 32% 95%;
     --foreground: 218 30% 16%;
     --card: 0 0% 100%;
@@ -312,6 +314,7 @@
 
   .dark {
     color-scheme: dark;
+    --weekend-shade-alpha: .025;
     --background: 222 30% 9%;
     --foreground: 216 30% 95%;
     --card: 221 23% 14%;

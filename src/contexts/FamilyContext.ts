@@ -33,6 +33,11 @@ export function addDays(date: string, days: number) {
 export function weekStart(date: string) {
   return addDays(date, -((new Date(`${date}T12:00:00Z`).getUTCDay() + 6) % 7));
 }
+/** Saturday or Sunday for a planner date, which is already a calendar day in the home's time zone (see `homeDate`). */
+export function isWeekend(date: string) {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  return day === 0 || day === 6;
+}
 export function weekNumber(date: string) {
   return getISOWeek(new Date(`${date}T12:00:00`));
 }

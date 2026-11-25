@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import App from "@/App";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
-import { state } from "./ha-fixtures";
+import { config, state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", connectionStarting: false, awaitingFirstConnection: false, entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn(), assistAgents: vi.fn(async () => []) }));
@@ -24,6 +24,14 @@ const plans: Record<string, { summary: string; start: string; end: string }[]> =
   "calendar.example_bo": [],
   "calendar.example_cy": [{ summary: "Example football match", start: "2026-10-29T16:00:00Z", end: "2026-10-29T17:30:00Z" }],
 };
+const home = (timeZone?: string) => mapHome({
+  "person.ada": state("person.ada", "home", { friendly_name: "Example Ada" }),
+  "person.bo": state("person.bo", "home", { friendly_name: "Example Bo" }),
+  "person.cy": state("person.cy", "home", { friendly_name: "Example Cy" }),
+  "calendar.example_ada": state("calendar.example_ada", "off"),
+  "calendar.example_bo": state("calendar.example_bo", "off"),
+  "calendar.example_cy": state("calendar.example_cy", "off"),
+}, emptyRegistries, "home", timeZone ? { ...config, time_zone: timeZone } : undefined);
 let settings = emptyConfiguration();
 let phone = true;
 beforeEach(() => {
@@ -35,14 +43,7 @@ beforeEach(() => {
   settings.settings.dashboard.showTomorrow = true;
   settings.settings.calendarMembers = { "home|calendar.example_ada": "home|person.ada", "home|calendar.example_bo": "home|person.bo", "home|calendar.example_cy": "home|person.cy" };
   app.homeOnline = true;
-  app.currentHome = mapHome({
-    "person.ada": state("person.ada", "home", { friendly_name: "Example Ada" }),
-    "person.bo": state("person.bo", "home", { friendly_name: "Example Bo" }),
-    "person.cy": state("person.cy", "home", { friendly_name: "Example Cy" }),
-    "calendar.example_ada": state("calendar.example_ada", "off"),
-    "calendar.example_bo": state("calendar.example_bo", "off"),
-    "calendar.example_cy": state("calendar.example_cy", "off"),
-  }, emptyRegistries, "home");
+  app.currentHome = home();
   app.todoItems.mockReset().mockResolvedValue([]);
   app.watchCalendarEvents.mockReset().mockImplementation((id: string, _from, _to, _signal, receive) => receive(plans[id.split("|").pop() ?? id] ?? []));
   app.configurationRequest.mockImplementation(async (method, body) => {
@@ -106,4 +107,28 @@ it("keeps the person lanes above the phone breakpoint", async () => {
   expect(within(day).getAllByRole("group", { name: "Example Bo" })).toHaveLength(2);
   expect(within(day).queryByRole("list", { name: "Free today" })).not.toBeInTheDocument();
   expect(day.querySelector("details")).toBeNull();
+});
+
+it("shades the weekend in Everyone's day by the home's date and names each weekday, on phones and wider screens", async () => {
+  // Friday 23 October 2026, 12:00 UTC: still Friday in Europe/Oslo, already Saturday in Pacific/Auckland. Sunday the 25th is Europe's daylight-saving change.
+  vi.setSystemTime(new Date("2026-10-23T12:00:00Z"));
+  const days = async () => {
+    const day = await screen.findByRole("region", { name: "Everyone’s day" });
+    await waitFor(() => expect(day.querySelectorAll(":is(.family-day-date, .family-day-agenda-day) time")).toHaveLength(2));
+    return [...day.querySelectorAll(":is(.family-day-date, .family-day-agenda-day)")].map(element => {
+      const time = element.querySelector("time")!;
+      return [time.getAttribute("datetime"), time.textContent, element.hasAttribute("data-weekend")];
+    });
+  };
+  for (const isPhone of [true, false]) {
+    phone = isPhone;
+    app.currentHome = home("Europe/Oslo");
+    render(<App />);
+    expect(await days()).toEqual([["2026-10-23", "Fri 23 Oct", false], ["2026-10-24", "Sat 24 Oct", true]]);
+    cleanup();
+    app.currentHome = home("Pacific/Auckland");
+    render(<App />);
+    expect(await days()).toEqual([["2026-10-24", "Sat 24 Oct", true], ["2026-10-25", "Sun 25 Oct", true]]);
+    cleanup();
+  }
 });

@@ -5,7 +5,7 @@ import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { useApp } from "@/contexts/AppContext";
 import { CalendarDays, Check, Columns3, Table2, Plus } from "lucide-react";
-import { useFamily, addDays, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, addDays, isWeekend, weekNumber, weekStart, type CalendarSettings, type FamilyEvent, type FamilyMember, type MemberId } from "@/contexts/FamilyContext";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 import { WasteTypeIcons } from "./WasteCollection";
 import { Button } from "./ui/button";
@@ -67,8 +67,8 @@ export const FamilyWeekGrid = memo(function FamilyWeekGrid({ start, events, memb
   return <div className={`weekly-scroll ${compact ? "weekly-compact" : ""}`} role="region" aria-label={t("Family weekly calendar")} tabIndex={0}>
       <table className="family-week-table" lang={language}>
         <caption className="sr-only">{t("Family plans from {value1} to {value2}", { value1: dateLabel(start), value2: dateLabel(addDays(start, 6)) })}</caption>
-        <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} />)}</colgroup>
-        <thead><tr><th scope="col"><span className="week-member-label">{t("Family")}</span></th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""}>
+        <colgroup><col className="week-member-column" />{days.map(day => <col key={day} className={day === today ? "week-today" : ""} data-weekend={isWeekend(day) || undefined} />)}</colgroup>
+        <thead><tr><th scope="col"><span className="week-member-label">{t("Family")}</span></th>{days.map(day => <th scope="col" key={day} className={day === today ? "week-today" : ""} data-weekend={isWeekend(day) || undefined}>
           <small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small>
           {onDay ? <button className="calendar-week-day" onClick={() => onDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}><time dateTime={day} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time></button> :
             <time dateTime={day} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} aria-current={day === today ? "date" : undefined}><span>{day === today ? t("Today") : dateLabel(day, { weekday: "short" })}</span><strong>{dateLabel(day, { day: "numeric", month: "short" })}</strong></time>}

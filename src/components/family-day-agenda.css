@@ -22,4 +22,7 @@
 .family-day-agenda-chevron { flex-shrink: 0; color: hsl(var(--muted-foreground)); transition: transform .2s cubic-bezier(.16, 1, .3, 1); }
 .family-day-agenda-later[open] .family-day-agenda-chevron { transform: rotate(180deg); }
 .family-day-agenda-body { display: grid; gap: .75rem; padding-top: .75rem; }
-@media (forced-colors: active) { .family-day-agenda-chevron, .family-day-agenda-date, .family-day-agenda-count { color: CanvasText; } }
+/* Weekend days sit on the same faint band as on wider screens, bleeding slightly into the phone panel's narrower padding. */
+.family-day-agenda-day[data-weekend] { margin-inline: -.5rem; padding: .75rem .5rem; border-top-color: transparent; border-radius: var(--radius-row); background: hsl(var(--foreground) / var(--weekend-shade-alpha)); }
+.family-day-agenda-later[data-weekend] > summary { padding-top: 0; }
+@media (forced-colors: active) { .family-day-agenda-chevron, .family-day-agenda-date, .family-day-agenda-count { color: CanvasText; } .family-day-agenda-day[data-weekend] { background: none; } }
