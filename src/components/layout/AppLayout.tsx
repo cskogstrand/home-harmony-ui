@@ -11,6 +11,7 @@ import { MainPages } from "./MainPages";
 import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
 import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
 import { PageContent } from "@/components/common/PageContent";
+import { PageSkeleton } from "@/components/common/PageSkeleton";
 import { isHomeSection, mainPagePath } from "@/lib/navigation";
 import { VehicleWidgets } from "@/components/VehicleWidgets";
 import { ArtworkImage } from "@/components/ArtworkImage";
@@ -104,7 +105,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       {isHomeSection(pathname) && <SmartHomeNav />}
       <MainPages locations={locations} errorFallback={errorFallback} />
       <PageErrorBoundary key={pathname} fallback={errorFallback}>
-        <Suspense fallback={<p role="status">{t("Loading…")}</p>}><PageContent active={!mainPath}>{children}</PageContent></Suspense>
+        <Suspense fallback={<PageSkeleton />}><PageContent active={!mainPath}>{children}</PageContent></Suspense>
       </PageErrorBoundary>
     </main>
     <footer className="app-footer"><span>{t("Version {value1}", { value1: appVersion })}</span></footer>

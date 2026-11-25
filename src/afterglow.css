@@ -526,6 +526,19 @@ fieldset.settings-card > legend + * { clear: both; }
 .connection-banner { display: flex; align-items: center; gap: 14px; padding: 15px var(--space); margin: 8px auto; max-width: 1600px; background: hsl(var(--warning) / .12); color: hsl(var(--warning)); font-size: var(--type-body); }
 .connection-banner strong { display: block; }
 .connection-banner svg { flex-shrink: 0; }
+/* Connecting after a load is progress, not a fault: muted text without the warning tint. */
+.connection-banner[data-tone="neutral"] { background: hsl(var(--muted) / .55); color: hsl(var(--muted-foreground)); }
+.page-skeleton .skeleton-title { font-size: var(--type-headline); font-weight: 600; letter-spacing: -.025em; line-height: 1.25; margin: 0 0 .5rem; }
+.page-skeleton .ambient-heading .skeleton-title { line-height: 1.2; }
+.skeleton-panel { display: flex; flex-direction: column; gap: .85rem; min-height: 9rem; }
+.skeleton-panel.skeleton-wide { grid-column: 1 / -1; }
+.skeleton-panel.skeleton-toolbar { min-height: 4.5rem; justify-content: center; }
+.skeleton-bar { display: block; max-width: 100%; border-radius: 999px; background: hsl(var(--muted)); }
+.skeleton-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.5rem; }
+.skeleton-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 1rem; }
+@media (prefers-reduced-motion: no-preference) { .skeleton-bar { animation: skeleton-pulse 1.2s ease-in-out infinite alternate; } }
+@keyframes skeleton-pulse { from { opacity: 1; } to { opacity: .45; } }
+@media (forced-colors: active) { .skeleton-bar { background: GrayText; } }
 .planner-page { display: flex; flex-direction: column; gap: 1.5rem; }
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; margin: 0 0 .5rem; }
 .page-heading h1 { font-size: var(--type-headline); font-weight: 600; letter-spacing: -.025em; line-height: 1.25; margin: 0 0 .5rem; }
