@@ -47,6 +47,38 @@ it("keeps the time and the controls on the first row and lets the chip wrap belo
   expect(assistCss).not.toMatch(/vehicle-chip-strip/);
 });
 
+it("sizes the home link to the time it shows, never under the 44px target", () => {
+  // The trailing group and its wrap see the link's box, so the box must hold the visible time at every text size.
+  const brand = declarations(mediaBlock(afterglowCss, "(max-width: 699px)"), ".brand");
+  expect(brand).toMatch(/width: max-content/);
+  expect(brand).toMatch(/min-width: 44px/);
+  // The chip header's own column for the time is auto, so it follows the link instead of a fixed share of the row.
+  expect(declarations(mediaBlock(vehicleCss, "(width <= 767px)"), ".app-header:has(.vehicle-chip-strip)")).toMatch(/grid-template-columns: auto /);
+});
+
+it("leaves the chip header's columns to the vehicle stylesheet", () => {
+  // afterglow.css can load after vehicle-widgets.css: an equally specific header grid there (weather in the header) would
+  // replace the time's auto column with a 1fr one that lets the time overflow beneath the chip.
+  const headerGrids = [...afterglowCss.matchAll(/(?:^|\n)\s*([^{}\n]*\.app-header[^{}\n]*)\{([^}]*grid-template-columns[^}]*)\}/g)].map(match => match[1].trim());
+  expect(headerGrids.length).toBeGreaterThan(0);
+  for (const selector of headerGrids) {
+    if (selector === ".app-header") continue; // Less specific than the chip rule, which always wins.
+    expect(selector).toContain(":not(:has(.vehicle-chip-strip))");
+  }
+});
+
+it("keeps the Sonos play badge in the control's corner, clear of the music icon at large text", () => {
+  expect(layoutSource).toMatch(/<Music2 size=\{20\} aria-hidden="true" \/>\{playingGroup && <span className="header-badge header-badge-glyph"/);
+  const glyph = declarations(afterglowCss, ".header-badge.header-badge-glyph");
+  // Sized and placed from the control, not the text: 40% of a 48px circle is the 100%-text badge, at any text size.
+  expect(glyph).toMatch(/width: 40%/);
+  expect(glyph).toMatch(/aspect-ratio: 1/);
+  expect(glyph).toMatch(/min-width: 0/);
+  expect(glyph).toMatch(/padding: 0/);
+  expect(glyph).toMatch(/inset-block-start: -7\.5%/);
+  expect(glyph).not.toMatch(/\d(?:r?em|ch)\b/);
+});
+
 it("keeps the tablet layout for weather beside the clock away from the phone chip", () => {
   const tablet = mediaBlock(vehicleCss, "(width <= 1100px)");
   for (const line of tablet.split("\n").filter(line => line.includes("header-weather[data-beside-clock]") && line.includes("grid"))) {

@@ -94,7 +94,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       <div className="header-trail"><VehicleWidgets /><div className="header-actions">
         <AskTheHouse />
         <Link to={playingGroup ? `/sonos?player=${encodeURIComponent(playingGroup.player.entityId)}` : "/sonos"} className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
-          <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
+          <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge header-badge-glyph" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
         </Link>
         <Link to="/cameras" className="icon-button glass-surface" aria-label={cameraLabel} title={cameraLabel}>
           <Camera size={20} aria-hidden="true" />{detectedCameras > 0 && <span className="header-badge" aria-hidden="true"><UserRound size={13} strokeWidth={2.6} />{detectedCameras > 1 && detectedCameras}</span>}
