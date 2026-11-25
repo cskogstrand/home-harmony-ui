@@ -47,7 +47,8 @@
 .modal-backdrop { background-color: rgb(0 0 0 / var(--modal-backdrop-opacity, .2)); }
 .motion-menu.glass-surface { border-radius: var(--radius-menu); padding: .5rem; color: hsl(var(--foreground)); max-height: min(var(--radix-dropdown-menu-content-available-height), calc(100dvh - 1rem)); max-width: calc(100vw - 2rem); overflow-y: auto; overscroll-behavior: contain; }
 /* Items sit .5rem inside the menu's 1px rim; the rem inset keeps them concentric when the wall's larger root size grows the padding. */
-.motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: calc(var(--radius-menu) - .5rem - 1px); min-height: 48px; overflow-wrap: anywhere; }
+.motion-menu { --radius-nested: calc(var(--radius-menu) - .5rem - 1px); }
+.motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: var(--radius-nested); min-height: 48px; overflow-wrap: anywhere; }
 .motion-menu [role="menuitem"] { padding-inline: .75rem; }
 .motion-surface[role="dialog"], .motion-surface[role="alertdialog"] { border-radius: var(--radius-dialog); }
 
@@ -473,15 +474,15 @@ fieldset.settings-card > legend + * { clear: both; }
 .timetable-tab-meetings { padding: .125rem .5rem; border-radius: var(--radius-capsule); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
 .timetable-week-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: .5rem 0 1rem; }
 .timetable-week-label { font-weight: 600; }
-.timetable-week { --glass-opacity: var(--glass-panel-opacity); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: var(--radius-menu); }
-/* Days sit .5rem inside the glass frame's border, so they take its radius minus that inset. */
-.timetable-day { --timetable-day-radius: calc(var(--radius-menu) - .5rem - 1px); container: timetable-day / inline-size; position: relative; min-width: 0; padding: .75rem; border-radius: var(--timetable-day-radius);overflow-wrap: anywhere; background: hsl(var(--card) / .28); }
+/* Days sit .5rem inside the glass frame's 1px border, so they take its radius minus that inset. */
+.timetable-week { --glass-opacity: var(--glass-panel-opacity); --radius-nested: calc(var(--radius-menu) - .5rem - 1px); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: var(--radius-menu); }
+.timetable-day { container: timetable-day / inline-size; position: relative; min-width: 0; padding: .75rem; border-radius: var(--radius-nested); overflow-wrap: anywhere; background: hsl(var(--card) / .28); }
 .timetable-day[aria-current="date"] { background: hsl(var(--primary) / .04); }
 .timetable-day h3 { margin-bottom: .75rem; font-size: var(--type-label); font-weight: 600; }
 .timetable-day-trigger { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; width: 100%; text-align: left; cursor: pointer; }
 .timetable-day-trigger > span { display: flex; align-items: center; justify-content: space-between; gap: .25rem; width: 100%; }
 .timetable-day-trigger svg { flex-shrink: 0; }
-.timetable-day-trigger::after { content: ""; position: absolute; inset: 0; border-radius: var(--timetable-day-radius); }
+.timetable-day-trigger::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-nested); }
 .timetable-day-trigger:hover::after { background: hsl(var(--primary) / .05); }
 .timetable-day-trigger:focus-visible { outline: none; }
 .timetable-day-trigger:focus-visible::after { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }

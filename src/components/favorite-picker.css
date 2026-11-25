@@ -33,9 +33,9 @@
 .favorite-group-field { flex: 1; min-width: 0; font-size: var(--type-label); }
 .favorite-group-trigger { width: 100%; justify-content: space-between; gap: .5rem; min-height: 48px; border-radius: 16px; padding-inline: .75rem; }
 .favorite-group-trigger > span { min-width: 0; overflow-wrap: anywhere; white-space: normal; text-align: left; }
-.favorite-group-popover { width: var(--radix-popover-trigger-width); min-width: min(15rem, calc(100vw - 24px)); max-width: calc(100vw - 24px); padding: .5rem; border-radius: var(--radius-menu); }
+.favorite-group-popover { width: var(--radix-popover-trigger-width); min-width: min(15rem, calc(100vw - 24px)); max-width: calc(100vw - 24px); padding: .5rem; border-radius: var(--radius-menu); --radius-nested: calc(var(--radius-menu) - .5rem - 1px); }
 .favorite-group-popover [cmdk-root] { background: transparent; }
-.favorite-group-popover [cmdk-item] { justify-content: space-between; gap: .5rem; min-height: 48px; border-radius: calc(var(--radius-menu) - .5rem - 1px); padding: .5rem .75rem; }
+.favorite-group-popover [cmdk-item] { justify-content: space-between; gap: .5rem; min-height: 48px; border-radius: var(--radius-nested); padding: .5rem .75rem; }
 .favorite-group-popover [cmdk-item] > span { min-width: 0; overflow-wrap: anywhere; }
 .favorite-group-popover [cmdk-item] svg { width: 18px; height: 18px; flex-shrink: 0; color: hsl(var(--primary)); }
 .favorite-group-popover [cmdk-list] { max-height: min(18rem, calc(var(--radix-popover-content-available-height) - 5rem)); scrollbar-width: thin; scrollbar-color: hsl(var(--input)) transparent; }
