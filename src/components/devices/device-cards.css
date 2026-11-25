@@ -370,6 +370,8 @@
 .dg-card.dg-supercompact[data-card-kind="scene"]:has(.dg-scene-action) { padding: 0; border: 0; box-shadow: none; }
 .dg-supercompact[data-card-kind="scene"]:has(.dg-scene-action) > .dg-card-header { display: none; }
 .dg-card .dg-scene-action { width: 100%; min-height: 4.5rem; padding: 1rem; gap: .75rem; border-radius: 12px; background: hsl(var(--primary) / .12); color: var(--dg-ink); font-size: var(--type-body-large); line-height: 1.35; text-align: left; white-space: normal; }
+/* A super compact scene card drops its padding, so the action fills the card and takes the card's 16px corners. */
+.dg-supercompact .dg-scene-action { border-radius: var(--radius-inset); }
 .dg-scene-action > span { flex: 1; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 .dg-card .dg-scene-action > svg { width: 1.5rem; height: 1.5rem; color: hsl(var(--primary)); }
 .dg-card .dg-scene-action:hover:not(:disabled) { background: hsl(var(--primary) / .22); }

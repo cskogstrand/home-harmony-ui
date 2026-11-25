@@ -4,10 +4,12 @@
 .settings-intro h1 { font-size: var(--type-headline); font-weight: 600; letter-spacing: -.025em; line-height: 1.2; overflow-wrap: anywhere; }
 .settings-intro h1:focus { outline: none; }
 .settings-intro > .page-note { margin-top: .5rem; max-width: 65ch; }
-.settings-menu.settings-card { padding: 0 .5rem; }
+.settings-menu.settings-card { padding: 0 .5rem; --radius-nested: calc(var(--radius-inset) - .5rem - 1px); }
 .settings-group { padding-block: .5rem; }
 .settings-group + .settings-group { border-top: 1px solid hsl(var(--border)); }
 .settings-row, .settings-guide-link { display: flex; align-items: center; gap: 1rem; width: 100%; text-align: start; border-radius: var(--radius-field); }
+/* Rows sit .5rem inside the menu card's border, so their hover fill follows its corners. */
+.settings-menu .settings-row { border-radius: var(--radius-nested); }
 .settings-row > span, .settings-guide-link > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .settings-row svg, .settings-guide-link svg { flex-shrink: 0; }
 .settings-category { padding: .625rem 1rem; }
@@ -63,8 +65,8 @@
 .settings-step-actions > .text-link { min-height: 44px; margin-inline-end: auto; }
 
 .settings-panels { display: grid; grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr); align-items: start; gap: 1.25rem; }
-.settings-panel-menu { display: grid; gap: .25rem; padding: .5rem; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); }
-.settings-panel-menu a { display: flex; align-items: center; gap: .65rem; min-height: 48px; padding: .6rem .75rem; border-radius: var(--radius-field); font-size: var(--type-body); line-height: 1.4; }
+.settings-panel-menu { display: grid; gap: .25rem; padding: .5rem; background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); --radius-nested: calc(var(--radius-inset) - .5rem - 1px); }
+.settings-panel-menu a { display: flex; align-items: center; gap: .65rem; min-height: 48px; padding: .6rem .75rem; border-radius: var(--radius-nested); font-size: var(--type-body); line-height: 1.4; }
 .settings-panel-menu svg { flex: none; }
 .settings-panel-menu span { min-width: 0; overflow-wrap: anywhere; }
 .settings-panel-menu small { display: block; font-size: var(--type-label); font-weight: 400; color: hsl(var(--muted-foreground)); }

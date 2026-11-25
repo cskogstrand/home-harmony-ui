@@ -1,11 +1,12 @@
 .vehicle-strip {
   display: flex; flex-wrap: wrap; align-items: stretch; min-width: 0; gap: 2px;
   padding: 3px; border-radius: var(--radius-menu); color: hsl(var(--nav-foreground));
+  --radius-nested: calc(var(--radius-menu) - 3px - 1px);
 }
 .vehicle-glance {
   flex: 1 1 auto; display: grid; grid-template-columns: auto minmax(0, 1fr);
   align-items: center; gap: .4rem; min-width: 0; min-height: 48px; padding: .2rem .55rem;
-  border-radius: var(--radius-inset); text-align: start; cursor: pointer;
+  border-radius: var(--radius-nested); text-align: start; cursor: pointer;
 }
 .vehicle-glance:focus-visible { background: hsl(var(--secondary)); }
 .vehicle-glance:focus-visible, .vehicle-modal summary:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
@@ -124,8 +125,8 @@
   .vehicle-glance:hover { background: hsl(var(--secondary)); }
 }
 .vehicle-tabs { display: flex; flex: 0 1 auto; flex-direction: column; min-height: 0; gap: .7rem; }
-.vehicle-tabs .vehicle-view-tabs { display: flex; flex: none; flex-wrap: wrap; gap: 2px; width: 100%; height: auto; padding: 3px; border-radius: var(--radius-inset); background: hsl(var(--secondary)); }
-.vehicle-view-tabs [role="tab"] { flex: 1 1 auto; flex-direction: column; gap: .2rem; min-width: 0; min-height: 44px; padding: .3rem .5rem; border-radius: var(--radius-field); }
+.vehicle-tabs .vehicle-view-tabs { display: flex; flex: none; flex-wrap: wrap; gap: 2px; width: 100%; height: auto; padding: 3px; border-radius: var(--radius-inset); background: hsl(var(--secondary)); --radius-nested: calc(var(--radius-inset) - 3px); }
+.vehicle-view-tabs [role="tab"] { flex: 1 1 auto; flex-direction: column; gap: .2rem; min-width: 0; min-height: 44px; padding: .3rem .5rem; border-radius: var(--radius-nested); }
 .vehicle-view-tabs [role="tab"][data-state="active"] { background: hsl(var(--card)); color: hsl(var(--foreground)); font-weight: 600; }
 .vehicle-module, .vehicle-band { background: hsl(var(--card)); padding: 1rem 1.25rem; border-radius: var(--radius-inset); overflow-wrap: anywhere; }
 .vehicle-module h3, .vehicle-system > h3 { display: flex; align-items: center; gap: .5rem; font-weight: 600; }

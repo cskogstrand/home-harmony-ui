@@ -10,6 +10,9 @@
   [role="dialog"] > button:last-child { min-width: 48px; min-height: 48px; top: 8px; right: 8px; display: grid; place-items: center; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 }
+/* The touch minimum makes a phone switch taller than its 1.5rem track, so the thumb takes the same start inset as its
+   top inset (inner track height minus the 1.25rem thumb, halved) and sits concentric with both capsule ends. */
+.switch-thumb { margin-inline-start: calc((max(28px, 1.5rem) - 4px - 1.25rem) / 2); }
 .board-spacing { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; }
 .afterglow-app { --car-fill: hsl(var(--card)); --app-ground: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); background: var(--app-ground); background-size: 100% 100svh; background-repeat: no-repeat; }
 
@@ -43,7 +46,9 @@
 }
 .modal-backdrop { background-color: rgb(0 0 0 / var(--modal-backdrop-opacity, .2)); }
 .motion-menu.glass-surface { border-radius: var(--radius-menu); padding: .5rem; color: hsl(var(--foreground)); max-height: min(var(--radix-dropdown-menu-content-available-height), calc(100dvh - 1rem)); max-width: calc(100vw - 2rem); overflow-y: auto; overscroll-behavior: contain; }
-.motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: var(--radius-field); min-height: 48px; overflow-wrap: anywhere; }
+/* Items sit .5rem inside the menu's 1px rim; the rem inset keeps them concentric when the wall's larger root size grows the padding. */
+.motion-menu { --radius-nested: calc(var(--radius-menu) - .5rem - 1px); }
+.motion-menu :is([role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]) { border-radius: var(--radius-nested); min-height: 48px; overflow-wrap: anywhere; }
 .motion-menu [role="menuitem"] { padding-inline: .75rem; }
 .motion-surface[role="dialog"], .motion-surface[role="alertdialog"] { border-radius: var(--radius-dialog); }
 
@@ -469,14 +474,15 @@ fieldset.settings-card > legend + * { clear: both; }
 .timetable-tab-meetings { padding: .125rem .5rem; border-radius: var(--radius-capsule); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
 .timetable-week-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin: .5rem 0 1rem; }
 .timetable-week-label { font-weight: 600; }
-.timetable-week { --glass-opacity: var(--glass-panel-opacity); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: var(--radius-menu); }
-.timetable-day { container: timetable-day / inline-size; position: relative; min-width: 0; padding: .75rem; border-radius: var(--radius-inset); overflow-wrap: anywhere; background: hsl(var(--card) / .28); }
+/* Days sit .5rem inside the glass frame's 1px border, so they take its radius minus that inset. */
+.timetable-week { --glass-opacity: var(--glass-panel-opacity); --radius-nested: calc(var(--radius-menu) - .5rem - 1px); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .375rem; padding: .5rem; border-radius: var(--radius-menu); }
+.timetable-day { container: timetable-day / inline-size; position: relative; min-width: 0; padding: .75rem; border-radius: var(--radius-nested); overflow-wrap: anywhere; background: hsl(var(--card) / .28); }
 .timetable-day[aria-current="date"] { background: hsl(var(--primary) / .04); }
 .timetable-day h3 { margin-bottom: .75rem; font-size: var(--type-label); font-weight: 600; }
 .timetable-day-trigger { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; width: 100%; text-align: left; cursor: pointer; }
 .timetable-day-trigger > span { display: flex; align-items: center; justify-content: space-between; gap: .25rem; width: 100%; }
 .timetable-day-trigger svg { flex-shrink: 0; }
-.timetable-day-trigger::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-inset); }
+.timetable-day-trigger::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-nested); }
 .timetable-day-trigger:hover::after { background: hsl(var(--primary) / .05); }
 .timetable-day-trigger:focus-visible { outline: none; }
 .timetable-day-trigger:focus-visible::after { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
@@ -723,7 +729,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .calendar-current-week { color: hsl(var(--primary)); font-size: var(--type-label); font-weight: 500; white-space: nowrap; }
 .calendar-week-number { display: block; min-height: 18px; color: hsl(var(--primary)); font-size: var(--type-caption); font-weight: 600; line-height: 18px; white-space: nowrap; }
 .calendar-segment { display: inline-flex; padding: 3px; gap: 3px; border: 1px solid hsl(var(--border)); background: hsl(var(--secondary) / .7); border-radius: var(--radius-capsule); }
-.calendar-segment button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 48px; padding: 7px 12px; border-radius: var(--radius-capsule); font-size: var(--type-label); color: hsl(var(--muted-foreground)); white-space: nowrap; }
+.calendar-segment button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 48px; min-height: 48px;padding: 7px 12px; border-radius: var(--radius-capsule); font-size: var(--type-label); color: hsl(var(--muted-foreground)); white-space: nowrap; }
 .calendar-segment button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--primary)); box-shadow: var(--home-shadow-sm); font-weight: 600; }
 .calendar-segment button:hover { background: hsl(var(--secondary)); }
 .weekly-panel { padding: 12px; }
@@ -934,7 +940,8 @@ fieldset.settings-card > legend + * { clear: both; }
 
 @media (max-width: 699px) {
   .filter-row.avatar-filters { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: .25rem; }
-  .avatar-filters > .avatar-filter { flex-direction: row; padding: .375rem .75rem; border-radius: var(--radius-capsule); }
+  /* The start padding matches the 32px avatar's 8px vertical inset, so the avatar shares the capsule end's centre. */
+  .avatar-filters > .avatar-filter { flex-direction: row; padding: .375rem .75rem .375rem .5rem; border-radius: var(--radius-capsule); }
   .avatar-filter .member-avatar { width: 32px; height: 32px; font-size: var(--type-label); }
   .board-spacing { --space: 1rem; --panel-space: 1rem; }
   .app-header { padding-block: .75rem; gap: .5rem; min-height: 72px; }
