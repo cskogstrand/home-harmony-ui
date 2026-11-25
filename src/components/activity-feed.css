@@ -1,4 +1,4 @@
-/* Recent at home and the Activity log: divided rows on the opaque panel surface, newest first. */
+/* Latest events and the Activity log: divided rows on the opaque panel surface, newest first. */
 .activity-list { display: grid; }
 .activity-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 56px; padding-block: .5rem; }
 .activity-row + .activity-row { border-top: 1px solid hsl(var(--border) / .6); }

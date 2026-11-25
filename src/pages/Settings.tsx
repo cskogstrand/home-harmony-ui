@@ -72,7 +72,7 @@ const groups = [
   ] },
 ] as const;
 
-// These sections act on this tab or directly on Home Assistant, not on the shared settings file. Activity also holds shared Recent at home settings.
+// These sections act on this tab or directly on Home Assistant, not on the shared settings file. Activity also holds shared Latest events settings.
 const localSections = new Set<string | undefined>(["debug", "automations", "integrations", "ha-health"]);
 
 const legacySections: Record<string, string> = {

@@ -4,11 +4,12 @@ import { createI18n, msg, type Language, type Message, type MessageKey, type Mes
 import { entityReading, entityStateLabel, humanizeState } from "./ha-model";
 import { homeStatusGroup, type HomeStatusGroup } from "./home-status";
 import { entityDetailPath } from "./device-model";
+import type { ActivityCategory } from "../../shared/configuration";
 
 /** One Home Assistant logbook entry: a state change (`state`) or a described event (`message`). `when` is in milliseconds. */
 export interface LogbookEvent { entityId: string; when: number; state?: string; message?: string; name?: string }
 
-/** Items in Recent at home on Smart home. */
+/** Items in Latest events on Smart home. */
 export const RECENT_ACTIVITY_LIMIT = 6;
 /** The logbook backfill never reaches further back than this, so a subscription cannot request days of history. */
 export const MAX_LOGBOOK_BACKFILL_MS = 2 * 86400000;
@@ -48,6 +49,11 @@ export type ActivityKind = "opened" | "closed" | "locked" | "unlocked" | "jammed
   | "person-detected" | "clear" | "doorbell" | "pressed" | "event" | "came-home" | "left-home" | "arrived" | "on" | "off" | "transition" | "changed" | "message";
 export type ActivityIcon = "door" | "garage" | "window" | "lock" | "alarm" | "appliance" | "robot" | "mower" | "camera" | "doorbell" | "person" | "power" | "activity";
 export type ActivityGroup = HomeStatusGroup | "people" | "other";
+// What each icon's events count as when the owner hides event types; people have their own opt-in.
+const iconCategories: Record<ActivityIcon, ActivityCategory | undefined> = {
+  door: "openings", garage: "openings", window: "openings", lock: "locks", alarm: "alarm", appliance: "appliances", robot: "robots", mower: "robots",
+  doorbell: "doorbells", camera: "cameras", person: undefined, power: "other", activity: "other",
+};
 export interface ActivityItem {
   id: string;
   entityId: string;
@@ -76,6 +82,10 @@ export interface ActivityOptions {
   limit?: number;
   /** Same-entity changes closer together than this fold into one curated item. */
   collapseMs?: number;
+  /** Events before this time are not shown; the curated panel reads them only to know each entity's earlier state. */
+  since?: number;
+  /** Event types left out of the panel and the log; none when omitted. */
+  hidden?: readonly ActivityCategory[];
   /** The home's time zone, for logged timestamp states; the browser's when omitted. */
   timeZone?: string;
 }
@@ -156,8 +166,7 @@ function stateText(entity: Entity | undefined, value: string, options: ActivityO
 function classify(event: LogbookEvent, entity: Entity | undefined, options: ActivityOptions): { kind: ActivityKind; icon: ActivityIcon; sentence: Message } {
   const domain = event.entityId.split(".")[0], cls = deviceClass(entity), state = event.state;
   const camera = options.personSensors?.[event.entityId];
-  // An entity part Home Assistant left in the integration's words reads as the device and its translated class.
-  const name = camera ?? entity?.classNamed ?? entity?.name ?? event.name ?? event.entityId;
+  const name = camera ?? entity?.name ?? event.name ?? event.entityId;
   const said = (kind: ActivityKind, icon: ActivityIcon, key: MessageKey, values: MessageValues = {}) => ({ kind, icon, sentence: msg(key, { name, ...values }) });
   // Home Assistant's message is used only for events that are not state changes; the curated panel never shows them.
   if (state === undefined) return said("message", "activity", "{name} {message}", { message: event.message ?? "" });
@@ -215,30 +224,42 @@ function activityGroup(entity: Entity | undefined, entityId: string, kind: Activ
   return entity && homeStatusGroup(entity) || "other";
 }
 
+const outageStates = new Set(["unavailable", "unknown"]);
+
 /** Turns logbook events into display items, newest first. */
 export function curateActivity(events: LogbookEvent[], entities: Entity[], options: ActivityOptions): ActivityItem[] {
   const byId = new Map(entities.map(entity => [entity.entityId, entity]));
   const curated = options.mode === "curated";
   const sources = curated ? new Set(curatedActivityEntityIds(entities, options)) : undefined;
+  const hidden = new Set(options.hidden ?? []);
   const sorted = [...events].sort((a, b) => b.when - a.when);
-  // The previous state of the same entity, so the curated panel skips recoveries after an outage.
-  const previous = new Map<LogbookEvent, string | undefined>();
-  const last = new Map<string, string>();
+  // A curated row needs a real change: a settled state that differs from the entity's last settled one. Transitions do
+  // not settle anything, so "off → unavailable → off" and "closed → opening → closed" are no change. A recovery after
+  // an outage with no earlier state known cannot be told apart from a change and stays out too.
+  const repeats = new Set<LogbookEvent>();
+  const settled = new Map<string, string>(), outage = new Set<string>();
   for (let index = sorted.length - 1; index >= 0; index--) {
-    const event = sorted[index];
-    if (event.state === undefined) continue;
-    previous.set(event, last.get(event.entityId));
-    last.set(event.entityId, event.state);
+    const { entityId, state } = sorted[index];
+    if (state === undefined) continue;
+    if (transitionStates.has(state)) { if (outageStates.has(state)) outage.add(entityId); continue; }
+    const before = settled.get(entityId);
+    if (before === undefined ? outage.has(entityId) : before === state) repeats.add(sorted[index]);
+    settled.set(entityId, state);
+    outage.delete(entityId);
   }
   const items: ActivityItem[] = [];
+  // Only one entity's own changes fold; sensors of one device keep their own rows, named apart by their names.
   const chains = new Map<string, { item: ActivityItem; when: number }>();
   const collapseMs = options.collapseMs ?? 120000;
   for (const event of sorted) {
+    if (options.since !== undefined && event.when < options.since) break;
     if (!options.people && peopleDomains.has(event.entityId.split(".")[0])) continue;
     if (sources && !sources.has(event.entityId)) continue;
     const entity = byId.get(event.entityId);
     const { kind, icon, sentence } = classify(event, entity, options);
-    if (curated && (quietKinds.has(kind) || ["unavailable", "unknown"].includes(previous.get(event) ?? ""))) continue;
+    if (curated && (quietKinds.has(kind) || repeats.has(event))) continue;
+    const category = iconCategories[icon];
+    if (category && hidden.has(category)) continue;
     const chain = curated ? chains.get(event.entityId) : undefined;
     if (chain && chain.when - event.when <= collapseMs) { chain.item.count++; chain.when = event.when; continue; }
     const item: ActivityItem = { id: eventKey(event), entityId: event.entityId, when: event.when, kind, icon, group: activityGroup(entity, event.entityId, kind),

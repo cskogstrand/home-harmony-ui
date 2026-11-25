@@ -7,7 +7,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { useActivityPersonSensors, useLogbook } from "@/hooks/use-activity-feed";
 import { useFillRows } from "@/hooks/use-wall-fill";
 import { FILL_REQUIRED_ACTIVITY_ROWS, FILL_ROW_CAP } from "@/lib/wall-fill";
-import { activityTime, curateActivity, curatedActivityEntityIds, RECENT_ACTIVITY_LIMIT, type ActivityIcon, type ActivityItem } from "@/lib/activity";
+import { activityTime, curateActivity, curatedActivityEntityIds, MAX_LOGBOOK_BACKFILL_MS, RECENT_ACTIVITY_LIMIT, type ActivityIcon, type ActivityItem } from "@/lib/activity";
 import { PlannerCardBackdrop } from "./CardArtwork";
 import { PanelTitle } from "./PanelTitle";
 import "./activity-feed.css";
@@ -34,7 +34,7 @@ export function ActivityRow({ item, now, clock = false, fillExtra = false }: { i
 }
 
 /**
- * Recent at home: a curated, live list of what happened in the last 24 hours.
+ * Latest events: a curated, live list of what happened in the last 24 hours.
  * Smart home follows the Activity panel switch; Today shows it whenever its own section is on. Both use the same sources and people choice.
  * With `fill` (Today on the large wall), it keeps three rows and adds the older ones that fit in that height; the newest stay on top.
  */
@@ -45,13 +45,13 @@ export function RecentActivity({ placement = "smartHome", fill }: { placement?: 
   const personSensors = useActivityPersonSensors();
   const entityIds = curatedActivityEntityIds(entities, { ...activity, personSensors });
   const visible = placement === "today" || activity.panel;
-  const feed = useLogbook({ hours: 24, entityIds, enabled: visible && entityIds.length > 0 });
+  // The full backfill, so the oldest shown changes can be compared with their sources' earlier states.
+  const feed = useLogbook({ hours: MAX_LOGBOOK_BACKFILL_MS / 3600000, entityIds, enabled: visible && entityIds.length > 0 });
   const panel = useRef<HTMLElement>(null);
   useFillRows(panel, fill);
   if (!visible) return null;
-  const since = now.getTime() - 86400000;
-  const items = curateActivity(feed.events.filter(event => event.when >= since), entities,
-    { mode: "curated", language, people: activity.people, sources: activity.sources, personSensors, limit: fill === undefined ? RECENT_ACTIVITY_LIMIT : FILL_ROW_CAP });
+  const items = curateActivity(feed.events, entities, { mode: "curated", language, people: activity.people, sources: activity.sources, hidden: activity.hidden, personSensors,
+    since: now.getTime() - 86400000, limit: fill === undefined ? RECENT_ACTIVITY_LIMIT : FILL_ROW_CAP });
   const empty = !entityIds.length ? <p className="empty-note">{t("No activity sources are selected.")} <Link className="text-link" to="/settings/activity?panel=recent">{t("Choose sources")}</Link></p>
     : feed.status === "loading" ? <p className="empty-note" role="status">{t("Loading activity…")}</p>
     : feed.status === "unavailable" ? <p className="empty-note" role="status">{t("Activity is unavailable right now.")}</p>
@@ -59,7 +59,7 @@ export function RecentActivity({ placement = "smartHome", fill }: { placement?: 
   return <section ref={panel} className="glow-panel activity-panel" aria-labelledby="recent-activity-title" data-fill={fill === undefined ? undefined : ""}>
     <PlannerCardBackdrop kind="recentActivity" />
     <div className="panel-heading">
-      <PanelTitle artwork="recentActivity" icon={History} id="recent-activity-title">{t("Recent at home")}</PanelTitle>
+      <PanelTitle artwork="recentActivity" icon={History} id="recent-activity-title">{t("Latest events")}</PanelTitle>
       <Link className="text-link" to="/settings/activity">{t("All activity")}<ArrowUpRight size={17} aria-hidden="true" /></Link>
     </div>
     {feed.status === "stale" && <p className="page-note activity-stale" role="status">{t("Cached activity is stale while Home Assistant is offline.")}</p>}

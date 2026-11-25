@@ -12,7 +12,7 @@ import { Switch } from "./ui/switch";
 const plannerNames: Record<PlannerArtwork, MessageKey> = {
   morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
   day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping",
-  homework: "Homework", school: "Timetables", home: "Home favorites", recentActivity: "Recent at home", homeStatus: "Home status",
+  homework: "Homework", school: "Timetables", home: "Home favorites", recentActivity: "Latest events", homeStatus: "Home status",
   calendar: "Calendar", tasks: "Family tasks",
 };
 

@@ -847,7 +847,7 @@ it("renders Today in configured rows, in reading order, and lets a half span the
   const { container } = render(<App />); await saved();
   const rows = [...container.querySelectorAll<HTMLElement>(".portrait-board > .board-row")];
   const names = rows.map(row => [...row.children].map(panel => panel.getAttribute("aria-label") ?? panel.querySelector("h2")?.textContent));
-  expect(names.slice(0, 5)).toEqual([["Next family plan"], ["Everyone’s day"], ["Recent at home", "Homework due by today"], ["Everyone’s week"], ["Daily rhythm", "Shopping"]]);
+  expect(names.slice(0, 5)).toEqual([["Next family plan"], ["Everyone’s day"], ["Latest events", "Homework due by today"], ["Everyone’s week"], ["Daily rhythm", "Shopping"]]);
   // Home status has nothing to report, so Next family plan is alone in the row it shares with it.
   expect(rows[0]).toHaveAttribute("data-columns", "2");
   expect(rows.map(row => row.dataset.columns)).toEqual(["2", "1", "2", "1", "2", "1", "1", "1"]);
@@ -856,7 +856,7 @@ it("renders Today in configured rows, in reading order, and lets a half span the
   expect(rows[6]).toContainElement(screen.getByRole("region", { name: "Home favorites" }));
 });
 
-it("adds Recent at home to Today from Customize Today, off by default and using the shared activity sources", async () => {
+it("adds Latest events to Today from Customize Today, off by default and using the shared activity sources", async () => {
   settings.settings.activity.panel = false;
   app.currentHome = mapHome({
     "person.example": state("person.example", "home", { friendly_name: "Example person" }),
@@ -865,27 +865,27 @@ it("adds Recent at home to Today from Customize Today, off by default and using 
   app.subscribeLogbook.mockClear();
   render(<App />); await saved();
   expect(settings.settings.dashboard.recentActivity).toBe(false);
-  expect(screen.queryByRole("region", { name: "Recent at home" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Latest events" })).not.toBeInTheDocument();
   expect(app.subscribeLogbook).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
-  expect(within(dialog).getByText("Uses the sources and privacy choice from Settings → System → Activity.")).toBeInTheDocument();
+  expect(within(dialog).getByText("Uses the sources, event types and privacy choice from Settings → System → Activity.")).toBeInTheDocument();
   expect(within(dialog).getByRole("link", { name: "Choose sources" })).toHaveAttribute("href", "/settings/activity?panel=recent");
-  const toggle = within(dialog).getByRole("switch", { name: "Recent at home" });
+  const toggle = within(dialog).getByRole("switch", { name: "Latest events" });
   expect(toggle).not.toBeChecked();
   fireEvent.click(toggle);
   await waitFor(() => expect(settings.settings.dashboard.recentActivity).toBe(true));
   expect(settings.settings.activity.panel).toBe(false);
   fireEvent.keyDown(dialog, { key: "Escape" });
-  const panel = await screen.findByRole("region", { name: "Recent at home" });
+  const panel = await screen.findByRole("region", { name: "Latest events" });
   expect(app.subscribeLogbook).toHaveBeenCalledWith(expect.objectContaining({ entityIds: ["binary_sensor.example_door"] }), expect.any(Function));
   const [, receive] = app.subscribeLogbook.mock.lastCall as unknown as [unknown, (events: { entityId: string; state: string; when: number }[]) => void];
   act(() => receive([{ entityId: "binary_sensor.example_door", state: "on", when: Date.now() - 60000 }]));
   expect(within(panel).getByRole("link", { name: "Example door opened" })).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
-  fireEvent.click(screen.getByRole("switch", { name: "Recent at home" }));
+  fireEvent.click(screen.getByRole("switch", { name: "Latest events" }));
   await waitFor(() => expect(settings.settings.dashboard.recentActivity).toBe(false));
-  expect(screen.queryByRole("region", { name: "Recent at home" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Latest events" })).not.toBeInTheDocument();
 });
 
 it("sets section widths and the wall's fill section in Customize Today, explains each placement and resets only order and widths", async () => {
@@ -906,7 +906,7 @@ it("sets section widths and the wall's fill section in Customize Today, explains
     expect(dialog.getByText(`Always full width: ${reason}`)).toBeInTheDocument();
   }
   // Switched-off sections show no width choice.
-  expect(dialog.queryByRole("group", { name: "Width for Recent at home" })).toBeNull();
+  expect(dialog.queryByRole("group", { name: "Width for Latest events" })).toBeNull();
 
   fireEvent.click(option("Next family plan", "Half"));
   await waitFor(() => expect(settings.settings.dashboard.widths).toEqual({ nextPlan: "half" }));
@@ -953,12 +953,12 @@ it("previews Today's rows in Customize Today without exposing a second copy to a
   expect(preview).toHaveAttribute("aria-hidden", "true");
   expect(preview.querySelector("button, a, input, select")).toBeNull();
   const rows = [...preview.querySelectorAll(".dashboard-preview-row")].map(row => [...row.children].map(block => block.textContent));
-  expect(rows).toEqual([["Waste collection", "Next family plan"], ["Everyone’s day"], ["Recent at home", "Daily rhythm"], ["Shopping"], ["Everyone’s week"], ["School"], ["Home favorites"]]);
+  expect(rows).toEqual([["Waste collection", "Next family plan"], ["Everyone’s day"], ["Latest events", "Daily rhythm"], ["Shopping"], ["Everyone’s week"], ["School"], ["Home favorites"]]);
   expect(preview.querySelector("[data-conditional]")).toHaveTextContent("Waste collection");
-  expect(preview.querySelector(".dashboard-preview-row[data-fill]")).toHaveTextContent("Recent at homeDaily rhythm");
+  expect(preview.querySelector(".dashboard-preview-row[data-fill]")).toHaveTextContent("Latest eventsDaily rhythm");
   expect(preview).toHaveTextContent("Dashed: appears only when it has something to show.");
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("switch", { name: "Daily rhythm" }));
-  await waitFor(() => expect([...preview.querySelectorAll(".dashboard-preview-row")][2]).toHaveTextContent(/^Recent at homeShopping$/));
+  await waitFor(() => expect([...preview.querySelectorAll(".dashboard-preview-row")][2]).toHaveTextContent(/^Latest eventsShopping$/));
 });
 
 it("disables reordering when shared configuration fails to load", async () => {

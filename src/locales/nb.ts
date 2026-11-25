@@ -2985,7 +2985,7 @@ export const nb = {
   "{name} turned on": "{name} ble slått på",
   "{name} turned off": "{name} ble slått av",
   "{count} changes": "{count} endringer",
-  "Recent at home": "Nylig hjemme",
+  "Latest events": "Siste hendelser",
   "All activity": "All aktivitet",
   "No activity sources are selected.": "Ingen aktivitetskilder er valgt.",
   "Choose sources": "Velg kilder",
@@ -3015,7 +3015,14 @@ export const nb = {
   "Shown on Smart home": "Vises på Smarthjem",
   "Shown on Today": "Vises på I dag",
   "Shown on Smart home and Today": "Vises på Smarthjem og I dag",
-  "Uses the sources and privacy choice from Settings → System → Activity.": "Bruker kildene og personvernvalget fra Innstillinger → System → Aktivitet.",
+  "Robot vacuums and mowers": "Robotstøvsugere og gressklippere",
+  "Doorbells": "Ringeklokker",
+  "Camera person detection": "Persondeteksjon fra kameraer",
+  "Other changes": "Andre endringer",
+  "Turn off what you do not want to see in Latest events and the activity log.": "Slå av det du ikke vil se i Siste hendelser og aktivitetsloggen.",
+  "Show all events": "Vis alle hendelser",
+  "Includes the event types hidden under Latest events, in this view only. People coming and going still follow their own setting.": "Tar med hendelsestypene som er skjult under Siste hendelser, bare i denne visningen. Personer som kommer og går følger fortsatt sin egen innstilling.",
+  "Uses the sources, event types and privacy choice from Settings → System → Activity.": "Bruker kildene, hendelsestypene og personvernvalget fra Innstillinger → System → Aktivitet.",
   "Type a question first.": "Skriv et spørsmål først.",
   "Home Assistant is offline. Your question was not sent.": "Home Assistant er frakoblet. Spørsmålet ble ikke sendt.",
   "The connection was lost before Home Assistant answered. Anything you asked for may already have happened; check before asking again.": "Forbindelsen ble brutt før Home Assistant svarte. Det du ba om, kan allerede ha skjedd. Sjekk før du spør igjen.",
@@ -3046,4 +3053,19 @@ export const nb = {
   "Ask Home Assistant…": "Spør Home Assistant …",
   "Send": "Send",
   "Clear conversation": "Tøm samtalen",
+} as const;
+
+/**
+ * Bokmål for entity name parts Home Assistant leaves in English, by lower-case English text: whole parts first, then
+ * words for the qualifier that tells a device's parts apart ("Door (Driver Front)" → "Dør (fører foran)").
+ */
+export const nbNameParts = {
+  whole: {
+    doors: "Dører", windows: "Vinduer", locks: "Låser", trunk: "Bagasjerom", frunk: "Frunk",
+    "charger door": "Ladeluke", "charge port door": "Ladeluke", "charge port": "Ladeport",
+  },
+  words: {
+    front: "foran", rear: "bak", back: "bak", left: "venstre", right: "høyre", driver: "fører", passenger: "passasjer",
+    trunk: "bagasjerom", frunk: "frunk", charger: "lader",
+  },
 } as const;

@@ -41,8 +41,6 @@ export interface Entity {
   uniqueId?: string;
   preferenceId: string;
   name: string;
-  /** "<device> <translated device class>" when the entity's own name part has no translation in the dashboard language but names its device class ("Charger door"). */
-  classNamed?: string;
   domain: string;
   integration?: string;
   registryName?: string;

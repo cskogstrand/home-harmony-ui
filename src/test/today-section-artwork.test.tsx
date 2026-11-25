@@ -59,15 +59,15 @@ describe("Every Today section has an icon and card artwork", () => {
   });
 });
 
-describe("Card artwork for Recent at home and Home status", () => {
-  it("decorates Recent at home with its heading illustration and corner scene only when its card artwork is on", () => {
+describe("Card artwork for Latest events and Home status", () => {
+  it("decorates Latest events with its heading illustration and corner scene only when its card artwork is on", () => {
     const { unmount } = view({}, <RecentActivity placement="today" />);
-    const plain = screen.getByRole("region", { name: "Recent at home" });
+    const plain = screen.getByRole("region", { name: "Latest events" });
     expect(plain.querySelector(".card-illustration, .card-backdrop")).toBeNull();
     expect(plain.querySelector(".panel-title-icon")).toBeInTheDocument();
     unmount();
     view({ recentActivity: true }, <RecentActivity placement="today" />);
-    const panel = screen.getByRole("region", { name: "Recent at home" });
+    const panel = screen.getByRole("region", { name: "Latest events" });
     expect(panel.querySelector('.panel-title .card-illustration[data-illustration="recentActivity"]')).toBeInTheDocument();
     expect(panel.querySelector(":scope > .card-backdrop use")).toHaveAttribute("href", "#artwork-aurora");
   });
@@ -90,7 +90,7 @@ describe("Card artwork for Recent at home and Home status", () => {
   it("offers both sections in Settings → Appearance → Card artwork and saves each choice on its own", () => {
     view({ homeStatus: true }, <CardArtworkSettings disabled={false} />);
     expect(screen.getByRole("switch", { name: "Home status" })).toBeChecked();
-    const recent = screen.getByRole("switch", { name: "Recent at home" });
+    const recent = screen.getByRole("switch", { name: "Latest events" });
     expect(recent).not.toBeChecked();
     fireEvent.click(recent);
     expect(setAppearance).toHaveBeenCalledWith({ plannerArtwork: { homeStatus: true, recentActivity: true } });

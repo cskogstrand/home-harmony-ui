@@ -3,6 +3,9 @@ import type { HassConfig, HassServices } from "home-assistant-js-websocket";
 import { z } from "zod";
 import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityRegistryEntry, EntityStates, Home, Registries } from "@/types/api";
 import { noTranslations, translationLanguage, type HaTranslations } from "./ha-translations";
+import { nbNameParts } from "@/locales/nb";
+
+type NameParts = typeof nbNameParts;
 
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -98,38 +101,78 @@ function namesByKey(translations: HaTranslations) {
   }
   return names;
 }
-/** How the entity part relates to its device class: the class word itself ("Doors", "Door (Front)"), a qualified class ("Charger door") or neither. */
-function classNaming(original: string, deviceClass: unknown) {
-  if (typeof deviceClass !== "string" || !deviceClass) return;
+const spaced = (text: string) => text.replace(/\s+/g, " ").trim().toLowerCase();
+/**
+ * How the entity part relates to a class word: the word itself ("Door", "Doors", "Door (Driver Front)") or the word with
+ * qualifying words before it ("Rear window"). `qualifier` holds what tells it apart from the device's other parts.
+ */
+function classNaming(original: string, deviceClass: string) {
   const words = deviceClass.replace(/_/g, " ");
-  const head = original.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+/g, " ").trim().toLowerCase();
-  if (head === words || head === `${words}s`) return "class";
-  if (head.endsWith(` ${words}`) || head.endsWith(` ${words}s`)) return "qualified";
+  const paren = /\s*\(([^)]*)\)\s*$/.exec(original);
+  const head = spaced(paren ? original.slice(0, paren.index) : original);
+  const inParens = paren?.[1].trim() || undefined;
+  if (head === words || head === `${words}s`) return { form: "class" as const, qualifier: inParens };
+  const end = [` ${words}`, ` ${words}s`].find(ending => head.endsWith(ending));
+  if (end) return { form: "qualified" as const, qualifier: [head.slice(0, -end.length), inParens].filter(Boolean).join(" ") };
+}
+
+// Locks have no device class. A lock named after what it locks ("Door") reads as the translated door class, one named
+// after itself ("Lock") as the lock domain's translated name. Only a part that is that word counts; "Charge port lock" does not.
+const lockClasses = [{ word: "door", key: "component.binary_sensor.entity_component.door.name" }, { word: "lock", key: "component.lock.entity_component._.name" }];
+function nameClass(original: string, domain: string, deviceClass: unknown) {
+  if (typeof deviceClass === "string" && deviceClass) {
+    const naming = classNaming(original, deviceClass);
+    return naming && { ...naming, word: deviceClass, key: `component.${domain}.entity_component.${deviceClass}.name`, implied: false };
+  }
+  if (domain !== "lock") return;
+  for (const { word, key } of lockClasses) {
+    const naming = classNaming(original, word);
+    if (naming?.form === "class") return { ...naming, word, key, implied: true };
+  }
+}
+
+// The app's own words for name parts Home Assistant leaves in English, by catalogue language.
+const nameParts: Partial<Record<string, NameParts>> = { nb: nbNameParts };
+/** A qualifier ("Driver Front", "rear") in the catalogue's language, lower case; undefined unless every word is known. */
+function qualifierText(qualifier: string, parts: NameParts | undefined) {
+  if (!parts) return;
+  const text = spaced(qualifier);
+  const whole = parts.whole[text as keyof NameParts["whole"]];
+  if (whole) return whole.toLowerCase();
+  const words = text.split(" ").map(word => parts.words[word as keyof NameParts["words"]] as string | undefined);
+  return words.every(Boolean) ? words.join(" ") : undefined;
 }
 
 // Home Assistant composes friendly names in its own language as "<device> <entity name>". Swap only the
 // entity part for the dashboard language. Names set by the user, and names with placeholders, stay as reported.
 // Home Assistant fills a missing translation with English, so a "translation" equal to the original name is none.
-// Fallbacks, in order: the integration's translation, the same key's translation from another integration, then the
-// device class's translated name when the entity part is that class ("Doors"), or ends with it ("Relative humidity")
-// and no other entity of the device shares the class, so "Inside temperature" and "Outside temperature" stay apart.
-// `classNamed` is "<device> <translated class>" for a part still in the integration's words, for sentences that
-// name what kind of thing changed even where the class name alone would not tell the device's entities apart.
-function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations, deviceClass: unknown, classShared: boolean): { name: string; classNamed?: string } {
+// Fallbacks, in order: the integration's translation, the same key's translation from another integration, the app's
+// own word for a common part ("Doors" → "Dører", "Charger door" → "Ladeluke"), then the device class's translated
+// name with the part's qualifier translated ("Door (Driver Front)" → "Dør (fører foran)", "Rear window" → "Vindu (bak)").
+// A qualifier the app cannot translate is dropped only when no other entity of the device shares the class
+// ("Relative humidity" → "Luftfuktighet"); otherwise the part stays as reported, so "Inside temperature" and
+// "Outside temperature", or two doors, can still be told apart.
+function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations, deviceClass: unknown, classShared: boolean) {
   const original = entry?.original_name;
-  if (!entry || entry.name || !original || !name.endsWith(original)) return { name };
+  if (!entry || entry.name || !original || !name.endsWith(original)) return name;
   const prefix = name.slice(0, name.length - original.length);
   const real = (value: string | undefined) => value && value.trim().toLowerCase() !== original.trim().toLowerCase() && !value.includes("{") ? value : undefined;
-  const key = entry.translation_key;
+  const key = entry.translation_key, language = translations[translationLanguage];
   const translated = key && real(translations[`component.${entry.platform}.entity.${domain}.${key}.name`])
     // Borrowing only helps another language; in English it would swap one integration's wording for another's.
-    || key && ![undefined, "en"].includes(translations[translationLanguage]) && namesByKey(translations).get(`${domain}.${key}`)?.map(real).find(Boolean);
-  if (translated) return { name: prefix + translated };
-  const naming = classNaming(original, deviceClass);
-  const className = naming && translations[`component.${domain}.entity_component.${deviceClass}.name`];
+    || key && ![undefined, "en"].includes(language) && namesByKey(translations).get(`${domain}.${key}`)?.map(real).find(Boolean);
+  if (translated) return prefix + translated;
+  const parts = language === undefined ? undefined : nameParts[language];
+  const own = parts?.whole[spaced(original) as keyof NameParts["whole"]];
+  if (own) return prefix + own;
+  const named = nameClass(original, domain, deviceClass);
+  const className = named && translations[named.key];
   // An English catalogue names the class with its own word; only a different word is a translation.
-  if (!className || className.includes("{") || className.toLowerCase() === String(deviceClass).replace(/_/g, " ")) return { name };
-  return { name: naming === "class" || !classShared ? prefix + className : name, ...(prefix.trim() ? { classNamed: prefix + className } : {}) };
+  if (!named || !className || className.includes("{") || className.toLowerCase() === named.word.replace(/_/g, " ")) return name;
+  if (!named.qualifier) return prefix + className;
+  const qualifier = qualifierText(named.qualifier, parts);
+  if (qualifier) return `${prefix}${className} (${qualifier})`;
+  return classShared || named.implied ? name : prefix + className;
 }
 // The integration's label for this entity's translation_key comes first, then the domain's shared state labels.
 function translatedState(state: EntityStates[string] | undefined, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations) {
@@ -166,14 +209,13 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     let entity = cache?.get(source);
     if (!entity) {
       const domain = id.split(".")[0];
-      const { name, classNamed } = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations, state?.attributes.device_class,
+      const name = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations, state?.attributes.device_class,
         (classCounts.get(`${entry?.device_id}|${String(state?.attributes.device_class)}`) ?? 0) > 1);
       const deviceLabel = (device?.name_by_user || device?.name)?.trim();
       entity = {
         entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain,
         // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
         name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
-        ...(classNamed ? { classNamed } : {}),
         state: state?.state ?? "missing", stateLabel: translatedState(state, entry, domain, translations),
         displayPrecision: numberValue(entry?.options?.sensor?.display_precision) ?? numberValue(entry?.options?.sensor?.suggested_display_precision), attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
         registryName: entry?.translation_key || entry?.original_name || undefined, uniqueId: entry?.unique_id,

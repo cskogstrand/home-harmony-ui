@@ -10,7 +10,7 @@
 export const wallQuery = "(min-width: 1000px) and (min-height: 1400px) and (orientation: portrait)";
 /** Most rows a fill panel renders before measuring which of them fit. */
 export const FILL_ROW_CAP = 20;
-/** Rows Recent at home keeps when it fills the space, so a busy day can take room from it. Lists keep their usual three. */
+/** Rows Latest events keeps when it fills the space, so a busy day can take room from it. Lists keep their usual three. */
 export const FILL_REQUIRED_ACTIVITY_ROWS = 3;
 /** Below this much free space (a heading plus three rows), the fill section keeps its usual length and the board scrolls as before. */
 export const FILL_MINIMUM_REM = 16;
