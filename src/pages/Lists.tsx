@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { useRevealSelection } from "@/hooks/use-reveal-selection";
 import { useSearchParams } from "react-router-dom";
 import { PageHeading } from "@/components/FamilyPlanner";
-import { ListPanel } from "@/components/FamilyLists";
+import { ListKindIcon, ListPanel } from "@/components/FamilyLists";
 import { useFamily, itemIsDone, type TodoListKind } from "@/contexts/FamilyContext";
 import { useApp } from "@/contexts/AppContext";
 import { available } from "@/lib/ha-model";
@@ -45,7 +45,7 @@ export default function Lists() {
   const tabList = useRevealSelection<HTMLDivElement>(selected, shown.length);
   return <div className="planner-page lists-page"><PageHeading title={t("Lists")} />
     <NotificationList compact />
-    <div ref={tabList} className="list-tabs" role="group" aria-label={t("Family lists")}>{shown.map(tab => <button aria-pressed={tab.id === selected} aria-controls={`list-${tab.id}`} id={`tab-${tab.id}`} key={tab.id} onClick={() => setParams({ tab: tab.id })}>{message(tab.name)} <span>{count(tab.id)}</span></button>)}</div>
+    <div ref={tabList} className="list-tabs" role="group" aria-label={t("Family lists")}>{shown.map(tab => <button aria-pressed={tab.id === selected} aria-controls={`list-${tab.id}`} id={`tab-${tab.id}`} key={tab.id} onClick={() => setParams({ tab: tab.id })}><ListKindIcon kind={tab.id} />{message(tab.name)} <span className="list-tab-count">{count(tab.id)}</span></button>)}</div>
     <section ref={viewport} className="glow-panel list-viewport" aria-labelledby={`tab-${selected}`} id={`list-${selected}`}><ListPanel key={selected} kind={selected} /></section>
   </div>;
 }
