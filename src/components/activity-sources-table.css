@@ -1,8 +1,10 @@
-/* Settings → Activity → Latest events → Activity sources: every entity that can report activity, as a table that is
+/* Settings → Activity → Latest events → Activity sources: every entity that can report activity, as a tree grid that is
    searched, filtered, sorted and grouped. The card is the query container, so the phone layout follows the card's width
    in rem and therefore the text size: rows become stacked entries and the column headers become sort capsules. */
 .activity-sources-card { container: activity-sources / inline-size; }
-.activity-sources { min-width: 0; }
+/* One indent step per tree level, never more than 4% of the card, so five levels still leave a phone its name line.
+   The checkbox slot is the column every level's guide line runs down. */
+.activity-sources { --tree-step: min(1.5rem, 4cqi); --check-slot: 2rem; --lead-gap: .625rem; min-width: 0; }
 
 .activity-sources-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .5rem; margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
 .activity-sources-total strong { color: hsl(var(--foreground)); font-size: var(--type-subtitle); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -20,9 +22,18 @@
 .activity-sources-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
 .activity-sources-actions > button { white-space: normal; text-align: start; }
 
+/* The tree's levels as a short path, then the one sentence that explains merged rows. */
+.activity-sources-levels { margin-top: 1.25rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+.activity-sources-levels ol { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .375rem; color: hsl(var(--foreground)); font-weight: 500; }
+.activity-sources-levels li { display: inline-flex; align-items: center; gap: .375rem; }
+.activity-sources-levels li > svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
+.activity-sources-levels li > .activity-sources-levels-step { opacity: .7; }
+.activity-sources-levels p { margin-top: .25rem; max-width: 65ch; }
+
 .activity-sources-table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: var(--type-body); }
 .activity-sources-table :is(th, td) { min-width: 0; padding: .5rem; text-align: start; vertical-align: middle; overflow-wrap: anywhere; }
 .activity-sources-table thead th { padding-block: 0; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; white-space: nowrap; }
+.activity-sources-table thead .activity-sources-column-name { width: 38%; padding-inline-start: calc(.5rem + var(--check-slot) + var(--lead-gap)); }
 .activity-sources-sort-label { display: none; }
 .activity-sources-sort { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; margin-inline: -.5rem; padding-inline: .5rem; border-radius: var(--radius-field); color: inherit; font: inherit; }
 .activity-sources-sort:hover { color: hsl(var(--foreground)); }
@@ -32,17 +43,27 @@
 .activity-sources-table th[aria-sort] .activity-sources-sort > svg { color: hsl(var(--primary)); opacity: 1; }
 
 .activity-sources-table tbody tr + tr > * { border-top: 1px solid hsl(var(--border) / .4); }
-.activity-sources-table .activity-sources-check { width: 3rem; padding-inline: .75rem 0; }
+/* Each row is one tab stop of the tree grid; its ring sits inside the row so neighbours never cover it. */
+.activity-sources-table tbody tr[data-line] { outline: none; }
+.activity-sources-table tbody tr[data-line]:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.activity-sources-table tbody tr[data-line]:focus-visible > * { background-color: hsl(var(--muted) / .45); }
+
+/* The lead: indent, checkbox slot, then the icon and name (or a group's fold button). Guide lines run down each ancestor's
+   checkbox column, so the eye can follow a level through its children. */
+.activity-sources-lead { display: flex; align-items: center; gap: var(--lead-gap); min-height: 40px; padding-inline-start: calc(var(--level, 0) * var(--tree-step)); }
+.activity-sources-table tbody th.activity-sources-name {
+  background-image: repeating-linear-gradient(to right, hsl(var(--border)) 0 1px, transparent 1px var(--tree-step));
+  background-repeat: no-repeat; background-size: calc(var(--level, 0) * var(--tree-step)) 100%; background-position: calc(.5rem + var(--check-slot) / 2) 0;
+}
+.activity-sources-check { display: grid; flex: 0 0 var(--check-slot); place-items: center; width: var(--check-slot); }
 /* The box stays small; its hit area grows to the 48px touch minimum around it. */
 .activity-sources [role="checkbox"] { position: relative; width: 22px; height: 22px; min-height: 0; border-radius: var(--radius-checkbox); }
-.activity-sources [role="checkbox"]::after { content: ""; position: absolute; inset: -14px; }
-.activity-sources-name > span { display: flex; align-items: center; gap: .75rem; min-height: 40px; }
+.activity-sources [role="checkbox"]::after { content: ""; position: absolute; inset: -13px; }
 .activity-sources-name svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
 .activity-sources-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .activity-sources-copy strong { font-weight: 500; }
 .activity-sources-copy small, .activity-sources-type small { color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 400; }
 .activity-sources-table th.activity-sources-name { font-weight: 400; }
-.activity-sources-table th.activity-sources-name { width: 32%; }
 .activity-sources-meta { font-size: var(--type-label); }
 .activity-sources-meta.is-empty::before { content: "—" / ""; color: hsl(var(--muted-foreground)); }
 .activity-sources-meta-icon { display: none; }
@@ -50,15 +71,21 @@
 .activity-sources-table tr.is-chosen .activity-sources-copy strong { font-weight: 600; }
 
 .activity-sources-group-row > * { border-top: 1px solid hsl(var(--border) / .8); }
-.activity-sources-table thead + .activity-sources-group .activity-sources-group-row > * { border-top: 0; }
+.activity-sources-table thead + tbody > .activity-sources-group-row:first-child > * { border-top: 0; }
 .activity-sources-group-row > th { padding-block: .25rem; }
-.activity-sources-fold { display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 56px; padding-inline: .5rem; margin-inline: -.5rem; border-radius: var(--radius-field); color: inherit; font: inherit; font-weight: 600; text-align: start; }
-.activity-sources-fold > svg:first-child { flex-shrink: 0; color: hsl(var(--primary)); }
+.activity-sources-fold { display: flex; flex: 1; align-items: center; gap: .625rem; min-width: 0; min-height: 56px; padding-inline: .25rem .5rem; border-radius: var(--radius-field); color: inherit; font: inherit; font-weight: 600; text-align: start; }
+.activity-sources-fold > svg:nth-child(2) { flex-shrink: 0; color: hsl(var(--primary)); }
 .activity-sources-group-name { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .activity-sources-group-name small { color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 400; }
+/* Levels merged into this row: each inner group's name, led by its level's glyph. */
+/* Inline text, so the path wraps between words like a sentence instead of stacking one name per line. */
+.activity-sources-merged { display: block; color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; line-height: 1.45; }
+.activity-sources-merged > span { margin-inline-end: .875rem; }
+.activity-sources-merged > span:last-child { margin-inline-end: 0; }
+.activity-sources-merged svg { display: inline; margin-inline-end: .3rem; vertical-align: -.125em; opacity: .8; }
 .activity-sources-count { flex-shrink: 0; padding: 2px 10px; border: 1px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .activity-sources-chevron { flex-shrink: 0; color: hsl(var(--muted-foreground)); transition: rotate 200ms var(--ease-out); }
-.activity-sources-fold[aria-expanded="true"] .activity-sources-chevron { rotate: 180deg; }
+.activity-sources-fold[aria-expanded="true"] .activity-sources-chevron { rotate: 90deg; }
 
 .activity-sources-none td { padding-block: 1.25rem; color: hsl(var(--muted-foreground)); }
 .activity-sources-none td { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
@@ -71,44 +98,52 @@
 .activity-sources-savebar [role="alert"] { color: hsl(var(--destructive)); font-size: var(--type-label); font-weight: 500; }
 
 @container activity-sources (max-width: 40rem) {
+  .activity-sources { --check-slot: 2.25rem; --lead-gap: .5rem; }
   .activity-sources-table, .activity-sources-table :is(caption, thead, tbody, tr, th, td) { display: block; }
   .activity-sources-table caption { display: none; }
+  .activity-sources-sort-label { display: block; margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; }
+  .activity-sources-sort-label + .activity-sources-table { margin-top: .5rem; }
   .activity-sources-table thead tr { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-bottom: .75rem; border-bottom: 1px solid hsl(var(--border)); }
-  .activity-sources-table thead th { padding: 0; border: 0; }
-  .activity-sources-table thead th.activity-sources-check { flex-basis: 100%; width: auto; }
-  .activity-sources-sort-label { display: inline; }
+  .activity-sources-table thead th, .activity-sources-table thead .activity-sources-column-name { width: auto; padding: 0; border: 0; }
   .activity-sources-sort { margin: 0; padding-inline: .875rem; border: 1px solid hsl(var(--border)); border-radius: 999px; }
   .activity-sources-table th[aria-sort] .activity-sources-sort { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
   .activity-sources-table th[aria-sort] .activity-sources-sort > svg { color: inherit; }
 
-  /* An entry: the checkbox in a 3rem gutter, the name, then device, integration, area and type as one wrapping line,
-     each led by its glyph, so a wrapped line never starts or ends on a stray separator. */
-  .activity-sources-table tbody tr { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .875rem; min-height: 56px; padding: .5rem 0 .625rem 3rem; }
+  /* An entry: indent, the checkbox slot, the name line, then device, integration, area and type as one wrapping line,
+     each led by its glyph, so a wrapped line never starts or ends on a stray separator. The row carries the indent and
+     the guide lines; the name cell reaches back over the checkbox slot. */
+  .activity-sources-table tbody tr {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .875rem; min-height: 56px;
+    padding: .5rem 0 .625rem calc(var(--level, 0) * var(--tree-step) + var(--check-slot) + var(--lead-gap));
+    background-image: repeating-linear-gradient(to right, hsl(var(--border)) 0 1px, transparent 1px var(--tree-step));
+    background-repeat: no-repeat; background-size: calc(var(--level, 0) * var(--tree-step)) 100%; background-position: calc(var(--check-slot) / 2) 0;
+  }
   .activity-sources-table tbody tr + tr { border-top: 1px solid hsl(var(--border) / .4); }
   .activity-sources-table tbody tr + tr > * { border-top: 0; }
   .activity-sources-table tbody .activity-sources-group-row { border-top: 1px solid hsl(var(--border) / .8); }
   .activity-sources-table .activity-sources-group-row > * { border-top: 0; }
-  .activity-sources-table thead + .activity-sources-group .activity-sources-group-row { border-top: 0; }
+  .activity-sources-table thead + tbody > .activity-sources-group-row:first-child { border-top: 0; }
   .activity-sources-table tbody :is(th, td) { padding: 0; }
-  .activity-sources-table tbody td.activity-sources-check { position: absolute; top: .5rem; left: 0; display: grid; place-items: center; width: 3rem; height: 40px; padding: 0; }
-  .activity-sources-table tbody .activity-sources-name { flex-basis: 100%; width: auto; }
+  .activity-sources-table tbody th.activity-sources-name { flex: 0 0 calc(100% + var(--check-slot) + var(--lead-gap)); width: auto; margin-inline-start: calc(-1 * (var(--check-slot) + var(--lead-gap))); background: none; }
+  .activity-sources-lead { padding-inline-start: 0; }
   .activity-sources-meta { display: inline-flex; align-items: baseline; gap: .3rem; min-width: 0; color: hsl(var(--muted-foreground)); }
   .activity-sources-meta-icon { display: inline; flex-shrink: 0; align-self: center; opacity: .8; }
   .activity-sources-meta.is-empty { display: none; }
   .activity-sources-type small { display: inline; margin-left: .125rem; }
-  .activity-sources-name > span { min-height: 40px; }
+  .activity-sources-table tbody tr[data-line]:focus-visible > * { background-color: transparent; }
+  .activity-sources-table tbody tr[data-line]:focus-visible { background-color: hsl(var(--muted) / .45); }
   .activity-sources-table .activity-sources-group-row { padding-block: .25rem; }
-  .activity-sources-table .activity-sources-group-row > th { flex: 1; min-width: 0; }
-  .activity-sources-table .activity-sources-group-row td.activity-sources-check { top: .75rem; }
-  /* The count drops below the group name, so a long name or large text never pushes the chevron off the card. */
-  .activity-sources-fold { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: .75rem; row-gap: .25rem; margin: 0; padding: .375rem 0 .375rem .5rem; }
+  /* The count drops below the group name, so a long name or large text never pushes anything off the card. */
+  /* The chevron alone marks a group here: the level glyph would cost a deep row a fifth of its width at large text. */
+  .activity-sources-fold { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .5rem; row-gap: .25rem; padding: .375rem .25rem .375rem 0; }
   .activity-sources-fold > svg:first-child { grid-row: 1 / span 2; }
+  .activity-sources-fold > svg:nth-child(2) { display: none; }
   .activity-sources-group-name { grid-column: 2; }
   .activity-sources-count { grid-column: 2; grid-row: 2; justify-self: start; }
-  .activity-sources-chevron { grid-column: 3; grid-row: 1 / span 2; }
   /* Cancel becomes a 48px circle beside Save, so the bar keeps one row of actions at large text. */
   .activity-sources-cancel { width: 2.75rem; min-width: 48px; height: 2.75rem; min-height: 48px; padding: 0; border-radius: 999px; }
-  .activity-sources-cancel > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }  .activity-sources-none td { padding-left: 0; }
+  .activity-sources-cancel > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .activity-sources-none td { padding-left: 0; }
   .activity-sources-table tbody tr.activity-sources-none { padding-left: 0; }
 }
 
@@ -116,5 +151,6 @@
 @media (forced-colors: active) {
   .activity-sources-count, .activity-sources-sort { border-color: CanvasText; }
   .activity-sources-table th[aria-sort] .activity-sources-sort { outline: 2px solid CanvasText; outline-offset: 1px; }
+  .activity-sources-table tbody tr[data-line]:focus-visible { outline-color: Highlight; }
   .activity-sources-savebar { border-color: CanvasText; }
 }

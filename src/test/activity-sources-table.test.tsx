@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { AppContext } from "@/contexts/AppContext";
 import History from "@/pages/History";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
-import { activitySourceRows, filterSourceRows, groupSourceRows, integrationLabel, sortSourceRows, emptySourceFilters } from "@/lib/activity-sources";
+import { activitySourceRows, buildSourceTree, filterSourceRows, integrationLabel, sortSourceRows, sourceLevels, emptySourceFilters, type SourceTreeNode } from "@/lib/activity-sources";
 import type { Entity, PhysicalDevice } from "@/types/api";
 import { state } from "./ha-fixtures";
 import { sourceFile } from "./source-file.mjs";
@@ -53,9 +53,19 @@ const setActivity = vi.fn((_settings: Record<string, unknown>) => true);
 const view = (home: { entities: Entity[]; areas: typeof areas } = { entities, areas }) => <AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { ...home, timeZone: "Europe/Oslo" } } as never}>
   <MemoryRouter initialEntries={["/settings/activity?panel=recent"]}><History /></MemoryRouter></AppContext.Provider>;
 const card = () => within(screen.getByRole("region", { name: "Activity sources" }));
-const table = () => within(card().getByRole("table", { name: "Activity sources" }));
-const names = () => table().queryAllByRole("rowheader").filter(cell => cell.getAttribute("scope") === "row").map(cell => cell.querySelector("strong")!.textContent);
-const groups = () => table().queryAllByRole("rowheader").filter(cell => cell.getAttribute("scope") === "rowgroup").map(cell => cell.textContent);
+const table = () => within(card().getByRole("treegrid", { name: "Activity sources" }));
+const bodyRows = () => table().getAllByRole("row").slice(1);
+const isGroup = (row: HTMLElement) => row.hasAttribute("aria-expanded");
+const names = () => bodyRows().filter(row => !isGroup(row) && row.querySelector("strong")).map(row => row.querySelector("strong")!.textContent);
+const groups = () => bodyRows().filter(isGroup).map(row => row.querySelector("th")!.textContent);
+const groupName = (row: HTMLElement) => [row.querySelector(".activity-sources-group-name > span")!.textContent,
+  ...[...row.querySelectorAll(".activity-sources-merged > span")].map(part => part.textContent!.replace(/^, /, ""))].join(" › ");
+// The visible tree, two spaces per level: a group reads "name › merged level (n of m chosen)", "+" when folded.
+const outline = () => bodyRows().map(row => "  ".repeat(Number(row.getAttribute("aria-level")) - 1) + (isGroup(row)
+  ? `${groupName(row)} (${row.querySelector(".activity-sources-count")!.textContent})${row.getAttribute("aria-expanded") === "true" ? "" : " +"}`
+  : row.querySelector("strong")!.textContent));
+const groupOutline = () => outline().filter(line => line.includes(" chosen)"));
+const row = (name: string) => bodyRows().find(each => isGroup(each) ? groupName(each) === name : each.querySelector("strong")?.textContent === name)!;
 const box = (name: string) => card().getByRole("checkbox", { name: `Use ${name} as a source` });
 const groupBox = (group: string) => card().getByRole("checkbox", { name: `Use all shown in ${group} as sources` });
 const choose = (label: string, value: string) => fireEvent.change(card().getByLabelText(label), { target: { value } });
@@ -80,7 +90,8 @@ describe("Activity sources table", () => {
     expect(box("Garage door")).toBeChecked();
     expect(box("Reading lamp")).not.toBeChecked();
     const lock = box("Front door").closest("tr")!;
-    expect(within(lock).getAllByRole("cell").map(cell => cell.textContent)).toEqual(["", "Front lock", "Z-Wave JS", "Example hall", "Locks"]);
+    expect(within(lock).getAllByRole("gridcell").map(cell => cell.textContent)).toEqual(["Front lock", "Z-Wave JS", "Example hall", "Locks"]);
+    expect(lock).toHaveAttribute("aria-level", "1");
     expect(within(lock).getByRole("rowheader")).toHaveTextContent("lock.example_front");
     const alarm = box("House alarm").closest("tr")!;
     expect(alarm.querySelectorAll(".is-empty")).toHaveLength(3);
@@ -90,51 +101,192 @@ describe("Activity sources table", () => {
     expect(card().queryByText("Evening lights")).toBeNull();
   });
 
-  it("groups by type, device, integration and area, with the unassigned group last and n of m chosen", () => {
+  it("starts as a tree of integration → device → type → source, merging levels with a single group inside", () => {
     render(view());
-    expect(groups()).toEqual([
-      "Doors and windows1 of 1 chosen", "Locks1 of 1 chosen", "Alarm1 of 1 chosen", "Appliances2 of 2 chosen", "Robot vacuums and mowers1 of 1 chosen",
-      "Doorbells1 of 1 chosen", "Camera person detection1 of 1 chosen", "Other changes0 of 1 chosen",
+    expect(card().getByLabelText("Group by")).toHaveValue("integration");
+    expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Integration", "Device", "Type", "Source"]);
+    expect(outline()).toEqual([
+      "Example Bells › Front doorbell unit › Doorbells (1 of 1 chosen)", "  Front doorbell",
+      "Example Robots › Robot › Robot vacuums and mowers (1 of 1 chosen)", "  Robot vacuum",
+      "Frigate › Driveway camera › Camera person detection (1 of 1 chosen)", "  Example driveway",
+      "Home Connect › Kitchen appliances › Appliances (2 of 2 chosen)", "  Dishwasher", "  Washer",
+      "Philips Hue › Lamp › Other changes (0 of 1 chosen)", "  Reading lamp",
+      // Two devices keep Z-Wave JS a level of its own; each device has one type, so device and type share a row.
+      "Z-Wave JS (2 of 2 chosen)",
+      "  Front lock › Locks (1 of 1 chosen)", "    Front door",
+      "  Garage controller › Doors and windows (1 of 1 chosen)", "    Garage door",
+      "Unknown integration › Without a device › Alarm (1 of 1 chosen)", "  House alarm",
     ]);
-    choose("Group by", "device");
-    expect(groups()).toEqual([
-      "Driveway camera1 of 1 chosen", "Front doorbell unit1 of 1 chosen", "Front lock1 of 1 chosen", "Garage controller1 of 1 chosen", "Kitchen appliances2 of 2 chosen",
-      "Lamp0 of 1 chosen", "Robot1 of 1 chosen", "Without a device1 of 1 chosen",
-    ]);
-    choose("Group by", "integration");
-    expect(groups()).toEqual(["Example Bells1 of 1 chosen", "Example Robots1 of 1 chosen", "Frigate1 of 1 chosen", "Home Connect2 of 2 chosen", "Philips Hue0 of 1 chosen", "Z-Wave JS2 of 2 chosen", "Unknown integration1 of 1 chosen"]);
-    choose("Group by", "area");
-    expect(groups()).toEqual(["Example garage1 of 1 chosen", "Example hall2 of 3 chosen", "Example kitchen2 of 2 chosen", "Unassigned3 of 3 chosen"]);
-    expect(names()).toHaveLength(9);
-    // Folding a group hides its rows and says so.
-    const fold = card().getByRole("button", { name: /^Example hall/ });
-    expect(fold).toHaveAttribute("aria-expanded", "true");
-    fireEvent.click(fold);
-    expect(fold).toHaveAttribute("aria-expanded", "false");
-    expect(names()).toHaveLength(6);
-    expect(card().queryByRole("checkbox", { name: "Use Reading lamp as a source" })).toBeNull();
-    choose("Group by", "none");
-    expect(groups()).toEqual([]);
+    // Tree semantics: level, position among siblings and open state on every row.
+    const zwave = row("Z-Wave JS");
+    expect(zwave).toHaveAttribute("aria-level", "1");
+    expect(zwave).toHaveAttribute("aria-posinset", "6");
+    expect(zwave).toHaveAttribute("aria-setsize", "7");
+    expect(zwave).toHaveAttribute("aria-expanded", "true");
+    expect(row("Garage controller › Doors and windows")).toHaveAttribute("aria-level", "2");
+    expect(row("Garage controller › Doors and windows")).toHaveAttribute("aria-posinset", "2");
+    expect(row("Garage door")).toHaveAttribute("aria-level", "3");
+    expect(row("Garage door")).toHaveAttribute("aria-setsize", "1");
+    // The merged names are part of the group's name and its checkbox label.
+    expect(groupBox("Front lock, Locks")).toHaveAttribute("aria-checked", "true");
+    expect(card().getByRole("button", { name: /^Front lock\W+Locks/ })).toHaveAttribute("aria-expanded", "true");
+    // Folding a group hides everything below it.
+    fireEvent.click(card().getByRole("button", { name: /^Z-Wave JS/ }));
+    expect(outline()).toContain("Z-Wave JS (2 of 2 chosen) +");
+    expect(names()).not.toContain("Garage door");
+    expect(card().queryByRole("checkbox", { name: "Use Front door as a source" })).toBeNull();
   });
 
-  it("chooses or clears a whole group from its checkbox, with a mixed state in between", () => {
+  it("puts area first and then the full path when grouping by area", () => {
     render(view());
+    choose("Group by", "area");
+    expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Area", "Integration", "Device", "Type", "Source"]);
+    expect(outline()).toEqual([
+      "Example garage › Z-Wave JS › Garage controller › Doors and windows (1 of 1 chosen)", "  Garage door",
+      "Example hall (2 of 3 chosen)",
+      "  Example Bells › Front doorbell unit › Doorbells (1 of 1 chosen)", "    Front doorbell",
+      "  Philips Hue › Lamp › Other changes (0 of 1 chosen)", "    Reading lamp",
+      "  Z-Wave JS › Front lock › Locks (1 of 1 chosen)", "    Front door",
+      "Example kitchen › Home Connect › Kitchen appliances › Appliances (2 of 2 chosen)", "  Dishwasher", "  Washer",
+      // The unassigned group and the unknown integration come last at their level.
+      "Unassigned (3 of 3 chosen)",
+      "  Example Robots › Robot › Robot vacuums and mowers (1 of 1 chosen)", "    Robot vacuum",
+      "  Frigate › Driveway camera › Camera person detection (1 of 1 chosen)", "    Example driveway",
+      "  Unknown integration › Without a device › Alarm (1 of 1 chosen)", "    House alarm",
+    ]);
+  });
+
+  it("puts the chosen level first for device and type, then integration → device → type without repeating it, and lists flat for none", () => {
+    render(view());
+    choose("Group by", "device");
+    expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Device", "Integration", "Type", "Source"]);
+    expect(groupOutline()).toEqual([
+      "Driveway camera › Frigate › Camera person detection (1 of 1 chosen)", "Front doorbell unit › Example Bells › Doorbells (1 of 1 chosen)",
+      "Front lock › Z-Wave JS › Locks (1 of 1 chosen)", "Garage controller › Z-Wave JS › Doors and windows (1 of 1 chosen)",
+      "Kitchen appliances › Home Connect › Appliances (2 of 2 chosen)", "Lamp › Philips Hue › Other changes (0 of 1 chosen)",
+      "Robot › Example Robots › Robot vacuums and mowers (1 of 1 chosen)", "Without a device › Unknown integration › Alarm (1 of 1 chosen)",
+    ]);
+    choose("Group by", "type");
+    expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Type", "Integration", "Device", "Source"]);
+    // Types keep the Event types order.
+    expect(groupOutline()).toEqual([
+      "Doors and windows › Z-Wave JS › Garage controller (1 of 1 chosen)", "Locks › Z-Wave JS › Front lock (1 of 1 chosen)",
+      "Alarm › Unknown integration › Without a device (1 of 1 chosen)", "Appliances › Home Connect › Kitchen appliances (2 of 2 chosen)",
+      "Robot vacuums and mowers › Example Robots › Robot (1 of 1 chosen)", "Doorbells › Example Bells › Front doorbell unit (1 of 1 chosen)",
+      "Camera person detection › Frigate › Driveway camera (1 of 1 chosen)", "Other changes › Philips Hue › Lamp (0 of 1 chosen)",
+    ]);
+    choose("Group by", "none");
+    expect(groups()).toEqual([]);
+    expect(card().queryByRole("list", { name: "Tree levels" })).toBeNull();
+    expect(bodyRows().every(each => each.getAttribute("aria-level") === "1")).toBe(true);
+    expect(names()).toHaveLength(9);
+  });
+
+  it("chooses or clears a whole level from its checkbox, with a mixed state at every level above", () => {
+    // A second fictional lock on the same device gives Z-Wave JS → Front lock two sources.
+    const deadbolt = { ...entities.find(entity => entity.entityId === "lock.example_front")!, entityId: "lock.example_deadbolt", preferenceId: id("lock.example_deadbolt"), name: "Deadbolt" };
+    render(view({ entities: [...entities, deadbolt], areas }));
+    const zwave = groupBox("Z-Wave JS"), lock = groupBox("Front lock, Locks"), garage = groupBox("Garage controller, Doors and windows");
+    expect([zwave, lock, garage].map(each => each.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
+    fireEvent.click(box("Deadbolt"));
+    expect([zwave, lock, garage].map(each => each.getAttribute("aria-checked"))).toEqual(["mixed", "mixed", "true"]);
+    expect(outline()).toContain("Z-Wave JS (2 of 3 chosen)");
+    expect(outline()).toContain("  Front lock › Locks (1 of 2 chosen)");
+    // A mixed box chooses everything below it, then clears it all.
+    fireEvent.click(zwave);
+    expect([zwave, lock, garage].map(each => each.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
+    expect(box("Deadbolt")).toBeChecked();
+    fireEvent.click(zwave);
+    expect([zwave, lock, garage].map(each => each.getAttribute("aria-checked"))).toEqual(["false", "false", "false"]);
+    expect(card().getByText("6 sources chosen")).toBeInTheDocument();
+    fireEvent.click(lock);
+    expect([zwave, lock, garage].map(each => each.getAttribute("aria-checked"))).toEqual(["mixed", "true", "false"]);
+    expect(box("Front door")).toBeChecked();
+    expect(box("Deadbolt")).toBeChecked();
+    // Area grouping: the hall mixes a chosen lock and doorbell with an unchosen lamp.
     choose("Group by", "area");
     const hall = groupBox("Example hall");
     expect(hall).toHaveAttribute("aria-checked", "mixed");
-    expect(groupBox("Example kitchen")).toHaveAttribute("aria-checked", "true");
     fireEvent.click(hall);
     expect(hall).toHaveAttribute("aria-checked", "true");
     expect(box("Reading lamp")).toBeChecked();
-    expect(card().getByText("9 sources chosen")).toBeInTheDocument();
-    fireEvent.click(hall);
-    expect(hall).toHaveAttribute("aria-checked", "false");
-    expect(box("Front door")).not.toBeChecked();
-    expect(card().getByText("6 sources chosen")).toBeInTheDocument();
-    fireEvent.click(box("Front door"));
-    expect(hall).toHaveAttribute("aria-checked", "mixed");
     expect(setActivity).not.toHaveBeenCalled();
   });
+
+  it("opens the paths to every match while searching or filtering, and lets groups fold again", () => {
+    const many: Entity[] = Array.from({ length: 30 }, (_, index) => ({
+      ...entities.find(entity => entity.entityId === "light.example_lamp")!, entityId: `light.example_${index}`, preferenceId: id(`light.example_${index}`),
+      name: `Example light ${index}`, device: device(`dev-${index}`, `Example device ${index}`), integration: "hue",
+    }));
+    render(view({ entities: [...entities, ...many], areas }));
+    // Philips Hue holds 31 devices, more than eight, so they start folded.
+    expect(outline()).toContain("  Example device 0 › Other changes (0 of 1 chosen) +");
+    expect(names()).not.toContain("Example light 12");
+    const search = card().getByRole("searchbox", { name: "Search sources" });
+    fireEvent.change(search, { target: { value: "light 12" } });
+    expect(outline()).toEqual(["Philips Hue › Example device 12 › Other changes (0 of 1 chosen)", "  Example light 12"]);
+    fireEvent.change(search, { target: { value: "example light 1" } });
+    // Every word matches somewhere: 1, 10–19 and 21.
+    expect(names()).toHaveLength(12);
+    expect(names()).toContain("Example light 10");
+    // A group folded during a search stays folded until the search changes.
+    fireEvent.click(card().getByRole("button", { name: /^Example device 10\W+Other changes/ }));
+    expect(names()).not.toContain("Example light 10");
+    fireEvent.change(search, { target: { value: "example light 1 " } });
+    expect(names()).toContain("Example light 10");
+    fireEvent.change(search, { target: { value: "" } });
+    choose("Integration", "hue");
+    expect(names()).toHaveLength(31);
+    choose("Integration", "all");
+    expect(names()).not.toContain("Example light 12");
+  });
+
+  it("moves through the tree with the arrow keys and ticks with Space, with one tab stop", () => {
+    render(view());
+    const bells = row("Example Bells › Front doorbell unit › Doorbells");
+    expect(bodyRows().filter(each => each.tabIndex === 0)).toEqual([bells]);
+    // The checkboxes and fold buttons stay clickable but out of the tab order.
+    expect(groupBox("Z-Wave JS")).toHaveAttribute("tabindex", "-1");
+    expect(box("Garage door")).toHaveAttribute("tabindex", "-1");
+    bells.focus();
+    fireEvent.keyDown(bells, { key: "ArrowDown" });
+    expect(row("Front doorbell")).toHaveFocus();
+    expect(row("Front doorbell").tabIndex).toBe(0);
+    expect(bells.tabIndex).toBe(-1);
+    fireEvent.keyDown(row("Front doorbell"), { key: "ArrowLeft" });
+    expect(bells).toHaveFocus();
+    fireEvent.keyDown(bells, { key: "ArrowLeft" });
+    expect(bells).toHaveAttribute("aria-expanded", "false");
+    expect(names()).not.toContain("Front doorbell");
+    fireEvent.keyDown(bells, { key: "ArrowRight" });
+    expect(bells).toHaveAttribute("aria-expanded", "true");
+    expect(bells).toHaveFocus();
+    fireEvent.keyDown(bells, { key: "ArrowRight" });
+    expect(row("Front doorbell")).toHaveFocus();
+    fireEvent.keyDown(row("Front doorbell"), { key: "End" });
+    expect(row("House alarm")).toHaveFocus();
+    fireEvent.keyDown(row("House alarm"), { key: "Home" });
+    expect(bells).toHaveFocus();
+    // Space ticks the focused source or the whole group; Enter folds a group.
+    const zwave = row("Z-Wave JS");
+    zwave.focus();
+    fireEvent.keyDown(zwave, { key: "ArrowDown" });
+    fireEvent.keyDown(row("Front lock › Locks"), { key: "ArrowDown" });
+    expect(row("Front door")).toHaveFocus();
+    fireEvent.keyDown(row("Front door"), { key: " " });
+    expect(box("Front door")).not.toBeChecked();
+    expect(groupBox("Z-Wave JS")).toHaveAttribute("aria-checked", "mixed");
+    fireEvent.keyDown(row("Front door"), { key: "ArrowLeft" });
+    fireEvent.keyDown(row("Front lock › Locks"), { key: "ArrowLeft" });
+    fireEvent.keyDown(row("Front lock › Locks"), { key: "ArrowLeft" });
+    expect(zwave).toHaveFocus();
+    fireEvent.keyDown(zwave, { key: " " });
+    expect(groupBox("Z-Wave JS")).toHaveAttribute("aria-checked", "true");
+    fireEvent.keyDown(zwave, { key: "Enter" });
+    expect(zwave).toHaveAttribute("aria-expanded", "false");
+    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
+  });
+
 
   it("filters by text, chosen state, type, area and integration, counts matches and clears back to the search field", () => {
     render(view());
@@ -259,7 +411,8 @@ describe("Activity sources table", () => {
   it("keeps unavailable sources removable, marks hidden types and disables changes until settings load", () => {
     family.value = { ...family.value, activity: { panel: true, people: true, hidden: ["locks"], sources: [id("lock.example_front"), "home|sensor.example_gone"] } };
     const { unmount } = render(view());
-    expect(groups()).toContain("LocksHidden under Event types1 of 1 chosen");
+    expect(groups()).toContain("Front lock, LocksHidden under Event types1 of 1 chosen");
+    expect(outline()).toContain("Unknown integration › Without a device (1 of 2 chosen)");
     expect(groups()).toContain("Unavailable sourcesNot found in Home Assistant right now.1 of 1 chosen");
     expect(box("Front door").closest("tr")).toHaveTextContent("LocksHidden");
     const gone = box("Source unavailable");
@@ -284,12 +437,21 @@ describe("Activity sources table", () => {
     expect(card().getByText("0 sources chosen")).toBeInTheDocument();
   });
 
-  it("handles hundreds of candidates and starts many groups closed", () => {
+  it("handles hundreds of candidates, folds long levels and stays quick", () => {
     const many: Entity[] = Array.from({ length: 600 }, (_, index) => ({
       ...entities.find(entity => entity.entityId === "light.example_lamp")!, entityId: `light.example_${index}`, preferenceId: id(`light.example_${index}`),
       name: `Example light ${index}`, device: device(`dev-${index % 40}`, `Example device ${index % 40}`), integration: index % 2 ? "hue" : "zwave_js",
     }));
+    const started = performance.now();
     render(view({ entities: many, areas }));
+    // Two integrations open; their 20 devices each start folded.
+    expect(groups()).toHaveLength(42);
+    expect(names()).toHaveLength(0);
+    expect(outline().slice(0, 2)).toEqual(["Philips Hue (0 of 300 chosen)", "  Example device 1 › Other changes (0 of 15 chosen) +"]);
+    fireEvent.change(card().getByRole("searchbox", { name: "Search sources" }), { target: { value: "light 59" } });
+    // A search opens every path to its 16 matches.
+    expect(names()).toHaveLength(16);
+    fireEvent.change(card().getByRole("searchbox", { name: "Search sources" }), { target: { value: "" } });
     choose("Group by", "none");
     expect(names()).toHaveLength(600);
     // Every word must match somewhere: "light" and "59" (59, 159 … 559 and 590–599).
@@ -301,13 +463,18 @@ describe("Activity sources table", () => {
     choose("Group by", "device");
     expect(groups()).toHaveLength(40);
     expect(names()).toHaveLength(0);
-    expect(groups()[0]).toBe("Example device 00 of 15 chosen");
+    expect(groups()[0]).toBe("Example device 0, Z-Wave JS, Other changes0 of 15 chosen");
+    choose("Show", "unchosen");
+    expect(names()).toHaveLength(600);
+    // Generous for a slow CI machine; locally this takes well under a second.
+    expect(performance.now() - started).toBeLessThan(8000);
   });
 });
 
 describe("source table helpers", () => {
   const labels = { language: "en", name: (entity: Entity) => entity.name, unnamedDevice: "Unnamed device", missingName: "Source unavailable", category: (category: string) => category };
   const rows = activitySourceRows(entities.filter(entity => origins[entity.entityId]), areas, new Set(), labels);
+  const treeLabels = { category: (category: string) => category, noDevice: "Without a device", noIntegration: "Unknown integration", noArea: "Unassigned" };
 
   it("names integrations readably", () => {
     expect(["zwave_js", "mqtt", "home_connect", "bosch_shc"].map(integrationLabel)).toEqual(["Z-Wave JS", "MQTT", "Home Connect", "Bosch Shc"]);
@@ -322,8 +489,25 @@ describe("source table helpers", () => {
 
   it("keeps the type order for type groups and sorts other groups by name", () => {
     const sorted = sortSourceRows(rows, { key: "name", direction: "ascending" }, "en");
-    expect(groupSourceRows(sorted, "type", "en", { category: category => category, noDevice: "none", noIntegration: "none", noArea: "none" }).map(group => group.key))
+    expect(buildSourceTree(sorted, "type", "en", treeLabels).map(node => node.parts[0].key))
       .toEqual(["openings", "locks", "alarm", "appliances", "robots", "doorbells", "other"]);
+  });
+
+  it("orders levels with the chosen one first and merges only single-child groups", () => {
+    expect(sourceLevels("integration")).toEqual(["integration", "device", "type"]);
+    expect(sourceLevels("area")).toEqual(["area", "integration", "device", "type"]);
+    expect(sourceLevels("device")).toEqual(["device", "integration", "type"]);
+    expect(sourceLevels("type")).toEqual(["type", "integration", "device"]);
+    expect(sourceLevels("none")).toEqual([]);
+    const sorted = sortSourceRows(rows, { key: "name", direction: "ascending" }, "en");
+    const shape = (nodes: SourceTreeNode[]): unknown[] => nodes.map(node => node.children.length
+      ? { [node.parts.map(part => part.label).join(" › ")]: shape(node.children) } : `${node.parts.map(part => part.label).join(" › ")}: ${node.rows.map(each => each.name).join(", ")}`);
+    const zwave = (merge: boolean) => shape(buildSourceTree(sorted, "integration", "en", treeLabels, merge)).find(node => JSON.stringify(node).includes("Z-Wave JS"));
+    expect(zwave(false)).toEqual({ "Z-Wave JS": [{ "Front lock": ["locks: Front door"] }, { "Garage controller": ["openings: Garage door"] }] });
+    expect(zwave(true)).toEqual({ "Z-Wave JS": ["Front lock › locks: Front door", "Garage controller › openings: Garage door"] });
+    // A merged node keeps the innermost path as its key, so folding it survives a change of siblings.
+    expect(buildSourceTree(sorted, "integration", "en", treeLabels)[0].key).toBe("/integration:example_bells/device:dev-bell/type:doorbells");
+    expect(buildSourceTree(sorted, "none", "en", treeLabels)).toEqual([]);
   });
 });
 
@@ -346,8 +530,15 @@ describe("phone layout contract", () => {
     expect(declarations(phone, ".activity-sources-table, .activity-sources-table :is(caption, thead, tbody, tr, th, td)")).toMatch(/display: block/);
     expect(declarations(phone, ".activity-sources-table thead tr")).toMatch(/display: flex; flex-wrap: wrap/);
     expect(declarations(phone, ".activity-sources-table tbody tr")).toMatch(/display: flex; flex-wrap: wrap/);
-    expect(declarations(phone, ".activity-sources-table tbody .activity-sources-name")).toMatch(/flex-basis: 100%/);
+    expect(declarations(phone, ".activity-sources-table tbody th.activity-sources-name")).toMatch(/flex: 0 0 calc\(100% \+ var\(--check-slot\) \+ var\(--lead-gap\)\)/);
     expect(declarations(phone, ".activity-sources-meta.is-empty")).toMatch(/display: none/);
+  });
+
+  it("indents each level by a step capped to the card's width, so deep levels never push past a phone", () => {
+    expect(declarations(css, ".activity-sources")).toMatch(/--tree-step: min\(1\.5rem, 4cqi\)/);
+    expect(declarations(css, ".activity-sources-lead")).toMatch(/padding-inline-start: calc\(var\(--level, 0\) \* var\(--tree-step\)\)/);
+    expect(declarations(phone, ".activity-sources-table tbody tr")).toMatch(/padding: [^;]*calc\(var\(--level, 0\) \* var\(--tree-step\) \+ var\(--check-slot\) \+ var\(--lead-gap\)\)/);
+    expect(declarations(phone, ".activity-sources-lead")).toMatch(/padding-inline-start: 0/);
   });
 
   it("lets long names wrap and never sets a width wider than a phone", () => {

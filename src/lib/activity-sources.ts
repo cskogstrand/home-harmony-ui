@@ -122,24 +122,64 @@ export function sortSourceRows(rows: ActivitySourceRow[], sort: SourceSort, lang
   });
 }
 
-export interface SourceGroup { key: string; label: string; rows: ActivitySourceRow[]; category?: ActivitySourceRow["category"]; empty?: boolean }
+/** A tree level: where a source comes from, or its event type. */
+export type SourceLevel = Exclude<SourceGrouping, "none">;
+const innerLevels: SourceLevel[] = ["integration", "device", "type"];
+/**
+ * The tree's levels, outermost first: the chosen level, then integration → device → type without repeating it. Area adds a
+ * level in front of the full path; "none" is a flat list.
+ */
+export function sourceLevels(grouping: SourceGrouping): SourceLevel[] {
+  return grouping === "none" ? [] : [grouping, ...innerLevels.filter(level => level !== grouping)];
+}
 
-/** Sorted rows split into groups: types in the Event types order, other groupings by name with the unassigned group last. */
-export function groupSourceRows(rows: ActivitySourceRow[], grouping: SourceGrouping, language: string, labels: { category: (category: ActivitySourceRow["category"]) => string; noDevice: string; noIntegration: string; noArea: string }): SourceGroup[] {
-  if (grouping === "none") return [{ key: "all", label: "", rows }];
-  const groups = new Map<string, SourceGroup>();
-  for (const row of rows) {
-    const key = grouping === "type" ? row.category : grouping === "device" ? row.deviceKey : grouping === "integration" ? row.integrationKey : row.areaKey;
-    let group = groups.get(key);
-    if (!group) {
-      const label = grouping === "type" ? labels.category(row.category) : grouping === "device" ? row.device || labels.noDevice : grouping === "integration" ? row.integration || labels.noIntegration : row.area || labels.noArea;
-      groups.set(key, group = { key, label, rows: [], ...(grouping === "type" ? { category: row.category } : {}), empty: grouping !== "type" && !key });
-    }
-    group.rows.push(row);
-  }
+export interface SourceTreeLabels { category: (category: ActivitySourceRow["category"]) => string; noDevice: string; noIntegration: string; noArea: string }
+/** One level's group as its row shows it; a merged row has several. */
+export interface SourceTreePart { level: SourceLevel; key: string; label: string; category?: ActivitySourceRow["category"]; empty: boolean }
+export interface SourceTreeNode {
+  /** The path of level keys from the root, stable while the grouping stays, so folds survive sorting and filtering. */
+  key: string;
+  /** The group, followed by any single-child levels merged into it. */
+  parts: SourceTreePart[];
+  /** Every row below this node, in the sorted order. */
+  rows: ActivitySourceRow[];
+  /** Groups one level down; empty at the last level, where the rows themselves are the children. */
+  children: SourceTreeNode[];
+}
+
+const levelKey = (row: ActivitySourceRow, level: SourceLevel) => level === "type" ? row.category : level === "device" ? row.deviceKey : level === "integration" ? row.integrationKey : row.areaKey;
+const levelLabel = (row: ActivitySourceRow, level: SourceLevel, labels: SourceTreeLabels) => level === "type" ? labels.category(row.category)
+  : level === "device" ? row.device || labels.noDevice : level === "integration" ? row.integration || labels.noIntegration : row.area || labels.noArea;
+
+/**
+ * Sorted rows as a tree of groups. Types keep the Event types order; other groups sort by name with the unassigned group
+ * last, and rows keep the sort inside their group. With `merge`, a group whose only child is one group shares its row with
+ * that child (and so on down), so a device with one event type is one row, never two.
+ */
+export function buildSourceTree(rows: ActivitySourceRow[], grouping: SourceGrouping, language: string, labels: SourceTreeLabels, merge = true): SourceTreeNode[] {
+  const levels = sourceLevels(grouping);
   const collator = new Intl.Collator(language, { sensitivity: "base", numeric: true });
-  return [...groups.values()].sort((a, b) => grouping === "type" ? typeRank(a.category!) - typeRank(b.category!)
-    : Number(!!a.empty) - Number(!!b.empty) || collator.compare(a.label, b.label) || a.key.localeCompare(b.key));
+  const build = (rows: ActivitySourceRow[], depth: number, parent: string): SourceTreeNode[] => {
+    const level = levels[depth];
+    const groups = new Map<string, { part: SourceTreePart; rows: ActivitySourceRow[] }>();
+    for (const row of rows) {
+      const key = levelKey(row, level);
+      let group = groups.get(key);
+      if (!group) groups.set(key, group = { part: { level, key, label: levelLabel(row, level, labels), ...(level === "type" ? { category: row.category } : {}), empty: level !== "type" && !key }, rows: [] });
+      group.rows.push(row);
+    }
+    return [...groups.values()]
+      .sort(({ part: a }, { part: b }) => level === "type" ? typeRank(a.category!) - typeRank(b.category!)
+        : Number(a.empty) - Number(b.empty) || collator.compare(a.label, b.label) || a.key.localeCompare(b.key))
+      .map(({ part, rows }) => {
+        const key = `${parent}/${level}:${part.key}`;
+        const children = depth + 1 < levels.length ? build(rows, depth + 1, key) : [];
+        // Children are built (and merged) first, so one step folds a whole chain of single children.
+        if (merge && children.length === 1) return { key: children[0].key, parts: [part, ...children[0].parts], rows, children: children[0].children };
+        return { key, parts: [part], rows, children };
+      });
+  };
+  return levels.length ? build(rows, 0, "") : [];
 }
 
 /** The chosen set after ticking or clearing rows, keeping the saved order and adding new sources at the end. */

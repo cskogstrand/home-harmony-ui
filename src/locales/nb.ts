@@ -3038,6 +3038,8 @@ export const nb = {
   "Sort by": "Sorter etter",
   "No sources match these filters.": "Ingen kilder passer med disse filtrene.",
   "{count} of {total} chosen": "{count} av {total} valgt",
+  "Tree levels": "Nivåer i treet",
+  "A group with only one group inside shares its row with it, and the inner name is shown below.": "En gruppe med bare én gruppe inni deler rad med den, og det indre navnet vises under.",
   "Unsaved sources": "Kilder som ikke er lagret",
   "1 unsaved change": "Én endring er ikke lagret",
   "{count} unsaved changes": "{count} endringer er ikke lagret",
