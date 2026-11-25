@@ -47,7 +47,7 @@ function ClimateDemo() {
   const { message: t } = useI18n();
   const [temp, setTemp] = useState(22), [mode, setMode] = useState("Heat"), [fan, setFan] = useState("Auto"), [preset, setPreset] = useState("Comfort"), [swing, setSwing] = useState(false);
   const modes = <Segments label="Climate mode" icons={{ Off: Power, Heat: Flame, Cool: Snowflake }} options={["Off", "Heat", "Cool", "Auto"]} value={mode} set={setMode} />;
-  return <ClimateCard value={temp} unit="°" min={16} max={30} step={.5} caption={t(mode === "Off" ? "System off" : mode === "Cool" ? "Cooling · room 24°" : "Heating · room 20.5°")} set={setTemp}>
+  return <ClimateCard value={temp} unit="°" min={16} max={30} step={.5} state={t(mode === "Off" ? "System off" : mode === "Cool" ? "Cooling" : "Heating")} detail={mode === "Off" ? undefined : t(mode === "Cool" ? "room 24°" : "room 20.5°")} set={setTemp}>
     {!superCompact && modes}<More>{superCompact && modes}<Choice label="Fan mode" options={["Auto", "Low", "Medium", "High"]} value={fan} set={setFan} /><Choice label="Preset" options={["Comfort", "Eco", "Away", "Sleep"]} value={preset} set={setPreset} /><Toggle label="Swing" on={swing} set={setSwing} /></More>
   </ClimateCard>;
 }

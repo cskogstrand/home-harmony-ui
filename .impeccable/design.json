@@ -871,7 +871,7 @@
       },
       "readout": {
         "displayName": "Readout",
-        "purpose": "The phone clock and the thermostat dial."
+        "purpose": "The phone clock and the largest device readouts."
       },
       "headline": {
         "displayName": "Headline",

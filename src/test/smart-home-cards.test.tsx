@@ -64,6 +64,21 @@ it("automatically selects the climate design, defaults to supercompact, and send
   await waitFor(() => expect(mocks.command).toHaveBeenLastCalledWith("climate.example", "hvac_mode", "off"));
 });
 
+it("keeps only the target and a short state inside the dial and names the target once", () => {
+  const view = open(climate(), "original");
+  const dial = () => document.querySelector(".dg-thermostat")!;
+  const caption = () => document.querySelector(".dg-dial-caption")!;
+  expect(dial()).toHaveTextContent(/^Target temperature21\.5°CHeat$/);
+  expect(dial().querySelector(".sr-only")).toHaveTextContent("Target temperature");
+  expect(caption()).toHaveTextContent(/^Inside 20 °C$/);
+  expect(screen.getByText("Target")).toBeVisible();
+  expect(document.querySelector(".dg-thermostat")).toHaveStyle({ "--dial-chars": "6" });
+  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={climate()} density="compact" /></TooltipProvider></MemoryRouter>);
+  expect(dial()).not.toHaveTextContent("Inside");
+  expect(caption()).toHaveTextContent(/^Target temperatureInside 20 °C$/);
+  expect(caption().firstElementChild).toHaveAttribute("aria-hidden", "true");
+});
+
 it("keeps bounds, unsupported capabilities, offline state and failed commands honest", () => {
   const entity = climate();
   const view = open({ ...entity, attributes: { ...entity.attributes, temperature: 30 } });

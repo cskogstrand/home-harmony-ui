@@ -13,14 +13,28 @@ export function LightCard({ value, caption, color, strength, power, brightness, 
   </div>{brightness}{children}</>;
 }
 
-export function ClimateCard({ value, unit, caption, min, max, step, set, children, name }: {
-  value?: number; unit: string; caption: string; min?: number; max?: number; step?: number; set?: (value: number) => void; children?: ReactNode; name?: string;
+/**
+ * The dial holds only the numeral and a short state, so text never meets the ring at any root size.
+ * The target label and room reading sit below; Original's stepper already names the target between its buttons.
+ */
+export function ClimateCard({ value, unit, state, detail, min, max, step, set, children, name }: {
+  value?: number; unit: string; state?: string; detail?: string; min?: number; max?: number; step?: number; set?: (value: number) => void; children?: ReactNode; name?: string;
 }) {
   const { t, number } = useI18n();
+  const { variant } = useContext(CardPresentation);
   const adjustable = set && min !== undefined && max !== undefined && max > min && step !== undefined && step > 0;
   const next = (direction: number) => Math.min(max!, Math.max(min!, Math.round((value! + direction * step!) * 1000) / 1000));
   const dial = value !== undefined && max > min ? Math.min(1, Math.max(0, (value - min) / (max - min))) * 270 : 0;
-  return <><div className="dg-thermostat" style={{ "--dial": `${dial}deg` } as CSSProperties}><div><span>{t("Target temperature")}</span><strong>{value === undefined ? "—" : number(value)}<small>{unit}</small></strong><span>{caption}</span></div></div>
+  const numeral = value === undefined ? "—" : number(value);
+  // Size the numeral for the widest value in range, so stepping from 22 to 22.5 never resizes it.
+  const fraction = step !== undefined && !Number.isInteger(step) ? 1 : 0;
+  const widest = Math.max(3, numeral.length, ...[min, max].filter(bound => bound !== undefined).map(bound => number(bound, { minimumFractionDigits: fraction, maximumFractionDigits: fraction }).length));
+  const label = t("Target temperature");
+  const labelBelow = !adjustable || variant !== "Original";
+  return <><div className="dg-thermostat" style={{ "--dial": `${dial}deg`, "--dial-chars": widest + unit.trim().length } as CSSProperties}>
+    <div><span className="sr-only">{label}</span><strong>{numeral}<small>{unit}</small></strong>{state && <span className="dg-dial-state">{state}</span>}</div>
+  </div>
+    {(labelBelow || detail) && <p className="dg-dial-caption">{labelBelow && <span aria-hidden="true">{label}</span>}{detail && <span>{detail}</span>}</p>}
     {adjustable && <div className="dg-stepper"><Action label={name ? t("Decrease temperature for {name}", { name }) : "Decrease temperature"} disabled={value === undefined || value <= min} onClick={() => set(next(-1))}><Minus /></Action><span>{t("Target")}</span><Action label={name ? t("Increase temperature for {name}", { name }) : "Increase temperature"} disabled={value === undefined || value >= max} onClick={() => set(next(1))}><Plus /></Action></div>}
     {children}
   </>;
