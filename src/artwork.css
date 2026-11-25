@@ -72,7 +72,9 @@
 }
 
 [data-artwork] :is(.greeting > p, .app-footer) { color: hsl(var(--foreground)); }
-[data-artwork] :is(.smart-nav, .list-tabs) { background-color: var(--art-surface); border-radius: var(--radius-field); }
+/* Capsule tracks keep their capsule choices concentric: even padding leaves each choice the track's radius minus its inset. */
+[data-artwork] .list-tabs { background-color: var(--art-surface); }
+[data-artwork] .smart-nav { background-color: var(--art-surface); border: 1px solid hsl(var(--border)); border-radius: var(--radius-capsule); }
 [data-artwork] .calendar-segment { background-color: var(--art-surface); }
 /* The container already uses the card colour, so the selection needs its own fill as well as the shared semibold label. */
 [data-artwork] :is(.list-tabs button, .calendar-segment button)[aria-pressed="true"],
