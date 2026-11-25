@@ -368,7 +368,7 @@ describe("activity curation", () => {
     const log = (translations: Record<string, string>, language: "en" | "nb") => sentences(curateActivity(events,
       mapHome(states, { areas: [], devices, entities: entries }, "home", undefined, undefined, translations).entities, { mode: "full", language, people: false }), createI18n(language));
     expect(log({ "component.binary_sensor.entity_component.door.name": "Dør", "component.lock.entity_component._.name": "Lås", "@language": "nb" }, "nb"))
-      .toEqual(["Example shed Lås ble låst opp", "Example car Charge port lock ble låst", "Example car Dører ble låst"]);
+      .toEqual(["Example shed Lås ble låst opp", "Example car Ladeportlås ble låst", "Example car Dører ble låst"]);
     expect(log({ "component.binary_sensor.entity_component.door.name": "Door", "component.lock.entity_component._.name": "Lock", "@language": "en" }, "en"))
       .toEqual(["Example shed Lock unlocked", "Example car Charge port lock locked", "Example car Doors locked"]);
   });

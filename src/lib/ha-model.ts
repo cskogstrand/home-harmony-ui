@@ -133,25 +133,54 @@ function nameClass(original: string, domain: string, deviceClass: unknown) {
 
 // The app's own words for name parts Home Assistant leaves in English, by catalogue language.
 const nameParts: Partial<Record<string, NameParts>> = { nb: nbNameParts };
-/** A qualifier ("Driver Front", "rear") in the catalogue's language, lower case; undefined unless every word is known. */
+const word = (dictionary: Readonly<Record<string, string>>, text: string) => Object.prototype.hasOwnProperty.call(dictionary, text) ? dictionary[text] : undefined;
+/** A qualifier ("Driver Front", "rear left") in the catalogue's language, lower case; undefined unless every word is known. */
 function qualifierText(qualifier: string, parts: NameParts | undefined) {
   if (!parts) return;
   const text = spaced(qualifier);
-  const whole = parts.whole[text as keyof NameParts["whole"]];
+  const whole = word(parts.whole, text);
   if (whole) return whole.toLowerCase();
-  const words = text.split(" ").map(word => parts.words[word as keyof NameParts["words"]] as string | undefined);
-  return words.every(Boolean) ? words.join(" ") : undefined;
+  // The longest known phrase wins, so a phrase sets its own word order ("front left" → "venstre foran").
+  const words = text.split(" "), translated: string[] = [];
+  for (let start = 0; start < words.length;) {
+    let end = words.length;
+    while (end > start && !word(parts.words, words.slice(start, end).join(" "))) end--;
+    if (end === start) return;
+    translated.push(word(parts.words, words.slice(start, end).join(" ")) as string);
+    start = end;
+  }
+  return translated.join(" ");
 }
+/**
+ * A part built from the app's words: what it names (a head), with the words before or after it and any bracketed text
+ * as a qualifier ("Tire Pressure (Front Left)" → "Dekktrykk (venstre foran)"); undefined unless every word is known.
+ */
+function composedName(original: string, parts: NameParts) {
+  const paren = /\s*\(([^)]*)\)\s*$/.exec(original);
+  const words = spaced(paren ? original.slice(0, paren.index) : original).split(" ");
+  for (let size = words.length; size > 0; size--) {
+    for (const start of new Set([0, words.length - size])) {
+      const head = word(parts.heads, words.slice(start, start + size).join(" "));
+      if (!head) continue;
+      const rest = [words.slice(0, start).join(" "), words.slice(start + size).join(" "), paren?.[1].trim() ?? ""].filter(Boolean);
+      const qualifiers = rest.map(text => qualifierText(text, parts));
+      if (qualifiers.every(Boolean)) return qualifiers.length ? `${head} (${qualifiers.join(" ")})` : head;
+    }
+  }
+}
+// Helpers, scripts, scenes, people, templates and groups carry names the owner wrote; the app's words leave them alone.
+const ownerNamed = (entry: EntityRegistryEntry, domain: string) => entry.platform === domain || ["template", "group"].includes(entry.platform ?? "");
 
 // Home Assistant composes friendly names in its own language as "<device> <entity name>". Swap only the
 // entity part for the dashboard language. Names set by the user, and names with placeholders, stay as reported.
 // Home Assistant fills a missing translation with English, so a "translation" equal to the original name is none.
 // Fallbacks, in order: the integration's translation, the same key's translation from another integration, the app's
-// own word for a common part ("Doors" → "Dører", "Charger door" → "Ladeluke"), then the device class's translated
-// name with the part's qualifier translated ("Door (Driver Front)" → "Dør (fører foran)", "Rear window" → "Vindu (bak)").
-// A qualifier the app cannot translate is dropped only when no other entity of the device shares the class
-// ("Relative humidity" → "Luftfuktighet"); otherwise the part stays as reported, so "Inside temperature" and
-// "Outside temperature", or two doors, can still be told apart.
+// word for a whole part ("Doors" → "Dører", "Charger door" → "Ladeluke"), the device class's translated name with the
+// part's qualifier translated ("Door (Driver Front)" → "Dør (fører foran)", "Rear window" → "Vindu (bak)"), then a
+// part built from the app's words ("Temperature threshold max" → "Temperatur (øvre grense)"). The app's words never
+// touch names the owner wrote (helpers, scripts, templates). A qualifier the app cannot translate is dropped only
+// when no other entity of the device shares the class ("Relative humidity" → "Luftfuktighet"); otherwise the part
+// stays as reported, so "Cabin temperature" and "Battery temperature", or two doors, can still be told apart.
 function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations, deviceClass: unknown, classShared: boolean) {
   const original = entry?.original_name;
   if (!entry || entry.name || !original || !name.endsWith(original)) return name;
@@ -162,17 +191,22 @@ function translatedName(name: string, entry: EntityRegistryEntry | undefined, do
     // Borrowing only helps another language; in English it would swap one integration's wording for another's.
     || key && ![undefined, "en"].includes(language) && namesByKey(translations).get(`${domain}.${key}`)?.map(real).find(Boolean);
   if (translated) return prefix + translated;
+  if (ownerNamed(entry, domain)) return name;
   const parts = language === undefined ? undefined : nameParts[language];
-  const own = parts?.whole[spaced(original) as keyof NameParts["whole"]];
+  const own = parts && word(parts.whole, spaced(original));
   if (own) return prefix + own;
   const named = nameClass(original, domain, deviceClass);
-  const className = named && translations[named.key];
+  const candidate = named && translations[named.key];
   // An English catalogue names the class with its own word; only a different word is a translation.
-  if (!named || !className || className.includes("{") || className.toLowerCase() === named.word.replace(/_/g, " ")) return name;
-  if (!named.qualifier) return prefix + className;
-  const qualifier = qualifierText(named.qualifier, parts);
-  if (qualifier) return `${prefix}${className} (${qualifier})`;
-  return classShared || named.implied ? name : prefix + className;
+  const className = named && candidate && !candidate.includes("{") && candidate.toLowerCase() !== named.word.replace(/_/g, " ") ? candidate : undefined;
+  if (named && className) {
+    if (!named.qualifier) return prefix + className;
+    const qualifier = qualifierText(named.qualifier, parts);
+    if (qualifier) return `${prefix}${className} (${qualifier})`;
+  }
+  const composed = parts && composedName(original, parts);
+  if (composed) return prefix + composed;
+  return !named || !className || classShared || named.implied ? name : prefix + className;
 }
 // The integration's label for this entity's translation_key comes first, then the domain's shared state labels.
 function translatedState(state: EntityStates[string] | undefined, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations) {

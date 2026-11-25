@@ -3056,16 +3056,54 @@ export const nb = {
 } as const;
 
 /**
- * Bokmål for entity name parts Home Assistant leaves in English, by lower-case English text: whole parts first, then
- * words for the qualifier that tells a device's parts apart ("Door (Driver Front)" → "Dør (fører foran)").
+ * Bokmål for entity name parts Home Assistant leaves in English, by lower-case English text. `whole` holds complete
+ * parts, including those a word-for-word translation would get wrong. `heads` holds the thing a part names; the
+ * words before or after it read as a qualifier in brackets ("Relative humidity threshold min" → "Luftfuktighet
+ * (nedre grense)"). `words` holds qualifier words and phrases ("Door (Driver Front)" → "Dør (fører foran)"); a
+ * phrase sets Bokmål word order ("front left" → "venstre foran"). Only generic words belong here, never names.
  */
 export const nbNameParts = {
   whole: {
-    doors: "Dører", windows: "Vinduer", locks: "Låser", trunk: "Bagasjerom", frunk: "Frunk",
-    "charger door": "Ladeluke", "charge port door": "Ladeluke", "charge port": "Ladeport",
+    doors: "Dører", windows: "Vinduer", locks: "Låser", trunk: "Bagasjerom", frunk: "Frunk", sunroof: "Soltak",
+    "charger door": "Ladeluke", "charge port door": "Ladeluke", "charge port latch": "Ladeportlås", "charge port lock": "Ladeportlås",
+    charging: "Lading", "charging state": "Ladestatus", "charging status": "Ladestatus", charger: "Lader", "charge limit": "Ladegrense",
+    "charging amps": "Ladestrøm", "charging rate": "Ladehastighet", "energy added": "Tilført energi", "time charge complete": "Ferdig ladet",
+    "scheduled charging": "Planlagt lading", "scheduled departure": "Planlagt avreise", "arrival time": "Ankomsttid",
+    odometer: "Kilometerstand", heading: "Kjøreretning", elevation: "Høyde over havet", "parking brake": "Parkeringsbrems",
+    "shift state": "Girstilling", "heated steering": "Rattvarme", "flash lights": "Blink med lysene", wiper: "Vindusvisker",
+    "usable battery": "Brukbart batteri", "low battery": "Lavt batteri", online: "Tilkoblet", asleep: "Sover", climate: "Klima",
+    state: "Tilstand", "color mode": "Fargemodus", "device status": "Enhetsstatus", "fire indication": "Brannvarsel", tampered: "Sabotasje",
+    "current price": "Pris nå", "next price": "Neste pris", "previous price": "Forrige pris", "highest price": "Høyeste pris", "lowest price": "Laveste pris",
+    "start time": "Starttid", "end time": "Sluttid", "remaining time": "Gjenstående tid", "delay start": "Utsatt start",
+    "selected program": "Valgt program", "current program phase": "Programfase", "current program duration": "Programvarighet",
+    "current program remaining time": "Gjenstående programtid", "total run time": "Total driftstid", "total number of cycles": "Antall sykluser",
+    "fill salt": "Fyll på salt", "rinse aid refill": "Fyll på skyllemiddel", "print progress": "Utskriftsfremdrift", "print status": "Utskriftsstatus",
+    "salt refill": "Fyll på salt", "rinse aid": "Skyllemiddel", "water hardness": "Vannhardhet", "clean the filters": "Rens filtrene",
+    "last run program": "Sist kjørte program", "total usage": "Totalt forbruk", "charging time remaining": "Gjenstående ladetid",
+    "charging start time": "Ladestart", "distance to arrival": "Avstand til ankomst", "remote start": "Fjernstart", "user present": "Bruker til stede",
+    preconditioning: "Forvarming", "room thermometer": "Romtermometer", motion: "Bevegelse", "motion detection": "Bevegelsesdeteksjon",
+    "person detection": "Persondeteksjon", "privacy mode": "Personvernmodus", update: "Oppdatering", "software update": "Programvareoppdatering",
+    "last updated": "Sist oppdatert", "last activity": "Siste aktivitet", "last seen": "Sist sett", "serial number": "Serienummer",
+    "signal level": "Signalnivå", "wi-fi signal": "Wi-Fi-signal", "battery percentage": "Batterinivå", connection: "Tilkobling",
+    "ac fault": "Strømfeil", "charger phases": "Ladefaser", "person count": "Antall personer", "automatic backup": "Automatisk sikkerhetskopi",
+    "last successful automatic backup": "Siste vellykkede sikkerhetskopi", "last attempted automatic backup": "Siste forsøk på sikkerhetskopi",
+    "next scheduled automatic backup": "Neste planlagte sikkerhetskopi",
+    start: "Start", stop: "Stopp", camera: "Kamera", pet: "Dyr", vehicle: "Kjøretøy", visitor: "Besøkende",
+  },
+  heads: {
+    temperature: "Temperatur", "relative humidity": "Luftfuktighet", humidity: "Luftfuktighet", power: "Effekt", energy: "Energi",
+    battery: "Batteri", pressure: "Trykk", voltage: "Spenning", speed: "Hastighet", "fan speed": "Viftehastighet", status: "Status", mode: "Modus",
+    consumption: "Forbruk", "electricity consumption": "Strømforbruk", "energy consumption": "Energiforbruk", "water consumption": "Vannforbruk",
+    "tire pressure": "Dekktrykk", "tyre pressure": "Dekktrykk", tpms: "Dekktrykk", "heated seat": "Setevarme", "seat heater": "Setevarme",
+    range: "Rekkevidde", "charge port": "Ladeport", door: "Dør", window: "Vindu", lock: "Lås",
   },
   words: {
-    front: "foran", rear: "bak", back: "bak", left: "venstre", right: "høyre", driver: "fører", passenger: "passasjer",
-    trunk: "bagasjerom", frunk: "frunk", charger: "lader",
+    front: "foran", rear: "bak", back: "bak", left: "venstre", right: "høyre", center: "midt", centre: "midt", middle: "midt",
+    "front left": "venstre foran", "front right": "høyre foran", "rear left": "venstre bak", "rear right": "høyre bak", "rear center": "midt bak",
+    driver: "fører", passenger: "passasjer", trunk: "bagasjerom", frunk: "frunk", charger: "lader", inside: "inne", outside: "ute",
+    indoor: "inne", outdoor: "ute", "threshold min": "nedre grense", "threshold max": "øvre grense", "min threshold": "nedre grense",
+    "max threshold": "øvre grense", min: "min.", max: "maks.", minimum: "minimum", maximum: "maksimum", target: "mål", total: "totalt",
+    summary: "sammendrag", today: "i dag", "current hour estimate": "anslått denne timen", "current hour measured": "målt denne timen",
+    estimated: "anslått", ideal: "ideell", rated: "oppgitt", lock: "lås", latch: "lås", cooling: "kjøling",
   },
 } as const;
