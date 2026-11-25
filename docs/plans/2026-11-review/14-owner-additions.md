@@ -40,3 +40,5 @@
   > Done 2026-11-25. Checked live at 390 × 844: 74px header at 100% and 156px at 150% with no overlap and no overflow. Not fixed (outside the request): at 320px and 150% text the calendar date button widens /calendar to 359px; the camera and settings badges still use 1.2rem.
 - [x] **Phone calendar toolbar and header count badges:** the date gets its own row and a shorter visible format on narrow toolbars (The Period Yields Rule); camera and settings counts grow outward from the corner instead of over the icon (The Count Grows Outward Rule).
   > Done 2026-11-25. Checked live at 320px: month, week and day stay at 320px wide at 100% and 150% text. Not fixed (outside the request): the Home status header badge uses the old badge style.
+- [x] **Home status and bell header counts:** both follow The Count Grows Outward Rule; at 150% text the house is covered 4–7% (was 42–53%) and the bell 2–13% (was 7–33%), and neither badge touches a neighbouring button.
+  > Done 2026-11-25. Trade-off: at 320px and 100% text a two-digit bell count covers 8.6% of the bell (was 0%).
