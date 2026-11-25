@@ -114,6 +114,14 @@
 .brand { display: flex; align-items: center; gap: .65rem; margin-right: auto; min-height: 48px; font-size: var(--type-heading-small); font-weight: 600; letter-spacing: -.025em; }
 .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; color: hsl(var(--primary)); }
 .brand small { display: block; font-size: var(--type-caption); font-weight: 500; color: hsl(var(--muted-foreground)); letter-spacing: 2.1px; margin-top: 7px; }
+/* Outside Today the time takes the wordmark's place: a tabular Headline numeral over the short date, inside the 48–60px row. */
+.brand[data-clock] { letter-spacing: normal; }
+.header-clock { display: grid; justify-items: start; }
+.header-clock time { font-size: var(--type-headline); font-weight: 500; line-height: .9; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.header-date { font-size: var(--type-caption); font-weight: 500; line-height: 1.15; color: hsl(var(--muted-foreground)); white-space: nowrap; }
+/* Weather beside the clock joins it on the left; the vehicles and controls keep the right. */
+.app-header > .brand:has(+ .header-weather) { margin-right: 0; }
+.app-header > .header-weather { margin-right: auto; }
 .header-actions .icon-button { position: relative; }
 .header-badge {
   position: absolute; inset-block-start: -.22rem; inset-inline-end: 0;
@@ -152,6 +160,42 @@
 .app-main { padding: 1.5rem var(--space) 0; margin-inline: auto; }
 .app-footer { max-width: 1600px; padding: 20px var(--space) 0; margin: auto; display: flex; justify-content: space-between; gap: 12px; color: hsl(var(--muted-foreground)); font-size: var(--type-meta); }
 .app-header, .app-main, .app-footer, .notification-editor { padding-left: var(--gutter-left); padding-right: var(--gutter-right); }
+/*
+ * Sticky header: it stays below the top safe area on every page. The header spans the window so its reading surface
+ * reaches both edges; its padding keeps the 1600px content column. That surface (a blurred ground with a soft lower
+ * edge) fades in only once content scrolls beneath, so the resting header still shows the artwork behind it.
+ */
+.sticky-header {
+  position: sticky; top: env(safe-area-inset-top); z-index: 30; max-width: none;
+  padding-left: max(var(--gutter-left), calc((100% - 1600px) / 2 + var(--space)));
+  padding-right: max(var(--gutter-right), calc((100% - 1600px) / 2 + var(--space)));
+}
+.sticky-header::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: calc(-1 * env(safe-area-inset-top)) 0 -1rem;
+  background: hsl(var(--background) / .94);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1rem), transparent);
+  opacity: 0; transition: opacity 200ms var(--ease-out);
+}
+.sticky-header[data-scrolled]::before { opacity: 1; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sticky-header::before {
+    background: hsl(var(--background) / .72);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .sticky-header::before {
+    inset-block-end: 0; background: hsl(var(--background)); border-bottom: 1px solid hsl(var(--input));
+    -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none;
+  }
+}
+@media (forced-colors: active) {
+  .sticky-header::before { inset-block-end: 0; background: Canvas; border-bottom: 1px solid CanvasText; -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sticky-header::before { transition: none; } }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); padding: 14px 20px; border-radius: 12px; }
 .skip-link:focus { top: 12px; }
 .app-dock { position: fixed; bottom: calc(1rem + env(safe-area-inset-bottom)); left: var(--gutter-left); right: var(--gutter-right); margin-inline: auto; max-width: 1000px; display: flex; flex-direction: column; gap: .75rem; z-index: 40; pointer-events: none; }
@@ -305,7 +349,7 @@ fieldset.settings-card > legend + * { clear: both; }
   .check-row input:checked + .check-mark .check-icon { transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) { .check-row::before { background: hsl(var(--primary) / .08); } }
-.list-composer { position: sticky; top: .5rem; z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }
+.list-composer { position: sticky; top: calc(var(--app-sticky-top) + .5rem); z-index: 3; background: hsl(var(--card)); padding-block: .5rem; }
 .list-action-bar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .list-identity { display: flex; align-items: center; gap: .5rem; min-width: 0; }
 .list-identity > div { min-width: 0; overflow-wrap: anywhere; }
@@ -850,6 +894,8 @@ fieldset.settings-card > legend + * { clear: both; }
   .home-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .header-actions .icon-button { min-width: 60px; min-height: 60px; }
   .header-actions .icon-button > svg { width: 26px; height: 26px; }
+  /* Header weather matches the 60px controls; its two lines fit inside without growing the row. */
+  .header-weather { min-height: 60px; padding-block: .3rem; }
   .compact-mode { --panel-space: 1rem; }
 }
 
@@ -877,7 +923,12 @@ fieldset.settings-card > legend + * { clear: both; }
   .app-header:has(.header-weather) { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
   .app-header:has(.header-weather) .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
   .header-weather { grid-column: 2; grid-row: 2; justify-self: end; max-width: 10rem; }
+  .app-header > .header-weather { margin-right: 0; }
   .header-weather .weather-copy > span { display: none; }
+  /* Phones keep only the time in the first row: no moon, no date, and weather that merely follows the clock waits on Today. */
+  .brand[data-clock] { justify-content: center; }
+  .brand[data-clock] .brand-mark, .header-date, .header-weather[data-beside-clock] { display: none; }
+  .header-clock time { font-size: var(--type-body-large); font-weight: 600; line-height: 1.2; letter-spacing: 0; }
   .app-main { padding-top: 1rem; }
   .portrait-board, .calendar-lanes, .school-cards, .energy-layout { grid-template-columns: 1fr; }
   .portrait-board, .planner-page { gap: 1rem; }
@@ -928,7 +979,7 @@ fieldset.settings-card > legend + * { clear: both; }
 
 @media (max-width: 379px) {
   .app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-  .app-header .brand > span:last-child { display: none; }
+  .app-header .brand-name { display: none; }
   .app-header .brand { min-width: 48px; justify-content: center; }
   .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
 }

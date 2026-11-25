@@ -32,17 +32,29 @@ const ArtworkDefinitions = lazy(() => import("@/components/ArtworkDefinitions"))
 export function AppLayout({ children }: { children?: ReactNode }) {
   useMotionInput();
   const dock = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLElement>(null);
   useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => document.documentElement.style.setProperty("--app-dock-height", `${entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height}px`));
-    if (dock.current) observer.observe(dock.current);
-    return () => { observer.disconnect(); document.documentElement.style.removeProperty("--app-dock-height"); };
+    // The dock and the sticky header publish their heights, so scrolling, focus and in-page sticky rows clear both.
+    const properties = new Map<Element | null, string>([[dock.current, "--app-dock-height"], [header.current, "--app-header-height"]]);
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) document.documentElement.style.setProperty(properties.get(entry.target)!, `${entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height}px`);
+    });
+    for (const element of properties.keys()) if (element) observer.observe(element);
+    return () => { observer.disconnect(); for (const property of properties.values()) document.documentElement.style.removeProperty(property); };
+  }, []);
+  useEffect(() => {
+    // The header's reading surface appears once content scrolls beneath it; at rest the artwork stays visible behind it.
+    const update = () => header.current?.toggleAttribute("data-scrolled", window.scrollY > 0);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
   }, []);
   const availableVersion = useAppUpdate();
-  const { t, message } = useI18n();
+  const { t, message, dateLabel } = useI18n();
   const { currentHome, homeOnline } = useApp();
   const playingGroup = homeOnline ? sonosMusicDestinations(sonosPlayers(currentHome.entities)).find(({ player }) => player.state === "playing") : undefined;
   const musicLabel = playingGroup ? t("Sonos · Music playing") : t("Sonos");
-  const { saved, memberName, appearance, smartHome } = useFamily();
+  const { saved, memberName, appearance, smartHome, today, time } = useFamily();
   const shared = useSharedConfiguration();
   const cameraItems = shared.state.config.settings.cameras.items;
   const detectedCameras = homeOnline ? [...cameraPersonSensors(cameraItems, currentHome.entities).values()].filter(sensor => sensor.state === "on").length : 0;
@@ -57,6 +69,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();
   const appearanceSettings = useMatch("/settings/appearance");
   const { pathname } = location;
+  const todayPage = pathname === "/";
   const mainPath = mainPagePath(pathname);
   const [locations, setLocations] = useState<Record<string, Location>>({});
   if (mainPath && locations[mainPath] !== location) setLocations({ ...locations, [mainPath]: location });
@@ -69,8 +82,14 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       <ArtworkImage artwork={artwork} className="artwork-ground" />
       <ArtworkImage artwork={artwork} className="artwork-horizon" />
     </div>}
-    <header className="app-header"><Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span>afterglow</span></Link>
-      <VehicleWidgets /><WeatherWidget placement="header" /><div className="header-actions">
+    <header ref={header} className="app-header sticky-header">
+      {/* Today has its large ambient clock; every other page carries the time in the wordmark's place, still the link home. */}
+      {todayPage ? <Link to="/" className="brand" aria-label={t("Afterglow home")}><span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span><span className="brand-name">afterglow</span></Link>
+        : <Link to="/" className="brand" data-clock="" title={dateLabel(today, { weekday: "long", day: "numeric", month: "long" })}>
+          <span className="brand-mark"><Moon size={23} strokeWidth={1.4} /></span>
+          <span className="header-clock"><time dateTime={`${today}T${time}`}>{time}</time>{" "}<span className="header-date">{dateLabel(today)}</span>{" "}<span className="sr-only">{t("Afterglow home")}</span></span>
+        </Link>}
+      <WeatherWidget placement="header" besideClock={!todayPage} /><VehicleWidgets /><div className="header-actions">
         <AskTheHouse />
         <Link to={playingGroup ? `/sonos?player=${encodeURIComponent(playingGroup.player.entityId)}` : "/sonos"} className="icon-button glass-surface" aria-label={musicLabel} title={musicLabel}>
           <Music2 size={20} aria-hidden="true" />{playingGroup && <span className="header-badge" data-tone="healthy" aria-hidden="true"><Play size={12} fill="currentColor" /></span>}
@@ -101,7 +120,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       <button type="button" className="icon-button" aria-label={t("Dismiss timetable error")} onClick={() => setDismissedError(timetableError.id)}><X size={19} aria-hidden="true" /></button>
     </div>}
     <ConnectionBanner />
-    <main id="main-content" tabIndex={-1} className={`app-main ${pathname === "/" ? "today-page" : ""}`}>
+    <main id="main-content" tabIndex={-1} className={`app-main ${todayPage ? "today-page" : ""}`}>
       {isHomeSection(pathname) && <SmartHomeNav />}
       <MainPages locations={locations} errorFallback={errorFallback} />
       <PageErrorBoundary key={pathname} fallback={errorFallback}>

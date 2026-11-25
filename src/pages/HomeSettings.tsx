@@ -119,8 +119,8 @@ export default function HomeSettings({ section, guided = false }: { guided?: boo
       </section>
       <section className="weather-placement settings-card" aria-labelledby="weather-placement-heading">
         <PanelTitle id="weather-placement-heading" icon={Eye}>{t("Show weather")}</PanelTitle>
-        <label><Checkbox checked={weatherPlacement.today} onCheckedChange={checked => setWeatherPlacement({ today: checked === true })} aria-label={t("Beside the clock on Today")} /><span><strong>{t("Beside the clock on Today")}</strong><small>{t("A larger weather display on your daily overview.")}</small></span></label>
-        <label><Checkbox checked={weatherPlacement.header} onCheckedChange={checked => setWeatherPlacement({ header: checked === true })} aria-label={t("In the header")} /><span><strong>{t("In the header")}</strong><small>{t("A compact widget on every page.")}</small></span></label>
+        <label><Checkbox checked={weatherPlacement.today} onCheckedChange={checked => setWeatherPlacement({ today: checked === true })} aria-label={t("Beside the clock")} /><span><strong>{t("Beside the clock")}</strong><small>{t("Large on Today, and compact beside the header clock on other pages. Phones keep just the time there.")}</small></span></label>
+        <label><Checkbox checked={weatherPlacement.header} onCheckedChange={checked => setWeatherPlacement({ header: checked === true })} aria-label={t("In the header")} /><span><strong>{t("In the header")}</strong><small>{t("A compact widget on every page, Today and phones included.")}</small></span></label>
       </section>
       {!weatherPlacement.today && !weatherPlacement.header && <p role="status" className="page-note">{t("Weather is hidden. Your selected source is kept.")}</p>}
       {!homeOnline && <p role="status" className="page-note">{t("Weather updates resume when Home Assistant reconnects.")}</p>}

@@ -18,6 +18,8 @@
 
 Home Assistant owns your people, events, lists and devices. Afterglow stores dashboard preferences and uploaded timetables; the HA token stays on the server.
 
+Away from Today, the header shows the time and date (just the time on phones) and, with **Settings → Weather → Beside the clock**, the current weather beside it.
+
 Use the settings cog on Today (I dag) to show, hide or reorder sections with the up/down arrows. The header gear opens Settings directly. Choose **Continue setup** to resume at the next missing step, or expand **Household**, **Screen and alerts**, **Devices** or **System** for a specific setting. The order is saved across screens and included in backups. Reset section order restores the original order without changing visibility.
 
 **Recent at home** on Smart home reads like a household diary: “Garage door opened”, “Dishwasher finished”, “Robot vacuum docked”, updated live from the Home Assistant logbook. Turn on **Customize Today → Recent at home** to show the same panel on Today as well. **Settings → System → Activity** shows the full log for today or yesterday, filtered by area and type, and chooses the panel’s sources. People coming and going stay out unless you include them.

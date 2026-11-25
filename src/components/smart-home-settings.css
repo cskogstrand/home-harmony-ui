@@ -44,7 +44,7 @@
 .smart-compose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 2rem; margin-top: 1.75rem; }
 .smart-compose-fields, .smart-compose-preview { min-width: 0; }
 .smart-compose-fields { display: grid; gap: 1rem; }
-.smart-compose-preview { position: sticky; top: 1.5rem; }
+.smart-compose-preview { position: sticky; top: calc(var(--app-sticky-top) + 1.5rem); }
 .smart-compose-preview > h3, .smart-suggestions h3 { font-size: var(--type-body); font-weight: 600; }
 .smart-compose-preview > .page-note { margin: .5rem 0 1rem; font-size: var(--type-label); line-height: 1.5; }
 .smart-compose-options { display: grid; gap: 1rem; }
