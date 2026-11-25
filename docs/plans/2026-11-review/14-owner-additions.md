@@ -42,3 +42,4 @@
   > Done 2026-11-25. Checked live at 320px: month, week and day stay at 320px wide at 100% and 150% text. Not fixed (outside the request): the Home status header badge uses the old badge style.
 - [x] **Home status and bell header counts:** both follow The Count Grows Outward Rule; at 150% text the house is covered 4–7% (was 42–53%) and the bell 2–13% (was 7–33%), and neither badge touches a neighbouring button.
   > Done 2026-11-25. Trade-off: at 320px and 100% text a two-digit bell count covers 8.6% of the bell (was 0%).
+- [ ] **Activity sources table:** Settings → System → Activity → Latest events lists sources in a table that groups by device or integration and can be filtered (selected/unselected, type, area, integration, text) and sorted, so choosing many sources is quick.
