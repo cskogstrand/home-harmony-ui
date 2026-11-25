@@ -151,7 +151,8 @@ function stateText(entity: Entity | undefined, value: string, options: ActivityO
 function classify(event: LogbookEvent, entity: Entity | undefined, options: ActivityOptions): { kind: ActivityKind; icon: ActivityIcon; sentence: Message } {
   const domain = event.entityId.split(".")[0], cls = deviceClass(entity), state = event.state;
   const camera = options.personSensors?.[event.entityId];
-  const name = camera ?? entity?.name ?? event.name ?? event.entityId;
+  // An entity part Home Assistant left in the integration's words reads as the device and its translated class.
+  const name = camera ?? entity?.classNamed ?? entity?.name ?? event.name ?? event.entityId;
   const said = (kind: ActivityKind, icon: ActivityIcon, key: MessageKey, values: MessageValues = {}) => ({ kind, icon, sentence: msg(key, { name, ...values }) });
   // Home Assistant's message is used only for events that are not state changes; the curated panel never shows them.
   if (state === undefined) return said("message", "activity", "{name} {message}", { message: event.message ?? "" });

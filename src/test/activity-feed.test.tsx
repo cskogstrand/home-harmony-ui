@@ -244,6 +244,37 @@ describe("activity curation", () => {
     ]);
   });
 
+  it("names openings by device and translated class when Home Assistant has no translation for the entity part", () => {
+    // Fictional devices; Home Assistant fills untranslated integration names with English.
+    const devices = [{ id: "dishwasher", name: "Example dishwasher" }, { id: "car", name: "Example car" }, { id: "own", name: "Example shed", name_by_user: "Our shed" }];
+    const entries = [
+      { id: "e1", entity_id: "binary_sensor.example_dishwasher_door", platform: "example_appliance", device_id: "dishwasher", original_name: "Door", translation_key: "door_status" },
+      { id: "e2", entity_id: "binary_sensor.example_car_doors", platform: "example_mqtt", device_id: "car", original_name: "Doors" },
+      { id: "e3", entity_id: "binary_sensor.example_car_driver_front", platform: "example_mqtt", device_id: "car", original_name: "Door (Driver Front)" },
+      { id: "e4", entity_id: "cover.example_car_charger_door", platform: "example_car", device_id: "car", original_name: "Charger door" },
+      { id: "e5", entity_id: "binary_sensor.example_shed_door", platform: "example_mqtt", device_id: "own", original_name: "Door", name: "Shed hatch" },
+      { id: "e6", entity_id: "cover.example_car_frunk", platform: "example_car", device_id: "car", original_name: "Frunk" },
+    ];
+    const opening = (entityId: string, value: string, friendly: string) => state(entityId, value, { device_class: "door", friendly_name: friendly });
+    const home = mapHome({
+      "binary_sensor.example_dishwasher_door": opening("binary_sensor.example_dishwasher_door", "off", "Example dishwasher Door"),
+      "binary_sensor.example_car_doors": opening("binary_sensor.example_car_doors", "off", "Example car Doors"),
+      "binary_sensor.example_car_driver_front": opening("binary_sensor.example_car_driver_front", "off", "Example car Door (Driver Front)"),
+      "cover.example_car_charger_door": opening("cover.example_car_charger_door", "closed", "Example car Charger door"),
+      "binary_sensor.example_shed_door": opening("binary_sensor.example_shed_door", "off", "Shed hatch"),
+      "cover.example_car_frunk": opening("cover.example_car_frunk", "closed", "Example car Frunk"),
+    }, { areas: [], devices, entities: entries }, "home", undefined, undefined, {
+      "component.example_appliance.entity.binary_sensor.door_status.name": "Door",
+      "component.binary_sensor.entity_component.door.name": "Dør", "component.cover.entity_component.door.name": "Dør", "@language": "nb",
+    }).entities;
+    const events = [event("binary_sensor.example_dishwasher_door", "on", 6), event("binary_sensor.example_car_doors", "off", 5), event("binary_sensor.example_car_driver_front", "off", 4),
+      event("cover.example_car_charger_door", "closed", 3), event("binary_sensor.example_shed_door", "on", 2), event("cover.example_car_frunk", "open", 1)];
+    expect(sentences(curateActivity(events, home, { mode: "full", language: "nb", people: false }), norwegian)).toEqual([
+      // A part without a class word stays as reported; the owner's own name is kept.
+      "Example car Frunk ble åpnet", "Shed hatch ble åpnet", "Example car Dør ble lukket", "Example car Dør ble lukket", "Example car Dør ble lukket", "Example dishwasher Dør ble åpnet",
+    ]);
+  });
+
   it("formats relative and clock times in the home's time zone", () => {
     const now = Date.parse("2026-10-06T12:00:00Z"), zone = "Europe/Oslo";
     expect(activityTime(now - 20000, now, "en-GB", zone)).toBe("now");

@@ -2,7 +2,7 @@ import { createI18n, MessageError, readingDigits, withUnit, type Language, type 
 import type { HassConfig, HassServices } from "home-assistant-js-websocket";
 import { z } from "zod";
 import type { AlarmAction, CalendarEvent, Entity, EntityAction, EntityRegistryEntry, EntityStates, Home, Registries } from "@/types/api";
-import { noTranslations, type HaTranslations } from "./ha-translations";
+import { noTranslations, translationLanguage, type HaTranslations } from "./ha-translations";
 
 export const emptyRegistries: Registries = { areas: [], devices: [], entities: [] };
 export const numberValue = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
@@ -83,15 +83,53 @@ export const alarmModes: { action: AlarmAction; label: string; flag: number }[] 
 export const needsCode = (entity: Entity, action: EntityAction) => !!entity.attributes.code_format &&
   (!action.startsWith("alarm_arm_") || entity.attributes.code_arm_required !== false);
 
+// Integration names by "<domain>.<translation_key>" across every loaded integration, so one integration's
+// translation can stand in when another ships the same key untranslated.
+const sharedNames = new WeakMap<HaTranslations, Map<string, string[]>>();
+function namesByKey(translations: HaTranslations) {
+  let names = sharedNames.get(translations);
+  if (!names) {
+    names = new Map();
+    for (const [key, value] of Object.entries(translations)) {
+      const match = /^component\.[^.]+\.entity\.([^.]+)\.([^.]+)\.name$/.exec(key);
+      if (match) names.set(`${match[1]}.${match[2]}`, [...names.get(`${match[1]}.${match[2]}`) ?? [], value]);
+    }
+    sharedNames.set(translations, names);
+  }
+  return names;
+}
+/** How the entity part relates to its device class: the class word itself ("Doors", "Door (Front)"), a qualified class ("Charger door") or neither. */
+function classNaming(original: string, deviceClass: unknown) {
+  if (typeof deviceClass !== "string" || !deviceClass) return;
+  const words = deviceClass.replace(/_/g, " ");
+  const head = original.replace(/\s*\([^)]*\)\s*$/, "").replace(/\s+/g, " ").trim().toLowerCase();
+  if (head === words || head === `${words}s`) return "class";
+  if (head.endsWith(` ${words}`) || head.endsWith(` ${words}s`)) return "qualified";
+}
+
 // Home Assistant composes friendly names in its own language as "<device> <entity name>". Swap only the
 // entity part for the dashboard language. Names set by the user, and names with placeholders, stay as reported.
-// An entity without a name of its own is named after its device class ("Door"); that name has a translation too.
-function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations, deviceClass: unknown) {
-  if (!entry || entry.name || !entry.original_name || !name.endsWith(entry.original_name)) return name;
-  const classNamed = typeof deviceClass === "string" && entry.original_name.toLowerCase() === deviceClass.replace(/_/g, " ");
-  const translated = entry.translation_key && translations[`component.${entry.platform}.entity.${domain}.${entry.translation_key}.name`]
-    || classNamed && translations[`component.${domain}.entity_component.${deviceClass}.name`];
-  return translated && !translated.includes("{") ? name.slice(0, name.length - entry.original_name.length) + translated : name;
+// Home Assistant fills a missing translation with English, so a "translation" equal to the original name is none.
+// Fallbacks, in order: the integration's translation, the same key's translation from another integration, then the
+// device class's translated name when the entity part is that class ("Doors"), or ends with it ("Relative humidity")
+// and no other entity of the device shares the class, so "Inside temperature" and "Outside temperature" stay apart.
+// `classNamed` is "<device> <translated class>" for a part still in the integration's words, for sentences that
+// name what kind of thing changed even where the class name alone would not tell the device's entities apart.
+function translatedName(name: string, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations, deviceClass: unknown, classShared: boolean): { name: string; classNamed?: string } {
+  const original = entry?.original_name;
+  if (!entry || entry.name || !original || !name.endsWith(original)) return { name };
+  const prefix = name.slice(0, name.length - original.length);
+  const real = (value: string | undefined) => value && value.trim().toLowerCase() !== original.trim().toLowerCase() && !value.includes("{") ? value : undefined;
+  const key = entry.translation_key;
+  const translated = key && real(translations[`component.${entry.platform}.entity.${domain}.${key}.name`])
+    // Borrowing only helps another language; in English it would swap one integration's wording for another's.
+    || key && ![undefined, "en"].includes(translations[translationLanguage]) && namesByKey(translations).get(`${domain}.${key}`)?.map(real).find(Boolean);
+  if (translated) return { name: prefix + translated };
+  const naming = classNaming(original, deviceClass);
+  const className = naming && translations[`component.${domain}.entity_component.${deviceClass}.name`];
+  // An English catalogue names the class with its own word; only a different word is a translation.
+  if (!className || className.includes("{") || className.toLowerCase() === String(deviceClass).replace(/_/g, " ")) return { name };
+  return { name: naming === "class" || !classShared ? prefix + className : name, ...(prefix.trim() ? { classNamed: prefix + className } : {}) };
 }
 // The integration's label for this entity's translation_key comes first, then the domain's shared state labels.
 function translatedState(state: EntityStates[string] | undefined, entry: EntityRegistryEntry | undefined, domain: string, translations: HaTranslations) {
@@ -107,6 +145,14 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
   const devices = new Map(registries.devices.map(d => [d.id, d]));
   const areas = new Map(registries.areas.map(a => [a.area_id, { id: a.area_id, name: a.name, entities: [] as Entity[] }]));
   const ids = new Set([...Object.keys(states), ...registries.entities.filter(e => !e.disabled_by && !e.hidden_by).map(e => e.entity_id)]);
+  // Entities per device and device class, so a class name is only used where it tells them apart.
+  const classCounts = new Map<string, number>();
+  for (const id of ids) {
+    const entry = registered.get(id), deviceClass = states[id]?.attributes.device_class;
+    if (!entry?.device_id || entry.disabled_by || entry.hidden_by || typeof deviceClass !== "string") continue;
+    const key = `${entry.device_id}|${deviceClass}`;
+    classCounts.set(key, (classCounts.get(key) ?? 0) + 1);
+  }
   const entities: Entity[] = [];
   for (const id of ids) {
     const entry = registered.get(id);
@@ -120,12 +166,14 @@ export function mapHome(states: EntityStates, registries: Registries, instance: 
     let entity = cache?.get(source);
     if (!entity) {
       const domain = id.split(".")[0];
-      const name = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations, state?.attributes.device_class);
+      const { name, classNamed } = translatedName(entry?.name || state?.attributes.friendly_name || entry?.original_name || humanizeState(id.slice(id.indexOf(".") + 1)), entry, domain, translations, state?.attributes.device_class,
+        (classCounts.get(`${entry?.device_id}|${String(state?.attributes.device_class)}`) ?? 0) > 1);
       const deviceLabel = (device?.name_by_user || device?.name)?.trim();
       entity = {
         entityId: id, preferenceId: `${instance}|${id.startsWith("person.") ? id : entry?.id ?? id}`, domain,
         // Home Assistant prefixes the device name, so an entity named after its device reads "Hong Hong".
         name: deviceLabel && name.replace(/\s+/g, " ").trim() === `${deviceLabel} ${deviceLabel}` ? deviceLabel : name,
+        ...(classNamed ? { classNamed } : {}),
         state: state?.state ?? "missing", stateLabel: translatedState(state, entry, domain, translations),
         displayPrecision: numberValue(entry?.options?.sensor?.display_precision) ?? numberValue(entry?.options?.sensor?.suggested_display_precision), attributes: state?.attributes ?? {}, areaId, device, category: entry?.entity_category, integration: entry?.platform,
         registryName: entry?.translation_key || entry?.original_name || undefined, uniqueId: entry?.unique_id,

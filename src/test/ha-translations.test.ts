@@ -97,6 +97,31 @@ describe("translated entity names", () => {
     expect(named({ name: "Washer door" }, { friendly_name: "Washer door", device_class: "door" })).toBe("Washer door");
     expect(named({}, { friendly_name: "Example washer Door", device_class: "opening" })).toBe("Example washer Door");
   });
+
+  it("falls back from Home Assistant's English filler to another integration's translation, then to the device class", () => {
+    const thermostat = { id: "thermostat", name: "Example thermostat" };
+    const entry = (id: string, original: string, key?: string) => ({ id, entity_id: `${id.split(":")[0]}.example_${id.split(":")[1]}`, platform: "example_heat", device_id: "thermostat", original_name: original, ...(key ? { translation_key: key } : {}) });
+    const entries = [entry("switch:child_lock", "Child lock", "child_lock"), entry("sensor:humidity", "Relative humidity", "relative_humidity"), entry("number:humidity_min", "Relative humidity threshold min", "relative_humidity_threshold_min"),
+      entry("select:mode", "Mode", "mode"), entry("sensor:inside", "Inside temperature"), entry("sensor:outside", "Outside temperature"), entry("binary_sensor:doors", "Doors")];
+    const values: Record<string, Record<string, unknown>> = { "sensor:humidity": { device_class: "humidity" }, "sensor:inside": { device_class: "temperature" }, "sensor:outside": { device_class: "temperature" }, "binary_sensor:doors": { device_class: "door" } };
+    const catalogue = (language: string, names: Record<string, string>) => ({
+      ...Object.fromEntries(entries.filter(item => item.translation_key).map(item => [`component.example_heat.entity.${item.entity_id.split(".")[0]}.${item.translation_key}.name`, item.original_name])),
+      ...names, "@language": language,
+    });
+    const names = (translations: Record<string, string>) => mapHome(
+      Object.fromEntries(entries.map(item => [item.entity_id, state(item.entity_id, "1", { friendly_name: `Example thermostat ${item.original_name}`, ...values[item.id] })])),
+      { areas: [], devices: [thermostat], entities: entries }, "home", undefined, undefined, translations,
+    ).entities.map(entity => entity.name.replace("Example thermostat ", ""));
+    const nb = catalogue("nb", {
+      "component.example_robot.entity.switch.child_lock.name": "Barnesikring",
+      "component.sensor.entity_component.humidity.name": "Luftfuktighet", "component.sensor.entity_component.temperature.name": "Temperatur", "component.binary_sensor.entity_component.door.name": "Dør",
+    });
+    // Two temperature sensors on one device keep their own names; a name without any known translation stays as reported.
+    expect(names(nb)).toEqual(["Barnesikring", "Luftfuktighet", "Relative humidity threshold min", "Mode", "Inside temperature", "Outside temperature", "Dør"]);
+    // In English nothing is borrowed from another integration's wording, and the class's own word is no translation.
+    expect(names(catalogue("en", { "component.example_robot.entity.switch.child_lock.name": "Child Lock switch", "component.sensor.entity_component.humidity.name": "Humidity", "component.binary_sensor.entity_component.door.name": "Door" })))
+      .toEqual(["Child lock", "Relative humidity", "Relative humidity threshold min", "Mode", "Inside temperature", "Outside temperature", "Doors"]);
+  });
 });
 
 describe("translated states", () => {
@@ -123,6 +148,7 @@ describe("Home Assistant translations", () => {
       "component.example_car.entity.sensor.charging_state.name": "Ladestatus",
       "component.example_car.entity.sensor.charging_state.state.complete": "Lading fullført",
       "component.vacuum.entity_component._.state.error": "Feil",
+      "@language": "nb",
     }));
     expect(translationRequests()).toEqual([
       { type: "frontend/get_translations", language: "nb", category: "entity" },
