@@ -303,7 +303,7 @@
   .notification-editor-fields { overflow-y: auto; }
 }
 @media (max-width: 849px) {
-  .notification-editor-views { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; border-radius: var(--radius-field); background: hsl(var(--muted)); }
+  .notification-editor-views { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; padding: .25rem; border-radius: var(--radius-capsule); background: hsl(var(--muted)); }
   .notification-editor-views button[aria-pressed="true"] { background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: 0 1px 3px hsl(var(--foreground) / .15); }
   .notification-editor-layout[data-view="setup"] > .notification-preview,
   .notification-editor-layout[data-view="preview"] > .notification-editor-fields { display: none; }

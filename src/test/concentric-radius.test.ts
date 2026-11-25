@@ -8,6 +8,8 @@ const artworkCss: string = sourceFile("artwork.css");
 const vehicleCss: string = sourceFile("components/vehicle-widgets.css");
 const settingsCss: string = sourceFile("pages/settings.css");
 const smartHomeSettingsCss: string = sourceFile("components/smart-home-settings.css");
+const notificationsCss: string = sourceFile("components/notifications.css");
+const tabsSource: string = sourceFile("components/ui/tabs.tsx");
 
 const declarations = (css: string, selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -23,6 +25,10 @@ it("keeps segment and tab choices concentric with their tracks", () => {
   expect(declarations(artworkCss, "[data-artwork] .smart-nav")).toMatch(/border-radius: var\(--radius-capsule\)/);
   expect(declarations(vehicleCss, ".vehicle-view-tabs [role=\"tab\"]")).toMatch(/border-radius: calc\(var\(--radius-inset\) - 3px\)/);
   expect(declarations(vehicleCss, ".vehicle-glance")).toMatch(/border-radius: calc\(var\(--radius-menu\) - 3px\)/);
+  expect(notificationsCss).toMatch(/\.notification-editor-views \{[^}]*padding: \.25rem; border-radius: var\(--radius-capsule\)/);
+  // The shared tab list is 14px with a 4px inset, so its triggers take 10px.
+  expect(tabsSource).toMatch(/TabsPrimitive\.List[\s\S]*rounded-md bg-muted p-1/);
+  expect(tabsSource).toMatch(/rounded-\[calc\(var\(--radius-md\)_-_4px\)\] px-3 py-1\.5/);
 });
 
 it("gives rows and day surfaces their card radius minus the inset", () => {
