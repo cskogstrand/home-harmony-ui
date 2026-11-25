@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, BookOpen, CalendarCheck, CalendarClock, CalendarDays, Columns2, History, House, MoveVertical, RectangleHorizontal, ShieldCheck, ListChecks, NotebookPen, Settings, ShoppingBasket, Sunrise, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Columns2, MoveVertical, RectangleHorizontal, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -13,12 +13,12 @@ import { Input } from "@/components/ui/input";
 import { PanelTitle } from "@/components/PanelTitle";
 import { dashboardRows, dashboardSections, dashboardWidth, fillSections, fullWidthSections, type DashboardHomeworkOptions, type DashboardSection, type DashboardRow, type DashboardWidth, type FillSection } from "../../shared/configuration";
 import type { MessageKey } from "@/lib/i18n";
+import { todaySectionIcons as sectionIcons } from "@/lib/today-sections";
 
 const sectionLabels = {
   homeStatus: "Home status", morningSummary: "Morning summary", wasteCollection: "Waste collection", nextPlan: "Next family plan",
   day: "Everyone’s day", week: "Everyone’s week", daily: "Daily rhythm", shopping: "Shopping", homework: "Homework", school: "School", home: "Home favorites", recentActivity: "Latest events",
 } as const;
-const sectionIcons = { homeStatus: ShieldCheck, morningSummary: Sunrise, wasteCollection: Trash2, nextPlan: CalendarClock, day: CalendarCheck, week: CalendarDays, daily: ListChecks, shopping: ShoppingBasket, homework: NotebookPen, school: BookOpen, home: House, recentActivity: History };
 /** Sections that render nothing when they have nothing to say; their partner then takes the whole row. */
 const conditionalSections: readonly DashboardSection[] = ["homeStatus", "morningSummary", "wasteCollection", "school"];
 const fullWidthReasons: Record<typeof fullWidthSections[number], MessageKey> = {
