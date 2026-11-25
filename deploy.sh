@@ -3,7 +3,8 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 fail() { echo "$*" >&2; exit 1; }
-[[ $# -eq 0 ]] || fail "Usage: ./deploy.sh"
+deploy_bump=${1-patch}
+[[ $# -le 1 && $deploy_bump =~ ^(patch|minor|major)$ ]] || fail "Usage: ./deploy.sh [patch|minor|major]"
 [[ $(git branch --show-current) == main ]] || fail "Switch to main first."
 [[ -z $(git status --porcelain) ]] || fail "Commit or stash local changes first."
 git fetch origin main
@@ -47,13 +48,17 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-deploy_version=$(node --input-type=module - "$deploy_backup" "$deploy_expected" <<'NODE'
+deploy_version=$(node --input-type=module - "$deploy_backup" "$deploy_expected" "$deploy_bump" <<'NODE'
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 const previous = readFileSync(process.argv[2], 'utf8').trim();
-assert.match(previous, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/, 'Automatic patch bumps require a stable version');
-const [major, minor, patch] = previous.split('.');
-const next = `${major}.${minor}.${BigInt(patch) + 1n}`;
+assert.match(previous, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/, 'Automatic bumps require a stable version');
+const [major, minor, patch] = previous.split('.').map(BigInt);
+const next = {
+  patch: `${major}.${minor}.${patch + 1n}`,
+  minor: `${major}.${minor + 1n}.0`,
+  major: `${major + 1n}.0.0`,
+}[process.argv[4]];
 writeFileSync(process.argv[3], `${next}\n`);
 console.log(next);
 NODE

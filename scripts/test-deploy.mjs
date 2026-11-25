@@ -52,10 +52,11 @@ if (process.argv[3] === 'list') {
   const remote = git(process.cwd(), 'remote', 'get-url', 'origin');
   const promotion = remote + '-promotion';
   git(process.cwd(), 'clone', '--quiet', remote, promotion);
-  fs.writeFileSync(promotion + '/config.yaml', 'version: "0.9.10"\\n');
-  fs.writeFileSync(promotion + '/CHANGELOG.md', '# Changelog\\n\\n## 0.9.10\\n');
+  const version = fs.readFileSync(promotion + '/VERSION', 'utf8').trim();
+  fs.writeFileSync(promotion + '/config.yaml', 'version: "' + version + '"\\n');
+  fs.writeFileSync(promotion + '/CHANGELOG.md', '# Changelog\\n\\n## ' + version + '\\n');
   git(promotion, 'add', 'config.yaml', 'CHANGELOG.md');
-  git(promotion, 'commit', '-m', 'chore: release Home Assistant 0.9.10');
+  git(promotion, 'commit', '-m', 'chore: release Home Assistant ' + version);
   git(promotion, 'push', 'origin', 'main');
   if (process.env.DEPLOY_TEST_LOCAL_COMMIT) {
     fs.writeFileSync('unrelated.txt', 'concurrent work\\n');
@@ -94,7 +95,7 @@ if (process.env.DEPLOY_TEST_REJECT) process.exit(1);
 `, true);
   return {
     cwd, remote, git, env, head: git(cwd, "rev-parse", "HEAD"),
-    run: () => spawnSync(join(cwd, "deploy.sh"), [], { cwd: root, env, encoding: "utf8" }),
+    run: (...args) => spawnSync(join(cwd, "deploy.sh"), args, { cwd: root, env, encoding: "utf8" }),
     calls: () => readFileSync(log, "utf8").trim().split("\n").filter(Boolean),
   };
 }
@@ -107,18 +108,29 @@ function unchanged(f) {
 }
 
 try {
-  const success = fixture("success");
-  const result = success.run();
-  assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.equal(readFileSync(join(success.cwd, "VERSION"), "utf8"), "0.9.10\n");
-  assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^^", "HEAD^"), "VERSION");
-  assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^", "HEAD"), "CHANGELOG.md\nconfig.yaml");
-  assert.equal(success.git(success.cwd, "status", "--porcelain"), "");
-  assert.equal(success.git(success.cwd, "rev-parse", "HEAD"), success.git(success.remote, "rev-parse", "main"));
-  assert.equal(readFileSync(join(success.cwd, "config.yaml"), "utf8"), 'version: "0.9.10"\n');
-  const releaseCommit = success.git(success.cwd, "rev-parse", "HEAD^");
-  const list = `gh run list --workflow publish-image.yml --branch main --event push --commit ${releaseCommit} --json databaseId --jq .[0].databaseId // empty`;
-  assert.deepEqual(success.calls(), [...prerequisites, ...checks, "push", list, watch, "push"], "Checks precede the push; sync includes the later workflow commit");
+  for (const [args, expected] of [[[], "0.9.10"], [["patch"], "0.9.10"], [["minor"], "0.10.0"], [["major"], "1.0.0"]]) {
+    const success = fixture(args[0] ?? "default");
+    const result = success.run(...args);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(readFileSync(join(success.cwd, "VERSION"), "utf8"), expected + "\n");
+    assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^^", "HEAD^"), "VERSION");
+    assert.equal(success.git(success.cwd, "diff", "--name-only", "HEAD^", "HEAD"), "CHANGELOG.md\nconfig.yaml");
+    assert.equal(success.git(success.cwd, "status", "--porcelain"), "");
+    assert.equal(success.git(success.cwd, "rev-parse", "HEAD"), success.git(success.remote, "rev-parse", "main"));
+    assert.equal(readFileSync(join(success.cwd, "config.yaml"), "utf8"), `version: "${expected}"\n`);
+    const releaseCommit = success.git(success.cwd, "rev-parse", "HEAD^");
+    const list = `gh run list --workflow publish-image.yml --branch main --event push --commit ${releaseCommit} --json databaseId --jq .[0].databaseId // empty`;
+    assert.deepEqual(success.calls(), [...prerequisites, ...checks, "push", list, watch, "push"], "Checks precede the push; sync includes the later workflow commit");
+  }
+
+  const invalid = fixture("invalid-arguments");
+  for (const args of [[""], ["minorish"], ["major", "minor"]]) {
+    const result = invalid.run(...args);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Usage: \.\/deploy\.sh \[patch\|minor\|major\]/);
+    assert.deepEqual(invalid.calls(), []);
+    unchanged(invalid);
+  }
 
   const auth = fixture("missing-auth");
   auth.env.DEPLOY_TEST_FAIL = "gh auth status";
@@ -223,7 +235,7 @@ try {
   assert.match(failure.stderr, /finish the push manually; do not bump again/);
   assert.equal(rejected.git(rejected.remote, "rev-parse", "main"), rejected.head);
   assert.notEqual(rejected.git(rejected.cwd, "rev-parse", "HEAD"), rejected.head, "Keep the local version commit after a failed push");
-  console.log("Deploy checks passed: patch bump, checks before push, rollback, workflow waiting, post-release sync and concurrent-work safeguards.");
+  console.log("Deploy checks passed: patch, minor and major bumps, argument validation, checks before push, rollback, workflow waiting, post-release sync and concurrent-work safeguards.");
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }

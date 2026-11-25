@@ -51,13 +51,15 @@ Vitest disables Node's native Web Storage in test workers so browser tests use j
 
 ## Deploying this repository
 
-Run from a clean `main` checkout after committing your code changes:
+From a clean `main` checkout with your code changes committed, choose one release command.
 
-```sh
-./deploy.sh
-```
+| Command | Next version from `1.2.3` |
+| --- | --- |
+| `./deploy.sh` or `./deploy.sh patch` | `1.2.4` |
+| `./deploy.sh minor` | `1.3.0` |
+| `./deploy.sh major` | `2.0.0` |
 
-`npm run deploy` is an alias. This script operates only on this repository; run each integration's own `./deploy.sh` separately. It fetches `origin/main` and stops if the checkout is behind or diverged. Committed local changes ahead of `origin/main` are included in the push.
+`npm run deploy` is an alias. Pass the bump type after `--`, for example `npm run deploy -- minor`. This script operates only on this repository; run each integration's own `./deploy.sh` separately. It fetches `origin/main` and stops if the checkout is behind or diverged. Committed local changes ahead of `origin/main` are included in the push.
 
 Install the local test dependencies once:
 
@@ -71,7 +73,7 @@ Docker must be running with enough disk space, Poppler must be installed, and Gi
 
 If the Docker smoke build fails with `TAR_ENTRY_ERROR ENOSPC: no space left on device`, Docker has run out of storage while unpacking dependencies. The frontend's 500 kB chunk warning is unrelated. Check `docker system df` and host disk space. In Docker Desktop, the Linux disk can fill even when the host has free space. To reclaim unused build cache older than one day, run `docker builder prune --filter until=24h`, review its prompt, then rerun `npm run test:ha-app`. This removes regenerable build cache; it does not prune containers, images or volumes. If space is still insufficient, inspect Docker Desktop's disk allocation before removing stored data.
 
-The script patch-bumps `VERSION`, leaving `config.yaml` for CI to promote. It runs the UI, server, release and deploy tests, morning-summary and design checks, TypeScript, lint, production build and Docker smoke test. Only after all checks pass does it commit the version file and push `main`. Automatic bumps require stable `MAJOR.MINOR.PATCH` versions; use the manual release process below for other version changes.
+The script bumps the selected component of `VERSION` and resets lower components to zero. Automatic bumps require a stable `MAJOR.MINOR.PATCH` version. It runs the UI, server, release and deploy tests, morning-summary and design checks, TypeScript, lint, production build and Docker smoke test. Only after all checks pass does it commit the version file and push `main`. CI then promotes `config.yaml`.
 
 After pushing, it waits up to 60 seconds for that commit's release workflow to appear, then watches it until completion. Once the workflow succeeds, it pulls `origin/main` with fast-forward only, including the bot's configuration and changelog commit. The script stays running through the image build and publication. If the branch, commit or working tree changes while it waits, it leaves the checkout alone and asks you to pull manually.
 
