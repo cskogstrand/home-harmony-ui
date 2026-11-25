@@ -869,7 +869,7 @@ it("adds Latest events to Today from Customize Today, off by default and using t
   expect(app.subscribeLogbook).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
   const dialog = screen.getByRole("dialog", { name: "Customize Today" });
-  expect(within(dialog).getByText("Uses the sources and privacy choice from Settings → System → Activity.")).toBeInTheDocument();
+  expect(within(dialog).getByText("Uses the sources, event types and privacy choice from Settings → System → Activity.")).toBeInTheDocument();
   expect(within(dialog).getByRole("link", { name: "Choose sources" })).toHaveAttribute("href", "/settings/activity?panel=recent");
   const toggle = within(dialog).getByRole("switch", { name: "Latest events" });
   expect(toggle).not.toBeChecked();

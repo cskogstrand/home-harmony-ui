@@ -97,6 +97,9 @@ export const todoDisplaySchema = z.object({
 export type TodoDisplay = z.infer<typeof todoDisplaySchema>;
 export const defaultTodoDisplay = todoDisplaySchema.parse({});
 const plannerSections = ["morningSummary", "wasteCollection", "nextPlan", "day", "week", "daily", "shopping", "homework", "school", "home"] as const;
+/** Event types the owner can hide from Latest events and the activity log. People coming and going have their own opt-in. */
+export const activityCategories = ["openings", "locks", "alarm", "appliances", "robots", "doorbells", "cameras", "other"] as const;
+export type ActivityCategory = typeof activityCategories[number];
 export const dashboardSections = [...plannerSections, "recentActivity", "homeStatus"] as const;
 export type DashboardSection = typeof dashboardSections[number];
 export const dashboardWidths = ["full", "half"] as const;
@@ -160,9 +163,11 @@ const plannerObjectSchema = z.object({
   homeGroups: z.array(z.string().trim().min(1).max(80)).default([]),
   smartHome: smartHomeSchema.prefault({}),
   // Latest events on Smart home. Omitted sources follow the suggested defaults; people stay out unless opted in.
+  // Hidden event types stay out of the panel and the activity log; an older file hides none.
   activity: z.object({
     panel: z.boolean().default(true),
     people: z.boolean().default(false),
+    hidden: z.array(z.enum(activityCategories)).refine(kinds => new Set(kinds).size === kinds.length).default([]),
     sources: z.array(memberSchema).max(500).refine(ids => new Set(ids).size === ids.length).optional(),
   }).strict().prefault({}),
   // Ask the house: off until the owner turns it on. An empty agent uses Home Assistant's default agent.

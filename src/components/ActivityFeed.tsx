@@ -50,7 +50,7 @@ export function RecentActivity({ placement = "smartHome", fill }: { placement?: 
   const panel = useRef<HTMLElement>(null);
   useFillRows(panel, fill);
   if (!visible) return null;
-  const items = curateActivity(feed.events, entities, { mode: "curated", language, people: activity.people, sources: activity.sources, personSensors,
+  const items = curateActivity(feed.events, entities, { mode: "curated", language, people: activity.people, sources: activity.sources, hidden: activity.hidden, personSensors,
     since: now.getTime() - 86400000, limit: fill === undefined ? RECENT_ACTIVITY_LIMIT : FILL_ROW_CAP });
   const empty = !entityIds.length ? <p className="empty-note">{t("No activity sources are selected.")} <Link className="text-link" to="/settings/activity?panel=recent">{t("Choose sources")}</Link></p>
     : feed.status === "loading" ? <p className="empty-note" role="status">{t("Loading activity…")}</p>

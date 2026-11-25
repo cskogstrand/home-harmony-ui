@@ -133,7 +133,7 @@ export function DashboardSettings() {
             {dashboardWidth(dashboard, key) === "half" && <p id={`dashboard-placement-${key}`} className="text-sm text-muted-foreground">{placement(key)}</p>}
           </div>)}
           {key === "homeStatus" && <p className="text-sm text-muted-foreground">{t("Appears only when a selected source needs attention or has no reading.")}</p>}
-          {key === "recentActivity" && <p className="text-sm text-muted-foreground">{t("Uses the sources and privacy choice from Settings → System → Activity.")}{" "}
+          {key === "recentActivity" && <p className="text-sm text-muted-foreground">{t("Uses the sources, event types and privacy choice from Settings → System → Activity.")}{" "}
             <DialogClose asChild><Link to="/settings/activity?panel=recent" className="text-link">{t("Choose sources")}</Link></DialogClose></p>}
           {key === "morningSummary" && (dashboard.morningSummary || dashboard.daySummaryPlayback) && <div>
             <label className="flex min-h-12 cursor-pointer items-center justify-between gap-4 pb-3 text-sm">

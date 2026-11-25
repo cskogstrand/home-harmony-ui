@@ -231,6 +231,16 @@ describe("activity curation", () => {
     expect(items.map(item => item.count)).toEqual([4, 2, 2, 2, 2]);
   });
 
+  it("leaves out hidden event types in the panel and the log, but never decides on people", () => {
+    const events = [event("binary_sensor.example_garage", "on", 6), event("lock.example_front", "unlocked", 5), event("light.example_lamp", "on", 4),
+      event("vacuum.example_robot", "docked", 3), event("person.example_parent", "home", 2)];
+    const sources = [id("binary_sensor.example_garage"), id("lock.example_front"), id("light.example_lamp"), id("vacuum.example_robot")];
+    expect(sentences(curated(events, { sources, people: true, hidden: ["openings", "other"] }))).toEqual(["Example parent came home", "Robot vacuum docked", "Front door unlocked"]);
+    expect(sentences(curateActivity(events, activityEntities, { mode: "full", language: "en", people: false, hidden: ["locks", "robots"] })))
+      .toEqual(["Reading lamp turned on", "Garage door opened"]);
+    expect(curated(events, { sources, hidden: [] })).toHaveLength(4);
+  });
+
   it("shows people coming and going only when opted in", () => {
     const events = [event("person.example_parent", "not_home", 30), event("person.example_parent", "Example school", 20), event("person.example_parent", "home", 10)];
     expect(curated(events)).toEqual([]);
@@ -425,6 +435,13 @@ describe("Latest events", () => {
     expect(panel().getByText("Nothing has happened in the last 24 hours.")).toBeVisible();
   });
 
+  it("leaves out the event types hidden in the settings", () => {
+    family.value = { ...family.value, activity: { panel: true, people: false, hidden: ["openings"] } };
+    render(view());
+    act(() => subscribers[0].receive([event("binary_sensor.example_garage", "on", 3), event("lock.example_front", "unlocked", 2)]));
+    expect(rows()).toEqual(["Front door unlocked2 minutes ago"]);
+  });
+
   it("distinguishes a quiet day from unavailable activity and missing sources", () => {
     const { unmount } = render(view());
     act(() => subscribers[0].receive([event("sensor.example_temperature", "22", 5)]));
@@ -540,6 +557,31 @@ describe("Activity log", () => {
     expect(rows()).toEqual(["Reading lamp turned on13:45"]);
   });
 
+  it("applies the saved event types and shows all events in this view only, without people", () => {
+    render(view());
+    act(() => subscribers[0].receive(events));
+    expect(log().queryByRole("switch", { name: "Show all events" })).toBeNull();
+    cleanup();
+    const setActivity = vi.fn();
+    family.value = { ...family.value, activity: { panel: true, people: false, hidden: ["openings", "other"] }, setActivity };
+    render(view());
+    act(() => subscribers[1].receive(events));
+    expect(rows()).toEqual(["Front door unlocked13:50"]);
+    const all = log().getByRole("switch", { name: "Show all events" });
+    expect(all).not.toBeChecked();
+    fireEvent.click(all);
+    expect(rows()).toEqual(["Garage door opened13:55", "Front door unlocked13:50", "Reading lamp turned on13:45", "Evening lights triggered by time13:40"]);
+    // The area, type and day filters still apply, and the saved choice is untouched.
+    fireEvent.change(log().getByLabelText("Area"), { target: { value: "garage" } });
+    expect(rows()).toEqual(["Garage door opened13:55"]);
+    expect(setActivity).not.toHaveBeenCalled();
+    cleanup();
+    render(view());
+    act(() => subscribers[2].receive(events));
+    expect(log().getByRole("switch", { name: "Show all events" })).not.toBeChecked();
+    expect(rows()).toEqual(["Front door unlocked13:50"]);
+  });
+
   it("switches to yesterday with a closed window and marks cached entries stale while offline", () => {
     const { rerender } = render(view());
     act(() => subscribers[0].receive(events));
@@ -574,6 +616,24 @@ describe("Latest events settings", () => {
     expect(setActivity).toHaveBeenLastCalledWith({ panel: false });
     fireEvent.click(people);
     expect(setActivity).toHaveBeenLastCalledWith({ people: true });
+  });
+
+  it("hides and shows event types for the panel and the log, all shown by default", () => {
+    const { unmount } = render(view());
+    const types = within(screen.getByRole("region", { name: "Event types" }));
+    expect(types.getAllByRole("switch").map(item => [item.getAttribute("aria-label"), (item as HTMLButtonElement).getAttribute("aria-checked")])).toEqual([
+      ["Doors and windows", "true"], ["Locks", "true"], ["Alarm", "true"], ["Appliances", "true"], ["Robot vacuums and mowers", "true"],
+      ["Doorbells", "true"], ["Camera person detection", "true"], ["Other changes", "true"],
+    ]);
+    fireEvent.click(types.getByRole("switch", { name: "Other changes" }));
+    expect(setActivity).toHaveBeenLastCalledWith({ hidden: ["other"] });
+    unmount();
+    family.value = { ...family.value, activity: { panel: true, people: false, hidden: ["other", "locks"] } };
+    render(view());
+    const saved = within(screen.getByRole("region", { name: "Event types" }));
+    expect(saved.getByRole("switch", { name: "Locks" })).not.toBeChecked();
+    fireEvent.click(saved.getByRole("switch", { name: "Locks" }));
+    expect(setActivity).toHaveBeenLastCalledWith({ hidden: ["other"] });
   });
 
   it("names where the panel is shown, including Today", () => {

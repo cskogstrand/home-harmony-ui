@@ -4,6 +4,7 @@ import { createI18n, msg, type Language, type Message, type MessageKey, type Mes
 import { entityReading, entityStateLabel, humanizeState } from "./ha-model";
 import { homeStatusGroup, type HomeStatusGroup } from "./home-status";
 import { entityDetailPath } from "./device-model";
+import type { ActivityCategory } from "../../shared/configuration";
 
 /** One Home Assistant logbook entry: a state change (`state`) or a described event (`message`). `when` is in milliseconds. */
 export interface LogbookEvent { entityId: string; when: number; state?: string; message?: string; name?: string }
@@ -48,6 +49,11 @@ export type ActivityKind = "opened" | "closed" | "locked" | "unlocked" | "jammed
   | "person-detected" | "clear" | "doorbell" | "pressed" | "event" | "came-home" | "left-home" | "arrived" | "on" | "off" | "transition" | "changed" | "message";
 export type ActivityIcon = "door" | "garage" | "window" | "lock" | "alarm" | "appliance" | "robot" | "mower" | "camera" | "doorbell" | "person" | "power" | "activity";
 export type ActivityGroup = HomeStatusGroup | "people" | "other";
+// What each icon's events count as when the owner hides event types; people have their own opt-in.
+const iconCategories: Record<ActivityIcon, ActivityCategory | undefined> = {
+  door: "openings", garage: "openings", window: "openings", lock: "locks", alarm: "alarm", appliance: "appliances", robot: "robots", mower: "robots",
+  doorbell: "doorbells", camera: "cameras", person: undefined, power: "other", activity: "other",
+};
 export interface ActivityItem {
   id: string;
   entityId: string;
@@ -78,6 +84,8 @@ export interface ActivityOptions {
   collapseMs?: number;
   /** Events before this time are not shown; the curated panel reads them only to know each entity's earlier state. */
   since?: number;
+  /** Event types left out of the panel and the log; none when omitted. */
+  hidden?: readonly ActivityCategory[];
   /** The home's time zone, for logged timestamp states; the browser's when omitted. */
   timeZone?: string;
 }
@@ -223,6 +231,7 @@ export function curateActivity(events: LogbookEvent[], entities: Entity[], optio
   const byId = new Map(entities.map(entity => [entity.entityId, entity]));
   const curated = options.mode === "curated";
   const sources = curated ? new Set(curatedActivityEntityIds(entities, options)) : undefined;
+  const hidden = new Set(options.hidden ?? []);
   const sorted = [...events].sort((a, b) => b.when - a.when);
   // A curated row needs a real change: a settled state that differs from the entity's last settled one. Transitions do
   // not settle anything, so "off → unavailable → off" and "closed → opening → closed" are no change. A recovery after
@@ -249,6 +258,8 @@ export function curateActivity(events: LogbookEvent[], entities: Entity[], optio
     const entity = byId.get(event.entityId);
     const { kind, icon, sentence } = classify(event, entity, options);
     if (curated && (quietKinds.has(kind) || repeats.has(event))) continue;
+    const category = iconCategories[icon];
+    if (category && hidden.has(category)) continue;
     const chain = curated ? chains.get(event.entityId) : undefined;
     if (chain && chain.when - event.when <= collapseMs) { chain.item.count++; chain.when = event.when; continue; }
     const item: ActivityItem = { id: eventKey(event), entityId: event.entityId, when: event.when, kind, icon, group: activityGroup(entity, event.entityId, kind),

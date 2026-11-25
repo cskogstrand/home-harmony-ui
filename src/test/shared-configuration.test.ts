@@ -205,6 +205,26 @@ it("shares the chosen electricity price sensor and restores it from a backup", a
   expect(a.getSnapshot().config.settings.electricityPriceEntity).toBe("home|example-price");
 });
 
+it("shows every activity event type in older settings and shares and restores hidden types", async () => {
+  const config = emptyConfiguration();
+  expect(config.settings.activity.hidden).toEqual([]);
+  const { hidden: _hidden, ...older } = config.settings.activity;
+  expect(parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, activity: older } })).settings.activity).toEqual({ panel: true, people: false, hidden: [] });
+  for (const hidden of [null, ["unknown"], ["locks", "locks"], "locks"]) {
+    expect(() => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, activity: { ...older, hidden } } }))).toThrow();
+  }
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, activity: { ...p.activity, hidden: ["openings", "other"] } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  expect(b.getSnapshot().config.settings.activity.hidden).toEqual(["openings", "other"]);
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  await b.replace(emptyConfiguration());
+  expect(b.getSnapshot().config.settings.activity.hidden).toEqual([]);
+  await b.replace(backup);
+  expect(b.getSnapshot().config.settings.activity.hidden).toEqual(["openings", "other"]);
+});
+
 it("keeps Ask the house off by default and shares the chosen agent", async () => {
   const config = emptyConfiguration();
   delete config.settings.assist;
