@@ -8,6 +8,7 @@ const afterglowCss: string = sourceFile("afterglow.css");
 const vehicleCss: string = sourceFile("components/vehicle-widgets.css");
 const assistCss: string = sourceFile("components/assist.css");
 const layoutSource: string = sourceFile("components/layout/AppLayout.tsx");
+const homeStatusSource: string = sourceFile("components/HomeStatus.tsx");
 
 /** The body of the first `@media` block whose query matches, found by brace matching. */
 const mediaBlock = (css: string, query: string) => {
@@ -99,6 +100,16 @@ it("grows the camera and settings counts away from their icons, with Caption dig
   expect(count).toMatch(/padding-inline: \.25em/);
   // A badge on the wrapped lower row (320px at 150% text) rises into this gap instead of onto the control above.
   expect(declarations(mediaBlock(vehicleCss, "(width <= 767px)"), ".app-header:has(.vehicle-chip-strip) .header-actions")).toMatch(/row-gap: 8px/);
+});
+
+it("grows the home status count away from the house like the camera and settings counts", () => {
+  // Glyph-only states (checking, offline, no sources) use the glyph badge; issue counts use the count badge.
+  expect(homeStatusSource).toMatch(/className=\{`header-badge \$\{count > 0 \? "header-badge-count" : "header-badge-glyph"\}`\}/);
+  // The warning stays beside one digit; two digits drop it so the badge stays within the control at 150% text.
+  expect(homeStatusSource).toMatch(/\{count < 10 && <StatusIcon /);
+  // The header button never falls back to the 1.2rem base badge, which grew down over the house at 150% text.
+  const headerButton = homeStatusSource.slice(homeStatusSource.indexOf('id="home-status-button"'));
+  expect(headerButton.slice(0, headerButton.indexOf("</DialogTrigger>"))).not.toMatch(/className="header-badge"/);
 });
 
 it("keeps the tablet layout for weather beside the clock away from the phone chip", () => {
