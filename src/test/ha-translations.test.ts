@@ -98,6 +98,23 @@ describe("translated entity names", () => {
     expect(named({}, { friendly_name: "Example washer Door", device_class: "opening" })).toBe("Example washer Door");
   });
 
+  it("keeps the position that tells a device's doors and windows apart, translated when every word is known", () => {
+    const parts = [["binary_sensor.example_doors", "Doors", "door"], ["binary_sensor.example_driver_front", "Door (Driver Front)", "door"], ["binary_sensor.example_left_rear", "Door (Left Rear)", "door"],
+      ["binary_sensor.example_hatch", "Door (Roof Hatch)", "door"], ["binary_sensor.example_rear_window", "Rear window", "window"], ["binary_sensor.example_front_window", "Front window", "window"],
+      ["binary_sensor.example_cabin", "Cabin window", "window"], ["cover.example_charger", "Charger door", "door"], ["cover.example_trunk", "Trunk", "door"], ["cover.example_frunk", "Frunk", "door"]];
+    const names = (translations: Record<string, string>) => mapHome(
+      Object.fromEntries(parts.map(([entityId, part, deviceClass]) => [entityId, state(entityId, "off", { friendly_name: `Example car ${part}`, device_class: deviceClass })])),
+      { areas: [], devices: [{ id: "car", name: "Example car" }], entities: parts.map(([entityId, part], index) => ({ id: `p${index}`, entity_id: entityId, platform: "example_car", device_id: "car", original_name: part })) },
+      "home", undefined, undefined, translations,
+    ).entities.map(entity => entity.name.replace("Example car ", ""));
+    expect(names({ "component.binary_sensor.entity_component.door.name": "Dør", "component.binary_sensor.entity_component.window.name": "Vindu", "@language": "nb" })).toEqual([
+      "Dører", "Dør (fører foran)", "Dør (venstre bak)", "Door (Roof Hatch)", "Vindu (bak)", "Vindu (foran)", "Cabin window", "Ladeluke", "Bagasjerom", "Frunk",
+    ]);
+    // English keeps Home Assistant's names.
+    expect(names({ "component.binary_sensor.entity_component.door.name": "Door", "component.binary_sensor.entity_component.window.name": "Window", "@language": "en" }))
+      .toEqual(parts.map(([, part]) => part));
+  });
+
   it("falls back from Home Assistant's English filler to another integration's translation, then to the device class", () => {
     const thermostat = { id: "thermostat", name: "Example thermostat" };
     const entry = (id: string, original: string, key?: string) => ({ id, entity_id: `${id.split(":")[0]}.example_${id.split(":")[1]}`, platform: "example_heat", device_id: "thermostat", original_name: original, ...(key ? { translation_key: key } : {}) });
@@ -117,7 +134,7 @@ describe("translated entity names", () => {
       "component.sensor.entity_component.humidity.name": "Luftfuktighet", "component.sensor.entity_component.temperature.name": "Temperatur", "component.binary_sensor.entity_component.door.name": "Dør",
     });
     // Two temperature sensors on one device keep their own names; a name without any known translation stays as reported.
-    expect(names(nb)).toEqual(["Barnesikring", "Luftfuktighet", "Relative humidity threshold min", "Mode", "Inside temperature", "Outside temperature", "Dør"]);
+    expect(names(nb)).toEqual(["Barnesikring", "Luftfuktighet", "Relative humidity threshold min", "Mode", "Inside temperature", "Outside temperature", "Dører"]);
     // In English nothing is borrowed from another integration's wording, and the class's own word is no translation.
     expect(names(catalogue("en", { "component.example_robot.entity.switch.child_lock.name": "Child Lock switch", "component.sensor.entity_component.humidity.name": "Humidity", "component.binary_sensor.entity_component.door.name": "Door" })))
       .toEqual(["Child lock", "Relative humidity", "Relative humidity threshold min", "Mode", "Inside temperature", "Outside temperature", "Doors"]);

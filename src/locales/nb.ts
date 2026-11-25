@@ -3047,3 +3047,18 @@ export const nb = {
   "Send": "Send",
   "Clear conversation": "Tøm samtalen",
 } as const;
+
+/**
+ * Bokmål for entity name parts Home Assistant leaves in English, by lower-case English text: whole parts first, then
+ * words for the qualifier that tells a device's parts apart ("Door (Driver Front)" → "Dør (fører foran)").
+ */
+export const nbNameParts = {
+  whole: {
+    doors: "Dører", windows: "Vinduer", locks: "Låser", trunk: "Bagasjerom", frunk: "Frunk",
+    "charger door": "Ladeluke", "charge port door": "Ladeluke", "charge port": "Ladeport",
+  },
+  words: {
+    front: "foran", rear: "bak", back: "bak", left: "venstre", right: "høyre", driver: "fører", passenger: "passasjer",
+    trunk: "bagasjerom", frunk: "frunk", charger: "lader",
+  },
+} as const;

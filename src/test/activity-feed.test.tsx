@@ -187,6 +187,50 @@ describe("activity curation", () => {
     expect(curateActivity(flapping, activityEntities, { mode: "full", language: "en", people: false })).toHaveLength(5);
   });
 
+  it("shows only real changes: no repeated states, no outage or transition round trips", () => {
+    const hour = 60 * minute;
+    const events = [
+      // Known before the shown day: the front door was already locked, so locking again is no change.
+      event("lock.example_front", "locked", 30 * 60), event("lock.example_front", "locked", 50),
+      // off → unavailable → off is no change; off → unavailable → on is.
+      event("binary_sensor.example_garage", "off", 40), event("binary_sensor.example_garage", "unavailable", 30), event("binary_sensor.example_garage", "off", 29),
+      event("binary_sensor.example_garage", "unknown", 20), event("binary_sensor.example_garage", "on", 19),
+      // A logged state equal to the last one is a repeat, not a change.
+      event("binary_sensor.example_dishwasher", "on", 15), event("binary_sensor.example_dishwasher", "off", 12), event("binary_sensor.example_dishwasher", "off", 5),
+    ];
+    const items = curated(events, { since: base - 24 * hour });
+    expect(sentences(items)).toEqual(["Dishwasher finished", "Garage door opened", "Garage door closed"]);
+    expect(items.map(item => item.when)).toEqual([base - 12 * minute, base - 19 * minute, base - 40 * minute]);
+    // Without the earlier state, a first state is shown as it may be a change; a recovery after an outage is not.
+    expect(sentences(curated(events.slice(1), { since: base - 24 * hour }))).toContain("Front door locked");
+    expect(sentences(curated([event("lock.example_front", "unavailable", 3), event("lock.example_front", "unlocked", 2)]))).toEqual([]);
+    // The full log keeps every event.
+    expect(curateActivity(events, activityEntities, { mode: "full", language: "en", people: false, since: base - 24 * hour })).toHaveLength(9);
+  });
+
+  it("keeps each door of a device on its own row, named by position, and folds only one entity's flapping", () => {
+    // A fictional car reports each door and all doors together.
+    const devices = [{ id: "car", name: "Example car" }];
+    const doors = [["binary_sensor.example_car_doors", "Doors"], ["binary_sensor.example_car_driver_front", "Door (Driver Front)"], ["binary_sensor.example_car_passenger_front", "Door (Passenger Front)"]];
+    const home = mapHome(Object.fromEntries(doors.map(([entityId, part]) => [entityId, state(entityId, "off", { device_class: "door", friendly_name: `Example car ${part}` })])),
+      { areas: [], devices, entities: doors.map(([entityId, part], index) => ({ id: `d${index}`, entity_id: entityId, platform: "example_mqtt", device_id: "car", original_name: part })) },
+      "home", undefined, undefined, { "component.binary_sensor.entity_component.door.name": "Dør", "@language": "nb" }).entities;
+    const at = (entityId: string, value: string, seconds: number) => ({ entityId, state: value, when: base - seconds * 1000 });
+    const events = [
+      // A first trip: the passenger door opens and closes; the all-doors sensor follows within milliseconds.
+      at(doors[0][0], "on", 600), at(doors[2][0], "on", 600.01), at(doors[0][0], "off", 584), at(doors[2][0], "off", 584.02),
+      // Three minutes later: the driver door, then the passenger door.
+      at(doors[0][0], "on", 406), at(doors[1][0], "on", 406.003), at(doors[0][0], "off", 390), at(doors[1][0], "off", 390.01),
+      at(doors[0][0], "on", 375), at(doors[2][0], "on", 375.01), at(doors[0][0], "off", 360), at(doors[2][0], "off", 360.01),
+    ];
+    const items = curateActivity(events, home, { mode: "curated", language: "nb", people: false, sources: home.map(entity => entity.preferenceId) });
+    expect(sentences(items, norwegian)).toEqual([
+      "Example car Dører ble lukket", "Example car Dør (passasjer foran) ble lukket", "Example car Dør (fører foran) ble lukket",
+      "Example car Dører ble lukket", "Example car Dør (passasjer foran) ble lukket",
+    ]);
+    expect(items.map(item => item.count)).toEqual([4, 2, 2, 2, 2]);
+  });
+
   it("shows people coming and going only when opted in", () => {
     const events = [event("person.example_parent", "not_home", 30), event("person.example_parent", "Example school", 20), event("person.example_parent", "home", 10)];
     expect(curated(events)).toEqual([]);
@@ -275,6 +319,8 @@ describe("activity curation", () => {
       { id: "e4", entity_id: "cover.example_car_charger_door", platform: "example_car", device_id: "car", original_name: "Charger door" },
       { id: "e5", entity_id: "binary_sensor.example_shed_door", platform: "example_mqtt", device_id: "own", original_name: "Door", name: "Shed hatch" },
       { id: "e6", entity_id: "cover.example_car_frunk", platform: "example_car", device_id: "car", original_name: "Frunk" },
+      { id: "e7", entity_id: "cover.example_car_trunk", platform: "example_car", device_id: "car", original_name: "Trunk" },
+      { id: "e8", entity_id: "binary_sensor.example_car_rear_hatch", platform: "example_mqtt", device_id: "car", original_name: "Door (Rear Hatch)" },
     ];
     const opening = (entityId: string, value: string, friendly: string) => state(entityId, value, { device_class: "door", friendly_name: friendly });
     const home = mapHome({
@@ -284,16 +330,37 @@ describe("activity curation", () => {
       "cover.example_car_charger_door": opening("cover.example_car_charger_door", "closed", "Example car Charger door"),
       "binary_sensor.example_shed_door": opening("binary_sensor.example_shed_door", "off", "Shed hatch"),
       "cover.example_car_frunk": opening("cover.example_car_frunk", "closed", "Example car Frunk"),
+      "cover.example_car_trunk": opening("cover.example_car_trunk", "closed", "Example car Trunk"),
+      "binary_sensor.example_car_rear_hatch": opening("binary_sensor.example_car_rear_hatch", "off", "Example car Door (Rear Hatch)"),
     }, { areas: [], devices, entities: entries }, "home", undefined, undefined, {
       "component.example_appliance.entity.binary_sensor.door_status.name": "Door",
       "component.binary_sensor.entity_component.door.name": "Dør", "component.cover.entity_component.door.name": "Dør", "@language": "nb",
     }).entities;
     const events = [event("binary_sensor.example_dishwasher_door", "on", 6), event("binary_sensor.example_car_doors", "off", 5), event("binary_sensor.example_car_driver_front", "off", 4),
-      event("cover.example_car_charger_door", "closed", 3), event("binary_sensor.example_shed_door", "on", 2), event("cover.example_car_frunk", "open", 1)];
+      event("cover.example_car_charger_door", "closed", 3), event("binary_sensor.example_shed_door", "on", 2), event("cover.example_car_frunk", "open", 1),
+      event("cover.example_car_trunk", "open", 0.5), event("binary_sensor.example_car_rear_hatch", "on", 0.2)];
     expect(sentences(curateActivity(events, home, { mode: "full", language: "nb", people: false }), norwegian)).toEqual([
-      // A part without a class word stays as reported; the owner's own name is kept.
-      "Example car Frunk ble åpnet", "Shed hatch ble åpnet", "Example car Dør ble lukket", "Example car Dør ble lukket", "Example car Dør ble lukket", "Example dishwasher Dør ble åpnet",
+      // A position the app cannot translate keeps the reported name, so the car's doors stay apart; the owner's own name is kept.
+      "Example car Door (Rear Hatch) ble åpnet", "Example car Bagasjerom ble åpnet", "Example car Frunk ble åpnet", "Shed hatch ble åpnet", "Example car Ladeluke ble lukket",
+      "Example car Dør (fører foran) ble lukket", "Example car Dører ble lukket", "Example dishwasher Dør ble åpnet",
     ]);
+  });
+
+  it("names a lock left in the integration's words by its doors or the translated lock domain", () => {
+    const devices = [{ id: "car", name: "Example car" }, { id: "shed", name: "Example shed" }];
+    const entries = [
+      { id: "l1", entity_id: "lock.example_car_doors", platform: "example_car", device_id: "car", original_name: "Doors" },
+      { id: "l2", entity_id: "lock.example_car_charge_port", platform: "example_car", device_id: "car", original_name: "Charge port lock" },
+      { id: "l3", entity_id: "lock.example_shed_lock", platform: "example_lock", device_id: "shed", original_name: "Lock" },
+    ];
+    const states = Object.fromEntries(entries.map(entry => [entry.entity_id, state(entry.entity_id, "locked", { friendly_name: `${devices.find(device => device.id === entry.device_id)!.name} ${entry.original_name}` })]));
+    const events = [event("lock.example_car_doors", "locked", 3), event("lock.example_car_charge_port", "locked", 2), event("lock.example_shed_lock", "unlocked", 1)];
+    const log = (translations: Record<string, string>, language: "en" | "nb") => sentences(curateActivity(events,
+      mapHome(states, { areas: [], devices, entities: entries }, "home", undefined, undefined, translations).entities, { mode: "full", language, people: false }), createI18n(language));
+    expect(log({ "component.binary_sensor.entity_component.door.name": "Dør", "component.lock.entity_component._.name": "Lås", "@language": "nb" }, "nb"))
+      .toEqual(["Example shed Lås ble låst opp", "Example car Charge port lock ble låst", "Example car Dører ble låst"]);
+    expect(log({ "component.binary_sensor.entity_component.door.name": "Door", "component.lock.entity_component._.name": "Lock", "@language": "en" }, "en"))
+      .toEqual(["Example shed Lock unlocked", "Example car Charge port lock locked", "Example car Doors locked"]);
   });
 
   it("formats relative and clock times in the home's time zone", () => {
@@ -336,13 +403,14 @@ describe("Latest events", () => {
     family.value = { activity: { panel: true, people: false }, now, cameras: { items: [] } };
   });
 
-  it("subscribes to the curated sources for 24 hours, shows the six newest items and updates live", () => {
+  it("subscribes to the curated sources, shows the six newest items of the last 24 hours and updates live", () => {
     render(view());
     expect(panel().getByText("Loading activity…")).toBeVisible();
     const [{ options, receive }] = subscribers;
     expect(options.entityIds).toEqual(curatedActivityEntityIds(activityEntities, { people: false }));
     expect(options.entityIds).not.toContain("person.example_parent");
-    expect(Date.now() - options.start.getTime()).toBeGreaterThanOrEqual(86400000 - 60000);
+    // The whole backfill, so the oldest shown changes can be compared with the state before them.
+    expect(Date.now() - options.start.getTime()).toBeGreaterThanOrEqual(MAX_LOGBOOK_BACKFILL_MS - 60000);
     act(() => receive([1, 2, 3, 4, 5, 6, 7].map(step => event("binary_sensor.example_garage", step % 2 ? "on" : "off", step * 10))));
     expect(rows()).toHaveLength(6);
     expect(rows()[0]).toBe("Garage door opened10 minutes ago");
@@ -350,6 +418,11 @@ describe("Latest events", () => {
     act(() => receive([event("lock.example_front", "unlocked", 1)]));
     expect(rows()[0]).toBe("Front door unlocked1 minute ago");
     expect(rows()).toHaveLength(6);
+    // Older events only tell the panel what came before: unlocking again after an unlock a day and a half ago is no change.
+    cleanup();
+    render(view());
+    act(() => subscribers[1].receive([event("lock.example_front", "unlocked", 36 * 60), event("lock.example_front", "unlocked", 5), event("binary_sensor.example_garage", "on", 25 * 60)]));
+    expect(panel().getByText("Nothing has happened in the last 24 hours.")).toBeVisible();
   });
 
   it("distinguishes a quiet day from unavailable activity and missing sources", () => {
