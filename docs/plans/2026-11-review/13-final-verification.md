@@ -29,12 +29,15 @@
 
 - [x] **P1** Thermostat dial text collides with its ring on Original and Compact climate cards at the wall size (`/impeccable polish`, then `harden`).
   > Done 2026-11-25 (`fix: keep thermostat dial text inside its ring`): only the numeral and a short state sit inside the ring; labels and room temperature sit below; dial text scales with the dial.
-- [ ] **P1** Raw Home Assistant language and data on family surfaces: English suffixes and device-prefixed names in Recent at home and Energy, two power sensors on one charger summed, mixed precision, ISO timestamps and enum values in the Activity log (`/impeccable clarify`).
+- [x] **P1** Raw Home Assistant language and data on family surfaces: English suffixes and device-prefixed names in Recent at home and Energy, two power sensors on one charger summed, mixed precision, ISO timestamps and enum values in the Activity log (`/impeccable clarify`).
+  > Done 2026-11-25 in a second round: an English "translation" counts as missing; untranslated names fall back to the translated device class; only appliance programmes read "finished"; device pages drop the device prefix. Checked live: Recent at home reads "Dør ble åpnet/lukket" and no longer reports a car's climate as finished. Left in English where Home Assistant has no translation at all (for example a charge port, "Mode").
   > Partly done 2026-11-25: consumers named by device, power counted once per consumer, one W/kW format, readable dates and "changed status" in the log. Still visible live: English suffixes in Recent at home names ("Door", "Charger door", "Climate … finished") and English entity names in device fact lists ("Child lock", "Relative humidity", "Mode"). Follow-up running in wave B.
-- [ ] **P2** Portrait wall leaves its lower third empty while week titles and the waste chip truncate (`/impeccable layout`).
+- [x] **P2** Portrait wall leaves its lower third empty while week titles and the waste chip truncate (`/impeccable layout`).
+  > Partly done 2026-11-25: waste chip never truncates, week titles get a third line, Everyone's day reads one step larger on the wall (Reading Distance Rule); truncated week titles 4 → 2 of 17. Filling the empty lower part of the wall is not done; it is the open owner question below.
 - [x] **P2** Cold start shows "Laster…" and a stale/paused warning before the first connection (`/impeccable harden`).
   > Done 2026-11-25: neutral "Connecting to Home Assistant…" during a 10 s first-connection grace period, page-shaped skeletons, the stale/paused warning only after a real break, no "HA" in family copy. Commands stay blocked until connected.
-- [ ] **P2** Phone Today "Dagen vår" is about 2.5 screens tall (`/impeccable distill`).
+- [x] **P2** Phone Today "Dagen vår" is about 2.5 screens tall (`/impeccable distill`).
+  > Done 2026-11-25: phones show a day-first agenda with one "Fri i dag" line and a folded "I morgen". Checked live at 390 × 844: Everyone's day 2155 → 775px, Favorites move from about y 3200 to y 1580.
 - [x] **Owner request** Climate cards show the target as °C when a thermostat runs in regulator mode with a % display unit; show it as a percentage in that mode (with the dial fix).
   > Done 2026-11-25 (`feat: show regulator-mode thermostats as heating power in percent`): detected from the device's display-unit or mode entities; checked read-only on the live thermostat (shows 50%, "Varmeeffekt").
 - [x] **Owner request** "Recent at home" can be added to Today through Today's view options (Customize Today), in addition to Smart home.
