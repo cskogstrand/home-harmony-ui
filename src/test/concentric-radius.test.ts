@@ -13,6 +13,7 @@ const notificationsCss: string = sourceFile("components/notifications.css");
 const tabsSource: string = sourceFile("components/ui/tabs.tsx");
 const deviceCardsCss: string = sourceFile("components/devices/device-cards.css");
 const favoritePickerCss: string = sourceFile("components/favorite-picker.css");
+const sonosCss: string = sourceFile("pages/sonos.css");
 
 const declarations = (css: string, selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -62,6 +63,22 @@ it("gives rows and day surfaces their card radius minus the inset", () => {
 it("centres the switch thumb in the capsule ends of the touch-sized track", () => {
   expect(declarations(afterglowCss, ".switch-thumb")).toMatch(/margin-inline-start: calc\(\(max\(28px, 1\.5rem\) - 4px - 1\.25rem\) \/ 2\)/);
   expect(afterglowCss).toMatch(/\[role="switch"\] \{ min-height: 28px; min-width: 48px; \}/);
+});
+
+it("centres the Sonos mini player's end circles on the capsule ends", () => {
+  // The artwork and the expand control share one slot width, so the control mirrors the artwork at the other end.
+  expect(declarations(sonosCss, ".sonos-mini")).toMatch(/--mini-art: 80px;[^;]*padding: \.6rem 1rem; border-radius: 999px/);
+  expect(declarations(sonosCss, ".sonos-mini-main")).toMatch(/grid-template-columns: var\(--mini-art\) minmax\(0, 1fr\) auto minmax\(8rem, \.4fr\) var\(--mini-art\);/);
+  expect(declarations(sonosCss, ".sonos-mini-main")).toMatch(/grid-template-columns: var\(--mini-art\) minmax\(0, 1fr\) auto 8rem var\(--mini-art\);/);
+  expect(declarations(sonosCss, ".sonos-mini .sonos-artwork")).toMatch(/width: var\(--mini-art\); border-radius: 50%/);
+  expect(declarations(sonosCss, ".sonos-mini-expand")).toMatch(/justify-self: center/);
+  expect(declarations(sonosCss, ".sonos-mini")).toMatch(/--mini-art: 64px; padding-inline: 2rem/);
+  // On phones the card keeps the dock's corners and insets its 48px corner circles by that radius minus their own.
+  expect(declarations(sonosCss, ".sonos-mini")).toMatch(/--mini-art: 48px; padding: calc\(var\(--radius-phone-dock\) - var\(--mini-art\) \/ 2 - 1px\); border-radius: var\(--radius-phone-dock\)/);
+  expect(declarations(sonosCss, ".sonos-mini .sonos-artwork")).toMatch(/grid-area: 1 \/ 1; align-self: start/);
+  expect(declarations(sonosCss, ".sonos-mini .sonos-transport")).toMatch(/grid-area: 1 \/ 3; align-self: start/);
+  expect(declarations(sonosCss, ".sonos-mini .sonos-transport button")).toMatch(/width: 48px; height: 48px/);
+  expect(declarations(sonosCss, ".sonos-mini .sonos-mini-room-trigger")).toMatch(/min-height: 48px/);
 });
 
 it("keeps menu and popover items concentric with their transient surface", () => {
