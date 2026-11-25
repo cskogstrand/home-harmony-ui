@@ -8,7 +8,7 @@ import { CalendarCheck, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Pl
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, isPlannerDate, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
+import { useFamily, isPlannerDate, isWeekend, weekStart, weekNumber, addDays, type FamilyEvent, type MemberId } from "@/contexts/FamilyContext";
 import { PageHeading, MemberAvatar, EventButton, EventEditor } from "@/components/FamilyPlanner";
 import { CalendarViewControls, FamilyWeekGrid, HomeAssistantCalendar } from "@/components/FamilyCalendar";
 import { PlannerCardBackdrop, PlannerCardIcon } from "@/components/CardArtwork";
@@ -92,7 +92,7 @@ export default function Calendar() {
           if (change.startDay) setParams({});
         }} />}
       </div>
-      {view === "week" && calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === today ? "today-outline" : ""} onClick={() => openDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long" })}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={visible.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
+      {view === "week" && calendar.view === "people" && <div className="week-ribbon">{Array.from({ length: 7 }, (_, i) => addDays(start, i)).map(day => <button key={day} className={day === today ? "today-outline" : ""} data-weekend={isWeekend(day) || undefined} onClick={() => openDay(day)} aria-label={dateLabel(day, { weekday: "long", day: "numeric", month: "long" })}><small className="calendar-week-number">{(day === start || day === weekStart(day)) && t("Week {value1}", { value1: weekNumber(day) })}</small><span>{dateLabel(day, { weekday: "short" })}</span><strong>{day.slice(-2)}</strong><i className={visible.some(e => e.date === day) ? "has-events" : ""} /></button>)}</div>}
       {(homeOnline || visible.length > 0 || view === "week" || view === "month") && <HomeAssistantCalendar data={data} hasVisiblePlans={!!visible.length} />}
       {homeOnline && !data.loading && !data.errors.length && unavailable && <p className="page-note" role="status">{unavailable}</p>}
       {homeOnline && !calendars.length && !hasLists && <Link className="text-link" to="/settings/calendars">{t("Choose calendars")}</Link>}

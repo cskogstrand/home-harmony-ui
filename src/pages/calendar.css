@@ -23,6 +23,8 @@
 .calendar-month-day.is-outside { background: hsl(var(--muted) / .4); }
 .calendar-month-day.is-outside .calendar-month-date { color: hsl(var(--muted-foreground)); }
 .calendar-month-day.is-today { background: hsl(var(--primary) / .05); }
+/* Weekend columns layer a faint ink wash over the outside-month tint; today keeps its own tint and filled date. */
+:is(.calendar-month-weekdays > *, .calendar-month-day:not(.is-today))[data-weekend] { background-image: linear-gradient(hsl(var(--foreground) / var(--weekend-shade-alpha)), hsl(var(--foreground) / var(--weekend-shade-alpha))); }
 .calendar-month-date { display: flex; align-items: center; gap: .35rem; width: 100%; min-height: 48px; border-radius: 14px; padding: .25rem; font-variant-numeric: tabular-nums; }
 .calendar-month-date > time { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; }
 .calendar-month-date[aria-current="date"] > time { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
@@ -62,4 +64,5 @@
 }
 @media (forced-colors: active) {
   .calendar-month-date[aria-current="date"] { outline: 2px solid Highlight; outline-offset: -2px; }
+  :is(.calendar-month-weekdays > *, .calendar-month-day)[data-weekend] { background-image: none; }
 }

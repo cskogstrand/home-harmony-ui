@@ -1,7 +1,7 @@
 import { PlannerCardBackdrop } from "@/components/CardArtwork";
 import { PanelTitle } from "@/components/PanelTitle";
 import { CalendarDays } from "lucide-react";
-import { useFamily, addDays, type FamilyEvent } from "@/contexts/FamilyContext";
+import { useFamily, addDays, isWeekend, type FamilyEvent } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { EventButton } from "./FamilyPlanner";
@@ -16,11 +16,11 @@ export function CalendarMonth({ date, start, end, events, unavailable, onDay, on
   for (let day = start; day < end; day = addDays(day, 1)) days.push(day);
   return <section className="glow-panel calendar-month" aria-label={t("Month view")}>
     <PlannerCardBackdrop kind="calendar" />
-    <div className="calendar-month-weekdays" aria-hidden="true">{days.slice(0, 7).map(day => <span key={day}>{dateLabel(day, { weekday: "short" })}</span>)}</div>
+    <div className="calendar-month-weekdays" aria-hidden="true">{days.slice(0, 7).map(day => <span key={day} data-weekend={isWeekend(day) || undefined}>{dateLabel(day, { weekday: "short" })}</span>)}</div>
     <div className="calendar-month-grid">{days.map(day => {
       const plans = uniqueCalendarPlans(events.filter(event => event.date === day));
       const count = t(plans.length === 1 ? "{count} plan" : "{count} plans", { count: plans.length });
-      return <div key={day} className={`calendar-month-day${day.slice(0, 7) !== date.slice(0, 7) ? " is-outside" : ""}${day === today ? " is-today" : ""}`}>
+      return <div key={day} className={`calendar-month-day${day.slice(0, 7) !== date.slice(0, 7) ? " is-outside" : ""}${day === today ? " is-today" : ""}`} data-weekend={isWeekend(day) || undefined}>
         <button className="calendar-month-date" aria-label={`${dateLabel(day, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}, ${unavailable || count}`} aria-current={day === today ? "date" : undefined} onClick={() => onDay(day)}>
           <time dateTime={day}>{dateLabel(day, { day: "numeric" })}</time>
           {!!plans.length && <span className="calendar-month-count">{count}</span>}

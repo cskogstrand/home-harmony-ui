@@ -1,7 +1,7 @@
 import { Armchair, ChevronDown } from "lucide-react";
 import { useId } from "react";
 import { useApp } from "@/contexts/AppContext";
-import { useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
+import { isWeekend, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
@@ -42,7 +42,7 @@ export function FamilyDayAgenda({ data, days, people, onEdit, hidden }: { data: 
     const free = homeOnline ? lanes.filter(lane => !lane.plans.length && !lane.message) : [];
     const count = lanes.reduce((total, lane) => total + lane.plans.length, 0);
     const freeId = `${baseId}-${date}-free`;
-    const when = <time dateTime={date} className="family-day-agenda-date">{dateLabel(date, { day: "numeric", month: "short" })}</time>;
+    const when = <time dateTime={date} className="family-day-agenda-date">{dateLabel(date, { weekday: "short", day: "numeric", month: "short" })}</time>;
     const body = <>
       {listed.map(({ person, plans, missing, message }) => <div className="family-day-agenda-person" role="group" aria-label={person.name} key={person.id}>
         <span aria-hidden="true"><MemberAvatar member={person.id} /></span>
@@ -61,11 +61,11 @@ export function FamilyDayAgenda({ data, days, people, onEdit, hidden }: { data: 
         </li>)}</ul>
       </div>}
     </>;
-    if (isToday) return <section key={date} aria-label={label} className="family-day-agenda-day">
+    if (isToday) return <section key={date} aria-label={label} className="family-day-agenda-day" data-weekend={isWeekend(date) || undefined}>
       <h3 className={dashboard.showTomorrow ? "family-day-agenda-heading" : "sr-only"}><span>{label}</span> {when}</h3>
       {body}
     </section>;
-    return <details key={date} className="family-day-agenda-day family-day-agenda-later">
+    return <details key={date} className="family-day-agenda-day family-day-agenda-later" data-weekend={isWeekend(date) || undefined}>
       <summary>
         <span className="family-day-agenda-heading"><span>{label}</span> {when}</span>
         {!data.loading && <span className="family-day-agenda-count">{t(count === 1 ? "{count} plan" : "{count} plans", { count })}</span>}

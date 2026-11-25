@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { PanelTitle } from "@/components/PanelTitle";
 import { Armchair, CalendarCheck } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
-import { addDays, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
+import { addDays, isWeekend, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
 import { phoneQuery, useMediaQuery } from "@/hooks/use-media-query";
@@ -55,9 +55,9 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
       </div>)}</div>
       {days.map(date => {
         const label = t(date === today ? "Today" : "Tomorrow");
-        return <section key={date} aria-label={label} className={date === today ? undefined : "border-t border-border pt-5"}>
+        return <section key={date} aria-label={label} className={date === today ? "family-day-date" : "family-day-date border-t border-border pt-5"} data-weekend={isWeekend(date) || undefined}>
           <h3 className={dashboard.showTomorrow ? "mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-medium" : "sr-only"}>
-            <span>{label}</span> <time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { day: "numeric", month: "short" })}</time>
+            <span>{label}</span> <time dateTime={date} className="text-sm font-normal text-muted-foreground">{dateLabel(date, { weekday: "short", day: "numeric", month: "short" })}</time>
           </h3>
           <div className="family-lanes">{row.map(person => {
             const personal = uniqueCalendarPlans(data.events.filter(event => event.member === person.id && event.date === date));
