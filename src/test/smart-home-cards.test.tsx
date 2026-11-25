@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SmartHomeCard } from "@/components/devices/SmartHomeCard";
 import { SmartHomeCards } from "@/components/devices/SmartHomeCards";
+import { DeviceControl } from "@/components/devices/DeviceControl";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cardDesigns, cardDesignFor } from "@/components/devices/card-designs";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
@@ -11,7 +12,7 @@ import { orderedScenes, smartHomeCards } from "@/lib/smart-home-cards";
 import Moods from "@/pages/Moods";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { services, state } from "./ha-fixtures";
-import { cardEntity, cardServices, configuredCard, mediaEntity } from "./device-card-fixtures";
+import { cardEntity, cardServices, configuredCard, mediaEntity, regulatorThermostatHome } from "./device-card-fixtures";
 
 const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn(), camera: vi.fn() }));
 const render = (ui: React.ReactElement) => renderUI(ui, { wrapper: ({ children }) => <AppContext.Provider value={{ ...mocks.app }}>{children}</AppContext.Provider> });
@@ -77,6 +78,35 @@ it("keeps only the target and a short state inside the dial and names the target
   expect(dial()).not.toHaveTextContent("Inside");
   expect(caption()).toHaveTextContent(/^Target temperatureInside 20 °C$/);
   expect(caption().firstElementChild).toHaveAttribute("aria-hidden", "true");
+});
+
+it("shows and adjusts a regulator-mode thermostat as heating power in percent", () => {
+  mocks.app.services = cardServices;
+  const home = regulatorThermostatHome();
+  mocks.app.currentHome = { ...mocks.app.currentHome, entities: home.entities };
+  const thermostat = () => home.entities.find(entity => entity.entityId === "climate.example_thermostat")!;
+  const view = open(thermostat(), "original");
+  const dial = () => document.querySelector(".dg-thermostat")!;
+  expect(dial()).toHaveTextContent(/^Heating power50%Heat$/);
+  expect(dial()).not.toHaveTextContent("°");
+  expect(screen.getAllByText("Heating power").length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole("button", { name: "Increase heating power for Example thermostat" }));
+  expect(mocks.command).toHaveBeenCalledExactlyOnceWith("climate.example_thermostat", "temperature", 60);
+  fireEvent.click(screen.getByRole("button", { name: "Decrease heating power for Example thermostat" }));
+  expect(mocks.command).toHaveBeenLastCalledWith("climate.example_thermostat", "temperature", 40);
+  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={thermostat()} density="compact" /></TooltipProvider></MemoryRouter>);
+  expect(document.querySelector(".dg-dial-caption")).toHaveTextContent(/^Heating power$/);
+  // Entity pages use the plain slider with the same unit and label.
+  view.rerender(<MemoryRouter><TooltipProvider><DeviceControl entity={thermostat()} /></TooltipProvider></MemoryRouter>);
+  expect(screen.getByRole("slider", { name: "Example thermostat heating power" })).toHaveAttribute("aria-valuetext", "50%");
+
+  // In thermostat mode the same device keeps its temperature setpoint, exactly as before.
+  const degrees = regulatorThermostatHome({ mode: "thermostat", displayUnit: "°C" });
+  mocks.app.currentHome = { ...mocks.app.currentHome, entities: degrees.entities };
+  view.rerender(<MemoryRouter><TooltipProvider><SmartHomeCard entity={degrees.entities.find(entity => entity.domain === "climate")!} density="original" /></TooltipProvider></MemoryRouter>);
+  expect(dial()).toHaveTextContent(/^Target temperature50°CHeat$/);
+  expect(screen.getByRole("button", { name: "Increase temperature for Example thermostat" })).toBeEnabled();
+  expect(screen.queryByText("Heating power")).not.toBeInTheDocument();
 });
 
 it("keeps bounds, unsupported capabilities, offline state and failed commands honest", () => {

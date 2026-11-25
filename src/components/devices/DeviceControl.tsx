@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import type { Entity, EntityAction } from "@/types/api";
 import { useApp } from "@/contexts/AppContext";
 import { available, entityStateLabel, humanizeState, needsCode, numberValue, stringValues, supportsAction } from "@/lib/ha-model";
+import { regulatesByPercent } from "@/lib/climate";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { PinPadModal } from "./PinPadModal";
@@ -54,6 +55,9 @@ export function DeviceControl({ entity, card = false, setting = false, cabinMode
   const services = useApp(app => app.services);
   const commandState = useApp(app => app.commands[entity.entityId]);
   const temperatureUnit = useApp(app => app.currentHome.temperatureUnit);
+  // A thermostat in regulator mode sets heating power in percent; the climate entity still reports a temperature unit.
+  const regulator = useApp(app => entity.domain === "climate" && regulatesByPercent(entity, app.currentHome.entities));
+  const setpointUnit = regulator ? "%" : temperatureUnit ?? "";
   const { variant } = useContext(CardPresentation);
   const [lockAction, setLockAction] = useState<"lock" | "unlock">();
   const [confirmation, setConfirmation] = useState<{ action: EntityAction; value?: unknown; title: Message; description: Message }>();
@@ -143,11 +147,11 @@ export function DeviceControl({ entity, card = false, setting = false, cabinMode
       : showState && <div className={entity.domain === "sensor" && homeOnline && available(entity) ? "sensor-reading" : "sensor-state"}>{status}{unit && homeOnline && available(entity) && <small> {unit}</small>}</div>}
 
     {dimmer}{colorControls}
-    {entity.domain === "climate" && <>{supports("temperature") && <RangeControl label={t("Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={temperatureUnit ?? ""} disabled={disabled} commit={v => send("temperature", v)} />}{climateMode}{climateExtras}{humidity}</>}
+    {entity.domain === "climate" && <>{supports("temperature") && <RangeControl label={t(regulator ? "Heating power" : "Target")} name={entity.name} value={temperature} min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? 0.1} unit={setpointUnit} disabled={disabled} commit={v => send("temperature", v)} />}{climateMode}{climateExtras}{humidity}</>}
     {entity.domain === "cover" && coverControls}
   </> : entity.domain === "light" ? <LightCard value={on && percent !== undefined ? `${percent}%` : status} caption={on && percent !== undefined ? status : ""} strength={on ? (percent ?? 100) / 100 : 0} power={power} brightness={dimmer}>
     {hasColorControls && (variant === "Original" ? colorControls : <More label="Color & effects">{colorControls}</More>)}
-  </LightCard> : entity.domain === "climate" ? <ClimateCard name={entity.name} value={reported ? temperature : undefined} unit={temperatureUnit ?? ""}
+  </LightCard> : entity.domain === "climate" ? <ClimateCard name={entity.name} value={reported ? temperature : undefined} unit={setpointUnit} percent={regulator}
     min={numberValue(entity.attributes.min_temp)} max={numberValue(entity.attributes.max_temp)} step={numberValue(entity.attributes.target_temp_step) ?? .1}
     set={supports("temperature") ? value => send("temperature", value) : undefined}
     state={status} detail={reported && currentTemperature !== undefined ? `${t("Inside")} ${reading(currentTemperature, { unit: temperatureUnit, deviceClass: "temperature" })}` : undefined}>

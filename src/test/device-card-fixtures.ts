@@ -65,3 +65,29 @@ export function printerHome(overrides: Record<string, PrinterOverride> = {}, { t
     entities: entities.map(([id, , , key]) => ({ id: `registry-${id}`, entity_id: id, platform: "bambu_lab", device_id: deviceOf(id), translation_key: translationKeys ? key : null })),
   }, "example");
 }
+
+type ThermostatSibling = { state: string; original_name?: string; translation_key?: string; unique_id?: string; device_id?: string };
+/**
+ * A fictional thermostat that can run in regulator mode, where the setpoint is heating power in percent. Like real
+ * integrations, the climate entity still reports a temperature unit; a mode select and a display-unit sensor on the
+ * same device reveal the mode. Pass `null` to leave either out.
+ */
+export function regulatorThermostatHome({ mode = "regulator", displayUnit = "%", siblings = {} }: { mode?: string | null; displayUnit?: string | null; siblings?: Record<string, ThermostatSibling> } = {}) {
+  const device = "example-thermostat-device", climate = "climate.example_thermostat";
+  const extra: [string, ThermostatSibling][] = [
+    ...(mode === null ? [] : [["select.example_thermostat_mode", { state: mode, translation_key: "mode", unique_id: "example:mode" }] satisfies [string, ThermostatSibling]]),
+    ...(displayUnit === null ? [] : [["sensor.example_thermostat_display_unit", { state: displayUnit, original_name: "displayUnit", unique_id: "example:displayUnit" }] satisfies [string, ThermostatSibling]]),
+    ...Object.entries(siblings),
+  ];
+  return mapHome({
+    [climate]: state(climate, "heat", { friendly_name: "Example thermostat", supported_features: 385, hvac_modes: ["heat", "off"], temperature: 50, current_temperature: null, min_temp: 10, max_temp: 90, target_temp_step: 10, temperature_unit: "°C" }),
+    ...Object.fromEntries(extra.map(([id, entry]) => [id, state(id, entry.state, id.startsWith("select.") ? { options: ["thermostat", "regulator"] } : {})])),
+  }, {
+    areas: [],
+    devices: [{ id: device, name: "Example thermostat", manufacturer: "Example Heating", model: "Example dial" }],
+    entities: [
+      { id: "registry-climate", entity_id: climate, platform: "example_heating", device_id: device, unique_id: "example:setpoint" },
+      ...extra.map(([id, entry]) => ({ id: `registry-${id}`, entity_id: id, platform: "example_heating", device_id: entry.device_id ?? device, translation_key: entry.translation_key ?? null, original_name: entry.original_name ?? null, unique_id: entry.unique_id ?? id })),
+    ],
+  }, "example");
+}
