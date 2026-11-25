@@ -26,7 +26,8 @@
   > Done 2026-11-25: a row needs a stable state that differs from the entity's previous stable state (transitions and unavailable round trips are skipped); only one entity's flapping folds. Door positions are named ("Dør (fører foran)", "Ladeluke", "Dører"). Checked live on the wall.
 - [x] **Event filter:** the owner chooses which events appear in Latest events (Today and Smart home) and in the All activity log; the log can temporarily show everything without changing the saved filter. People stay opt-in.
   > Done 2026-11-25: Settings → System → Activity → Event types hides types in both the panel and the log; the log offers "Show all events" as a local, per-visit view switch. People stay opt-in. The settings card was not opened live.
-- [ ] **Activity sources at a glance:** in Settings → System → Activity → Latest events, the chosen sources are easy to see (which are selected, how many, and what each is) without opening the picker.
+- [x] **Activity sources at a glance:** in Settings → System → Activity → Latest events, the chosen sources are easy to see (which are selected, how many, and what each is) without opening the picker.
+  > Done 2026-11-25: chosen sources are listed under the picker, grouped by event type with counts, icon, name, area and a remove button; hidden types and unavailable sources are marked; the shared picker gains a "Selected" view and per-device counts.
 - [ ] **Phone icon buttons:** shared icon buttons are 48 × 48 on phones so focus and hover shapes are circles, not 44 × 48 ovals.
 - [ ] **Sonos mini player radius:** the artwork and controls sit concentrically in the mini player capsule (measured with fictional playback, not the live system).
 - [x] **Remaining English names:** names Home Assistant leaves untranslated (for example a charge port, "Mode", "Relative humidity threshold min", "Electricity consumption summary") read in Bokmål where a sensible translation exists.
