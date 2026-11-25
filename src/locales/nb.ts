@@ -1224,6 +1224,8 @@ export const nb = {
   "Show tomorrow’s plans": "Vis morgendagens planer",
   "Tomorrow": "I morgen",
   "No plans tomorrow.": "Ingen planer i morgen.",
+  "Free today": "Fri i dag",
+  "Free tomorrow": "Fri i morgen",
   "Everyone’s day": "Dagen vår",
   "No plans today.": "Ingen planer i dag.",
   "Customize Today": "Tilpass I dag",

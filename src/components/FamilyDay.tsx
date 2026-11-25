@@ -6,8 +6,10 @@ import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily, type FamilyEvent } from "@/contexts/FamilyContext";
 import type { useCalendarPlans } from "@/hooks/use-calendar-plans";
 import { useI18n } from "@/hooks/use-i18n";
+import { phoneQuery, useMediaQuery } from "@/hooks/use-media-query";
 import { uniqueCalendarPlans } from "@/lib/family-calendar";
 import { HomeAssistantCalendar } from "./FamilyCalendar";
+import { FamilyDayAgenda } from "./FamilyDayAgenda";
 import { EventButton, MemberAvatar } from "./FamilyPlanner";
 import { MorningSummary } from "./HomePanels";
 
@@ -21,6 +23,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
   const configured = data.people.filter(person => hasSources(person.id));
   const people = configured.length ? configured : data.people;
   const hasVisiblePlans = data.events.some(event => days.includes(event.date));
+  const phone = useMediaQuery(phoneQuery);
   const board = useRef<HTMLDivElement>(null);
   const [capacity, setCapacity] = useState<number>();
   useLayoutEffect(() => {
@@ -36,7 +39,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [phone]);
   const columns = Math.min(capacity ?? people.length, people.length) || 1;
   const rows = [];
   for (let i = 0; i < people.length; i += columns) rows.push(people.slice(i, i + columns));
@@ -45,6 +48,7 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
     <PlannerCardBackdrop kind="day" />
     <div className="panel-heading"><PanelTitle artwork="day" icon={CalendarCheck}>{t("Everyone’s day")}</PanelTitle>{dashboard.daySummaryPlayback && <MorningSummary dialogTrigger />}</div>
     <HomeAssistantCalendar data={data} hasVisiblePlans={hasVisiblePlans} />
+    {phone ? <FamilyDayAgenda data={data} days={days} people={people} onEdit={onEdit} hidden={!homeOnline && !hasVisiblePlans} /> :
     <div ref={board} className="family-day-board" hidden={!homeOnline && !hasVisiblePlans} style={{ "--day-columns": columns } as CSSProperties}>{rows.map(row => <div className="family-day-row" key={row[0].id}>
       <div className="family-lanes">{row.map(person => <div className="lane-heading" key={person.id}>
         <span aria-hidden="true"><MemberAvatar member={person.id} /></span><h3>{person.name}</h3>
@@ -76,6 +80,6 @@ export function FamilyDay({ data, onEdit }: { data: ReturnType<typeof useCalenda
           })}</div>
         </section>;
       })}
-    </div>)}</div>
+    </div>)}</div>}
   </section>;
 }
