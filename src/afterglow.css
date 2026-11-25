@@ -137,6 +137,8 @@
 }
 /* A glyph-only badge has no text to enlarge: it scales with its control (19px on a 48px circle, 24px on the wall's 60px), never with the text size, so it stays in the corner and leaves the icon clear. */
 .header-badge.header-badge-glyph { inset-block-start: -7.5%; min-width: 0; width: 40%; height: auto; aspect-ratio: 1; padding: 0; }
+/* A count keeps Caption digits (12px, 18px at 150% text), so its badge grows with the text and the digits, but away from the icon: its lower edge stays a third of the way down the control, where the glyph badge ends, and its end edge in the corner. Larger text raises it above the control, and more digits widen it along the icon's empty headroom, never down across the glyph. */
+.header-badge.header-badge-count { inset-block: auto 67.5%; height: max(40%, 1.25em); min-width: max(40%, 1.25em); padding-inline: .25em; }
 .header-badge[data-tone="healthy"] { background: hsl(var(--success)); color: hsl(var(--success-foreground)); }
 .header-badge[data-tone="attention"] { background: hsl(var(--warning)); color: hsl(var(--warning-foreground)); }
 @media (forced-colors: active) { .header-badge { border: 1px solid ButtonText; } }

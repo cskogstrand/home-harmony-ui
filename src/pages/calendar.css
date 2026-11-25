@@ -7,6 +7,9 @@
 .calendar-period-heading { min-width: 0; }
 .calendar-period > span { font-size: var(--type-title); font-weight: 500; }
 .calendar-period > svg { flex-shrink: 0; }
+/* The toolbar is the query container for The Period Yields Rule below; rem thresholds follow the text size. */
+.calendar-toolbar { container: calendar-toolbar / inline-size; }
+.calendar-period-short { display: none; }
 .calendar-filter-bar { justify-content: space-between; gap: 1rem; }
 .calendar-filter-bar > .calendar-view-controls { margin-left: auto; }
 .calendar-toolbar > .week-ribbon { margin: 1rem 0 0; }
@@ -55,6 +58,22 @@
   .calendar-month-events { display: none; }
   .calendar-agenda-group { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
   .calendar-agenda-group h3 { padding: 0; }
+}
+/* The Period Yields Rule: when the arrows and the period no longer share a row without crushing the date (320–375px at
+   100% text, every phone at large text), the period takes the first row at full width and the arrows and Today follow.
+   Narrower still, the visible period shortens and the decorative illustration goes; the button's name keeps the full period. */
+@container calendar-toolbar (width < 20rem) {
+  .calendar-navigation { display: flex; gap: .5rem; }
+  .calendar-date-navigation { display: contents; }
+  .calendar-period-heading { order: -1; flex: 1 0 100%; }
+  .calendar-date-navigation .calendar-period { width: 100%; justify-content: center; text-align: center; }
+}
+@container calendar-toolbar (width < 13rem) {
+  .calendar-period-long { display: none; }
+  .calendar-period-short { display: inline; }
+}
+@container calendar-toolbar (width < 10.5rem) {
+  .calendar-period > .illustrated-icon { display: none; }
 }
 @media (min-width: 1000px) and (min-height: 1400px) and (orientation: portrait) {
   .calendar-month-day { min-height: 9rem; }
