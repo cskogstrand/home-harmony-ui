@@ -667,7 +667,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .family-week-table .event-button small { display: none; }
 .week-add-plan { display: flex; width: 100%; max-width: 4rem; align-items: center; justify-content: center; gap: 5px; min-height: 48px; color: hsl(var(--muted-foreground)); font-size: var(--type-caption); border: 1px solid hsl(var(--border)); border-radius: var(--radius-capsule); }
 .week-add-plan:hover, .week-add-plan:focus-visible { background: hsl(var(--primary) / .12); color: hsl(var(--primary)); }
-/* Titles break only between words or at hyphenation points in the table's language, then clamp at two lines with an ellipsis; the button keeps the full title as its accessible name and the event dialog shows it. */
+/* Titles break only between words or at hyphenation points in the table's language, then clamp at two lines (three on the portrait wall) with an ellipsis; the button keeps the full title as its accessible name and the event dialog shows it. */
 .family-week-table .event-button strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: normal; hyphens: auto; }
 /* Beside a phone's sideways scroll the name fits; wider grids give its width to the days and keep the name as the row header's accessible text and tooltip. */
 @media (min-width: 700px) {
@@ -816,7 +816,10 @@ fieldset.settings-card > legend + * { clear: both; }
   .week-member-column { width: 4rem; }
   .family-week-table th, .family-week-table td { padding: .3rem .25rem; }
   .family-week-table .event-button strong, .family-week-table thead time > strong { font-size: var(--type-body-large); }
-  .family-week-table .event-time, .family-week-table thead time > span, .week-add-plan { font-size: var(--type-label); }
+  .family-week-table thead time > span, .week-add-plan { font-size: var(--type-label); }
+  /* Reading distance: the wall has height to spare, so week titles get a third line and times sit one step up, still on one line in a day column. */
+  .family-week-table .event-button strong { -webkit-line-clamp: 3; }
+  .family-week-table .event-time { font-size: var(--type-body); }
   .family-week-table .event-button { min-height: 64px; padding-inline: .85rem .35rem; }
   .week-add-plan, .calendar-week-day { min-height: 56px; }
   /* The wall never cuts the waste label: it wraps below the icons, and the 22px radius (half the 44px minimum) keeps one line a capsule. */
