@@ -11,7 +11,7 @@ import { EntityPicker } from "@/components/EntityPicker";
 import { useApp } from "@/contexts/AppContext";
 import { Input } from "@/components/ui/input";
 import { PanelTitle } from "@/components/PanelTitle";
-import { dashboardRows, dashboardSections, dashboardWidth, fillSections, fullWidthSections, type DashboardHomeworkOptions, type DashboardSection, type DashboardWidth, type FillSection } from "../../shared/configuration";
+import { dashboardRows, dashboardSections, dashboardWidth, fillSections, fullWidthSections, type DashboardHomeworkOptions, type DashboardSection, type DashboardRow, type DashboardWidth, type FillSection } from "../../shared/configuration";
 import type { MessageKey } from "@/lib/i18n";
 
 const sectionLabels = {
@@ -28,6 +28,29 @@ const fullWidthReasons: Record<typeof fullWidthSections[number], MessageKey> = {
 };
 const isFullWidthOnly = (key: DashboardSection): key is typeof fullWidthSections[number] => (fullWidthSections as readonly DashboardSection[]).includes(key);
 const widthOptions = [["full", RectangleHorizontal, "Full"], ["half", Columns2, "Half"]] as const;
+
+/** An inert miniature of Today's rows on wide screens. The section cards say the same in words, so it is hidden from assistive technology. */
+function LayoutPreview({ rows, fill }: { rows: DashboardRow[]; fill: string }) {
+  const { t } = useI18n();
+  if (!rows.length) return null;
+  const conditional = rows.some(row => row.sections.some(key => conditionalSections.includes(key)));
+  const filling = rows.some(row => row.fill);
+  return <div className="settings-card dashboard-preview" aria-hidden="true">
+    <p className="dashboard-preview-title">{t("Layout on wide screens")}</p>
+    <div className="dashboard-preview-rows">{rows.map(row => <div key={row.sections[0]} className="dashboard-preview-row" data-fill={row.fill || undefined}>
+      {row.sections.map(key => {
+        const Icon = sectionIcons[key];
+        return <span key={key} className="dashboard-preview-block" data-conditional={conditionalSections.includes(key) || undefined} data-fill={key === fill || undefined}>
+          <Icon size={16} strokeWidth={1.8} /><span>{t(sectionLabels[key])}</span>{key === fill && <MoveVertical size={16} strokeWidth={1.8} className="dashboard-preview-fill" />}
+        </span>;
+      })}
+    </div>)}</div>
+    {(conditional || filling) && <ul className="dashboard-preview-legend">
+      {conditional && <li><span className="dashboard-preview-swatch" />{t("Dashed: appears only when it has something to show.")}</li>}
+      {filling && <li><MoveVertical size={16} strokeWidth={1.8} />{t("Grows to fill the free space on the wall.")}</li>}
+    </ul>}
+  </div>;
+}
 
 export function DashboardSettings() {
   const { t, message } = useI18n();
@@ -82,6 +105,7 @@ export function DashboardSettings() {
         <DialogTitle asChild><PanelTitle icon={Settings}>{t("Customize Today")}</PanelTitle></DialogTitle>
         <DialogDescription>{t("Choose which sections appear, how wide they are and their order. Changes are saved automatically and shared across screens.")}</DialogDescription>
       </DialogHeader>
+      <LayoutPreview rows={rows} fill={dashboard.fill} />
       <ol ref={sectionsRef} aria-label={t("Section order")} className="settings-stack">
         {dashboard.order.map((key, index) => <li key={key} data-section={key} className="settings-card dashboard-settings-card">
           <div className="dashboard-settings-heading">

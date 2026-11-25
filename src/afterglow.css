@@ -188,6 +188,27 @@ fieldset.settings-card > legend + * { clear: both; }
 .dashboard-width-choice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
 .dashboard-width-choice .calendar-segment button { min-width: 6.5rem; }
 .dashboard-width-choice .calendar-segment button:disabled { cursor: not-allowed; opacity: .6; }
+/* Customize Today's inert layout preview: the board's rows in miniature, on the opaque settings surface so it can stay in view while the cards scroll. */
+.dashboard-preview { display: grid; gap: .75rem; }
+.dashboard-preview-title { font-size: var(--type-body); font-weight: 600; }
+.dashboard-preview-rows { display: grid; gap: .375rem; }
+.dashboard-preview-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: .375rem; }
+.dashboard-preview-block { display: flex; align-items: center; gap: .5rem; min-width: 0; min-height: 2.25rem; padding: .25rem .625rem; border: 1px solid hsl(var(--primary) / .28); border-radius: var(--radius-row); background: hsl(var(--primary) / .07); font-size: var(--type-label); }
+.dashboard-preview-block > svg, .dashboard-preview-legend svg { flex-shrink: 0; color: hsl(var(--primary)); }
+.dashboard-preview-block > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-preview-block[data-conditional] { border-style: dashed; border-color: hsl(var(--primary) / .5); background: transparent; }
+.dashboard-preview-row[data-fill] > .dashboard-preview-block { min-height: 4.5rem; align-items: flex-start; padding-top: .5rem; }
+.dashboard-preview-block[data-fill] { background: hsl(var(--primary) / .14); }
+.dashboard-preview-fill { margin-left: auto; }
+.dashboard-preview-legend { display: grid; gap: .25rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+.dashboard-preview-legend li { display: flex; align-items: center; gap: .5rem; }
+.dashboard-preview-swatch { flex-shrink: 0; width: 1.5rem; height: 1rem; border: 1px dashed hsl(var(--primary) / .5); border-radius: var(--radius-checkbox); }
+@media (min-height: 1100px) {
+  .dashboard-preview { position: sticky; top: 0; z-index: 1; box-shadow: var(--home-shadow-sm); }
+}
+@media (forced-colors: active) {
+  .dashboard-preview-block, .dashboard-preview-swatch { border-color: CanvasText; }
+}
 @media (prefers-contrast: more), (forced-colors: active) {
   .settings-card { border-color: currentColor; }
 }

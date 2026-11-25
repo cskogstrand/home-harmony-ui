@@ -912,6 +912,24 @@ it("sets section widths and the wall's fill section in Customize Today, explains
   expect(dialog.getByRole("button", { name: "Reset order and widths" })).toBeDisabled();
 });
 
+it("previews Today's rows in Customize Today without exposing a second copy to assistive technology", async () => {
+  settings.settings.dashboard = { ...settings.settings.dashboard, wasteCollection: true, recentActivity: true, morningSummary: false,
+    widths: { wasteCollection: "half", nextPlan: "half", recentActivity: "half" }, fill: "recentActivity",
+    order: ["wasteCollection", "nextPlan", "day", "recentActivity", "daily", "shopping", "week", "school", "home", "homework", "morningSummary", "homeStatus"] };
+  render(<App />); await saved();
+  fireEvent.click(screen.getByRole("button", { name: "Customize Today" }));
+  const preview = document.querySelector<HTMLElement>(".dashboard-preview")!;
+  expect(preview).toHaveAttribute("aria-hidden", "true");
+  expect(preview.querySelector("button, a, input, select")).toBeNull();
+  const rows = [...preview.querySelectorAll(".dashboard-preview-row")].map(row => [...row.children].map(block => block.textContent));
+  expect(rows).toEqual([["Waste collection", "Next family plan"], ["Everyone’s day"], ["Recent at home", "Daily rhythm"], ["Shopping"], ["Everyone’s week"], ["School"], ["Home favorites"]]);
+  expect(preview.querySelector("[data-conditional]")).toHaveTextContent("Waste collection");
+  expect(preview.querySelector(".dashboard-preview-row[data-fill]")).toHaveTextContent("Recent at homeDaily rhythm");
+  expect(preview).toHaveTextContent("Dashed: appears only when it has something to show.");
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("switch", { name: "Daily rhythm" }));
+  await waitFor(() => expect([...preview.querySelectorAll(".dashboard-preview-row")][2]).toHaveTextContent(/^Recent at homeShopping$/));
+});
+
 it("disables reordering when shared configuration fails to load", async () => {
   app.configurationRequest.mockRejectedValue(new Error("Example storage failure"));
   render(<App />); await pageReady();
