@@ -47,6 +47,11 @@ it("gives rows and day surfaces their card radius minus the inset", () => {
   expect(declarations(artworkCss, "[data-artwork] .smart-page > section > .section-heading")).toMatch(/padding: \.25rem \.25rem \.25rem 1rem;.*border-radius: calc\(2\.75rem \/ 2 \+ \.25rem\)/);
 });
 
+it("centres the switch thumb in the capsule ends of the touch-sized track", () => {
+  expect(declarations(afterglowCss, ".switch-thumb")).toMatch(/margin-inline-start: calc\(\(max\(28px, 1\.5rem\) - 4px - 1\.25rem\) \/ 2\)/);
+  expect(afterglowCss).toMatch(/\[role="switch"\] \{ min-height: 28px; min-width: 48px; \}/);
+});
+
 it("keeps menu and popover items concentric with their transient surface", () => {
   // The rem inset keeps the pair concentric when the wall's larger root size grows the padding.
   expect(declarations(afterglowCss, ".motion-menu :is([role=\"menuitem\"], [role=\"menuitemcheckbox\"], [role=\"menuitemradio\"])")).toMatch(/border-radius: calc\(var\(--radius-menu\) - \.5rem - 1px\)/);

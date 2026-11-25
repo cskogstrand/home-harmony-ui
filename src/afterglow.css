@@ -10,6 +10,9 @@
   [role="dialog"] > button:last-child { min-width: 48px; min-height: 48px; top: 8px; right: 8px; display: grid; place-items: center; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 }
+/* The touch minimum makes a phone switch taller than its 1.5rem track, so the thumb takes the same start inset as its
+   top inset (inner track height minus the 1.25rem thumb, halved) and sits concentric with both capsule ends. */
+.switch-thumb { margin-inline-start: calc((max(28px, 1.5rem) - 4px - 1.25rem) / 2); }
 .board-spacing { --space: 2rem; --gutter-left: max(var(--space), env(safe-area-inset-left)); --gutter-right: max(var(--space), env(safe-area-inset-right)); --panel-space: 1.5rem; }
 .afterglow-app { --car-fill: hsl(var(--card)); --app-ground: radial-gradient(ellipse at 0% 0%, hsl(var(--ambient-blue)), transparent 55%), radial-gradient(ellipse at 100% 80%, hsl(var(--ambient-warm)), transparent 55%), hsl(var(--background)); min-height: 100svh; padding-top: env(safe-area-inset-top); padding-bottom: calc(var(--app-dock-height, 6rem) + 2rem + env(safe-area-inset-bottom)); background: var(--app-ground); background-size: 100% 100svh; background-repeat: no-repeat; }
 
