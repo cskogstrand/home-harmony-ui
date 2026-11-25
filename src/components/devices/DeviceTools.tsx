@@ -4,7 +4,7 @@ import { Activity, CheckCircle2, CircleAlert, ExternalLink, Info, SlidersHorizon
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel } from "@/lib/ha-model";
-import { deviceName, deviceReadingsLabel } from "@/lib/device-model";
+import { deviceName, deviceReadingsLabel, readingName } from "@/lib/device-model";
 import type { Entity, PhysicalDevice } from "@/types/api";
 import { SettingsPopover } from "@/components/common/SettingsPopover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,7 +38,9 @@ export function DeviceTools({ device, entities, configuration, diagnostics, targ
   const StatusIcon = status === "Readings available" ? CheckCircle2 : CircleAlert;
   const updated = (entity: Entity) => entity.lastUpdated && Number.isFinite(Date.parse(entity.lastUpdated))
     ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: currentHome.timeZone }).format(new Date(entity.lastUpdated)) : t("Not reported");
-  const settings = (items: Entity[]) => items.map(entity => {
+  // The popover names the device, so its entities drop the device prefix.
+  const named = (entity: Entity) => ({ ...entity, name: readingName(entity) });
+  const settings = (items: Entity[]) => items.map(named).map(entity => {
     const Icon = cardDesignFor(entity.domain)?.icon ?? SlidersHorizontal;
     return <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-setting settings-card">
     <div className="device-tool-name"><Icon size={16} aria-hidden="true" /><h3>{entity.name}</h3></div>
@@ -62,7 +64,7 @@ export function DeviceTools({ device, entities, configuration, diagnostics, targ
       </TabsContent>
       <TabsContent value="diagnostics">
         <div className="device-tools-status"><StatusIcon size={18} aria-hidden="true" /><div><strong>{message(status)}</strong><p>{t("Reported by Home Assistant")}</p></div></div>
-        {diagnosticReadings.map(entity => <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-reading settings-card">
+        {diagnosticReadings.map(named).map(entity => <article id={entity.entityId} tabIndex={-1} key={entity.entityId} aria-label={entity.name} className="device-tool-reading settings-card">
           <div className="device-tool-name"><DeviceIcon type={entity.domain} deviceClass={entity.attributes.device_class} className="h-4 w-4" /><h3>{entity.name}</h3></div>
           <strong>{homeOnline ? entityStateLabel(entity, language) : t("Offline")}{homeOnline && available(entity) && typeof entity.attributes.unit_of_measurement === "string" ? ` ${entity.attributes.unit_of_measurement}` : ""}</strong>
           <p className="device-tool-updated">{t("Last updated")}: {updated(entity)}</p><EntityDetails entity={entity} icon />

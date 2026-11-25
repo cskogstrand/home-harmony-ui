@@ -4,6 +4,8 @@ import type { Connection } from "home-assistant-js-websocket";
 /** Flattened Home Assistant translation resources, keyed like `component.<platform>.entity.<domain>.<translation_key>.name`. */
 export type HaTranslations = Readonly<Record<string, string>>;
 export const noTranslations: HaTranslations = Object.freeze({});
+/** The catalogue's language, stored beside the resources (no Home Assistant key starts with "@"). */
+export const translationLanguage = "@language";
 
 // "entity" holds integration names and states by translation_key; "entity_component" holds core-domain states.
 // The legacy "state" category is empty on current Home Assistant releases.
@@ -20,5 +22,6 @@ export async function fetchTranslations(conn: Connection, language: string): Pro
       if (typeof value === "string" && value.trim() && used.test(key)) resources[key] = value;
     }
   }
+  resources[translationLanguage] = language;
   return Object.freeze(resources);
 }

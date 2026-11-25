@@ -5,6 +5,8 @@ import { AppContext } from "@/contexts/AppContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import DeviceDetail from "@/pages/DeviceDetail";
 import { cardEntity, cardServices, mediaEntity, printerHome } from "./device-card-fixtures";
+import { state } from "./ha-fixtures";
+import { mapHome } from "@/lib/ha-model";
 import type { Entity } from "@/types/api";
 
 const device = { id: "example", name: "Example device", area_id: "example-room", manufacturer: "Example maker", model: "T100", sw_version: "1.2" };
@@ -189,4 +191,29 @@ it("leads a printer with its read-only printer card and keeps the chamber light 
   expect(screen.getByRole("region", { name: "Readings and status" })).toHaveTextContent("Workshop printer print progress");
   expect(document.querySelectorAll(`[id="sensor.workshop_printer_print_progress"]`)).toHaveLength(1);
   expect(command).not.toHaveBeenCalled();
+});
+
+it("names a thermostat's readings and settings without the device, in the dashboard language where Home Assistant has one", () => {
+  const entries = [
+    { id: "humidity", entity_id: "sensor.example_humidity", platform: "example_heat", device_id: device.id, original_name: "Relative humidity", translation_key: "relative_humidity" },
+    { id: "lock", entity_id: "switch.example_child_lock", platform: "example_heat", device_id: device.id, original_name: "Child lock", translation_key: "child_lock", entity_category: "config" },
+    { id: "mode", entity_id: "select.example_mode", platform: "example_heat", device_id: device.id, original_name: "Mode", translation_key: "mode", entity_category: "config" },
+  ];
+  // Home Assistant fills the integration's missing Bokmål names with English; another integration translates the child lock.
+  const { entities } = mapHome({
+    "sensor.example_humidity": state("sensor.example_humidity", "46", { friendly_name: "Example device Relative humidity", device_class: "humidity", unit_of_measurement: "%" }),
+    "switch.example_child_lock": state("switch.example_child_lock", "off", { friendly_name: "Example device Child lock" }),
+    "select.example_mode": state("select.example_mode", "Auto", { friendly_name: "Example device Mode", options: ["Auto", "Manual"] }),
+  }, { areas: [], devices: [device], entities: entries }, "example", undefined, undefined, {
+    "component.example_heat.entity.sensor.relative_humidity.name": "Relative humidity", "component.example_heat.entity.switch.child_lock.name": "Child lock",
+    "component.example_heat.entity.select.mode.name": "Mode", "component.example_robot.entity.switch.child_lock.name": "Barnesikring",
+    "component.sensor.entity_component.humidity.name": "Luftfuktighet", "@language": "nb",
+  });
+  open(entities);
+  expect(within(screen.getByRole("region", { name: "Readings and status" })).getByRole("heading", { name: "Luftfuktighet" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Device settings" }));
+  const settings = screen.getByRole("tabpanel");
+  // A name without any known translation stays as Home Assistant reports it.
+  expect(within(settings).getAllByRole("heading").map(heading => heading.textContent)).toEqual(["Barnesikring", "Mode"]);
+  expect(within(settings).getByRole("article", { name: "Barnesikring" })).toBeVisible();
 });

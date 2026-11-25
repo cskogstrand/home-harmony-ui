@@ -212,6 +212,27 @@ describe("activity curation", () => {
     expect(curated(events)).toEqual([]);
   });
 
+  it("reports only appliance programmes as finished, not a car's climate or a mode that uses the running class", () => {
+    const running = (entityId: string, friendly: string) => state(entityId, "off", { device_class: "running", friendly_name: friendly });
+    const ids = ["binary_sensor.example_dryer_programme", "binary_sensor.example_car_climate", "binary_sensor.example_car_sentry_mode",
+      "binary_sensor.example_car_preconditioning", "binary_sensor.example_car_service_mode", "binary_sensor.example_pump_compressor"];
+    // The car's sensors keep their metric in the registry even when the entity ID was renamed.
+    const home = mapHome({
+      [ids[0]]: running(ids[0], "Example dryer Running"), [ids[1]]: running(ids[1], "Example car Climate"), [ids[2]]: running(ids[2], "Example car Sentry Mode"),
+      [ids[3]]: running(ids[3], "Example car Preconditioning"), [ids[4]]: running(ids[4], "Example car Service Mode"), [ids[5]]: running(ids[5], "Example heat pump Compressor"),
+      "binary_sensor.example_car_renamed": running("binary_sensor.example_car_renamed", "Example car Cabin"),
+    }, { areas: [], devices: [], entities: [{ id: "renamed", entity_id: "binary_sensor.example_car_renamed", original_name: "Climate" }] }, "home").entities;
+    expect(defaultActivitySources(home)).toEqual([id(ids[0])]);
+    const events = [...ids, "binary_sensor.example_car_renamed"].flatMap((entityId, index) => [event(entityId, "on", 20 + index), event(entityId, "off", 10 - index)]);
+    const items = curateActivity(events, home, { mode: "full", language: "en", people: false });
+    expect(items.filter(item => item.kind === "finished").map(item => item.entityId)).toEqual([ids[0]]);
+    expect(items.filter(item => item.kind === "started").map(item => item.entityId)).toEqual([ids[0]]);
+    expect(sentences(items.filter(item => item.entityId === ids[1]), norwegian)).toEqual(["Example car Climate ble slått av", "Example car Climate ble slått på"]);
+    // An added source still reports its changes, as turned on and off.
+    expect(sentences(curateActivity(events, home, { mode: "curated", language: "en", people: false, sources: home.map(entity => entity.preferenceId) })))
+      .toEqual(expect.arrayContaining(["Example dryer Running finished", "Example car Climate turned off", "Example car Cabin turned off"]));
+  });
+
   it("writes logged dates, times, readings and states in the dashboard language and hides values it cannot read", () => {
     const logged = mapHome({
       "sensor.example_seen": state("sensor.example_seen", "2026-10-06T09:00:00+00:00", { device_class: "timestamp", friendly_name: "Example car Last seen" }),
@@ -241,6 +262,37 @@ describe("activity curation", () => {
       "Example speaker Bass endret til −1 dB", "Example car State endret status", "Example car State endret status", "Example car State endret status",
       "Example plug Startup endret status", "Example living mode endret til Movie night", "Example morning ble aktivert", "Example identify ble trykket",
       "sensor.example_gone endret status",
+    ]);
+  });
+
+  it("names openings by device and translated class when Home Assistant has no translation for the entity part", () => {
+    // Fictional devices; Home Assistant fills untranslated integration names with English.
+    const devices = [{ id: "dishwasher", name: "Example dishwasher" }, { id: "car", name: "Example car" }, { id: "own", name: "Example shed", name_by_user: "Our shed" }];
+    const entries = [
+      { id: "e1", entity_id: "binary_sensor.example_dishwasher_door", platform: "example_appliance", device_id: "dishwasher", original_name: "Door", translation_key: "door_status" },
+      { id: "e2", entity_id: "binary_sensor.example_car_doors", platform: "example_mqtt", device_id: "car", original_name: "Doors" },
+      { id: "e3", entity_id: "binary_sensor.example_car_driver_front", platform: "example_mqtt", device_id: "car", original_name: "Door (Driver Front)" },
+      { id: "e4", entity_id: "cover.example_car_charger_door", platform: "example_car", device_id: "car", original_name: "Charger door" },
+      { id: "e5", entity_id: "binary_sensor.example_shed_door", platform: "example_mqtt", device_id: "own", original_name: "Door", name: "Shed hatch" },
+      { id: "e6", entity_id: "cover.example_car_frunk", platform: "example_car", device_id: "car", original_name: "Frunk" },
+    ];
+    const opening = (entityId: string, value: string, friendly: string) => state(entityId, value, { device_class: "door", friendly_name: friendly });
+    const home = mapHome({
+      "binary_sensor.example_dishwasher_door": opening("binary_sensor.example_dishwasher_door", "off", "Example dishwasher Door"),
+      "binary_sensor.example_car_doors": opening("binary_sensor.example_car_doors", "off", "Example car Doors"),
+      "binary_sensor.example_car_driver_front": opening("binary_sensor.example_car_driver_front", "off", "Example car Door (Driver Front)"),
+      "cover.example_car_charger_door": opening("cover.example_car_charger_door", "closed", "Example car Charger door"),
+      "binary_sensor.example_shed_door": opening("binary_sensor.example_shed_door", "off", "Shed hatch"),
+      "cover.example_car_frunk": opening("cover.example_car_frunk", "closed", "Example car Frunk"),
+    }, { areas: [], devices, entities: entries }, "home", undefined, undefined, {
+      "component.example_appliance.entity.binary_sensor.door_status.name": "Door",
+      "component.binary_sensor.entity_component.door.name": "Dør", "component.cover.entity_component.door.name": "Dør", "@language": "nb",
+    }).entities;
+    const events = [event("binary_sensor.example_dishwasher_door", "on", 6), event("binary_sensor.example_car_doors", "off", 5), event("binary_sensor.example_car_driver_front", "off", 4),
+      event("cover.example_car_charger_door", "closed", 3), event("binary_sensor.example_shed_door", "on", 2), event("cover.example_car_frunk", "open", 1)];
+    expect(sentences(curateActivity(events, home, { mode: "full", language: "nb", people: false }), norwegian)).toEqual([
+      // A part without a class word stays as reported; the owner's own name is kept.
+      "Example car Frunk ble åpnet", "Shed hatch ble åpnet", "Example car Dør ble lukket", "Example car Dør ble lukket", "Example car Dør ble lukket", "Example dishwasher Dør ble åpnet",
     ]);
   });
 
