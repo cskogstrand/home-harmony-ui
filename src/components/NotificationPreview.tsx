@@ -17,6 +17,7 @@ import { Switch } from "./ui/switch";
 import { Accordion } from "./ui/accordion";
 import { NotificationEditorSection } from "./NotificationEditorSection";
 import { NotificationStylePicker } from "./NotificationStylePicker";
+import { NotificationAdminEventNote } from "./NotificationAdminEventNote";
 
 export function NotificationPreview({ rule, presentation: defaultPresentation, disabled = false, editing = false, onPresentationChange }: { rule?: NotificationRule; presentation: NotificationPresentation; disabled?: boolean; editing?: boolean; onPresentationChange?: (presentation: NotificationPresentation) => void }) {
   const { message: t } = useI18n();
@@ -127,6 +128,7 @@ export function NotificationPreview({ rule, presentation: defaultPresentation, d
       <Dialog open={popupOpen} onOpenChange={setPopupOpen}><Popup item={draft} presentation={presentation} preview={mode} entities={entities} onReturn={() => opener.current?.focus()} /></Dialog>
     </> : !onPresentationChange && <><PanelTitle as="h3" icon={Eye}>{t("Preview")}</PanelTitle>
       <p className="page-note">{t(useDemo ? "Sample data only. Nothing is sent to Home Assistant." : "Current readings. Preview actions are disabled.")}</p></>}
+    {rule && <NotificationAdminEventNote eventTypes={triggers.flatMap(trigger => trigger.type === "ha-event" ? [trigger.eventType] : [])} />}
     {rule && <div className="notification-toggle"><span>{t("Use sample data")}</span><Switch aria-label={t("Use sample data")} checked={demo} onCheckedChange={checked => { setDemo(checked); setPlaying(false); }} /></div>}
     {!editing && <fieldset disabled className="notification-preview-surface" aria-label={previewTitle} onClickCapture={event => { event.preventDefault(); event.stopPropagation(); }}>
       <NotificationSurface items={[draft]} compact presentation={defaultPresentation} preview={mode} entities={entities} />

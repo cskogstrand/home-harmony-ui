@@ -42,7 +42,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
   Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText } });
-  mocks.app = { currentHome: home(), homeOnline: true, watchEvents: vi.fn(), watchCameraStream: vi.fn(), watchCalendarEvents: vi.fn() };
+  mocks.app = { currentHome: home(), homeOnline: true, userIsAdmin: true, watchEvents: vi.fn(), watchCameraStream: vi.fn(), watchCalendarEvents: vi.fn() };
   mocks.family = { ...emptyPlanner(), today: "2026-11-26", setNotifications };
   mocks.shared.state = { loaded: true, error: "", config: emptyConfiguration() };
   setNotifications.mockReturnValue(true);

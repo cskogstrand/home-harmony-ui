@@ -107,6 +107,8 @@ export const nb = {
   "Appears only when a selected source needs attention or has no reading.": "Vises bare når en valgt kilde melder avvik eller mangler en måling.",
   "Waiting for notification readings": "Venter på måling for varsler",
   "Waiting for a reading for {rules}.": "Venter på måling for «{rules}».",
+  "Home Assistant only shares the events behind {rules} with administrator users, so those triggers stay inactive.": "Home Assistant deler bare hendelsene bak «{rules}» med administratorbrukere, så disse utløserne er inaktive.",
+  "Home Assistant only lets administrator users follow {events}. The dashboard's Home Assistant user is not an administrator, so this trigger stays inactive. Event entity and entity state triggers work for every user.": "Home Assistant lar bare administratorbrukere følge {events}. Home Assistant-brukeren til dashbordet er ikke administrator, så denne utløseren er inaktiv. Utløsere for hendelsesentiteter og entitetstilstander virker for alle brukere.",
   "Could not read sources for {rules}.": "Kunne ikke lese varselkilder for «{rules}».",
   "Manage sources": "Tilpass kilder",
   "View readings": "Vis målinger",

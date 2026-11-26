@@ -5,11 +5,12 @@ import { addDays, useFamily } from "./FamilyContext";
 import { NotificationContext, NotificationDebugContext } from "./NotificationContext";
 import { NotificationEngine, notificationEntity, type HomeNotification } from "@/lib/notifications";
 import { available, calendarBoundary } from "@/lib/ha-model";
+import { canSubscribeEvent } from "@/lib/ha-permissions";
 import type { CalendarEvent } from "@/types/api";
 import { useSharedConfiguration } from "./SharedConfigurationContext";
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { currentHome, connectionStatus, homeOnline, watchEvents, watchCalendarEvents } = useApp();
+  const { currentHome, connectionStatus, homeOnline, userIsAdmin, watchEvents, watchCalendarEvents } = useApp();
   const shared = useSharedConfiguration();
   const { notifications: settings, today } = useFamily();
   const [engine] = useState(() => new NotificationEngine());
@@ -26,7 +27,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   currentRules.current = rules;
   const publish = useCallback((next: HomeNotification[]) => setNotifications(previous => JSON.stringify(previous) === JSON.stringify(next) ? previous : next), []);
   const triggers = rules.filter(rule => rule.enabled).flatMap(notificationTriggers);
-  const eventTypes = JSON.stringify([...new Set(triggers.flatMap(trigger => trigger.type === "ha-event" ? [trigger.eventType] : []))].sort());
+  // Event types Home Assistant only shares with administrators are never subscribed for another user (or before the user is
+  // known); their rules are unavailable, not failing, so they show a calm note instead of an error with Retry.
+  const allowed = (eventType: string) => canSubscribeEvent(eventType, userIsAdmin);
+  const eventTypes = JSON.stringify([...new Set(triggers.flatMap(trigger => trigger.type === "ha-event" && allowed(trigger.eventType) ? [trigger.eventType] : []))].sort());
   const calendarIds = JSON.stringify([...new Set(triggers.flatMap(trigger => {
     if (trigger.type !== "calendar") return [];
     const entity = notificationEntity(currentHome.entities, trigger.entity);
@@ -64,11 +68,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [homeOnline, calendarIds, today, currentHome.timeZone, watchCalendarEvents, refresh]);
   const errors = new Set<string>();
   const waitingRules = new Set<string>();
+  const adminRules = new Set<string>();
   for (const rule of rules) {
     if (!rule.enabled) continue;
     for (const trigger of notificationTriggers(rule)) {
       if (trigger.type === "ha-event") {
-        if (eventErrors.includes(trigger.eventType)) errors.add(rule.title);
+        if (!allowed(trigger.eventType)) adminRules.add(rule.title);
+        else if (eventErrors.includes(trigger.eventType)) errors.add(rule.title);
         continue;
       }
       const entity = notificationEntity(currentHome.entities, trigger.entity);
@@ -90,7 +96,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     : errors.size ? "Some notification sources are unavailable"
     : evaluatedSettings !== settings || awaitingSources ? "Checking notifications…" : waitingRules.size ? "Waiting for notification readings" : undefined;
   return <NotificationContext.Provider value={{ statusMessage, notifications: homeOnline && settings.enabled ? notifications : [], errors: homeOnline && settings.enabled ? [...errors] : [],
-    waitingRules: homeOnline && settings.enabled ? [...waitingRules] : [],
+    waitingRules: homeOnline && settings.enabled ? [...waitingRules] : [], adminRules: homeOnline && settings.enabled ? [...adminRules] : [],
     dismiss: id => { engine.dismiss(id); publish(engine.list()); }, camera: (id, open) => { engine.camera(id, open); publish(engine.list()); }, retry: () => setRefresh(value => value + 1),
   }}>
     <NotificationDebugContext.Provider value={{ previewStartedAt, setPreviewStartedAt }}>{children}</NotificationDebugContext.Provider>

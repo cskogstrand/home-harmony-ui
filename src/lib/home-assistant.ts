@@ -14,6 +14,7 @@ import { fetchTranslations, noTranslations, type HaTranslations } from "./ha-tra
 import type { NotificationEvent } from "./notifications";
 import { MAX_LOGBOOK_BACKFILL_MS, parseLogbookMessage, type LogbookEvent } from "./activity";
 import { nordPoolSlots, type PriceSlot } from "./electricity-price";
+import { canSubscribeEvent } from "./ha-permissions";
 import { applyNotificationEvent, parseBackupInfo, parseRepairs, repairTitle, type BackupHealth, type PersistentNotification, type RepairIssue } from "./ha-health";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "syncing" | "connected" | "reconnecting" | "auth-error";
@@ -415,10 +416,15 @@ export class HomeAssistantClient {
     }).catch(() => { if (current()) receive(null); });
   };
 
+  /**
+   * Follows one Home Assistant event type with `subscribe_events`. Home Assistant refuses (and logs) event types outside its
+   * allowlist for a user who is not an administrator, so such a type is never sent for that user or before the user is
+   * loaded: `receive(null)` reports it as unavailable. Callers check `canSubscribeEvent` first to tell that apart from a failure.
+   */
   watchEvents = (eventType: string, signal: AbortSignal, receive: (event: NotificationEvent | null) => void, ready?: () => void) => {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;
     const current = () => !signal.aborted && generation === this.generation && epoch === this.epoch && conn?.connected && this.snapshot.status === "connected";
-    if (!current() || !/^[a-zA-Z0-9_]{1,100}$/.test(eventType)) { if (!signal.aborted) receive(null); return; }
+    if (!current() || !/^[a-zA-Z0-9_]{1,100}$/.test(eventType) || !canSubscribeEvent(eventType, this.isAdmin())) { if (!signal.aborted) receive(null); return; }
     let unsubscribe: (() => Promise<void>) | undefined;
     const stop = () => {
       void unsubscribe?.().catch(() => {});

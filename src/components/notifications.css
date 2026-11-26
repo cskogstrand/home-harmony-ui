@@ -508,3 +508,7 @@
   .notification-import-choices > label:has(input:checked) { outline: 2px solid Highlight; outline-offset: -3px; }
   .notification-import-entities > li[data-missing] { border-style: dashed; }
 }
+
+/* A Home Assistant event only an administrator may follow: calm, not an error. */
+.notification-admin-note { display: flex; align-items: flex-start; gap: .5rem; margin: 0; font-size: var(--type-meta); line-height: 1.5; color: hsl(var(--muted-foreground)); }
+.notification-admin-note svg { flex: none; width: 1.125rem; height: 1.125rem; margin-top: .1em; color: hsl(var(--primary)); }

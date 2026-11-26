@@ -137,6 +137,8 @@ Calendar integrations and to-do lists stay in HA. The app uses reported capabili
 
 Repairs and backup status are read when the dashboard connects, when the section opens and every 15 minutes while the screen is visible; notifications arrive live. The System group and the Home Assistant health entry show a count when something needs action. Repairs and notifications work with any Home Assistant user. Backup status needs the server token to belong to a Home Assistant **administrator**: Home Assistant only answers `backup/info` for administrators and logs an error when another user asks, so the dashboard never asks for another user (or before it knows who the user is). For a user who is not an administrator the Backups block stays hidden with a short note, and backup problems never reach Home status. If Home Assistant refuses or lacks a read, its block stays hidden without an error, and the menu entry is hidden when both repairs and backups are. Nothing in this section changes Home Assistant except **Dismiss**.
 
+**A dashboard user who is not an administrator:** the dashboard sends only the Home Assistant commands that user may send, so Home Assistant's log stays free of permission errors. Everything works except backup status, as above, and notification rules that follow a [Home Assistant event](docs/notifications.md#choose-triggers) outside the short list of event types Home Assistant shares with every user; the rule editor explains when a trigger needs an administrator user.
+
 ## Configuration and storage
 
 | Data | Location |
