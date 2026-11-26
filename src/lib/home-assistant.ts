@@ -34,6 +34,7 @@ interface Snapshot {
   registries: Registries;
   entityRegistryAvailable: boolean;
   config?: HassConfig;
+  /** The Home Assistant user behind the server token; undefined until it is loaded (or when it could not be). */
   user?: HassUser;
   services: HassServices;
   /** Home Assistant names and state labels for the dashboard language; empty until loaded or when unavailable. */
@@ -77,7 +78,7 @@ const connectionError = (error: unknown) => error === ERR_INVALID_AUTH || error 
   ? "Home Assistant rejected the server token. Update it in the HAOS configuration or .env, then restart the server."
   : "Cannot connect to Home Assistant through the dashboard server. Check the dashboard server logs and its configured Home Assistant URL, port and network connection.";
 
-// Health reads need an administrator token; a refusal or a missing integration hides the block instead of showing an error.
+// A health read Home Assistant refuses or lacks (no integration) hides its block instead of showing an error.
 const hiddenHealthError = (error: unknown) => ["unauthorized", "unknown_command"].includes(String((error as { code?: unknown } | null)?.code));
 
 async function bounded<T>(promise: Promise<T>, milliseconds = 15000): Promise<T> {
@@ -109,6 +110,11 @@ export class HomeAssistantClient {
     this.snapshot = { url: "", status: "disconnected", starting: true, awaitingFirstConnection: true, error: "", warnings: [], states: {}, registries: emptyRegistries, entityRegistryAvailable: false, services: {}, translations: noTranslations, commands: {} };
   }
   getSnapshot = () => this.snapshot;
+  /**
+   * Whether the Home Assistant user is an administrator: undefined until the user is loaded. Admin-only commands are sent
+   * only when this is true; an unknown user is treated as one who is not an administrator.
+   */
+  isAdmin = () => this.snapshot.user?.is_admin;
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private update(patch: Partial<Snapshot>) {
     const next = { ...this.snapshot, ...patch };
@@ -546,8 +552,8 @@ export class HomeAssistantClient {
     } catch { throw new Error("Conversation agents could not be loaded. Check the connection to Home Assistant."); }
   };
 
-  /** One read that needs an administrator token. Resolves undefined when Home Assistant refuses it or lacks the command. */
-  private async adminRead(message: { type: string }, label: string) {
+  /** One optional health read. Resolves undefined when Home Assistant refuses it or lacks the command. */
+  private async healthRead(message: { type: string }, label: string) {
     const conn = this.connection, generation = this.generation, epoch = this.epoch;
     if (!conn?.connected || this.snapshot.status !== "connected") throw new Error(`${label} unavailable`);
     let result: unknown;
@@ -562,11 +568,11 @@ export class HomeAssistantClient {
   }
 
   /**
-   * Read-only: Home Assistant repair issues, with titles in `language` when given. Resolves undefined without an administrator
-   * token (or without the repairs integration); rejects when the list cannot be read.
+   * Read-only: Home Assistant repair issues, with titles in `language` when given. Open to every Home Assistant user.
+   * Resolves undefined when Home Assistant refuses it or lacks the repairs integration; rejects when the list cannot be read.
    */
   listRepairs = async (language?: string): Promise<RepairIssue[] | undefined> => {
-    const { conn, result } = await this.adminRead({ type: "repairs/list_issues" }, "Repairs");
+    const { conn, result } = await this.healthRead({ type: "repairs/list_issues" }, "Repairs");
     if (result === undefined) return undefined;
     const issues = parseRepairs(result);
     if (!language || !issues.length) return issues;
@@ -578,9 +584,14 @@ export class HomeAssistantClient {
     } catch { return issues; /* Titles are optional; the issue id remains readable. */ }
   };
 
-  /** Read-only: automatic backup status. Resolves undefined without an administrator token or backup support. */
+  /**
+   * Read-only: automatic backup status. `backup/info` is admin-only in Home Assistant, so it is sent only for an administrator:
+   * for another user, or before the user is loaded, this resolves undefined without sending anything. Also resolves
+   * undefined when Home Assistant refuses it or lacks backup support.
+   */
   backupInfo = async (): Promise<BackupHealth | undefined> => {
-    const { result } = await this.adminRead({ type: "backup/info" }, "Backups");
+    if (this.isAdmin() !== true) return undefined;
+    const { result } = await this.healthRead({ type: "backup/info" }, "Backups");
     return result === undefined ? undefined : parseBackupInfo(result);
   };
 

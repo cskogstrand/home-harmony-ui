@@ -89,7 +89,7 @@ export default function Settings() {
   const shared = useSharedConfiguration();
   const heading = useRef<HTMLHeadingElement>(null);
   const health = useHaHealth();
-  // Without an administrator token Home Assistant refuses the health reads; the section stays reachable but out of the menu.
+  // When Home Assistant refuses or lacks both health reads, the section stays reachable but out of the menu.
   const healthHidden = health.repairs.status === "hidden" && health.backup.status === "hidden";
   const attention = health.items.length;
   // A small count on System and Home Assistant health when repairs or backups need the owner.

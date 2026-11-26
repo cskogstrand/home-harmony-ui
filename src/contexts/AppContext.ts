@@ -5,7 +5,8 @@ import type { Entity, Home } from "@/types/api";
 import { AppStoreContext } from "./AppStoreContext";
 
 function appSnapshot(client: HomeAssistantClient, state: ReturnType<HomeAssistantClient["getSnapshot"]>, currentHome: Home) {
-  return { currentHome, currentUser: state.user, haUrl: state.url, connectionStatus: state.status,
+  // Whether the Home Assistant user is an administrator; undefined until the user is loaded.
+  return { currentHome, currentUser: state.user, userIsAdmin: state.user?.is_admin, haUrl: state.url, connectionStatus: state.status,
     connectionStarting: state.starting, awaitingFirstConnection: state.awaitingFirstConnection,
     entityRegistryAvailable: state.entityRegistryAvailable, connectionError: state.error, metadataWarnings: state.warnings, homeOnline: state.status === "connected",
     services: state.services, commands: state.commands, connect: client.connect, disconnect: client.disconnect,
