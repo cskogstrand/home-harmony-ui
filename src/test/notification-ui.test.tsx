@@ -48,7 +48,7 @@ const cameraRule = () => notificationRuleSchema.parse({ id: "example-camera", ti
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
-  mocks.app = { currentHome: home(), homeOnline: true, watchEvents, watchCameraStream, watchCalendarEvents: vi.fn() };
+  mocks.app = { currentHome: home(), homeOnline: true, userIsAdmin: true, watchEvents, watchCameraStream, watchCalendarEvents: vi.fn() };
   mocks.family = { ...emptyPlanner(), today: "2026-10-24", setNotifications };
   mocks.shared.state = { loaded: true, error: "", config: emptyConfiguration() };
   mocks.shared.state.config.settings.cameras.items = [{ id: "example-camera", name: "Example camera", connectionId: "home-assistant", source: "camera.example", personSnapshot: { type: "none" } }];
@@ -2366,4 +2366,42 @@ it("saves the Can be dismissed switch per rule, previews its state and keeps it 
   fireEvent.click(screen.getByRole("switch", { name: "Can be dismissed" }));
   fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
   expect(JSON.stringify(setNotifications.mock.lastCall[0].rules[0])).not.toContain("dismissible");
+});
+
+it.each([false, undefined])("never subscribes event types Home Assistant keeps for administrators when the user's admin status is %s, and explains it without an error", userIsAdmin => {
+  mocks.app.userIsAdmin = userIsAdmin;
+  const rule = { ...cameraRule(), kind: "current" as const, title: "Example button", trigger: { type: "ha-event" as const, eventType: "example_event", filters: {} },
+    additionalTriggers: [{ type: "ha-event" as const, eventType: "state_changed", filters: {} }] };
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [rule] };
+  const content = () => <MemoryRouter><NotificationProvider><NotificationList /></NotificationProvider></MemoryRouter>;
+  const view = render(content());
+  expect(watchEvents.mock.calls.map(([type]) => type)).toEqual(["state_changed"]);
+  expect(screen.getByText("Home Assistant only shares the events behind Example button with administrator users, so those triggers stay inactive.")).toBeVisible();
+  expect(screen.queryByText(/Could not read sources/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  mocks.app.userIsAdmin = true;
+  view.rerender(content());
+  expect(watchEvents.mock.calls.map(([type]) => type)).toEqual(["state_changed", "example_event", "state_changed"]);
+  expect(screen.queryByText(/with administrator users/)).not.toBeInTheDocument();
+});
+
+it("explains in the editor and its preview when a Home Assistant event needs an administrator user", async () => {
+  const note = /Home Assistant only lets administrator users follow example_event/;
+  mocks.app.userIsAdmin = false;
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Add Current alerts" }));
+  await openEditorSection("When to show it");
+  fireEvent.change(screen.getByLabelText("Trigger"), { target: { value: "ha-event" } });
+  expect(screen.queryByText(note)).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Event type"), { target: { value: "example_event" } });
+  const [field, preview] = screen.getAllByText(note);
+  expect(field.closest("fieldset")).toContainElement(screen.getByLabelText("Event type"));
+  expect(screen.getByRole("region", { name: "Notification preview" })).toContainElement(preview);
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Event type"), { target: { value: "state_changed" } });
+  expect(screen.queryByText(/only lets administrator users/)).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Event type"), { target: { value: "example_event" } });
+  mocks.app.userIsAdmin = true;
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  expect(screen.queryByText(note)).not.toBeInTheDocument();
 });

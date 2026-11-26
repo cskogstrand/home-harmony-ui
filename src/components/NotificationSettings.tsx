@@ -23,6 +23,7 @@ import { EntityPicker } from "./EntityPicker";
 import { PanelTitle } from "./PanelTitle";
 import { NotificationProgressSettings } from "./NotificationProgress";
 import { NotificationPreview } from "./NotificationPreview";
+import { NotificationAdminEventNote } from "./NotificationAdminEventNote";
 import { NotificationGridZoomPicker, NotificationWidgetSettings, NotificationWidgetWidthPicker } from "./NotificationWidgetSettings";
 import { NotificationStylePicker } from "./NotificationStylePicker";
 import { NotificationCameraSettings } from "./NotificationCameraSettings";
@@ -316,6 +317,7 @@ export function NotificationSettings() {
             {multiple && <p className="page-note">{t("Any listed value matches. Keep one value to change the trigger type or condition.")}</p>}
             {(trigger.type === "entity-event" || trigger.type === "ha-event") && <label>{t(trigger.type === "entity-event" ? "Event type (optional)" : "Event type")}<input name={`${field}.eventType`} required={trigger.type === "ha-event"} maxLength={100} value={trigger.eventType} onChange={event => update({ ...trigger, eventType: event.target.value } as NotificationTrigger)} /></label>}
             {trigger.type === "entity-event" && <p className="page-note">{t("Triggers on a new event timestamp. Leave the event type empty to match every event from this entity.")}</p>}
+            {trigger.type === "ha-event" && <NotificationAdminEventNote eventTypes={[trigger.eventType]} />}
             {trigger.type === "ha-event" && <label>{t("Event data filters (JSON)")}<textarea name={`${field}.filters`} rows={3} value={filters[index]} maxLength={8000} onChange={event => setFilters(values => values.map((value, i) => i === index ? event.target.value : value))} /><span className="page-note">{t("Match exact top-level fields, such as action or device_id. Empty filters match every event of this type.")}</span></label>}
             {trigger.type === "calendar" && <label>{t("Show minutes before start")}<input name={`${field}.leadMinutes`} type="number" min={0} max={1440} required value={trigger.leadMinutes} onChange={event => update({ ...trigger, leadMinutes: event.target.valueAsNumber } as NotificationTrigger)} /></label>}
           </fieldset>;

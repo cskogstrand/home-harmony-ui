@@ -14,7 +14,7 @@ import { HomeAssistantClient } from "@/lib/home-assistant";
 import * as familyCalendar from "@/lib/family-calendar";
 import App from "@/App";
 import { PinPadModal } from "@/components/devices/PinPadModal";
-import { config, registries, services, states as deviceStates, state, user } from "./ha-fixtures";
+import { adminUser, config, registries, services, states as deviceStates, state, user } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { timetableUploadPath } from "../../shared/timetables";
@@ -97,6 +97,7 @@ it("renders a card only when its main or supporting entity changes", async () =>
 });
 
 it("subscribes to selected notification events, rejects stale callbacks and cleans up late subscriptions", async () => {
+  vi.mocked(ha.getUser).mockResolvedValue(adminUser);
   const client = await connectedClient(), controller = new AbortController(), receive = vi.fn();
   const pending = deferred<() => Promise<void>>(), unsubscribe = vi.fn(async () => {});
   conn.subscribeMessage.mockImplementationOnce(() => pending.promise);
@@ -113,6 +114,35 @@ it("subscribes to selected notification events, rejects stale callbacks and clea
   controller.abort();
   pending.resolve(unsubscribe);
   await waitFor(() => expect(unsubscribe).toHaveBeenCalledOnce());
+});
+
+it("never sends subscribe_events outside Home Assistant's allowlist for a user who is not an administrator, or before the user is loaded", async () => {
+  const subscribed = () => conn.subscribeMessage.mock.calls.flatMap(([, message]) => (message as { type: string }).type === "subscribe_events" ? [(message as unknown as { event_type: string }).event_type] : []);
+  const client = await connectedClient();
+  expect(client.isAdmin()).toBe(false);
+  const refused = vi.fn(), allowed = vi.fn();
+  client.watchEvents("example_event", new AbortController().signal, refused);
+  expect(refused).toHaveBeenCalledWith(null);
+  client.watchEvents("state_changed", new AbortController().signal, allowed);
+  expect(subscribed()).toEqual(["state_changed"]);
+  // Home Assistant's own registry updates stay on the allowlist and keep refreshing metadata.
+  expect(conn.subscribeEvents.mock.calls.map(([, event]) => event)).toEqual(["area_registry_updated", "device_registry_updated", "entity_registry_updated", "service_registered", "service_removed"]);
+
+  // A user that could not be loaded is unknown, and unknown is treated as not an administrator.
+  vi.mocked(ha.getUser).mockRejectedValue({ code: "unknown_error" });
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  const unknown = await connectedClient();
+  expect(unknown.isAdmin()).toBeUndefined();
+  unknown.watchEvents("example_event", new AbortController().signal, vi.fn());
+  expect(subscribed()).toEqual([]);
+
+  vi.mocked(ha.getUser).mockResolvedValue(adminUser);
+  conn = new FakeConnection();
+  vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+  const admin = await connectedClient();
+  admin.watchEvents("example_event", new AbortController().signal, vi.fn());
+  expect(subscribed()).toEqual(["example_event"]);
 });
 
 it("starts without browser storage and keeps shared settings usable after HA disconnects", async () => {

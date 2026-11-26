@@ -33,3 +33,4 @@ export const services: HassServices = {
 };
 export const config = { location_name: "Test home", time_zone: "Europe/Oslo", unit_system: { temperature: "°C" } } as HassConfig;
 export const user: HassUser = { id: "actual-user", name: "HA user", is_admin: false, is_owner: false };
+export const adminUser: HassUser = { id: "admin-user", name: "HA admin", is_admin: true, is_owner: false };

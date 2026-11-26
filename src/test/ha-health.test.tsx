@@ -12,7 +12,7 @@ import { HomeStatus } from "@/components/HomeStatus";
 import { MemoryRouter } from "react-router-dom";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { HEALTH_REFRESH_MS, HaHealthProvider } from "@/contexts/HaHealthProvider";
-import { config, services, state, states, user } from "./ha-fixtures";
+import { adminUser, config, services, state, states, user } from "./ha-fixtures";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -61,7 +61,8 @@ class FakeConnection {
 }
 let conn: FakeConnection;
 let client: HomeAssistantClient;
-const connected = async () => {
+const connected = async (as = adminUser) => {
+  vi.mocked(ha.getUser).mockResolvedValue(as);
   await client.connect();
   await waitFor(() => expect(client.getSnapshot().status).toBe("connected"));
 };
@@ -155,6 +156,46 @@ describe("health client", () => {
     await waitFor(() => expect(failed).toHaveBeenCalledWith(null));
   });
 
+  const sent = () => conn.sendMessagePromise.mock.calls.map(([message]) => message.type);
+
+  it("never sends the admin-only backup/info for a user who is not an administrator, but still reads repairs and notifications", async () => {
+    await connected(user);
+    expect(client.isAdmin()).toBe(false);
+    conn.responses["repairs/list_issues"] = repairs;
+    conn.responses["backup/info"] = backup();
+    expect(await client.listRepairs()).toHaveLength(4);
+    await expect(client.backupInfo()).resolves.toBeUndefined();
+    client.subscribePersistentNotifications(vi.fn());
+    expect(sent()).toContain("repairs/list_issues");
+    expect(sent()).not.toContain("backup/info");
+    expect(conn.subscribeMessage.mock.calls.map(([, message]) => message)).toContainEqual({ type: "persistent_notification/subscribe" });
+  });
+
+  it("does not send backup/info before the user is loaded, or when it could not be", async () => {
+    vi.mocked(ha.getUser).mockReturnValue(new Promise(() => {}));
+    await client.connect();
+    await waitFor(() => expect(client.getSnapshot().status).toBe("syncing"));
+    expect(client.isAdmin()).toBeUndefined();
+    await expect(client.backupInfo()).resolves.toBeUndefined();
+    expect(sent()).not.toContain("backup/info");
+    conn = new FakeConnection();
+    vi.mocked(ha.createConnection).mockResolvedValue(conn as unknown as Connection);
+    vi.mocked(ha.getUser).mockRejectedValue({ code: "unknown_error" });
+    await client.connect();
+    await waitFor(() => expect(client.getSnapshot().status).toBe("connected"));
+    expect(client.isAdmin()).toBeUndefined();
+    await expect(client.backupInfo()).resolves.toBeUndefined();
+    expect(sent()).not.toContain("backup/info");
+  });
+
+  it("sends backup/info for an administrator", async () => {
+    await connected();
+    expect(client.isAdmin()).toBe(true);
+    conn.responses["backup/info"] = backup();
+    await expect(client.backupInfo()).resolves.toBeDefined();
+    expect(sent()).toContain("backup/info");
+  });
+
   it("dismisses one notification through the persistent_notification.dismiss service", async () => {
     await connected();
     await client.dismissPersistentNotification("example_id");
@@ -209,7 +250,7 @@ describe("health refresh", () => {
     return <p data-testid="health">{health.repairs.status}/{health.backup.status}/{health.items.length}</p>;
   }
   const fakeApp = (overrides: Record<string, unknown> = {}) => ({
-    homeOnline: true, listRepairs: vi.fn(async () => parseRepairs(repairs)), backupInfo: vi.fn(async () => parseBackupInfo(backup())), ...overrides,
+    homeOnline: true, userIsAdmin: true as boolean | undefined, listRepairs: vi.fn(async () => parseRepairs(repairs)), backupInfo: vi.fn(async () => parseBackupInfo(backup())), ...overrides,
   });
   const view = (app: ReturnType<typeof fakeApp>) => <AppContext.Provider value={app as never}><HaHealthProvider><Probe /></HaHealthProvider></AppContext.Provider>;
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
@@ -251,6 +292,23 @@ describe("health refresh", () => {
     rerender(view({ ...app, homeOnline: false }));
     rerender(view({ ...app, homeOnline: true }));
     await waitFor(() => expect(app.listRepairs).toHaveBeenCalledTimes(2));
+  });
+
+  it.each([false, undefined])("reads repairs but never backups when the user's admin status is %s, and reads backups once it is an administrator", async userIsAdmin => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    vi.setSystemTime(now);
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    const app = fakeApp({ userIsAdmin });
+    const { rerender } = render(view(app));
+    await act(async () => {});
+    expect(screen.getByTestId("health")).toHaveTextContent("ready/hidden/2");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2 * HEALTH_REFRESH_MS); });
+    expect(app.listRepairs).toHaveBeenCalledTimes(3);
+    expect(app.backupInfo).not.toHaveBeenCalled();
+    rerender(view({ ...app, userIsAdmin: true }));
+    await act(async () => {});
+    expect(app.backupInfo).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("health")).toHaveTextContent("ready/ready/2");
   });
 
   it("hides refused reads and reports failed reads as unavailable", async () => {
@@ -354,13 +412,23 @@ describe("Home Assistant health settings", () => {
   });
 
   it("hides what Home Assistant refuses without showing errors", () => {
-    view(settingsApp(), health({ repairs: { status: "hidden" }, backup: { status: "hidden" } }));
+    view(settingsApp({ userIsAdmin: true }), health({ repairs: { status: "hidden" }, backup: { status: "hidden" } }));
     act(() => receive(undefined));
     expect(screen.queryByRole("heading", { name: "Repairs" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Backups" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Notifications from Home Assistant" })).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
-    expect(screen.getByText("Repairs and backup status need a Home Assistant administrator token on the dashboard server.")).toBeVisible();
+    expect(screen.queryByText(/administrator/)).toBeNull();
+  });
+
+  it("keeps repairs and notifications for a user who is not an administrator and explains the hidden backups calmly", () => {
+    view(settingsApp({ userIsAdmin: false }), health({ backup: { status: "hidden" } }));
+    act(() => receive([notification("first", "Example title", "Example message", 1)]));
+    expect(screen.getByRole("heading", { name: "Repairs" })).toBeVisible();
+    expect(screen.getByText("Example title")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Backups" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("Backup status is only shown when the dashboard server's Home Assistant user is an administrator.")).toBeVisible();
   });
 });
 

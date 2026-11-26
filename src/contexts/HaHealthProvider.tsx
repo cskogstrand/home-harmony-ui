@@ -4,7 +4,10 @@ import { useI18n } from "@/hooks/use-i18n";
 import { maintenanceItems } from "@/lib/ha-health";
 import { HaHealthContext, type HaHealth, type HealthRead } from "./HaHealthContext";
 
-/** Repairs and backup status are read on connect and then every 15 minutes while the screen is visible. */
+/**
+ * Repairs and backup status are read on connect and then every 15 minutes while the screen is visible. Backup status is
+ * admin-only in Home Assistant: it is read only for an administrator, and stays hidden for other users and until the user is loaded.
+ */
 export const HEALTH_REFRESH_MS = 15 * 60000;
 
 const settle = <T,>(result: PromiseSettledResult<T | undefined>): HealthRead<T> => result.status === "rejected" ? { status: "unavailable" }
@@ -15,6 +18,7 @@ export function HaHealthProvider({ children }: { children: ReactNode }) {
   const homeOnline = useApp(app => app.homeOnline);
   const listRepairs = useApp(app => app.listRepairs);
   const backupInfo = useApp(app => app.backupInfo);
+  const admin = useApp(app => app.userIsAdmin) === true;
   const [reads, setReads] = useState<Pick<HaHealth, "repairs" | "backup" | "checkedAt">>({ repairs: { status: "loading" }, backup: { status: "loading" } });
   const [request, setRequest] = useState(0);
   useEffect(() => {
@@ -23,7 +27,7 @@ export function HaHealthProvider({ children }: { children: ReactNode }) {
     let active = true, last = 0;
     const read = () => {
       last = Date.now();
-      void Promise.allSettled([listRepairs(language), backupInfo()]).then(([repairs, backup]) => {
+      void Promise.allSettled([listRepairs(language), admin ? backupInfo() : undefined]).then(([repairs, backup]) => {
         if (active) setReads({ repairs: settle(repairs), backup: settle(backup), checkedAt: Date.now() });
       });
     };
@@ -33,7 +37,7 @@ export function HaHealthProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", shown);
     read();
     return () => { active = false; clearInterval(timer); document.removeEventListener("visibilitychange", shown); };
-  }, [homeOnline, listRepairs, backupInfo, language, request]);
+  }, [homeOnline, listRepairs, backupInfo, admin, language, request]);
   const refresh = useCallback(() => setRequest(count => count + 1), []);
   const value = useMemo<HaHealth>(() => ({
     ...reads,

@@ -159,18 +159,21 @@ function Updates() {
   </section>;
 }
 
-/** Settings → System → Home Assistant health: repairs, notifications, backups and updates. Reads that need an administrator token hide when refused. */
+/**
+ * Settings → System → Home Assistant health: repairs, notifications, backups and updates. Reads Home Assistant refuses or
+ * lacks hide; backup status is admin-only and hides with a short note for a user who is not an administrator.
+ */
 export function HaHealthSettings() {
   const { t } = useI18n();
   const { repairs, backup, refresh } = useHaHealth();
+  const userIsAdmin = useApp(app => app.userIsAdmin);
   // Opening the section reads repairs and backup status again.
   useEffect(() => { refresh(); }, [refresh]);
-  const hidden = repairs.status === "hidden" && backup.status === "hidden";
   return <div className="settings-stack">
-    {hidden && <p className="page-note">{t("Repairs and backup status need a Home Assistant administrator token on the dashboard server.")}</p>}
     {repairs.status !== "hidden" && <Repairs issues={repairs.status === "ready" ? repairs.value : undefined} />}
     <Notifications />
-    {backup.status !== "hidden" && <Backups />}
+    {backup.status !== "hidden" ? <Backups />
+      : userIsAdmin === false && <p className="page-note">{t("Backup status is only shown when the dashboard server's Home Assistant user is an administrator.")}</p>}
     <Updates />
   </div>;
 }

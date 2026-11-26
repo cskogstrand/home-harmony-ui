@@ -6,7 +6,8 @@ const defaults = {
   notifications: [] as HomeNotification[], errors: [] as string[],
   dismiss: (_id: string) => {}, camera: (_id: string, _open: boolean) => {}, retry: () => {},
 };
-export const NotificationContext = createContext<typeof defaults & { statusMessage?: MessageKey; waitingRules?: string[] }>(defaults);
+/** `adminRules`: rules with a Home Assistant event trigger that only an administrator user may follow; they stay inactive. */
+export const NotificationContext = createContext<typeof defaults & { statusMessage?: MessageKey; waitingRules?: string[]; adminRules?: string[] }>(defaults);
 export const useNotifications = () => useContext(NotificationContext);
 
 export const NotificationDebugContext = createContext({

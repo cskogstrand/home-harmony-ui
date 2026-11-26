@@ -470,7 +470,7 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { observer.disconnect(); window.removeEventListener("scroll", onScroll); };
   }, [active, compact, pathname]);
-  const { notifications: allNotifications, errors, waitingRules, statusMessage, retry, dismiss, camera } = useNotifications();
+  const { notifications: allNotifications, errors, waitingRules, adminRules, statusMessage, retry, dismiss, camera } = useNotifications();
   const { previewStartedAt } = useContext(NotificationDebugContext);
   const previewAll = compact && pathname === "/" && previewStartedAt !== undefined;
   const [selectedId, select] = useState<string>();
@@ -491,6 +491,7 @@ export function NotificationList({ compact = false, presentation }: { compact?: 
   if (!compact) return <NotificationSurface items={allNotifications} compact={false} presentation={style}>
     {sourceErrors}
     {!!waitingRules?.length && <p className="page-note notification-waiting">{t("Waiting for a reading for {rules}.", { rules: waitingRules.join(", ") })}</p>}
+    {!!adminRules?.length && <p className="page-note notification-waiting">{t("Home Assistant only shares the events behind {rules} with administrator users, so those triggers stay inactive.", { rules: adminRules.join(", ") })}</p>}
     {!allNotifications.length && !errors.length && !waitingRules?.length && <p className="empty-note">{t(statusMessage ?? "Nothing needs your attention right now.")}</p>}
   </NotificationSurface>;
   const hasMedia = ({ rule }: HomeNotification) => rule.kind !== "camera" && notificationWidgetMedia(rule).type !== "none";
