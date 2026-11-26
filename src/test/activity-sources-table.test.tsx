@@ -110,6 +110,11 @@ describe("Activity sources table", () => {
     openEditor(view());
     expect(card().getByLabelText("Group by")).toHaveValue("integration");
     expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Integration", "Device", "Type", "Source"]);
+    // A laptop shows the same path beside the Name header; that copy stays out of the header's name.
+    const nameHeader = table().getByRole("columnheader", { name: /^Name/ });
+    expect(nameHeader).toHaveAccessibleName("Name");
+    expect(nameHeader.querySelector(".activity-sources-header-path")).toHaveAttribute("aria-hidden", "true");
+    expect(nameHeader.querySelector(".activity-sources-header-path")!.textContent).toBe("IntegrationDeviceTypeSource");
     expect(outline()).toEqual([
       "Example Bells › Front doorbell unit › Doorbells (1 of 1 chosen)", "  Front doorbell",
       "Example Robots › Robot › Robot vacuums and mowers (1 of 1 chosen)", "  Robot vacuum",
@@ -647,20 +652,73 @@ describe("full-screen sources editor", () => {
     expect(box("Garage door")).toBeChecked();
   });
 
-  it("folds the filters behind one button that names how many are set", () => {
+  it("folds Group by and the four selects behind Filters, which names how many are set", () => {
     openEditor(view());
     const toggle = card().getByRole("button", { name: "Filters" });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
-    const [filters, actions] = toggle.getAttribute("aria-controls")!.split(" ").map(value => document.getElementById(value)!);
-    expect(within(filters).getByLabelText("Group by")).toBeInTheDocument();
-    expect(within(actions).getByRole("button", { name: "Choose all shown" })).toBeInTheDocument();
+    const options = document.getElementById(toggle.getAttribute("aria-controls")!)!;
+    expect(["Group by", "Show", "Type", "Area", "Integration"].map(label => within(options).getByLabelText(label))).toHaveLength(5);
+    expect(within(options).queryByRole("button")).toBeNull();
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute("aria-expanded", "true");
-    expect(filters).toHaveAttribute("data-open");
-    expect(actions).toHaveAttribute("data-open");
+    expect(options).toHaveAttribute("data-open");
     choose("Type", "locks");
     choose("Show", "chosen");
     expect(card().getByRole("button", { name: "Filters, 2 set" })).toBe(toggle);
+    fireEvent.click(toggle);
+    expect(options).not.toHaveAttribute("data-open");
+  });
+
+  it("folds the bulk actions behind Change shown beside the results", () => {
+    openEditor(view());
+    const toggle = card().getByRole("button", { name: "Change shown" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const actions = document.getElementById(toggle.getAttribute("aria-controls")!)!;
+    expect(actions).toHaveAccessibleName("Change shown sources");
+    expect(within(actions).getAllByRole("button").map(button => button.textContent)).toEqual(["Choose all shown", "Remove all shown", "Use suggested sources"]);
+    // It sits on the results line, after the count and the filter chips.
+    expect(toggle.closest(".activity-sources-results")).toBe(card().getByText(/ shown, /).parentElement);
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(actions).toHaveAttribute("data-open");
+    fireEvent.click(within(actions).getByRole("button", { name: "Remove all shown" }));
+    expect(card().getByText("0 sources chosen")).toBeInTheDocument();
+  });
+
+  it("shows each set filter as a removable chip without opening Filters, and Clear filters removes them all", () => {
+    openEditor(view());
+    expect(card().queryByRole("list", { name: "Active filters" })).toBeNull();
+    choose("Type", "locks");
+    choose("Area", "hall");
+    choose("Show", "chosen");
+    const chips = () => within(card().getByRole("list", { name: "Active filters" })).getAllByRole("button").map(chip => chip.getAttribute("aria-label"));
+    expect(chips()).toEqual(["Remove filter Show: Chosen sources", "Remove filter Type: Locks", "Remove filter Area: Example hall"]);
+    // The chips live beside the results, outside the folded filters.
+    const filtersPanel = document.getElementById(card().getByRole("button", { name: /^Filters/ }).getAttribute("aria-controls")!)!;
+    expect(filtersPanel.contains(card().getByRole("list", { name: "Active filters" }))).toBe(false);
+    expect(card().getByRole("button", { name: "Remove filter Type: Locks" })).toHaveTextContent("Type: Locks");
+    // Removing one clears that filter only and moves focus to the chip that takes its place.
+    fireEvent.click(card().getByRole("button", { name: "Remove filter Type: Locks" }));
+    expect(card().getByLabelText("Type")).toHaveValue("all");
+    expect(card().getByLabelText("Area")).toHaveValue("hall");
+    expect(chips()).toEqual(["Remove filter Show: Chosen sources", "Remove filter Area: Example hall"]);
+    expect(card().getByRole("button", { name: "Remove filter Area: Example hall" })).toHaveFocus();
+    expect(card().getByRole("button", { name: "Filters, 2 set" })).toBeInTheDocument();
+    fireEvent.click(card().getByRole("button", { name: "Remove filter Area: Example hall" }));
+    expect(card().getByRole("button", { name: "Remove filter Show: Chosen sources" })).toHaveFocus();
+    // The last chip hands focus to the search field.
+    fireEvent.click(card().getByRole("button", { name: "Remove filter Show: Chosen sources" }));
+    expect(card().queryByRole("list", { name: "Active filters" })).toBeNull();
+    expect(card().getByRole("searchbox", { name: "Search sources" })).toHaveFocus();
+    // Clear filters still clears every filter and its chips at once.
+    choose("Integration", "hue");
+    fireEvent.change(card().getByRole("searchbox", { name: "Search sources" }), { target: { value: "lamp" } });
+    expect(chips()).toEqual(["Remove filter Integration: Philips Hue"]);
+    fireEvent.click(card().getByRole("button", { name: "Clear filters" }));
+    expect(card().queryByRole("list", { name: "Active filters" })).toBeNull();
+    expect(card().getByLabelText("Integration")).toHaveValue("all");
+    expect(card().getByRole("searchbox", { name: "Search sources" })).toHaveValue("");
+    expect(card().getByRole("button", { name: "Filters" })).toBeInTheDocument();
   });
 });
 
@@ -687,7 +745,7 @@ describe("readable tree rows", () => {
       return { ...entity, device: owner, integration, areaId };
     });
   })();
-  const headers = () => table().getAllByRole("columnheader").map(header => header.textContent);
+  const headers = () => table().getAllByRole("columnheader").map(header => header.querySelector(".activity-sources-sort")!.textContent);
   const cells = (name: string) => within(row(name)).queryAllByRole("gridcell").map(cell => cell.textContent);
   // What a sighted reader sees: the name without its screen-reader-only part.
   const visibleName = (name: string) => [...row(name).querySelector("strong")!.childNodes].filter(node => !(node instanceof HTMLElement && node.classList.contains("sr-only"))).map(node => node.textContent).join("");
@@ -815,7 +873,12 @@ describe("phone layout contract", () => {
   // pushing the dock past the edge. The table becomes stacked entries inside the card's own width instead.
   const css: string = sourceFile("components/activity-sources-table.css");
   const phone = css.slice(css.indexOf("@container activity-sources (max-width: 40rem) {"));
-  const compact = css.slice(css.indexOf("@container activity-sources (max-width: 40rem) or (max-height: 44rem) {"), css.indexOf("@container activity-sources (max-width: 40rem) {"));
+  const compactQuery = "@container activity-sources (max-width: 40rem) or (max-height: 64rem) {";
+  const laptopQuery = "@container activity-sources (width > 40rem) and (max-height: 64rem) {";
+  // Everything before the compact block is the wall's open layout; the compact block applies to every laptop and phone.
+  const open = css.slice(0, css.indexOf(compactQuery));
+  const compact = css.slice(css.indexOf(compactQuery), css.indexOf(laptopQuery));
+  const laptop = css.slice(css.indexOf(laptopQuery), css.indexOf(".activity-sources-table { width: 100%;"));
   const declarations = (source: string, selector: string) => {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return [...source.matchAll(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*\\{([^}]*)\\}`, "g"))].map(match => match[1]).join(";");
@@ -824,7 +887,7 @@ describe("phone layout contract", () => {
   it("measures the editor in both directions, in rem, so text size moves the breakpoints", () => {
     expect(declarations(css, ".activity-sources-editor")).toMatch(/container: activity-sources \/ size/);
     expect(phone).not.toBe(css);
-    expect(compact.length).toBeGreaterThan(0);
+    for (const block of [open, compact, laptop]) expect(block.length).toBeGreaterThan(0);
   });
 
   it("keeps the toolbar on top, the tree scrolling under a sticky header and the save bar at the foot", () => {
@@ -833,12 +896,56 @@ describe("phone layout contract", () => {
     expect(declarations(css, ".activity-sources-table thead th")).toMatch(/position: sticky; top: 0/);
     expect(declarations(phone, ".activity-sources-table thead")).toMatch(/position: sticky; top: 0/);
     expect(declarations(css, ".activity-sources-savebar")).not.toMatch(/position: sticky/);
-    // Narrow or short: the selects and bulk actions fold behind Filters, and the toolbar never takes most of the height.
+    // Below the wall's height the selects and bulk actions fold behind their buttons, and the toolbar never takes most of
+    // the height.
     expect(declarations(compact, ".activity-sources-filters")).toMatch(/display: none/);
     expect(declarations(compact, ".activity-sources-actions")).toMatch(/display: none/);
-    expect(declarations(compact, ".activity-sources-toolbar")).toMatch(/max-height: 60cqb; overflow-y: auto/);
-    // The description, search label, total and idle save note stay for screen readers only.
-    expect(declarations(compact, ":is(.activity-sources-editor-header > p, .activity-sources-search-label, .activity-sources-total, .activity-sources-savebar p:not([data-dirty]))")).toMatch(/position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\)/);
+    expect(declarations(compact, ".activity-sources-actions[data-open]")).toMatch(/display: flex; flex: 1 1 100%/);
+    expect(declarations(compact, ".activity-sources-toolbar")).toMatch(/max-height: 60cqb;[^;]*; overflow-y: auto/);
+    // The description, search label, total and the tree's path stay for screen readers only.
+    expect(declarations(compact, ":is(.activity-sources-editor-header > p, .activity-sources-search-label, .activity-sources-total, .activity-sources-levels)")).toMatch(/position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\)/);
+    expect(declarations(phone, ".activity-sources-actions-toggle > span, .activity-sources-savebar p:not([data-dirty])")).toMatch(/position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\)/);
+  });
+
+  // The toolbar's height budget: about 140px at 1024 × 768 and 1280 × 800, so the tree keeps at least 60% of the screen.
+  // Compact covers every height below 64rem (where the open toolbar would take more than about a quarter of the screen); the
+  // wall (1440 × 2560) shows everything.
+  it("keeps the toolbar to two rows below the wall's height, and shows everything on the wall", () => {
+    expect(css).toContain(compactQuery);
+    expect(css).toContain(laptopQuery);
+    // The wall: no fold buttons or chips, the selects and bulk actions in view, the path on its own line.
+    expect(declarations(open, ".activity-sources-options-toggle, .activity-sources-actions-toggle, .activity-sources-chips")).toMatch(/display: none/);
+    expect(declarations(open, ".activity-sources-options, .activity-sources-filters")).toMatch(/display: contents/);
+    expect(declarations(open, ".activity-sources-levels")).toMatch(/flex: 1 1 100%; order: 1/);
+    expect(declarations(open, ".activity-sources-header-path")).toMatch(/display: none/);
+    // Compact header: the title row only, level with the 48px close circle.
+    expect(declarations(compact, ".activity-sources-editor-header")).toMatch(/padding-block: \.75rem 0/);
+    // Row one: search, Filters and (on a laptop) Group by; row two: the results, the chips, Clear filters and Change shown.
+    expect(declarations(compact, ".activity-sources-query")).toMatch(/display: flex; flex-wrap: wrap/);
+    expect(declarations(compact, ".activity-sources-options-toggle")).toMatch(/display: inline-flex; min-height: 48px/);
+    expect(declarations(compact, ".activity-sources-actions-toggle")).toMatch(/display: inline-flex; margin-inline-start: auto/);
+    expect(declarations(compact, ".activity-sources-chips")).toMatch(/display: flex/);
+    expect(declarations(compact, ".activity-sources-results > button:disabled")).toMatch(/display: none/);
+    // A laptop keeps Group by in row one as one 48px field with its label inside, opens the four selects as a row of their
+    // own and shows the path beside the Name header.
+    expect(declarations(laptop, ".activity-sources-options")).toMatch(/display: contents/);
+    expect(declarations(laptop, ".activity-sources-query .activity-sources-group-by")).toMatch(/display: flex;[^}]*min-height: 48px/);
+    expect(declarations(laptop, ".activity-sources-options[data-open] > .activity-sources-filters")).toMatch(/display: grid; flex: 1 1 100%/);
+    expect(declarations(laptop, ".activity-sources-header-path")).toMatch(/display: inline-flex; flex-wrap: wrap/);
+    // A phone's first row is the search field and Filters alone; Group by folds with the selects and Change shown is a circle.
+    expect(declarations(phone, ".activity-sources-search")).toMatch(/flex-basis: 6rem/);
+    expect(declarations(phone, ".activity-sources-options")).toMatch(/display: none/);
+    expect(declarations(phone, ".activity-sources-options[data-open]")).toMatch(/display: grid/);
+    expect(declarations(phone, ".activity-sources-actions-toggle")).toMatch(/width: 48px; min-width: 48px; height: 48px/);
+    expect(declarations(phone, ".activity-sources-chip-label")).toMatch(/display: none/);
+  });
+
+  it("keeps filter chips touchable while they stay small", () => {
+    // A 2rem capsule whose hit area reaches 44px.
+    expect(declarations(css, ".activity-sources-chip")).toMatch(/min-height: 2rem/);
+    expect(declarations(css, ".activity-sources-chip::after")).toMatch(/position: absolute; inset: -6px -2px/);
+    expect(declarations(css, ".activity-sources-chip:focus-visible")).toMatch(/outline: 2px solid/);
+    expect(declarations(css, ".activity-sources-chip > span")).toMatch(/overflow-wrap: anywhere/);
   });
 
   it("turns rows into wrapping entries and the headers into wrapping sort capsules", () => {
@@ -877,8 +984,8 @@ describe("phone layout contract", () => {
   it("lets long names wrap and never sets a width wider than a phone", () => {
     expect(declarations(css, ".activity-sources-table :is(th, td)")).toMatch(/min-width: 0;[^;]*;[^;]*;[^;]*; overflow-wrap: anywhere/);
     expect(declarations(css, ".activity-sources-query")).toMatch(/minmax\(min\(100%, 9rem\), 1fr\)/);
-    expect(declarations(css, ".activity-sources-filters select")).toMatch(/width: 100%; min-width: 0/);
-    for (const selector of [".activity-sources-actions", ".activity-sources-results", ".activity-sources-savebar"]) expect(declarations(css, selector)).toMatch(/flex-wrap: wrap/);
+    expect(declarations(css, ".activity-sources-options select")).toMatch(/width: 100%; min-width: 0/);
+    for (const selector of [".activity-sources-actions", ".activity-sources-results", ".activity-sources-chips", ".activity-sources-savebar"]) expect(declarations(css, selector)).toMatch(/flex-wrap: wrap/);
     // No fixed widths beyond the 48px controls and the name's 16rem, which phones release.
     const widths = [...css.matchAll(/(?:^|[;{\s])(?:min-)?width: (\d+(?:\.\d+)?)(rem|px)/g)].map(([, value, unit]) => Number(value) * (unit === "rem" ? 16 : 1));
     expect(widths.filter(width => width > 48)).toEqual([256]);

@@ -1,5 +1,5 @@
 import { memo, useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, CircleAlert, Cpu, Layers, ListRestart, MapPin, Puzzle, Search, SlidersHorizontal, SquareCheck, SquareMinus, Tag, X, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, CircleAlert, Cpu, Layers, ListChecks, ListRestart, MapPin, Puzzle, Search, SlidersHorizontal, SquareCheck, SquareMinus, Tag, X, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { activityIcons } from "@/components/activity-icons";
 import { DeviceIcon } from "@/components/devices/DeviceControl";
@@ -122,8 +122,10 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
   const [toggled, setToggled] = useState<ReadonlySet<string>>(() => new Set());
   // The tree grid's single tab stop (roving tabindex).
   const [active, setActive] = useState<string>();
-  // On a narrow or short screen the filters fold behind one button, so the tree keeps most of the height.
+  // Below the wall's height (or on a phone) the filters fold behind one button, so the tree keeps most of the height.
   const [optionsOpen, setOptionsOpen] = useState(false);
+  // The bulk actions fold behind Change shown the same way, below the wall's height.
+  const [actionsOpen, setActionsOpen] = useState(false);
   const text = useDeferredValue(filters.text);
 
   const savedIds = useMemo(() => new Set(saved ?? suggestions), [saved, suggestions]);
@@ -297,16 +299,40 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
     }
   };
 
-  const select = (label: MessageKey, value: string, onChange: (value: string) => void, choices: [string, string][]) => <label>
-    {t(label)}<select value={value} onChange={event => onChange(event.target.value)}>{choices.map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select>
+  const select = (label: MessageKey, value: string, onChange: (value: string) => void, choices: [string, string][], className?: string) => <label className={className}>
+    <span>{t(label)}</span><select value={value} onChange={event => onChange(event.target.value)}>{choices.map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select>
   </label>;
   const levels = sourceLevels(grouping);
 
-  // The select filters that are set, for the folded filter button's badge (the search field stays in view).
-  const filtersSet = [filters.chosen, filters.category, filters.area, filters.integration].filter(value => value !== "all").length;
+  // The select filters that are set: the folded filter button's badge, and one removable chip each beside the results, so
+  // what narrows the tree shows without opening Filters (the search field stays in view and needs no chip).
+  const chips = ([
+    ["chosen", "Show", filters.chosen === "chosen" ? t("Chosen sources") : t("Not chosen")],
+    ["category", "Type", filters.category === "all" ? "" : categoryLabel(filters.category)],
+    ["area", "Area", options.areas.find(([key]) => key === filters.area)?.[1] ?? ""],
+    ["integration", "Integration", options.integrations.find(([key]) => key === filters.integration)?.[1] ?? ""],
+  ] as const).filter(([key]) => filters[key] !== "all");
+  const filtersSet = chips.length;
+  // Removing a chip moves focus to the chip that takes its place, or to the search field when it was the last one.
+  const chipList = useRef<HTMLUListElement>(null);
+  const [chipFocus, setChipFocus] = useState<number>();
+  useEffect(() => {
+    if (chipFocus === undefined) return;
+    const buttons = chipList.current?.querySelectorAll("button");
+    (buttons?.[Math.min(chipFocus, buttons.length - 1)] ?? searchField.current)?.focus();
+    setChipFocus(undefined);
+  }, [chipFocus]);
+
+  // The tree's levels in order, each led by its glyph: in the toolbar on the wall, and beside the Name header on a laptop or
+  // desktop, where it costs the toolbar no row (that copy is hidden from assistive technology, which reads the toolbar's).
+  const levelPath = [...levels, "source" as const].map((level, index) => {
+    const Glyph = level === "source" ? SquareCheck : levelGlyphs[level];
+    return <li key={level}>{index > 0 && <ChevronRight className="activity-sources-levels-step" size={14} aria-hidden="true" />}<Glyph size={14} aria-hidden="true" />{t(level === "source" ? "Source" : levelLabels[level])}</li>;
+  });
 
   return <div className="activity-sources">
-    {/* Search, filters, grouping and the bulk actions stay above the tree while it scrolls. */}
+    {/* Search, filters, grouping and the bulk actions stay above the tree while it scrolls. Below the wall's height they keep
+        to two rows: search, Filters and Group by; then the results with the active filters, the tree's path and Change shown. */}
     <div className="activity-sources-toolbar">
       <p className="activity-sources-total" role="status">
         <strong>{t(chosen.size === 1 ? "1 source chosen" : "{count} sources chosen", { count: chosen.size })}</strong>
@@ -317,22 +343,39 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
           <Search size={18} aria-hidden="true" />
           <Input ref={searchField} type="search" value={filters.text} placeholder={t("Name, device, room or ID")} onChange={event => filter({ text: event.target.value })} />
         </span></label>
-        <Button type="button" variant="outline" className="activity-sources-options-toggle" aria-expanded={optionsOpen} aria-controls={`${id}-filters ${id}-actions`} onClick={() => setOptionsOpen(open => !open)}>
+        <Button type="button" variant="outline" className="activity-sources-options-toggle" aria-expanded={optionsOpen} aria-controls={`${id}-filters`} onClick={() => setOptionsOpen(open => !open)}>
           <SlidersHorizontal size={18} aria-hidden="true" />{t("Filters")}
           {filtersSet > 0 && <span className="activity-sources-options-count"><span aria-hidden="true">{filtersSet}</span><span className="sr-only">, {t("{count} set", { count: filtersSet })}</span></span>}
         </Button>
-        <div className="activity-sources-filters" id={`${id}-filters`} data-open={optionsOpen || undefined}>
-          {select("Group by", grouping, value => regroup(value as SourceGrouping), groupings.map(choice => [choice.value, t(choice.label)]))}
-          {select("Show", filters.chosen, value => filter({ chosen: value as SourceFilters["chosen"] }), [["all", t("All entities")], ["chosen", t("Chosen sources")], ["unchosen", t("Not chosen")]])}
-          {select("Type", filters.category, value => filter({ category: value as SourceFilters["category"] }), [["all", t("All types")], ...options.categories.map((category): [string, string] => [category, categoryLabel(category)])])}
-          {select("Area", filters.area, value => filter({ area: value }), [["all", t("All areas")], ...options.areas])}
-          {select("Integration", filters.integration, value => filter({ integration: value }), [["all", t("All integrations")], ...options.integrations])}
+        <div className="activity-sources-options" id={`${id}-filters`} data-open={optionsOpen || undefined}>
+          {select("Group by", grouping, value => regroup(value as SourceGrouping), groupings.map(choice => [choice.value, t(choice.label)]), "activity-sources-group-by")}
+          <div className="activity-sources-filters">
+            {select("Show", filters.chosen, value => filter({ chosen: value as SourceFilters["chosen"] }), [["all", t("All entities")], ["chosen", t("Chosen sources")], ["unchosen", t("Not chosen")]])}
+            {select("Type", filters.category, value => filter({ category: value as SourceFilters["category"] }), [["all", t("All types")], ...options.categories.map((category): [string, string] => [category, categoryLabel(category)])])}
+            {select("Area", filters.area, value => filter({ area: value }), [["all", t("All areas")], ...options.areas])}
+            {select("Integration", filters.integration, value => filter({ integration: value }), [["all", t("All integrations")], ...options.integrations])}
+          </div>
         </div>
       </div>
       <div className="activity-sources-results">
         <p role="status" id={`${id}-results`}>{t("{shown} of {total} shown, {chosen} chosen", { shown: shown.length, total: rows.length, chosen: shownChosen })}</p>
+        {chips.length > 0 && <ul className="activity-sources-chips" ref={chipList} aria-label={t("Active filters")}>
+          {chips.map(([key, label, value], index) => <li key={key}>
+            <button type="button" className="activity-sources-chip" aria-label={t("Remove filter {filter}", { filter: `${t(label)}: ${value}` })}
+              onClick={() => { filter({ [key]: "all" }); setChipFocus(index); }}>
+              <span><span className="activity-sources-chip-label">{t(label)}: </span><strong>{value}</strong></span><X size={14} aria-hidden="true" />
+            </button>
+          </li>)}
+        </ul>}
         <Button type="button" variant="ghost" disabled={!anyFilter} onClick={clearFilters}><X size={16} aria-hidden="true" />{t("Clear filters")}</Button>
-        <div className="activity-sources-actions" id={`${id}-actions`} data-open={optionsOpen || undefined} role="group" aria-label={t("Change shown sources")}>
+        {!!levels.length && <div className="activity-sources-levels" id={`${id}-levels`}>
+          <ol aria-label={t("Tree levels")}>{levelPath}</ol>
+          <p>{t("A group with only one group inside shares its row with it, and the inner name is shown below.")}</p>
+        </div>}
+        <Button type="button" variant="outline" className="activity-sources-actions-toggle" aria-expanded={actionsOpen} aria-controls={`${id}-actions`} onClick={() => setActionsOpen(open => !open)}>
+          <ListChecks size={18} aria-hidden="true" /><span>{t("Change shown")}</span><ChevronDown className="activity-sources-actions-chevron" size={16} aria-hidden="true" />
+        </Button>
+        <div className="activity-sources-actions" id={`${id}-actions`} data-open={actionsOpen || undefined} role="group" aria-label={t("Change shown sources")}>
           <Button type="button" variant="outline" disabled={disabled || !notShownChosen.length} onClick={() => change(notShownChosen, true)}><SquareCheck size={16} aria-hidden="true" />{t("Choose all shown")}</Button>
           <Button type="button" variant="outline" disabled={disabled || !shownChosenIds.length} onClick={() => change(shownChosenIds, false)}><SquareMinus size={16} aria-hidden="true" />{t("Remove all shown")}</Button>
           <Button type="button" variant="outline" disabled={disabled || following && sameSources(chosen, suggestionIds)} onClick={useSuggested}><ListRestart size={16} aria-hidden="true" />{t("Use suggested sources")}</Button>
@@ -340,15 +383,6 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
       </div>
     </div>
     <div className="activity-sources-scroll">
-    {!!levels.length && <div className="activity-sources-levels" id={`${id}-levels`}>
-      <ol aria-label={t("Tree levels")}>
-        {[...levels, "source" as const].map((level, index) => {
-          const Glyph = level === "source" ? SquareCheck : levelGlyphs[level];
-          return <li key={level}>{index > 0 && <ChevronRight className="activity-sources-levels-step" size={14} aria-hidden="true" />}<Glyph size={14} aria-hidden="true" />{t(level === "source" ? "Source" : levelLabels[level])}</li>;
-        })}
-      </ol>
-      <p>{t("A group with only one group inside shares its row with it, and the inner name is shown below.")}</p>
-    </div>}
     <p className="activity-sources-sort-label" aria-hidden="true">{t("Sort by")}</p>
     <table className="activity-sources-table" role="treegrid" aria-describedby={levels.length ? `${id}-results ${id}-levels` : `${id}-results`}>
       <caption className="sr-only">{t("Activity sources")}</caption>
@@ -358,6 +392,7 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
           const Arrow = !current ? ArrowUpDown : sort.direction === "ascending" ? ArrowUp : ArrowDown;
           return <th role="columnheader" scope="col" key={key} aria-sort={current ? sort.direction : undefined} className={`activity-sources-column-${key}`}>
             <button type="button" className="activity-sources-sort" onClick={() => sortBy(key)}>{t(columnLabels[key])}<Arrow size={16} aria-hidden="true" /></button>
+            {key === "name" && !!levels.length && <ol className="activity-sources-header-path" aria-hidden="true">{levelPath}</ol>}
           </th>;
         })}
       </tr></thead>
