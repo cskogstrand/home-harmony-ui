@@ -1,10 +1,10 @@
-import { ArrowUp, ChevronDown, Fan, Gauge, LockKeyhole, Route, Search } from "lucide-react";
+import { ArrowUp, ChevronDown, CircleAlert, Fan, Gauge, LockKeyhole, Route, Search } from "lucide-react";
 import { vehicleViews } from "./vehicle-views";
 import { useApp } from "@/contexts/AppContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { available, entityStateLabel, humanizeState } from "@/lib/ha-model";
 import { withUnit } from "@/lib/i18n";
-import { accessStatus, cabinSetpoint, cabinState, metricKey, readingName, teslaModelVariant, tyrePressureBar, vehicleGroup, vehicleSystems, vehicleTrip, type VehicleSystem } from "@/lib/vehicles";
+import { accessStatus, cabinSetpoint, cabinState, metricKey, readingName, teslaModelVariant, tyreFault, tyrePressureBar, tyreWheels, vehicleGroup, vehicleSystems, vehicleTrip, type VehicleSystem, type Wheel } from "@/lib/vehicles";
 import type { Entity } from "@/types/api";
 import { DeviceControl } from "@/components/devices/DeviceControl";
 import { Input } from "@/components/ui/input";
@@ -13,17 +13,22 @@ import { lazy, Suspense, useState } from "react";
 
 const VehicleMap = lazy(() => import("./VehicleMap"));
 
-function VehicleReading({ entity, label = readingName(entity) }: { entity: Entity; label?: string }) {
+function VehicleReading({ entity, label = readingName(entity), wheel }: { entity: Entity; label?: string; wheel?: Wheel }) {
   const { currentHome } = useApp();
-  const { t, message, locale, language } = useI18n();
+  const { t, message, locale, language, reading } = useI18n();
   const date = (value: string) => new Intl.DateTimeFormat(locale, { timeZone: currentHome.timeZone, dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
   const reported = available(entity);
   const timestamp = entity.attributes.device_class === "timestamp" || ["button", "update", "image"].includes(entity.domain);
   const state = entity.domain === "button" && entity.state === "unknown" ? t("No recorded use") : timestamp && Number.isFinite(Date.parse(entity.state)) ? date(entity.state) : entityStateLabel(entity, language);
-  const wheel = vehicleGroup(entity) === "Wheel pressures" && (entity.attributes.device_class === "pressure" || /tpms|pressure/.test(metricKey(entity)) && !/warning|alert|fault|last_seen/.test(metricKey(entity)) && entity.domain === "sensor");
   const pressure = wheel ? tyrePressureBar(entity) : undefined;
   const unit = !wheel && reported && typeof entity.attributes.unit_of_measurement === "string" ? entity.attributes.unit_of_measurement : "";
-  const value = wheel ? pressure === undefined ? t("Not reported") : `${pressure.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} bar` : withUnit(message(state), unit);
+  // Tyre pressures share one unit across cars: bar with one decimal.
+  const value = wheel ? pressure === undefined ? t("Not reported") : reading(pressure, { unit: "bar", deviceClass: "pressure", precision: 1 }) : withUnit(message(state), unit);
+  const status = wheel?.status;
+  const statusLabel = status && message(entityStateLabel(status, language));
+  const fault = status && tyreFault(status);
+  const note = !status ? undefined : wheel.condition === "fault" ? fault ? t(fault) : statusLabel
+    : wheel.condition === "unknown" ? t("Tyre status unknown") : t("Tyre status: {status}", { status: statusLabel ?? "" });
   // Include Tesla's extra readings (such as individual doors), but omit HA metadata and media access URLs.
   const attributes = reported ? Object.entries(entity.attributes).flatMap(([key, value]) => {
     if (/^(friendly_name|icon|device_class|state_class|unit_of_measurement|attribution|supported_features|options|entity_picture.*)$/i.test(key)
@@ -39,11 +44,17 @@ function VehicleReading({ entity, label = readingName(entity) }: { entity: Entit
     return [{ key, text }];
   }) : [];
   return <details className="vehicle-reading">
-    <summary><span>{message(label)}</span><strong>{value}</strong><ChevronDown size={15} aria-hidden="true" /></summary>
+    <summary><span>{message(label)}</span><strong>{value}</strong>
+      {note && <small className={wheel?.condition === "ok" ? "sr-only" : "vehicle-wheel-note"}>{wheel?.condition === "fault" && <CircleAlert size={16} aria-hidden="true" />}{note}</small>}
+      <ChevronDown size={15} aria-hidden="true" /></summary>
     <dl className="device-readings">
       {attributes.map(({ key, text }) => <div key={key}><dt>{message(humanizeState(key))}</dt><dd>{text}</dd></div>)}
       <div><dt>{t("Last updated")}</dt><dd>{entity.lastUpdated && Number.isFinite(Date.parse(entity.lastUpdated)) ? date(entity.lastUpdated) : t("Not reported")}</dd></div>
       <div><dt>{t("Entity ID")}</dt><dd>{entity.entityId}</dd></div>
+      {status && <>
+        <div><dt>{t("Tyre status")}</dt><dd>{statusLabel}</dd></div>
+        <div><dt>{t("Status entity ID")}</dt><dd>{status.entityId}</dd></div>
+      </>}
     </dl>
   </details>;
 }
@@ -165,9 +176,10 @@ export function VehicleSystemPanel({ system, entities, addressEntity, model, ver
         {!term && name === "Doors & security" && <VehicleAccess entities={entities} />}
         {!term && name === "Vehicle & service" && version && <p className="vehicle-version">{t("Software version")} <strong>{version}</strong></p>}
         {groups.map(({ group, rows }) => {
-          const spatial = group === "Wheel pressures" || group === "Seat heating";
-          const slots = spatial ? positions.map(([label, pattern]) => ({ label, rows: rows.filter(e => pattern.test(metricKey(e))) })) : [];
-          const other = spatial ? rows.filter(e => !slots.some(slot => slot.rows.includes(e))) : rows;
+          const tyres = group === "Wheel pressures" ? tyreWheels(rows) : undefined;
+          const spatial = !!tyres || group === "Seat heating";
+          const slots = group === "Seat heating" ? positions.map(([label, pattern]) => ({ label, rows: rows.filter(e => pattern.test(metricKey(e))) })) : [];
+          const other = tyres ? tyres.unplaced : spatial ? rows.filter(e => !slots.some(slot => slot.rows.includes(e))) : rows;
           if (group === "Last commands") other.sort((a,b) => (Date.parse(b.state) || 0) - (Date.parse(a.state) || 0));
           const fields = (highlightedFields[group] ?? []).flatMap(([key, label, unit]) => {
             const value = rows.find(e => available(e) && e.attributes[key] != null)?.attributes[key];
@@ -178,9 +190,15 @@ export function VehicleSystemPanel({ system, entities, addressEntity, model, ver
             {group === "Doors and windows" && <OpeningPositions entities={rows} />}
             {fields.length > 0 && <dl className="vehicle-highlights">{fields.map(f => <div key={f.label}><dt>{message(f.label)}</dt><dd>{f.value}</dd></div>)}</dl>}
             {spatial && <div className={group === "Wheel pressures" ? "vehicle-wheels" : "vehicle-seats"}>
-              {group === "Wheel pressures" && <img className="vehicle-tyre-plan" src={variant ? `/vehicles/model-${variant}-top.webp` : "/vehicles/tyre-plan.webp"} alt={variant ? t("{model} viewed from above", { model }) : t("Car viewed from above, front at the top")} />}
-              {slots.map(({ label, rows: readings }) => readings.length ? <div key={label} data-position={label}>{readings.map(e => <VehicleReading key={e.preferenceId} entity={e} label={label} />)}</div>
-                : !term && group === "Wheel pressures" && label !== "Rear center" && <div key={label} data-position={label}><span>{t(label)}</span><strong aria-label={t("Not reported")}>—</strong></div>)}</div>}
+              {tyres && <img className="vehicle-tyre-plan" src={variant ? `/vehicles/model-${variant}-top.webp` : "/vehicles/tyre-plan.webp"} alt={variant ? t("{model} viewed from above", { model }) : t("Car viewed from above, front at the top")} />}
+              {tyres?.wheels.map(wheel => {
+                const { position: label, pressure, status, other: extra } = wheel;
+                const readings = [pressure ? <VehicleReading key={pressure.preferenceId} entity={pressure} label={label} wheel={wheel} /> : status && <VehicleReading key={status.preferenceId} entity={status} label={label} />,
+                  ...extra.map(e => <VehicleReading key={e.preferenceId} entity={e} label={label} />)].filter(Boolean);
+                return readings.length ? <div key={label} data-position={label} data-condition={pressure && wheel.condition}>{readings}</div>
+                  : !term && <div key={label} data-position={label}><span>{t(label)}</span><strong aria-label={t("Not reported")}>—</strong></div>;
+              })}
+              {slots.map(({ label, rows: readings }) => readings.length > 0 && <div key={label} data-position={label}>{readings.map(e => <VehicleReading key={e.preferenceId} entity={e} label={label} />)}</div>)}</div>}
             <div className="vehicle-values">{other.map(e => <VehicleReading key={e.preferenceId} entity={e} label={readingLabel(e)} />)}</div>
           </section>;
         })}
