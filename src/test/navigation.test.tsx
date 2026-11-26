@@ -46,7 +46,8 @@ beforeEach(() => {
   Object.defineProperty(document, "execCommand", { configurable: true, value: vi.fn(() => false) });
 });
 afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(document, "execCommand"); });
-const pageReady = () => waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
+// The page skeleton speaks the remembered language until shared settings arrive, so match both.
+const pageReady = () => waitFor(() => expect(screen.queryByText(/^(Loading|Laster)…$/)).not.toBeInTheDocument());
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   await screen.findByRole("heading", { level: 1, name });
