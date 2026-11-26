@@ -1,7 +1,7 @@
 import type { Area, Entity } from "@/types/api";
 import { activityCategories, type ActivityCategory } from "../../shared/configuration";
 import { activityIconCategory, activitySourceIcon, type ActivityIcon } from "./activity";
-import type { MessageKey } from "./i18n";
+import { msg, type Message, type MessageKey } from "./i18n";
 
 /** Event type names, as under Settings → Activity → Event types. */
 export const activityCategoryLabels: Record<ActivityCategory, MessageKey> = {
@@ -191,3 +191,22 @@ export function withSources(chosen: ReadonlySet<string>, ids: Iterable<string>, 
 
 export const sameSources = (a: ReadonlySet<string>, b: ReadonlySet<string>) => a.size === b.size && [...a].every(id => b.has(id));
 export const sourceChanges = (a: ReadonlySet<string>, b: ReadonlySet<string>) => [...a].filter(id => !b.has(id)).length + [...b].filter(id => !a.has(id)).length;
+
+/**
+ * How the chosen sources split by event type, in the Event types order with unavailable sources last: the settings card's
+ * summary. Types with nothing chosen are left out.
+ */
+export function chosenSourceSummary(candidates: Entity[], chosen: Iterable<string>, personSensors: ReadonlySet<string>) {
+  const categories = new Map(candidates.map(entity => [entity.preferenceId, activityIconCategory(activitySourceIcon(entity, personSensors))]));
+  const counts = new Map<ActivitySourceRow["category"], number>();
+  for (const id of new Set(chosen)) {
+    const category = categories.get(id) ?? "missing";
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
+  return [...activityCategories, "missing" as const].filter(category => counts.has(category)).map(category => ({ category, count: counts.get(category)! }));
+}
+
+/** The confirmation's description: how many changes to Activity sources leaving would lose. */
+export const unsavedSourcesDescription = (changes: number): Message => changes
+  ? msg(changes === 1 ? "1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave." : "{count} changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.", { count: changes })
+  : "Your changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.";

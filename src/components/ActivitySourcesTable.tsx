@@ -1,5 +1,5 @@
-import { Fragment, memo, useCallback, useDeferredValue, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, CircleAlert, Cpu, Layers, ListRestart, MapPin, Puzzle, Search, SquareCheck, SquareMinus, Tag, X, type LucideIcon } from "lucide-react";
+import { Fragment, memo, useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, CircleAlert, Cpu, Layers, ListRestart, MapPin, Puzzle, Search, SlidersHorizontal, SquareCheck, SquareMinus, Tag, X, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { activityIcons } from "@/components/activity-icons";
 import { DeviceIcon } from "@/components/devices/DeviceControl";
@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { UnsavedChangesGuard } from "@/components/common/UnsavedChangesGuard";
-import { activityCategoryIcons, activityCategoryLabels, activitySourceRows, buildSourceTree, emptySourceFilters, filterSourceRows, missingSourceRows, sameSources, sortSourceRows, sourceChanges, sourceFiltersActive, sourceLevels, withSources,
+import { activityCategoryIcons, activityCategoryLabels, activitySourceRows, buildSourceTree, emptySourceFilters, filterSourceRows, missingSourceRows, sameSources, sortSourceRows, sourceChanges, sourceFiltersActive, sourceLevels, unsavedSourcesDescription, withSources,
   type ActivitySourceRow, type SourceFilters, type SourceGrouping, type SourceLevel, type SourceSort, type SourceSortKey, type SourceTreeNode, type SourceTreePart } from "@/lib/activity-sources";
 import type { ActivityIcon } from "@/lib/activity";
-import { msg, type MessageKey } from "@/lib/i18n";
+import type { MessageKey } from "@/lib/i18n";
 import type { Area, Entity } from "@/types/api";
 import { activityCategories, type ActivityCategory } from "../../shared/configuration";
 import "./activity-sources-table.css";
@@ -73,9 +73,12 @@ export type ActivitySourcesTableProps = {
   disabled: boolean;
   /** Saves the sources (undefined follows the suggestions); false keeps the draft. */
   onSave: (sources: string[] | undefined) => boolean;
-  /** Where focus goes when the save bar closes. */
-  onSettled: () => void;
+  /** Closes the editor after Cancel or a successful save; the draft goes with it. */
+  onClose: () => void;
+  /** Reports whether the draft differs from what is saved, and by how many sources, so closing can ask first. */
+  onDirtyChange?: (dirty: boolean, changes: number) => void;
 };
+
 type Draft = { ids: ReadonlySet<string>; suggested: boolean };
 /** A visible row of the tree: a group (`node`) or a source (`row`), with its place among its siblings. */
 type Line = { key: string; level: number; setsize: number; posinset: number; parent?: string } & ({ node: SourceTreeNode; open: boolean; row?: undefined } | { row: ActivitySourceRow; node?: undefined; open?: undefined });
@@ -84,7 +87,7 @@ type Line = { key: string; level: number; setsize: number; posinset: number; par
  * Every entity that can report activity, as a tree grid that can be searched, filtered, sorted and grouped. Ticks collect in
  * a draft until Save sources, so choosing dozens of sources writes the shared configuration once.
  */
-export function ActivitySourcesTable({ candidates, areas, saved, suggestions, personSensors, hidden, disabled, onSave, onSettled }: ActivitySourcesTableProps) {
+export function ActivitySourcesTable({ candidates, areas, saved, suggestions, personSensors, hidden, disabled, onSave, onClose, onDirtyChange }: ActivitySourcesTableProps) {
   const { t, language } = useI18n();
   const id = useId();
   const searchField = useRef<HTMLInputElement>(null);
@@ -100,6 +103,8 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
   const [toggled, setToggled] = useState<ReadonlySet<string>>(() => new Set());
   // The tree grid's single tab stop (roving tabindex).
   const [active, setActive] = useState<string>();
+  // On a narrow or short screen the filters fold behind one button, so the tree keeps most of the height.
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const text = useDeferredValue(filters.text);
 
   const savedIds = useMemo(() => new Set(saved ?? suggestions), [saved, suggestions]);
@@ -108,6 +113,7 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
   const following = draft ? draft.suggested : !saved;
   const dirty = !!draft && (draft.suggested !== !saved || !sameSources(draft.ids, savedIds));
   const changes = draft ? sourceChanges(draft.ids, savedIds) : 0;
+  useEffect(() => { onDirtyChange?.(dirty, changes); }, [dirty, changes, onDirtyChange]);
 
   const categoryLabel = useCallback((category: ActivityCategory | "missing") => t(category === "missing" ? "Unavailable sources" : activityCategoryLabels[category]), [t]);
   // The hook builds a new object every render; a string key keeps the rows memoized until a camera or its name changes.
@@ -187,11 +193,11 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
 
   const useSuggested = () => { setDraft({ ids: suggestionIds, suggested: true }); setFailed(false); };
   const discard = () => { setDraft(null); setFailed(false); setKept(new Set()); };
-  const cancel = () => { discard(); onSettled(); };
+  const cancel = () => { discard(); onClose(); };
   const save = () => {
-    if (!draft) return;
+    if (!draft || !dirty) return;
     if (!onSave(draft.suggested ? undefined : [...draft.ids])) { setFailed(true); return; }
-    setDraft(null); setFailed(false); setKept(new Set()); onSettled();
+    discard(); onClose();
   };
 
   const notShownChosen = shown.filter(row => !chosen.has(row.id)).map(row => row.id);
@@ -261,31 +267,44 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
   </label>;
   const levels = sourceLevels(grouping);
 
+  // The select filters that are set, for the folded filter button's badge (the search field stays in view).
+  const filtersSet = [filters.chosen, filters.category, filters.area, filters.integration].filter(value => value !== "all").length;
+
   return <div className="activity-sources">
-    <p className="activity-sources-total" role="status">
-      <strong>{t(chosen.size === 1 ? "1 source chosen" : "{count} sources chosen", { count: chosen.size })}</strong>
-      <span>{following ? t("Following the suggestions") : t("of {count} entities that can report activity", { count: known.length })}</span>
-    </p>
-    <div className="activity-sources-filters" role="search" aria-label={t("Filter sources")}>
-      <label className="activity-sources-search">{t("Search sources")}<span className="activity-sources-search-field">
-        <Search size={18} aria-hidden="true" />
-        <Input ref={searchField} type="search" value={filters.text} placeholder={t("Name, device, room or ID")} onChange={event => filter({ text: event.target.value })} />
-      </span></label>
-      {select("Group by", grouping, value => regroup(value as SourceGrouping), groupings.map(choice => [choice.value, t(choice.label)]))}
-      {select("Show", filters.chosen, value => filter({ chosen: value as SourceFilters["chosen"] }), [["all", t("All entities")], ["chosen", t("Chosen sources")], ["unchosen", t("Not chosen")]])}
-      {select("Type", filters.category, value => filter({ category: value as SourceFilters["category"] }), [["all", t("All types")], ...options.categories.map((category): [string, string] => [category, categoryLabel(category)])])}
-      {select("Area", filters.area, value => filter({ area: value }), [["all", t("All areas")], ...options.areas])}
-      {select("Integration", filters.integration, value => filter({ integration: value }), [["all", t("All integrations")], ...options.integrations])}
+    {/* Search, filters, grouping and the bulk actions stay above the tree while it scrolls. */}
+    <div className="activity-sources-toolbar">
+      <p className="activity-sources-total" role="status">
+        <strong>{t(chosen.size === 1 ? "1 source chosen" : "{count} sources chosen", { count: chosen.size })}</strong>
+        <span>{following ? t("Following the suggestions") : t("of {count} entities that can report activity", { count: known.length })}</span>
+      </p>
+      <div className="activity-sources-query" role="search" aria-label={t("Filter sources")}>
+        <label className="activity-sources-search">{t("Search sources")}<span className="activity-sources-search-field">
+          <Search size={18} aria-hidden="true" />
+          <Input ref={searchField} type="search" value={filters.text} placeholder={t("Name, device, room or ID")} onChange={event => filter({ text: event.target.value })} />
+        </span></label>
+        <Button type="button" variant="outline" className="activity-sources-options-toggle" aria-expanded={optionsOpen} aria-controls={`${id}-filters ${id}-actions`} onClick={() => setOptionsOpen(open => !open)}>
+          <SlidersHorizontal size={18} aria-hidden="true" />{t("Filters")}
+          {filtersSet > 0 && <span className="activity-sources-options-count"><span aria-hidden="true">{filtersSet}</span><span className="sr-only">, {t("{count} set", { count: filtersSet })}</span></span>}
+        </Button>
+        <div className="activity-sources-filters" id={`${id}-filters`} data-open={optionsOpen || undefined}>
+          {select("Group by", grouping, value => regroup(value as SourceGrouping), groupings.map(choice => [choice.value, t(choice.label)]))}
+          {select("Show", filters.chosen, value => filter({ chosen: value as SourceFilters["chosen"] }), [["all", t("All entities")], ["chosen", t("Chosen sources")], ["unchosen", t("Not chosen")]])}
+          {select("Type", filters.category, value => filter({ category: value as SourceFilters["category"] }), [["all", t("All types")], ...options.categories.map((category): [string, string] => [category, categoryLabel(category)])])}
+          {select("Area", filters.area, value => filter({ area: value }), [["all", t("All areas")], ...options.areas])}
+          {select("Integration", filters.integration, value => filter({ integration: value }), [["all", t("All integrations")], ...options.integrations])}
+        </div>
+      </div>
+      <div className="activity-sources-results">
+        <p role="status" id={`${id}-results`}>{t("{shown} of {total} shown, {chosen} chosen", { shown: shown.length, total: rows.length, chosen: shownChosen })}</p>
+        <Button type="button" variant="ghost" disabled={!anyFilter} onClick={clearFilters}><X size={16} aria-hidden="true" />{t("Clear filters")}</Button>
+        <div className="activity-sources-actions" id={`${id}-actions`} data-open={optionsOpen || undefined} role="group" aria-label={t("Change shown sources")}>
+          <Button type="button" variant="outline" disabled={disabled || !notShownChosen.length} onClick={() => change(notShownChosen, true)}><SquareCheck size={16} aria-hidden="true" />{t("Choose all shown")}</Button>
+          <Button type="button" variant="outline" disabled={disabled || !shownChosenIds.length} onClick={() => change(shownChosenIds, false)}><SquareMinus size={16} aria-hidden="true" />{t("Remove all shown")}</Button>
+          <Button type="button" variant="outline" disabled={disabled || following && sameSources(chosen, suggestionIds)} onClick={useSuggested}><ListRestart size={16} aria-hidden="true" />{t("Use suggested sources")}</Button>
+        </div>
+      </div>
     </div>
-    <div className="activity-sources-results">
-      <p role="status" id={`${id}-results`}>{t("{shown} of {total} shown, {chosen} chosen", { shown: shown.length, total: rows.length, chosen: shownChosen })}</p>
-      <Button type="button" variant="ghost" disabled={!anyFilter} onClick={clearFilters}><X size={16} aria-hidden="true" />{t("Clear filters")}</Button>
-    </div>
-    <div className="activity-sources-actions" role="group" aria-label={t("Change shown sources")}>
-      <Button type="button" variant="outline" disabled={disabled || !notShownChosen.length} onClick={() => change(notShownChosen, true)}><SquareCheck size={16} aria-hidden="true" />{t("Choose all shown")}</Button>
-      <Button type="button" variant="outline" disabled={disabled || !shownChosenIds.length} onClick={() => change(shownChosenIds, false)}><SquareMinus size={16} aria-hidden="true" />{t("Remove all shown")}</Button>
-      <Button type="button" variant="outline" disabled={disabled || following && sameSources(chosen, suggestionIds)} onClick={useSuggested}><ListRestart size={16} aria-hidden="true" />{t("Use suggested sources")}</Button>
-    </div>
+    <div className="activity-sources-scroll">
     {!!levels.length && <div className="activity-sources-levels" id={`${id}-levels`}>
       <ol aria-label={t("Tree levels")}>
         {[...levels, "source" as const].map((level, index) => {
@@ -339,16 +358,16 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
           })}
       </tbody>
     </table>
-    <UnsavedChangesGuard dirty={dirty} title="Discard unsaved sources?" onDiscard={discard}
-      description={changes ? msg(changes === 1 ? "1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave." : "{count} changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.", { count: changes })
-        : "Your changes to Activity sources are not saved. Keep editing to save them, or discard them and leave."} />
-    {(dirty || failed) && <div className="activity-sources-savebar" role="group" aria-label={t("Unsaved sources")}>
-      <p>{changes ? t(changes === 1 ? "1 unsaved change" : "{count} unsaved changes", { count: changes }) : t("Unsaved changes")}
+    </div>
+    <UnsavedChangesGuard dirty={dirty} title="Discard unsaved sources?" onDiscard={discard} description={unsavedSourcesDescription(changes)} />
+    {/* The save bar stays at the foot of the editor: what is unsaved, Cancel and Save sources. */}
+    <div className="activity-sources-savebar" role="group" aria-label={t("Unsaved sources")}>
+      <p data-dirty={dirty || undefined}>{!dirty ? t("No unsaved changes") : changes ? t(changes === 1 ? "1 unsaved change" : "{count} unsaved changes", { count: changes }) : t("Unsaved changes")}
         {failed && <span role="alert">{t("Sources were not saved. Your changes are kept here, so you can try again.")}</span>}</p>
       <span className="activity-sources-savebar-actions">
         <Button type="button" variant="ghost" className="activity-sources-cancel" onClick={cancel}><X size={18} aria-hidden="true" /><span>{t("Cancel")}</span></Button>
-        <Button type="button" disabled={disabled} onClick={save}>{t("Save sources")}</Button>
+        <Button type="button" disabled={disabled || !dirty} onClick={save}>{t("Save sources")}</Button>
       </span>
-    </div>}
+    </div>
   </div>;
 }

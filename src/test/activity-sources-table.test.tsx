@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, Link, MemoryRouter, RouterProvider } from "react-router-dom";
@@ -52,7 +53,11 @@ const setActivity = vi.fn((_settings: Record<string, unknown>) => true);
 
 const view = (home: { entities: Entity[]; areas: typeof areas } = { entities, areas }) => <AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { ...home, timeZone: "Europe/Oslo" } } as never}>
   <MemoryRouter initialEntries={["/settings/activity?panel=recent"]}><History /></MemoryRouter></AppContext.Provider>;
-const card = () => within(screen.getByRole("region", { name: "Activity sources" }));
+// The settings card holds the summary and Edit sources; the tree lives in the full-screen editor dialog.
+const settings = () => within(screen.getByRole("region", { name: "Activity sources" }));
+const editButton = () => screen.getByRole("button", { name: "Edit sources" });
+const openEditor = (ui: ReactElement) => { const result = render(ui); fireEvent.click(editButton()); return result; };
+const card = () => within(screen.getByRole("dialog", { name: "Activity sources" }));
 const table = () => within(card().getByRole("treegrid", { name: "Activity sources" }));
 const bodyRows = () => table().getAllByRole("row").slice(1);
 const isGroup = (row: HTMLElement) => row.hasAttribute("aria-expanded");
@@ -81,7 +86,7 @@ beforeEach(() => {
 
 describe("Activity sources table", () => {
   it("lists every candidate with the suggestions ticked, its device, integration, area and type, and the camera's own name", () => {
-    render(view());
+    openEditor(view());
     choose("Group by", "none");
     expect(names()).toEqual(["Dishwasher", "Example driveway", "Front door", "Front doorbell", "Garage door", "House alarm", "Reading lamp", "Robot vacuum", "Washer"]);
     expect(card().getByText("8 sources chosen")).toBeInTheDocument();
@@ -102,7 +107,7 @@ describe("Activity sources table", () => {
   });
 
   it("starts as a tree of integration → device → type → source, merging levels with a single group inside", () => {
-    render(view());
+    openEditor(view());
     expect(card().getByLabelText("Group by")).toHaveValue("integration");
     expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Integration", "Device", "Type", "Source"]);
     expect(outline()).toEqual([
@@ -138,7 +143,7 @@ describe("Activity sources table", () => {
   });
 
   it("puts area first and then the full path when grouping by area", () => {
-    render(view());
+    openEditor(view());
     choose("Group by", "area");
     expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Area", "Integration", "Device", "Type", "Source"]);
     expect(outline()).toEqual([
@@ -157,7 +162,7 @@ describe("Activity sources table", () => {
   });
 
   it("puts the chosen level first for device and type, then integration → device → type without repeating it, and lists flat for none", () => {
-    render(view());
+    openEditor(view());
     choose("Group by", "device");
     expect(within(card().getByRole("list", { name: "Tree levels" })).getAllByRole("listitem").map(item => item.textContent)).toEqual(["Device", "Integration", "Type", "Source"]);
     expect(groupOutline()).toEqual([
@@ -185,7 +190,7 @@ describe("Activity sources table", () => {
   it("chooses or clears a whole level from its checkbox, with a mixed state at every level above", () => {
     // A second fictional lock on the same device gives Z-Wave JS → Front lock two sources.
     const deadbolt = { ...entities.find(entity => entity.entityId === "lock.example_front")!, entityId: "lock.example_deadbolt", preferenceId: id("lock.example_deadbolt"), name: "Deadbolt" };
-    render(view({ entities: [...entities, deadbolt], areas }));
+    openEditor(view({ entities: [...entities, deadbolt], areas }));
     const zwave = groupBox("Z-Wave JS"), lock = groupBox("Front lock, Locks"), garage = groupBox("Garage controller, Doors and windows");
     expect([zwave, lock, garage].map(each => each.getAttribute("aria-checked"))).toEqual(["true", "true", "true"]);
     fireEvent.click(box("Deadbolt"));
@@ -218,7 +223,7 @@ describe("Activity sources table", () => {
       ...entities.find(entity => entity.entityId === "light.example_lamp")!, entityId: `light.example_${index}`, preferenceId: id(`light.example_${index}`),
       name: `Example light ${index}`, device: device(`dev-${index}`, `Example device ${index}`), integration: "hue",
     }));
-    render(view({ entities: [...entities, ...many], areas }));
+    openEditor(view({ entities: [...entities, ...many], areas }));
     // Philips Hue holds 31 devices, more than eight, so they start folded.
     expect(outline()).toContain("  Example device 0 › Other changes (0 of 1 chosen) +");
     expect(names()).not.toContain("Example light 12");
@@ -242,7 +247,7 @@ describe("Activity sources table", () => {
   });
 
   it("moves through the tree with the arrow keys and ticks with Space, with one tab stop", () => {
-    render(view());
+    openEditor(view());
     const bells = row("Example Bells › Front doorbell unit › Doorbells");
     expect(bodyRows().filter(each => each.tabIndex === 0)).toEqual([bells]);
     // The checkboxes and fold buttons stay clickable but out of the tab order.
@@ -284,12 +289,12 @@ describe("Activity sources table", () => {
     expect(groupBox("Z-Wave JS")).toHaveAttribute("aria-checked", "true");
     fireEvent.keyDown(zwave, { key: "Enter" });
     expect(zwave).toHaveAttribute("aria-expanded", "false");
-    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
+    expect(card().getByText("No unsaved changes")).toBeInTheDocument();
   });
 
 
   it("filters by text, chosen state, type, area and integration, counts matches and clears back to the search field", () => {
-    render(view());
+    openEditor(view());
     choose("Group by", "none");
     const search = card().getByRole("searchbox", { name: "Search sources" });
     fireEvent.change(search, { target: { value: "kitchen" } });
@@ -334,7 +339,7 @@ describe("Activity sources table", () => {
   });
 
   it("sorts by any column from its header button and marks it with aria-sort", () => {
-    render(view());
+    openEditor(view());
     choose("Group by", "none");
     const header = (name: string) => table().getByRole("columnheader", { name });
     expect(header("Name")).toHaveAttribute("aria-sort", "ascending");
@@ -357,7 +362,7 @@ describe("Activity sources table", () => {
 
   it("chooses and removes everything shown, and goes back to the suggestions", () => {
     family.value = { ...family.value, activity: { panel: true, people: false, sources: [id("light.example_lamp")] } };
-    render(view());
+    openEditor(view());
     expect(card().getByText("1 source chosen")).toBeInTheDocument();
     fireEvent.change(card().getByRole("searchbox", { name: "Search sources" }), { target: { value: "front" } });
     fireEvent.click(card().getByRole("button", { name: "Choose all shown" }));
@@ -375,24 +380,28 @@ describe("Activity sources table", () => {
     expect(setActivity).toHaveBeenLastCalledWith({ sources: undefined });
   });
 
-  it("collects ticks in one draft: Save writes once, Cancel restores, and a failed save keeps the draft", () => {
-    render(view());
-    expect(card().queryByRole("button", { name: "Save sources" })).toBeNull();
+  it("collects ticks in one draft: Save writes once, Cancel restores, and a failed save keeps the draft", async () => {
+    openEditor(view());
+    const bar = () => within(card().getByRole("group", { name: "Unsaved sources" }));
+    expect(bar().getByText("No unsaved changes")).toBeInTheDocument();
+    expect(bar().getByRole("button", { name: "Save sources" })).toBeDisabled();
     fireEvent.click(box("Reading lamp"));
     fireEvent.click(box("Garage door"));
     fireEvent.click(box("Washer"));
     expect(setActivity).not.toHaveBeenCalled();
-    const bar = within(card().getByRole("group", { name: "Unsaved sources" }));
-    expect(bar.getByText("3 unsaved changes")).toBeInTheDocument();
-    fireEvent.click(bar.getByRole("button", { name: "Cancel" }));
+    expect(bar().getByText("3 unsaved changes")).toBeInTheDocument();
+    // Cancel drops the draft without asking, closes the editor and returns focus to Edit sources.
+    fireEvent.click(bar().getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await waitFor(() => expect(editButton()).toHaveFocus());
+    fireEvent.click(editButton());
     expect(box("Reading lamp")).not.toBeChecked();
     expect(box("Garage door")).toBeChecked();
-    expect(card().getByRole("heading", { name: "Activity sources" })).toHaveFocus();
-    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
     // Ticking a row back to where it was leaves nothing to save.
     fireEvent.click(box("Washer"));
     fireEvent.click(box("Washer"));
-    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
+    expect(bar().getByText("No unsaved changes")).toBeInTheDocument();
 
     setActivity.mockImplementation(() => false);
     fireEvent.click(box("Reading lamp"));
@@ -404,13 +413,14 @@ describe("Activity sources table", () => {
     fireEvent.click(card().getByRole("button", { name: "Save sources" }));
     expect(saved()).toEqual(expect.arrayContaining([id("light.example_lamp"), id("binary_sensor.example_garage")]));
     expect(saved()).toHaveLength(9);
-    expect(card().queryByRole("alert")).toBeNull();
-    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
+    // A successful save closes the editor.
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await waitFor(() => expect(editButton()).toHaveFocus());
   });
 
   it("keeps unavailable sources removable, marks hidden types and disables changes until settings load", () => {
     family.value = { ...family.value, activity: { panel: true, people: true, hidden: ["locks"], sources: [id("lock.example_front"), "home|sensor.example_gone"] } };
-    const { unmount } = render(view());
+    const { unmount } = openEditor(view());
     expect(groups()).toContain("Front lock, LocksHidden under Event types1 of 1 chosen");
     expect(outline()).toContain("Unknown integration › Without a device (1 of 2 chosen)");
     expect(groups()).toContain("Unavailable sourcesNot found in Home Assistant right now.1 of 1 chosen");
@@ -422,10 +432,11 @@ describe("Activity sources table", () => {
     expect(box("Source unavailable")).not.toBeChecked();
     fireEvent.click(card().getByRole("button", { name: "Save sources" }));
     expect(setActivity).toHaveBeenLastCalledWith({ sources: [id("lock.example_front")] });
-    expect(card().getByText("People coming and going are included as well, under Latest events above.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(settings().getByText("People coming and going are included as well, under Latest events above.")).toBeInTheDocument();
     unmount();
     shared.value = { state: { loaded: false, error: "" } };
-    render(view());
+    openEditor(view());
     expect(box("Front door")).toBeDisabled();
     expect(card().getByRole("button", { name: "Use suggested sources" })).toBeDisabled();
   });
@@ -433,7 +444,9 @@ describe("Activity sources table", () => {
   it("explains an empty choice", () => {
     family.value = { ...family.value, activity: { panel: true, people: false, sources: [] } };
     render(view());
-    expect(card().getByText("No sources chosen. Latest events only shows people coming and going, when they are included.")).toBeInTheDocument();
+    expect(settings().getByText("No sources chosen. Latest events only shows people coming and going, when they are included.")).toBeInTheDocument();
+    expect(settings().getByText("0 sources chosen")).toBeInTheDocument();
+    fireEvent.click(editButton());
     expect(card().getByText("0 sources chosen")).toBeInTheDocument();
   });
 
@@ -443,7 +456,7 @@ describe("Activity sources table", () => {
       name: `Example light ${index}`, device: device(`dev-${index % 40}`, `Example device ${index % 40}`), integration: index % 2 ? "hue" : "zwave_js",
     }));
     const started = performance.now();
-    render(view({ entities: many, areas }));
+    openEditor(view({ entities: many, areas }));
     // Two integrations open; their 20 devices each start folded.
     expect(groups()).toHaveLength(42);
     expect(names()).toHaveLength(0);
@@ -481,6 +494,7 @@ describe("unsaved sources warning", () => {
     ], { initialEntries, initialIndex: initialEntries.length - 1 });
     render(<AppContext.Provider value={{ homeOnline: true, subscribeLogbook: vi.fn(() => () => {}), haUrl: "", currentHome: { entities, areas, timeZone: "Europe/Oslo" } } as never}>
       <RouterProvider router={router} /></AppContext.Provider>);
+    fireEvent.click(editButton());
     return router;
   };
   const dialog = () => screen.queryByRole("alertdialog");
@@ -489,21 +503,22 @@ describe("unsaved sources warning", () => {
   it("leaves without asking when there is no draft, also after saving", async () => {
     const router = routed();
     expect(unload()).toBe(false);
-    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    fireEvent.click(screen.getByRole("link", { name: "All settings", hidden: true }));
     expect(await screen.findByText("Settings overview")).toBeInTheDocument();
     expect(dialog()).toBeNull();
     act(() => { void router.navigate("/settings/activity?panel=recent"); });
+    fireEvent.click(editButton());
     fireEvent.click(box("Reading lamp"));
     fireEvent.click(card().getByRole("button", { name: "Save sources" }));
     expect(unload()).toBe(false);
-    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    fireEvent.click(screen.getByRole("link", { name: "All settings", hidden: true }));
     expect(await screen.findByText("Settings overview")).toBeInTheDocument();
   });
 
   it("asks before a route change: Keep editing is the default and stays, Discard changes leaves", async () => {
     const router = routed();
     fireEvent.click(box("Reading lamp"));
-    fireEvent.click(screen.getByRole("link", { name: "All settings" }));
+    fireEvent.click(screen.getByRole("link", { name: "All settings", hidden: true }));
     const ask = await screen.findByRole("alertdialog", { name: "Discard unsaved sources?" });
     expect(ask).toHaveAccessibleDescription("1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave.");
     expect(within(ask).getByRole("button", { name: "Keep editing" })).toHaveFocus();
@@ -535,21 +550,25 @@ describe("unsaved sources warning", () => {
   it("asks before switching settings section from the menu or the picker, and discarding drops the draft", async () => {
     const router = routed();
     fireEvent.click(box("Reading lamp"));
-    fireEvent.click(screen.getByRole("link", { name: "Activity log" }));
+    fireEvent.click(screen.getByRole("link", { name: "Activity log", hidden: true }));
     expect(await screen.findByRole("alertdialog", { name: "Discard unsaved sources?" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
     await waitFor(() => expect(dialog()).toBeNull());
     expect(router.state.location.search).toBe("?panel=recent");
-    fireEvent.change(screen.getByRole("combobox", { name: "Settings section" }), { target: { value: "log" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Settings section", hidden: true }), { target: { value: "log" } });
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
     await waitFor(() => expect(router.state.location.search).toBe("?panel=log"));
     // The section stays mounted behind the menu, so the discarded draft must be gone when the owner comes back.
+    // Leaving the section closes the editor, which would otherwise stay open over the next section.
+    expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: /^Latest events/ }));
     await waitFor(() => expect(router.state.location.search).toBe("?panel=recent"));
     expect(dialog()).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(editButton());
     expect(box("Reading lamp")).not.toBeChecked();
-    expect(card().queryByRole("group", { name: "Unsaved sources" })).toBeNull();
+    expect(card().getByText("No unsaved changes")).toBeInTheDocument();
   });
 
   it("asks the browser to confirm closing or reloading the tab only while there is a draft", () => {
@@ -563,6 +582,84 @@ describe("unsaved sources warning", () => {
     expect(unload()).toBe(true);
     fireEvent.click(card().getByRole("button", { name: "Cancel" }));
     expect(unload()).toBe(false);
+  });
+});
+
+describe("full-screen sources editor", () => {
+  const breakdown = () => within(settings().getByRole("list", { name: "Chosen sources by type" })).getAllByRole("listitem").map(item => item.textContent);
+
+  it("sums up the chosen sources by event type on the settings card", () => {
+    const { unmount } = render(view());
+    expect(settings().getByText("8 sources chosen")).toBeInTheDocument();
+    expect(settings().getByText("Following the suggestions")).toBeInTheDocument();
+    expect(breakdown()).toEqual(["Doors and windows1", "Locks1", "Alarm1", "Appliances2", "Robot vacuums and mowers1", "Doorbells1", "Camera person detection1"]);
+    expect(settings().queryByRole("treegrid")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    unmount();
+    family.value = { ...family.value, activity: { panel: true, people: false, hidden: ["locks"], sources: [id("lock.example_front"), "home|sensor.example_gone"] } };
+    render(view());
+    expect(settings().getByText("2 sources chosen")).toBeInTheDocument();
+    expect(settings().getByText("of 9 entities that can report activity")).toBeInTheDocument();
+    expect(breakdown()).toEqual(["LocksHidden under Event types1", "Unavailable sources1"]);
+  });
+
+  it("opens the tree in a named, modal full-screen dialog and returns focus to Edit sources", async () => {
+    render(view());
+    fireEvent.click(editButton());
+    const editor = screen.getByRole("dialog", { name: "Activity sources" });
+    expect(editor).toHaveAttribute("aria-modal", "true");
+    expect(editor).toHaveClass("dialog-fullscreen");
+    expect(editor).toHaveAccessibleDescription("Tick what Latest events should follow, then save.");
+    expect(within(editor).getByRole("treegrid", { name: "Activity sources" })).toBeInTheDocument();
+    // Without a draft, the close button and Escape close at once.
+    fireEvent.click(within(editor).getByRole("button", { name: "Close" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(editButton()).toHaveFocus());
+    fireEvent.click(editButton());
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await waitFor(() => expect(editButton()).toHaveFocus());
+  });
+
+  it("asks before Escape or the close button drops unsaved ticks", async () => {
+    render(view());
+    fireEvent.click(editButton());
+    fireEvent.click(box("Reading lamp"));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    const ask = await screen.findByRole("alertdialog", { name: "Discard unsaved sources?" });
+    expect(ask).toHaveAccessibleDescription("1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave.");
+    expect(within(ask).getByRole("button", { name: "Keep editing" })).toHaveFocus();
+    fireEvent.click(within(ask).getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(box("Reading lamp")).toBeChecked();
+    fireEvent.click(box("Garage door"));
+    fireEvent.click(card().getByRole("button", { name: "Close" }));
+    const again = await screen.findByRole("alertdialog");
+    expect(again).toHaveAccessibleDescription("2 changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.");
+    fireEvent.click(within(again).getByRole("button", { name: "Discard changes" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(editButton()).toHaveFocus());
+    expect(setActivity).not.toHaveBeenCalled();
+    fireEvent.click(editButton());
+    expect(box("Reading lamp")).not.toBeChecked();
+    expect(box("Garage door")).toBeChecked();
+  });
+
+  it("folds the filters behind one button that names how many are set", () => {
+    openEditor(view());
+    const toggle = card().getByRole("button", { name: "Filters" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    const [filters, actions] = toggle.getAttribute("aria-controls")!.split(" ").map(value => document.getElementById(value)!);
+    expect(within(filters).getByLabelText("Group by")).toBeInTheDocument();
+    expect(within(actions).getByRole("button", { name: "Choose all shown" })).toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(filters).toHaveAttribute("data-open");
+    expect(actions).toHaveAttribute("data-open");
+    choose("Type", "locks");
+    choose("Show", "chosen");
+    expect(card().getByRole("button", { name: "Filters, 2 set" })).toBe(toggle);
   });
 });
 
@@ -610,15 +707,29 @@ describe("phone layout contract", () => {
   // 375–390px phones, also at 150% text: a phone browser widens its layout viewport to fit anything that overflows,
   // pushing the dock past the edge. The table becomes stacked entries inside the card's own width instead.
   const css: string = sourceFile("components/activity-sources-table.css");
-  const phone = css.slice(css.indexOf("@container activity-sources (max-width: 40rem)"));
+  const phone = css.slice(css.indexOf("@container activity-sources (max-width: 40rem) {"));
+  const compact = css.slice(css.indexOf("@container activity-sources (max-width: 40rem) or (max-height: 44rem) {"), css.indexOf("@container activity-sources (max-width: 40rem) {"));
   const declarations = (source: string, selector: string) => {
     const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return [...source.matchAll(new RegExp(`(?:^|\\n)\\s*${escaped}\\s*\\{([^}]*)\\}`, "g"))].map(match => match[1]).join(";");
   };
 
-  it("measures the card, in rem, so text size moves the breakpoint", () => {
-    expect(declarations(css, ".activity-sources-card")).toMatch(/container: activity-sources \/ inline-size/);
+  it("measures the editor in both directions, in rem, so text size moves the breakpoints", () => {
+    expect(declarations(css, ".activity-sources-editor")).toMatch(/container: activity-sources \/ size/);
     expect(phone).not.toBe(css);
+    expect(compact.length).toBeGreaterThan(0);
+  });
+
+  it("keeps the toolbar on top, the tree scrolling under a sticky header and the save bar at the foot", () => {
+    expect(declarations(css, ".activity-sources")).toMatch(/display: grid; flex: 1; grid-template-rows: auto minmax\(0, 1fr\) auto/);
+    expect(declarations(css, ".activity-sources-scroll")).toMatch(/overflow-y: auto/);
+    expect(declarations(css, ".activity-sources-table thead th")).toMatch(/position: sticky; top: 0/);
+    expect(declarations(phone, ".activity-sources-table thead")).toMatch(/position: sticky; top: 0/);
+    expect(declarations(css, ".activity-sources-savebar")).not.toMatch(/position: sticky/);
+    // Narrow or short: the selects and bulk actions fold behind Filters, and the toolbar never takes most of the height.
+    expect(declarations(compact, ".activity-sources-filters")).toMatch(/display: none/);
+    expect(declarations(compact, ".activity-sources-actions")).toMatch(/display: none/);
+    expect(declarations(compact, ".activity-sources-toolbar")).toMatch(/max-height: 60cqb; overflow-y: auto/);
   });
 
   it("turns rows into wrapping entries and the headers into wrapping sort capsules", () => {
@@ -638,7 +749,7 @@ describe("phone layout contract", () => {
 
   it("lets long names wrap and never sets a width wider than a phone", () => {
     expect(declarations(css, ".activity-sources-table :is(th, td)")).toMatch(/min-width: 0;[^;]*;[^;]*;[^;]*; overflow-wrap: anywhere/);
-    expect(declarations(css, ".activity-sources-filters")).toMatch(/minmax\(min\(100%, 9rem\), 1fr\)/);
+    expect(declarations(css, ".activity-sources-query")).toMatch(/minmax\(min\(100%, 9rem\), 1fr\)/);
     expect(declarations(css, ".activity-sources-filters select")).toMatch(/width: 100%; min-width: 0/);
     for (const selector of [".activity-sources-actions", ".activity-sources-results", ".activity-sources-savebar"]) expect(declarations(css, selector)).toMatch(/flex-wrap: wrap/);
     // No fixed widths beyond the 3rem checkbox gutter and the 12rem save-bar text basis.
