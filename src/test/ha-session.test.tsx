@@ -1083,7 +1083,7 @@ it.each(["2026-10-07", "2026-10-08", null])("skips all-day plans in Today’s Up
   seedSettings({ events: [], items: [], timetables: {}, calendarMembers: { "home|calendar.house": "home|person.everyone" } });
   window.history.replaceState(null, "", "/?auth_callback=1&code=fixture&state=fixture");
   render(<App />);
-  const calendar = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  const calendar = within(await screen.findByRole("region", { name: "Family weekly calendar" }));
   expect(await calendar.findAllByRole("button", { name: /All-day trip/ })).toHaveLength(1);
   const next = within(screen.getByRole("region", { name: "Next family plan" }));
   expect(next.getByRole("heading", { level: 2, name: "Next family plan" })).toBeInTheDocument();
@@ -1131,7 +1131,7 @@ it.each([
   vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
-  const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  const grid = within(await screen.findByRole("region", { name: "Family weekly calendar" }));
   fireEvent.click(await grid.findByRole("button", { name: /Delete this plan/ }));
   expect(await screen.findByRole("button", { name: "Delete" })).toBeEnabled();
   expect(screen.queryByRole("button", { name: "Remove event" })).not.toBeInTheDocument();
@@ -1220,7 +1220,7 @@ it.each(["/", "/calendar"])("shows continuous spans and unique person cards from
   vi.mocked(haFetch).mockImplementation(async input => ({ ok: true, json: async () => String(input).includes("calendar.house") ? events : [] }) as Response);
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
-  const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  const grid = within(await screen.findByRole("region", { name: "Family weekly calendar" }));
   const trip = await grid.findByRole("button", { name: /Family trip/ });
   const train = grid.getByRole("button", { name: /Night train/ });
   expect(trip.closest("td")).toHaveAttribute("colspan", "7");
@@ -1274,7 +1274,7 @@ it.each(["/", "/calendar"])("edits a recurring HA event from %s and refreshes wi
   });
   window.history.replaceState(null, "", `${path}?auth_callback=1&code=fixture&state=fixture`);
   render(<App />);
-  const grid = within(screen.getByRole("region", { name: "Family weekly calendar" }));
+  const grid = within(await screen.findByRole("region", { name: "Family weekly calendar" }));
   fireEvent.click(await grid.findByRole("button", { name: /Family dinner/ }));
   await waitFor(() => expect(subscriptions).toHaveLength(2));
   expect(await screen.findByLabelText("Time")).toHaveValue("16:00:15");
@@ -2723,7 +2723,7 @@ it("retains empty devices, custom names, models and unassigned rooms", async () 
   fireEvent.change(screen.getByRole("textbox", { name: "Search devices" }), { target: { value: "T100" } });
   expect(screen.queryByRole("link", { name: "Multi sensor details" })).not.toBeInTheDocument();
   fireEvent.click(card);
-  expect(screen.getByRole("heading", { level: 1, name: "Bedroom thermostat" })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { level: 1, name: "Bedroom thermostat" })).toBeInTheDocument();
   expect(screen.getByText(/This device has no visible controls/)).toBeInTheDocument();
   expect(screen.queryByRole("article")).not.toBeInTheDocument();
   expect(screen.queryByText("1.0")).not.toBeInTheDocument();
@@ -2744,7 +2744,7 @@ it.each(["config/device_registry/list", "config/entity_registry/list"])("keeps c
   expect(control).toBeEnabled();
   fireEvent.click(screen.getByRole("link", { name: "Living Room Light details" }));
   expect(window.location.pathname).toBe("/entities/light.living");
-  expect(screen.getByRole("switch", { name: "Toggle Living Room Light" })).toBeEnabled();
+  expect(await screen.findByRole("switch", { name: "Toggle Living Room Light" })).toBeEnabled();
 });
 
 it("opens legacy links with readable states when services cannot load", async () => {

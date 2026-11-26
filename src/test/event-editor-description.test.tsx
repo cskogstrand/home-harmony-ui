@@ -4,15 +4,17 @@ import { MemoryRouter } from "react-router-dom";
 import { EventEditor } from "@/components/FamilyPlanner";
 import type { FamilyEvent } from "@/contexts/FamilyContext";
 
-const app = vi.hoisted(() => ({ haUrl: "https://ha.example", homeOnline: true, services: {}, commands: {}, command: vi.fn().mockResolvedValue(undefined), currentHome: {
+// Tests change the calendar's features and the available services, so each test starts from a fresh home.
+const exampleHome = vi.hoisted(() => () => ({
   timeZone: "UTC", areas: [], devices: [], entities: [{ entityId: "calendar.example", preferenceId: "home|calendar.example", name: "Example calendar", domain: "calendar", state: "off", attributes: { supported_features: 4 } }],
-} }));
+}));
+const app = vi.hoisted(() => ({ haUrl: "https://ha.example", homeOnline: true, services: {} as Record<string, Record<string, unknown>>, commands: {}, command: vi.fn().mockResolvedValue(undefined), currentHome: exampleHome() }));
 const saveEvent = vi.hoisted(() => vi.fn().mockReturnValue(true));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
 vi.mock("@/contexts/FamilyContext", async importOriginal => ({ ...await importOriginal<typeof import("@/contexts/FamilyContext")>(), useFamily: () => ({
   today: "2026-10-28", time: "10:05", members: [{ id: "example", name: "Example person" }], memberName: () => "Example person", connectedPlanner: true, calendarMembers: { "home|calendar.example": "example" }, saveEvent,
 }) }));
-afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.clearAllMocks(); vi.unstubAllGlobals(); app.services = {}; app.currentHome = exampleHome(); });
 
 it("preserves the duration when moving a future local plan's start time", () => {
   const event: FamilyEvent = { id: "example", title: "Example plan", date: "2026-11-02", time: "09:00", endTime: "10:00", member: "example", location: "", note: "" };

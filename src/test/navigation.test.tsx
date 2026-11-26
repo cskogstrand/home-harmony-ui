@@ -46,7 +46,8 @@ beforeEach(() => {
   Object.defineProperty(document, "execCommand", { configurable: true, value: vi.fn(() => false) });
 });
 afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); Reflect.deleteProperty(document, "execCommand"); });
-const pageReady = () => waitFor(() => expect(screen.queryByText("Loading…")).not.toBeInTheDocument());
+// The page skeleton speaks the remembered language until shared settings arrive, so match both.
+const pageReady = () => waitFor(() => expect(screen.queryByText(/^(Loading|Laster)…$/)).not.toBeInTheDocument());
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   await screen.findByRole("heading", { level: 1, name });
@@ -1637,7 +1638,7 @@ it.each([
   fireEvent.click(screen.getByRole("link", { name: "Open app settings" }));
   fireEvent.click(await screen.findByRole("link", { name: /^(Continue setup|Guided setup)/ }));
   expect(window.location.pathname).toBe("/onboarding");
-  expect(screen.getByRole("navigation", { name: "Household setup" })).toBeVisible();
+  expect(await screen.findByRole("navigation", { name: "Household setup" })).toBeVisible();
 });
 
 it("guides setup from the gear and clears its badge when the basics are ready", async () => {
@@ -2179,8 +2180,9 @@ it("translates calendar settings and restores the selected layout after closing"
   settings.settings.language = "nb";
   window.history.replaceState(null, "", "/calendar?view=week&date=2026-10-26");
   render(<App />); await waitFor(() => expect(screen.getByRole("status", { name: "Lagring av innstillinger" })).toHaveTextContent("Fellesinnstillingene er lagret."));
+  const calendarSettings = await screen.findByRole("button", { name: "Kalenderinnstillinger" });
   expect(screen.queryByRole("button", { name: "Uketabell" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Kalenderinnstillinger" }));
+  fireEvent.click(calendarSettings);
   fireEvent.click(screen.getByRole("button", { name: "Etter person" }));
   fireEvent.click(screen.getByRole("button", { name: "Mandag" }));
   expect(window.location.search).toBe("");

@@ -45,9 +45,14 @@ Server tests require Poppler and permission to open local test ports. The contai
 
 For compact output, use `npm run --silent test:silent` and `npm run --silent test:server:silent`. Passing tests show dots; failures retain their details. `deploy.sh` uses these commands automatically.
 
-Vitest disables Node's native Web Storage in test workers so browser tests use jsdom's in-memory `localStorage` and `sessionStorage`. This avoids `--localstorage-file` warnings on Node 25+ without suppressing other warnings.
+Vitest disables Node's native Web Storage in test workers so browser tests use jsdom's in-memory `localStorage` and `sessionStorage`. This avoids `--localstorage-file` warnings on Node 25+ without suppressing other warnings. jsdom keeps that storage for a whole test file, so `src/test/setup.ts` clears both after every test.
 
-Tests that use `vi.useFakeTimers()` leave them with `restoreRealTimers()` from `src/test/timers.ts`, normally in `afterEach`. It unmounts, runs the timers still queued and then restores real timers. A bare `vi.useRealTimers()` discards jsdom's fake animation-frame interval, so Motion animations in later tests of the same file never finish. `src/test/setup.ts` fails any test that leaves fake timers on, and `src/test/timers.test.ts` rejects direct `vi.useRealTimers()` calls. To check that a file does not depend on test order, run it with `npx vitest run <file> --sequence.shuffle --sequence.seed=<n>`.
+Tests that use `vi.useFakeTimers()` leave them with `restoreRealTimers()` from `src/test/timers.ts`, normally in `afterEach`. It unmounts, runs the timers still queued and then restores real timers. A bare `vi.useRealTimers()` discards jsdom's fake animation-frame interval, so Motion animations in later tests of the same file never finish. `src/test/setup.ts` fails any test that leaves fake timers on, and `src/test/timers.test.ts` rejects direct `vi.useRealTimers()` calls.
+
+Tests must not depend on their order. `npm run --silent test:shuffle` runs the suite with files and tests in random order and prints the seed it used; repeat a failing order with `npm run --silent test:shuffle -- --sequence.seed=<n>`, or narrow it to one file with `npx vitest run <file> --sequence.shuffle --sequence.seed=<n>`. Common causes:
+
+- Pages and routes load with `React.lazy`, so the first test in a file to visit a page sees its loading skeleton. After rendering or navigating, wait for the page with `await screen.findBy…` instead of a synchronous `getBy…`; it otherwise passes only when an earlier test already loaded that page. A test run alone with `-t "<name>"` shows this.
+- Shared mock objects such as a hoisted `useApp()` value keep changes between tests. Reset them in `beforeEach` or `afterEach`.
 
 `npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, changelog generation and Home Assistant version slicing, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
 

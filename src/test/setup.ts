@@ -10,11 +10,15 @@ configure({ asyncUtilTimeout: 5_000 });
 //   still get working animation frames.
 // - Radix restores focus from a setTimeout(0) after an open dialog unmounts. Let that callback run now; otherwise it
 //   fires during the next test and moves focus into that test's dialog.
+// - jsdom keeps Web Storage for the whole file. The app remembers the last language there, so a Norwegian test would
+//   otherwise make the next test's first paint Norwegian.
 afterEach(async () => {
   const leftFakeTimers = vi.isFakeTimers();
   restoreRealTimers();
   cleanup();
   await new Promise(resolve => setTimeout(resolve, 0));
+  localStorage.clear();
+  sessionStorage.clear();
   if (leftFakeTimers) throw new Error("Fake timers were still active after the test. Call restoreRealTimers() from src/test/timers.ts in afterEach.");
 });
 
