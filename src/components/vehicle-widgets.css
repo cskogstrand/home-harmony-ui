@@ -253,7 +253,7 @@
 .vehicle-chip[data-paused="true"] .vehicle-mini-meter i { background: hsl(var(--muted-foreground)); }
 .vehicle-chip:focus-visible { background: hsl(var(--secondary)); outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
 .vehicle-strip.vehicle-chip-strip { display: flex; padding: 0; border-radius: var(--radius-capsule); }
-.vehicle-menu [role="menuitem"] { gap: .5rem; min-height: 48px; }
+.vehicle-menu [role="menuitem"] { min-height: 48px; }
 .vehicle-menu-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .vehicle-menu [role="menuitem"] > strong { font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (pointer: fine) {

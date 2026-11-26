@@ -880,7 +880,7 @@ fieldset.settings-card > legend + * { clear: both; }
 .smart-more > button { display: inline-flex; align-items: center; gap: .5rem; min-height: 48px; padding: .65rem .8rem; font-size: var(--type-body); border-radius: var(--radius-capsule); color: hsl(var(--muted-foreground)); }
 .smart-more > button[data-active="true"] { font-weight: 600; color: hsl(var(--primary)); background: hsl(var(--secondary)); }
 .smart-menu { min-width: 220px; }
-.smart-menu [role="menuitem"] { min-height: 48px; gap: .75rem; font-size: var(--type-body); }
+.smart-menu [role="menuitem"] { min-height: 48px; font-size: var(--type-body); }
 .optional-fields summary { min-height: 48px; cursor: pointer; padding-block: .75rem; font-size: var(--type-body); color: hsl(var(--primary)); }
 .optional-fields > .planner-form { margin-top: .75rem; }
 .dialog-form-body { max-height: 48dvh; overflow-y: auto; overscroll-behavior: contain; padding: 4px; margin: -4px; }

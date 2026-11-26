@@ -90,6 +90,17 @@ it("downloads one rule from its menu and the saved rule from the editor", async 
   click.mockRestore();
 });
 
+it("spaces each export and action icon from its label with the shared menu gap", async () => {
+  renderSettings();
+  openMenu("Actions for Example salt");
+  const items = await screen.findAllByRole("menuitem");
+  expect(items.map(item => item.textContent)).toEqual(["Download file", "Copy to clipboard", "Delete"]);
+  for (const item of items) {
+    expect(item).toHaveClass("flex", "items-center", "gap-3");
+    expect(item.firstElementChild?.tagName.toLowerCase()).toBe("svg");
+  }
+});
+
 it("explains invalid input without leaving the first step", async () => {
   renderSettings();
   fireEvent.click(screen.getByRole("button", { name: "Import notifications" }));
