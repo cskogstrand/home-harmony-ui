@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.11.1
+
+<!-- release-source: 44b6f53ca5dbb1babb260c8a99028fede87122f1 -->
+
+- test: give the energy page history mock a default
+- test: remove the animate stub instead of setting it to undefined
+- test: add a shuffled test run and document order pitfalls
+- test: clear web storage and wait for pages in either language
+- test: wait for lazy-loaded pages after navigating
+- test: reset event editor calendar features between tests
+- test: stop timers leaking between tests
+- docs: track non-admin safe Home Assistant calls
+- feat: follow only allowlisted HA events for non-admins
+- feat: send backup/info only for Home Assistant admins
+- docs: plan non-admin safe Home Assistant calls
+- docs: track one tyre pressure per wheel
+- feat: show one pressure per wheel and mark faulty tyres
+- docs: plan tyre pressure per wheel cleanup
+- fix: space menu icons from their labels
+- docs: track notification rule export and import
+- docs: track the compact sources editor toolbar
+- docs: describe notification rule export and import
+- feat: export and import notification rules in settings
+- feat: add a versioned format for notification rule exports
+- docs: describe the compact activity sources toolbar
+- feat: keep the activity sources toolbar to two rows
+- docs: plan notification rule export and import
+- docs: track the full-screen activity sources editor
+- feat: keep activity source rows readable in the tree
+- docs: track non-dismissible notification rules
+- feat: add the Can be dismissed switch to notification rules
+- feat: let notification rules refuse dismissal
+- docs: plan non-dismissible notification rules
+- feat: edit activity sources in a full-screen editor
+- docs: plan the full-screen activity sources editor
+
 ## 0.11.0
 
 <!-- release-source: 7049a5974ebb3e9ddfb271427a8603bc1ecefb7b -->
