@@ -102,7 +102,7 @@ type VehicleGroup = (typeof vehicleSystems)[VehicleSystem][number];
 
 export function vehicleGroup(entity: Entity): VehicleGroup {
   const key = metricKey(entity);
-  if (/tpms|tire_pressure|tyre_pressure/.test(key)) return "Wheel pressures";
+  if (/tpms|(?:^|_)t[iy]res?(?:_|$)|t[iy]re_?pressure/.test(key)) return "Wheel pressures";
   if (/scheduled_departure|scheduled.*depart|preconditioning_time/.test(key)) return "Departure schedule";
   if (/schedul.*charg|off_peak/.test(key)) return "Charge schedule";
   if (/charge_port|charger_door/.test(key)) return "Charge port";
@@ -235,11 +235,79 @@ export function driveStatus(entities: Entity[]) {
   return { symbol: "—", label: "Drive status unknown" } as const;
 }
 
+const pressureFactors: Record<string, number> = { bar: 1, psi: 0.0689475729, kpa: 0.01, mpa: 10, hpa: 0.001, mbar: 0.001, pa: 0.00001 };
+const pressureUnit = (entity: Entity) => pressureFactors[String(entity.attributes.unit_of_measurement).trim().toLowerCase()];
+
 export function tyrePressureBar(entity: Entity) {
-  const unit = String(entity.attributes.unit_of_measurement).trim().toLowerCase();
-  const factor = { bar: 1, psi: 0.0689475729, kpa: 0.01, mpa: 10, hpa: 0.001, mbar: 0.001, pa: 0.00001 }[unit];
+  const factor = pressureUnit(entity);
   const value = Number(entity.state);
   return available(entity) && entity.state.trim() && Number.isFinite(value) && value >= 0 && factor ? value * factor : undefined;
+}
+
+export const wheelPositions = ["Front left", "Front right", "Rear left", "Rear right"] as const;
+export type WheelPosition = (typeof wheelPositions)[number];
+const wheelPatterns: Record<WheelPosition, RegExp> = {
+  "Front left": /(?:^|_)(?:front_?left|left_?front|fl|lf)(?:_|$)/,
+  "Front right": /(?:^|_)(?:front_?right|right_?front|fr|rf)(?:_|$)/,
+  "Rear left": /(?:^|_)(?:rear_?left|left_?rear|rl|lr)(?:_|$)/,
+  "Rear right": /(?:^|_)(?:rear_?right|right_?rear|rr)(?:_|$)/,
+};
+const words = (text?: string) => (text ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+/** The wheel an entity reports on, from its key, name, unique ID or entity ID, whichever names a position first. */
+export function wheelPosition(entity: Entity): WheelPosition | undefined {
+  for (const text of [metricKey(entity), words(entity.name), words(entity.uniqueId), words(entity.entityId.split(".")[1])]) {
+    const position = wheelPositions.find(p => wheelPatterns[p].test(text));
+    if (position) return position;
+  }
+}
+
+const statusWords = /warn|alert|fault|problem|status|(?:^|_)(?:state|low|high|flat|puncture|ok)(?:_|$)/;
+const timing = /last_seen|updated|(?:^|_)time(?:_|$)/;
+const isTyrePressure = (e: Entity) => e.domain === "sensor" && e.attributes.device_class !== "timestamp"
+  && (e.attributes.device_class === "pressure" || !!pressureUnit(e)
+    || /pressure|tpms/.test(metricKey(e)) && !statusWords.test(metricKey(e)) && !timing.test(metricKey(e))
+      && (!available(e) || e.state.trim() !== "" && Number.isFinite(Number(e.state))));
+const isTyreStatus = (e: Entity) => e.domain === "binary_sensor"
+  ? [undefined, "problem", "safety"].includes(e.attributes.device_class as string | undefined)
+  : e.domain === "sensor" && !isTyrePressure(e) && !["timestamp", "duration"].includes(String(e.attributes.device_class)) && !timing.test(metricKey(e))
+    && (e.attributes.device_class === "enum" || statusWords.test(metricKey(e)) || available(e) && !Number.isFinite(Number(e.state)));
+
+export type TyreCondition = "ok" | "fault" | "unknown";
+const fineStates = new Set(["ok", "normal", "good", "fine", "none", "no_warning", "no_alert", "no_problem", "clear", "safe", "off", "false", "0"]);
+/** A wheel's status: a problem (or safety) binary sensor is at fault when on; a text or enum status when it is anything but OK or normal. */
+export function tyreCondition(status: Entity): TyreCondition {
+  const state = words(status.state);
+  if (!available(status) || !state) return "unknown";
+  if (status.domain === "binary_sensor") return state === "on" ? "fault" : state === "off" ? "ok" : "unknown";
+  return fineStates.has(state) ? "ok" : "fault";
+}
+
+/** A short English message for a faulty wheel when its status says what is wrong; a text status otherwise speaks for itself. */
+export function tyreFault(status: Entity) {
+  const text = `${words(status.state)}_${metricKey(status)}`;
+  if (/(?:^|_)(?:low|under(?:_?inflat\w*)?|deflat\w*)(?:_|$)/.test(text)) return "Low pressure";
+  if (/(?:^|_)(?:high|over(?:_?inflat\w*)?)(?:_|$)/.test(text)) return "High pressure";
+  if (/(?:^|_)(?:flat|punctur\w*)(?:_|$)/.test(text)) return "Flat tyre";
+  return status.domain === "binary_sensor" ? "Tyre warning" : undefined;
+}
+
+export type Wheel = { position: WheelPosition; pressure?: Entity; status?: Entity; condition?: TyreCondition; other: Entity[] };
+/**
+ * Pairs each wheel's pressure with its status sensor by the position in their names or IDs, always in the same order:
+ * front left, front right, rear left, rear right. Readings that name no wheel are returned as unplaced.
+ */
+export function tyreWheels(entities: Entity[]) {
+  const placed = new Set<Entity>();
+  const wheels = wheelPositions.map((position): Wheel => {
+    const rows = entities.filter(e => wheelPosition(e) === position);
+    rows.forEach(e => placed.add(e));
+    const pressure = rows.find(e => isTyrePressure(e) && e.attributes.device_class === "pressure") ?? rows.find(isTyrePressure);
+    const statuses = rows.filter(e => e !== pressure && isTyreStatus(e));
+    const status = statuses.find(e => e.attributes.device_class === "problem") ?? statuses[0];
+    return { position, pressure, status, condition: status ? tyreCondition(status) : undefined, other: rows.filter(e => e !== pressure && e !== status) };
+  });
+  return { wheels, unplaced: entities.filter(e => !placed.has(e)) };
 }
 
 export function accessStatus(entities: Entity[]) {
