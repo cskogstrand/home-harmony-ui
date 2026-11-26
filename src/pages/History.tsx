@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, Filter, History as HistoryIcon, ListChecks, ListOrdered } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
@@ -6,7 +6,7 @@ import { useApp } from "@/contexts/AppContext";
 import { addDays, useFamily } from "@/contexts/FamilyContext";
 import { useActivityPersonSensors, useLogbook } from "@/hooks/use-activity-feed";
 import { ActivityRow } from "@/components/ActivityFeed";
-import { ActivitySourcesTable } from "@/components/ActivitySourcesTable";
+import { ActivitySourcesEditor } from "@/components/ActivitySourcesEditor";
 import { PanelTitle } from "@/components/PanelTitle";
 import { SettingsPanels } from "@/components/SettingsPanels";
 import { Switch } from "@/components/ui/switch";
@@ -78,7 +78,6 @@ function RecentActivitySettings() {
   const shared = useSharedConfiguration();
   const personSensors = useActivityPersonSensors();
   const id = useId();
-  const sourcesTitle = useRef<HTMLHeadingElement>(null);
   const disabled = !shared?.state.loaded || !!shared.state.error;
   const cameraKey = Object.keys(personSensors).sort().join(" ");
   const suggestions = useMemo(() => defaultActivitySources(currentHome.entities, cameraKey ? cameraKey.split(" ") : []), [currentHome.entities, cameraKey]);
@@ -106,13 +105,12 @@ function RecentActivitySettings() {
       </label>)}
     </section>
     <section className="settings-card activity-sources-card" aria-labelledby={`${id}-sources`}>
-      <PanelTitle ref={sourcesTitle} tabIndex={-1} icon={ListChecks} id={`${id}-sources`}>{t("Activity sources")}</PanelTitle>
-      <p className="page-note">{t(activity.sources ? "Your chosen sources." : "Suggested: doors, windows, locks, the alarm, appliances, robots, doorbells and camera person detection.")}
-        {" "}{t("Tick what Latest events should follow, then save.")}</p>
+      <PanelTitle icon={ListChecks} id={`${id}-sources`}>{t("Activity sources")}</PanelTitle>
+      <p className="page-note">{t(activity.sources ? "Your chosen sources." : "Suggested: doors, windows, locks, the alarm, appliances, robots, doorbells and camera person detection.")}</p>
       <p className="page-note activity-sources-people">{t(activity.people ? "People coming and going are included as well, under Latest events above." : "People coming and going are left out. Turn them on under Latest events above.")}</p>
       {!chosen.length && <p className="empty-note activity-sources-empty">{t("No sources chosen. Latest events only shows people coming and going, when they are included.")}</p>}
-      <ActivitySourcesTable candidates={candidates} areas={currentHome.areas} saved={activity.sources} suggestions={suggestions} personSensors={personSensors}
-        hidden={activity.hidden ?? []} disabled={disabled} onSave={sources => setActivity({ sources })} onSettled={() => sourcesTitle.current?.focus()} />
+      <ActivitySourcesEditor candidates={candidates} areas={currentHome.areas} saved={activity.sources} suggestions={suggestions} personSensors={personSensors}
+        hidden={activity.hidden ?? []} disabled={disabled} onSave={sources => setActivity({ sources })} />
     </section>
   </div>;
 }

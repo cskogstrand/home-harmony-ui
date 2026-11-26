@@ -1,39 +1,91 @@
-/* Settings → Activity → Latest events → Activity sources: every entity that can report activity, as a tree grid that is
-   searched, filtered, sorted and grouped. The card is the query container, so the phone layout follows the card's width
-   in rem and therefore the text size: rows become stacked entries and the column headers become sort capsules. */
-.activity-sources-card { container: activity-sources / inline-size; }
-/* One indent step per tree level, never more than 4% of the card, so five levels still leave a phone its name line.
-   The checkbox slot is the column every level's guide line runs down. */
-.activity-sources { --tree-step: min(1.5rem, 4cqi); --check-slot: 2rem; --lead-gap: .625rem; min-width: 0; }
+/* Settings → Activity → Latest events → Activity sources. The settings card shows a summary and Edit sources; the editor is a
+   full-screen dialog with the toolbar on top, the tree grid scrolling in its own panel and the save bar at the foot.
+   The dialog is the query container in both directions, in rem, so the layout follows the screen and the text size: below
+   40rem of width rows become stacked entries and the column headers become sort capsules, and below 40rem of width or 44rem
+   of height the filters fold behind one button so the tree keeps most of the screen. */
+.activity-sources-editor { container: activity-sources / size; --editor-gutter: 1.5rem; }
 
-.activity-sources-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .5rem; margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+/* The settings card: the total, what it is made of by event type, and the way in. */
+.activity-sources-summary { display: grid; gap: .875rem; margin-top: 1rem; }
+.activity-sources-summary .activity-sources-total { margin-top: 0; }
+.activity-sources-breakdown { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); column-gap: 1.5rem; }
+.activity-sources-breakdown li { display: flex; align-items: center; gap: .625rem; min-height: 44px; padding-block: .375rem; border-bottom: 1px solid hsl(var(--border) / .5); }
+.activity-sources-breakdown li > svg { flex-shrink: 0; color: hsl(var(--primary)); }
+.activity-sources-breakdown li[data-missing] > svg { color: hsl(var(--muted-foreground)); }
+.activity-sources-breakdown li > span { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: var(--type-body); }
+.activity-sources-breakdown small { display: inline-flex; align-items: center; gap: .3rem; color: hsl(var(--muted-foreground)); font-size: var(--type-meta); }
+.activity-sources-breakdown small > svg { flex-shrink: 0; }
+.activity-sources-breakdown li > strong { font-size: var(--type-body-large); font-weight: 600; font-variant-numeric: tabular-nums; }
+.activity-sources-edit { justify-self: start; }
+
+/* The editor: a header that leaves room for the 48px close circle, then the editor's three rows. */
+.activity-sources-editor-header { flex: none; display: grid; gap: .125rem; padding: .75rem calc(var(--editor-gutter) + 48px + .75rem) .5rem var(--editor-gutter); }
+.activity-sources-editor-title { display: flex; align-items: center; gap: .6em; min-height: 48px; font-size: var(--type-title-large); font-weight: 600; line-height: 1.25; letter-spacing: -.01em; overflow-wrap: break-word; }
+.activity-sources-editor-title > svg { flex-shrink: 0; width: 1.1em; height: 1.1em; color: hsl(var(--primary)); }
+.activity-sources-editor-header > p { max-width: 65ch; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+
+/* A compact indent step per tree level, never more than 3% of the editor, so five levels still leave a phone its name line.
+   The checkbox slot is the column every level's thin guide line runs down. */
+.activity-sources { --tree-step: min(1rem, 3cqi); --check-slot: 2rem; --lead-gap: .625rem; display: grid; flex: 1; grid-template-rows: auto minmax(0, 1fr) auto; min-width: 0; min-height: 0; }
+.activity-sources-toolbar { padding: .25rem var(--editor-gutter) .75rem; }
+/* The tree is the editor's work panel: opaque card fill and panel corners, scrolling on its own under its sticky header. */
+.activity-sources-scroll { margin-inline: var(--editor-gutter); padding: 0 1rem 1rem; overflow-y: auto; overscroll-behavior: contain; border: 1px solid hsl(var(--border) / .7); border-radius: var(--radius-panel); background: hsl(var(--card)); scroll-padding-top: 4rem; }
+
+.activity-sources-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .5rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
 .activity-sources-total strong { color: hsl(var(--foreground)); font-size: var(--type-subtitle); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.activity-sources-filters { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: 1rem; }
-.activity-sources-filters label { display: grid; align-content: start; gap: .375rem; min-width: 0; font-size: var(--type-label); font-weight: 500; }
+/* Search and the five selects share one wrapping grid: on a desktop or the wall they are one row. */
+.activity-sources-query { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: .75rem; }
+.activity-sources-search { grid-column: span 2; }
+.activity-sources-options-toggle { display: none; }
+.activity-sources-filters { display: contents; }
+.activity-sources-query label { display: grid; align-content: start; gap: .375rem; min-width: 0; font-size: var(--type-label); font-weight: 500; }
 .activity-sources-filters select { width: 100%; min-width: 0; min-height: 48px; border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: 9px 12px; text-overflow: ellipsis; }
-.activity-sources-search { grid-column: 1 / -1; }
 .activity-sources-search-field { position: relative; display: block; }
 .activity-sources-search-field > svg { position: absolute; top: 50%; left: 14px; translate: 0 -50%; color: hsl(var(--muted-foreground)); pointer-events: none; }
 .activity-sources-search-field input { min-height: 48px; padding-left: 2.75rem; border-radius: var(--radius-field); font-size: var(--type-body); }
+.activity-sources-options-count { display: inline-grid; place-items: center; min-width: 1.5em; height: 1.5em; padding-inline: .375em; border-radius: var(--radius-capsule); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: var(--type-meta); font-variant-numeric: tabular-nums; }
 
-.activity-sources-results { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem 1rem; margin-top: .75rem; }
+/* The polite count and Clear filters, then the bulk actions at the row's end. */
+.activity-sources-results { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .75rem; }
 .activity-sources-results p { min-width: 0; color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-variant-numeric: tabular-nums; }
-.activity-sources-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.activity-sources-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-inline-start: auto; }
 .activity-sources-actions > button { white-space: normal; text-align: start; }
 
+/* Narrow or short: the selects and bulk actions fold behind Filters beside the search field, the chrome keeps to one line
+   per row (the description, the search label and an idle save-bar note stay for screen readers only) and the toolbar never
+   takes more than 60% of the height, so the tree keeps most of a phone at 150% text. */
+@container activity-sources (max-width: 40rem) or (max-height: 44rem) {
+  .activity-sources-editor-header { padding-block: .5rem .25rem; }
+  .activity-sources-editor-title { font-size: var(--type-subtitle); }
+  /* The total gives way to the results line below the search, which counts the chosen sources too. */
+  :is(.activity-sources-editor-header > p, .activity-sources-search-label, .activity-sources-total, .activity-sources-savebar p:not([data-dirty])) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .activity-sources-toolbar { max-height: 60cqb; overflow-y: auto; overscroll-behavior: contain; }
+  .activity-sources-query { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin-top: .25rem; }
+  .activity-sources-search { flex: 1 1 6rem; min-width: 0; }
+  .activity-sources-options-toggle { padding-inline: .875rem; }
+  .activity-sources-results { margin-top: .5rem; }
+  .activity-sources-results > button:disabled { display: none; }
+  .activity-sources-savebar { margin-block: .5rem; }
+  .activity-sources-options-toggle { display: inline-flex; min-height: 48px; }
+  .activity-sources-filters { display: none; }
+  .activity-sources-filters[data-open] { display: grid; flex: 1 1 100%; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: .25rem; }
+  .activity-sources-actions { display: none; }
+  .activity-sources-actions[data-open] { display: flex; flex: 1 1 100%; margin-inline-start: 0; }
+}
+
 /* The tree's levels as a short path, then the one sentence that explains merged rows. */
-.activity-sources-levels { margin-top: 1.25rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+.activity-sources-levels { margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
 .activity-sources-levels ol { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .375rem; color: hsl(var(--foreground)); font-weight: 500; }
 .activity-sources-levels li { display: inline-flex; align-items: center; gap: .375rem; }
 .activity-sources-levels li > svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
 .activity-sources-levels li > .activity-sources-levels-step { opacity: .7; }
 .activity-sources-levels p { margin-top: .25rem; max-width: 65ch; }
 
-.activity-sources-table { width: 100%; margin-top: 1rem; border-collapse: collapse; font-size: var(--type-body); }
+.activity-sources-table { width: 100%; margin-top: .5rem; border-collapse: collapse; font-size: var(--type-body); }
 .activity-sources-table :is(th, td) { min-width: 0; padding: .5rem; text-align: start; vertical-align: middle; overflow-wrap: anywhere; }
-.activity-sources-table thead th { padding-block: 0; border-bottom: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; white-space: nowrap; }
-.activity-sources-table thead .activity-sources-column-name { width: 38%; padding-inline-start: calc(.5rem + var(--check-slot) + var(--lead-gap)); }
+.activity-sources-table thead th { position: sticky; top: 0; z-index: 1; padding-block: 0; background: hsl(var(--card)); box-shadow: inset 0 -1px 0 hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; white-space: nowrap; }
+.activity-sources-table thead .activity-sources-column-name { padding-inline-start: calc(.5rem + var(--check-slot) + var(--lead-gap)); }
 .activity-sources-sort-label { display: none; }
 .activity-sources-sort { display: inline-flex; align-items: center; gap: .375rem; min-height: 48px; margin-inline: -.5rem; padding-inline: .5rem; border-radius: var(--radius-field); color: inherit; font: inherit; }
 .activity-sources-sort:hover { color: hsl(var(--foreground)); }
@@ -60,9 +112,14 @@
 .activity-sources [role="checkbox"] { position: relative; width: 22px; height: 22px; min-height: 0; border-radius: var(--radius-checkbox); }
 .activity-sources [role="checkbox"]::after { content: ""; position: absolute; inset: -13px; }
 .activity-sources-name svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
-.activity-sources-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.activity-sources-copy strong { font-weight: 500; }
-.activity-sources-copy small, .activity-sources-type small { color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 400; }
+/* The name always gets at least 16rem beside the columns, and wraps between words only; on phones it takes the whole line. */
+.activity-sources-copy { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 16rem; }
+.activity-sources-copy strong { font-weight: 500; overflow-wrap: break-word; }
+.activity-sources-type small { color: hsl(var(--muted-foreground)); font-size: var(--type-meta); font-weight: 400; }
+/* The entity ID is code: one monospace line whose start gives way to an ellipsis while its last word stays in view. */
+.activity-sources-id { display: flex; min-width: 0; max-width: 100%; color: hsl(var(--muted-foreground)); font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace; font-size: var(--type-caption); font-weight: 400; line-height: 1.4; white-space: nowrap; }
+.activity-sources-id > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.activity-sources-id > span + span { flex: none; }
 .activity-sources-table th.activity-sources-name { font-weight: 400; }
 .activity-sources-meta { font-size: var(--type-label); }
 .activity-sources-meta.is-empty::before { content: "—" / ""; color: hsl(var(--muted-foreground)); }
@@ -75,7 +132,7 @@
 .activity-sources-group-row > th { padding-block: .25rem; }
 .activity-sources-fold { display: flex; flex: 1; align-items: center; gap: .625rem; min-width: 0; min-height: 56px; padding-inline: .25rem .5rem; border-radius: var(--radius-field); color: inherit; font: inherit; font-weight: 600; text-align: start; }
 .activity-sources-fold > svg:nth-child(2) { flex-shrink: 0; color: hsl(var(--primary)); }
-.activity-sources-group-name { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.activity-sources-group-name { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: break-word; }
 .activity-sources-group-name small { color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 400; }
 /* Levels merged into this row: each inner group's name, led by its level's glyph. */
 /* Inline text, so the path wraps between words like a sentence instead of stacking one name per line. */
@@ -90,21 +147,27 @@
 .activity-sources-none td { padding-block: 1.25rem; color: hsl(var(--muted-foreground)); }
 .activity-sources-none td { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
 
-/* Pending changes float above the dock while the table scrolls, and park at the card's end. The bar's padding is at
-   least two-thirds of its radius, so its capsule buttons stand free of its corners (The Concentric Radius Rule). */
-.activity-sources-savebar { position: sticky; bottom: calc(var(--app-dock-height, 6rem) + 1.5rem + env(safe-area-inset-bottom)); z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: 1rem; padding: .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); box-shadow: var(--home-shadow-md); }
-.activity-sources-savebar p { display: flex; flex: 1 1 12rem; flex-direction: column; gap: 2px; min-width: 0; padding-inline: .25rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* The save bar is the editor's last row, always in view below the tree: what is unsaved, Cancel and Save sources. Its
+   padding is at least two-thirds of its radius, so its capsule buttons stand free of its corners (The Concentric Radius Rule). */
+.activity-sources-savebar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .75rem var(--editor-gutter); padding: .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); box-shadow: var(--home-shadow-md); }
+.activity-sources-savebar p { display: flex; flex: 1 1 12rem; flex-direction: column; gap: 2px; min-width: 0; padding-inline: .25rem; color: hsl(var(--muted-foreground)); font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+.activity-sources-savebar p[data-dirty] { color: hsl(var(--foreground)); font-weight: 600; }
 .activity-sources-savebar-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
 .activity-sources-savebar [role="alert"] { color: hsl(var(--destructive)); font-size: var(--type-label); font-weight: 500; }
 
 @container activity-sources (max-width: 40rem) {
+  .activity-sources-editor-header, .activity-sources { --editor-gutter: 1rem; }
   .activity-sources { --check-slot: 2.25rem; --lead-gap: .5rem; }
+  /* The tree panel runs edge to edge, so a deep row keeps every pixel of a phone's width. */
+  .activity-sources-scroll { margin-inline: 0; padding-inline: var(--editor-gutter); border-inline: 0; border-radius: 0; }
   .activity-sources-table, .activity-sources-table :is(caption, thead, tbody, tr, th, td) { display: block; }
   .activity-sources-table caption { display: none; }
   .activity-sources-sort-label { display: block; margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-weight: 500; }
-  .activity-sources-sort-label + .activity-sources-table { margin-top: .5rem; }
-  .activity-sources-table thead tr { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-bottom: .75rem; border-bottom: 1px solid hsl(var(--border)); }
-  .activity-sources-table thead th, .activity-sources-table thead .activity-sources-column-name { width: auto; padding: 0; border: 0; }
+  .activity-sources-sort-label + .activity-sources-table { margin-top: .25rem; }
+  /* The sort capsules stick to the top of the panel as one wrapping row. */
+  .activity-sources-table thead { position: sticky; top: 0; z-index: 1; background: hsl(var(--card)); }
+  .activity-sources-table thead tr { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding-block: .5rem .75rem; border-bottom: 1px solid hsl(var(--border)); }
+  .activity-sources-table thead th, .activity-sources-table thead .activity-sources-column-name { position: static; width: auto; padding: 0; border: 0; background: none; box-shadow: none; }
   .activity-sources-sort { margin: 0; padding-inline: .875rem; border: 1px solid hsl(var(--border)); border-radius: 999px; }
   .activity-sources-table th[aria-sort] .activity-sources-sort { border-color: hsl(var(--primary)); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
   .activity-sources-table th[aria-sort] .activity-sources-sort > svg { color: inherit; }
@@ -126,9 +189,10 @@
   .activity-sources-table tbody :is(th, td) { padding: 0; }
   .activity-sources-table tbody th.activity-sources-name { flex: 0 0 calc(100% + var(--check-slot) + var(--lead-gap)); width: auto; margin-inline-start: calc(-1 * (var(--check-slot) + var(--lead-gap))); background: none; }
   .activity-sources-lead { padding-inline-start: 0; }
+  .activity-sources-copy { min-width: 0; }
   .activity-sources-meta { display: inline-flex; align-items: baseline; gap: .3rem; min-width: 0; color: hsl(var(--muted-foreground)); }
   .activity-sources-meta-icon { display: inline; flex-shrink: 0; align-self: center; opacity: .8; }
-  .activity-sources-meta.is-empty { display: none; }
+  .activity-sources-meta:is(.is-empty, :empty) { display: none; }
   .activity-sources-type small { display: inline; margin-left: .125rem; }
   .activity-sources-table tbody tr[data-line]:focus-visible > * { background-color: transparent; }
   .activity-sources-table tbody tr[data-line]:focus-visible { background-color: hsl(var(--muted) / .45); }
