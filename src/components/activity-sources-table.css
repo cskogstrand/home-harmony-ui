@@ -1,8 +1,9 @@
 /* Settings → Activity → Latest events → Activity sources. The settings card shows a summary and Edit sources; the editor is a
    full-screen dialog with the toolbar on top, the tree grid scrolling in its own panel and the save bar at the foot.
    The dialog is the query container in both directions, in rem, so the layout follows the screen and the text size: below
-   40rem of width rows become stacked entries and the column headers become sort capsules, and below 40rem of width or 44rem
-   of height the filters fold behind one button so the tree keeps most of the screen. */
+   40rem of width rows become stacked entries and the column headers become sort capsules, and below 40rem of width or 64rem
+   of height (every laptop and desktop; only the wall and other tall screens show everything) the toolbar keeps to two rows
+   with the filters and bulk actions behind their buttons, so the tree keeps most of the screen. */
 .activity-sources-editor { container: activity-sources / size; --editor-gutter: 1.5rem; }
 
 /* The settings card: the total, what it is made of by event type, and the way in. */
@@ -34,53 +35,91 @@
 .activity-sources-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .125rem .5rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
 .activity-sources-total strong { color: hsl(var(--foreground)); font-size: var(--type-subtitle); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* Search and the five selects share one wrapping grid: on a desktop or the wall they are one row. */
+/* On the wall everything shows: search and the five selects share one wrapping grid of labelled cells, then the results
+   line with Clear filters and the three bulk actions, then the tree's path and the sentence about merged rows. */
 .activity-sources-query { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: .75rem; }
 .activity-sources-search { grid-column: span 2; }
-.activity-sources-options-toggle { display: none; }
-.activity-sources-filters { display: contents; }
+.activity-sources-options-toggle, .activity-sources-actions-toggle, .activity-sources-chips { display: none; }
+.activity-sources-options, .activity-sources-filters { display: contents; }
 .activity-sources-query label { display: grid; align-content: start; gap: .375rem; min-width: 0; font-size: var(--type-label); font-weight: 500; }
-.activity-sources-filters select { width: 100%; min-width: 0; min-height: 48px; border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: 9px 12px; text-overflow: ellipsis; }
+.activity-sources-options select { width: 100%; min-width: 0; min-height: 48px; border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--foreground)); padding: 9px 12px; text-overflow: ellipsis; }
 .activity-sources-search-field { position: relative; display: block; }
 .activity-sources-search-field > svg { position: absolute; top: 50%; left: 14px; translate: 0 -50%; color: hsl(var(--muted-foreground)); pointer-events: none; }
 .activity-sources-search-field input { min-height: 48px; padding-left: 2.75rem; border-radius: var(--radius-field); font-size: var(--type-body); }
 .activity-sources-options-count { display: inline-grid; place-items: center; min-width: 1.5em; height: 1.5em; padding-inline: .375em; border-radius: var(--radius-capsule); background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-size: var(--type-meta); font-variant-numeric: tabular-nums; }
 
-/* The polite count and Clear filters, then the bulk actions at the row's end. */
+/* The polite count and Clear filters, then the bulk actions at the row's end; the tree's path takes the last line. */
 .activity-sources-results { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin-top: .75rem; }
 .activity-sources-results p { min-width: 0; color: hsl(var(--muted-foreground)); font-size: var(--type-label); font-variant-numeric: tabular-nums; }
 .activity-sources-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-inline-start: auto; }
 .activity-sources-actions > button { white-space: normal; text-align: start; }
 
-/* Narrow or short: the selects and bulk actions fold behind Filters beside the search field, the chrome keeps to one line
-   per row (the description, the search label and an idle save-bar note stay for screen readers only) and the toolbar never
-   takes more than 60% of the height, so the tree keeps most of a phone at 150% text. */
-@container activity-sources (max-width: 40rem) or (max-height: 44rem) {
-  .activity-sources-editor-header { padding-block: .5rem .25rem; }
-  .activity-sources-editor-title { font-size: var(--type-subtitle); }
-  /* The total gives way to the results line below the search, which counts the chosen sources too. */
-  :is(.activity-sources-editor-header > p, .activity-sources-search-label, .activity-sources-total, .activity-sources-savebar p:not([data-dirty])) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .activity-sources-toolbar { max-height: 60cqb; overflow-y: auto; overscroll-behavior: contain; }
-  .activity-sources-query { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin-top: .25rem; }
-  .activity-sources-search { flex: 1 1 6rem; min-width: 0; }
-  .activity-sources-options-toggle { padding-inline: .875rem; }
-  .activity-sources-results { margin-top: .5rem; }
-  .activity-sources-results > button:disabled { display: none; }
-  .activity-sources-savebar { margin-block: .5rem; }
-  .activity-sources-options-toggle { display: inline-flex; min-height: 48px; }
+/* The tree's levels as a short path, then the one sentence that explains merged rows. */
+.activity-sources-levels { flex: 1 1 100%; order: 1; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
+.activity-sources-levels ol { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .375rem; color: hsl(var(--foreground)); font-weight: 500; }
+:is(.activity-sources-levels, .activity-sources-header-path) li { display: inline-flex; align-items: center; gap: .375rem; }
+:is(.activity-sources-levels, .activity-sources-header-path) li > svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
+:is(.activity-sources-levels, .activity-sources-header-path) li > .activity-sources-levels-step { opacity: .7; }
+.activity-sources-levels p { margin-top: .25rem; max-width: 65ch; }
+.activity-sources-header-path { display: none; }
+
+/* An active filter: a removable capsule naming the filter and its value. The capsule stays small; its hit area grows to
+   the 44px touch minimum around it. */
+.activity-sources-chips { flex-wrap: wrap; gap: .375rem; min-width: 0; }
+.activity-sources-chip { position: relative; display: inline-flex; align-items: center; gap: .375rem; max-width: 100%; min-height: 2rem; padding: .25rem .5rem .25rem .75rem; border: 1px solid hsl(var(--primary) / .45); border-radius: var(--radius-capsule); background: hsl(var(--primary) / .08); color: hsl(var(--foreground)); font-size: var(--type-label); text-align: start; }
+.activity-sources-chip::after { content: ""; position: absolute; inset: -6px -2px; }
+.activity-sources-chip > span { min-width: 0; overflow-wrap: anywhere; }
+.activity-sources-chip strong { font-weight: 600; }
+.activity-sources-chip > svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
+.activity-sources-chip:hover { background: hsl(var(--primary) / .14); }
+.activity-sources-chip:hover > svg { color: hsl(var(--foreground)); }
+.activity-sources-chip:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.activity-sources-actions-chevron { transition: rotate 200ms var(--ease-out); }
+.activity-sources-actions-toggle[aria-expanded="true"] .activity-sources-actions-chevron { rotate: 180deg; }
+
+/* The save bar is the editor's last row, always in view below the tree: what is unsaved, Cancel and Save sources. Its
+   padding is at least two-thirds of its radius, so its capsule buttons stand free of its corners (The Concentric Radius Rule). */
+.activity-sources-savebar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .75rem var(--editor-gutter); padding: .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); box-shadow: var(--home-shadow-md); }
+.activity-sources-savebar p { display: flex; flex: 1 1 12rem; flex-direction: column; gap: 2px; min-width: 0; padding-inline: .25rem; color: hsl(var(--muted-foreground)); font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+.activity-sources-savebar p[data-dirty] { color: hsl(var(--foreground)); font-weight: 600; }
+.activity-sources-savebar-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+.activity-sources-savebar [role="alert"] { color: hsl(var(--destructive)); font-size: var(--type-label); font-weight: 500; }
+
+/* Compact: everywhere below the wall's height, and on phones. The toolbar keeps to two rows (search, Filters and Group by;
+   then the results with the active filters as removable chips, Clear filters and Change shown), the selects and the bulk
+   actions fold behind their buttons and open as a row of their own, and the chrome keeps to one line per row: the
+   description, the search label, the total (the results line counts the chosen sources too) and the tree's path with its
+   sentence about merged rows stay for screen readers only (a laptop shows the path beside the Name header instead). The
+   toolbar never takes more than 60% of the height, so the tree keeps most of a laptop and of a phone at 150% text. */
+@container activity-sources (max-width: 40rem) or (max-height: 64rem) {
+  .activity-sources-editor-header { padding-block: .75rem 0; }
+  :is(.activity-sources-editor-header > p, .activity-sources-search-label, .activity-sources-total, .activity-sources-levels) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .activity-sources-toolbar { max-height: 60cqb; padding-top: .5rem; overflow-y: auto; overscroll-behavior: contain; }
+  .activity-sources-query { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin-top: 0; }
+  .activity-sources-search { flex: 1 1 12rem; min-width: 0; }
+  .activity-sources-options-toggle { display: inline-flex; min-height: 48px; padding-inline: .875rem; }
   .activity-sources-filters { display: none; }
-  .activity-sources-filters[data-open] { display: grid; flex: 1 1 100%; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: .25rem; }
+  .activity-sources-results { gap: .5rem .75rem; margin-top: .5rem; }
+  .activity-sources-results > p { flex: 0 1 auto; }
+  .activity-sources-results > button:disabled { display: none; }
+  .activity-sources-chips { display: flex; }
+  .activity-sources-actions-toggle { display: inline-flex; margin-inline-start: auto; padding-inline: .875rem; }
   .activity-sources-actions { display: none; }
-  .activity-sources-actions[data-open] { display: flex; flex: 1 1 100%; margin-inline-start: 0; }
+  .activity-sources-actions[data-open] { display: flex; flex: 1 1 100%; justify-content: flex-end; margin-inline-start: 0; }
+  .activity-sources-savebar { margin-block: .5rem; }
 }
 
-/* The tree's levels as a short path, then the one sentence that explains merged rows. */
-.activity-sources-levels { margin-top: 1rem; color: hsl(var(--muted-foreground)); font-size: var(--type-label); }
-.activity-sources-levels ol { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .375rem; color: hsl(var(--foreground)); font-weight: 500; }
-.activity-sources-levels li { display: inline-flex; align-items: center; gap: .375rem; }
-.activity-sources-levels li > svg { flex-shrink: 0; color: hsl(var(--muted-foreground)); }
-.activity-sources-levels li > .activity-sources-levels-step { opacity: .7; }
-.activity-sources-levels p { margin-top: .25rem; max-width: 65ch; }
+/* A laptop or desktop: Group by stays in the first row as one field with its label inside, Filters opens the four selects
+   as a row below it, and the tree's path sits beside the Name header, where it describes the column it indents. */
+@container activity-sources (width > 40rem) and (max-height: 64rem) {
+  .activity-sources-options { display: contents; }
+  .activity-sources-query .activity-sources-group-by { display: flex; flex: 0 1 auto; align-items: center; gap: 0; min-width: 0; min-height: 48px; padding-inline-start: 12px; border: 1px solid hsl(var(--input)); border-radius: var(--radius-field); background: hsl(var(--background)); color: hsl(var(--muted-foreground)); white-space: nowrap; }
+  .activity-sources-group-by:has(select:focus-visible) { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+  .activity-sources-options .activity-sources-group-by select { width: auto; min-height: 46px; border: 0; background: transparent; color: hsl(var(--foreground)); font-weight: 600; padding-inline: .5rem 12px; }
+  .activity-sources-group-by select:focus-visible { outline: none; }
+  .activity-sources-header-path { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem .375rem; margin-inline-start: 1.5rem; vertical-align: middle; font-weight: 500; white-space: normal; }
+  .activity-sources-options[data-open] > .activity-sources-filters { display: grid; flex: 1 1 100%; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: .25rem; }
+}
 
 .activity-sources-table { width: 100%; margin-top: .5rem; border-collapse: collapse; font-size: var(--type-body); }
 .activity-sources-table :is(th, td) { min-width: 0; padding: .5rem; text-align: start; vertical-align: middle; overflow-wrap: anywhere; }
@@ -147,17 +186,23 @@
 .activity-sources-none td { padding-block: 1.25rem; color: hsl(var(--muted-foreground)); }
 .activity-sources-none td { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
 
-/* The save bar is the editor's last row, always in view below the tree: what is unsaved, Cancel and Save sources. Its
-   padding is at least two-thirds of its radius, so its capsule buttons stand free of its corners (The Concentric Radius Rule). */
-.activity-sources-savebar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .75rem var(--editor-gutter); padding: .75rem; border: 1px solid hsl(var(--border)); border-radius: var(--radius-inset); background: hsl(var(--card)); box-shadow: var(--home-shadow-md); }
-.activity-sources-savebar p { display: flex; flex: 1 1 12rem; flex-direction: column; gap: 2px; min-width: 0; padding-inline: .25rem; color: hsl(var(--muted-foreground)); font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
-.activity-sources-savebar p[data-dirty] { color: hsl(var(--foreground)); font-weight: 600; }
-.activity-sources-savebar-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
-.activity-sources-savebar [role="alert"] { color: hsl(var(--destructive)); font-size: var(--type-label); font-weight: 500; }
-
 @container activity-sources (max-width: 40rem) {
   .activity-sources-editor-header, .activity-sources { --editor-gutter: 1rem; }
   .activity-sources { --check-slot: 2.25rem; --lead-gap: .5rem; }
+  .activity-sources-editor-title { font-size: var(--type-subtitle); }
+  /* A phone's first row is the search field and Filters alone: Group by folds with the four selects, which open below as
+     one wrapping grid, and Change shown becomes a 48px circle at the results
+     line's end. */
+  .activity-sources-search { flex-basis: 6rem; }
+  .activity-sources-options { display: none; }
+  .activity-sources-options[data-open] { display: grid; flex: 1 1 100%; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9rem), 1fr)); gap: .75rem 1rem; margin-top: .25rem; }
+  .activity-sources-options[data-open] > .activity-sources-filters { display: contents; }
+  .activity-sources-actions-toggle > span, .activity-sources-savebar p:not([data-dirty]) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .activity-sources-results > p { flex: 1 1 8rem; }
+  /* A chip shows its value alone; its accessible name keeps the filter, as it does everywhere. */
+  .activity-sources-chip-label { display: none; }
+  .activity-sources-actions-toggle { width: 48px; min-width: 48px; height: 48px; min-height: 48px; padding: 0; }
+  .activity-sources-actions-toggle > .activity-sources-actions-chevron { display: none; }
   /* The tree panel runs edge to edge, so a deep row keeps every pixel of a phone's width. */
   .activity-sources-scroll { margin-inline: 0; padding-inline: var(--editor-gutter); border-inline: 0; border-radius: 0; }
   .activity-sources-table, .activity-sources-table :is(caption, thead, tbody, tr, th, td) { display: block; }
@@ -211,9 +256,9 @@
   .activity-sources-table tbody tr.activity-sources-none { padding-left: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) { .activity-sources-chevron { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .activity-sources-chevron, .activity-sources-actions-chevron { transition: none; } }
 @media (forced-colors: active) {
-  .activity-sources-count, .activity-sources-sort { border-color: CanvasText; }
+  .activity-sources-count, .activity-sources-sort, .activity-sources-chip, .activity-sources-group-by { border-color: CanvasText; }
   .activity-sources-table th[aria-sort] .activity-sources-sort { outline: 2px solid CanvasText; outline-offset: 1px; }
   .activity-sources-table tbody tr[data-line]:focus-visible { outline-color: Highlight; }
   .activity-sources-savebar { border-color: CanvasText; }
