@@ -1,5 +1,5 @@
 import type { ZodIssue } from "zod";
-import { notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay, type NotificationWidget } from "../../shared/notifications";
+import { notificationDismissible, notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay, type NotificationWidget } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
 
@@ -28,6 +28,13 @@ export function previewNotificationEvent(rule: NotificationRule, startedAt: numb
     return { expiresAt: startedAt + rule.durationSeconds * 1000 };
   }
   return {};
+}
+
+/** The calm note a non-dismissible alert shows where its Dismiss action would be. */
+export function notificationPersistenceNote(item: Pick<HomeNotification, "rule" | "eventStart" | "eventAllDay" | "expiresAt">) {
+  if (item.rule.kind === "ongoing" || notificationDismissible(item.rule)) return undefined;
+  if (item.eventStart !== undefined || item.eventAllDay) return "Stays until the event ends" as const;
+  return item.expiresAt !== undefined ? "Stays until it expires" as const : "Stays until resolved" as const;
 }
 
 export function showsLiveActivityPreview(rule: NotificationRule) {
@@ -143,8 +150,8 @@ export function matchesEvent(trigger: NotificationTrigger, event: NotificationEv
 type Observation = { signature: string; triggers: { entity?: Entity; matched: boolean }[]; stateId?: string; hideAt?: number; calendarIds: Set<string>; lastFired: number };
 
 // Session-only state: never persist event payloads, camera images, or notification history.
-// A widget edit changes the displayed tile without restarting the activation or its cooldown.
-const ruleSignature = (rule: NotificationRule) => JSON.stringify({ ...rule, widget: undefined });
+// A widget or dismissal edit changes the displayed alert without restarting the activation or its cooldown.
+const ruleSignature = (rule: NotificationRule) => JSON.stringify({ ...rule, widget: undefined, dismissible: undefined });
 
 export class NotificationEngine {
   private observations = new Map<string, Observation>();
@@ -152,7 +159,10 @@ export class NotificationEngine {
   private sequence = 0;
 
   list = () => [...this.entries.values()].filter(entry => !entry.dismissed).sort((a, b) => a.startedAt - b.startedAt);
-  dismiss(id: string) { const entry = this.entries.get(id); if (entry) this.entries.set(id, { ...entry, dismissed: true, popup: false }); }
+  dismiss(id: string) {
+    const entry = this.entries.get(id);
+    if (entry && notificationDismissible(entry.rule)) this.entries.set(id, { ...entry, dismissed: true, popup: false });
+  }
   camera(id: string, popup: boolean) { const entry = this.entries.get(id); if (entry) this.entries.set(id, { ...entry, popup }); }
   clear() { this.observations.clear(); this.entries.clear(); }
   private removeRule(id: string) { for (const [key, entry] of this.entries) if (entry.rule.id === id) this.entries.delete(key); }
@@ -197,7 +207,10 @@ export class NotificationEngine {
     for (const [id, entry] of this.entries) {
       const rule = enabled.get(entry.rule.id);
       if (entry.expiresAt <= now) this.entries.delete(id);
-      else if (rule && entry.rule !== rule) this.entries.set(id, { ...entry, rule });
+      // An alert dismissed before its rule stopped allowing dismissal returns while its condition holds, without reopening a popup.
+      else if (rule && (entry.rule !== rule || entry.dismissed && !notificationDismissible(rule))) {
+        this.entries.set(id, { ...entry, rule, dismissed: entry.dismissed && notificationDismissible(rule) ? true : undefined });
+      }
     }
     for (const rule of enabled.values()) {
       const previous = this.observations.get(rule.id);
@@ -238,5 +251,5 @@ export class NotificationEngine {
   }
 }
 
-const sections: Record<string, string> = { widget: "widget", title: "content", message: "content", pages: "content", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", hideTrigger: "hideTrigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
+const sections: Record<string, string> = { widget: "widget", title: "content", message: "content", pages: "content", dismissible: "dismissal", presentation: "presentation", livePreviewBelowTitle: "camera", timeLeftEntity: "progress", trigger: "trigger", additionalTriggers: "trigger", hideTrigger: "hideTrigger", cameraEntity: "camera", cameraMedia: "camera", cameraPlacement: "camera", imageEntity: "camera", imagePlacement: "camera", showPersonSnapshot: "camera", detailEntities: "readings", progress: "progress", entityDisplay: "readings", icon: "appearance", animateIcon: "appearance", durationSeconds: "timing", cooldownSeconds: "timing" };
 export const notificationIssueSection = (issue: ZodIssue) => sections[String(issue.path[0])] ?? "content";

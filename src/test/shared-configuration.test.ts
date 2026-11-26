@@ -66,6 +66,19 @@ it("shares and restores the optional person inset setting without changing older
   expect(a.getSnapshot().config.settings.notifications.rules[0].showPersonSnapshot).toBe(true);
 });
 
+it("shares and restores a rule's dismissal switch while older rules stay dismissible", async () => {
+  const rule = notificationRuleSchema.parse({ id: "example", title: "Example refill", kind: "current", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" } });
+  expect(rule.dismissible).toBeUndefined();
+  const backend = server(), a = await backend.start(), b = await backend.start();
+  a.updateSettings(p => ({ ...p, notifications: { ...p.notifications, rules: [{ ...rule, dismissible: false }, { ...rule, id: "example-older" }] } }));
+  await waitFor(() => expect(a.getSnapshot().dirty).toBe(false));
+  await b.refresh();
+  const backup = parseConfiguration(JSON.stringify(b.getSnapshot().config));
+  expect(backup.settings.notifications.rules.map(item => item.dismissible)).toEqual([false, undefined]);
+  await b.replace(emptyConfiguration()); await b.replace(backup); await a.refresh();
+  expect(a.getSnapshot().config.settings.notifications.rules.map(item => item.dismissible)).toEqual([false, undefined]);
+});
+
 it("validates, shares and restores per-list display and next-plan range settings", async () => {
   const config = emptyConfiguration();
   const read = (display: unknown) => parseConfiguration(JSON.stringify({ ...config, settings: { ...config.settings, todoLists: { "home|todo.example": { kind: "daily", member: "home|person.example", display } } } }));

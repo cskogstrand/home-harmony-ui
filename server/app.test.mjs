@@ -487,6 +487,25 @@ test("persists a validated backup across restart and exposes it to a second devi
   assert.doesNotMatch(disk, /fixture-valid-token/);
 });
 
+test("stores a notification rule's dismissal switch and keeps older rules without it", async t => {
+  const app = await fixture(t);
+  const initial = await (await app.request()).json();
+  const input = configuration();
+  const rule = { id: "example-refill", title: "Example refill", message: "", enabled: true, kind: "current", trigger: { type: "state", entity: "home|binary_sensor.example", attribute: "", operator: "eq", value: "on" }, cameraEntity: "", detailEntities: [], durationSeconds: 60, cooldownSeconds: 10 };
+  input.settings.notifications.rules = [{ ...rule, dismissible: false }, { ...rule, id: "example-older" }];
+  const response = await app.request("PUT", input, initial.revision);
+  assert.equal(response.status, 200);
+  const saved = await response.json();
+  assert.deepEqual(saved.config, input);
+  await app.restart();
+  const restored = (await (await app.request()).json()).config.settings.notifications.rules;
+  assert.equal(restored[0].dismissible, false);
+  assert.equal("dismissible" in restored[1], false);
+  const invalid = structuredClone(input);
+  invalid.settings.notifications.rules[0].dismissible = "no";
+  assert.equal((await app.request("PUT", invalid, saved.revision)).status, 400);
+});
+
 test("serializes simultaneous edits and refuses stale overwrites", async t => {
   const app = await fixture(t);
   const { revision } = await (await app.request()).json();
