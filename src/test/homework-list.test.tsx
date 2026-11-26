@@ -10,6 +10,7 @@ import type { TodoItem } from "@/types/api";
 import type { TodoListKind } from "@/contexts/FamilyContext";
 import { defaultTodoDisplay, type TodoDisplay } from "../../shared/configuration";
 import { state } from "./ha-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ language: "en" as "en" | "nb", app: { haUrl: "http://ha.local:8123", homeOnline: true, currentHome: null, commands: {}, services: { todo: { add_item: { fields: {} }, update_item: { fields: {} }, remove_item: { fields: {} } } }, todoItems: vi.fn(), command: vi.fn() }, family: { today: "2026-10-28", todoLists: {} as Record<string, { kind: TodoListKind; member: string; display?: TodoDisplay }>, connectedPlanner: true, compareMembers: () => 0, isMemberVisible: () => true, memberName: () => "Alex", memberColor: () => "#c4d5a3", members: [{ id: "home|person.example", name: "Alex" }], allMembers: [], hasTimetable: () => true, timetableSettings: {} } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -28,7 +29,7 @@ beforeEach(() => {
   mocks.app.todoItems.mockResolvedValue([]);
   mocks.app.command.mockResolvedValue(undefined);
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); });
 
 it.each(["en", "nb"] as const)("sorts homework and labels due dates in %s, using the home time zone", async language => {
   mocks.language = language;

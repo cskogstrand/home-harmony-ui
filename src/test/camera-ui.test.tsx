@@ -15,6 +15,7 @@ import { cameraSettings } from "./camera-fixtures";
 import Cameras from "@/pages/Cameras";
 import { PageActivityContext } from "@/contexts/PageActivityContext";
 import { CameraPreviewImageContext } from "@/contexts/CameraPreviewImageContext";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null, go2rtc: vi.fn(), mse: vi.fn(), ha: vi.fn(), save: vi.fn(), fetch: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
@@ -39,7 +40,7 @@ beforeEach(() => {
   mocks.fetch.mockResolvedValue({ ok: true, json: async () => ["example", "example_sub"] }); vi.stubGlobal("fetch", mocks.fetch);
   vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} unobserve() {} });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const renderSettings = (url = "/settings/cameras") => render(<MemoryRouter initialEntries={[url]}><CameraSettings /></MemoryRouter>);
 const configure = () => { mocks.shared.state.config.settings.cameras = cameraSettings(); };
 

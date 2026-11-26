@@ -5,6 +5,7 @@ import { WeatherWidget } from "@/components/WeatherWidget";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { createI18n } from "@/lib/i18n";
 import { state } from "./ha-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const data = vi.hoisted(() => ({ app: { currentHome: null, homeOnline: true, watchForecast: vi.fn() }, weatherEntity: "", weatherTemperatureEntity: "", weatherPlacement: { today: true, header: false }, language: "en" as "en" | "nb" }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(data.app) }));
@@ -24,7 +25,7 @@ beforeEach(() => {
   data.app.watchForecast.mockReset();
   data.app.watchForecast.mockImplementation((_id, _type, _signal, receive) => receive([{ datetime: "2030-01-01T12:00:00Z", condition: "sunny", temperature: 4 }]));
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); });
 const content = () => <MemoryRouter><WeatherWidget placement="today" /></MemoryRouter>;
 const weatherButton = () => screen.getByRole("button", { name: /^Weather:/ });
 

@@ -14,7 +14,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   app.currentHome.entities = [{ ...state("todo.daily", "1", { supported_features: 4 }), entityId: "todo.daily", preferenceId: "home|todo.daily", domain: "todo", name: "Daily", areaId: "unassigned" }];
 });
-afterEach(() => { cleanup(); delete document.documentElement.dataset.motionInput; vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); delete document.documentElement.dataset.motionInput; vi.restoreAllMocks(); });
 
 it("finishes a celebration when its page goes into the background", () => {
   const onComplete = vi.fn();

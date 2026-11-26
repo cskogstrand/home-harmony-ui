@@ -6,6 +6,13 @@ export function sourceFile(path) {
   return readFileSync(resolve(process.cwd(), "src", path), "utf8");
 }
 
+/** Lists the test files and helpers directly under src/test/ that end with one of the extensions, as paths relative to src/. */
+export function testSourceFiles(extensions) {
+  return readdirSync(resolve(process.cwd(), "src", "test"))
+    .filter(name => extensions.some(extension => name.endsWith(extension)))
+    .map(name => join("test", name));
+}
+
 /** Lists app source files under src/ (tests excluded) that end with the extension, as paths relative to src/. */
 export function sourceFiles(extension, directory = resolve(process.cwd(), "src")) {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {

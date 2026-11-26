@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within, act, waitFor } from "@testi
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import DeviceGallery from "@/pages/DeviceGallery";
+import { restoreRealTimers } from "./timers";
 
 // Each case mounts 117 real cards; allow headroom when test workers compete for CPU.
 vi.setConfig({ testTimeout: 15_000 });
@@ -13,7 +14,7 @@ beforeEach(() => {
   language.value = "en";
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.unstubAllGlobals(); });
 const open = () => render(<MemoryRouter><DeviceGallery /></MemoryRouter>);
 const settingsName = () => language.value === "nb" ? "Demoinnstillinger" : "Playground settings";
 const openSettings = () => {

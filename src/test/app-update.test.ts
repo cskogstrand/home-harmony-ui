@@ -1,6 +1,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { appVersion, useAppUpdate } from "@/hooks/use-app-update";
+import { restoreRealTimers } from "./timers";
 
 const request = vi.fn();
 const response = (version: unknown) => ({ ok: true, json: async () => ({ version }) });
@@ -11,7 +12,7 @@ beforeEach(() => {
   vi.spyOn(document, "hidden", "get").mockReturnValue(false);
   request.mockReset().mockResolvedValue(response(appVersion));
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 it("checks immediately and discovers a changed release without using cached responses", async () => {
   const { result } = renderHook(useAppUpdate);

@@ -6,6 +6,7 @@ import { state } from "./ha-fixtures";
 import { createI18n } from "@/lib/i18n";
 import type { TodoListKind } from "@/contexts/FamilyContext";
 import type { TodoItem } from "@/types/api";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: { currentHome: null, homeOnline: true, haUrl: "http://ha.example", todoItems: vi.fn(), commands: {} }, family: { members: [{ id: "home|person.example" }], todoLists: {} as Record<string, { kind: TodoListKind; member: string }> } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -25,7 +26,7 @@ beforeEach(() => {
   };
   mocks.app.todoItems.mockReset().mockResolvedValue([item]);
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); });
 
 it("reads visible people's lists only and removes completed tasks after an entity update", async () => {
   const { result, rerender } = renderHook(() => useTodos());

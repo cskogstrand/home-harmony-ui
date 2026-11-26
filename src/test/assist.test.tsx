@@ -4,6 +4,7 @@ import * as ha from "home-assistant-js-websocket";
 import type { Connection } from "home-assistant-js-websocket";
 import { HomeAssistantClient } from "@/lib/home-assistant";
 import { config, services, states, user } from "./ha-fixtures";
+import { restoreRealTimers } from "./timers";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -103,5 +104,5 @@ it("reports an unanswered question as possibly still running", async () => {
     const result = expect(pending).rejects.toThrow("may still happen");
     await vi.advanceTimersByTimeAsync(30000);
     await result;
-  } finally { vi.useRealTimers(); }
+  } finally { restoreRealTimers(); }
 });

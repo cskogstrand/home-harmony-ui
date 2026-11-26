@@ -13,6 +13,7 @@ import Moods from "@/pages/Moods";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { services, state } from "./ha-fixtures";
 import { cardEntity, cardServices, configuredCard, mediaEntity, regulatorThermostatHome } from "./device-card-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: null, family: null, shared: null, command: vi.fn(), density: vi.fn(), visible: vi.fn(), card: vi.fn(), forecast: vi.fn(), history: vi.fn(), camera: vi.fn() }));
 const render = (ui: React.ReactElement) => renderUI(ui, { wrapper: ({ children }) => <AppContext.Provider value={{ ...mocks.app }}>{children}</AppContext.Provider> });
@@ -46,7 +47,7 @@ beforeEach(() => {
   mocks.shared = { state: { loaded: true, config: emptyConfiguration() } };
   vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.unstubAllGlobals(); });
 
 it("automatically selects the climate design, defaults to supercompact, and sends the reported temperature step", async () => {
   open();

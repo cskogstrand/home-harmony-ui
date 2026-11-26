@@ -5,6 +5,7 @@ import { emptyConfiguration, parseConfiguration } from "../../shared/configurati
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { config, state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
+import { restoreRealTimers } from "./timers";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "http://ha.local:8123", homeOnline: true, connectionStatus: "connected", connectionStarting: false, awaitingFirstConnection: false, entityRegistryAvailable: true, metadataWarnings: [], services: {}, commands: {}, command: vi.fn(), connect: vi.fn(), disconnect: vi.fn(), configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn(), assistAgents: vi.fn(async () => []) }));
 vi.mock("@/contexts/AppContext", async importOriginal => {
@@ -55,7 +56,7 @@ beforeEach(() => {
   vi.stubGlobal("IntersectionObserver", class { observe() {} disconnect() {} });
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 const everyonesDay = async () => {
   const day = await screen.findByRole("region", { name: "Everyone’s day" });

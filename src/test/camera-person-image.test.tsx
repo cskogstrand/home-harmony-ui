@@ -6,6 +6,7 @@ import { emptyConfiguration } from "../../shared/configuration";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { cameraSettings } from "./camera-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
@@ -30,7 +31,7 @@ beforeEach(() => {
   vi.stubGlobal("Image", class { src = ""; decode = decode; });
   vi.stubGlobal("URL", class extends URL { static createObjectURL = create; static revokeObjectURL = revoke; });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("prefetches on page load and immediately reuses the decoded image across viewers and reopening", async () => {
   const view = render(content());

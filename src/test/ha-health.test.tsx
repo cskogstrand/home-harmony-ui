@@ -13,6 +13,7 @@ import { MemoryRouter } from "react-router-dom";
 import { mapHome, emptyRegistries } from "@/lib/ha-model";
 import { HEALTH_REFRESH_MS, HaHealthProvider } from "@/contexts/HaHealthProvider";
 import { adminUser, config, services, state, states, user } from "./ha-fixtures";
+import { restoreRealTimers } from "./timers";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -253,7 +254,7 @@ describe("health refresh", () => {
     homeOnline: true, userIsAdmin: true as boolean | undefined, listRepairs: vi.fn(async () => parseRepairs(repairs)), backupInfo: vi.fn(async () => parseBackupInfo(backup())), ...overrides,
   });
   const view = (app: ReturnType<typeof fakeApp>) => <AppContext.Provider value={app as never}><HaHealthProvider><Probe /></HaHealthProvider></AppContext.Provider>;
-  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+  afterEach(() => { restoreRealTimers(); vi.restoreAllMocks(); });
 
   it("reads on connect, every 15 minutes while visible and again when shown after a hidden refresh", async () => {
     vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });

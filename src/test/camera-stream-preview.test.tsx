@@ -1,6 +1,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { CameraStreamPreview } from "@/components/CameraStreamPreview";
+import { restoreRealTimers } from "./timers";
 
 const fetchFrame = vi.fn(), decode = vi.fn(), create = vi.fn(), revoke = vi.fn();
 const response = () => new Response(new Blob(["fixture-frame"], { type: "image/jpeg" }), { headers: { "Content-Type": "image/jpeg" } });
@@ -13,7 +14,7 @@ beforeEach(() => {
   vi.stubGlobal("Image", class { src = ""; decode = decode; });
   vi.stubGlobal("URL", class extends URL { static createObjectURL = create; static revokeObjectURL = revoke; });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.unstubAllGlobals(); });
 
 it("requests immediately, retains the decoded image between refreshes and never overlaps requests", async () => {
   let finishDecode: () => void;
