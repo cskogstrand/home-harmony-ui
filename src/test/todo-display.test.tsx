@@ -24,6 +24,15 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); delete document.documentElement.dataset.motionInput; });
 const renderList = () => render(<MemoryRouter><ListPanel kind="shopping" /></MemoryRouter>);
+// jsdom has no Element.prototype.animate. Motion decides once per file whether to use it by checking for an own
+// `animate` property, so restoring the stub by assigning `undefined` would leave that check true and later Motion
+// animations would call undefined. Restore the original property, or remove it when there was none.
+const stubAnimate = (animate: (...args: Parameters<Element["animate"]>) => unknown) => {
+  const original = Object.getOwnPropertyDescriptor(Element.prototype, "animate");
+  const stub = vi.fn(animate) as unknown as Element["animate"];
+  Element.prototype.animate = stub;
+  return { stub, restore: () => { if (original) Object.defineProperty(Element.prototype, "animate", original); else Reflect.deleteProperty(Element.prototype, "animate"); } };
+};
 const pendingItem = { uid: "one", summary: "Example task", status: "needs_action", description: "Example details", due: "2026-10-29" };
 
 it.each(["inline", "under", "collapsed", "hide"] as const)("renders completed items %s while keeping open items editable", async completed => {
@@ -178,10 +187,9 @@ it("uses a stationary fade with reduced motion and does not replay it when reope
 });
 
 it.each([false, true])("waits for every browser animation to finish and cancels on unmount (whole list: %s)", async wholeList => {
-  const animate = Element.prototype.animate;
   const finishes: (() => void)[] = [];
   const cancel = vi.fn();
-  Element.prototype.animate = vi.fn(() => ({ finished: new Promise<void>(resolve => finishes.push(resolve)), cancel })) as unknown as typeof animate;
+  const animate = stubAnimate(() => ({ finished: new Promise<void>(resolve => finishes.push(resolve)), cancel }));
   try {
     const onComplete = vi.fn();
     const view = render(<TodoCelebration origin={{ x: 100, y: 100 }} wholeList={wholeList} onComplete={onComplete} />);
@@ -191,7 +199,7 @@ it.each([false, true])("waits for every browser animation to finish and cancels 
     expect(onComplete).toHaveBeenCalledOnce();
     view.unmount();
     expect(cancel).toHaveBeenCalledTimes(finishes.length);
-  } finally { Element.prototype.animate = animate; }
+  } finally { animate.restore(); }
 });
 
 const deferred = <T,>() => {
@@ -280,19 +288,18 @@ it("waits for concurrent writes, celebrates once and cancels when an unfinished 
 
 it("replaces the finale particles and scaling with a readable stationary fade for reduced motion", async () => {
   motion.reduced = true;
-  const animate = Element.prototype.animate;
-  Element.prototype.animate = vi.fn(() => ({ finished: new Promise(() => {}), cancel: vi.fn() })) as unknown as typeof animate;
+  const animate = stubAnimate(() => ({ finished: new Promise(() => {}), cancel: vi.fn() }));
   try {
     const view = render(<TodoCelebration origin={{ x: 0, y: 0 }} wholeList onComplete={vi.fn()} />);
     expect(view.container.querySelectorAll("i")).toHaveLength(0);
     expect(view.container).toHaveTextContent("All done!");
-    expect(Element.prototype.animate).toHaveBeenCalledOnce();
-    const [frames, options] = vi.mocked(Element.prototype.animate).mock.calls[0];
+    expect(animate.stub).toHaveBeenCalledOnce();
+    const [frames, options] = vi.mocked(animate.stub).mock.calls[0];
     expect(frames).toEqual(expect.arrayContaining([expect.objectContaining({ opacity: 1 })]));
     expect((frames as Keyframe[]).every(frame => !("transform" in frame))).toBe(true);
     expect(options).toMatchObject({ duration: 1600 });
     view.unmount();
-  } finally { Element.prototype.animate = animate; }
+  } finally { animate.restore(); }
 });
 
 it("stops an active finale when its setting is disabled", async () => {
