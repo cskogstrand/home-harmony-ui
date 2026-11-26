@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi, type Mock } from "vitest";
 import type { Connection } from "home-assistant-js-websocket";
 import Hls from "hls.js/dist/hls.light.mjs";
 import { playCameraStream } from "@/lib/camera-stream";
+import { restoreRealTimers } from "./timers";
 
 vi.mock("hls.js/dist/hls.light.mjs", () => ({ default: class FakeHls {
   static isSupported = vi.fn(() => true);
@@ -58,7 +59,7 @@ beforeEach(() => {
     "camera/stream": { url },
   })[type]);
 });
-afterEach(() => { controller.abort(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { controller.abort(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("prefers WebRTC, exchanges queued ICE candidates and closes tracks and signaling on abort", async () => {
   start(); await flush();

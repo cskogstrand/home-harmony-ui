@@ -5,6 +5,7 @@ import { CameraStreamPreview } from "@/components/CameraStreamPreview";
 import { emptyConfiguration } from "../../shared/configuration";
 import { cameraPreviewPath } from "../../shared/cameras";
 import { cameraSettings } from "./camera-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: null, shared: null }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
@@ -25,7 +26,7 @@ beforeEach(() => {
   vi.stubGlobal("Image", class { src = ""; decode = decode; });
   vi.stubGlobal("URL", class extends URL { static createObjectURL = create; static revokeObjectURL = revoke; });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it.each(["go2rtc", "home-assistant", "frigate"])("prefetches %s stills before opening viewers and shares them across reopening and video playback", async source => {
   const settings = mocks.shared.state.config.settings.cameras;

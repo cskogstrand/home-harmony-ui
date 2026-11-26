@@ -6,6 +6,7 @@ import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import type { CalendarEvent } from "@/types/api";
+import { restoreRealTimers } from "./timers";
 
 const app = vi.hoisted(() => ({ currentHome: null, haUrl: "https://ha.example", homeOnline: true, connectionStatus: "connected", metadataWarnings: [], commands: {}, services: {}, configurationRequest: vi.fn(), storageRequest: vi.fn(), watchCalendarEvents: vi.fn(), subscribeLogbook: vi.fn(() => () => {}), todoItems: vi.fn() }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => app }));
@@ -34,7 +35,7 @@ beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   window.history.replaceState(null, "", "/home");
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const navigate = async (name: string) => {
   fireEvent.click(within(screen.getByRole("navigation", { name: "Main navigation" })).getByRole("link", { name }));
   await screen.findByRole("heading", { level: 1, name });

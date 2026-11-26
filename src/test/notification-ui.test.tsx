@@ -19,6 +19,7 @@ import { notificationIcons, notificationRuleSchema } from "../../shared/notifica
 import { state } from "./ha-fixtures";
 import { playGo2rtcStream } from "@/lib/go2rtc-stream";
 import * as imageTrimming from "@/lib/trim-transparent-image";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: {} as Record<string, unknown>, family: {} as Record<string, unknown>, shared: { state: { loaded: true, error: "", config: undefined as ReturnType<typeof emptyConfiguration> } } }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: (select = value => value) => select(mocks.app) }));
@@ -54,7 +55,7 @@ beforeEach(() => {
   mocks.shared.state.config.settings.cameras.items = [{ id: "example-camera", name: "Example camera", connectionId: "home-assistant", source: "camera.example", personSnapshot: { type: "none" } }];
   setNotifications.mockReturnValue(true);
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.unstubAllGlobals(); });
 
 it.each([
   ["activity", "footer"], ["activity-compact", "right"], ["activity", "left"],

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { Link, MemoryRouter } from "react-router-dom";
 import { SonosMiniPlayer } from "@/components/sonos/SonosMiniPlayer";
 import { musicFolder, sonosEntities, sonosServices, speaker } from "./sonos-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const mocks = vi.hoisted(() => ({ app: null }));
 vi.mock("@/contexts/AppContext", () => ({ useApp: () => mocks.app }));
@@ -15,7 +16,7 @@ beforeEach(() => {
   mocks.app = { currentHome: { entities: sonosEntities() }, homeOnline: true, services: sonosServices, commands: {},
     command: vi.fn().mockResolvedValue(undefined), browseMedia: vi.fn().mockResolvedValue(musicFolder()), sonosQueue: vi.fn().mockResolvedValue([]) };
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); restoreRealTimers(); vi.unstubAllGlobals(); });
 
 it.each(["/", "/calendar", "/lists", "/school", "/home", "/cameras", "/devices/example", "/notifications"])("shows playback on %s", path => {
   render(content(path));

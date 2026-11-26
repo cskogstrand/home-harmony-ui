@@ -9,6 +9,7 @@ import { ConnectionBanner } from "@/components/common/ConnectionBanner";
 import { PageSkeleton } from "@/components/common/PageSkeleton";
 import { createI18n } from "@/lib/i18n";
 import { config, registries, services, states, user } from "./ha-fixtures";
+import { restoreRealTimers } from "./timers";
 
 vi.mock("home-assistant-js-websocket", async importOriginal => ({
   ...await importOriginal<typeof import("home-assistant-js-websocket")>(),
@@ -63,7 +64,7 @@ beforeEach(() => {
   });
   vi.mocked(ha.callService).mockResolvedValue({});
 });
-afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("keeps a fresh load calm until the first connection completes", async () => {
   const client = newClient();

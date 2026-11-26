@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { playGo2rtcStream } from "@/lib/go2rtc-stream";
 import { go2rtcErrors } from "../../shared/cameras";
+import { restoreRealTimers } from "./timers";
 
 class Peer {
   static instances: Peer[] = [];
@@ -29,7 +30,7 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
   video = document.createElement("video"); controller = new AbortController();
 });
-afterEach(() => { controller.abort(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { controller.abort(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("waits for ICE, exchanges SDP once, plays tracks and releases everything on abort", async () => {
   start(); await vi.advanceTimersByTimeAsync(0);

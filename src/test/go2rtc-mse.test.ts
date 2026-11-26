@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { playGo2rtcMse } from "@/lib/go2rtc-mse";
 import { go2rtcErrors } from "../../shared/cameras";
+import { restoreRealTimers } from "./timers";
 
 class Buffer extends EventTarget {
   buffered = { length: 1, start: () => 0, end: () => 30 };
@@ -30,7 +31,7 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
   video = document.createElement("video"); controller = new AbortController();
 });
-afterEach(() => { controller.abort(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { controller.abort(); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 it("uses server codecs, feeds media in order, trims old data and releases the stream on close", async () => {
   start(); const source = Source.instances[0]; source.dispatchEvent(new Event("sourceopen"));

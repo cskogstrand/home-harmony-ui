@@ -62,7 +62,7 @@ beforeEach(() => {
   vi.mocked(ha.getServices).mockResolvedValue(services);
   vi.mocked(ha.subscribeEntities).mockImplementation((_conn, callback) => { (callback as (states: HassEntities) => void)(states); return () => {}; });
 });
-afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("logbook subscription", () => {
   it("requests a bounded backfill for the chosen entities and delivers validated events", async () => {

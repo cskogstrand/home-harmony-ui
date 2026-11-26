@@ -19,6 +19,7 @@ import { configurationSnapshot } from "./configuration-snapshot.mjs";
 import { emptyConfiguration, emptyPlanner } from "../../shared/configuration";
 import { timetableUploadPath } from "../../shared/timetables";
 import { musicFolder, sonosEntities, sonosServices } from "./sonos-fixtures";
+import { restoreRealTimers } from "./timers";
 
 const states: HassEntities = { "person.everyone": state("person.everyone", "home", { friendly_name: "Everyone" }), ...deviceStates };
 
@@ -264,7 +265,7 @@ beforeEach(() => {
   });
   vi.mocked(ha.callService).mockResolvedValue({});
 });
-afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+afterEach(() => { cleanup(); clients.forEach(client => client.dispose()); restoreRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 it("skips both weekly grids on sensor updates and refreshes both when a person changes", async () => {
   const rows = vi.spyOn(familyCalendar, "weekEventRows");
@@ -2985,7 +2986,7 @@ it("keeps grouping pending beyond 15 seconds until HA confirms and does not rese
     await command;
     expect(client.getSnapshot().commands["media_player.lounge"].pending).toBe(false);
     expect(ha.callService).toHaveBeenCalledTimes(1);
-  } finally { vi.useRealTimers(); }
+  } finally { restoreRealTimers(); }
 });
 
 it("preserves the HA grouping failure reason and leaves normal command errors unchanged", async () => {

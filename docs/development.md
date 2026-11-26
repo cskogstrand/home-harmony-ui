@@ -47,6 +47,8 @@ For compact output, use `npm run --silent test:silent` and `npm run --silent tes
 
 Vitest disables Node's native Web Storage in test workers so browser tests use jsdom's in-memory `localStorage` and `sessionStorage`. This avoids `--localstorage-file` warnings on Node 25+ without suppressing other warnings.
 
+Tests that use `vi.useFakeTimers()` leave them with `restoreRealTimers()` from `src/test/timers.ts`, normally in `afterEach`. It unmounts, runs the timers still queued and then restores real timers. A bare `vi.useRealTimers()` discards jsdom's fake animation-frame interval, so Motion animations in later tests of the same file never finish. `src/test/setup.ts` fails any test that leaves fake timers on, and `src/test/timers.test.ts` rejects direct `vi.useRealTimers()` calls. To check that a file does not depend on test order, run it with `npx vitest run <file> --sequence.shuffle --sequence.seed=<n>`.
+
 `npm run test:ha-app -- <image>` tests an already-built image without rebuilding it; the release workflow uses this to test the exact image it publishes. `test:release` checks version validation, public-image verification, changelog generation and Home Assistant version slicing, publication retries, stale releases, concurrent Git updates and free-usage safeguards. It uses a fake registry and temporary local Git repositories; it does not contact GitHub or push images.
 
 ## Deploying this repository

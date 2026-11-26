@@ -1,6 +1,7 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useListItemFeedback } from "@/hooks/use-list-item-feedback";
+import { restoreRealTimers } from "./timers";
 
 const bread = { id: "bread", text: "Bread", complete: false };
 const milk = { id: "milk", text: "Milk", complete: false };
@@ -8,7 +9,7 @@ type Items = Parameters<typeof useListItemFeedback>[0];
 const renderFeedback = (items: Items) => renderHook(({ items }: { items: Items }) => useListItemFeedback(items), { initialProps: { items } });
 
 beforeEach(() => vi.useFakeTimers());
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); restoreRealTimers(); });
 
 it("keeps initial loads, refreshes and reorders quiet", () => {
   const { result, rerender } = renderFeedback(null);
