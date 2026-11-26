@@ -4,12 +4,12 @@ import { NotificationValidationErrors } from "./NotificationValidationErrors";
 import { configuredCamera } from "../../shared/cameras";
 import { useSearchParams } from "react-router-dom";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, PanelsTopLeft, Pin, Eye, Plus, SlidersHorizontal, Timer, Zap, X } from "lucide-react";
+import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, MessageSquare, MoreHorizontal, Palette, PanelsTopLeft, Pin, Eye, Plus, SlidersHorizontal, Timer, Trash2, Zap, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { useI18n } from "@/hooks/use-i18n";
-import { isNotificationTimeSource, notificationEntity, notificationReadings, notificationStyleLabels, notificationIssueSection } from "@/lib/notifications";
+import { isNotificationTimeSource, notificationEntity, notificationKindIcons as icons, notificationKinds as kinds, notificationReadings, notificationStyleLabels, notificationIssueSection } from "@/lib/notifications";
 import { MAX_INLINE_WIDGET_FIELDS, MAX_NOTIFICATION_TRIGGERS, notificationTriggers, notificationRuleSchema, type NotificationRule, type NotificationTrigger, type NotificationStateTrigger } from "../../shared/notifications";
 import { SettingsPanels } from "./SettingsPanels";
 import { PanelHeading } from "./FamilyPlanner";
@@ -28,10 +28,10 @@ import { NotificationStylePicker } from "./NotificationStylePicker";
 import { NotificationCameraSettings } from "./NotificationCameraSettings";
 import { NotificationEntitySettings } from "./NotificationEntitySettings";
 import { NotificationIconPicker } from "./NotificationIcon";
+import { NotificationExportMenu, NotificationImportDialog } from "./NotificationRulesTransfer";
+import { DropdownMenuItem, DropdownMenuSeparator } from "./ui/dropdown-menu";
 import "./notifications.css";
 
-const kinds = { ongoing: "Ongoing tasks", current: "Current alerts", camera: "Camera popup" } as const;
-const icons = { ongoing: ListChecks, current: Bell, camera: Camera };
 const newTrigger = (type: NotificationTrigger["type"]): NotificationTrigger => {
   if (type === "state") return { type, entity: "", attribute: "", operator: "eq", value: "on" };
   if (type === "entity-event") return { type, entity: "", eventType: "" };
@@ -161,6 +161,7 @@ export function NotificationSettings() {
     hideTrigger: triggers.some(trigger => trigger.type === "state") ? draft.hideTrigger : undefined,
   });
   const triggers = draft ? notificationTriggers(draft) : [];
+  const savedRule = original ? notifications.rules.find(rule => rule.id === draft?.id) : undefined;
   const groups = [...new Set(groupIds)];
   const full = triggers.length >= MAX_NOTIFICATION_TRIGGERS;
   const addTrigger = (trigger: NotificationTrigger, group: number) => {
@@ -194,6 +195,10 @@ export function NotificationSettings() {
         <Dialog open={previewOpen} onOpenChange={open => { setPreviewOpen(open); setPreviewError(false); }}>
         <div className="notification-settings-toolbar">
           <DialogTrigger asChild><Button variant="outline"><Eye size={18} aria-hidden="true" />{t("Preview notification")}</Button></DialogTrigger>
+          <div className="notification-transfer-actions">
+            <NotificationExportMenu rules={notifications.rules} text="Export all" label={t("Export all notification rules")} />
+            <NotificationImportDialog />
+          </div>
         </div>
         <DialogContent className={`notification-preview-dialog ${boardSpacing}`}>
           <DialogHeader><DialogTitle asChild><PanelTitle icon={Eye}>{t("Preview notification")}</PanelTitle></DialogTitle><DialogDescription>{t("Preview all saved notifications, including inactive ones. Display choices are saved automatically.")}</DialogDescription></DialogHeader>
@@ -230,7 +235,10 @@ export function NotificationSettings() {
             <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
             <Switch aria-label={t("Enable {name}", { name: rule.title })} checked={rule.enabled} disabled={disabled} onCheckedChange={enabled => setNotifications({ rules: notifications.rules.map(item => item.id === rule.id ? { ...item, enabled } : item) })} />
             <Button variant="ghost" disabled={disabled} onClick={() => begin(rule, true)} aria-label={t("Edit {name}", { name: rule.title })}>{t("Edit")}</Button>
-            <Button variant="ghost" disabled={disabled} onClick={() => setRemove(rule)} aria-label={t("Delete {name}", { name: rule.title })}>{t("Delete")}</Button>
+            <NotificationExportMenu rules={[rule]} icon={MoreHorizontal} label={t("Actions for {name}", { name: rule.title })}>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={disabled} className="text-destructive" onSelect={() => setRemove(rule)}><Trash2 size={16} aria-hidden="true" />{t("Delete")}</DropdownMenuItem>
+            </NotificationExportMenu>
             </div>
           </li>;
         })}</ul></section>;
@@ -386,7 +394,9 @@ export function NotificationSettings() {
         </div>
         {!!issues.length && <NotificationValidationErrors issues={issues} editor={editor} openSection={section => { setMobileView("setup"); setOpenSections(sections => [...new Set([...sections, section])]); }} />}
         {error && <p role="alert" className="text-destructive">{t(error)}</p>}
-        <div className="form-actions"><Button type="button" variant="outline" onClick={() => setDraft(undefined)}>{t("Cancel")}</Button><Button type="submit" disabled={disabled}>{t("Save notification")}</Button></div>
+        <div className="form-actions">{savedRule && <span className="mr-auto"><NotificationExportMenu rules={[savedRule]} text="Export" label={t("Export {name}", { name: savedRule.title })}
+          note={JSON.stringify(draft) !== original ? "Exports the saved version, without unsaved changes." : undefined} /></span>}
+          <Button type="button" variant="outline" onClick={() => setDraft(undefined)}>{t("Cancel")}</Button><Button type="submit" disabled={disabled}>{t("Save notification")}</Button></div>
       </form>}
     </DialogContent></Dialog>
     <ConfirmDialog open={!!remove} onOpenChange={open => { if (!open) setRemove(undefined); }} title={t("Delete notification?")} description={t("Delete “{name}”? This removes the rule from every screen.", { name: remove?.title ?? "" })} confirmLabel={t("Delete")} destructive disabled={disabled} onConfirm={() => setNotifications({ rules: notifications.rules.filter(rule => rule.id !== remove?.id) })} />

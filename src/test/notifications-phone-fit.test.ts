@@ -33,3 +33,13 @@ it("keeps the side camera placeholder within its reading column", () => {
   // Without a definite width, the 4rem minimum height widens the 16:9 placeholder past a narrow column.
   expect(declarations(notificationsCss, ".notification-media-side .notification-camera-placeholder")).toMatch(/width: 100%; min-height: 4rem/);
 });
+
+it("keeps the notification import preview within a phone's width", () => {
+  // Rule names, entity references and conflict legends can be single long words; the choices share the width in thirds.
+  expect(declarations(notificationsCss, ".notification-import-heading strong, .notification-import-heading p, .notification-import-rejected li")).toMatch(wraps);
+  expect(declarations(notificationsCss, ".notification-import-entities > li")).toMatch(/min-width: 0; max-width: 100%;.*overflow-wrap: anywhere/);
+  expect(declarations(notificationsCss, ".notification-import-conflict > legend")).toMatch(/overflow-wrap: anywhere/);
+  expect(declarations(notificationsCss, ".notification-import-choices")).toMatch(/grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  expect(declarations(notificationsCss, ".notification-import-choices > label")).toMatch(/min-width: 0; min-height: 48px;.*overflow-wrap: anywhere/);
+  expect(declarations(notificationsCss, ".notification-import-dialog")).toMatch(/max-height: calc\(100dvh - 24px\)/);
+});
