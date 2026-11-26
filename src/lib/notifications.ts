@@ -1,8 +1,11 @@
 import type { ZodIssue } from "zod";
+import { Bell, Camera, ListChecks } from "lucide-react";
 import { notificationDismissible, notificationTriggers, type NotificationRule, type NotificationTrigger, type NotificationProgress, type NotificationProgressSource, type NotificationEntityDisplay, type NotificationWidget } from "../../shared/notifications";
 import type { CalendarEvent, Entity } from "@/types/api";
 import { available, calendarBoundary, calendarDateValue } from "./ha-model";
 
+export const notificationKinds = { ongoing: "Ongoing tasks", current: "Current alerts", camera: "Camera popup" } as const;
+export const notificationKindIcons = { ongoing: ListChecks, current: Bell, camera: Camera };
 export const notificationStyleLabels = { banner: "Banner", section: "Section", activity: "Activity cards", "activity-compact": "Compact activity card" } as const;
 
 export interface HomeNotification {

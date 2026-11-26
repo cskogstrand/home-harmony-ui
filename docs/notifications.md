@@ -29,6 +29,32 @@ Current alerts and camera popups have a **Can be dismissed** switch (**Kan avvis
 
 If an alert was already dismissed on a screen when the switch is turned off, it comes back on that screen for as long as its condition still holds, or until a timed alert expires. It keeps its original start time and does not reopen a camera viewer by itself. Changing the switch does not restart the activation or its cooldown. Turning the switch on again leaves the returned alert visible until someone dismisses it. The switch is saved with the rule, shared across screens and included in settings backups; dismissals themselves stay in this browser session.
 
+## Copy rules to another installation
+
+Set up a rule on one Afterglow installation, such as a development copy, and copy it to another with its own data directory. Rules only: cameras, connections, people and other settings stay where they are.
+
+**Export:** under **Settings → Screen and alerts → Notifications → Notification rules** (**Innstillinger → Skjerm og varsler → Varsler → Varslingsregler**), **Export all** (**Eksporter alle**) exports every rule. A single rule's **Actions for {name}** menu (the ⋯ button, which also holds **Delete**) exports that rule, and so does **Export** in its editor. The editor exports the saved version; unsaved changes in the draft are not included, and the menu says so. Each export offers **Download file** (a `.json` file named after the rule, or `afterglow-notification-rules-<date>.json` for all rules) and **Copy to clipboard**. A screen reader hears that the copy worked; the menu button briefly shows a checkmark. Where the browser blocks the clipboard, download the file instead.
+
+The file is a small JSON envelope:
+
+```json
+{ "type": "afterglow.notification-rules", "version": 1, "app": "0.11.0", "rules": [ … ] }
+```
+
+`app` is the Afterglow version that wrote it, and `rules` holds the rules exactly as they are saved, including **Can be dismissed**. It contains no passwords, tokens, camera connections or Home Assistant data. It does contain what the rules themselves contain: titles, messages, entity and camera references, and event filters. Treat it like a settings backup.
+
+**Import:** choose **Import notifications** (**Importer varsler**), then **Choose file** or paste the exported text and choose **Preview import**. Nothing is saved yet. Afterglow checks the file and lists each rule with its name, type, first trigger and the entities and cameras it uses. Entities this Home Assistant doesn't have are marked **Not found in Home Assistant**; cameras not added on this installation are marked **Camera not set up here**. Such rules still import, and the rule list then asks you to choose replacements. While Home Assistant is disconnected, entities are not checked.
+
+A rule with the same ID as a saved rule, or failing that the same name, gets a choice:
+
+- **Replace** (**Erstatt**) overwrites the saved rule in its place. This is the default for the same rule copied again.
+- **Keep both** (**Behold begge**) adds the imported rule with a new ID and a numbered name, such as "Washer (2)". This is the default when only the name matches.
+- **Skip** (**Hopp over**) leaves the saved rule as it is.
+
+**Import rules** saves everything chosen in one settings save and shows how many rules were added, replaced, kept or skipped. If the save fails, the preview and your choices stay so you can retry. Closing the preview with Escape or the close button asks before discarding it; **Cancel** discards it directly. Imported rules are shared with every screen and included in settings backups.
+
+The import explains what is wrong instead of saving: text that isn't valid JSON, a file of another type (a full settings backup belongs under **Storage and backups**), or an export format newer than this installation supports. Rules that fail validation are listed under **Can't be imported** with the field and the problem, while the valid rules in the same file can still be imported. A rule or file with fields this version doesn't recognise was exported by a newer Afterglow; update this installation and import again. Up to 100 rules fit in a file and on an installation.
+
 ## Choose triggers
 
 Under **When to show it** (**Når varselet skal vises**), use **Add trigger** (**Legg til utløser**) to configure up to 10 triggers for one notification. **Any** trigger can activate it. For example, one camera popup can respond to both a doorbell event and a motion sensor. Each trigger has its own source, condition or event filters, and can be removed while at least one remains. Existing single-trigger rules keep working, and extra triggers are shared across screens and included in backups.
