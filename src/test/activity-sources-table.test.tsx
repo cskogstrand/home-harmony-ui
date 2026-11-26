@@ -5,7 +5,7 @@ import { createMemoryRouter, Link, MemoryRouter, RouterProvider } from "react-ro
 import { AppContext } from "@/contexts/AppContext";
 import History from "@/pages/History";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
-import { activitySourceRows, buildSourceTree, filterSourceRows, integrationLabel, sortSourceRows, sourceLevels, emptySourceFilters, type SourceTreeNode } from "@/lib/activity-sources";
+import { activitySourceRows, buildSourceTree, entityIdParts, filterSourceRows, integrationLabel, nameInDevice, sortSourceRows, sourceColumns, sourceLevels, emptySourceFilters, type SourceTreeNode } from "@/lib/activity-sources";
 import type { Entity, PhysicalDevice } from "@/types/api";
 import { state } from "./ha-fixtures";
 import { sourceFile } from "./source-file.mjs";
@@ -424,6 +424,7 @@ describe("Activity sources table", () => {
     expect(groups()).toContain("Front lock, LocksHidden under Event types1 of 1 chosen");
     expect(outline()).toContain("Unknown integration › Without a device (1 of 2 chosen)");
     expect(groups()).toContain("Unavailable sourcesNot found in Home Assistant right now.1 of 1 chosen");
+    choose("Group by", "none");
     expect(box("Front door").closest("tr")).toHaveTextContent("LocksHidden");
     const gone = box("Source unavailable");
     expect(gone.closest("tr")).toHaveTextContent("sensor.example_gone");
@@ -663,10 +664,116 @@ describe("full-screen sources editor", () => {
   });
 });
 
+describe("readable tree rows", () => {
+  // A fictional home four levels deep: integration → device → type → source, with names that repeat their device's name.
+  const deep = (() => {
+    const hallway = { ...device("dev-hallway", "Example hallway sensor"), area_id: "hall" };
+    const garage = device("dev-garage-2", "Example garage controller");
+    const kitchen = { ...device("dev-kitchen-2", "Example kitchen appliances"), area_id: "kitchen" };
+    const rows: [string, string, Record<string, unknown>, PhysicalDevice, string, string][] = [
+      ["binary_sensor.example_hallway_sensor_front_door", "off", { device_class: "door", friendly_name: "Example hallway sensor Front door" }, hallway, "zwave_js", "hall"],
+      // Moved to another room than its device in Home Assistant.
+      ["binary_sensor.example_hallway_sensor_side_window", "off", { device_class: "window", friendly_name: "Example hallway sensor Side window" }, hallway, "zwave_js", "garage"],
+      ["lock.example_hallway_sensor_front_lock", "locked", { friendly_name: "Example hallway sensor Front lock" }, hallway, "zwave_js", "hall"],
+      ["lock.example_hallway_sensor_back_lock", "locked", { friendly_name: "Example hallway sensor Back lock" }, hallway, "zwave_js", "hall"],
+      ["binary_sensor.example_garage_controller_left_door", "off", { device_class: "garage_door", friendly_name: "Example garage controller Left door" }, garage, "zwave_js", "unassigned"],
+      ["binary_sensor.example_garage_controller_right_door", "off", { device_class: "garage_door", friendly_name: "Example garage controller: Right door" }, garage, "zwave_js", "unassigned"],
+      ["binary_sensor.example_kitchen_appliances_dishwasher", "off", { device_class: "running", friendly_name: "Example kitchen appliances Dishwasher" }, kitchen, "home_connect", "kitchen"],
+      ["light.example_kitchen_appliances_hood_light", "off", { friendly_name: "Hood light" }, kitchen, "home_connect", "kitchen"],
+    ];
+    const home = mapHome(Object.fromEntries(rows.map(([entityId, value, attributes]) => [entityId, state(entityId, value, attributes)])), emptyRegistries, "home");
+    return home.entities.map(entity => {
+      const [, , , owner, integration, areaId] = rows.find(row => row[0] === entity.entityId)!;
+      return { ...entity, device: owner, integration, areaId };
+    });
+  })();
+  const headers = () => table().getAllByRole("columnheader").map(header => header.textContent);
+  const cells = (name: string) => within(row(name)).queryAllByRole("gridcell").map(cell => cell.textContent);
+  // What a sighted reader sees: the name without its screen-reader-only part.
+  const visibleName = (name: string) => [...row(name).querySelector("strong")!.childNodes].filter(node => !(node instanceof HTMLElement && node.classList.contains("sr-only"))).map(node => node.textContent).join("");
+
+  it("hides the columns a level above already says, per grouping, and shows them all in a flat list", () => {
+    openEditor(view({ entities: deep, areas }));
+    expect(headers()).toEqual(["Name", "Area"]);
+    expect(within(row("Example hallway sensor Front door")).getAllByRole("gridcell")).toHaveLength(1);
+    choose("Group by", "device");
+    expect(headers()).toEqual(["Name", "Area"]);
+    choose("Group by", "type");
+    expect(headers()).toEqual(["Name", "Area"]);
+    choose("Group by", "area");
+    expect(headers()).toEqual(["Name"]);
+    expect(cells("Example hallway sensor Front door")).toEqual([]);
+    choose("Group by", "none");
+    expect(headers()).toEqual(["Name", "Device", "Integration", "Area", "Type"]);
+    expect(cells("Example hallway sensor Front door")).toEqual(["Example hallway sensor", "Z-Wave JS", "Example hall", "Doors and windows"]);
+    expect(cells("Example garage controller Left door")).toEqual(["Example garage controller", "Z-Wave JS", "", "Doors and windows"]);
+    // A sort by a column the tree hides falls back to the name.
+    fireEvent.click(table().getByRole("button", { name: /^Device/ }));
+    choose("Group by", "integration");
+    expect(table().getByRole("columnheader", { name: /^Name/ })).toHaveAttribute("aria-sort", "ascending");
+  });
+
+  it("drops the device name in front of a source inside its device's group, keeping the whole name for assistive technology", () => {
+    openEditor(view({ entities: deep, areas }));
+    expect(visibleName("Example hallway sensor Front door")).toBe("Front door");
+    expect(row("Example hallway sensor Front door").querySelector("strong")).toHaveTextContent("Example hallway sensor Front door");
+    expect(within(row("Example hallway sensor Front door")).getByRole("rowheader").textContent).toMatch(/^Example hallway sensor Front door/);
+    expect(box("Example hallway sensor Front door")).toBeInTheDocument();
+    // Punctuation after the device name goes too; a name that does not start with it stays whole.
+    expect(visibleName("Example garage controller: Right door")).toBe("Right door");
+    expect(visibleName("Hood light")).toBe("Hood light");
+    choose("Group by", "none");
+    expect(visibleName("Example hallway sensor Front door")).toBe("Example hallway sensor Front door");
+  });
+
+  it("shows an area once on the device's row, on a source only where it differs, and never an em dash on a source", () => {
+    openEditor(view({ entities: deep, areas }));
+    const groupArea = (name: string) => row(name).querySelector(".activity-sources-group-area")!.textContent;
+    // Integration rows never show an area; the device's row shows the device's own area.
+    expect(groupArea("Z-Wave JS")).toBe("");
+    expect(groupArea("Example hallway sensor")).toBe("Example hall");
+    expect(groupArea("Home Connect › Example kitchen appliances")).toBe("Example kitchen");
+    // A device without an area says so once, on its row.
+    expect(groupArea("Example garage controller › Doors and windows")).toBe("Unassigned");
+    expect(cells("Example hallway sensor Front door")).toEqual([""]);
+    expect(cells("Example hallway sensor Front lock")).toEqual([""]);
+    expect(cells("Example hallway sensor Side window")).toEqual(["Example garage"]);
+    for (const name of ["Example garage controller Left door", "Example garage controller: Right door", "Example kitchen appliances Dishwasher"]) expect(cells(name)).toEqual([""]);
+    expect(card().getByRole("treegrid").querySelectorAll("tr[data-source] .is-empty")).toHaveLength(0);
+    // Type groups below the device show nothing more.
+    expect(groupArea("Locks")).toBe("");
+  });
+
+  it("shows the entity ID on one line with the whole ID as tooltip and accessible description", () => {
+    openEditor(view({ entities: deep, areas }));
+    const idLine = row("Example hallway sensor Side window").querySelector(".activity-sources-id")!;
+    expect(idLine).toHaveAttribute("title", "binary_sensor.example_hallway_sensor_side_window");
+    expect([...idLine.children].map(part => part.textContent)).toEqual(["binary_sensor.example_hallway_sensor", "_side_window"]);
+    expect(idLine.querySelector("wbr")).toBeNull();
+    expect(box("Example hallway sensor Side window")).toHaveAccessibleDescription("binary_sensor.example_hallway_sensor_side_window");
+  });
+});
+
 describe("source table helpers", () => {
   const labels = { language: "en", name: (entity: Entity) => entity.name, unnamedDevice: "Unnamed device", missingName: "Source unavailable", category: (category: string) => category };
   const rows = activitySourceRows(entities.filter(entity => origins[entity.entityId]), areas, new Set(), labels);
   const treeLabels = { category: (category: string) => category, noDevice: "Without a device", noIntegration: "Unknown integration", noArea: "Unassigned" };
+
+  it("shortens a name only at the device name's word boundary and cuts long IDs before their last word", () => {
+    expect(nameInDevice("Example lamp Power", "Example lamp", "en")).toBe("Power");
+    expect(nameInDevice("example lamp – Power", "Example lamp", "en")).toBe("Power");
+    expect(nameInDevice("Example lamppost", "Example lamp", "en")).toBe("Example lamppost");
+    expect(nameInDevice("Example lamp", "Example lamp", "en")).toBe("Example lamp");
+    expect(nameInDevice("Example lamp Power", "", "en")).toBe("Example lamp Power");
+    expect(entityIdParts("lock.example_front")).toEqual(["lock.example_front", ""]);
+    expect(entityIdParts("sensor.example_kitchen_appliances_programme_progress")).toEqual(["sensor.example_kitchen_appliances_programme", "_progress"]);
+    // Without a separator near the end, the last ten characters stay.
+    const [head, tail] = entityIdParts("binary_sensor.examplehallwaysensorfrontdoor");
+    expect([head + tail, tail]).toEqual(["binary_sensor.examplehallwaysensorfrontdoor", "rfrontdoor"]);
+    expect(sourceColumns("none")).toEqual(["name", "device", "integration", "area", "type"]);
+    expect(sourceColumns("integration")).toEqual(["name", "area"]);
+    expect(sourceColumns("area")).toEqual(["name"]);
+  });
 
   it("names integrations readably", () => {
     expect(["zwave_js", "mqtt", "home_connect", "bosch_shc"].map(integrationLabel)).toEqual(["Z-Wave JS", "MQTT", "Home Connect", "Bosch Shc"]);
@@ -730,6 +837,8 @@ describe("phone layout contract", () => {
     expect(declarations(compact, ".activity-sources-filters")).toMatch(/display: none/);
     expect(declarations(compact, ".activity-sources-actions")).toMatch(/display: none/);
     expect(declarations(compact, ".activity-sources-toolbar")).toMatch(/max-height: 60cqb; overflow-y: auto/);
+    // The description, search label, total and idle save note stay for screen readers only.
+    expect(declarations(compact, ":is(.activity-sources-editor-header > p, .activity-sources-search-label, .activity-sources-total, .activity-sources-savebar p:not([data-dirty]))")).toMatch(/position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset\(50%\)/);
   });
 
   it("turns rows into wrapping entries and the headers into wrapping sort capsules", () => {
@@ -737,14 +846,32 @@ describe("phone layout contract", () => {
     expect(declarations(phone, ".activity-sources-table thead tr")).toMatch(/display: flex; flex-wrap: wrap/);
     expect(declarations(phone, ".activity-sources-table tbody tr")).toMatch(/display: flex; flex-wrap: wrap/);
     expect(declarations(phone, ".activity-sources-table tbody th.activity-sources-name")).toMatch(/flex: 0 0 calc\(100% \+ var\(--check-slot\) \+ var\(--lead-gap\)\)/);
-    expect(declarations(phone, ".activity-sources-meta.is-empty")).toMatch(/display: none/);
+    expect(declarations(phone, ".activity-sources-meta:is(.is-empty, :empty)")).toMatch(/display: none/);
   });
 
-  it("indents each level by a step capped to the card's width, so deep levels never push past a phone", () => {
-    expect(declarations(css, ".activity-sources")).toMatch(/--tree-step: min\(1\.5rem, 4cqi\)/);
+  it("indents each level by a compact step capped to the editor's width, so deep levels never push past a phone", () => {
+    expect(declarations(css, ".activity-sources")).toMatch(/--tree-step: min\(1rem, 3cqi\)/);
+    // One thin guide line per ancestor level, down its checkbox column.
+    expect(css).toMatch(/repeating-linear-gradient\(to right, hsl\(var\(--border\)\) 0 1px, transparent 1px var\(--tree-step\)\)/);
     expect(declarations(css, ".activity-sources-lead")).toMatch(/padding-inline-start: calc\(var\(--level, 0\) \* var\(--tree-step\)\)/);
     expect(declarations(phone, ".activity-sources-table tbody tr")).toMatch(/padding: [^;]*calc\(var\(--level, 0\) \* var\(--tree-step\) \+ var\(--check-slot\) \+ var\(--lead-gap\)\)/);
     expect(declarations(phone, ".activity-sources-lead")).toMatch(/padding-inline-start: 0/);
+  });
+
+  it("gives the name at least 16rem beside the columns, the whole line on phones, and never breaks it mid-word", () => {
+    expect(declarations(css, ".activity-sources-copy")).toMatch(/min-width: 16rem/);
+    expect(declarations(phone, ".activity-sources-copy")).toMatch(/min-width: 0/);
+    expect(declarations(css, ".activity-sources-copy strong")).toMatch(/overflow-wrap: break-word/);
+    expect(declarations(css, ".activity-sources-group-name")).toMatch(/overflow-wrap: break-word/);
+  });
+
+  it("shows the entity ID as one monospace line that ends in an ellipsis, keeping its last word", () => {
+    const id = declarations(css, ".activity-sources-id");
+    expect(id).toMatch(/display: flex; min-width: 0/);
+    expect(id).toMatch(/font-family: ui-monospace/);
+    expect(id).toMatch(/white-space: nowrap/);
+    expect(declarations(css, ".activity-sources-id > span:first-child")).toMatch(/min-width: 0; overflow: hidden; text-overflow: ellipsis/);
+    expect(declarations(css, ".activity-sources-id > span + span")).toMatch(/flex: none/);
   });
 
   it("lets long names wrap and never sets a width wider than a phone", () => {
@@ -752,9 +879,9 @@ describe("phone layout contract", () => {
     expect(declarations(css, ".activity-sources-query")).toMatch(/minmax\(min\(100%, 9rem\), 1fr\)/);
     expect(declarations(css, ".activity-sources-filters select")).toMatch(/width: 100%; min-width: 0/);
     for (const selector of [".activity-sources-actions", ".activity-sources-results", ".activity-sources-savebar"]) expect(declarations(css, selector)).toMatch(/flex-wrap: wrap/);
-    // No fixed widths beyond the 3rem checkbox gutter and the 12rem save-bar text basis.
+    // No fixed widths beyond the 48px controls and the name's 16rem, which phones release.
     const widths = [...css.matchAll(/(?:^|[;{\s])(?:min-)?width: (\d+(?:\.\d+)?)(rem|px)/g)].map(([, value, unit]) => Number(value) * (unit === "rem" ? 16 : 1));
-    expect(Math.max(...widths)).toBeLessThanOrEqual(48);
+    expect(widths.filter(width => width > 48)).toEqual([256]);
     expect(css).not.toMatch(/white-space: nowrap;[^}]*overflow-x/);
     expect(css).not.toMatch(/overflow-x: (?:auto|scroll)/);
   });

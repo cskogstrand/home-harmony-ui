@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, CircleAlert, Cpu, Layers, ListRestart, MapPin, Puzzle, Search, SlidersHorizontal, SquareCheck, SquareMinus, Tag, X, type LucideIcon } from "lucide-react";
 import { useI18n } from "@/hooks/use-i18n";
 import { activityIcons } from "@/components/activity-icons";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { UnsavedChangesGuard } from "@/components/common/UnsavedChangesGuard";
-import { activityCategoryIcons, activityCategoryLabels, activitySourceRows, buildSourceTree, emptySourceFilters, filterSourceRows, missingSourceRows, sameSources, sortSourceRows, sourceChanges, sourceFiltersActive, sourceLevels, unsavedSourcesDescription, withSources,
+import { activityCategoryIcons, activityCategoryLabels, activitySourceRows, buildSourceTree, emptySourceFilters, filterSourceRows, missingSourceRows, sameSources, sortSourceRows, sourceChanges, sourceFiltersActive, entityIdParts, groupArea, nameInDevice, sourceColumns, sourceLevels, unsavedSourcesDescription, withSources,
   type ActivitySourceRow, type SourceFilters, type SourceGrouping, type SourceLevel, type SourceSort, type SourceSortKey, type SourceTreeNode, type SourceTreePart } from "@/lib/activity-sources";
 import type { ActivityIcon } from "@/lib/activity";
 import type { MessageKey } from "@/lib/i18n";
@@ -15,9 +15,9 @@ import type { Area, Entity } from "@/types/api";
 import { activityCategories, type ActivityCategory } from "../../shared/configuration";
 import "./activity-sources-table.css";
 
-const columns: { key: SourceSortKey; label: MessageKey }[] = [
-  { key: "name", label: "Name" }, { key: "device", label: "Device" }, { key: "integration", label: "Integration" }, { key: "area", label: "Area" }, { key: "type", label: "Type" },
-];
+const columnLabels: Record<SourceSortKey, MessageKey> = { name: "Name", device: "Device", integration: "Integration", area: "Area", type: "Type" };
+// Each place column's glyph, which leads the value on phones where the cells run together as one line.
+const columnGlyphs: Record<Exclude<SourceSortKey, "name" | "type">, LucideIcon> = { device: Cpu, integration: Puzzle, area: MapPin };
 const groupings: { value: SourceGrouping; label: MessageKey }[] = [
   { value: "integration", label: "Integration" }, { value: "area", label: "Area" }, { value: "device", label: "Device" }, { value: "type", label: "Type" }, { value: "none", label: "None" },
 ];
@@ -41,23 +41,38 @@ const depth = (level: number) => ({ "--level": level - 1 }) as CSSProperties;
 
 type RowProps = {
   row: ActivitySourceRow; line: string; level: number; setsize: number; posinset: number; tabbable: boolean;
+  /** The name as shown: inside a device's group, without the device name in front. */
+  shown: string;
+  columns: readonly SourceSortKey[];
+  /** The area cell: the area, "" for an empty cell (an em dash), or null when the group above already says it. */
+  area: string | null;
   checked: boolean; disabled: boolean; typeLabel: string; hiddenLabel?: string; checkLabel: string; onChange: (ids: string[], on: boolean) => void;
 };
 
 /** One candidate: a checkbox, the name the activity rows use, and where it comes from. Memoized, so ticking one row repaints only that row. */
-const SourceRow = memo(function SourceRow({ row, line, level, setsize, posinset, tabbable, checked, disabled, typeLabel, hiddenLabel, checkLabel, onChange }: RowProps) {
-  // On phones the cells run together as one wrapping line, each led by a small glyph that says what it is.
-  const meta = [{ key: "device", value: row.device, Icon: Cpu }, { key: "integration", value: row.integration, Icon: Puzzle }, { key: "area", value: row.area, Icon: MapPin }];
+const SourceRow = memo(function SourceRow({ row, line, level, setsize, posinset, tabbable, shown, columns, area, checked, disabled, typeLabel, hiddenLabel, checkLabel, onChange }: RowProps) {
+  const idLine = useId();
+  const [head, tail] = entityIdParts(row.detail);
+  const value = (key: "device" | "integration" | "area") => key === "area" ? area : row[key];
   return <tr role="row" aria-level={level} aria-setsize={setsize} aria-posinset={posinset} tabIndex={tabbable ? 0 : -1} data-line={line} data-source={row.id}
     className={`activity-sources-entry${checked ? " is-chosen" : ""}`} style={depth(level)}>
     <th role="rowheader" scope="row" className="activity-sources-name"><span className="activity-sources-lead">
-      <span className="activity-sources-check"><Checkbox tabIndex={-1} checked={checked} disabled={disabled} aria-label={checkLabel} onCheckedChange={value => onChange([row.id], value === true)} /></span>
+      <span className="activity-sources-check"><Checkbox tabIndex={-1} checked={checked} disabled={disabled} aria-label={checkLabel} aria-describedby={idLine} onCheckedChange={value => onChange([row.id], value === true)} /></span>
       <SourceIcon entity={row.entity} icon={row.icon} />
-      {/* Long entity IDs may break after their dots and underscores instead of mid-word. */}
-      <span className="activity-sources-copy"><strong>{row.name}</strong><small>{row.detail.split(/(?<=[._])/).map((part, index) => <Fragment key={index}>{index > 0 && <wbr />}{part}</Fragment>)}</small></span>
+      <span className="activity-sources-copy">
+        {/* The device name the group row already shows stays for screen readers, so the row keeps its whole name. */}
+        <strong>{shown !== row.name && <span className="sr-only">{row.name.slice(0, row.name.length - shown.length)}</span>}{shown}</strong>
+        {/* The entity ID on one line: its start gives way to an ellipsis and its last word always shows; the tooltip and
+            the text itself carry the whole ID. */}
+        <small className="activity-sources-id" id={idLine} title={row.detail}><span>{head}</span>{tail && <span>{tail}</span>}</small>
+      </span>
     </span></th>
-    {meta.map(({ key, value, Icon }) => <td role="gridcell" key={key} className={`activity-sources-meta${value ? "" : " is-empty"}`}>{value && <Icon className="activity-sources-meta-icon" size={14} aria-hidden="true" />}{value}</td>)}
-    <td role="gridcell" className="activity-sources-meta activity-sources-type"><Tag className="activity-sources-meta-icon" size={14} aria-hidden="true" />{typeLabel}{hiddenLabel && <small>{hiddenLabel}</small>}</td>
+    {columns.map(key => {
+      if (key === "name") return null;
+      if (key === "type") return <td role="gridcell" key={key} className="activity-sources-meta activity-sources-type"><Tag className="activity-sources-meta-icon" size={14} aria-hidden="true" />{typeLabel}{hiddenLabel && <small>{hiddenLabel}</small>}</td>;
+      const text = value(key), Glyph = columnGlyphs[key];
+      return <td role="gridcell" key={key} className={`activity-sources-meta${text === "" ? " is-empty" : ""}`}>{text && <Glyph className="activity-sources-meta-icon" size={14} aria-hidden="true" />}{text}</td>;
+    })}
   </tr>;
 });
 
@@ -81,7 +96,11 @@ export type ActivitySourcesTableProps = {
 
 type Draft = { ids: ReadonlySet<string>; suggested: boolean };
 /** A visible row of the tree: a group (`node`) or a source (`row`), with its place among its siblings. */
-type Line = { key: string; level: number; setsize: number; posinset: number; parent?: string } & ({ node: SourceTreeNode; open: boolean; row?: undefined } | { row: ActivitySourceRow; node?: undefined; open?: undefined });
+type Line = { key: string; level: number; setsize: number; posinset: number; parent?: string } & (
+  /** A group, with the area it shows for everything below it, if any. */
+  | { node: SourceTreeNode; open: boolean; area?: { key: string; label: string }; row?: undefined }
+  /** A source; `area` is its area cell (see `RowProps`) and `inDevice` whether a device's group holds it. */
+  | { row: ActivitySourceRow; area: string | null; inDevice: boolean; node?: undefined; open?: undefined });
 
 /**
  * Every entity that can report activity, as a tree grid that can be searched, filtered, sorted and grouped. Ticks collect in
@@ -133,28 +152,40 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
 
   const shown = useMemo(() => filterSourceRows(rows, { ...filters, text }, chosen, kept, language), [rows, filters, text, chosen, kept, language]);
   const sorted = useMemo(() => sortSourceRows(shown, sort, language), [shown, sort, language]);
+  const noArea = t("Unassigned");
   const treeLabels = useMemo(() => ({ category: categoryLabel, noDevice: t("Without a device"), noIntegration: t("Unknown integration"), noArea: t("Unassigned") }), [categoryLabel, t]);
   const tree = useMemo(() => buildSourceTree(sorted, grouping, language, treeLabels), [sorted, grouping, language, treeLabels]);
   const filtering = sourceFiltersActive({ ...filters, text });
   const shownChosen = shown.filter(row => chosen.has(row.id)).length;
 
   // The rows on screen, in order: a group is followed by its children only while it is open.
+  const columns = useMemo(() => sourceColumns(grouping), [grouping]);
+  const areaColumn = columns.includes("area");
   const lines = useMemo(() => {
     const out: Line[] = [];
     if (grouping === "none") {
-      sorted.forEach((row, index) => out.push({ key: row.id, row, level: 1, setsize: sorted.length, posinset: index + 1 }));
+      sorted.forEach((row, index) => out.push({ key: row.id, row, area: row.area, inDevice: false, level: 1, setsize: sorted.length, posinset: index + 1 }));
       return out;
     }
-    const walk = (nodes: SourceTreeNode[], level: number, parent?: string) => nodes.forEach((node, index) => {
+    // An area belongs to the device, so it shows once: on the device's row (the device's own area, or the one its sources
+    // share), or else on the nearest group below whose sources share one. A source shows an area only where it differs from
+    // the one shown above, or when nothing above shows one; a source without an area never gets an em dash in a tree.
+    const walk = (nodes: SourceTreeNode[], level: number, parent: string | undefined, above: string | undefined, inDevice: boolean) => nodes.forEach((node, index) => {
       const open = toggled.has(node.key) !== (filtering || nodes.length <= OPEN_GROUPS_UP_TO);
-      out.push({ key: node.key, node, open, level, setsize: nodes.length, posinset: index + 1, parent });
+      const isDevice = node.parts.some(part => part.level === "device"), device = inDevice || isDevice;
+      const area = areaColumn && above === undefined && device ? groupArea(node.rows, isDevice) : undefined;
+      out.push({ key: node.key, node, open, area, level, setsize: nodes.length, posinset: index + 1, parent });
       if (!open) return;
-      if (node.children.length) walk(node.children, level + 1, node.key);
-      else node.rows.forEach((row, rowIndex) => out.push({ key: `${node.key}/${row.id}`, row, level: level + 1, setsize: node.rows.length, posinset: rowIndex + 1, parent: node.key }));
+      const shown = above ?? area?.key;
+      if (node.children.length) walk(node.children, level + 1, node.key, shown, device);
+      else node.rows.forEach((row, rowIndex) => out.push({
+        key: `${node.key}/${row.id}`, row, inDevice: device && !!row.deviceKey, level: level + 1, setsize: node.rows.length, posinset: rowIndex + 1, parent: node.key,
+        area: !areaColumn || row.areaKey === (shown ?? "") ? null : row.area || noArea,
+      }));
     });
-    walk(tree, 1);
+    walk(tree, 1, undefined, undefined, false);
     return out;
-  }, [grouping, sorted, tree, toggled, filtering]);
+  }, [grouping, sorted, tree, toggled, filtering, areaColumn, noArea]);
   const tabStop = active !== undefined && lines.some(line => line.key === active) ? active : lines[0]?.key;
 
   // Filter choices list only what the candidates have, so no choice leads to an empty table.
@@ -187,7 +218,11 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
     setFilters(current => ({ ...current, ...patch }));
   };
   const clearFilters = () => { setFilters(emptySourceFilters); setKept(new Set()); setToggled(new Set()); searchField.current?.focus(); };
-  const regroup = (value: SourceGrouping) => { setGrouping(value); setToggled(new Set()); setActive(undefined); };
+  const regroup = (value: SourceGrouping) => {
+    setGrouping(value); setToggled(new Set()); setActive(undefined);
+    // A sort by a column the tree hides would be invisible, so it falls back to the name.
+    if (!sourceColumns(value).includes(sort.key)) setSort({ key: "name", direction: "ascending" });
+  };
   const fold = (key: string) => setToggled(current => withSources(current, [key], !current.has(key)));
   const sortBy = (key: SourceSortKey) => setSort(current => ({ key, direction: current.key === key && current.direction === "ascending" ? "descending" : "ascending" }));
 
@@ -203,8 +238,8 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
   const notShownChosen = shown.filter(row => !chosen.has(row.id)).map(row => row.id);
   const shownChosenIds = shown.filter(row => chosen.has(row.id)).map(row => row.id);
   const anyFilter = sourceFiltersActive(filters);
-  const rowProps = (row: ActivitySourceRow) => ({
-    row, checked: chosen.has(row.id), disabled, onChange: change,
+  const rowProps = (row: ActivitySourceRow, inDevice: boolean) => ({
+    row, columns, shown: inDevice ? nameInDevice(row.name, row.device, language) : row.name, checked: chosen.has(row.id), disabled, onChange: change,
     typeLabel: row.category === "missing" ? t("Unavailable") : t(activityCategoryLabels[row.category]),
     hiddenLabel: row.category !== "missing" && hidden.includes(row.category) ? t("Hidden") : undefined,
     checkLabel: t("Use {name} as a source", { name: row.name }),
@@ -278,7 +313,7 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
         <span>{following ? t("Following the suggestions") : t("of {count} entities that can report activity", { count: known.length })}</span>
       </p>
       <div className="activity-sources-query" role="search" aria-label={t("Filter sources")}>
-        <label className="activity-sources-search">{t("Search sources")}<span className="activity-sources-search-field">
+        <label className="activity-sources-search"><span className="activity-sources-search-label">{t("Search sources")}</span><span className="activity-sources-search-field">
           <Search size={18} aria-hidden="true" />
           <Input ref={searchField} type="search" value={filters.text} placeholder={t("Name, device, room or ID")} onChange={event => filter({ text: event.target.value })} />
         </span></label>
@@ -318,26 +353,26 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
     <table className="activity-sources-table" role="treegrid" aria-describedby={levels.length ? `${id}-results ${id}-levels` : `${id}-results`}>
       <caption className="sr-only">{t("Activity sources")}</caption>
       <thead role="rowgroup"><tr role="row">
-        {columns.map(column => {
-          const current = sort.key === column.key;
+        {columns.map(key => {
+          const current = sort.key === key;
           const Arrow = !current ? ArrowUpDown : sort.direction === "ascending" ? ArrowUp : ArrowDown;
-          return <th role="columnheader" scope="col" key={column.key} aria-sort={current ? sort.direction : undefined} className={`activity-sources-column-${column.key}`}>
-            <button type="button" className="activity-sources-sort" onClick={() => sortBy(column.key)}>{t(column.label)}<Arrow size={16} aria-hidden="true" /></button>
+          return <th role="columnheader" scope="col" key={key} aria-sort={current ? sort.direction : undefined} className={`activity-sources-column-${key}`}>
+            <button type="button" className="activity-sources-sort" onClick={() => sortBy(key)}>{t(columnLabels[key])}<Arrow size={16} aria-hidden="true" /></button>
           </th>;
         })}
       </tr></thead>
       <tbody role="rowgroup" ref={body} onKeyDown={onKeyDown} onFocus={event => { const line = (event.target as HTMLElement).closest<HTMLElement>("tr[data-line]")?.dataset.line; if (line) setActive(line); }}>
-        {!lines.length ? <tr role="row" className="activity-sources-none"><td role="gridcell" colSpan={5}>
+        {!lines.length ? <tr role="row" className="activity-sources-none"><td role="gridcell" colSpan={columns.length}>
           <span>{rows.length ? t("No sources match these filters.") : t("No entities available.")}</span>
           {anyFilter && <Button type="button" variant="outline" onClick={clearFilters}>{t("Clear filters")}</Button>}
         </td></tr>
           : lines.map(line => {
-            if (line.row) return <SourceRow key={line.key} line={line.key} level={line.level} setsize={line.setsize} posinset={line.posinset} tabbable={line.key === tabStop} {...rowProps(line.row)} />;
-            const { node, open } = line, { ids, count } = groupState(node), note = groupNote(node), [part, ...merged] = node.parts;
+            if (line.row) { const source = line as Extract<Line, { inDevice: boolean }>; return <SourceRow key={line.key} line={line.key} level={line.level} setsize={line.setsize} posinset={line.posinset} tabbable={line.key === tabStop} area={source.area} {...rowProps(line.row, source.inDevice)} />; }
+            const { node, open, area } = line as Extract<Line, { open: boolean }>, { ids, count } = groupState(node), note = groupNote(node), [part, ...merged] = node.parts;
             const name = node.parts.map(each => each.label).join(", ");
             return <tr role="row" key={line.key} data-line={line.key} aria-level={line.level} aria-setsize={line.setsize} aria-posinset={line.posinset} aria-expanded={open}
               tabIndex={line.key === tabStop ? 0 : -1} className="activity-sources-group-row" style={depth(line.level)}>
-              <th role="rowheader" scope="row" colSpan={5} className="activity-sources-name"><span className="activity-sources-lead">
+              <th role="rowheader" scope="row" colSpan={columns.length - (areaColumn ? 1 : 0)} className="activity-sources-name"><span className="activity-sources-lead">
                 <span className="activity-sources-check"><Checkbox tabIndex={-1} checked={count === ids.length ? true : count ? "indeterminate" : false} disabled={disabled}
                   aria-label={t("Use all shown in {group} as sources", { group: name })} onCheckedChange={() => change(ids, count < ids.length)} /></span>
                 <button type="button" tabIndex={-1} className="activity-sources-fold" aria-expanded={open} onClick={() => fold(node.key)}>
@@ -354,6 +389,8 @@ export function ActivitySourcesTable({ candidates, areas, saved, suggestions, pe
                   <span className="activity-sources-count">{t("{count} of {total} chosen", { count, total: ids.length })}</span>
                 </button>
               </span></th>
+              {areaColumn && <td role="gridcell" className="activity-sources-meta activity-sources-group-area">
+                {area && <><MapPin className="activity-sources-meta-icon" size={14} aria-hidden="true" />{area.label || noArea}</>}</td>}
             </tr>;
           })}
       </tbody>

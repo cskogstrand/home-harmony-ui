@@ -30,6 +30,9 @@ export interface ActivitySourceRow {
   integration: string;
   areaKey: string;
   area: string;
+  /** The device's own area in Home Assistant, which its entities share unless one was moved elsewhere; "" without one. */
+  deviceAreaKey: string;
+  deviceArea: string;
   /** Lowercase, accent-free text that the search matches. */
   search: string;
 }
@@ -76,11 +79,13 @@ export function activitySourceRows(candidates: Entity[], areas: Pick<Area, "id" 
     const category = activityIconCategory(icon);
     const device = entity.device ? entity.device.name_by_user || entity.device.name || entity.device.model || labels.unnamedDevice : "";
     const area = areaNames.get(entity.areaId) ?? "";
+    const deviceAreaKey = entity.device?.area_id ?? "", deviceArea = areaNames.get(deviceAreaKey) ?? "";
     const integration = entity.integration ? integrationLabel(entity.integration) : "";
     const name = labels.name(entity);
     return {
       id: entity.preferenceId, entity, name, detail: entity.entityId, icon, category,
       deviceKey: entity.device?.id ?? "", device, integrationKey: entity.integration ?? "", integration, areaKey: area ? entity.areaId : "", area,
+      deviceAreaKey: deviceArea ? deviceAreaKey : "", deviceArea,
       search: normalizeSearch([name, entity.name, entity.entityId, device, integration, entity.integration, area, labels.category(category)].filter(Boolean).join(" "), labels.language),
     };
   });
@@ -90,7 +95,7 @@ export function activitySourceRows(candidates: Entity[], areas: Pick<Area, "id" 
 export function missingSourceRows(ids: Iterable<string>, known: ReadonlySet<string>, labels: SourceRowLabels): ActivitySourceRow[] {
   return [...new Set(ids)].filter(id => !known.has(id)).map((id): ActivitySourceRow => {
     const detail = id.slice(id.indexOf("|") + 1);
-    return { id, name: labels.missingName, detail, icon: "activity", category: "missing", deviceKey: "", device: "", integrationKey: "", integration: "", areaKey: "", area: "",
+    return { id, name: labels.missingName, detail, icon: "activity", category: "missing", deviceKey: "", device: "", integrationKey: "", integration: "", areaKey: "", area: "", deviceAreaKey: "", deviceArea: "",
       search: normalizeSearch(`${labels.missingName} ${detail} ${labels.category("missing")}`, labels.language) };
   });
 }
@@ -210,3 +215,42 @@ export function chosenSourceSummary(candidates: Entity[], chosen: Iterable<strin
 export const unsavedSourcesDescription = (changes: number): Message => changes
   ? msg(changes === 1 ? "1 change to Activity sources is not saved. Keep editing to save it, or discard it and leave." : "{count} changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.", { count: changes })
   : "Your changes to Activity sources are not saved. Keep editing to save them, or discard them and leave.";
+
+const allColumns: SourceSortKey[] = ["name", "device", "integration", "area", "type"];
+/**
+ * The table's columns. A flat list shows them all; in a tree a column is left out when a level above already says it, so
+ * under integration → device → type a source shows its name and, where it differs from its device, its area.
+ */
+export function sourceColumns(grouping: SourceGrouping): SourceSortKey[] {
+  const levels: readonly string[] = sourceLevels(grouping);
+  return grouping === "none" ? allColumns : allColumns.filter(key => key === "name" || !levels.includes(key));
+}
+
+/**
+ * A source's name inside its device's group, without the device name in front ("Front door" under "Hallway sensor"). The
+ * name stays whole when it does not start with the device name followed by a space or punctuation, or nothing is left.
+ */
+export function nameInDevice(name: string, device: string, language: string) {
+  if (!device || name.length <= device.length || !name.toLocaleLowerCase(language).startsWith(device.toLocaleLowerCase(language))) return name;
+  const rest = name.slice(device.length).replace(/^[\s:,.·–—-]+/u, "");
+  return rest && rest.length < name.length - device.length ? rest : name;
+}
+
+/**
+ * The one area a group row shows for everything below it: on a device's row, the device's own area from Home Assistant;
+ * otherwise (or for a device without one) the area all its sources share, "" when that is none. Undefined when they differ.
+ */
+export function groupArea(rows: readonly ActivitySourceRow[], device: boolean): { key: string; label: string } | undefined {
+  const [first] = rows;
+  if (!first) return undefined;
+  if (device && first.deviceKey && first.deviceAreaKey && rows.every(row => row.deviceKey === first.deviceKey)) return { key: first.deviceAreaKey, label: first.deviceArea };
+  return rows.every(row => row.areaKey === first.areaKey) ? { key: first.areaKey, label: first.area } : undefined;
+}
+
+/** An entity ID cut for a one-line display: the start that may be shortened, and its last word, which always shows. */
+export function entityIdParts(id: string): [string, string] {
+  if (id.length <= 24) return [id, ""];
+  const cut = id.slice(id.length - 16).search(/[._]/);
+  const at = cut < 0 ? id.length - 10 : id.length - 16 + cut;
+  return [id.slice(0, at), id.slice(at)];
+}
