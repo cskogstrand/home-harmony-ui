@@ -1,9 +1,9 @@
-import { notificationTriggers, visibleWidgetRows } from "../../shared/notifications";
+import { notificationDismissible, notificationTriggers, visibleWidgetRows } from "../../shared/notifications";
 import { PanelTitle } from "@/components/PanelTitle";
 import { useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useIsPresent } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import { Bell, Camera, ChevronRight, Clock3, Image, ImageOff, ListChecks, VideoOff, X } from "lucide-react";
+import { Bell, Camera, ChevronRight, Clock3, Image, ImageOff, ListChecks, Pin, VideoOff, X } from "lucide-react";
 import { configuredCamera } from "../../shared/cameras";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
 import { CameraPersonSnapshot } from "./CameraPersonSnapshot";
@@ -14,7 +14,7 @@ import { useFamily } from "@/contexts/FamilyContext";
 import { useI18n } from "@/hooks/use-i18n";
 import { matchingTodoItem } from "@/lib/todo-items";
 import { available, entityStateLabel, supportsAction } from "@/lib/ha-model";
-import { matchesState, notificationEntity, notificationMinutesLeft, notificationProgress, notificationReadings, notificationWidgetMedia, previewNotificationEvent, progressSourceValue, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
+import { matchesState, notificationEntity, notificationMinutesLeft, notificationPersistenceNote, notificationProgress, notificationReadings, notificationWidgetMedia, previewNotificationEvent, progressSourceValue, showsLiveActivityPreview, type HomeNotification } from "@/lib/notifications";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -68,6 +68,15 @@ function NotificationCameraFeed({ item, cameraId = item.rule.cameraEntity, camer
     {!thumbnail && <button type="button" className="smart-media-open" disabled={!!preview} aria-haspopup="dialog"
       aria-label={t("Show camera")} onClick={event => { event.currentTarget.focus({ preventScroll: true }); camera(item.id, true); }} />}
   </div>;
+}
+
+/** Text, not just an icon or colour, tells people an alert stays until its condition clears. */
+function PersistenceNote({ item, hidden = false }: { item: HomeNotification; hidden?: boolean }) {
+  const { message: t } = useI18n();
+  const note = notificationPersistenceNote(item);
+  if (!note) return null;
+  if (hidden) return <span className="sr-only">{t(note)}</span>;
+  return <p className="notification-persistent-note"><Pin aria-hidden="true" />{t(note)}</p>;
 }
 
 function restoreAlertFocus(container: HTMLElement | null) {
@@ -206,7 +215,8 @@ export function NotificationRow({ item, condensed = false, activity = false, com
   const subtitle = renderReadings("subtitle");
   const footer = renderReadings("footer");
   const icon = <NotificationIcon rule={item.rule} animate={activity && item.rule.kind === "ongoing"} />;
-  const dismissAction = item.rule.kind !== "ongoing" && <Button type="button" disabled={!!preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>;
+  // Without dismissal no button renders at all, so no empty or disabled stop is left in the focus order.
+  const dismissAction = notificationDismissible(item.rule) && <Button type="button" disabled={!!preview} size="icon" variant="ghost" className="shrink-0" aria-label={t("Dismiss {name}", { name: item.eventTitle || item.rule.title })} onClick={() => dismiss(item.id)}><X size={18} aria-hidden="true" /></Button>;
   const title = <strong className="block">{item.eventTitle || item.rule.title}</strong>;
   const Tag = inDialog ? "div" : "li";
   const style = activity ? `notification-activity${compactActivity ? " notification-activity-compact" : ""}` : condensed ? "notification-row flex min-w-0 flex-1 basis-56 items-start gap-2 py-1 text-sm" : "notification-row flex items-start gap-3 border-t py-3 first:border-0";
@@ -232,6 +242,7 @@ export function NotificationRow({ item, condensed = false, activity = false, com
       {footer && <div data-placement="footer" className="notification-reading-footer">{footer}</div>}
       {!inDialog && progress}
       {item.rule.kind === "current" && item.rule.shoppingAction && <ShoppingAction action={item.rule.shoppingAction} preview={preview} />}
+      {!inDialog && <PersistenceNote item={item} />}
     </div>
     {!inDialog && !activity && dismissAction}
   </Tag>;
@@ -315,10 +326,11 @@ export function NotificationTile({ item, presentation, preview, entities: previe
           {showTitle && <div className="notification-glance-caption"><strong>{name}</strong>{subtitle && <small>{subtitle}</small>}</div>}
           {custom ? rows.map((slots, index) => <WidgetFields key={index} rule={rule} entities={entities} slots={slots} />)
             : rule.kind === "ongoing" && <ActivityPreviewReadings item={item} entities={entities} printPreview={print} />}
+          <PersistenceNote item={item} hidden />
         </div>
       </div>
       {!hasMedia && !doorbell && <ChevronRight className="notification-glance-chevron" aria-hidden="true" />}
-      {doorbell && <Button type="button" disabled={!!preview} variant="ghost" size="icon" className="notification-widget-dismiss" aria-label={t("Dismiss {name}", { name })} onClick={() => dismiss(item.id)}><X size={16} aria-hidden="true" /></Button>}
+      {doorbell && notificationDismissible(rule) && <Button type="button" disabled={!!preview} variant="ghost" size="icon" className="notification-widget-dismiss" aria-label={t("Dismiss {name}", { name })} onClick={() => dismiss(item.id)}><X size={16} aria-hidden="true" /></Button>}
     </div>
     <button type="button" className="notification-thumbnail-open" aria-haspopup="dialog" aria-describedby={bodyId}
       aria-label={t(action, { name })} onClick={event => onOpen(event.currentTarget)} />
@@ -522,7 +534,9 @@ export function NotificationDetailContent({ item, presentation, preview, entitie
   const content = <>
     <NotificationDetailHeader item={item} inline={inline} />
     <NotificationRow item={item} inDialog condensed={presentation === "banner"} activity={presentation.startsWith("activity")} compactActivity={presentation === "activity-compact"} preview={preview} entities={entities} />
-    {item.rule.kind === "current" && <div className="notification-dialog-actions"><Button type="button" variant="outline" disabled={!!preview} onClick={onDismiss}>{t("Dismiss notification")}</Button></div>}
+    {item.rule.kind === "current" && <div className="notification-dialog-actions">{notificationDismissible(item.rule)
+      ? <Button type="button" variant="outline" disabled={!!preview} onClick={onDismiss}>{t("Dismiss notification")}</Button>
+      : <PersistenceNote item={item} />}</div>}
   </>;
   if (inline) return <fieldset disabled className="notification-inline-popup notification-detail-dialog glass-surface glass-modal" data-presentation={presentation} aria-label={t("Popup preview")}>{content}</fieldset>;
   return <DialogContent className="notification-detail-dialog" aria-describedby={undefined}

@@ -3,8 +3,8 @@ import { RefillReminder } from "./RefillReminder";
 import { NotificationValidationErrors } from "./NotificationValidationErrors";
 import { configuredCamera } from "../../shared/cameras";
 import { useSearchParams } from "react-router-dom";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, PanelsTopLeft, Eye, Plus, SlidersHorizontal, Timer, Zap, X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Bell, Camera, ChartNoAxesColumnIncreasing, Gauge, ListChecks, MessageSquare, Palette, PanelsTopLeft, Pin, Eye, Plus, SlidersHorizontal, Timer, Zap, X } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { newPlannerId, useFamily } from "@/contexts/FamilyContext";
 import { useSharedConfiguration } from "@/contexts/SharedConfigurationContext";
@@ -68,6 +68,7 @@ export function NotificationSettings() {
   const [remove, setRemove] = useState<NotificationRule>();
   const editor = useRef<HTMLFormElement>(null);
   const titleInput = useRef<HTMLInputElement>(null);
+  const dismissalNote = useId();
   const editUsage = (section: "trigger" | "hideTrigger" | "progress" | "readings" | "camera") => {
     setOpenSections(sections => [...new Set([...sections, section])]);
     editor.current?.querySelector<HTMLButtonElement>(`[data-section="${section}"] > h3 > button`)?.focus();
@@ -332,6 +333,13 @@ export function NotificationSettings() {
           <label>{t("Show for (seconds)")}<input name="durationSeconds" type="number" min={10} max={3600} required value={draft.durationSeconds} onChange={event => setDraft({ ...draft, durationSeconds: event.target.valueAsNumber })} /></label>
           <label>{t("Cooldown (seconds)")}<input name="cooldownSeconds" type="number" min={0} max={3600} required value={draft.cooldownSeconds} onChange={event => setDraft({ ...draft, cooldownSeconds: event.target.valueAsNumber })} /></label>
         </div></NotificationEditorSection>}
+        {draft.kind !== "ongoing" && <NotificationEditorSection value="dismissal" title={t("Dismissing")} icon={Pin} summary={t(draft.dismissible === false ? "Cannot be dismissed" : "Can be dismissed")} open={openSections.includes("dismissal")}>
+          <div className="notification-toggle"><span>{t("Can be dismissed")}</span><Switch aria-label={t("Can be dismissed")} aria-describedby={dismissalNote} checked={draft.dismissible !== false} disabled={disabled}
+            onCheckedChange={on => setDraft({ ...draft, dismissible: on ? undefined : false })} /></div>
+          <p id={dismissalNote} className="page-note">{t(draft.dismissible === false
+            ? "No screen shows a Dismiss button. The alert stays until its condition clears or it expires."
+            : "Dismissing hides the active alert on that screen only.")}</p>
+        </NotificationEditorSection>}
         <h3 className="notification-settings-group">{t("Board widget")}</h3>
         <NotificationEditorSection value="widget" title={t("Edit widget")} icon={PanelsTopLeft} summary={draft.widget?.title?.trim() || t("Title, short text, readings and media")} open={openSections.includes("widget")}>
           <NotificationWidgetSettings rule={draft} entities={selectable} cameras={cameras?.items ?? []} defaultWidth={notifications.defaultWidgetWidth} disabled={disabled} onChange={widget => setDraft({ ...draft, widget })} />

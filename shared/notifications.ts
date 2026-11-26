@@ -96,6 +96,8 @@ export const notificationRuleSchema = z.object({
   shoppingAction: z.object({ list: reference, item: z.string().trim().min(1).max(120) }).strict().optional(),
   id: reference, title: z.string().trim().min(1).max(100), message: z.string().trim().max(300).default(""),
   enabled: z.boolean().default(true), kind: z.enum(["ongoing", "current", "camera"]), trigger: notificationTriggerSchema,
+  // Missing means the alert can be dismissed, as before. Ongoing tasks never offer dismissal.
+  dismissible: z.boolean().optional(),
   additionalTriggers: z.array(notificationTriggerSchema).max(MAX_NOTIFICATION_TRIGGERS - 1).optional(),
   hideTrigger: stateTriggerSchema.extend({ delayMinutes: z.number().int().min(0).max(1440) }).optional(),
   pages: z.enum(["today", "main"]).optional(),
@@ -157,3 +159,5 @@ export const notificationSettingsSchema = z.object({
 export type NotificationRule = z.infer<typeof notificationRuleSchema>;
 export type NotificationTrigger = NotificationRule["trigger"];
 export const notificationTriggers = (rule: NotificationRule) => [rule.trigger, ...(rule.additionalTriggers ?? [])];
+/** Whether people can dismiss this rule's active alert. Ongoing tasks clear only with their condition. */
+export const notificationDismissible = (rule: Pick<NotificationRule, "kind" | "dismissible">) => rule.kind !== "ongoing" && rule.dismissible !== false;

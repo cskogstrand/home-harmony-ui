@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { notificationIcons, notificationRuleSchema, notificationSettingsSchema, type NotificationRule } from "../../shared/notifications";
+import { notificationDismissible, notificationIcons, notificationRuleSchema, notificationSettingsSchema, type NotificationRule } from "../../shared/notifications";
 import { emptyConfiguration, parseConfiguration } from "../../shared/configuration";
-import { matchesState, notificationMinutesLeft, notificationProgress, notificationReadings, NotificationEngine, showsLiveActivityPreview } from "@/lib/notifications";
+import { matchesState, notificationMinutesLeft, notificationPersistenceNote, notificationProgress, notificationReadings, NotificationEngine, showsLiveActivityPreview } from "@/lib/notifications";
 import { emptyRegistries, mapHome } from "@/lib/ha-model";
 import { state } from "./ha-fixtures";
 
@@ -206,7 +206,8 @@ describe("notification lifecycle", () => {
   });
   it("keeps one state alert until every condition clears, including dismissal across handoffs", () => {
     const engine = new NotificationEngine();
-    const configured = rule({ additionalTriggers: [{ type: "state", entity: "home|sensor.other", attribute: "", operator: "gt", value: "5" }] });
+    // Ongoing tasks are never dismissible, so the dismissal half uses a current alert.
+    const configured = rule({ kind: "current", additionalTriggers: [{ type: "state", entity: "home|sensor.other", attribute: "", operator: "gt", value: "5" }] });
     const update = (first: string, second: string) => engine.update([configured], [...entities(first), ...entities(second, {}, "sensor.other")], {}, true, now, zone);
     const first = update("10", "0")[0];
     expect(update("0", "10").map(item => item.id)).toEqual([first.id]);
@@ -342,6 +343,80 @@ describe("notification lifecycle", () => {
     plans[0].summary = "Another example title";
     expect(update(now + 1000)).toHaveLength(1);
     expect(update(Date.parse("2026-10-24T22:00:00Z"))).toHaveLength(0);
+  });
+});
+
+describe("non-dismissible notification rules", () => {
+  const current = rule({ kind: "current" });
+  const fixed = { ...current, dismissible: false };
+  const update = (engine: NotificationEngine, value: string, rules: NotificationRule[], offset = 0) => engine.update(rules, entities(value), {}, true, now + offset, zone);
+  it("can be dismissed by default, keeps older rules unchanged and stores the switch in backups", () => {
+    expect(current.dismissible).toBeUndefined();
+    expect(notificationDismissible(current)).toBe(true);
+    expect(notificationDismissible(rule({ kind: "camera", cameraEntity: "example-camera" }))).toBe(true);
+    expect(notificationDismissible(rule())).toBe(false);
+    expect(notificationDismissible(fixed)).toBe(false);
+    expect(notificationRuleSchema.safeParse({ ...current, dismissible: "false" }).success).toBe(false);
+    const config = emptyConfiguration();
+    config.settings.notifications.rules = [current, { ...fixed, id: "example-fixed" }];
+    const restored = parseConfiguration(JSON.stringify(config)).settings.notifications.rules;
+    expect(restored.map(item => item.dismissible)).toEqual([undefined, false]);
+    expect(JSON.stringify(restored[0])).not.toContain("dismissible");
+  });
+  it("ignores dismissal and clears only when the condition is resolved", () => {
+    const engine = new NotificationEngine();
+    const [alert] = update(engine, "10", [fixed]);
+    expect(notificationPersistenceNote(alert)).toBe("Stays until resolved");
+    expect(notificationPersistenceNote({ ...alert, rule: current })).toBeUndefined();
+    engine.dismiss(alert.id);
+    expect(update(engine, "11", [fixed])).toEqual([{ ...alert }]);
+    expect(update(engine, "0", [fixed])).toEqual([]);
+    expect(update(engine, "10", [fixed])).toHaveLength(1);
+  });
+  it("skips non-dismissible alerts when every active alert is dismissed", () => {
+    const engine = new NotificationEngine();
+    const other = { ...current, id: "example-other", title: "Example reminder" };
+    for (const item of update(engine, "10", [fixed, other])) engine.dismiss(item.id);
+    expect(engine.list().map(item => item.rule.id)).toEqual([fixed.id]);
+  });
+  it("brings back an alert dismissed before the switch was turned off for as long as its condition holds", () => {
+    const engine = new NotificationEngine();
+    const [alert] = update(engine, "10", [current]);
+    engine.dismiss(alert.id);
+    expect(update(engine, "10", [current], 1000)).toEqual([]);
+    const [returned] = update(engine, "10", [fixed], 2000);
+    expect(returned).toMatchObject({ id: alert.id, startedAt: alert.startedAt, popup: false });
+    expect(returned.dismissed).toBeUndefined();
+    // Turning the switch back on keeps the returned alert until someone dismisses it again.
+    expect(update(engine, "10", [current], 3000)).toHaveLength(1);
+    update(engine, "10", [fixed], 4000);
+    expect(update(engine, "0", [fixed], 5000)).toEqual([]);
+  });
+  it("keeps a camera alert until it expires and returns a dismissed one without reopening its viewer", () => {
+    const engine = new NotificationEngine();
+    const camera = rule({ kind: "camera", cameraEntity: "example-camera", durationSeconds: 10 });
+    update(engine, "0", [camera]);
+    const [alert] = update(engine, "10", [camera], 1000);
+    expect(alert.popup).toBe(true);
+    engine.dismiss(alert.id);
+    expect(update(engine, "10", [camera], 2000)).toEqual([]);
+    const [returned] = update(engine, "10", [{ ...camera, dismissible: false }], 3000);
+    expect(returned).toMatchObject({ id: alert.id, popup: false });
+    expect(notificationPersistenceNote(returned)).toBe("Stays until it expires");
+    engine.dismiss(returned.id);
+    expect(update(engine, "10", [{ ...camera, dismissible: false }], 4000)).toHaveLength(1);
+    expect(update(engine, "10", [{ ...camera, dismissible: false }], 11001)).toEqual([]);
+  });
+  it("keeps a calendar alert until the event ends", () => {
+    const engine = new NotificationEngine();
+    const calendarRule = rule({ kind: "current", dismissible: false, trigger: { type: "calendar", entity: "home|calendar.example", leadMinutes: 0 } });
+    const plans = [{ uid: "example-one", summary: "Example event", start: "2026-10-24T11:30:00Z", end: "2026-10-24T13:00:00Z" }];
+    const at = (time: number) => engine.update([calendarRule], entities("on", {}, "calendar.example"), { "calendar.example": plans }, true, time, zone);
+    const [alert] = at(now);
+    expect(notificationPersistenceNote(alert)).toBe("Stays until the event ends");
+    engine.dismiss(alert.id);
+    expect(at(now + 1000)).toHaveLength(1);
+    expect(at(Date.parse("2026-10-24T13:00:00Z"))).toEqual([]);
   });
 });
 
