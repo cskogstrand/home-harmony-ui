@@ -229,6 +229,11 @@
 .notification-detail-dialog[data-presentation="banner"] { max-width: 36rem; }
 .notification-detail-dialog[data-presentation="activity-compact"] .notification-body { display: flex; gap: .5rem; }
 .notification-dialog-actions { flex: none; display: flex; justify-content: flex-end; border-top: 1px solid hsl(var(--border)); padding: .625rem 1.25rem; }
+/* A quiet line, not a warning: muted text with a small pin where a Dismiss action would be. */
+.notification-persistent-note { display: flex; align-items: center; gap: .375rem; margin-top: .375rem; font-size: var(--type-meta); line-height: 1.35; color: hsl(var(--muted-foreground)); }
+.notification-persistent-note svg { flex: none; width: 1em; height: 1em; }
+/* Matches the Dismiss button's 44px row so the dialog keeps its height. */
+.notification-dialog-actions > .notification-persistent-note { min-height: 2.75rem; margin: 0; }
 .notification-camera-dialog.smart-media-dialog { display: flex; flex-direction: column; overflow: hidden; }
 .notification-camera-dialog .notification-dialog-header { padding: 0 2.75rem 0 0; }
 .notification-camera-dialog-scroll { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }

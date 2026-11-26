@@ -2290,3 +2290,80 @@ it("links to shopping list settings when a refill alert has no writable list", (
   expect(screen.getByRole("link", { name: "Set up shopping lists" })).toHaveAttribute("href", "/settings/lists");
   expect(setNotifications).not.toHaveBeenCalled();
 });
+
+const reminderRule = (dismissible?: boolean) => notificationRuleSchema.parse({ id: "example-reminder", title: "Example refill", message: "Example level is low", kind: "current", trigger: { type: "state", entity: "home|binary_sensor.example", operator: "eq", value: "on" }, ...(dismissible === undefined ? {} : { dismissible }) });
+
+it("removes every dismiss action from a non-dismissible alert and says calmly that it stays", () => {
+  const reminder = reminderRule(false), doorbell = { ...cameraRule(), dismissible: false };
+  const value = { notifications: [{ id: reminder.id, rule: reminder, startedAt: 0, popup: false }, { id: doorbell.id, rule: doorbell, startedAt: 0, expiresAt: 10_000, popup: false }], errors: [], dismiss: vi.fn(), camera: vi.fn(), retry: vi.fn() };
+  const content = (compact: boolean, presentation?: "banner" | "section" | "activity" | "activity-compact") => <MemoryRouter><NotificationContext.Provider value={value}><NotificationList compact={compact} presentation={presentation} /></NotificationContext.Provider></MemoryRouter>;
+  const view = render(content(true));
+  expect(screen.queryByRole("button", { name: /^Dismiss/ })).toBeNull();
+  // The tile's open button carries the note in its description; no empty or disabled stop takes the old place.
+  expect(screen.getByRole("button", { name: "Show details for Example refill" })).toHaveAccessibleDescription(expect.stringContaining("Stays until resolved"));
+  expect(screen.getByRole("button", { name: "Open camera for Example doorbell" })).toHaveAccessibleDescription(expect.stringContaining("Stays until it expires"));
+  expect(document.querySelectorAll("li button:disabled")).toHaveLength(0);
+  fireEvent.click(screen.getByRole("button", { name: "Show details for Example refill" }));
+  const dialog = screen.getByRole("dialog", { name: "Example refill" });
+  expect(within(dialog).queryByRole("button", { name: "Dismiss notification" })).toBeNull();
+  expect(within(dialog).getByText("Stays until resolved")).toBeVisible();
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  for (const presentation of ["banner", "section", "activity", "activity-compact"] as const) {
+    view.rerender(content(false, presentation));
+    expect(screen.queryByRole("button", { name: /^Dismiss/ })).toBeNull();
+    expect(screen.getByText("Stays until resolved")).toBeVisible();
+    expect(screen.getByText("Stays until it expires")).toBeVisible();
+  }
+  expect(value.dismiss).not.toHaveBeenCalled();
+  value.notifications = value.notifications.map(item => ({ ...item, rule: { ...item.rule, dismissible: undefined } }));
+  view.rerender(content(false, "section"));
+  expect(screen.getAllByRole("button", { name: /^Dismiss/ })).toHaveLength(2);
+  expect(screen.queryByText(/^Stays until/)).toBeNull();
+});
+
+it("clears a non-dismissible alert only when its condition is resolved", () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [reminderRule(false)] };
+  mocks.app.currentHome = home("on");
+  const content = () => <MemoryRouter><NotificationProvider><NotificationList /></NotificationProvider></MemoryRouter>;
+  const view = render(content());
+  expect(screen.getByText("Example refill")).toBeVisible();
+  expect(screen.getByText("Stays until resolved")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Dismiss Example refill" })).toBeNull();
+  mocks.app.currentHome = home("off");
+  view.rerender(content());
+  expect(screen.queryByText("Example refill")).not.toBeInTheDocument();
+});
+
+it("saves the Can be dismissed switch per rule, previews its state and keeps it on for older rules", async () => {
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [reminderRule(), notificationRuleSchema.parse({ ...reminderRule(), id: "example-task", title: "Example task", kind: "ongoing" })] };
+  const view = render(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example task" }));
+  expect(screen.queryByRole("button", { name: "Dismissing" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example refill" }));
+  expect(screen.getByRole("button", { name: "Dismissing" })).toHaveAccessibleDescription("Can be dismissed");
+  await openEditorSection("Dismissing");
+  const toggle = screen.getByRole("switch", { name: "Can be dismissed" });
+  expect(toggle).toBeChecked();
+  expect(toggle).toHaveAccessibleDescription("Dismissing hides the active alert on that screen only.");
+  let popup = openPreviewPopup("Example refill");
+  expect(within(popup).getByRole("button", { name: "Dismiss notification" })).toBeDisabled();
+  closePreviewPopup(popup);
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAccessibleDescription(/stays until its condition clears or it expires/);
+  popup = openPreviewPopup("Example refill");
+  expect(within(popup).queryByRole("button", { name: "Dismiss notification" })).toBeNull();
+  expect(within(popup).getByText("Stays until resolved")).toBeVisible();
+  closePreviewPopup(popup);
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  const saved = setNotifications.mock.lastCall[0].rules[0];
+  expect(saved.dismissible).toBe(false);
+  mocks.family.notifications = { ...emptyPlanner().notifications, rules: [saved] };
+  view.rerender(<MemoryRouter><NotificationSettings /></MemoryRouter>);
+  fireEvent.click(screen.getByRole("button", { name: "Edit Example refill" }));
+  expect(screen.getByRole("button", { name: "Dismissing" })).toHaveAccessibleDescription("Cannot be dismissed");
+  await openEditorSection("Dismissing");
+  fireEvent.click(screen.getByRole("switch", { name: "Can be dismissed" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save notification" }));
+  expect(JSON.stringify(setNotifications.mock.lastCall[0].rules[0])).not.toContain("dismissible");
+});
